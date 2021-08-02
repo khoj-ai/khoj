@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 import pathlib
 import argparse
+import os
+import stat
+
+def get_absolute(path):
+    return path.expanduser().absolute()
 
 if __name__ == '__main__':
     # Setup Argument Parser
@@ -15,11 +20,17 @@ if __name__ == '__main__':
 # Arrange
 eval "$(conda shell.bash hook)"
 conda activate samvayati
-cd {args.script_dir.expanduser().absolute()}
+cd {get_absolute(args.script_dir)}
 
 # Act
-python3 asymmetric.py -j {args.model_dir.expanduser().absolute()}/notes.jsonl.gz -e {args.model_dir.expanduser().absolute()}/notes_embeddings.pt -n 5 --interactive
+python3 asymmetric.py -j {get_absolute(args.model_dir)}/notes.jsonl.gz -e {get_absolute(args.model_dir)}/notes_embeddings.pt -n 5 --interactive
 '''
 
-    with args.install_path.open(mode='w') as run_script:
+    # Create Program Script File
+    with open(get_absolute(args.install_path), 'w') as run_script:
         run_script.write(run_script_content)
+
+    # Make Script Executable
+    absolute_install_path = str(get_absolute(args.install_path))
+    st = os.stat(absolute_install_path)
+    os.chmod(absolute_install_path, st.st_mode | stat.S_IEXEC)
