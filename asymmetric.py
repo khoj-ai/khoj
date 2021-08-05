@@ -25,7 +25,12 @@ def extract_entries(notesfile, verbose=False):
     with gzip.open(str(notesfile.expanduser()), 'rt', encoding='utf8') as jsonl:
         for line in jsonl:
             note = json.loads(line.strip())
-            note_string = f'{note["Title"]}\n{note["Body"] if "Body" in note else ""}'
+
+            # Ignore title notes i.e notes with just headings and empty body
+            if not "Body" in note or note["Body"].strip() == "":
+                continue
+
+            note_string = f'{note["Title"]}\t{note["Tags"] if "Tags" in note else ""}\n{note["Body"] if "Body" in note else ""}'
             entries.extend([note_string])
 
     if verbose:
