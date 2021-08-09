@@ -1,7 +1,5 @@
-import sentence_transformers
 from sentence_transformers import SentenceTransformer, util
 from PIL import Image
-import glob
 import torch
 import argparse
 import pathlib
@@ -17,7 +15,7 @@ def initialize_model():
 
 
 def extract_entries(image_directory, verbose=False):
-    image_names = glob.glob(f'{image_directory.expanduser()}/*.jpg')
+    image_names = list(image_directory.glob('*.jpg'))
     if verbose:
         print(f'Found {len(image_names)} images in {image_directory}')
     return image_names
@@ -28,7 +26,7 @@ def compute_embeddings(image_names, model, embeddings_file, verbose=False):
 
     # Load pre-computed embeddings from file if exists
     if embeddings_file.exists():
-        image_embeddings = torch.load(embeddings_file.expanduser())
+        image_embeddings = torch.load(embeddings_file)
         if verbose:
             print(f"Loaded pre-computed embeddings from {embeddings_file}")
 
@@ -41,7 +39,7 @@ def compute_embeddings(image_names, model, embeddings_file, verbose=False):
 
         if len(images) > 0:
             image_embeddings = model.encode(images, batch_size=128, convert_to_tensor=True, show_progress_bar=True)
-            torch.save(image_embeddings, embeddings_file.expanduser())
+            torch.save(image_embeddings, embeddings_file)
             if verbose:
                 print(f"Saved computed embeddings to {embeddings_file}")
 
@@ -72,7 +70,7 @@ def search(query, image_embeddings, model, count=3, verbose=False):
 def render_results(hits, image_names, image_directory, count):
     for hit in hits[:count]:
         print(image_names[hit['corpus_id']])
-        image_path = image_directory.joinpath(image_names[hit['corpus_id']]).expanduser()
+        image_path = image_directory.joinpath(image_names[hit['corpus_id']])
         with Image.open(image_path) as img:
             img.show()
 
@@ -87,14 +85,18 @@ if __name__ == '__main__':
     parser.add_argument('--verbose', action='store_true', default=False, help="Show verbose conversion logs. Default: false")
     args = parser.parse_args()
 
+    # Resolve file, directory paths in args to absolute paths
+    embeddings_file = args.embeddings_file.expanduser().resolve()
+    image_directory = args.image_directory.expanduser().resolve(strict=True)
+
     # Initialize Model
     model, count = initialize_model()
 
     # Extract Entries
-    image_names = extract_entries(args.image_directory, args.verbose)
+    image_names = extract_entries(image_directory, args.verbose)
 
     # Compute or Load Embeddings
-    image_embeddings = compute_embeddings(image_names, model, args.embeddings_file, args.verbose)
+    image_embeddings = compute_embeddings(image_names, model, embeddings_file, args.verbose)
 
     # Run User Queries on Entries in Interactive Mode
     while args.interactive:
@@ -107,4 +109,4 @@ if __name__ == '__main__':
         hits = search(user_query, image_embeddings, model, args.results_count, args.verbose)
 
         # render results
-        render_results(hits, image_names, args.image_directory, count=args.results_count)
+        render_results(hits, image_names, image_directory, count=args.results_count)
