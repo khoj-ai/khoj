@@ -48,8 +48,17 @@ def compute_embeddings(image_names, model, embeddings_file, verbose=False):
     return image_embeddings
 
 
-def search(query, image_embeddings, model, count=3):
-    # First, we encode the query (which can either be an image or a text string)
+def search(query, image_embeddings, model, count=3, verbose=False):
+    # Set query to image content if query is a filepath
+    if pathlib.Path(query).expanduser().is_file():
+        query_imagepath = pathlib.Path(query).expanduser().resolve(strict=True)
+        query = copy.deepcopy(Image.open(query_imagepath))
+        if verbose:
+            print(f"Find Images similar to Image at {query_imagepath}")
+    else:
+        print(f"Find Images by Text: {query}")
+
+    # Now we encode the query (which can either be an image or a text string)
     query_embedding = model.encode([query], convert_to_tensor=True, show_progress_bar=False)
 
     # Then, we use the util.semantic_search function, which computes the cosine-similarity
@@ -95,7 +104,7 @@ if __name__ == '__main__':
             exit(0)
 
         # query notes
-        hits = search(user_query, image_embeddings, model, args.results_count)
+        hits = search(user_query, image_embeddings, model, args.results_count, args.verbose)
 
         # render results
         render_results(hits, image_names, args.image_directory, count=args.results_count)
