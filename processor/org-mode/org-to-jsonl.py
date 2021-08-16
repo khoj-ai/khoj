@@ -40,21 +40,21 @@ def load_jsonl(input_path, verbose=0):
     return data
 
 
-def get_org_files(org_directory, org_files=None, org_file_filter="*.org"):
+def get_org_files(org_files=None, org_file_filter=None):
     "Get Org files to process"
-    expanded_org_directory = org_directory.expanduser()
-    filtered_org_files = {org_file
-                 for org_file
-                 in expanded_org_directory.glob(org_file_filter)
-                 if not org_file.name.startswith('.')}
-
-    # Filter to User specified Org files when set by User
+    absolute_org_files, filtered_org_files = set(), set()
     if org_files:
-        filtered_org_files = {str(org_file)
-                     for org_file in filtered_org_files
-                     if str(org_file.relative_to(expanded_org_directory)) in set(org_files)}
+        absolute_org_files = {get_absolute_path(org_file)
+                              for org_file
+                              in org_files}
+    if org_file_filter:
+        filtered_org_files = set(glob.glob(get_absolute_path(org_file_filter)))
 
-    return filtered_org_files
+    all_org_files = absolute_org_files | filtered_org_files
+    if args.verbose:
+        print(f'Processing files: {all_org_files}')
+
+    return all_org_files
 
 
 def extract_org_entries(org_files):
@@ -66,6 +66,7 @@ def extract_org_entries(org_files):
                 str(org_file)))
 
     return entries
+
 
 def convert_org_entries_to_jsonl(entries, jsonl_file, verbose=0):
     "Convert each org entries to json and write to jsonl file"
@@ -95,28 +96,38 @@ def convert_org_entries_to_jsonl(entries, jsonl_file, verbose=0):
     return jsonl
 
 
+def is_none_or_empty(item):
+    return item == None or (hasattr(item, '__iter__') and len(item) == 0)
+
+
+def get_absolute_path(filepath):
+    return str(pathlib.Path(filepath).expanduser().absolute())
+
+
 if __name__ == '__main__':
     # Setup argument parser
-    parser = argparse.ArgumentParser(description="Map Org-Mode notes into JSONL format")
-    parser.add_argument('--jsonl-file', type=pathlib.Path, required=True, help="Output file for JSONL formatted notes")
-    parser.add_argument('--org-directory', default=pathlib.Path("./"), type=pathlib.Path, help="Input directory from which to retrieve Org-Mode files to convert. Default: Current directory.")
-    parser.add_argument('--org-files', '-f', nargs='+', help="List of org mode files to process. Requires file path relative to org_directory")
-    parser.add_argument('--org-file-filter', type=str, default="*.org", help="Regex filter org files in org_directory to process. Default: All org files in org_directory")
-    parser.add_argument('--compress', action='store_true', default=False, help="Compress output to gunzipped jsonl file")
+    parser = argparse.ArgumentParser(description="Map Org-Mode notes into (compressed) JSONL format")
+    parser.add_argument('--jsonl-file', '-o', type=pathlib.Path, required=True, help="Output file for JSONL formatted notes")
+    parser.add_argument('--org-files', '-i', nargs='*', help="List of org-mode files to process")
+    parser.add_argument('--org-file-filter', type=str, default=None, help="Regex filter for org-mode files to process")
+    parser.add_argument('--no-compress', action='store_true', default=False, help="Do not compress jsonl output with gunzip. Default: False")
     parser.add_argument('--verbose', '-v', action='count', help="Show verbose conversion logs")
     args = parser.parse_args()
 
+    if is_none_or_empty(args.org_files) and is_none_or_empty(args.org_file_filter):
+        print("At least one of org-files or org-file-filter is required to be specified")
+
     # Get Org Files to Process
-    org_files = get_org_files(args.org_directory, args.org_files, args.org_file_filter)
+    org_files = get_org_files(args.org_files, args.org_file_filter)
 
     # Extract Entries from specified Org files
     entries = extract_org_entries(org_files)
 
     # Process Each Entry from All Notes Files
-    jsonl_data = convert_org_entries_to_jsonl(entries, str(args.jsonl_file), verbose=args.verbose)
+    jsonl_data = convert_org_entries_to_jsonl(entries, get_absolute_path(args.jsonl_file), verbose=args.verbose)
 
     # Compress JSONL formatted Data
-    if args.compress:
-        compress_jsonl_data(jsonl_data, str(args.jsonl_file.expanduser()), verbose=args.verbose)
+    if args.no_compress:
+        dump_jsonl(jsonl_data, get_absolute_path(args.jsonl_file), verbose=args.verbose)
     else:
-        dump_jsonl(jsonl_data, str(args.jsonl_file.expanduser()), verbose=args.verbose)
+        compress_jsonl_data(jsonl_data, get_absolute_path(args.jsonl_file), verbose=args.verbose)

@@ -22,10 +22,8 @@ Setup
   Generate compressed JSONL from specified org-mode files
   ```sh
   python3 processor/org-mode/org-to-jsonl.py \
-  --org-files "Schedule.org" "Incoming.org" \
-  --org-directory "~/Notes" \
+  --org-files "~/Notes/Schedule.org" "~/Notes/Incoming.org" \
   --jsonl-file ".notes.jsonl" \
-  --compress \
   --verbose
   ```
 
@@ -33,7 +31,10 @@ Run
 ---
   Load ML model, generate embeddings and expose API interface to run user queries on above org-mode files
   ```sh
-  python3 main.py -j .notes.jsonl.gz -e .notes_embeddings.pt
+  python3 main.py \
+  --jsonl-file .notes.jsonl.gz \
+  --embeddings-file .notes_embeddings.pt \
+  --verbose
   ```
     
 Use
@@ -48,9 +49,9 @@ Use
   - *Call Semantic Search via Python Script Directly*
     ```sh
     python3 search_types/asymmetric.py \
-    -j .notes.jsonl.gz \
-    -e .notes_embeddings.pt \
-    -n 5 \
+    --jsonl-file .notes.jsonl.gz \
+    --embeddings-file .notes_embeddings.pt \
+    --results-count 5 \
     --verbose \
     --interactive
     ```
