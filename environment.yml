@@ -1,0 +1,9 @@
+name: semantic-search
+channels:
+  - conda-forge
+dependencies:
+  - python=3.*
+  - numpy=1.21.*
+  - pytorch
+  - transformers
+  - sentence-transformers
