@@ -7,3 +7,5 @@ dependencies:
   - pytorch
   - transformers
   - sentence-transformers
+  - fastapi
+  - uvicorn

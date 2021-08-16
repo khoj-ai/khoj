@@ -130,6 +130,16 @@ def render_results(hits, entries, count=5, display_biencoder_results=False):
         print(f"CrossScore: {hit['cross-score']:.3f}\n-----------------\n{entries[hit['corpus_id']]}")
 
 
+def collate_results(hits, entries, count=5, verbose=False):
+    return [
+        {
+            "Entry": entries[hit['corpus_id']],
+            "Score": f"{hit['cross-score']:.3f}"
+        }
+        for hit
+        in hits[0:count]]
+
+
 if __name__ == '__main__':
     # Setup Argument Parser
     parser = argparse.ArgumentParser(description="Map Org-Mode notes into JSONL format")
