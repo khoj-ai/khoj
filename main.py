@@ -1,6 +1,8 @@
 from typing import Optional
 from fastapi import FastAPI
-from asymmetric import *
+from search_types import asymmetric
+import argparse
+import pathlib
 import uvicorn
 
 app = FastAPI()
@@ -8,7 +10,7 @@ app = FastAPI()
 def create_search_notes(corpus_embeddings, entries, bi_encoder, cross_encoder, top_k):
     "Closure to create search_notes method from initialized model, entries and embeddings"
     def search_notes(query):
-        return query_notes(
+        return asymmetric.query_notes(
             query,
             corpus_embeddings,
             entries,
@@ -33,7 +35,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[str] = 'notes'):
         hits = search_notes(user_query)
 
         # collate and return results
-        return collate_results(hits, entries, results_count)
+        return asymmetric.collate_results(hits, entries, results_count)
 
     else:
         return {}
@@ -48,13 +50,13 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Initialize Model
-    bi_encoder, cross_encoder, top_k = initialize_model()
+    bi_encoder, cross_encoder, top_k = asymmetric.initialize_model()
 
     # Extract Entries
-    entries = extract_entries(args.jsonl_file, args.verbose)
+    entries = asymmetric.extract_entries(args.jsonl_file, args.verbose)
 
     # Compute or Load Embeddings
-    corpus_embeddings = compute_embeddings(entries, bi_encoder, args.embeddings_file, args.verbose)
+    corpus_embeddings = asymmetric.compute_embeddings(entries, bi_encoder, args.embeddings_file, args.verbose)
 
     # Generate search_notes method from initialized model, entries and embeddings
     search_notes = create_search_notes(corpus_embeddings, entries, bi_encoder, cross_encoder, top_k)
