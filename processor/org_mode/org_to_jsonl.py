@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Import Modules
-import orgnode
+import processor.org_mode.orgnode
 import json
 import argparse
 import pathlib
@@ -10,6 +10,24 @@ import gzip
 
 
 # Define Functions
+def org_to_jsonl(org_files, org_file_filter, output_path, verbose=False):
+    # Get Org Files to Process
+    org_files = get_org_files(args.input_files, args.input_filter)
+
+    # Extract Entries from specified Org files
+    entries = extract_org_entries(org_files)
+
+    # Process Each Entry from All Notes Files
+    jsonl_data = convert_org_entries_to_jsonl(entries, verbose=args.verbose)
+
+    # Compress JSONL formatted Data
+    if args.output_file.suffix == ".gz":
+        compress_jsonl_data(jsonl_data, args.output_file, verbose=args.verbose)
+    elif args.output_file.suffix == ".jsonl":
+        dump_jsonl(jsonl_data, args.output_file, verbose=args.verbose)
+
+    return entries
+
 def dump_jsonl(jsonl_data, output_path, verbose=0):
     "Write List of JSON objects to JSON line file"
     with open(get_absolute_path(output_path), 'w', encoding='utf-8') as f:
@@ -123,17 +141,5 @@ if __name__ == '__main__':
         print("At least one of org-files or org-file-filter is required to be specified")
         exit(1)
 
-    # Get Org Files to Process
-    org_files = get_org_files(args.input_files, args.input_filter)
-
-    # Extract Entries from specified Org files
-    entries = extract_org_entries(org_files)
-
-    # Process Each Entry from All Notes Files
-    jsonl_data = convert_org_entries_to_jsonl(entries, verbose=args.verbose)
-
-    # Compress JSONL formatted Data
-    if args.output_file.suffix == ".gz":
-        compress_jsonl_data(jsonl_data, args.output_file, verbose=args.verbose)
-    elif args.output_file.suffix == ".jsonl":
-        dump_jsonl(jsonl_data, args.output_file, verbose=args.verbose)
+    # Map notes in Org-Mode files to (compressed) JSONL formatted file
+    org_to_jsonl(args.input_files, args.input_filter, args.output_file, args.verbose)
