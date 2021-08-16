@@ -40,10 +40,10 @@ def extract_entries(notesfile, verbose=False):
     return entries
 
 
-def compute_embeddings(entries, bi_encoder, embeddings_file, verbose=False):
+def compute_embeddings(entries, bi_encoder, embeddings_file, regenerate=False, verbose=False):
     "Compute (and Save) Embeddings or Load Pre-Computed Embeddings"
     # Load pre-computed embeddings from file if exists
-    if embeddings_file.exists():
+    if embeddings_file.exists() and not regenerate:
         corpus_embeddings = torch.load(get_absolute_path(embeddings_file))
         if verbose:
             print(f"Loaded embeddings from {embeddings_file}")

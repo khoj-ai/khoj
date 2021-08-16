@@ -1,6 +1,6 @@
 from typing import Optional
 from fastapi import FastAPI
-from search_types import asymmetric
+from search_type import asymmetric
 import argparse
 import pathlib
 import uvicorn
