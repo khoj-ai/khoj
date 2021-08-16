@@ -7,19 +7,6 @@ import uvicorn
 
 app = FastAPI()
 
-def create_search_notes(corpus_embeddings, entries, bi_encoder, cross_encoder, top_k):
-    "Closure to create search_notes method from initialized model, entries and embeddings"
-    def search_notes(query):
-        return asymmetric.query_notes(
-            query,
-            corpus_embeddings,
-            entries,
-            bi_encoder,
-            cross_encoder,
-            top_k)
-
-    return search_notes
-
 
 @app.get('/search')
 def search(q: str, n: Optional[int] = 5, t: Optional[str] = 'notes'):
@@ -32,7 +19,13 @@ def search(q: str, n: Optional[int] = 5, t: Optional[str] = 'notes'):
 
     if t == 'notes':
         # query notes
-        hits = search_notes(user_query)
+        hits = asymmetric.query_notes(
+            q,
+            corpus_embeddings,
+            entries,
+            bi_encoder,
+            cross_encoder,
+            top_k)
 
         # collate and return results
         return asymmetric.collate_results(hits, entries, results_count)
@@ -57,9 +50,6 @@ if __name__ == '__main__':
 
     # Compute or Load Embeddings
     corpus_embeddings = asymmetric.compute_embeddings(entries, bi_encoder, args.embeddings, args.verbose)
-
-    # Generate search_notes method from initialized model, entries and embeddings
-    search_notes = create_search_notes(corpus_embeddings, entries, bi_encoder, cross_encoder, top_k)
 
     # Start Application Server
     uvicorn.run(app)
