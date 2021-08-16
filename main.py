@@ -44,8 +44,8 @@ def search(q: str, n: Optional[int] = 5, t: Optional[str] = 'notes'):
 if __name__ == '__main__':
     # Setup Argument Parser
     parser = argparse.ArgumentParser(description="Expose API for Semantic Search")
-    parser.add_argument('--jsonl-file', '-j', required=True, type=pathlib.Path, help="Input file for compressed JSONL formatted notes to compute embeddings from")
-    parser.add_argument('--embeddings-file', '-e', type=pathlib.Path, help="File to save/load model embeddings to/from. Default: ./embeddings.pt")
+    parser.add_argument('--compressed-jsonl', '-j', required=True, type=pathlib.Path, help="Compressed JSONL formatted notes file to compute embeddings from")
+    parser.add_argument('--embeddings', '-e', required=True, type=pathlib.Path, help="File to save/load model embeddings to/from")
     parser.add_argument('--verbose', action='store_true', default=False, help="Show verbose conversion logs. Default: false")
     args = parser.parse_args()
 
@@ -53,10 +53,10 @@ if __name__ == '__main__':
     bi_encoder, cross_encoder, top_k = asymmetric.initialize_model()
 
     # Extract Entries
-    entries = asymmetric.extract_entries(args.jsonl_file, args.verbose)
+    entries = asymmetric.extract_entries(args.compressed_jsonl, args.verbose)
 
     # Compute or Load Embeddings
-    corpus_embeddings = asymmetric.compute_embeddings(entries, bi_encoder, args.embeddings_file, args.verbose)
+    corpus_embeddings = asymmetric.compute_embeddings(entries, bi_encoder, args.embeddings, args.verbose)
 
     # Generate search_notes method from initialized model, entries and embeddings
     search_notes = create_search_notes(corpus_embeddings, entries, bi_encoder, cross_encoder, top_k)

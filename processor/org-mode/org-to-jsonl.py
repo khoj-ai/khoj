@@ -20,11 +20,11 @@ def dump_jsonl(jsonl_data, output_path, verbose=0):
 
 
 def compress_jsonl_data(jsonl_data, output_path, verbose=0):
-    with gzip.open(f'{output_path}.gz', 'wt') as gzip_file:
+    with gzip.open(get_absolute_path(output_path), 'wt') as gzip_file:
         gzip_file.write(jsonl_data)
 
     if verbose > 0:
-        print(f'Wrote {len(jsonl_data)} records to gzip compressed jsonl at {output_path}.gz')
+        print(f'Wrote {len(jsonl_data)} records to gzip compressed jsonl at {output_path}')
 
 
 def load_jsonl(input_path, verbose=0):
@@ -112,19 +112,19 @@ def get_absolute_path(filepath):
 if __name__ == '__main__':
     # Setup Argument Parser
     parser = argparse.ArgumentParser(description="Map Org-Mode notes into (compressed) JSONL format")
-    parser.add_argument('--jsonl-file', '-o', type=pathlib.Path, required=True, help="Output file for JSONL formatted notes")
-    parser.add_argument('--org-files', '-i', nargs='*', help="List of org-mode files to process")
-    parser.add_argument('--org-file-filter', type=str, default=None, help="Regex filter for org-mode files to process")
-    parser.add_argument('--no-compress', action='store_true', default=False, help="Do not compress jsonl output with gunzip. Default: False")
+    parser.add_argument('--output-file', '-o', type=pathlib.Path, required=True, help="Output file for (compressed) JSONL formatted notes. Expected file extensions: jsonl or jsonl.gz")
+    parser.add_argument('--input-files', '-i', nargs='*', help="List of org-mode files to process")
+    parser.add_argument('--input-filter', type=str, default=None, help="Regex filter for org-mode files to process")
     parser.add_argument('--verbose', '-v', action='count', help="Show verbose conversion logs")
     args = parser.parse_args()
 
-    if is_none_or_empty(args.org_files) and is_none_or_empty(args.org_file_filter):
+    # Input Validation
+    if is_none_or_empty(args.input_files) and is_none_or_empty(args.input_filter):
         print("At least one of org-files or org-file-filter is required to be specified")
         exit(1)
 
     # Get Org Files to Process
-    org_files = get_org_files(args.org_files, args.org_file_filter)
+    org_files = get_org_files(args.input_files, args.input_filter)
 
     # Extract Entries from specified Org files
     entries = extract_org_entries(org_files)
@@ -133,7 +133,7 @@ if __name__ == '__main__':
     jsonl_data = convert_org_entries_to_jsonl(entries, verbose=args.verbose)
 
     # Compress JSONL formatted Data
-    if args.no_compress:
-        dump_jsonl(jsonl_data, get_absolute_path(args.jsonl_file), verbose=args.verbose)
-    else:
-        compress_jsonl_data(jsonl_data, get_absolute_path(args.jsonl_file), verbose=args.verbose)
+    if args.output_file.suffix == ".gz":
+        compress_jsonl_data(jsonl_data, args.output_file, verbose=args.verbose)
+    elif args.output_file.suffix == ".jsonl":
+        dump_jsonl(jsonl_data, args.output_file, verbose=args.verbose)
