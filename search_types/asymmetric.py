@@ -130,7 +130,7 @@ def render_results(hits, entries, count=5, display_biencoder_results=False):
         print(f"CrossScore: {hit['cross-score']:.3f}\n-----------------\n{entries[hit['corpus_id']]}")
 
 
-def collate_results(hits, entries, count=5, verbose=False):
+def collate_results(hits, entries, count=5):
     return [
         {
             "Entry": entries[hit['corpus_id']],
