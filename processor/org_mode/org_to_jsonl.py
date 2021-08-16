@@ -2,6 +2,7 @@
 
 # Import Modules
 import processor.org_mode.orgnode
+from utils.helpers import get_absolute_path, is_none_or_empty
 import json
 import argparse
 import pathlib
@@ -117,14 +118,6 @@ def convert_org_entries_to_jsonl(entries, verbose=0):
             jsonl += f'{json.dumps(entry_dict, ensure_ascii=False)}\n'
 
     return jsonl
-
-
-def is_none_or_empty(item):
-    return item == None or (hasattr(item, '__iter__') and len(item) == 0)
-
-
-def get_absolute_path(filepath):
-    return str(pathlib.Path(filepath).expanduser().absolute())
 
 
 if __name__ == '__main__':

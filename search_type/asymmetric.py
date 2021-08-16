@@ -10,7 +10,7 @@ import re
 import torch
 import argparse
 import pathlib
-
+from utils.helpers import get_absolute_path
 
 def initialize_model():
     "Initialize model for assymetric semantic search. That is, where query smaller than results"
@@ -138,10 +138,6 @@ def collate_results(hits, entries, count=5):
         }
         for hit
         in hits[0:count]]
-
-
-def get_absolute_path(filepath):
-    return str(pathlib.Path(filepath).expanduser().absolute())
 
 
 if __name__ == '__main__':
