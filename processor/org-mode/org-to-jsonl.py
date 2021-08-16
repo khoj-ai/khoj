@@ -51,6 +51,11 @@ def get_org_files(org_files=None, org_file_filter=None):
         filtered_org_files = set(glob.glob(get_absolute_path(org_file_filter)))
 
     all_org_files = absolute_org_files | filtered_org_files
+
+    files_with_non_org_extensions = {org_file for org_file in all_org_files if not org_file.endswith(".org")}
+    if any(files_with_non_org_extensions):
+        print(f"[Warning] There maybe non org-mode files in the input set: {files_with_non_org_extensions}")
+
     if args.verbose:
         print(f'Processing files: {all_org_files}')
 
