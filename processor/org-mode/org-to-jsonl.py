@@ -12,7 +12,7 @@ import gzip
 # Define Functions
 def dump_jsonl(jsonl_data, output_path, verbose=0):
     "Write List of JSON objects to JSON line file"
-    with open(output_path, 'w', encoding='utf-8') as f:
+    with open(get_absolute_path(output_path), 'w', encoding='utf-8') as f:
         f.write(jsonl_data)
 
     if verbose > 0:
@@ -30,7 +30,7 @@ def compress_jsonl_data(jsonl_data, output_path, verbose=0):
 def load_jsonl(input_path, verbose=0):
     "Read List of JSON objects from JSON line file"
     data = []
-    with open(input_path, 'r', encoding='utf-8') as f:
+    with open(get_absolute_path(input_path), 'r', encoding='utf-8') as f:
         for line in f:
             data.append(json.loads(line.rstrip('\n|\r')))
 
@@ -105,7 +105,7 @@ def get_absolute_path(filepath):
 
 
 if __name__ == '__main__':
-    # Setup argument parser
+    # Setup Argument Parser
     parser = argparse.ArgumentParser(description="Map Org-Mode notes into (compressed) JSONL format")
     parser.add_argument('--jsonl-file', '-o', type=pathlib.Path, required=True, help="Output file for JSONL formatted notes")
     parser.add_argument('--org-files', '-i', nargs='*', help="List of org-mode files to process")
@@ -116,6 +116,7 @@ if __name__ == '__main__':
 
     if is_none_or_empty(args.org_files) and is_none_or_empty(args.org_file_filter):
         print("At least one of org-files or org-file-filter is required to be specified")
+        exit(1)
 
     # Get Org Files to Process
     org_files = get_org_files(args.org_files, args.org_file_filter)

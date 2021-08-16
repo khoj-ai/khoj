@@ -23,7 +23,7 @@ def initialize_model():
 def extract_entries(notesfile, verbose=False):
     "Load entries from compressed jsonl"
     entries = []
-    with gzip.open(str(notesfile.expanduser()), 'rt', encoding='utf8') as jsonl:
+    with gzip.open(get_absolute_path(notesfile), 'rt', encoding='utf8') as jsonl:
         for line in jsonl:
             note = json.loads(line.strip())
 
@@ -44,13 +44,13 @@ def compute_embeddings(entries, bi_encoder, embeddings_file, verbose=False):
     "Compute (and Save) Embeddings or Load Pre-Computed Embeddings"
     # Load pre-computed embeddings from file if exists
     if embeddings_file.exists():
-        corpus_embeddings = torch.load(str(embeddings_file.expanduser()))
+        corpus_embeddings = torch.load(get_absolute_path(embeddings_file))
         if verbose:
             print(f"Loaded embeddings from {embeddings_file}")
 
     else:  # Else compute the corpus_embeddings from scratch, which can take a while
         corpus_embeddings = bi_encoder.encode(entries, convert_to_tensor=True, show_progress_bar=True)
-        torch.save(corpus_embeddings, str(embeddings_file.expanduser()))
+        torch.save(corpus_embeddings, get_absolute_path(embeddings_file))
         if verbose:
             print(f"Computed embeddings and save them to {embeddings_file}")
 
@@ -138,6 +138,10 @@ def collate_results(hits, entries, count=5, verbose=False):
         }
         for hit
         in hits[0:count]]
+
+
+def get_absolute_path(filepath):
+    return str(pathlib.Path(filepath).expanduser().absolute())
 
 
 if __name__ == '__main__':
