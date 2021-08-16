@@ -11,7 +11,7 @@ def get_absolute(path):
 
 def create_script(filepath, content):
     # Create Program Script File
-    with open(get_absolute(filepath, 'w') as run_script:
+    with open(get_absolute(filepath, 'w')) as run_script:
         run_script.write(run_script_content)
 
     # Make Script Executable
@@ -24,7 +24,7 @@ if __name__ == '__main__':
     # Setup Argument Parser
     parser = argparse.ArgumentParser(description="Setup the semantic search program")
     parser.add_argument('--script-dir', '-s', default="./", type=pathlib.Path, help="The project directory. Default: Current Directory")
-    parser.add_argument('--install-dir', '-i', default="/usr/bin/", type=pathlib.Path, help="The directory to install the script. Default: ./embeddings.pt")
+    parser.add_argument('--install-dir', '-i', default="./", type=pathlib.Path, help="The directory to install the script. Default: Current Directory")
     parser.add_argument('--model-dir', '-m', default="./", type=pathlib.Path, help="The directory to store the model in. Default: Current Directory")
     args = parser.parse_args()
 
