@@ -4,8 +4,8 @@
 
 ;; Author: Debanjum Singh Solanky <debanjum@gmail.com>
 ;; Version: 0.1
-;; Keywords: search, org-mode, outlines, ledger
-;; URL: http://github.com/debanjum/emacs-semantic-search
+;; Keywords: search, org-mode, outlines
+;; URL: http://github.com/debanjum/semantic-search/interface/emacs
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -26,8 +26,8 @@
 
 ;;; Commentary:
 
-;; This package enables semantic search on org-mode, beancount files
-;; It is a wrapper package that interfaces with a transformer based ML model
+;; This package provides semantic search on org-mode files
+;; It is a wrapper that interfaces with transformer based ML model
 ;; The models semantic search capabilities are exposed via an HTTP API
 
 ;;; Code:

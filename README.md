@@ -2,7 +2,7 @@ Semantic Search
 ===
 > Provide natural language search on user personal content like notes, images using ML models
 
-All data is processed locally. User can interface with semantic-search app via [Emacs](https://github.com/debanjum/emacs-semantic-search), API or Commandline
+All data is processed locally. User can interface with semantic-search app via [Emacs](./interface/emacs/semantic-search.el), API or Commandline
 
 Dependencies
 ----
@@ -38,9 +38,9 @@ Run
     
 Use
 ---
-  - *Calls Semantic Search via Emacs*
-    - `M-x semantic-search "<user-query>"`
-    - `C-c C-s`
+  - *Semantic Search via Emacs*
+    - [Install](https://github.com/debanjum/semantic-search/tree/master/interface/emacs#installation) [semantic-search.el](./interface/emacs/semantic-search.el)
+    - Run `M-x semantic-search "<user-query>"` or Call `C-c C-s`
   
   - *Call Semantic Search via API*
     - `GET` [http://localhost:8000/search?q="What is the meaning of life"](http://localhost:8000/search?q=%22what%20is%20the%20meaning%20of%20life%22)
