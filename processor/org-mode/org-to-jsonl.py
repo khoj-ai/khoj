@@ -68,8 +68,8 @@ def extract_org_entries(org_files):
     return entries
 
 
-def convert_org_entries_to_jsonl(entries, jsonl_file, verbose=0):
-    "Convert each org entries to json and write to jsonl file"
+def convert_org_entries_to_jsonl(entries, verbose=0):
+    "Convert each Org-Mode entries to JSON and collate as JSONL"
     jsonl = ''
     for entry in entries:
         entry_dict = dict()
@@ -124,7 +124,7 @@ if __name__ == '__main__':
     entries = extract_org_entries(org_files)
 
     # Process Each Entry from All Notes Files
-    jsonl_data = convert_org_entries_to_jsonl(entries, get_absolute_path(args.jsonl_file), verbose=args.verbose)
+    jsonl_data = convert_org_entries_to_jsonl(entries, verbose=args.verbose)
 
     # Compress JSONL formatted Data
     if args.no_compress:
