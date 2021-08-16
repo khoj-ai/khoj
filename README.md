@@ -24,7 +24,7 @@ Setup
   python3 processor/org-mode/org-to-jsonl.py \
   --org-files "Schedule.org" "Incoming.org" \
   --org-directory "~/Notes" \
-  --jsonl-file ".data/notes.jsonl" \
+  --jsonl-file ".notes.jsonl" \
   --compress \
   --verbose
   ```
@@ -33,7 +33,7 @@ Run
 ---
   Load ML model, generate embeddings and expose API interface to run user queries on above org-mode files
   ```sh
-  python3 main.py -j .data/notes.jsonl.gz -e .data/notes_embeddings.pt
+  python3 main.py -j .notes.jsonl.gz -e .notes_embeddings.pt
   ```
     
 Use
@@ -48,8 +48,8 @@ Use
   - *Call Semantic Search via Python Script Directly*
     ```sh
     python3 search_types/asymmetric.py \
-    -j .data/notes.jsonl.gz \
-    -e .data/notes_embeddings.pt \
+    -j .notes.jsonl.gz \
+    -e .notes_embeddings.pt \
     -n 5 \
     --verbose \
     --interactive
@@ -57,4 +57,6 @@ Use
 
 Acknowledgments
 --
+- [MiniLM Model](https://huggingface.co/sentence-transformers/msmarco-MiniLM-L-6-v3) for Asymmetric Text Search. See [SBert Documentation](https://www.sbert.net/examples/applications/retrieve_rerank/README.html)
+- [OpenAI CLIP Model](https://github.com/openai/CLIP) for Image Search. See [SBert Documentation](https://www.sbert.net/examples/applications/image-search/README.html) 
 - Charles Cave for [OrgNode Parser](http://members.optusnet.com.au/~charles57/GTD/orgnode.html)
