@@ -35,7 +35,7 @@ def dump_jsonl(jsonl_data, output_path, verbose=0):
         f.write(jsonl_data)
 
     if verbose > 0:
-        print(f'Wrote {len(jsonl_data)} records to jsonl at {output_path}')
+        print(f'Wrote {len(jsonl_data)} lines to jsonl at {output_path}')
 
 
 def compress_jsonl_data(jsonl_data, output_path, verbose=0):
@@ -43,7 +43,7 @@ def compress_jsonl_data(jsonl_data, output_path, verbose=0):
         gzip_file.write(jsonl_data)
 
     if verbose > 0:
-        print(f'Wrote {len(jsonl_data)} records to gzip compressed jsonl at {output_path}')
+        print(f'Wrote {len(jsonl_data)} lines to gzip compressed jsonl at {output_path}')
 
 
 def load_jsonl(input_path, verbose=0):
@@ -116,6 +116,9 @@ def convert_org_entries_to_jsonl(entries, verbose=0):
         if entry_dict:
             # Convert Dictionary to JSON and Append to JSONL string
             jsonl += f'{json.dumps(entry_dict, ensure_ascii=False)}\n'
+
+    if verbose > 0:
+        print(f"Converted {len(entries)} to jsonl format")
 
     return jsonl
 
