@@ -38,15 +38,24 @@ def search(q: str, n: Optional[int] = 5, t: Optional[str] = 'notes'):
 
 @app.get('/regenerate')
 def regenerate():
+    # Generate Compressed JSONL from Notes in Input Files
     org_to_jsonl(args.input_files, args.input_filter, args.compressed_jsonl, args.verbose)
 
-    # Extract Entries
-    global entries
-    entries = asymmetric.extract_entries(args.compressed_jsonl, args.verbose)
+    # Extract Entries from Compressed JSONL
+    extracted_entries = asymmetric.extract_entries(args.compressed_jsonl, args.verbose)
 
-    # Compute or Load Embeddings
+    # Compute Embeddings from Extracted Entries
+    computed_embeddings = asymmetric.compute_embeddings(extracted_entries, bi_encoder, args.embeddings, regenerate=True, verbose=args.verbose)
+
+    # Now Update State
+    # update state variables after regeneration complete
+    # minimize time the application is in inconsistent, partially updated state
     global corpus_embeddings
-    corpus_embeddings = asymmetric.compute_embeddings(entries, bi_encoder, args.embeddings, regenerate=True, verbose=args.verbose)
+    global entries
+    entries = extracted_entries
+    corpus_embeddings = computed_embeddings
+
+    return {'status': 'ok', 'message': 'regeneration completed'}
 
 
 if __name__ == '__main__':
