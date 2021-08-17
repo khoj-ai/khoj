@@ -12,6 +12,11 @@ import gzip
 
 # Define Functions
 def org_to_jsonl(org_files, org_file_filter, output_file, verbose=0):
+    # Input Validation
+    if is_none_or_empty(org_files) and is_none_or_empty(org_file_filter):
+        print("At least one of org-files or org-file-filter is required to be specified")
+        exit(1)
+
     # Get Org Files to Process
     org_files = get_org_files(org_files, org_file_filter, verbose)
 
@@ -131,11 +136,6 @@ if __name__ == '__main__':
     parser.add_argument('--input-filter', type=str, default=None, help="Regex filter for org-mode files to process")
     parser.add_argument('--verbose', '-v', action='count', default=0, help="Show verbose conversion logs, Default: 0")
     args = parser.parse_args()
-
-    # Input Validation
-    if is_none_or_empty(args.input_files) and is_none_or_empty(args.input_filter):
-        print("At least one of org-files or org-file-filter is required to be specified")
-        exit(1)
 
     # Map notes in Org-Mode files to (compressed) JSONL formatted file
     org_to_jsonl(args.input_files, args.input_filter, args.output_file, args.verbose)

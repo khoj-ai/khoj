@@ -11,6 +11,8 @@ import torch
 import argparse
 import pathlib
 from utils.helpers import get_absolute_path
+from processor.org_mode.org_to_jsonl import org_to_jsonl
+
 
 def initialize_model():
     "Initialize model for assymetric semantic search. That is, where query smaller than results"
@@ -140,24 +142,37 @@ def collate_results(hits, entries, count=5):
         in hits[0:count]]
 
 
+def setup(input_files, input_filter, compressed_jsonl, embeddings, regenerate=False, verbose=False):
+    # Initialize Model
+    bi_encoder, cross_encoder, top_k = initialize_model()
+
+    # Map notes in Org-Mode files to (compressed) JSONL formatted file
+    if not compressed_jsonl.exists() or regenerate:
+        org_to_jsonl(input_files, input_filter, compressed_jsonl, verbose)
+
+    # Extract Entries
+    entries = extract_entries(compressed_jsonl, verbose)
+
+    # Compute or Load Embeddings
+    corpus_embeddings = compute_embeddings(entries, bi_encoder, embeddings, regenerate=regenerate, verbose=verbose)
+
+    return entries, corpus_embeddings, bi_encoder, cross_encoder, top_k
+
+
 if __name__ == '__main__':
     # Setup Argument Parser
     parser = argparse.ArgumentParser(description="Map Org-Mode notes into (compressed) JSONL format")
-    parser.add_argument('--compressed-jsonl', '-j', required=True, type=pathlib.Path, help="Input file for compressed JSONL formatted notes to compute embeddings from")
-    parser.add_argument('--embeddings', '-e', required=True, type=pathlib.Path, help="File to save/load model embeddings to/from")
+    parser.add_argument('--input-files', '-i', nargs='*', help="List of org-mode files to process")
+    parser.add_argument('--input-filter', type=str, default=None, help="Regex filter for org-mode files to process")
+    parser.add_argument('--compressed-jsonl', '-j', type=pathlib.Path, default=pathlib.Path(".notes.jsonl.gz"), help="Compressed JSONL formatted notes file to compute embeddings from")
+    parser.add_argument('--embeddings', '-e', type=pathlib.Path, default=pathlib.Path(".notes_embeddings.pt"), help="File to save/load model embeddings to/from")
+    parser.add_argument('--regenerate', action='store_true', default=False, help="Regenerate embeddings from org-mode files. Default: false")
     parser.add_argument('--results-count', '-n', default=5, type=int, help="Number of results to render. Default: 5")
     parser.add_argument('--interactive', action='store_true', default=False, help="Interactive mode allows user to run queries on the model. Default: true")
     parser.add_argument('--verbose', action='count', default=0, help="Show verbose conversion logs. Default: 0")
     args = parser.parse_args()
 
-    # Initialize Model
-    bi_encoder, cross_encoder, top_k = initialize_model()
-
-    # Extract Entries
-    entries = extract_entries(args.compressed_jsonl, args.verbose)
-
-    # Compute or Load Embeddings
-    corpus_embeddings = compute_embeddings(entries, bi_encoder, args.embeddings, args.verbose)
+    entries, corpus_embeddings, bi_encoder, cross_encoder, top_k = setup(args.input_files, args.input_filter, args.compressed_jsonl, args.embeddings, args.regenerate, args.verbose)
 
     # Run User Queries on Entries in Interactive Mode
     while args.interactive:

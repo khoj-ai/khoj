@@ -38,14 +38,8 @@ def search(q: str, n: Optional[int] = 5, t: Optional[str] = 'notes'):
 
 @app.get('/regenerate')
 def regenerate():
-    # Generate Compressed JSONL from Notes in Input Files
-    org_to_jsonl(args.input_files, args.input_filter, args.compressed_jsonl, args.verbose)
-
-    # Extract Entries from Compressed JSONL
-    extracted_entries = asymmetric.extract_entries(args.compressed_jsonl, args.verbose)
-
-    # Compute Embeddings from Extracted Entries
-    computed_embeddings = asymmetric.compute_embeddings(extracted_entries, bi_encoder, args.embeddings, regenerate=True, verbose=args.verbose)
+    # Extract Entries, Generate Embeddings
+    extracted_entries, computed_embeddings, _, _, _ = asymmetric.setup(args.input_files, args.input_filter, args.compressed_jsonl, args.embeddings, regenerate=True, verbose=args.verbose)
 
     # Now Update State
     # update state variables after regeneration complete
@@ -69,23 +63,7 @@ if __name__ == '__main__':
     parser.add_argument('--verbose', action='count', default=0, help="Show verbose conversion logs. Default: 0")
     args = parser.parse_args()
 
-    # Input Validation
-    if is_none_or_empty(args.input_files) and is_none_or_empty(args.input_filter):
-        print("At least one of org-files or org-file-filter is required to be specified")
-        exit(1)
-
-    # Initialize Model
-    bi_encoder, cross_encoder, top_k = asymmetric.initialize_model()
-
-    # Map notes in Org-Mode files to (compressed) JSONL formatted file
-    if not args.compressed_jsonl.exists() or args.regenerate:
-        org_to_jsonl(args.input_files, args.input_filter, args.compressed_jsonl, args.verbose)
-
-    # Extract Entries
-    entries = asymmetric.extract_entries(args.compressed_jsonl, args.verbose)
-
-    # Compute or Load Embeddings
-    corpus_embeddings = asymmetric.compute_embeddings(entries, bi_encoder, args.embeddings, regenerate=args.regenerate, verbose=args.verbose)
+    entries, corpus_embeddings, bi_encoder, cross_encoder, top_k = asymmetric.setup(args.input_files, args.input_filter, args.compressed_jsonl, args.embeddings, args.regenerate, args.verbose)
 
     # Start Application Server
     uvicorn.run(app)
