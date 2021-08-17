@@ -17,24 +17,11 @@ Install
   conda activate semantic-search
   ```
 
-Setup
----
-  Generate compressed JSONL from specified org-mode files
-  ```sh
-  python3 processor/org-mode/org-to-jsonl.py \
-  --input-files ~/Notes/Schedule.org ~/Notes/Incoming.org \
-  --output-file .notes.jsonl.gz \
-  --verbose
-  ```
-
 Run
 ---
-  Load ML model, generate embeddings and expose API interface to run user queries on above org-mode files
+  Load ML model, generate embeddings and expose API to query specified org-mode files
   ```sh
-  python3 main.py \
-  --compressed-jsonl .notes.jsonl.gz \
-  --embeddings .notes_embeddings.pt \
-  --verbose
+  python3 main.py --input-files ~/Notes/Schedule.org ~/Notes/Incoming.org --verbose
   ```
     
 Use
@@ -43,9 +30,11 @@ Use
     - [Install](https://github.com/debanjum/semantic-search/tree/master/interface/emacs#installation) [semantic-search.el](./interface/emacs/semantic-search.el)
     - Run `M-x semantic-search "<user-query>"` or Call `C-c C-s`
   
-  - *Call Semantic Search via API*
-    - `GET` [http://localhost:8000/search?q="What is the meaning of life"](http://localhost:8000/search?q=%22what%20is%20the%20meaning%20of%20life%22)
-  
+  - *Semantic Search via API*
+    - Query: `GET` [http://localhost:8000/search?q="What is the meaning of life"](http://localhost:8000/search?q=%22what%20is%20the%20meaning%20of%20life%22)
+    - Regenerate Embeddings: `GET` [http://localhost:8000/regenerate](http://localhost:8000/regenerate)
+    - [Semantic Search API Docs](http://localhost:8000/docs)
+
   - *Call Semantic Search via Python Script Directly*
     ```sh
     python3 search_types/asymmetric.py \
