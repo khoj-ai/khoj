@@ -129,7 +129,7 @@ if __name__ == '__main__':
     parser.add_argument('--output-file', '-o', type=pathlib.Path, required=True, help="Output file for (compressed) JSONL formatted notes. Expected file extensions: jsonl or jsonl.gz")
     parser.add_argument('--input-files', '-i', nargs='*', help="List of org-mode files to process")
     parser.add_argument('--input-filter', type=str, default=None, help="Regex filter for org-mode files to process")
-    parser.add_argument('--verbose', '-v', action='count', help="Show verbose conversion logs")
+    parser.add_argument('--verbose', '-v', action='count', default=0, help="Show verbose conversion logs, Default: 0")
     args = parser.parse_args()
 
     # Input Validation

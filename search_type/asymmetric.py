@@ -147,7 +147,7 @@ if __name__ == '__main__':
     parser.add_argument('--embeddings', '-e', required=True, type=pathlib.Path, help="File to save/load model embeddings to/from")
     parser.add_argument('--results-count', '-n', default=5, type=int, help="Number of results to render. Default: 5")
     parser.add_argument('--interactive', action='store_true', default=False, help="Interactive mode allows user to run queries on the model. Default: true")
-    parser.add_argument('--verbose', action='count', help="Show verbose conversion logs. Default: 0")
+    parser.add_argument('--verbose', action='count', default=0, help="Show verbose conversion logs. Default: 0")
     args = parser.parse_args()
 
     # Initialize Model

@@ -57,7 +57,7 @@ if __name__ == '__main__':
     parser.add_argument('--compressed-jsonl', '-j', type=pathlib.Path, default=pathlib.Path(".notes.jsonl.gz"), help="Compressed JSONL formatted notes file to compute embeddings from")
     parser.add_argument('--embeddings', '-e', type=pathlib.Path, default=pathlib.Path(".notes_embeddings.pt"), help="File to save/load model embeddings to/from")
     parser.add_argument('--regenerate', action='store_true', default=False, help="Regenerate embeddings from org-mode files. Default: false")
-    parser.add_argument('--verbose', action='count', help="Show verbose conversion logs. Default: 0")
+    parser.add_argument('--verbose', action='count', default=0, help="Show verbose conversion logs. Default: 0")
     args = parser.parse_args()
 
     # Input Validation
