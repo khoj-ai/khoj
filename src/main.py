@@ -59,16 +59,24 @@ def regenerate():
     return {'status': 'ok', 'message': 'regeneration completed'}
 
 
-if __name__ == '__main__':
-    # Setup Argument Parser
+def cli(args=None):
+    if not args:
+        args = sys.argv[1:]
+
+    # Setup Argument Parser for the Commandline Interface
     parser = argparse.ArgumentParser(description="Expose API for Semantic Search")
     parser.add_argument('--input-files', '-i', nargs='*', help="List of org-mode files to process")
     parser.add_argument('--input-filter', type=str, default=None, help="Regex filter for org-mode files to process")
     parser.add_argument('--compressed-jsonl', '-j', type=pathlib.Path, default=pathlib.Path(".notes.jsonl.gz"), help="Compressed JSONL formatted notes file to compute embeddings from")
     parser.add_argument('--embeddings', '-e', type=pathlib.Path, default=pathlib.Path(".notes_embeddings.pt"), help="File to save/load model embeddings to/from")
     parser.add_argument('--regenerate', action='store_true', default=False, help="Regenerate embeddings from org-mode files. Default: false")
-    parser.add_argument('--verbose', action='count', default=0, help="Show verbose conversion logs. Default: 0")
-    args = parser.parse_args()
+    parser.add_argument('--verbose', '-v', action='count', default=0, help="Show verbose conversion logs. Default: 0")
+
+    return parser.parse_args(args)
+
+
+if __name__ == '__main__':
+    args = cli()
 
     entries, corpus_embeddings, bi_encoder, cross_encoder, top_k = asymmetric.setup(args.input_files, args.input_filter, args.compressed_jsonl, args.embeddings, args.regenerate, args.verbose)
 
