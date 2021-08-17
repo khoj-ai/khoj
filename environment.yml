@@ -9,3 +9,4 @@ dependencies:
   - sentence-transformers
   - fastapi
   - uvicorn
+  - pytest
