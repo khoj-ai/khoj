@@ -18,7 +18,7 @@ app = FastAPI()
 
 
 @app.get('/search')
-def search(q: str, n: Optional[int] = 5, t: Optional[str] = 'notes'):
+def search(q: str, n: Optional[int] = 5, t: Optional[str] = None):
     if q is None or q == '':
         print(f'No query param (q) passed in API call to initiate search')
         return {}
@@ -26,7 +26,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[str] = 'notes'):
     user_query = q
     results_count = n
 
-    if t == 'notes':
+    if t == 'notes' or t == None:
         # query notes
         hits = asymmetric.query_notes(
             user_query,
@@ -44,17 +44,12 @@ def search(q: str, n: Optional[int] = 5, t: Optional[str] = 'notes'):
 
 
 @app.get('/regenerate')
-def regenerate():
-    # Extract Entries, Generate Embeddings
-    extracted_entries, computed_embeddings, _, _, _ = asymmetric.setup(args.input_files, args.input_filter, args.compressed_jsonl, args.embeddings, regenerate=True, verbose=args.verbose)
-
-    # Now Update State
-    # update state variables after regeneration complete
-    # minimize time the application is in inconsistent, partially updated state
-    global corpus_embeddings
-    global entries
-    entries = extracted_entries
-    corpus_embeddings = computed_embeddings
+def regenerate(t: Optional[str] = None):
+    if t == 'notes' or t == None:
+        # Extract Entries, Generate Embeddings
+        global corpus_embeddings
+        global entries
+        entries, corpus_embeddings, _, _, _ = asymmetric.setup(args.input_files, args.input_filter, args.compressed_jsonl, args.embeddings, regenerate=True, verbose=args.verbose)
 
     return {'status': 'ok', 'message': 'regeneration completed'}
 
