@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Import Modules
-import processor.org_mode.orgnode
+from processor.org_mode import orgnode
 from utils.helpers import get_absolute_path, is_none_or_empty
 import json
 import argparse
@@ -11,21 +11,21 @@ import gzip
 
 
 # Define Functions
-def org_to_jsonl(org_files, org_file_filter, output_path, verbose=0):
+def org_to_jsonl(org_files, org_file_filter, output_file, verbose=0):
     # Get Org Files to Process
-    org_files = get_org_files(args.input_files, args.input_filter, verbose)
+    org_files = get_org_files(org_files, org_file_filter, verbose)
 
     # Extract Entries from specified Org files
     entries = extract_org_entries(org_files)
 
     # Process Each Entry from All Notes Files
-    jsonl_data = convert_org_entries_to_jsonl(entries, verbose=args.verbose)
+    jsonl_data = convert_org_entries_to_jsonl(entries, verbose=verbose)
 
     # Compress JSONL formatted Data
-    if args.output_file.suffix == ".gz":
-        compress_jsonl_data(jsonl_data, args.output_file, verbose=args.verbose)
-    elif args.output_file.suffix == ".jsonl":
-        dump_jsonl(jsonl_data, args.output_file, verbose=args.verbose)
+    if output_file.suffix == ".gz":
+        compress_jsonl_data(jsonl_data, output_file, verbose=verbose)
+    elif output_file.suffix == ".jsonl":
+        dump_jsonl(jsonl_data, output_file, verbose=verbose)
 
     return entries
 
@@ -75,7 +75,7 @@ def get_org_files(org_files=None, org_file_filter=None, verbose=0):
     if any(files_with_non_org_extensions):
         print(f"[Warning] There maybe non org-mode files in the input set: {files_with_non_org_extensions}")
 
-    if args.verbose > 0:
+    if verbose > 0:
         print(f'Processing files: {all_org_files}')
 
     return all_org_files
