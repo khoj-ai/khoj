@@ -1,15 +1,20 @@
 #!/usr/bin/env python
 
+# Standard Packages
 import json
-from sentence_transformers import SentenceTransformer, CrossEncoder, util
 import time
 import gzip
 import os
 import sys
 import re
-import torch
 import argparse
 import pathlib
+
+# External Packages
+import torch
+from sentence_transformers import SentenceTransformer, CrossEncoder, util
+
+# Internal Packages
 from utils.helpers import get_absolute_path
 from processor.org_mode.org_to_jsonl import org_to_jsonl
 

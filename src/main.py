@@ -1,11 +1,18 @@
+# Standard Packages
+import sys
+import argparse
+import pathlib
 from typing import Optional
+
+# External Packages
+import uvicorn
 from fastapi import FastAPI
+
+# Internal Packages
 from search_type import asymmetric
 from processor.org_mode.org_to_jsonl import org_to_jsonl
 from utils.helpers import is_none_or_empty
-import argparse
-import pathlib
-import uvicorn
+
 
 app = FastAPI()
 

@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 
-# Import Modules
-from processor.org_mode import orgnode
-from utils.helpers import get_absolute_path, is_none_or_empty
+# Standard Packages
 import json
 import argparse
 import pathlib
 import glob
 import gzip
+
+# Internal Packages
+from processor.org_mode import orgnode
+from utils.helpers import get_absolute_path, is_none_or_empty
 
 
 # Define Functions
