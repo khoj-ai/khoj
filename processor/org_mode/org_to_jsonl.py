@@ -11,9 +11,9 @@ import gzip
 
 
 # Define Functions
-def org_to_jsonl(org_files, org_file_filter, output_path, verbose=False):
+def org_to_jsonl(org_files, org_file_filter, output_path, verbose=0):
     # Get Org Files to Process
-    org_files = get_org_files(args.input_files, args.input_filter)
+    org_files = get_org_files(args.input_files, args.input_filter, verbose)
 
     # Extract Entries from specified Org files
     entries = extract_org_entries(org_files)
@@ -59,7 +59,7 @@ def load_jsonl(input_path, verbose=0):
     return data
 
 
-def get_org_files(org_files=None, org_file_filter=None):
+def get_org_files(org_files=None, org_file_filter=None, verbose=0):
     "Get Org files to process"
     absolute_org_files, filtered_org_files = set(), set()
     if org_files:
@@ -75,7 +75,7 @@ def get_org_files(org_files=None, org_file_filter=None):
     if any(files_with_non_org_extensions):
         print(f"[Warning] There maybe non org-mode files in the input set: {files_with_non_org_extensions}")
 
-    if args.verbose:
+    if args.verbose > 0:
         print(f'Processing files: {all_org_files}')
 
     return all_org_files

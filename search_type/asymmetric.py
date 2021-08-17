@@ -20,7 +20,7 @@ def initialize_model():
     return bi_encoder, cross_encoder, top_k
 
 
-def extract_entries(notesfile, verbose=False):
+def extract_entries(notesfile, verbose=0):
     "Load entries from compressed jsonl"
     entries = []
     with gzip.open(get_absolute_path(notesfile), 'rt', encoding='utf8') as jsonl:
@@ -34,24 +34,24 @@ def extract_entries(notesfile, verbose=False):
             note_string = f'{note["Title"]}\t{note["Tags"] if "Tags" in note else ""}\n{note["Body"] if "Body" in note else ""}'
             entries.extend([note_string])
 
-    if verbose:
+    if verbose > 0:
         print(f"Loaded {len(entries)} entries from {notesfile}")
 
     return entries
 
 
-def compute_embeddings(entries, bi_encoder, embeddings_file, regenerate=False, verbose=False):
+def compute_embeddings(entries, bi_encoder, embeddings_file, regenerate=False, verbose=0):
     "Compute (and Save) Embeddings or Load Pre-Computed Embeddings"
     # Load pre-computed embeddings from file if exists
     if embeddings_file.exists() and not regenerate:
         corpus_embeddings = torch.load(get_absolute_path(embeddings_file))
-        if verbose:
+        if verbose > 0:
             print(f"Loaded embeddings from {embeddings_file}")
 
     else:  # Else compute the corpus_embeddings from scratch, which can take a while
         corpus_embeddings = bi_encoder.encode(entries, convert_to_tensor=True, show_progress_bar=True)
         torch.save(corpus_embeddings, get_absolute_path(embeddings_file))
-        if verbose:
+        if verbose > 0:
             print(f"Computed embeddings and save them to {embeddings_file}")
 
     return corpus_embeddings
@@ -147,7 +147,7 @@ if __name__ == '__main__':
     parser.add_argument('--embeddings', '-e', required=True, type=pathlib.Path, help="File to save/load model embeddings to/from")
     parser.add_argument('--results-count', '-n', default=5, type=int, help="Number of results to render. Default: 5")
     parser.add_argument('--interactive', action='store_true', default=False, help="Interactive mode allows user to run queries on the model. Default: true")
-    parser.add_argument('--verbose', action='store_true', default=False, help="Show verbose conversion logs. Default: false")
+    parser.add_argument('--verbose', action='count', help="Show verbose conversion logs. Default: 0")
     args = parser.parse_args()
 
     # Initialize Model

@@ -37,9 +37,9 @@ def search(q: str, n: Optional[int] = 5, t: Optional[str] = 'notes'):
 if __name__ == '__main__':
     # Setup Argument Parser
     parser = argparse.ArgumentParser(description="Expose API for Semantic Search")
-    parser.add_argument('--compressed-jsonl', '-j', required=True, type=pathlib.Path, help="Compressed JSONL formatted notes file to compute embeddings from")
-    parser.add_argument('--embeddings', '-e', required=True, type=pathlib.Path, help="File to save/load model embeddings to/from")
-    parser.add_argument('--verbose', action='store_true', default=False, help="Show verbose conversion logs. Default: false")
+    parser.add_argument('--compressed-jsonl', '-j', type=pathlib.Path, default=pathlib.Path(".notes.jsonl.gz"), help="Compressed JSONL formatted notes file to compute embeddings from")
+    parser.add_argument('--embeddings', '-e', type=pathlib.Path, default=pathlib.Path(".notes_embeddings.pt"), help="File to save/load model embeddings to/from")
+    parser.add_argument('--verbose', action='count', help="Show verbose conversion logs. Default: 0")
     args = parser.parse_args()
 
     # Initialize Model
