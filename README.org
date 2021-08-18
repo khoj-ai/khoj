@@ -24,12 +24,20 @@
 ** Use
    - *Semantic Search via Emacs*
      - [[https://github.com/debanjum/semantic-search/tree/master/src/interface/emacs#installation][Install]] [[./src/interface/emacs/semantic-search.el][semantic-search.el]]
-     - Run ~M-x semantic-search <user-query>~ or Call ~C-c C-s~
+     - Run ~M-x semantic-search <user-query>~ or Call ~C-c s~
 
    - *Semantic Search via API*
      - Query: ~GET~ [[http://localhost:8000/search?q=%22what%20is%20the%20meaning%20of%20life%22][http://localhost:8000/search?q="What is the meaning of life"]]
      - Regenerate Embeddings: ~GET~ [[http://localhost:8000/regenerate][http://localhost:8000/regenerate]]
      - [[http://localhost:8000/docs][Semantic Search API Docs]]
+
+** Upgrade
+   #+begin_src shell
+     cd semantic-search
+     git pull origin master
+     conda env update -f environment.yml
+     conda activate semantic-search
+   #+end_src
 
 ** Acknowledgments
    - [[https://huggingface.co/sentence-transformers/msmarco-MiniLM-L-6-v3][MiniLM Model]] for Asymmetric Text Search. See [[https://www.sbert.net/examples/applications/retrieve_rerank/README.html][SBert Documentation]]
