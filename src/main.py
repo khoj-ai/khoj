@@ -8,7 +8,7 @@ import uvicorn
 from fastapi import FastAPI
 
 # Internal Packages
-from search_type import asymmetric
+from search_type import asymmetric, symmetric_ledger
 from utils.helpers import get_from_dict
 from utils.cli import cli
 
@@ -38,6 +38,18 @@ def search(q: str, n: Optional[int] = 5, t: Optional[str] = None):
         # collate and return results
         return asymmetric.collate_results(hits, entries, results_count)
 
+    if (t == 'ledger' or t == None) and ledger_search_enabled:
+        # query transactions
+        hits = symmetric_ledger.query_transactions(
+            user_query,
+            transaction_embeddings,
+            transactions,
+            symmetric_encoder,
+            symmetric_cross_encoder)
+
+        # collate and return results
+        return symmetric_ledger.collate_results(hits, transactions, results_count)
+
     else:
         return {}
 
@@ -56,16 +68,28 @@ def regenerate(t: Optional[str] = None):
             regenerate=True,
             verbose=args.verbose)
 
+    if (t == 'ledger' or t == None) and ledger_search_enabled:
+        # Extract Entries, Generate Embeddings
+        global transaction_embeddings
+        global transactions
+        transactions, transaction_embeddings, _, _, _ = symmetric_ledger.setup(
+            ledger_config['input-files'],
+            ledger_config['input-filter'],
+            pathlib.Path(ledger_config['compressed-jsonl']),
+            pathlib.Path(ledger_config['embeddings-file']),
+            regenerate=True,
+            verbose=args.verbose)
 
     return {'status': 'ok', 'message': 'regeneration completed'}
 
 
 if __name__ == '__main__':
     args = cli(sys.argv[1:])
-    org_config = get_from_dict(args.config, 'content-type', 'org')
 
+    # Initialize Org Notes Search
+    org_config = get_from_dict(args.config, 'content-type', 'org')
     notes_search_enabled = False
-    if 'input-files' in org_config or 'input-filter' in org_config:
+    if org_config and ('input-files' in org_config or 'input-filter' in org_config):
         notes_search_enabled = True
         entries, corpus_embeddings, bi_encoder, cross_encoder, top_k = asymmetric.setup(
             org_config['input-files'],
@@ -75,6 +99,18 @@ if __name__ == '__main__':
             args.regenerate,
             args.verbose)
 
+    # Initialize Ledger Search
+    ledger_config = get_from_dict(args.config, 'content-type', 'ledger')
+    ledger_search_enabled = False
+    if ledger_config and ('input-files' in ledger_config or 'input-filter' in ledger_config):
+        ledger_search_enabled = True
+        transactions, transaction_embeddings, symmetric_encoder, symmetric_cross_encoder, _ = symmetric_ledger.setup(
+            ledger_config['input-files'],
+            ledger_config['input-filter'],
+            pathlib.Path(ledger_config['compressed-jsonl']),
+            pathlib.Path(ledger_config['embeddings-file']),
+            args.regenerate,
+            args.verbose)
 
     # Start Application Server
     uvicorn.run(app)

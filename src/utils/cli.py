@@ -48,6 +48,11 @@ default_config = {
         {
             'compressed-jsonl': '.notes.jsonl.gz',
             'embeddings-file': '.note_embeddings.pt'
+        },
+        'ledger':
+        {
+            'compressed-jsonl': '.transactions.jsonl.gz',
+            'embeddings-file': '.transaction_embeddings.pt'
         }
     },
     'search-type':
