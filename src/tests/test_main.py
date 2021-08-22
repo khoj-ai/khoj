@@ -32,34 +32,64 @@ def test_asymmetric_setup():
     assert len(corpus_embeddings) == 10
 
 
-# ----------------------------------------------------------------------------------------------------
-def test_cli_default():
+def test_cli_minimal_default():
     # Act
-    args = cli(['--input-files=tests/data/test.org'])
+    actual_args = cli(['--config-file=tests/data/config.yml'])
 
     # Assert
-    assert args.input_files == ['tests/data/test.org']
-    assert args.input_filter == None
-    assert args.compressed_jsonl == Path('.notes.jsonl.gz')
-    assert args.embeddings == Path('.notes_embeddings.pt')
-    assert args.regenerate == False
-    assert args.verbose == 0
-
+    assert actual_args.config_file == Path('tests/data/config.yml')
+    assert actual_args.regenerate == False
+    assert actual_args.verbose == 0
 
 # ----------------------------------------------------------------------------------------------------
-def test_cli_set_by_user():
+def test_cli_flags():
     # Act
-    actual_args = cli(['--input-files=tests/data/test.org',
-                       '--input-filter=tests/data/*.org',
-                       '--compressed-jsonl=tests/data/.test.jsonl.gz',
-                       '--embeddings=tests/data/.test_embeddings.pt',
+    actual_args = cli(['--config-file=tests/data/config.yml',
                        '--regenerate',
                        '-vvv'])
 
     # Assert
-    assert actual_args.input_files == ['tests/data/test.org']
-    assert actual_args.input_filter == 'tests/data/*.org'
-    assert actual_args.compressed_jsonl == Path('tests/data/.test.jsonl.gz')
-    assert actual_args.embeddings == Path('tests/data/.test_embeddings.pt')
+    assert actual_args.config_file == Path('tests/data/config.yml')
     assert actual_args.regenerate == True
     assert actual_args.verbose == 3
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_cli_config_from_file():
+    # Act
+    actual_args = cli(['--config-file=tests/data/config.yml',
+                       '--regenerate',
+                       '-vvv'])
+
+    # Assert
+    assert actual_args.config_file == Path('tests/data/config.yml')
+    assert actual_args.regenerate == True
+    assert actual_args.config is not None
+    assert actual_args.config['content-type']['org']['input-files'] == ['~/first_from_config.org', '~/second_from_config.org']
+    assert actual_args.verbose == 3
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_cli_config_from_cmd_args():
+    ""
+    # Act
+    actual_args = cli(['--org-files=first.org'])
+
+    # Assert
+    assert actual_args.org_files == ['first.org']
+    assert actual_args.config_file is None
+    assert actual_args.config is not None
+    assert actual_args.config['content-type']['org']['input-files'] == ['first.org']
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_cli_config_from_cmd_args_override_config_file():
+    # Act
+    actual_args = cli(['--config-file=tests/data/config.yml',
+                       '--org-files=first.org'])
+
+    # Assert
+    assert actual_args.org_files == ['first.org']
+    assert actual_args.config_file == Path('tests/data/config.yml')
+    assert actual_args.config is not None
+    assert actual_args.config['content-type']['org']['input-files'] == ['first.org']

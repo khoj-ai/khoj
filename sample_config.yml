@@ -1,0 +1,11 @@
+content-type:
+  org:
+    input-files: ["src/tests/data/main_readme.org", "src/tests/data/interface_emacs_readme.org"]
+    input-filter: null
+    compressed-jsonl: ".notes.json.gz"
+    embeddings-file: ".note_embeddings.pt"
+
+search-type:
+  asymmetric:
+    encoder: "sentence-transformers/msmarco-MiniLM-L-6-v3"
+    cross-encoder: "cross-encoder/ms-marco-MiniLM-L-6-v2"

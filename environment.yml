@@ -9,4 +9,5 @@ dependencies:
   - sentence-transformers
   - fastapi
   - uvicorn
+  - pyyaml
   - pytest
