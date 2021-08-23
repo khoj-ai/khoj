@@ -8,7 +8,7 @@ import uvicorn
 from fastapi import FastAPI
 
 # Internal Packages
-from search_type import asymmetric, symmetric_ledger
+from search_type import asymmetric, symmetric_ledger, image_search
 from utils.helpers import get_from_dict
 from utils.cli import cli
 
@@ -50,6 +50,22 @@ def search(q: str, n: Optional[int] = 5, t: Optional[str] = None):
         # collate and return results
         return symmetric_ledger.collate_results(hits, transactions, results_count)
 
+    if (t == 'image' or t == None) and image_search_enabled:
+        # query transactions
+        hits = image_search.query_images(
+            user_query,
+            image_embeddings,
+            image_encoder,
+            results_count,
+            args.verbose)
+
+        # collate and return results
+        return image_search.collate_results(
+            hits,
+            image_names,
+            image_config['input-directory'],
+            results_count)
+
     else:
         return {}
 
@@ -77,6 +93,16 @@ def regenerate(t: Optional[str] = None):
             ledger_config['input-filter'],
             pathlib.Path(ledger_config['compressed-jsonl']),
             pathlib.Path(ledger_config['embeddings-file']),
+            regenerate=True,
+            verbose=args.verbose)
+
+    if (t == 'image' or t == None) and image_search_enabled:
+        # Extract Images, Generate Embeddings
+        global image_embeddings
+        global image_names
+        image_names, image_embeddings, _ = image_search.setup(
+            pathlib.Path(image_config['input-directory']),
+            pathlib.Path(image_config['embeddings-file']),
             regenerate=True,
             verbose=args.verbose)
 
@@ -109,6 +135,17 @@ if __name__ == '__main__':
             ledger_config['input-filter'],
             pathlib.Path(ledger_config['compressed-jsonl']),
             pathlib.Path(ledger_config['embeddings-file']),
+            args.regenerate,
+            args.verbose)
+
+    # Initialize Image Search
+    image_config = get_from_dict(args.config, 'content-type', 'image')
+    image_search_enabled = False
+    if image_config and 'input-directory' in image_config:
+        image_search_enabled = True
+        image_names, image_embeddings, image_encoder = image_search.setup(
+            pathlib.Path(image_config['input-directory']),
+            pathlib.Path(image_config['embeddings-file']),
             args.regenerate,
             args.verbose)
 

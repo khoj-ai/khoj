@@ -9,6 +9,10 @@ def get_absolute_path(filepath):
     return str(pathlib.Path(filepath).expanduser().absolute())
 
 
+def resolve_absolute_path(filepath, strict=False):
+    return pathlib.Path(filepath).expanduser().absolute().resolve(strict=strict)
+
+
 def get_from_dict(dictionary, *args):
     '''null-aware get from a nested dictionary
        Returns: dictionary[args[0]][args[1]]... or None if any keys missing'''

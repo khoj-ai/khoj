@@ -11,3 +11,5 @@ dependencies:
   - uvicorn
   - pyyaml
   - pytest
+  - pillow
+  - torchvision

@@ -53,6 +53,10 @@ default_config = {
         {
             'compressed-jsonl': '.transactions.jsonl.gz',
             'embeddings-file': '.transaction_embeddings.pt'
+        },
+        'image':
+        {
+            'embeddings-file': '.image_embeddings.pt'
         }
     },
     'search-type':
@@ -61,6 +65,10 @@ default_config = {
         {
             'encoder': "sentence-transformers/msmarco-MiniLM-L-6-v3",
             'cross-encoder': "cross-encoder/ms-marco-MiniLM-L-6-v2"
+        },
+        'image':
+        {
+            'encoder': "clip-ViT-B-32"
         }
     }
 }
