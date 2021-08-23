@@ -1,5 +1,5 @@
 * Semantic Search
-  /Allow natural language search on user content like notes, images using transformer based models/
+  /Allow natural language search on user content like notes, images, transactions using transformer based models/
 
   All data is processed locally. User can interface with semantic-search app via [[./src/interface/emacs/semantic-search.el][Emacs]], API or Commandline
 
@@ -18,7 +18,7 @@
    Load ML model, generate embeddings and expose API to query specified org-mode files
 
    #+begin_src shell
-   python3 src/main.py --org-files ~/Notes/Schedule.org ~/Notes/Incoming.org -c sample_config.yml --verbose
+   python3 src/main.py -c=sample_config.yml --verbose
    #+end_src
 
 ** Use
