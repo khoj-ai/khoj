@@ -120,6 +120,14 @@ def convert_org_entries_to_jsonl(entries, verbose=0):
             if verbose > 2:
                 print(f"Body: {entry.Body()}")
 
+        for property_key in ('ID', 'QUERY', 'TYPE', 'CATEGORY'):
+            if entry.Property(property_key):
+                if 'Property' not in entry_dict:
+                    entry_dict['Property'] = dict()
+                entry_dict['Property'][property_key] = entry.Property(property_key)
+                if verbose > 2:
+                    print(f'Property: {entry_dict["PROPERTY"][property_key]}')
+
         if entry_dict:
             # Convert Dictionary to JSON and Append to JSONL string
             jsonl += f'{json.dumps(entry_dict, ensure_ascii=False)}\n'
