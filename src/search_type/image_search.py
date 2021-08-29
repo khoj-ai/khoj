@@ -32,7 +32,7 @@ def compute_embeddings(image_names, model, embeddings_file, regenerate=False, ve
     image_embeddings = None
 
     # Load pre-computed embeddings from file if exists
-    if embeddings_file.exists() and not regenerate:
+    if resolve_absolute_path(embeddings_file).exists() and not regenerate:
         image_embeddings = torch.load(embeddings_file)
         if verbose:
             print(f"Loaded pre-computed embeddings from {embeddings_file}")

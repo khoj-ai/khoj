@@ -13,7 +13,7 @@ import torch
 from sentence_transformers import SentenceTransformer, CrossEncoder, util
 
 # Internal Packages
-from utils.helpers import get_absolute_path
+from utils.helpers import get_absolute_path, resolve_absolute_path
 from processor.ledger.beancount_to_jsonl import beancount_to_jsonl
 
 
@@ -44,7 +44,7 @@ def extract_entries(notesfile, verbose=0):
 def compute_embeddings(entries, bi_encoder, embeddings_file, regenerate=False, verbose=0):
     "Compute (and Save) Embeddings or Load Pre-Computed Embeddings"
     # Load pre-computed embeddings from file if exists
-    if embeddings_file.exists() and not regenerate:
+    if resolve_absolute_path(embeddings_file).exists() and not regenerate:
         corpus_embeddings = torch.load(get_absolute_path(embeddings_file))
         if verbose > 0:
             print(f"Loaded embeddings from {embeddings_file}")
@@ -146,7 +146,7 @@ def setup(input_files, input_filter, compressed_jsonl, embeddings, regenerate=Fa
     bi_encoder, cross_encoder, top_k = initialize_model()
 
     # Map notes in Org-Mode files to (compressed) JSONL formatted file
-    if not compressed_jsonl.exists() or regenerate:
+    if not resolve_absolute_path(compressed_jsonl).exists() or regenerate:
         beancount_to_jsonl(input_files, input_filter, compressed_jsonl, verbose)
 
     # Extract Entries
