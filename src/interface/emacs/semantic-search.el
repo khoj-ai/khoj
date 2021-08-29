@@ -48,7 +48,7 @@
    ;; extract entries from response as single string and convert to entries
    (format "%s"
            (mapcar
-            (lambda (args) (format "* %s" (cdr (assoc 'Entry args))))
+            (lambda (args) (format "%s" (cdr (assoc 'Entry args))))
             json-response))))
 
 (defun semantic-search--extract-entries-as-ledger (json-response)

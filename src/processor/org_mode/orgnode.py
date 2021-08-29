@@ -77,7 +77,7 @@ def makelist(filename):
                 deadline_date = ''
              thisNode.setProperties(propdict)
              nodelist.append( thisNode )
-             propdict = dict()
+             propdict = {'SOURCE': f'file:{filename}::{ctr}'}
           level = hdng.group(1)
           heading =  hdng.group(2)
           bodytext = ""
@@ -325,8 +325,14 @@ class Orgnode(object):
            n = n + ':' + t
            closecolon = ':'
         n = n + closecolon
-# Need to output Scheduled Date, Deadline Date, property tags The
-# following will output the text used to construct the object
-        n = n + "\n" + self.body
+        # Need to output Scheduled Date, Deadline Date, property tags The
+        # following will output the text used to construct the object
+        n = n + "\n"
+        n = n + ":PROPERTIES:\n"
+        for key, value in self.properties.items():
+           n = n + f":{key}: {value}\n"
+        n = n + ":END:\n"
+
+        n = n + self.body
 
         return n

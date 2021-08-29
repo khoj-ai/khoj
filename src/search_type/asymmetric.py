@@ -39,7 +39,7 @@ def extract_entries(notesfile, verbose=0):
                 continue
 
             note_string = f'{note["Title"]}\t{note["Tags"] if "Tags" in note else ""}\n{note["Body"] if "Body" in note else ""}'
-            entries.extend([note_string])
+            entries.append([note_string, note["Raw"]])
 
     if verbose > 0:
         print(f"Loaded {len(entries)} entries from {notesfile}")
@@ -56,7 +56,7 @@ def compute_embeddings(entries, bi_encoder, embeddings_file, regenerate=False, v
             print(f"Loaded embeddings from {embeddings_file}")
 
     else:  # Else compute the corpus_embeddings from scratch, which can take a while
-        corpus_embeddings = bi_encoder.encode(entries, convert_to_tensor=True, show_progress_bar=True)
+        corpus_embeddings = bi_encoder.encode([entry[0] for entry in entries], convert_to_tensor=True, show_progress_bar=True)
         torch.save(corpus_embeddings, get_absolute_path(embeddings_file))
         if verbose > 0:
             print(f"Computed embeddings and save them to {embeddings_file}")
@@ -79,12 +79,12 @@ def query_notes(raw_query, corpus_embeddings, entries, bi_encoder, cross_encoder
     hits = hits[0]  # Get the hits for the first query
 
     # Filter results using explicit filters
-    hits = explicit_filter(hits, entries, required_words, blocked_words)
+    hits = explicit_filter(hits, [entry[0] for entry in entries], required_words, blocked_words)
     if hits is None or len(hits) == 0:
         return hits
 
     # Score all retrieved entries using the cross-encoder
-    cross_inp = [[query, entries[hit['corpus_id']]] for hit in hits]
+    cross_inp = [[query, entries[hit['corpus_id']][0]] for hit in hits]
     cross_scores = cross_encoder.predict(cross_inp)
 
     # Store cross-encoder scores in results dictionary for ranking
@@ -127,20 +127,20 @@ def render_results(hits, entries, count=5, display_biencoder_results=False):
         print(f"Top-{count} Bi-Encoder Retrieval hits")
         hits = sorted(hits, key=lambda x: x['score'], reverse=True)
         for hit in hits[0:count]:
-            print(f"Score: {hit['score']:.3f}\n------------\n{entries[hit['corpus_id']]}")
+            print(f"Score: {hit['score']:.3f}\n------------\n{entries[hit['corpus_id']][0]}")
 
     # Output of top hits from re-ranker
     print("\n-------------------------\n")
     print(f"Top-{count} Cross-Encoder Re-ranker hits")
     hits = sorted(hits, key=lambda x: x['cross-score'], reverse=True)
     for hit in hits[0:count]:
-        print(f"CrossScore: {hit['cross-score']:.3f}\n-----------------\n{entries[hit['corpus_id']]}")
+        print(f"CrossScore: {hit['cross-score']:.3f}\n-----------------\n{entries[hit['corpus_id']][0]}")
 
 
 def collate_results(hits, entries, count=5):
     return [
         {
-            "Entry": entries[hit['corpus_id']],
+            "Entry": entries[hit['corpus_id']][1],
             "Score": f"{hit['cross-score']:.3f}"
         }
         for hit
