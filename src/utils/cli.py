@@ -6,7 +6,7 @@ import pathlib
 import yaml
 
 # Internal Packages
-from utils.helpers import is_none_or_empty, get_absolute_path, get_from_dict, merge_dicts
+from utils.helpers import is_none_or_empty, get_absolute_path, resolve_absolute_path, get_from_dict, merge_dicts
 
 def cli(args=None):
     if is_none_or_empty(args):
@@ -27,7 +27,7 @@ def cli(args=None):
 
     # Config Priority: Cmd Args > Config File > Default Config
     args.config = default_config
-    if args.config_file and args.config_file.exists():
+    if args.config_file and resolve_absolute_path(args.config_file).exists():
         with open(get_absolute_path(args.config_file), 'r', encoding='utf-8') as config_file:
             config_from_file = yaml.safe_load(config_file)
             args.config = merge_dicts(priority_dict=config_from_file, default_dict=args.config)
