@@ -57,7 +57,12 @@ default_config = {
         'image':
         {
             'embeddings-file': '.image_embeddings.pt'
-        }
+        },
+        'music':
+        {
+            'compressed-jsonl': '.songs.jsonl.gz',
+            'embeddings-file': '.song_embeddings.pt'
+        },
     },
     'search-type':
     {

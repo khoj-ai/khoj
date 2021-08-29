@@ -65,6 +65,7 @@
 (defun semantic-search--buffer-name-to-search-type (buffer-name)
   (let ((file-extension (file-name-extension buffer-name)))
     (cond
+     ((equal buffer-name "Music.org") "music")
      ((equal file-extension "bean") "ledger")
      ((equal file-extension "org") "notes")
      (t "notes"))))
@@ -90,10 +91,11 @@
             (json-response (json-parse-buffer :object-type 'alist)))
         (erase-buffer)
         (insert
-         (cond ((equal search-type "notes") (semantic-search--extract-entries-as-org json-response))
+         (cond ((or (equal search-type "notes") (equal search-type "music")) (semantic-search--extract-entries-as-org json-response))
                ((equal search-type "ledger") (semantic-search--extract-entries-as-ledger json-response))
                (t (format "%s" json-response)))))
       (cond ((equal search-type "notes") (org-mode))
+            ((equal search-type "music") (progn (org-mode) (org-music-mode)))
             (t (fundamental-mode)))
       (read-only-mode t))
     (switch-to-buffer buff)))

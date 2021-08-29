@@ -38,6 +38,19 @@ def search(q: str, n: Optional[int] = 5, t: Optional[str] = None):
         # collate and return results
         return asymmetric.collate_results(hits, entries, results_count)
 
+    if (t == 'music' or t == None) and music_search_enabled:
+        # query music library
+        hits = asymmetric.query_notes(
+            user_query,
+            song_embeddings,
+            songs,
+            song_encoder,
+            song_cross_encoder,
+            song_top_k)
+
+        # collate and return results
+        return asymmetric.collate_results(hits, songs, results_count)
+
     if (t == 'ledger' or t == None) and ledger_search_enabled:
         # query transactions
         hits = symmetric_ledger.query_transactions(
@@ -84,6 +97,18 @@ def regenerate(t: Optional[str] = None):
             regenerate=True,
             verbose=args.verbose)
 
+    if (t == 'music' or t == None) and music_search_enabled:
+        # Extract Entries, Generate Song Embeddings
+        global song_embeddings
+        global songs
+        songs, song_embeddings, _, _, _ = asymmetric.setup(
+            song_config['input-files'],
+            song_config['input-filter'],
+            pathlib.Path(song_config['compressed-jsonl']),
+            pathlib.Path(song_config['embeddings-file']),
+            regenerate=True,
+            verbose=args.verbose)
+
     if (t == 'ledger' or t == None) and ledger_search_enabled:
         # Extract Entries, Generate Embeddings
         global transaction_embeddings
@@ -122,6 +147,19 @@ if __name__ == '__main__':
             org_config['input-filter'],
             pathlib.Path(org_config['compressed-jsonl']),
             pathlib.Path(org_config['embeddings-file']),
+            args.regenerate,
+            args.verbose)
+
+    # Initialize Org Music Search
+    song_config = get_from_dict(args.config, 'content-type', 'music')
+    music_search_enabled = False
+    if song_config and ('input-files' in song_config or 'input-filter' in song_config):
+        music_search_enabled = True
+        songs, song_embeddings, song_encoder, song_cross_encoder, song_top_k = asymmetric.setup(
+            song_config['input-files'],
+            song_config['input-filter'],
+            pathlib.Path(song_config['compressed-jsonl']),
+            pathlib.Path(song_config['embeddings-file']),
             args.regenerate,
             args.verbose)
 
