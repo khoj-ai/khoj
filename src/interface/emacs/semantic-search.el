@@ -78,7 +78,8 @@
 (defun semantic-search (query)
   "Semantic search on org-mode content via semantic-search API"
   (interactive "sQuery: ")
-  (let* ((search-type (semantic-search--buffer-name-to-search-type (buffer-name)))
+  (let* ((default-type (semantic-search--buffer-name-to-search-type (buffer-name)))
+         (search-type (completing-read "Type: " '("notes" "ledger" "music") nil t default-type))
          (url (semantic-search--construct-api-query query search-type))
          (buff (get-buffer-create "*semantic-search*")))
     ;; get json response from api
