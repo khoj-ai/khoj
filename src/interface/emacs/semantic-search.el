@@ -40,6 +40,11 @@
   :group 'semantic-search
   :type 'string)
 
+(defcustom semantic-search--image-width 156
+  "Width of rendered images returned by semantic search"
+  :group 'semantic-search
+  :type 'integer)
+
 (defun semantic-search--extract-entries-as-org (json-response)
   "Convert json response from API to org-mode entries"
   ;; remove leading (, ) or SPC from extracted entries string
@@ -49,6 +54,17 @@
    (format "%s"
            (mapcar
             (lambda (args) (format "%s" (cdr (assoc 'Entry args))))
+            json-response))))
+
+(defun semantic-search--extract-entries-as-images (json-response)
+  "Convert json response from API to org-mode entries with images"
+  ;; remove leading (, ) or SPC from extracted entries string
+  (replace-regexp-in-string
+   "^[\(\) ]" ""
+   ;; extract entries from response as single string and convert to entries
+   (format "* Results \n%s"
+           (mapcar
+            (lambda (args) (format "\n** \n  [[%s]]" (cdr (assoc 'Entry args))))
             json-response))))
 
 (defun semantic-search--extract-entries-as-ledger (json-response)
@@ -79,7 +95,7 @@
   "Semantic search on org-mode content via semantic-search API"
   (interactive "sQuery: ")
   (let* ((default-type (semantic-search--buffer-name-to-search-type (buffer-name)))
-         (search-type (completing-read "Type: " '("notes" "ledger" "music") nil t default-type))
+         (search-type (completing-read "Type: " '("notes" "ledger" "music" "image") nil t default-type))
          (url (semantic-search--construct-api-query query search-type))
          (buff (get-buffer-create "*semantic-search*")))
     ;; get json response from api
@@ -95,9 +111,14 @@
         (insert
          (cond ((or (equal search-type "notes") (equal search-type "music")) (semantic-search--extract-entries-as-org json-response))
                ((equal search-type "ledger") (semantic-search--extract-entries-as-ledger json-response))
+               ((equal search-type "image") (semantic-search--extract-entries-as-images json-response))
                (t (format "%s" json-response)))))
       (cond ((equal search-type "notes") (org-mode))
-            ((equal search-type "music") (progn (org-mode) (org-music-mode)))
+            ((equal search-type "music") (progn (org-mode)
+                                                (org-music-mode)))
+            ((equal search-type "image") (progn (org-mode)
+                                                (setq org-image-actual-width semantic-search--image-width)
+                                                (org-display-inline-images)))
             (t (fundamental-mode)))
       (read-only-mode t))
     (switch-to-buffer buff)))
