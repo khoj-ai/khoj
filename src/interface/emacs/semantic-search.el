@@ -74,6 +74,7 @@
   (let ((encoded-query (url-hexify-string query)))
     (format "%s/search?q=%s&t=%s" semantic-search--server-url encoded-query search-type)))
 
+;;;###autoload
 (defun semantic-search (query)
   "Semantic search on org-mode content via semantic-search API"
   (interactive "sQuery: ")
