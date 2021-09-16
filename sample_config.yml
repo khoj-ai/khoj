@@ -11,7 +11,7 @@ content-type:
 
   image:
     embeddings-file: '.image_embeddings.pt'
-
+    batch-size: 50
 
 search-type:
   asymmetric:

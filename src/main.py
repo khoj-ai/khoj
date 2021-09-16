@@ -187,8 +187,9 @@ if __name__ == '__main__':
         image_names, image_embeddings, image_metadata_embeddings, image_encoder = image_search.setup(
             pathlib.Path(image_config['input-directory']),
             pathlib.Path(image_config['embeddings-file']),
-            args.regenerate,
-            args.verbose)
+            batch_size=image_config['batch-size'],
+            regenerate=args.regenerate,
+            verbose=args.verbose)
 
     # Start Application Server
     uvicorn.run(app)

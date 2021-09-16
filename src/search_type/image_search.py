@@ -30,7 +30,7 @@ def extract_entries(image_directory, verbose=0):
     return image_names
 
 
-def compute_embeddings(image_names, model, embeddings_file, regenerate=False, verbose=0):
+def compute_embeddings(image_names, model, embeddings_file, batch_size=50, regenerate=False, verbose=0):
     "Compute (and Save) Embeddings or Load Pre-Computed Embeddings"
     image_embeddings = None
     image_metadata_embeddings = None
@@ -51,7 +51,6 @@ def compute_embeddings(image_names, model, embeddings_file, regenerate=False, ve
         if verbose > 0:
             print(f"Loading the {len(image_names)} images into memory")
 
-    batch_size = 50
     if image_embeddings is None:
         image_embeddings = []
         for index in trange(0, len(image_names), batch_size):
@@ -137,7 +136,7 @@ def collate_results(hits, image_names, image_directory, count=5):
         in hits[0:count]]
 
 
-def setup(image_directory, embeddings_file, regenerate=False, verbose=0):
+def setup(image_directory, embeddings_file, batch_size=50, regenerate=False, verbose=0):
     # Initialize Model
     model = initialize_model()
 
@@ -147,7 +146,7 @@ def setup(image_directory, embeddings_file, regenerate=False, verbose=0):
 
     # Compute or Load Embeddings
     embeddings_file = resolve_absolute_path(embeddings_file)
-    image_embeddings, image_metadata_embeddings = compute_embeddings(image_names, model, embeddings_file, regenerate=regenerate, verbose=verbose)
+    image_embeddings, image_metadata_embeddings = compute_embeddings(image_names, model, embeddings_file, batch_size=batch_size, regenerate=regenerate, verbose=verbose)
 
     return image_names, image_embeddings, image_metadata_embeddings, model
 
