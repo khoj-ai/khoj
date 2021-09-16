@@ -56,13 +56,14 @@
             (lambda (args) (format "%s" (cdr (assoc 'Entry args))))
             json-response))))
 
-(defun semantic-search--extract-entries-as-images (json-response)
+(defun semantic-search--extract-entries-as-images (json-response query)
   "Convert json response from API to org-mode entries with images"
   ;; remove leading (, ) or SPC from extracted entries string
   (replace-regexp-in-string
    "^[\(\) ]" ""
    ;; extract entries from response as single string and convert to entries
-   (format "* Results \n%s"
+   (format "* %s \n%s"
+           query
            (mapcar
             (lambda (args) (format "\n** \n  [[%s]]" (cdr (assoc 'Entry args))))
             json-response))))
@@ -111,7 +112,7 @@
         (insert
          (cond ((or (equal search-type "notes") (equal search-type "music")) (semantic-search--extract-entries-as-org json-response))
                ((equal search-type "ledger") (semantic-search--extract-entries-as-ledger json-response))
-               ((equal search-type "image") (semantic-search--extract-entries-as-images json-response))
+               ((equal search-type "image") (semantic-search--extract-entries-as-images json-response query))
                (t (format "%s" json-response)))))
       (cond ((equal search-type "notes") (org-mode))
             ((equal search-type "music") (progn (org-mode)
