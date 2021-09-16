@@ -68,6 +68,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[str] = None):
         hits = image_search.query_images(
             user_query,
             image_embeddings,
+            image_metadata_embeddings,
             image_encoder,
             results_count,
             args.verbose)
@@ -124,8 +125,10 @@ def regenerate(t: Optional[str] = None):
     if (t == 'image' or t == None) and image_search_enabled:
         # Extract Images, Generate Embeddings
         global image_embeddings
+        global image_metadata_embeddings
         global image_names
-        image_names, image_embeddings, _ = image_search.setup(
+
+        image_names, image_embeddings, image_metadata_embeddings, _ = image_search.setup(
             pathlib.Path(image_config['input-directory']),
             pathlib.Path(image_config['embeddings-file']),
             regenerate=True,
@@ -181,7 +184,7 @@ if __name__ == '__main__':
     image_search_enabled = False
     if image_config and 'input-directory' in image_config:
         image_search_enabled = True
-        image_names, image_embeddings, image_encoder = image_search.setup(
+        image_names, image_embeddings, image_metadata_embeddings, image_encoder = image_search.setup(
             pathlib.Path(image_config['input-directory']),
             pathlib.Path(image_config['embeddings-file']),
             args.regenerate,
