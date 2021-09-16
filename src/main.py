@@ -189,6 +189,7 @@ if __name__ == '__main__':
             pathlib.Path(image_config['embeddings-file']),
             batch_size=image_config['batch-size'],
             regenerate=args.regenerate,
+            use_xmp_metadata={'yes': True, 'no': False}[image_config['use-xmp-metadata']],
             verbose=args.verbose)
 
     # Start Application Server

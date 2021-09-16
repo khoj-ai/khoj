@@ -57,7 +57,8 @@ default_config = {
         'image':
         {
             'embeddings-file': '.image_embeddings.pt',
-            'batch-size': 50
+            'batch-size': 50,
+            'use-xmp-metadata': 'no'
         },
         'music':
         {
