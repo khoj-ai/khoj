@@ -18,17 +18,17 @@
    Load ML model, generate embeddings and expose API to query specified org-mode files
 
    #+begin_src shell
-   python3 src/main.py -c=sample_config.yml --verbose
+   python3 src/main.py -c=sample_config.yml -vv
    #+end_src
 
 ** Use
    - *Semantic Search via Emacs*
      - [[https://github.com/debanjum/semantic-search/tree/master/src/interface/emacs#installation][Install]] [[./src/interface/emacs/semantic-search.el][semantic-search.el]]
-     - Run ~M-x semantic-search <user-query>~ or Call ~C-c s~
+     - Run ~M-x semantic-search <user-query>~
 
    - *Semantic Search via API*
-     - Query: ~GET~ [[http://localhost:8000/search?q=%22what%20is%20the%20meaning%20of%20life%22][http://localhost:8000/search?q="What is the meaning of life"]]
-     - Regenerate Embeddings: ~GET~ [[http://localhost:8000/regenerate][http://localhost:8000/regenerate]]
+     - Query: ~GET~ [[http://localhost:8000/search?q=%22what%20is%20the%20meaning%20of%20life%22][http://localhost:8000/search?q="What is the meaning of life&t=notes"]]
+     - Regenerate Embeddings: ~GET~ [[http://localhost:8000/regenerate][http://localhost:8000/regenerate?t=image]]
      - [[http://localhost:8000/docs][Semantic Search API Docs]]
 
 ** Upgrade
@@ -43,3 +43,4 @@
    - [[https://huggingface.co/sentence-transformers/msmarco-MiniLM-L-6-v3][MiniLM Model]] for Asymmetric Text Search. See [[https://www.sbert.net/examples/applications/retrieve_rerank/README.html][SBert Documentation]]
    - [[https://github.com/openai/CLIP][OpenAI CLIP Model]] for Image Search. See [[https://www.sbert.net/examples/applications/image-search/README.html][SBert Documentation]]
    - Charles Cave for [[http://members.optusnet.com.au/~charles57/GTD/orgnode.html][OrgNode Parser]]
+   - Sven Marnach for [[https://github.com/smarnach/pyexiftool/blob/master/exiftool.py][PyExifTool]]
