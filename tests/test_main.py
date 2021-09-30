@@ -80,7 +80,7 @@ def test_notes_search():
 
     # Arrange
     model.notes_search = notes_model
-    user_query = "How to call semantic search from Emacs?"
+    user_query = "How to git install application?"
 
     # Act
     response = client.get(f"/search?q={user_query}&n=1&t=notes")
@@ -89,7 +89,73 @@ def test_notes_search():
     assert response.status_code == 200
     # assert actual_data contains "Semantic Search via Emacs"
     search_result = response.json()[0]["Entry"]
-    assert "Semantic Search via Emacs" in search_result
+    assert "git clone" in search_result
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_notes_search_with_include_filter():
+    # Arrange
+    search_config = SearchConfig()
+    search_config.notes = TextSearchConfig(
+        input_files = [Path('tests/data/main_readme.org'), Path('tests/data/interface_emacs_readme.org')],
+        input_filter = None,
+        compressed_jsonl = Path('tests/data/.test.jsonl.gz'),
+        embeddings_file = Path('tests/data/.test_embeddings.pt'),
+        verbose = 0)
+
+    # Act
+    # Regenerate embeddings during asymmetric setup
+    notes_model = asymmetric.setup(search_config.notes, regenerate=True)
+
+    # Assert
+    assert len(notes_model.entries) == 10
+    assert len(notes_model.corpus_embeddings) == 10
+
+    # Arrange
+    model.notes_search = notes_model
+    user_query = "How to git install application? +Emacs"
+
+    # Act
+    response = client.get(f"/search?q={user_query}&n=1&t=notes")
+
+    # Assert
+    assert response.status_code == 200
+    # assert actual_data does not contains explicitly excluded word "Emacs"
+    search_result = response.json()[0]["Entry"]
+    assert "Emacs" in search_result
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_notes_search_with_exclude_filter():
+    # Arrange
+    search_config = SearchConfig()
+    search_config.notes = TextSearchConfig(
+        input_files = [Path('tests/data/main_readme.org'), Path('tests/data/interface_emacs_readme.org')],
+        input_filter = None,
+        compressed_jsonl = Path('tests/data/.test.jsonl.gz'),
+        embeddings_file = Path('tests/data/.test_embeddings.pt'),
+        verbose = 0)
+
+    # Act
+    # Regenerate embeddings during asymmetric setup
+    notes_model = asymmetric.setup(search_config.notes, regenerate=True)
+
+    # Assert
+    assert len(notes_model.entries) == 10
+    assert len(notes_model.corpus_embeddings) == 10
+
+    # Arrange
+    model.notes_search = notes_model
+    user_query = "How to git install application? -clone"
+
+    # Act
+    response = client.get(f"/search?q={user_query}&n=1&t=notes")
+
+    # Assert
+    assert response.status_code == 200
+    # assert actual_data does not contains explicitly excluded word "Emacs"
+    search_result = response.json()[0]["Entry"]
+    assert "clone" not in search_result
 
 
 # ----------------------------------------------------------------------------------------------------
