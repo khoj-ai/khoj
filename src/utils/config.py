@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 # Internal Packages
-from utils.helpers import get_from_dict
+from src.utils.helpers import get_from_dict
 
 
 class SearchType(str, Enum):

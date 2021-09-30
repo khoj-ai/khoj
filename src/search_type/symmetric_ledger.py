@@ -13,9 +13,9 @@ import torch
 from sentence_transformers import SentenceTransformer, CrossEncoder, util
 
 # Internal Packages
-from utils.helpers import get_absolute_path, resolve_absolute_path
-from processor.ledger.beancount_to_jsonl import beancount_to_jsonl
-from utils.config import TextSearchModel, TextSearchConfig
+from src.utils.helpers import get_absolute_path, resolve_absolute_path
+from src.processor.ledger.beancount_to_jsonl import beancount_to_jsonl
+from src.utils.config import TextSearchModel, TextSearchConfig
 
 
 def initialize_model():
@@ -98,7 +98,7 @@ def explicit_filter(hits, entries, required_words, blocked_words):
     hits_by_word_set = [(set(word.lower()
                              for word
                              in re.split(
-                                 ',|\.| |\]|\[\(|\)|\{|\}',
+                                 r',|\.| |\]|\[\(|\)|\{|\}',
                                  entries[hit['corpus_id']])
                              if word != ""),
                          hit)

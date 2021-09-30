@@ -10,9 +10,9 @@ from tqdm import trange
 import torch
 
 # Internal Packages
-from utils.helpers import get_absolute_path, resolve_absolute_path
-import utils.exiftool as exiftool
-from utils.config import ImageSearchModel, ImageSearchConfig
+from src.utils.helpers import get_absolute_path, resolve_absolute_path
+import src.utils.exiftool as exiftool
+from src.utils.config import ImageSearchModel, ImageSearchConfig
 
 
 def initialize_model():

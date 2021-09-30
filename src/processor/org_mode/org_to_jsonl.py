@@ -8,8 +8,8 @@ import glob
 import gzip
 
 # Internal Packages
-from processor.org_mode import orgnode
-from utils.helpers import get_absolute_path, is_none_or_empty
+from src.processor.org_mode import orgnode
+from src.utils.helpers import get_absolute_path, is_none_or_empty
 
 
 # Define Functions

@@ -6,10 +6,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 # Internal Packages
-from main import app, search_config, model
-from search_type import asymmetric, image_search
-from utils.config import SearchConfig, TextSearchConfig, ImageSearchConfig
-from utils.helpers import resolve_absolute_path
+from src.main import app, search_config, model
+from src.search_type import asymmetric, image_search
+from src.utils.config import SearchConfig, TextSearchConfig, ImageSearchConfig
+from src.utils.helpers import resolve_absolute_path
 
 
 # Arrange

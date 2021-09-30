@@ -2,7 +2,7 @@
 from pathlib import Path
 
 # Internal Packages
-from utils.cli import cli
+from src.utils.cli import cli
 
 
 # Test
