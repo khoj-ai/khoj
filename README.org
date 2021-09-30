@@ -1,3 +1,5 @@
+[[https://github.com/debanjum/semantic-search/actions/workflows/tests.yml/badge.svg]]
+
 * Semantic Search
   /Allow natural language search on user content like notes, images, transactions using transformer based models/
 
