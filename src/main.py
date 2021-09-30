@@ -11,9 +11,11 @@ from fastapi import FastAPI
 from search_type import asymmetric, symmetric_ledger, image_search
 from utils.helpers import get_from_dict
 from utils.cli import cli
-from utils.config import SearchType, SearchSettings
+from utils.config import SearchType, SearchSettings, SearchModels
 
 
+# Application Global State
+model = SearchModels()
 search_settings = SearchSettings()
 app = FastAPI()
 
@@ -29,16 +31,10 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
 
     if (t == SearchType.Notes or t == None) and search_settings.notes_search_enabled:
         # query notes
-        hits = asymmetric.query_notes(
-            user_query,
-            corpus_embeddings,
-            entries,
-            bi_encoder,
-            cross_encoder,
-            top_k)
+        hits = asymmetric.query_notes(user_query, model.notes_search)
 
         # collate and return results
-        return asymmetric.collate_results(hits, entries, results_count)
+        return asymmetric.collate_results(hits, model.notes_search.entries, results_count)
 
     if (t == SearchType.Music or t == None) and search_settings.music_search_enabled:
         # query music library
@@ -90,9 +86,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
 def regenerate(t: Optional[SearchType] = None):
     if (t == SearchType.Notes or t == None) and search_settings.notes_search_enabled:
         # Extract Entries, Generate Embeddings
-        global corpus_embeddings
-        global entries
-        entries, corpus_embeddings, _, _, _ = asymmetric.setup(
+        models.notes_search = asymmetric.setup(
             org_config['input-files'],
             org_config['input-filter'],
             pathlib.Path(org_config['compressed-jsonl']),
@@ -146,7 +140,7 @@ if __name__ == '__main__':
     org_config = get_from_dict(args.config, 'content-type', 'org')
     if org_config and ('input-files' in org_config or 'input-filter' in org_config):
         search_settings.notes_search_enabled = True
-        entries, corpus_embeddings, bi_encoder, cross_encoder, top_k = asymmetric.setup(
+        model.notes_search = asymmetric.setup(
             org_config['input-files'],
             org_config['input-filter'],
             pathlib.Path(org_config['compressed-jsonl']),

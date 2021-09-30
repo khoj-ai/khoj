@@ -18,3 +18,15 @@ class SearchSettings():
     image_search_enabled: bool = False
 
 
+class AsymmetricSearchModel():
+    def __init__(self, entries, corpus_embeddings, bi_encoder, cross_encoder, top_k):
+        self.entries = entries
+        self.corpus_embeddings = corpus_embeddings
+        self.bi_encoder = bi_encoder
+        self.cross_encoder = cross_encoder
+        self.top_k = top_k
+
+
+@dataclass
+class SearchModels():
+    notes_search: AsymmetricSearchModel = None
