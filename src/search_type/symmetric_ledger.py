@@ -19,6 +19,7 @@ from processor.ledger.beancount_to_jsonl import beancount_to_jsonl
 
 def initialize_model():
     "Initialize model for symetric semantic search. That is, where query of similar size to results"
+    torch.set_num_threads(4)
     bi_encoder = SentenceTransformer('sentence-transformers/paraphrase-MiniLM-L6-v2') # The encoder encodes all entries to use for semantic search
     top_k = 100                                                                       # Number of entries we want to retrieve with the bi-encoder
     cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')              # The cross-encoder re-ranks the results to improve quality

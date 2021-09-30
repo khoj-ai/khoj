@@ -28,6 +28,7 @@ def test_search_with_invalid_search_type():
     assert response.status_code == 422
 
 
+# ----------------------------------------------------------------------------------------------------
 def test_search_with_valid_search_type():
     # Arrange
     for search_type in ["notes", "ledger", "music", "image"]:
@@ -37,6 +38,7 @@ def test_search_with_valid_search_type():
         assert response.status_code == 200
 
 
+# ----------------------------------------------------------------------------------------------------
 def test_regenerate_with_invalid_search_type():
     # Act
     response = client.get(f"/regenerate?t=invalid_search_type")
@@ -45,6 +47,7 @@ def test_regenerate_with_invalid_search_type():
     assert response.status_code == 422
 
 
+# ----------------------------------------------------------------------------------------------------
 def test_regenerate_with_valid_search_type():
     # Arrange
     for search_type in ["notes", "ledger", "music", "image"]:

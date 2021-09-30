@@ -22,6 +22,7 @@ from utils.config import AsymmetricSearchModel
 
 def initialize_model():
     "Initialize model for assymetric semantic search. That is, where query smaller than results"
+    torch.set_num_threads(4)
     bi_encoder = SentenceTransformer('sentence-transformers/msmarco-MiniLM-L-6-v3')  # The bi-encoder encodes all entries to use for semantic search
     top_k = 100                                                                      # Number of entries we want to retrieve with the bi-encoder
     cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')             # The cross-encoder re-ranks the results to improve quality
