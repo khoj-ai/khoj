@@ -27,6 +27,26 @@ class AsymmetricSearchModel():
         self.top_k = top_k
 
 
+class LedgerSearchModel():
+    def __init__(self, transactions, transaction_embeddings, symmetric_encoder, symmetric_cross_encoder, top_k):
+        self.transactions = transactions
+        self.transaction_embeddings = transaction_embeddings
+        self.symmetric_encoder = symmetric_encoder
+        self.symmetric_cross_encoder = symmetric_cross_encoder
+        self.top_k = top_k
+
+
+class ImageSearchModel():
+    def __init__(self, image_names, image_embeddings, image_metadata_embeddings, image_encoder):
+        self.image_names = image_names
+        self.image_embeddings = image_embeddings
+        self.image_metadata_embeddings = image_metadata_embeddings
+        self.image_encoder = image_encoder
+
+
 @dataclass
 class SearchModels():
     notes_search: AsymmetricSearchModel = None
+    ledger_search: LedgerSearchModel = None
+    music_search: AsymmetricSearchModel = None
+    image_search: ImageSearchModel = None
