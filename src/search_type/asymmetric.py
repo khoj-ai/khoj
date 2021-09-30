@@ -17,7 +17,7 @@ from sentence_transformers import SentenceTransformer, CrossEncoder, util
 # Internal Packages
 from utils.helpers import get_absolute_path, resolve_absolute_path
 from processor.org_mode.org_to_jsonl import org_to_jsonl
-from utils.config import AsymmetricSearchModel
+from utils.config import TextSearchModel, TextSearchConfig
 
 
 def initialize_model():
@@ -66,7 +66,7 @@ def compute_embeddings(entries, bi_encoder, embeddings_file, regenerate=False, v
     return corpus_embeddings
 
 
-def query_notes(raw_query: str, model: AsymmetricSearchModel):
+def query(raw_query: str, model: TextSearchModel):
     "Search all notes for entries that answer the query"
     # Separate natural query from explicit required, blocked words filters
     query = " ".join([word for word in raw_query.split() if not word.startswith("+") and not word.startswith("-")])
@@ -151,21 +151,21 @@ def collate_results(hits, entries, count=5):
         in hits[0:count]]
 
 
-def setup(input_files, input_filter, compressed_jsonl, embeddings, regenerate=False, verbose=False):
+def setup(config: TextSearchConfig, regenerate: bool) -> TextSearchModel:
     # Initialize Model
     bi_encoder, cross_encoder, top_k = initialize_model()
 
     # Map notes in Org-Mode files to (compressed) JSONL formatted file
-    if not resolve_absolute_path(compressed_jsonl).exists() or regenerate:
-        org_to_jsonl(input_files, input_filter, compressed_jsonl, verbose)
+    if not resolve_absolute_path(config.compressed_jsonl).exists() or regenerate:
+        org_to_jsonl(config.input_files, config.input_filter, config.compressed_jsonl, config.verbose)
 
     # Extract Entries
-    entries = extract_entries(compressed_jsonl, verbose)
+    entries = extract_entries(config.compressed_jsonl, config.verbose)
 
     # Compute or Load Embeddings
-    corpus_embeddings = compute_embeddings(entries, bi_encoder, embeddings, regenerate=regenerate, verbose=verbose)
+    corpus_embeddings = compute_embeddings(entries, bi_encoder, config.embeddings_file, regenerate=regenerate, verbose=config.verbose)
 
-    return AsymmetricSearchModel(entries, corpus_embeddings, bi_encoder, cross_encoder, top_k)
+    return TextSearchModel(entries, corpus_embeddings, bi_encoder, cross_encoder, top_k, verbose=config.verbose)
 
 
 if __name__ == '__main__':
@@ -191,7 +191,7 @@ if __name__ == '__main__':
             exit(0)
 
         # query notes
-        hits = query_notes(user_query, corpus_embeddings, entries, bi_encoder, cross_encoder, top_k)
+        hits = query(user_query, corpus_embeddings, entries, bi_encoder, cross_encoder, top_k)
 
         # render results
         render_results(hits, entries, count=args.results_count)

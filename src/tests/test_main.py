@@ -6,8 +6,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 # Internal Packages
-from main import app, search_settings, model
+from main import app, search_config, model
 from search_type import asymmetric
+from utils.config import SearchConfig, TextSearchConfig
 
 
 # Arrange
@@ -60,14 +61,17 @@ def test_regenerate_with_valid_search_type():
 # ----------------------------------------------------------------------------------------------------
 def test_notes_search():
     # Arrange
-    input_files = [Path('tests/data/main_readme.org'), Path('tests/data/interface_emacs_readme.org')]
-    input_filter = None
-    compressed_jsonl = Path('tests/data/.test.jsonl.gz')
-    embeddings = Path('tests/data/.test_embeddings.pt')
+    search_config = SearchConfig()
+    search_config.notes = TextSearchConfig(
+        input_files = [Path('tests/data/main_readme.org'), Path('tests/data/interface_emacs_readme.org')],
+        input_filter = None,
+        compressed_jsonl = Path('tests/data/.test.jsonl.gz'),
+        embeddings_file = Path('tests/data/.test_embeddings.pt'),
+        verbose = 0)
 
     # Act
     # Regenerate embeddings during asymmetric setup
-    notes_model = asymmetric.setup(input_files, input_filter, compressed_jsonl, embeddings, regenerate=True, verbose=0)
+    notes_model = asymmetric.setup(search_config.notes, regenerate=True)
 
     # Assert
     assert len(notes_model.entries) == 10
@@ -75,7 +79,6 @@ def test_notes_search():
 
     # Arrange
     model.notes_search = notes_model
-    search_settings.notes_search_enabled = True
     user_query = "How to call semantic search from Emacs?"
 
     # Act
@@ -88,3 +91,30 @@ def test_notes_search():
     assert "Semantic Search via Emacs" in search_result
 
 
+# ----------------------------------------------------------------------------------------------------
+def test_notes_regenerate():
+    # Arrange
+    search_config = SearchConfig()
+    search_config.notes = TextSearchConfig(
+        input_files = [Path('tests/data/main_readme.org'), Path('tests/data/interface_emacs_readme.org')],
+        input_filter = None,
+        compressed_jsonl = Path('tests/data/.test.jsonl.gz'),
+        embeddings_file = Path('tests/data/.test_embeddings.pt'),
+        verbose = 0)
+
+    # Act
+    # Regenerate embeddings during asymmetric setup
+    notes_model = asymmetric.setup(search_config.notes, regenerate=True)
+
+    # Assert
+    assert len(notes_model.entries) == 10
+    assert len(notes_model.corpus_embeddings) == 10
+
+    # Arrange
+    model.notes_search = notes_model
+
+    # Act
+    response = client.get(f"/regenerate?t=notes")
+
+    # Assert
+    assert response.status_code == 200

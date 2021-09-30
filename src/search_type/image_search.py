@@ -12,6 +12,8 @@ import torch
 # Internal Packages
 from utils.helpers import get_absolute_path, resolve_absolute_path
 import utils.exiftool as exiftool
+from utils.config import ImageSearchModel, ImageSearchConfig
+
 
 def initialize_model():
     # Initialize Model
@@ -93,30 +95,31 @@ def extract_metadata(image_name, verbose=0):
         return image_processed_metadata
 
 
-def query_images(query, image_embeddings, image_metadata_embeddings, model, count=3, verbose=0):
+def query(raw_query, count, model: ImageSearchModel):
     # Set query to image content if query is a filepath
-    if pathlib.Path(query).is_file():
-        query_imagepath = resolve_absolute_path(pathlib.Path(query), strict=True)
+    if pathlib.Path(raw_query).is_file():
+        query_imagepath = resolve_absolute_path(pathlib.Path(raw_query), strict=True)
         query = copy.deepcopy(Image.open(query_imagepath))
-        if verbose > 0:
+        if model.verbose > 0:
             print(f"Find Images similar to Image at {query_imagepath}")
     else:
-        if verbose > 0:
+        query = raw_query
+        if model.verbose > 0:
             print(f"Find Images by Text: {query}")
 
     # Now we encode the query (which can either be an image or a text string)
-    query_embedding = model.encode([query], convert_to_tensor=True, show_progress_bar=False)
+    query_embedding = model.image_encoder.encode([query], convert_to_tensor=True, show_progress_bar=False)
 
     # Compute top_k ranked images based on cosine-similarity b/w query and all image embeddings.
     image_hits = {result['corpus_id']: result['score']
                   for result
-                  in util.semantic_search(query_embedding, image_embeddings, top_k=count)[0]}
+                  in util.semantic_search(query_embedding, model.image_embeddings, top_k=count)[0]}
 
     # Compute top_k ranked images based on cosine-similarity b/w query and all image metadata embeddings.
-    if image_metadata_embeddings:
+    if model.image_metadata_embeddings:
         metadata_hits = {result['corpus_id']: result['score']
                          for result
-                         in util.semantic_search(query_embedding, image_metadata_embeddings, top_k=count)[0]}
+                         in util.semantic_search(query_embedding, model.image_metadata_embeddings, top_k=count)[0]}
 
         # Sum metadata, image scores of the highest ranked images
         for corpus_id, score in metadata_hits.items():
@@ -150,20 +153,30 @@ def collate_results(hits, image_names, image_directory, count=5):
         in hits[0:count]]
 
 
-def setup(image_directory, embeddings_file, batch_size=50, regenerate=False, use_xmp_metadata=False, verbose=0):
+def setup(config: ImageSearchConfig, regenerate: bool) -> ImageSearchModel:
     # Initialize Model
     model = initialize_model()
 
     # Extract Entries
-    image_directory = resolve_absolute_path(image_directory, strict=True)
-    image_names = extract_entries(image_directory, verbose)
+    image_directory = resolve_absolute_path(config.input_directory, strict=True)
+    image_names = extract_entries(config.input_directory, config.verbose)
 
     # Compute or Load Embeddings
-    embeddings_file = resolve_absolute_path(embeddings_file)
-    image_embeddings, image_metadata_embeddings = compute_embeddings(image_names, model, embeddings_file,
-                                                                     batch_size=batch_size, regenerate=regenerate, use_xmp_metadata=use_xmp_metadata, verbose=verbose)
+    embeddings_file = resolve_absolute_path(config.embeddings_file)
+    image_embeddings, image_metadata_embeddings = compute_embeddings(
+        image_names,
+        model,
+        embeddings_file,
+        batch_size=config.batch_size,
+        regenerate=regenerate,
+        use_xmp_metadata=config.use_xmp_metadata,
+        verbose=config.verbose)
 
-    return image_names, image_embeddings, image_metadata_embeddings, model
+    return ImageSearchModel(image_names,
+                            image_embeddings,
+                            image_metadata_embeddings,
+                            model,
+                            config.verbose)
 
 
 if __name__ == '__main__':
@@ -187,7 +200,7 @@ if __name__ == '__main__':
             exit(0)
 
         # query images
-        hits = query_images(user_query, image_embeddings, image_metadata_embeddings, model, args.results_count, args.verbose)
+        hits = query(user_query, image_embeddings, image_metadata_embeddings, model, args.results_count, args.verbose)
 
         # render results
         render_results(hits, image_names, args.image_directory, count=args.results_count)

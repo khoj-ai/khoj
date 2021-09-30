@@ -15,6 +15,7 @@ from sentence_transformers import SentenceTransformer, CrossEncoder, util
 # Internal Packages
 from utils.helpers import get_absolute_path, resolve_absolute_path
 from processor.ledger.beancount_to_jsonl import beancount_to_jsonl
+from utils.config import TextSearchModel, TextSearchConfig
 
 
 def initialize_model():
@@ -59,7 +60,7 @@ def compute_embeddings(entries, bi_encoder, embeddings_file, regenerate=False, v
     return corpus_embeddings
 
 
-def query_transactions(raw_query, corpus_embeddings, entries, bi_encoder, cross_encoder, top_k=100):
+def query(raw_query, model: TextSearchModel):
     "Search all notes for entries that answer the query"
     # Separate natural query from explicit required, blocked words filters
     query = " ".join([word for word in raw_query.split() if not word.startswith("+") and not word.startswith("-")])
@@ -67,20 +68,20 @@ def query_transactions(raw_query, corpus_embeddings, entries, bi_encoder, cross_
     blocked_words = set([word[1:].lower() for word in raw_query.split() if word.startswith("-")])
 
     # Encode the query using the bi-encoder
-    question_embedding = bi_encoder.encode(query, convert_to_tensor=True)
+    question_embedding = model.bi_encoder.encode(query, convert_to_tensor=True)
 
     # Find relevant entries for the query
-    hits = util.semantic_search(question_embedding, corpus_embeddings, top_k=top_k)
+    hits = util.semantic_search(question_embedding, model.corpus_embeddings, top_k=model.top_k)
     hits = hits[0]  # Get the hits for the first query
 
     # Filter results using explicit filters
-    hits = explicit_filter(hits, entries, required_words, blocked_words)
+    hits = explicit_filter(hits, model.entries, required_words, blocked_words)
     if hits is None or len(hits) == 0:
         return hits
 
     # Score all retrieved entries using the cross-encoder
-    cross_inp = [[query, entries[hit['corpus_id']]] for hit in hits]
-    cross_scores = cross_encoder.predict(cross_inp)
+    cross_inp = [[query, model.entries[hit['corpus_id']]] for hit in hits]
+    cross_scores = model.cross_encoder.predict(cross_inp)
 
     # Store cross-encoder scores in results dictionary for ranking
     for idx in range(len(cross_scores)):
@@ -142,21 +143,21 @@ def collate_results(hits, entries, count=5):
         in hits[0:count]]
 
 
-def setup(input_files, input_filter, compressed_jsonl, embeddings, regenerate=False, verbose=False):
+def setup(config: TextSearchConfig, regenerate: bool) -> TextSearchModel:
     # Initialize Model
     bi_encoder, cross_encoder, top_k = initialize_model()
 
     # Map notes in Org-Mode files to (compressed) JSONL formatted file
-    if not resolve_absolute_path(compressed_jsonl).exists() or regenerate:
-        beancount_to_jsonl(input_files, input_filter, compressed_jsonl, verbose)
+    if not resolve_absolute_path(config.compressed_jsonl).exists() or regenerate:
+        beancount_to_jsonl(config.input_files, config.input_filter, config.compressed_jsonl, config.verbose)
 
     # Extract Entries
-    entries = extract_entries(compressed_jsonl, verbose)
+    entries = extract_entries(config.compressed_jsonl, config.verbose)
 
     # Compute or Load Embeddings
-    corpus_embeddings = compute_embeddings(entries, bi_encoder, embeddings, regenerate=regenerate, verbose=verbose)
+    corpus_embeddings = compute_embeddings(entries, bi_encoder, config.embeddings_file, regenerate=regenerate, verbose=config.verbose)
 
-    return entries, corpus_embeddings, bi_encoder, cross_encoder, top_k
+    return TextSearchModel(entries, corpus_embeddings, bi_encoder, cross_encoder, top_k, verbose=config.verbose)
 
 
 if __name__ == '__main__':
@@ -181,8 +182,8 @@ if __name__ == '__main__':
         if user_query == "exit":
             exit(0)
 
-        # query notes
-        hits = query_transactions(user_query, corpus_embeddings, entries, bi_encoder, cross_encoder, top_k)
+        # query
+        hits = query(user_query, corpus_embeddings, entries, bi_encoder, cross_encoder, top_k)
 
         # render results
         render_results(hits, entries, count=args.results_count)
