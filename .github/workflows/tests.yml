@@ -1,0 +1,34 @@
+name: Run Tests on Push or PR
+
+on:
+  pull_request:
+    branches:
+      - 'master'
+  push:
+    branches:
+      - 'master'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: "ubuntu-latest"
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: test
+          environment-file: environment.yml
+          python-version: 3.8
+          auto-activate-base: false
+      - name: Conda Info
+        run: |
+          conda info
+          conda list
+      - name: Run Pytest
+        run: |
+            conda install pytest
+            python -m pytest
