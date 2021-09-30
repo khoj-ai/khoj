@@ -7,8 +7,9 @@ from fastapi.testclient import TestClient
 
 # Internal Packages
 from main import app, search_config, model
-from search_type import asymmetric
-from utils.config import SearchConfig, TextSearchConfig
+from search_type import asymmetric, image_search
+from utils.config import SearchConfig, TextSearchConfig, ImageSearchConfig
+from utils.helpers import resolve_absolute_path
 
 
 # Arrange
@@ -89,6 +90,47 @@ def test_notes_search():
     # assert actual_data contains "Semantic Search via Emacs"
     search_result = response.json()[0]["Entry"]
     assert "Semantic Search via Emacs" in search_result
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_image_search():
+    # Arrange
+    search_config = SearchConfig()
+    search_config.image = ImageSearchConfig(
+        input_directory = Path('tests/data'),
+        embeddings_file = Path('tests/data/.image_embeddings.pt'),
+        batch_size = 10,
+        use_xmp_metadata = False,
+        verbose = 2)
+
+    # Act
+    model.image_search = image_search.setup(search_config.image, regenerate=True)
+
+    # Assert
+    assert len(model.image_search.image_names) == 3
+    assert len(model.image_search.image_embeddings) == 3
+
+    # Arrange
+    for query, expected_image_name in [("kitten in a park", "kitten_park.jpg"),
+                                       ("horse and dog in a farm", "horse_dog.jpg"),
+                                       ("A guinea pig eating grass", "guineapig_grass.jpg")]:
+        # Act
+        hits = image_search.query(
+            query,
+            count = 1,
+            model = model.image_search)
+
+        results = image_search.collate_results(
+            hits,
+            model.image_search.image_names,
+            search_config.image.input_directory,
+            count=1)
+
+        actual_image = results[0]["Entry"]
+        expected_image = resolve_absolute_path(search_config.image.input_directory.joinpath(expected_image_name))
+
+        # Assert
+        assert expected_image == actual_image
 
 
 # ----------------------------------------------------------------------------------------------------
