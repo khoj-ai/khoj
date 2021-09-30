@@ -1,2 +1,4 @@
-.*
 __pycache__
+.DS_Store
+.emacs.desktop
+tests/data/.*
