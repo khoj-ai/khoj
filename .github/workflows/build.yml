@@ -11,7 +11,7 @@ on:
 jobs:
   test:
     name: Run Tests
-    runs-on: "ubuntu-latest"
+    runs-on: "macos-latest"
     defaults:
       run:
         shell: bash -l {0}
@@ -34,6 +34,7 @@ jobs:
           environment-file: environment.yml
           python-version: 3.8
           auto-activate-base: false
+          use-only-tar-bz2: true
       - name: Conda Info
         run: |
           conda info

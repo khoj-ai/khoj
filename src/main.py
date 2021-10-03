@@ -1,6 +1,5 @@
 # Standard Packages
 import sys
-import pathlib
 from typing import Optional
 
 # External Packages
@@ -121,4 +120,7 @@ if __name__ == '__main__':
     model, search_config = initialize_search(args.config, args.regenerate, args.verbose)
 
     # Start Application Server
-    uvicorn.run(app)
+    if args.socket:
+        uvicorn.run(app, proxy_headers=True, uds=args.socket)
+    else:
+        uvicorn.run(app, host=args.host, port=args.port)

@@ -1,0 +1,18 @@
+* The Beatles - Across The Universe                          :60s:BRITISH:POP:
+  :PROPERTIES:
+  :TYPE:     song
+  :END:
+  :LOGBOOK:
+  ENQUEUED: [1984-04-01 Sun 00:00]
+  :END:
+
+* Ram Narayan                                       :INDIAN:CLASSICAL:SARANGI:
+** Ram Narayan - Raag Kirwani Alap
+   :PROPERTIES:
+   :TYPE:     song
+   :QUERY:    Raga Kirvani (feat. Suresh Talwalkar, François Auboux) (Alap)
+   :CATEGORY: youtube
+   :END:
+   :LOGBOOK:
+   ENQUEUED: [1984-04-01 Sun 00:00]
+   :END:

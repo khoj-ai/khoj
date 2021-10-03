@@ -1,4 +1,6 @@
 __pycache__
 .DS_Store
-.emacs.desktop
+.emacs.desktop*
 tests/data/.*
+src/.data
+.vscode

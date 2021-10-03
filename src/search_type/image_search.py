@@ -18,7 +18,7 @@ from src.utils.config import ImageSearchModel, ImageSearchConfig
 def initialize_model():
     # Initialize Model
     torch.set_num_threads(4)
-    encoder = SentenceTransformer('clip-ViT-B-32')  #Load the CLIP model
+    encoder = SentenceTransformer('sentence-transformers/clip-ViT-B-32')  #Load the CLIP model
     return encoder
 
 
