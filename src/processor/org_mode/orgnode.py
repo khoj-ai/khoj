@@ -65,7 +65,7 @@ def makelist(filename):
 
    for line in f:
        ctr += 1
-       hdng = re.search('^(\*+)\s(.*?)\s*$', line)
+       hdng = re.search(r'^(\*+)\s(.*?)\s*$', line)
        if hdng:
           if heading:  # we are processing a heading line
              thisNode = Orgnode(level, heading, bodytext, tag1, alltags)
@@ -83,7 +83,7 @@ def makelist(filename):
           bodytext = ""
           tag1 = ""
           alltags = []       # list of all tags in headline
-          tagsrch = re.search('(.*?)\s*:([a-zA-Z0-9].*?):([a-zA-Z0-9].*?):$',heading)
+          tagsrch = re.search(r'(.*?)\s*:([a-zA-Z0-9].*?):([a-zA-Z0-9].*?):$',heading)
           if tagsrch:
               heading = tagsrch.group(1)
               tag1 = tagsrch.group(2)
@@ -94,7 +94,7 @@ def makelist(filename):
                     if t != '': alltags.append(t)
        else:      # we are processing a non-heading line
            if line[:10] == '#+SEQ_TODO':
-              kwlist = re.findall('([A-Z]+)\(', line)
+              kwlist = re.findall(r'([A-Z]+)\(', line)
               for kw in kwlist: todos[kw] = ""
 
            # Ignore Properties Drawers Completely
@@ -106,22 +106,22 @@ def makelist(filename):
               continue
 
            # Ignore Clocking Lines
-           if re.search('CLOCK: \[[0-9]{4}-[0-9]{2}-[0-9]{2}', line):
+           if re.search(r'CLOCK: \[[0-9]{4}-[0-9]{2}-[0-9]{2}', line):
               continue
 
            if not in_properties_drawer and line[:1] != '#':
                bodytext = bodytext + line
 
-           prop_srch = re.search('^\s*:(.*?):\s*(.*?)\s*$', line)
+           prop_srch = re.search(r'^\s*:(.*?):\s*(.*?)\s*$', line)
            if prop_srch:
               propdict[prop_srch.group(1)] = prop_srch.group(2)
               continue
-           sd_re = re.search('SCHEDULED:\s+<([0-9]+)\-([0-9]+)\-([0-9]+)', line)
+           sd_re = re.search(r'SCHEDULED:\s+<([0-9]+)\-([0-9]+)\-([0-9]+)', line)
            if sd_re:
               sched_date = datetime.date(int(sd_re.group(1)),
                                          int(sd_re.group(2)),
                                          int(sd_re.group(3)) )
-           dd_re = re.search('DEADLINE:\s*<(\d+)\-(\d+)\-(\d+)', line)
+           dd_re = re.search(r'DEADLINE:\s*<(\d+)\-(\d+)\-(\d+)', line)
            if dd_re:
               deadline_date = datetime.date(int(dd_re.group(1)),
                                             int(dd_re.group(2)),
@@ -140,12 +140,12 @@ def makelist(filename):
    # process the headings searching for TODO keywords
    for n in nodelist:
        h = n.Heading()
-       todoSrch = re.search('([A-Z]+)\s(.*?)$', h)
+       todoSrch = re.search(r'([A-Z]+)\s(.*?)$', h)
        if todoSrch:
            if todoSrch.group(1) in todos:
                n.setHeading( todoSrch.group(2) )
                n.setTodo ( todoSrch.group(1) )
-       prtysrch = re.search('^\[\#(A|B|C)\] (.*?)$', n.Heading())
+       prtysrch = re.search(r'^\[\#(A|B|C)\] (.*?)$', n.Heading())
        if prtysrch:
           n.setPriority(prtysrch.group(1))
           n.setHeading(prtysrch.group(2))
