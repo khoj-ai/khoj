@@ -11,7 +11,7 @@ on:
 jobs:
   test:
     name: Run Tests
-    runs-on: "ubuntu-latest"
+    runs-on: "macos-latest"
     defaults:
       run:
         shell: bash -l {0}
