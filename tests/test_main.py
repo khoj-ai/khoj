@@ -16,6 +16,25 @@ from src.utils.helpers import resolve_absolute_path
 # ----------------------------------------------------------------------------------------------------
 client = TestClient(app)
 
+@pytest.fixture
+def search_config(model_dir):
+    search_config = SearchConfig()
+    search_config.notes = TextSearchConfig(
+        input_files = [Path('tests/data/main_readme.org'), Path('tests/data/interface_emacs_readme.org')],
+        input_filter = None,
+        compressed_jsonl = model_dir.joinpath('.notes.jsonl.gz'),
+        embeddings_file = model_dir.joinpath('.note_embeddings.pt'),
+        verbose = 0)
+
+    search_config.image = ImageSearchConfig(
+        input_directory = Path('tests/data'),
+        embeddings_file = Path('tests/data/.image_embeddings.pt'),
+        batch_size = 10,
+        use_xmp_metadata = False,
+        verbose = 2)
+
+    return search_config
+
 
 # Test
 # ----------------------------------------------------------------------------------------------------
@@ -60,26 +79,9 @@ def test_regenerate_with_valid_search_type():
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_notes_search():
+def test_notes_search(search_config):
     # Arrange
-    search_config = SearchConfig()
-    search_config.notes = TextSearchConfig(
-        input_files = [Path('tests/data/main_readme.org'), Path('tests/data/interface_emacs_readme.org')],
-        input_filter = None,
-        compressed_jsonl = Path('tests/data/.test.jsonl.gz'),
-        embeddings_file = Path('tests/data/.test_embeddings.pt'),
-        verbose = 0)
-
-    # Act
-    # Regenerate embeddings during asymmetric setup
-    notes_model = asymmetric.setup(search_config.notes, regenerate=True)
-
-    # Assert
-    assert len(notes_model.entries) == 10
-    assert len(notes_model.corpus_embeddings) == 10
-
-    # Arrange
-    model.notes_search = notes_model
+    model.notes_search = asymmetric.setup(search_config.notes, regenerate=False)
     user_query = "How to git install application?"
 
     # Act
@@ -93,26 +95,9 @@ def test_notes_search():
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_notes_search_with_include_filter():
+def test_notes_search_with_include_filter(search_config):
     # Arrange
-    search_config = SearchConfig()
-    search_config.notes = TextSearchConfig(
-        input_files = [Path('tests/data/main_readme.org'), Path('tests/data/interface_emacs_readme.org')],
-        input_filter = None,
-        compressed_jsonl = Path('tests/data/.test.jsonl.gz'),
-        embeddings_file = Path('tests/data/.test_embeddings.pt'),
-        verbose = 0)
-
-    # Act
-    # Regenerate embeddings during asymmetric setup
-    notes_model = asymmetric.setup(search_config.notes, regenerate=True)
-
-    # Assert
-    assert len(notes_model.entries) == 10
-    assert len(notes_model.corpus_embeddings) == 10
-
-    # Arrange
-    model.notes_search = notes_model
+    model.notes_search = asymmetric.setup(search_config.notes, regenerate=False)
     user_query = "How to git install application? +Emacs"
 
     # Act
@@ -120,32 +105,15 @@ def test_notes_search_with_include_filter():
 
     # Assert
     assert response.status_code == 200
-    # assert actual_data does not contains explicitly excluded word "Emacs"
+    # assert actual_data contains explicitly included word "Emacs"
     search_result = response.json()[0]["Entry"]
     assert "Emacs" in search_result
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_notes_search_with_exclude_filter():
+def test_notes_search_with_exclude_filter(search_config):
     # Arrange
-    search_config = SearchConfig()
-    search_config.notes = TextSearchConfig(
-        input_files = [Path('tests/data/main_readme.org'), Path('tests/data/interface_emacs_readme.org')],
-        input_filter = None,
-        compressed_jsonl = Path('tests/data/.test.jsonl.gz'),
-        embeddings_file = Path('tests/data/.test_embeddings.pt'),
-        verbose = 0)
-
-    # Act
-    # Regenerate embeddings during asymmetric setup
-    notes_model = asymmetric.setup(search_config.notes, regenerate=True)
-
-    # Assert
-    assert len(notes_model.entries) == 10
-    assert len(notes_model.corpus_embeddings) == 10
-
-    # Arrange
-    model.notes_search = notes_model
+    model.notes_search = asymmetric.setup(search_config.notes, regenerate=False)
     user_query = "How to git install application? -clone"
 
     # Act
@@ -159,28 +127,15 @@ def test_notes_search_with_exclude_filter():
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_image_search():
+def test_image_search(search_config):
     # Arrange
-    search_config = SearchConfig()
-    search_config.image = ImageSearchConfig(
-        input_directory = Path('tests/data'),
-        embeddings_file = Path('tests/data/.image_embeddings.pt'),
-        batch_size = 10,
-        use_xmp_metadata = False,
-        verbose = 2)
+    model.image_search = image_search.setup(search_config.image, regenerate=False)
+    query_expected_image_pairs = [("kitten in a park", "kitten_park.jpg"),
+                                 ("horse and dog in a farm", "horse_dog.jpg"),
+                                 ("A guinea pig eating grass", "guineapig_grass.jpg")]
 
     # Act
-    model.image_search = image_search.setup(search_config.image, regenerate=True)
-
-    # Assert
-    assert len(model.image_search.image_names) == 3
-    assert len(model.image_search.image_embeddings) == 3
-
-    # Arrange
-    for query, expected_image_name in [("kitten in a park", "kitten_park.jpg"),
-                                       ("horse and dog in a farm", "horse_dog.jpg"),
-                                       ("A guinea pig eating grass", "guineapig_grass.jpg")]:
-        # Act
+    for query, expected_image_name in query_expected_image_pairs:
         hits = image_search.query(
             query,
             count = 1,
@@ -200,29 +155,22 @@ def test_image_search():
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_notes_regenerate():
-    # Arrange
-    search_config = SearchConfig()
-    search_config.notes = TextSearchConfig(
-        input_files = [Path('tests/data/main_readme.org'), Path('tests/data/interface_emacs_readme.org')],
-        input_filter = None,
-        compressed_jsonl = Path('tests/data/.test.jsonl.gz'),
-        embeddings_file = Path('tests/data/.test_embeddings.pt'),
-        verbose = 0)
-
+def test_asymmetric_setup(search_config):
     # Act
-    # Regenerate embeddings during asymmetric setup
+    # Regenerate notes embeddings during asymmetric setup
     notes_model = asymmetric.setup(search_config.notes, regenerate=True)
 
     # Assert
     assert len(notes_model.entries) == 10
     assert len(notes_model.corpus_embeddings) == 10
 
-    # Arrange
-    model.notes_search = notes_model
 
+# ----------------------------------------------------------------------------------------------------
+def test_image_search_setup(search_config):
     # Act
-    response = client.get(f"/regenerate?t=notes")
+    # Regenerate image search embeddings during image setup
+    image_search_model = image_search.setup(search_config.image, regenerate=True)
 
     # Assert
-    assert response.status_code == 200
+    assert len(image_search_model.image_names) == 3
+    assert len(image_search_model.image_embeddings) == 3
