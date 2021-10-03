@@ -33,3 +33,23 @@ def model_dir(tmp_path_factory):
     asymmetric.setup(search_config.notes, regenerate=False)
 
     return model_dir
+
+
+@pytest.fixture(scope='session')
+def search_config(model_dir):
+    search_config = SearchConfig()
+    search_config.notes = TextSearchConfig(
+        input_files = [Path('tests/data/main_readme.org'), Path('tests/data/interface_emacs_readme.org')],
+        input_filter = None,
+        compressed_jsonl = model_dir.joinpath('.notes.jsonl.gz'),
+        embeddings_file = model_dir.joinpath('.note_embeddings.pt'),
+        verbose = 2)
+
+    search_config.image = ImageSearchConfig(
+        input_directory = Path('tests/data'),
+        embeddings_file = Path('tests/data/.image_embeddings.pt'),
+        batch_size = 10,
+        use_xmp_metadata = False,
+        verbose = 2)
+
+    return search_config
