@@ -18,6 +18,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - name: Cache conda
+        uses: actions/cache@v2
+        env:
+          # Increase this value to reset cache if environment.yml has not changed
+          CACHE_NUMBER: 0
+        with:
+          path: ~/conda_pkgs_dir
+          key:
+            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
+            hashFiles('environment.yml') }}
       - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: test
@@ -30,5 +40,4 @@ jobs:
           conda list
       - name: Run Pytest
         run: |
-            conda install pytest
             python -m pytest
