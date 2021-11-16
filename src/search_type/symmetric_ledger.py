@@ -153,6 +153,7 @@ def setup(config: TextSearchConfig, regenerate: bool) -> TextSearchModel:
 
     # Extract Entries
     entries = extract_entries(config.compressed_jsonl, config.verbose)
+    top_k = min(len(entries), top_k)
 
     # Compute or Load Embeddings
     corpus_embeddings = compute_embeddings(entries, bi_encoder, config.embeddings_file, regenerate=regenerate, verbose=config.verbose)
