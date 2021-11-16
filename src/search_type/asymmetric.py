@@ -2,10 +2,7 @@
 
 # Standard Packages
 import json
-import time
 import gzip
-import os
-import sys
 import re
 import argparse
 import pathlib
@@ -80,7 +77,7 @@ def query(raw_query: str, model: TextSearchModel):
     hits = util.semantic_search(question_embedding, model.corpus_embeddings, top_k=model.top_k)
     hits = hits[0]  # Get the hits for the first query
 
-    # Filter results using explicit filters
+    # Filter out entries that contain required words and do not contain blocked words
     hits = explicit_filter(hits,
                            [entry[0] for entry in model.entries],
                            required_words,blocked_words)
@@ -95,9 +92,9 @@ def query(raw_query: str, model: TextSearchModel):
     for idx in range(len(cross_scores)):
         hits[idx]['cross-score'] = cross_scores[idx]
 
-    # Order results by cross encoder score followed by biencoder score
-    hits.sort(key=lambda x: x['score'], reverse=True) # sort by biencoder score
-    hits.sort(key=lambda x: x['cross-score'], reverse=True) # sort by cross encoder score
+    # Order results by cross-encoder score followed by bi-encoder score
+    hits.sort(key=lambda x: x['score'], reverse=True) # sort by bi-encoder score
+    hits.sort(key=lambda x: x['cross-score'], reverse=True) # sort by cross-encoder score
 
     return hits
 
