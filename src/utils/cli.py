@@ -80,6 +80,15 @@ default_config = {
         'image':
         {
             'encoder': "clip-ViT-B-32"
-        }
+        },
+    },
+    'processor':
+    {
+        'conversation':
+        {
+            'openai-api-key': "",
+            'conversation-logfile': ".conversation_logs.json",
+            'conversation-history': ""
+        },
     }
 }

@@ -30,3 +30,9 @@ search-type:
 
   image:
     encoder: "clip-ViT-B-32"
+
+processor:
+  conversation:
+    openai-api-key: null
+    conversation-logfile: "tests/data/.conversation_logs.json"
+    conversation-history: null
