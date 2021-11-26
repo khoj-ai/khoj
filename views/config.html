@@ -11,16 +11,39 @@
             <label>Input Filter</label>
             <input type="text" id="org-files" name="org-files" placeholder="null">
         </form>
+        <output id="list"></output>
     </body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"> </script>
     <script>
         var filePicker = document.getElementById("filepicker");
         filePicker.addEventListener("change", () => {
             console.log(filePicker);
             for (const file of filePicker.files) {
-                let url = URL.createObjectURL(file);
-                console.log(url);
-                if (file.name) {
+
+                if(!file.type.includes("yaml")) {
                     console.log(file);
+                    let url = URL.createObjectURL(file);
+
+                    const reader = new FileReader();
+
+                    // Closure to capture the file information.
+                    reader.onload = (function(theFile) {
+                        return function(e) {
+                            // Render thumbnail.
+                            var span = document.createElement('span');
+                            span.innerHTML = ['<img class="thumb" src="', e.target.result,
+                                            '" title="', escape(theFile.name), '"/>'].join('');
+                            document.getElementById('list').insertBefore(span, null);
+                        };
+                    })(file);
+
+                    // Read in the image file as a data URL.
+                    reader.readAsDataURL(file);
+
+                    window.jsyaml.loadAll(url, function(doc) {
+                        reader.readAsDataURL(url);
+                        console.log(doc);
+                    })
                 }
             }
         })
