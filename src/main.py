@@ -4,7 +4,9 @@ from typing import Optional
 
 # External Packages
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 
 # Internal Packages
 from src.search_type import asymmetric, symmetric_ledger, image_search
@@ -12,12 +14,17 @@ from src.utils.helpers import get_from_dict
 from src.utils.cli import cli
 from src.utils.config import SearchType, SearchModels, TextSearchConfig, ImageSearchConfig, SearchConfig
 
-
 # Application Global State
 model = SearchModels()
 search_config = SearchConfig()
 app = FastAPI()
 
+# app.mount("/views", StaticFiles(directory="./views"), name="views")
+templates = Jinja2Templates(directory="views/")
+
+@app.get('/ui', response_class=HTMLResponse)
+def ui(request: Request):
+    return templates.TemplateResponse("config.html", context={'request': request})
 
 @app.get('/search')
 def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):

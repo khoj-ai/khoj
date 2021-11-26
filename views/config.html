@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+    <head>
+        <title>Set directories for your config file.</title>
+    </head>
+    <body>
+        <form>
+            <input type="file" id="filepicker" name="fileList" />
+            <h2>Org notes</h2>
+            <label>Input Files</label>
+            <input type="textarea" id="org-files" name="org-files" placeholder='"/home/saba/notes/notes.org", "/home/saba/notes/writing.org"/'>
+            <label>Input Filter</label>
+            <input type="text" id="org-files" name="org-files" placeholder="null">
+        </form>
+    </body>
+    <script>
+        var filePicker = document.getElementById("filepicker");
+        filePicker.addEventListener("change", () => {
+            console.log(filePicker);
+            for (const file of filePicker.files) {
+                let url = URL.createObjectURL(file);
+                console.log(url);
+                if (file.name) {
+                    console.log(file);
+                }
+            }
+        })
+    </script>
+</html>
