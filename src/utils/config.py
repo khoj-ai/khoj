@@ -96,10 +96,11 @@ class SearchConfig():
 
 
 class ConversationProcessorConfig():
-    def __init__(self, conversation_logfile, conversation_history, openai_api_key, verbose):
+    def __init__(self, conversation_logfile, chat_log, meta_log, openai_api_key, verbose):
         self.openai_api_key = openai_api_key
         self.conversation_logfile = conversation_logfile
-        self.conversation_history = conversation_history
+        self.chat_log = chat_log
+        self.meta_log = meta_log
         self.verbose = verbose
 
     def create_from_dictionary(config, key_tree, verbose):
@@ -109,7 +110,8 @@ class ConversationProcessorConfig():
 
         return ConversationProcessorConfig(
             openai_api_key = conversation_config['openai-api-key'],
-            conversation_history = '',
+            chat_log = '',
+            meta_log = [],
             conversation_logfile = Path(conversation_config['conversation-logfile']),
             verbose = verbose)
 
