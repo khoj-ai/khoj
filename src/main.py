@@ -1,5 +1,6 @@
 # Standard Packages
 import sys
+import json
 from typing import Optional
 
 # External Packages
@@ -10,13 +11,15 @@ from fastapi.templating import Jinja2Templates
 
 # Internal Packages
 from src.search_type import asymmetric, symmetric_ledger, image_search
-from src.utils.helpers import get_from_dict
+from src.utils.helpers import get_absolute_path
 from src.utils.cli import cli
-from src.utils.config import SearchType, SearchModels, TextSearchConfig, ImageSearchConfig, SearchConfig
+from src.utils.config import SearchType, SearchModels, TextSearchConfig, ImageSearchConfig, SearchConfig, ProcessorConfig, ConversationProcessorConfig
+from src.processor.conversation.gpt import converse, message_to_prompt
 
 # Application Global State
 model = SearchModels()
 search_config = SearchConfig()
+processor_config = ProcessorConfig()
 app = FastAPI()
 
 # app.mount("/views", StaticFiles(directory="./views"), name="views")
@@ -92,6 +95,20 @@ def regenerate(t: Optional[SearchType] = None):
     return {'status': 'ok', 'message': 'regeneration completed'}
 
 
+@app.get('/chat')
+def chat(q: str):
+    # Load Conversation History
+    conversation_history = processor_config.conversation.conversation_history
+
+    # Converse with OpenAI GPT
+    gpt_response = converse(q, conversation_history, api_key=processor_config.conversation.openai_api_key)
+
+    # Update Conversation History
+    processor_config.conversation.conversation_history = message_to_prompt(q, conversation_history, gpt_response)
+
+    return {'status': 'ok', 'response': gpt_response}
+
+
 def initialize_search(config, regenerate, verbose):
     model = SearchModels()
     search_config = SearchConfig()
@@ -119,12 +136,48 @@ def initialize_search(config, regenerate, verbose):
     return model, search_config
 
 
+def initialize_processor(config, verbose):
+    processor_config = ProcessorConfig()
+
+    # Initialize Conversation Processor
+    processor_config.conversation = ConversationProcessorConfig.create_from_dictionary(config, ('processor', 'conversation'), verbose)
+
+    # Load or Initialize Conversation History from Disk
+    conversation_logfile = processor_config.conversation.conversation_logfile
+    if processor_config.conversation.verbose:
+        print('Saving conversation logs to disk...')
+
+    if conversation_logfile.expanduser().absolute().is_file():
+        with open(get_absolute_path(conversation_logfile), 'r') as f:
+            processor_config.conversation.conversation_history = json.load(f).get('chat', '')
+    else:
+        processor_config.conversation.conversation_history = ''
+
+    return processor_config
+
+
+@app.on_event('shutdown')
+def shutdown_event():
+    if processor_config.conversation.verbose:
+        print('Saving conversation logs to disk...')
+
+    # Save Conversation History to Disk
+    conversation_logfile = get_absolute_path(processor_config.conversation.conversation_logfile)
+    with open(conversation_logfile, "w+", encoding='utf-8') as logfile:
+        json.dump({"chat": processor_config.conversation.conversation_history}, logfile)
+
+    print('Conversation logs saved to disk.')
+
+
 if __name__ == '__main__':
     # Load config from CLI
     args = cli(sys.argv[1:])
 
     # Initialize Search from Config
     model, search_config = initialize_search(args.config, args.regenerate, args.verbose)
+
+    # Initialize Processor from Config
+    processor_config = initialize_processor(args.config, args.verbose)
 
     # Start Application Server
     if args.socket:

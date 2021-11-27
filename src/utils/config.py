@@ -93,3 +93,27 @@ class SearchConfig():
     ledger: TextSearchConfig = None
     music: TextSearchConfig = None
     image: ImageSearchConfig = None
+
+
+class ConversationProcessorConfig():
+    def __init__(self, conversation_logfile, conversation_history, openai_api_key, verbose):
+        self.openai_api_key = openai_api_key
+        self.conversation_logfile = conversation_logfile
+        self.conversation_history = conversation_history
+        self.verbose = verbose
+
+    def create_from_dictionary(config, key_tree, verbose):
+        conversation_config = get_from_dict(config, *key_tree)
+        if not conversation_config:
+            return None
+
+        return ConversationProcessorConfig(
+            openai_api_key = conversation_config['openai-api-key'],
+            conversation_history = '',
+            conversation_logfile = Path(conversation_config['conversation-logfile']),
+            verbose = verbose)
+
+
+@dataclass
+class ProcessorConfig():
+    conversation: ConversationProcessorConfig = None
