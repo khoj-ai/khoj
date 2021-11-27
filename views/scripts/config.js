@@ -14,6 +14,7 @@ function processChildren(element, data) {
     for (let key in data) {
         var child = document.createElement("div");
         child.id = key;
+        child.className = "config-element";
         child.appendChild(document.createTextNode(key + ": "));
         if (data[key] === Object(data[key])) {
             console.log(key, data[key]);
