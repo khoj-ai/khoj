@@ -7,6 +7,7 @@ from typing import Optional
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 # Internal Packages
@@ -20,14 +21,20 @@ from src.processor.conversation.gpt import converse, message_to_prompt
 model = SearchModels()
 search_config = SearchConfig()
 processor_config = ProcessorConfig()
+config = {}
 app = FastAPI()
 
-# app.mount("/views", StaticFiles(directory="./views"), name="views")
+app.mount("/views", StaticFiles(directory="views"), name="views")
 templates = Jinja2Templates(directory="views/")
 
 @app.get('/ui', response_class=HTMLResponse)
 def ui(request: Request):
     return templates.TemplateResponse("config.html", context={'request': request})
+
+@app.get('/config')
+def config():
+    print(config)
+    return config
 
 @app.get('/search')
 def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
@@ -172,6 +179,9 @@ def shutdown_event():
 if __name__ == '__main__':
     # Load config from CLI
     args = cli(sys.argv[1:])
+
+    # Store the path to the config file.
+    config = args.config
 
     # Initialize Search from Config
     model, search_config = initialize_search(args.config, args.regenerate, args.verbose)

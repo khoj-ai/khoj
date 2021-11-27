@@ -3,49 +3,11 @@
         <title>Set directories for your config file.</title>
     </head>
     <body>
-        <form>
-            <input type="file" id="filepicker" name="fileList" />
-            <h2>Org notes</h2>
-            <label>Input Files</label>
-            <input type="textarea" id="org-files" name="org-files" placeholder='"/home/saba/notes/notes.org", "/home/saba/notes/writing.org"/'>
-            <label>Input Filter</label>
-            <input type="text" id="org-files" name="org-files" placeholder="null">
+        <button type="button" id="show-config">Show Config</button>
+        <form id="update-config" style="display: none;">
+            <h1 id="config-title"></h1>
+            <h2>content-type</h2>
         </form>
-        <output id="list"></output>
     </body>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"> </script>
-    <script>
-        var filePicker = document.getElementById("filepicker");
-        filePicker.addEventListener("change", () => {
-            console.log(filePicker);
-            for (const file of filePicker.files) {
-
-                if(!file.type.includes("yaml")) {
-                    console.log(file);
-                    let url = URL.createObjectURL(file);
-
-                    const reader = new FileReader();
-
-                    // Closure to capture the file information.
-                    reader.onload = (function(theFile) {
-                        return function(e) {
-                            // Render thumbnail.
-                            var span = document.createElement('span');
-                            span.innerHTML = ['<img class="thumb" src="', e.target.result,
-                                            '" title="', escape(theFile.name), '"/>'].join('');
-                            document.getElementById('list').insertBefore(span, null);
-                        };
-                    })(file);
-
-                    // Read in the image file as a data URL.
-                    reader.readAsDataURL(file);
-
-                    window.jsyaml.loadAll(url, function(doc) {
-                        reader.readAsDataURL(url);
-                        console.log(doc);
-                    })
-                }
-            }
-        })
-    </script>
+    <script src="views/scripts/readWriteConfig.js"></script>
 </html>
