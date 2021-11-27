@@ -1,13 +1,26 @@
 var showConfig = document.getElementById("show-config");
-var configForm = document.getElementById("config-form");
+
 showConfig.addEventListener("click", () => {
+    var configForm = document.getElementById("config-form");
     fetch("/config")
         .then(response => response.json())
         .then(data => { 
             configForm.style.display = "block";
-            for (let key in data) {
-                console.log('key: ', key);
-                console.log(data[key]);
-            }
+            processChildren(configForm, data);
         });
 });
+
+function processChildren(element, data) {
+    for (let key in data) {
+        var child = document.createElement("div");
+        child.id = key;
+        child.appendChild(document.createTextNode(key + ": "));
+        if (data[key] === Object(data[key])) {
+            console.log(key, data[key]);
+            processChildren(child, data[key]);
+        } else {
+            child.textContent+=data[key];
+        }
+        element.appendChild(child);
+    }
+}
