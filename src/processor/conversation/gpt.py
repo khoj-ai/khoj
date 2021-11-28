@@ -18,7 +18,7 @@ def summarize(text, summary_type, user_query=None, api_key=None, temperature=0.5
     if summary_type == "chat":
         prompt = f"You are an AI. Summarize the conversation below from your perspective:\n\n{text}\n\nSummarize the conversation from the AI's first-person perspective:"
     elif summary_type == "notes":
-        prompt = f"Summarize the below notes about {user_query}:\n\n{text}\n\nSummarize:"
+        prompt = f"Summarize the below notes about {user_query}:\n\n{text}\n\nSummarize the notes in second person perspective and use past tense:"
 
     # Get Response from GPT
     response = openai.Completion.create(
@@ -33,7 +33,7 @@ def summarize(text, summary_type, user_query=None, api_key=None, temperature=0.5
 
     # Extract, Clean Message from GPT's Response
     story = response['choices'][0]['text']
-    return str(story)
+    return str(story).replace("\n\n", "")
 
 
 def understand(text, api_key=None, temperature=0.5, max_tokens=100):

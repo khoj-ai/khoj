@@ -9,10 +9,10 @@ from fastapi import FastAPI
 
 # Internal Packages
 from src.search_type import asymmetric, symmetric_ledger, image_search
-from src.utils.helpers import get_absolute_path
+from src.utils.helpers import get_absolute_path, get_from_dict
 from src.utils.cli import cli
 from src.utils.config import SearchType, SearchModels, TextSearchConfig, ImageSearchConfig, SearchConfig, ProcessorConfig, ConversationProcessorConfig
-from src.processor.conversation.gpt import converse, message_to_log, message_to_prompt, understand
+from src.processor.conversation.gpt import converse, message_to_log, message_to_prompt, understand, summarize
 
 
 # Application Global State
@@ -95,8 +95,14 @@ def chat(q: str):
     meta_log = processor_config.conversation.meta_log
 
     # Converse with OpenAI GPT
-    gpt_response = converse(q, chat_log, api_key=processor_config.conversation.openai_api_key)
     metadata = understand(q, api_key=processor_config.conversation.openai_api_key)
+    if get_from_dict(metadata, "intent", "memory-type") == "notes":
+        query = get_from_dict(metadata, "intent", "query")
+        result_list = search(query, n=1, t=SearchType.Notes)
+        collated_result = "\n".join([item["Entry"] for item in result_list])
+        gpt_response = summarize(collated_result, metadata["intent"]["memory-type"], user_query=q, api_key=processor_config.conversation.openai_api_key)
+    else:
+        gpt_response = converse(q, chat_log, api_key=processor_config.conversation.openai_api_key)
 
     # Update Conversation History
     processor_config.conversation.chat_log = message_to_prompt(q, chat_log, gpt_message=gpt_response)
@@ -169,10 +175,14 @@ def shutdown_event():
     elif processor_config.conversation.verbose:
         print('INFO:\tSaving conversation logs to disk...')
 
+    # Summarize Conversation Logs for this Session
+    session_summary = summarize(processor_config.conversation.chat_log, "chat", api_key=processor_config.conversation.openai_api_key)
+
     # Save Conversation Metadata Logs to Disk
+    conversation_logs = {"session": { "summary": session_summary, "meta": processor_config.conversation.meta_log}},
     conversation_logfile = get_absolute_path(processor_config.conversation.conversation_logfile)
     with open(conversation_logfile, "w+", encoding='utf-8') as logfile:
-        json.dump(processor_config.conversation.meta_log, logfile)
+        json.dump(conversation_logs, logfile)
 
     print('INFO:\tConversation logs saved to disk.')
 
