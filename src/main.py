@@ -2,11 +2,10 @@
 import sys
 import json
 from typing import Optional
-from src import search_type
 
 # External Packages
 import uvicorn
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Body
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -17,6 +16,7 @@ from src.search_type import asymmetric, symmetric_ledger, image_search
 from src.utils.helpers import get_absolute_path
 from src.utils.cli import cli
 from src.utils.config import SearchType, SearchModels, TextSearchConfig, ImageSearchConfig, SearchConfig, ProcessorConfig, ConversationProcessorConfig
+from src.utils.rawconfig import FullConfig
 from src.processor.conversation.gpt import converse, message_to_prompt
 
 # Application Global State
@@ -26,14 +26,6 @@ processor_config = ProcessorConfig()
 config = {}
 app = FastAPI()
 
-class Config(BaseModel):
-    content_type: Optional[SearchConfig]
-    search_type: Optional[SearchModels]
-    processor: Optional[ProcessorConfig]
-
-    class Config:
-        arbitrary_types_allowed = True
-
 app.mount("/views", StaticFiles(directory="views"), name="views")
 templates = Jinja2Templates(directory="views/")
 
@@ -41,15 +33,14 @@ templates = Jinja2Templates(directory="views/")
 def ui(request: Request):
     return templates.TemplateResponse("config.html", context={'request': request})
 
-@app.get('/config')
+@app.get('/config', response_model=FullConfig)
 def config():
     return config
 
 @app.post('/config')
-async def config(updated_config: Config):
+async def config(updated_config: FullConfig):
     print(updated_config)
-    data = await updated_config.json()
-    return data
+    return updated_config
 
 @app.get('/search')
 def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):

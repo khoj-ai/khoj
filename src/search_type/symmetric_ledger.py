@@ -19,7 +19,7 @@ from src.utils.config import TextSearchModel, TextSearchConfig
 
 
 def initialize_model():
-    "Initialize model for symetric semantic search. That is, where query of similar size to results"
+    "Initialize model for symmetric semantic search. That is, where query of similar size to results"
     torch.set_num_threads(4)
     bi_encoder = SentenceTransformer('sentence-transformers/paraphrase-MiniLM-L6-v2') # The encoder encodes all entries to use for semantic search
     top_k = 30                                                                        # Number of entries we want to retrieve with the bi-encoder

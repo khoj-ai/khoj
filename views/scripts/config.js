@@ -19,6 +19,7 @@ fetch("/config")
 
         configForm.addEventListener("submit", (event) => {
             event.preventDefault();
+            console.log(rawConfig);
             const response = fetch("/config", {
                 method: "POST",
                 credentials: "same-origin",
