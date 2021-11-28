@@ -22,6 +22,7 @@ model = SearchModels()
 search_config = SearchConfig()
 processor_config = ProcessorConfig()
 config = {}
+config_file = ""
 app = FastAPI()
 
 app.mount("/views", StaticFiles(directory="views"), name="views")
@@ -37,7 +38,7 @@ def config():
 
 @app.post('/config')
 async def config(updated_config: FullConfig):
-    with open('config.yml', 'w') as outfile:
+    with open(config_file, 'w') as outfile:
         yaml.dump(yaml.safe_load(updated_config.json()), outfile)
         outfile.close()
     return updated_config
@@ -185,8 +186,11 @@ def shutdown_event():
 if __name__ == '__main__':
     # Load config from CLI
     args = cli(sys.argv[1:])
+    
+    # Stores the file path to the config file.
+    config_file = args.config_file
 
-    # Store the path to the config file.
+    # Store the raw config data.
     config = args.config
 
     # Initialize Search from Config
