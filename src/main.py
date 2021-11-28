@@ -127,23 +127,23 @@ def initialize_search(config: FullConfig, regenerate, verbose):
     search_config = SearchConfig()
 
     # Initialize Org Notes Search
-    search_config.notes = TextSearchConfig(config.content_type.org, verbose) if config.content_type.org else None
-    if search_config.notes:
+    if config.content_type.org:
+        search_config.notes = TextSearchConfig(config.content_type.org, verbose)
         model.notes_search = asymmetric.setup(search_config.notes, regenerate=regenerate)
 
     # Initialize Org Music Search
-    search_config.music = TextSearchConfig(config.content_type.music, verbose) if config.content_type.music else None
-    if search_config.music:
+    if config.content_type.music:
+        search_config.music = TextSearchConfig(config.content_type.music, verbose)
         model.music_search = asymmetric.setup(search_config.music, regenerate=regenerate)
 
     # Initialize Ledger Search
-    search_config.ledger = TextSearchConfig(config.content_type.org, verbose) if config.content_type.ledger else None
-    if search_config.ledger:
+    if config.content_type.ledger:
+        search_config.ledger = TextSearchConfig(config.content_type.org, verbose)
         model.ledger_search = symmetric_ledger.setup(search_config.ledger, regenerate=regenerate)
 
     # Initialize Image Search
-    search_config.image = ImageSearchConfig(config.content_type.image, verbose) if config.content_type.image else None
-    if search_config.image:
+    if config.content_type.image:
+        search_config.image = ImageSearchConfig(config.content_type.image, verbose)
         model.image_search = image_search.setup(search_config.image, regenerate=regenerate)
 
     return model, search_config
