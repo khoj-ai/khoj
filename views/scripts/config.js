@@ -35,9 +35,16 @@ fetch("/config")
 var regenerateButton = document.getElementById("config-regenerate");
 regenerateButton.addEventListener("click", (event) => {
     event.preventDefault();
+    regenerateButton.style.cursor = "progress";
+    regenerateButton.disabled = true;
     fetch("/regenerate")
         .then(response => response.json())
-        .then(data => console.log(data));
+        .then(data => () => 
+            {
+                regenerateButton.style.cursor = "pointer";
+                regenerateButton.disabled = false;
+                console.log(data);
+            });
 })
 
 function processChildren(element, data) {

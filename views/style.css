@@ -21,4 +21,9 @@ div.config-title {
 span.config-element-value {
     color: var(--complementary-color);
     font-weight: normal;
+    cursor: pointer;
+}
+
+button {
+    cursor: pointer;
 }
