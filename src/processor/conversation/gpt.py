@@ -7,6 +7,35 @@ from datetime import datetime
 import openai
 
 
+def summarize(text, summary_type, user_query=None, api_key=None, temperature=0.5, max_tokens=100):
+    """
+    Summarize user input using OpenAI's GPT
+    """
+    # Initialize Variables
+    openai.api_key = api_key or os.getenv("OPENAI_API_KEY")
+
+    # Setup Prompt based on Summary Type
+    if summary_type == "chat":
+        prompt = f"You are an AI. Summarize the conversation below from your perspective:\n\n{text}\n\nSummarize the conversation from the AI's first-person perspective:"
+    elif summary_type == "notes":
+        prompt = f"Summarize the below notes about {user_query}:\n\n{text}\n\nSummarize:"
+
+    # Get Response from GPT
+    response = openai.Completion.create(
+        engine="davinci-instruct-beta-v3",
+        prompt=prompt,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        top_p=1,
+        frequency_penalty=0.2,
+        presence_penalty=0,
+        stop="\"\"\"")
+
+    # Extract, Clean Message from GPT's Response
+    story = response['choices'][0]['text']
+    return str(story)
+
+
 def understand(text, api_key=None, temperature=0.5, max_tokens=100):
     """
     Understand user input using OpenAI's GPT
