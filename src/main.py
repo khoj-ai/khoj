@@ -1,15 +1,13 @@
 # Standard Packages
-import sys
-import json
+import sys, json, yaml
 from typing import Optional
 
 # External Packages
 import uvicorn
-from fastapi import FastAPI, Request, Body
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel, validator
 
 # Internal Packages
 from src.search_type import asymmetric, symmetric_ledger, image_search
@@ -39,7 +37,8 @@ def config():
 
 @app.post('/config')
 async def config(updated_config: FullConfig):
-    print(updated_config)
+    to_yaml = yaml.dump(updated_config.json())
+    print(to_yaml)
     return updated_config
 
 @app.get('/search')
