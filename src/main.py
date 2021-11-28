@@ -37,10 +37,9 @@ def config():
     return config
 
 @app.post('/config')
-def config():
-    print("hello posted config")
-    print(config)
-    return config
+async def config(updated_config: Request):
+    data = await updated_config.json()
+    return data
 
 @app.get('/search')
 def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):

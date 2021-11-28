@@ -16,10 +16,15 @@ fetch("/config")
 
         configForm.addEventListener("submit", (event) => {
             event.preventDefault();
-            console.log("submitted!");
-            console.log(event);
-            console.log(configForm.children);
-            console.log(configForm.childNodes);
+            const response = fetch("/config", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(rawConfig)
+            }).then(response => response.json())
+            .then((data) => console.log(data));
         });
 });
 
@@ -29,24 +34,21 @@ function processChildren(element, data) {
         child.id = key;
         child.className = "config-element";
         child.appendChild(document.createTextNode(key + ": "));
-        if (data[key] === Object(data[key])) {
+        if (data[key] === Object(data[key]) && !Array.isArray(data[key])) {
             processChildren(child, data[key]);
         } else {
             var value = document.createElement("span");
             value.id = key+"-value";
-            value.textContent = data[key];
+            value.textContent = !data[key] ? "🖊️" : data[key];
             makeElementEditable(value, data, key);
             child.appendChild(value);
         }
         element.appendChild(child);
-        // data[key] = "wassup?";
     }
-    console.log(data);
-    console.log(rawConfig);
 }
 
 function makeElementEditable(original, data, key) {
-    original.addEventListener("click", (event) => {
+    original.addEventListener("click", () => {
         var inputNewText = document.createElement("input");
         inputNewText.type = "text";
         inputNewText.className = "config-element-edit";
@@ -59,22 +61,11 @@ function makeElementEditable(original, data, key) {
 
 function fixInputOnFocusOut(original, data, key) {
     original.addEventListener("blur", () => {
-        console.log(original);
         var value = document.createElement("span");
         value.id = original.id;
         value.textContent = original.value;
         data[key] = value.textContent;
-        console.log(data);
-        console.log(rawConfig);
-        makeElementEditable(value);
+        makeElementEditable(value, data, key);
         original.parentNode.replaceChild(value, original);
     })
-}
-
-function handleSubmit() {
-    submitButton.addEventListener("click", (event) => {
-        var submitButton = document.createElement("button");
-        submitButton.type = "submit";
-    });
-    configForm.appendChild(submitButton);
 }
