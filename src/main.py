@@ -38,8 +38,9 @@ def config():
 
 @app.post('/config')
 async def config(updated_config: FullConfig):
+    print(updated_config.dict())
     with open(config_file, 'w') as outfile:
-        yaml.dump(yaml.safe_load(updated_config.json()), outfile)
+        yaml.dump(yaml.safe_load(updated_config.json(by_alias=True)), outfile)
         outfile.close()
     return updated_config
 
