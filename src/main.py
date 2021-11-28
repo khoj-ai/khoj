@@ -37,8 +37,9 @@ def config():
 
 @app.post('/config')
 async def config(updated_config: FullConfig):
-    to_yaml = yaml.dump(updated_config.json())
-    print(to_yaml)
+    with open('config.yml', 'w') as outfile:
+        yaml.dump(yaml.safe_load(updated_config.json()), outfile)
+        outfile.close()
     return updated_config
 
 @app.get('/search')
