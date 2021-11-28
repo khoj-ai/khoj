@@ -6,7 +6,8 @@ import pathlib
 import yaml
 
 # Internal Packages
-from src.utils.helpers import is_none_or_empty, get_absolute_path, resolve_absolute_path, get_from_dict, merge_dicts
+from src.utils.helpers import is_none_or_empty, get_absolute_path, resolve_absolute_path, merge_dicts
+from src.utils.rawconfig import FullConfig
 
 def cli(args=None):
     if is_none_or_empty(args):
@@ -35,6 +36,7 @@ def cli(args=None):
         with open(get_absolute_path(args.config_file), 'r', encoding='utf-8') as config_file:
             config_from_file = yaml.safe_load(config_file)
             args.config = merge_dicts(priority_dict=config_from_file, default_dict=args.config)
+            args.config = FullConfig(args.config)
 
     if args.org_files:
         args.config['content-type']['org']['input-files'] = args.org_files
