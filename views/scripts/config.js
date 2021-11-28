@@ -1,10 +1,15 @@
+// Retrieve elements from the DOM.
 var showConfig = document.getElementById("show-config");
-var rawConfig = {};
-
 var configForm = document.getElementById("config-form");
+var regenerateButton = document.getElementById("config-regenerate");
 
+// Global variables.
+var rawConfig = {};
 var emptyValueDefault = "🖊️";
 
+/**
+ * Fetch the existing config file.
+ */
 fetch("/config")
     .then(response => response.json())
     .then(data => {
@@ -17,6 +22,7 @@ fetch("/config")
         submitButton.innerHTML = "update";
         configForm.appendChild(submitButton);
 
+        // The config form's submit handler.
         configForm.addEventListener("submit", (event) => {
             event.preventDefault();
             console.log(rawConfig);
@@ -32,7 +38,9 @@ fetch("/config")
         });
 });
 
-var regenerateButton = document.getElementById("config-regenerate");
+/**
+ * The click handler for the Regenerate button.
+ */
 regenerateButton.addEventListener("click", (event) => {
     event.preventDefault();
     regenerateButton.style.cursor = "progress";
@@ -46,6 +54,12 @@ regenerateButton.addEventListener("click", (event) => {
         });
 })
 
+/**
+ * Adds config elements to the DOM representing the sub-components 
+ * of one of the fields in the raw config file.
+ * @param {the parent element} element 
+ * @param {the data to be rendered for this element and its children} data 
+ */
 function processChildren(element, data) {
     for (let key in data) {
         var child = document.createElement("div");
@@ -62,6 +76,13 @@ function processChildren(element, data) {
     }
 }
 
+/**
+ * Takes an element, and replaces it with an editable 
+ * element with the same data in place.
+ * @param {the original element to be replaced} original 
+ * @param {the source data to be rendered for the new element} data 
+ * @param {the key for this input in the source data} key 
+ */
 function makeElementEditable(original, data, key) {
     original.addEventListener("click", () => {
         var inputNewText = document.createElement("input");
@@ -74,6 +95,12 @@ function makeElementEditable(original, data, key) {
     });
 }
 
+/**
+ * Creates a node corresponding to the value of a config element.
+ * @param {the source data} data 
+ * @param {the key corresponding to this node's data} key 
+ * @returns A new element which corresponds to the value in some field.
+ */
 function createValueNode(data, key) {
     var valueElement = document.createElement("span");
     valueElement.className = "config-element-value";
@@ -82,6 +109,13 @@ function createValueNode(data, key) {
     return valueElement;
 }
 
+/**
+ * Replaces an existing input element with an element with the same data, which is not an input. 
+ * If the input data for this element was changed, update the corresponding data in the raw config.
+ * @param {the original element to be replaced} original 
+ * @param {the source data} data 
+ * @param {the key corresponding to this node's data} key 
+ */
 function fixInputOnFocusOut(original, data, key) {
     original.addEventListener("blur", () => {
         data[key] = (!!data[key] && original.value != emptyValueDefault) ? original.value : "";
