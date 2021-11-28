@@ -2,6 +2,9 @@ var showConfig = document.getElementById("show-config");
 var rawConfig = {};
 
 var configForm = document.getElementById("config-form");
+
+var emptyValueDefault = "🖊️";
+
 fetch("/config")
     .then(response => response.json())
     .then(data => {
@@ -35,13 +38,10 @@ function processChildren(element, data) {
         child.className = "config-element";
         child.appendChild(document.createTextNode(key + ": "));
         if (data[key] === Object(data[key]) && !Array.isArray(data[key])) {
+            child.className+=" config-title";
             processChildren(child, data[key]);
         } else {
-            var value = document.createElement("span");
-            value.id = key+"-value";
-            value.textContent = !data[key] ? "🖊️" : data[key];
-            makeElementEditable(value, data, key);
-            child.appendChild(value);
+            child.appendChild(createValueNode(data, key));
         }
         element.appendChild(child);
     }
@@ -59,13 +59,17 @@ function makeElementEditable(original, data, key) {
     });
 }
 
+function createValueNode(data, key) {
+    var valueElement = document.createElement("span");
+    valueElement.className = "config-element-value";
+    valueElement.textContent = !data[key] ? emptyValueDefault : data[key];
+    makeElementEditable(valueElement, data, key);
+    return valueElement;
+}
+
 function fixInputOnFocusOut(original, data, key) {
     original.addEventListener("blur", () => {
-        var value = document.createElement("span");
-        value.id = original.id;
-        value.textContent = original.value;
-        data[key] = value.textContent;
-        makeElementEditable(value, data, key);
-        original.parentNode.replaceChild(value, original);
+        data[key] = (!!data[key] && original.value != emptyValueDefault) ? original.value : "";
+        original.parentNode.replaceChild(createValueNode(data, key), original);
     })
 }

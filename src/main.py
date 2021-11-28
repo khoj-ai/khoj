@@ -2,6 +2,7 @@
 import sys
 import json
 from typing import Optional
+from src import search_type
 
 # External Packages
 import uvicorn
@@ -9,6 +10,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel, validator
 
 # Internal Packages
 from src.search_type import asymmetric, symmetric_ledger, image_search
@@ -24,6 +26,14 @@ processor_config = ProcessorConfig()
 config = {}
 app = FastAPI()
 
+class Config(BaseModel):
+    content_type: Optional[SearchConfig]
+    search_type: Optional[SearchModels]
+    processor: Optional[ProcessorConfig]
+
+    class Config:
+        arbitrary_types_allowed = True
+
 app.mount("/views", StaticFiles(directory="views"), name="views")
 templates = Jinja2Templates(directory="views/")
 
@@ -33,11 +43,11 @@ def ui(request: Request):
 
 @app.get('/config')
 def config():
-    print(config)
     return config
 
 @app.post('/config')
-async def config(updated_config: Request):
+async def config(updated_config: Config):
+    print(updated_config)
     data = await updated_config.json()
     return data
 
