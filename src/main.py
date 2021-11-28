@@ -38,11 +38,12 @@ def config():
 
 @app.post('/config')
 async def config(updated_config: FullConfig):
-    print(updated_config.dict())
+    global config
+    config = updated_config
     with open(config_file, 'w') as outfile:
-        yaml.dump(yaml.safe_load(updated_config.json(by_alias=True)), outfile)
+        yaml.dump(yaml.safe_load(config.json(by_alias=True)), outfile)
         outfile.close()
-    return updated_config
+    return config
 
 @app.get('/search')
 def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
@@ -91,6 +92,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
 
 @app.get('/regenerate')
 def regenerate(t: Optional[SearchType] = None):
+    print("-----REGENERATING----")
     if (t == SearchType.Notes or t == None) and search_config.notes:
         # Extract Entries, Generate Embeddings
         model.notes_search = asymmetric.setup(search_config.notes, regenerate=True)
@@ -124,7 +126,7 @@ def chat(q: str):
     return {'status': 'ok', 'response': gpt_response}
 
 
-def initialize_search(config: FullConfig, regenerate, verbose):
+def initialize_search(regenerate, verbose):
     model = SearchModels()
     search_config = SearchConfig()
 
@@ -151,7 +153,7 @@ def initialize_search(config: FullConfig, regenerate, verbose):
     return model, search_config
 
 
-def initialize_processor(config: FullConfig, verbose):
+def initialize_processor(verbose):
     processor_config = ProcessorConfig()
 
     # Initialize Conversation Processor
@@ -195,10 +197,10 @@ if __name__ == '__main__':
     config = args.config
 
     # Initialize Search from Config
-    model, search_config = initialize_search(args.config, args.regenerate, args.verbose)
+    model, search_config = initialize_search(args.regenerate, args.verbose)
 
     # Initialize Processor from Config
-    processor_config = initialize_processor(args.config, args.verbose)
+    processor_config = initialize_processor(args.verbose)
 
     # Start Application Server
     if args.socket:

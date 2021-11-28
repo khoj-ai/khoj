@@ -19,4 +19,4 @@ search-type:
     cross-encoder: cross-encoder/ms-marco-MiniLM-L-6-v2
     encoder: sentence-transformers/msmarco-MiniLM-L-6-v3
   image:
-    encoder: clip-ViT-B-32
+    encoder: ''

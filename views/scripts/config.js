@@ -32,6 +32,14 @@ fetch("/config")
         });
 });
 
+var regenerateButton = document.getElementById("config-regenerate");
+regenerateButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    fetch("/regenerate")
+        .then(response => response.json())
+        .then(data => console.log(data));
+})
+
 function processChildren(element, data) {
     for (let key in data) {
         var child = document.createElement("div");
