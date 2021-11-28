@@ -15,7 +15,7 @@ from src.utils.helpers import get_absolute_path
 from src.utils.cli import cli
 from src.utils.config import SearchType, SearchModels, TextSearchConfig, ImageSearchConfig, SearchConfig, ProcessorConfig, ConversationProcessorConfig
 from src.utils.rawconfig import FullConfig
-from src.processor.conversation.gpt import converse, message_to_prompt
+from src.processor.conversation.gpt import converse, message_to_log, message_to_prompt, understand
 
 # Application Global State
 model = SearchModels()
@@ -114,13 +114,16 @@ def regenerate(t: Optional[SearchType] = None):
 @app.get('/chat')
 def chat(q: str):
     # Load Conversation History
-    conversation_history = processor_config.conversation.conversation_history
+    chat_log = processor_config.conversation.chat_log
+    meta_log = processor_config.conversation.meta_log
 
     # Converse with OpenAI GPT
-    gpt_response = converse(q, conversation_history, api_key=processor_config.conversation.openai_api_key)
+    user_message_metadata = understand(q, api_key=processor_config.conversation.openai_api_key)
+    gpt_response = converse(q, chat_log, api_key=processor_config.conversation.openai_api_key)
 
     # Update Conversation History
-    processor_config.conversation.conversation_history = message_to_prompt(q, conversation_history, gpt_response)
+    processor_config.conversation.chat_log = message_to_prompt(q, chat_log, gpt_message=gpt_response)
+    processor_config.conversation.meta_log= message_to_log(q, user_message_metadata, gpt_response, meta_log)
 
     return {'status': 'ok', 'response': gpt_response}
 
@@ -158,31 +161,44 @@ def initialize_processor(verbose):
     # Initialize Conversation Processor
     processor_config.conversation = ConversationProcessorConfig(config.processor.conversation, verbose)
 
-    # Load or Initialize Conversation History from Disk
     conversation_logfile = processor_config.conversation.conversation_logfile
     if processor_config.conversation.verbose:
-        print('Saving conversation logs to disk...')
+        print('INFO:\tLoading conversation logs from disk...')
 
     if conversation_logfile.expanduser().absolute().is_file():
+        # Load Metadata Logs from Conversation Logfile
         with open(get_absolute_path(conversation_logfile), 'r') as f:
-            processor_config.conversation.conversation_history = json.load(f).get('chat', '')
+            processor_config.conversation.meta_log = json.load(f)
+
+        # Extract Chat Logs from Metadata
+        processor_config.conversation.chat_log = ''.join(
+            [f'\n{item["by"]}: {item["message"]}'
+            for item
+            in processor_config.conversation.meta_log])
+
+        print('INFO:\tConversation logs loaded from disk.')
     else:
-        processor_config.conversation.conversation_history = ''
+        # Initialize Conversation Logs
+        processor_config.conversation.meta_log = []
+        processor_config.conversation.chat_log = ""
 
     return processor_config
 
 
 @app.on_event('shutdown')
 def shutdown_event():
-    if processor_config.conversation.verbose:
-        print('Saving conversation logs to disk...')
+    # No need to create empty log file
+    if not processor_config.conversation.meta_log:
+        return
+    elif processor_config.conversation.verbose:
+        print('INFO:\tSaving conversation logs to disk...')
 
-    # Save Conversation History to Disk
+    # Save Conversation Metadata Logs to Disk
     conversation_logfile = get_absolute_path(processor_config.conversation.conversation_logfile)
     with open(conversation_logfile, "w+", encoding='utf-8') as logfile:
-        json.dump({"chat": processor_config.conversation.conversation_history}, logfile)
+        json.dump(processor_config.conversation.meta_log, logfile)
 
-    print('Conversation logs saved to disk.')
+    print('INFO:\tConversation logs saved to disk.')
 
 
 if __name__ == '__main__':

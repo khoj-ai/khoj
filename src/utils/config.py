@@ -74,6 +74,8 @@ class ConversationProcessorConfig():
     def __init__(self, processor_config: ProcessorConversationConfig, verbose: bool):
         self.openai_api_key = processor_config.open_api_key
         self.conversation_logfile = Path(processor_config.conversation_logfile)
+        self.chat_log = ''
+        self.meta_log = []
         self.conversation_history = Path(processor_config.conversation_history)
         self.verbose = verbose
 
