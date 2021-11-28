@@ -1,14 +1,25 @@
 var showConfig = document.getElementById("show-config");
 var rawConfig = {};
 
-showConfig.addEventListener("click", () => {
-    var configForm = document.getElementById("config-form");
-    fetch("/config")
-        .then(response => response.json())
-        .then(data => {
-            rawConfig = data;
-            configForm.style.display = "block";
-            processChildren(configForm, data);
+var configForm = document.getElementById("config-form");
+fetch("/config")
+    .then(response => response.json())
+    .then(data => {
+        rawConfig = data;
+        configForm.style.display = "block";
+        processChildren(configForm, data);
+
+        var submitButton = document.createElement("button");
+        submitButton.type = "submit";
+        submitButton.innerHTML = "update";
+        configForm.appendChild(submitButton);
+
+        configForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            console.log("submitted!");
+            console.log(event);
+            console.log(configForm.children);
+            console.log(configForm.childNodes);
         });
 });
 
@@ -24,37 +35,46 @@ function processChildren(element, data) {
             var value = document.createElement("span");
             value.id = key+"-value";
             value.textContent = data[key];
-            createEditButton(value);
-            value.addEventListener("click", (event) => {
-                var inputNewText = document.createElement("input");
-                inputNewText.type = "text";
-                inputNewText.class = "config-element-edit";
-                inputNewText.id = key+"-value";
-                console.log(value.parentNode);
-                console.log(value);
-                child.replaceChild(inputNewText, value);
-                console.log(event);
-            });
+            makeElementEditable(value, data, key);
             child.appendChild(value);
         }
         element.appendChild(child);
+        // data[key] = "wassup?";
     }
+    console.log(data);
+    console.log(rawConfig);
 }
 
-function createEditButton(parent) {
-    var editButton = document.createElement("button");
-    editButton.type = "button";
-    editButton.className = "config-edit-button";
-    editButton.textContent = "🖊️";
-    editButton.id = "parentId-" + parent.id;
-    // console.log(parent);
-    editButton.addEventListener("click", (event) => {
+function makeElementEditable(original, data, key) {
+    original.addEventListener("click", (event) => {
         var inputNewText = document.createElement("input");
         inputNewText.type = "text";
-        inputNewText.class = "config-element-edit";
-        parent.parentNode.replaceChild(inputNewText, parent);
-        // console.log(event);
+        inputNewText.className = "config-element-edit";
+        inputNewText.value = original.textContent;
+        fixInputOnFocusOut(inputNewText, data, key);
+        original.parentNode.replaceChild(inputNewText, original);
+        inputNewText.focus();
+    });
+}
+
+function fixInputOnFocusOut(original, data, key) {
+    original.addEventListener("blur", () => {
+        console.log(original);
+        var value = document.createElement("span");
+        value.id = original.id;
+        value.textContent = original.value;
+        data[key] = value.textContent;
+        console.log(data);
+        console.log(rawConfig);
+        makeElementEditable(value);
+        original.parentNode.replaceChild(value, original);
     })
-    // console.log("edit button", editButton);
-    parent.appendChild(editButton);
+}
+
+function handleSubmit() {
+    submitButton.addEventListener("click", (event) => {
+        var submitButton = document.createElement("button");
+        submitButton.type = "submit";
+    });
+    configForm.appendChild(submitButton);
 }

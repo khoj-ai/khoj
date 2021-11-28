@@ -36,6 +36,12 @@ def config():
     print(config)
     return config
 
+@app.post('/config')
+def config():
+    print("hello posted config")
+    print(config)
+    return config
+
 @app.get('/search')
 def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
     if q is None or q == '':
