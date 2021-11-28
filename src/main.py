@@ -122,38 +122,38 @@ def chat(q: str):
     return {'status': 'ok', 'response': gpt_response}
 
 
-def initialize_search(config, regenerate, verbose):
+def initialize_search(config: FullConfig, regenerate, verbose):
     model = SearchModels()
     search_config = SearchConfig()
 
     # Initialize Org Notes Search
-    search_config.notes = TextSearchConfig.create_from_dictionary(config, ('content-type', 'org'), verbose)
+    search_config.notes = TextSearchConfig(config.content_type.org, verbose) if config.content_type.org else None
     if search_config.notes:
         model.notes_search = asymmetric.setup(search_config.notes, regenerate=regenerate)
 
     # Initialize Org Music Search
-    search_config.music = TextSearchConfig.create_from_dictionary(config, ('content-type', 'music'), verbose)
+    search_config.music = TextSearchConfig(config.content_type.music, verbose) if config.content_type.music else None
     if search_config.music:
         model.music_search = asymmetric.setup(search_config.music, regenerate=regenerate)
 
     # Initialize Ledger Search
-    search_config.ledger = TextSearchConfig.create_from_dictionary(config, ('content-type', 'ledger'), verbose)
+    search_config.ledger = TextSearchConfig(config.content_type.org, verbose) if config.content_type.ledger else None
     if search_config.ledger:
         model.ledger_search = symmetric_ledger.setup(search_config.ledger, regenerate=regenerate)
 
     # Initialize Image Search
-    search_config.image = ImageSearchConfig.create_from_dictionary(config, ('content-type', 'image'), verbose)
+    search_config.image = ImageSearchConfig(config.content_type.image, verbose) if config.content_type.image else None
     if search_config.image:
         model.image_search = image_search.setup(search_config.image, regenerate=regenerate)
 
     return model, search_config
 
 
-def initialize_processor(config, verbose):
+def initialize_processor(config: FullConfig, verbose):
     processor_config = ProcessorConfig()
 
     # Initialize Conversation Processor
-    processor_config.conversation = ConversationProcessorConfig.create_from_dictionary(config, ('processor', 'conversation'), verbose)
+    processor_config.conversation = ConversationProcessorConfig(config.processor.conversation, verbose)
 
     # Load or Initialize Conversation History from Disk
     conversation_logfile = processor_config.conversation.conversation_logfile

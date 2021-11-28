@@ -1,6 +1,7 @@
 # Standard Packages
 import argparse
 import pathlib
+import json
 
 # External Packages
 import yaml
@@ -36,7 +37,7 @@ def cli(args=None):
         with open(get_absolute_path(args.config_file), 'r', encoding='utf-8') as config_file:
             config_from_file = yaml.safe_load(config_file)
             args.config = merge_dicts(priority_dict=config_from_file, default_dict=args.config)
-            args.config = FullConfig(args.config)
+            args.config = FullConfig.parse_raw(json.dumps(args.config))
 
     if args.org_files:
         args.config['content-type']['org']['input-files'] = args.org_files
