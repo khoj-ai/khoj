@@ -92,7 +92,6 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
 
 @app.get('/regenerate')
 def regenerate(t: Optional[SearchType] = None):
-    print("-----REGENERATING----")
     if (t == SearchType.Notes or t == None) and search_config.notes:
         # Extract Entries, Generate Embeddings
         model.notes_search = asymmetric.setup(search_config.notes, regenerate=True)
