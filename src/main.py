@@ -95,12 +95,12 @@ def chat(q: str):
     meta_log = processor_config.conversation.meta_log
 
     # Converse with OpenAI GPT
-    user_message_metadata = understand(q, api_key=processor_config.conversation.openai_api_key)
     gpt_response = converse(q, chat_log, api_key=processor_config.conversation.openai_api_key)
+    metadata = understand(q, api_key=processor_config.conversation.openai_api_key)
 
     # Update Conversation History
     processor_config.conversation.chat_log = message_to_prompt(q, chat_log, gpt_message=gpt_response)
-    processor_config.conversation.meta_log= message_to_log(q, user_message_metadata, gpt_response, meta_log)
+    processor_config.conversation.meta_log= message_to_log(q, metadata, gpt_response, meta_log)
 
     return {'status': 'ok', 'response': gpt_response}
 
