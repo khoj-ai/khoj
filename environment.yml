@@ -15,4 +15,3 @@ dependencies:
   - torchvision=0.*
   - openai=0.*
   - pydantic=1.*
-  
