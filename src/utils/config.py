@@ -6,7 +6,7 @@ from pathlib import Path
 # Internal Packages
 from src.utils.helpers import get_from_dict
 
-from src.utils.rawconfig import TextSearchConfig, ImageSearchConfig, ProcessorConversationConfig
+from src.utils.rawconfig import TextSearchConfigModel, ImageSearchConfigModel, ProcessorConversationConfigModel
 
 
 class SearchType(str, Enum):
@@ -44,8 +44,8 @@ class SearchModels():
     image_search: ImageSearchModel = None
 
 
-class TextSearchConfig():
-    def __init__(self, text_search_config: TextSearchConfig, verbose: bool):
+class TextSearchConfigModel():
+    def __init__(self, text_search_config: TextSearchConfigModel, verbose: bool):
         self.input_files = text_search_config.input_files
         self.input_filter = text_search_config.input_filter
         self.compressed_jsonl = Path(text_search_config.compressed_jsonl)
@@ -53,8 +53,8 @@ class TextSearchConfig():
         self.verbose = verbose
 
 
-class ImageSearchConfig():
-    def __init__(self, image_search_config: ImageSearchConfig, verbose):
+class ImageSearchConfigModel():
+    def __init__(self, image_search_config: ImageSearchConfigModel, verbose):
         self.input_directory = Path(image_search_config.input_directory)
         self.embeddings_file = Path(image_search_config.embeddings_file)
         self.batch_size = image_search_config.batch_size
@@ -64,14 +64,14 @@ class ImageSearchConfig():
 
 @dataclass
 class SearchConfig():
-    notes: TextSearchConfig = None
-    ledger: TextSearchConfig = None
-    music: TextSearchConfig = None
-    image: ImageSearchConfig = None
+    notes: TextSearchConfigModel = None
+    ledger: TextSearchConfigModel = None
+    music: TextSearchConfigModel = None
+    image: ImageSearchConfigModel = None
 
 
 class ConversationProcessorConfig():
-    def __init__(self, processor_config: ProcessorConversationConfig, verbose: bool):
+    def __init__(self, processor_config: ProcessorConversationConfigModel, verbose: bool):
         self.openai_api_key = processor_config.open_api_key
         self.conversation_logfile = Path(processor_config.conversation_logfile)
         self.chat_log = ''

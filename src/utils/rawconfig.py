@@ -13,50 +13,50 @@ class ConfigBaseModel(BaseModel):
         alias_generator = to_snake_case_from_dash
         allow_population_by_field_name = True
 
-class SearchConfig(ConfigBaseModel):
+class SearchConfigModel(ConfigBaseModel):
     input_files: Optional[List[str]]
     input_filter: Optional[str]
     embeddings_file: Optional[Path]
 
-class TextSearchConfig(ConfigBaseModel):
+class TextSearchConfigModel(ConfigBaseModel):
     compressed_jsonl: Optional[Path]
     input_files: Optional[List[str]]
     input_filter: Optional[str]
     embeddings_file: Optional[Path]
 
-class ImageSearchConfig(ConfigBaseModel):
+class ImageSearchConfigModel(ConfigBaseModel):
     use_xmp_metadata: Optional[str]
     batch_size: Optional[int]
     input_directory: Optional[List[str]]
     input_filter: Optional[str]
     embeddings_file: Optional[Path]
 
-class ContentType(ConfigBaseModel):
-    org: Optional[TextSearchConfig]
-    ledger: Optional[TextSearchConfig]
-    image: Optional[ImageSearchConfig]
-    music: Optional[TextSearchConfig]
+class ContentTypeModel(ConfigBaseModel):
+    org: Optional[TextSearchConfigModel]
+    ledger: Optional[TextSearchConfigModel]
+    image: Optional[ImageSearchConfigModel]
+    music: Optional[TextSearchConfigModel]
 
-class AsymmetricConfig(ConfigBaseModel):
+class AsymmetricConfigModel(ConfigBaseModel):
     encoder: Optional[str]
     cross_encoder: Optional[str]
 
-class ImageSearchTypeConfig(ConfigBaseModel):
+class ImageSearchTypeConfigModel(ConfigBaseModel):
     encoder: Optional[str]
 
-class SearchTypeConfig(ConfigBaseModel):
-    asymmetric: Optional[AsymmetricConfig]
-    image: Optional[ImageSearchTypeConfig]
+class SearchTypeConfigModel(ConfigBaseModel):
+    asymmetric: Optional[AsymmetricConfigModel]
+    image: Optional[ImageSearchTypeConfigModel]
 
-class ProcessorConversationConfig(ConfigBaseModel):
+class ProcessorConversationConfigModel(ConfigBaseModel):
     open_api_key: Optional[str]
     conversation_logfile: Optional[str]
     conversation_history: Optional[str]
 
-class ProcessorConfig(ConfigBaseModel):
-    conversation: Optional[ProcessorConversationConfig]
+class ProcessorConfigModel(ConfigBaseModel):
+    conversation: Optional[ProcessorConversationConfigModel]
 
-class FullConfig(ConfigBaseModel):
-    content_type: Optional[ContentType]
-    search_type: Optional[SearchTypeConfig]
-    processor: Optional[ProcessorConfig]
+class FullConfigModel(ConfigBaseModel):
+    content_type: Optional[ContentTypeModel]
+    search_type: Optional[SearchTypeConfigModel]
+    processor: Optional[ProcessorConfigModel]
