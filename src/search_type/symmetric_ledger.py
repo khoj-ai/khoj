@@ -53,7 +53,7 @@ def compute_embeddings(entries, bi_encoder, embeddings_file, regenerate=False, v
         corpus_embeddings = bi_encoder.encode(entries, convert_to_tensor=True, show_progress_bar=True)
         torch.save(corpus_embeddings, get_absolute_path(embeddings_file))
         if verbose > 0:
-            print(f"Computed embeddings and save them to {embeddings_file}")
+            print(f"Computed embeddings and saved them to {embeddings_file}")
 
     return corpus_embeddings
 
