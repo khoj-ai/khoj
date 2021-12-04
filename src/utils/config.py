@@ -6,7 +6,7 @@ from pathlib import Path
 # Internal Packages
 from src.utils.helpers import get_from_dict
 
-from src.utils.rawconfig import TextSearchConfigTest, ImageSearchConfigTest, ProcessorConversationConfig
+from src.utils.rawconfig import TextSearchConfig, ImageSearchConfig, ProcessorConversationConfig
 
 
 class SearchType(str, Enum):
@@ -45,7 +45,7 @@ class SearchModels():
 
 
 class TextSearchConfig():
-    def __init__(self, text_search_config: TextSearchConfigTest, verbose: bool):
+    def __init__(self, text_search_config: TextSearchConfig, verbose: bool):
         self.input_files = text_search_config.input_files
         self.input_filter = text_search_config.input_filter
         self.compressed_jsonl = Path(text_search_config.compressed_jsonl)
@@ -54,7 +54,7 @@ class TextSearchConfig():
 
 
 class ImageSearchConfig():
-    def __init__(self, image_search_config: ImageSearchConfigTest, verbose):
+    def __init__(self, image_search_config: ImageSearchConfig, verbose):
         self.input_directory = Path(image_search_config.input_directory)
         self.embeddings_file = Path(image_search_config.embeddings_file)
         self.batch_size = image_search_config.batch_size
