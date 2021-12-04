@@ -156,6 +156,9 @@ def initialize_search(regenerate, verbose):
 
 
 def initialize_processor(verbose):
+    if not config.processor:
+        return
+    
     processor_config = ProcessorConfig()
 
     # Initialize Conversation Processor
