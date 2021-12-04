@@ -13,16 +13,16 @@ from fastapi.templating import Jinja2Templates
 from src.search_type import asymmetric, symmetric_ledger, image_search
 from src.utils.helpers import get_absolute_path
 from src.utils.cli import cli
-from src.utils.config import SearchType, SearchModels, TextSearchConfig, ImageSearchConfig, SearchConfig, ProcessorConfig, ConversationProcessorConfig
-from src.utils.rawconfig import FullConfig
+from src.utils.config import SearchType, SearchModels, ProcessorConfig, ConversationProcessorConfigDTO
+from src.utils.rawconfig import FullConfigModel
 from src.processor.conversation.gpt import converse, message_to_log, message_to_prompt, understand
 
 # Application Global State
 model = SearchModels()
-search_config = SearchConfig()
 processor_config = ProcessorConfig()
 config = {}
 config_file = ""
+verbose = 0
 app = FastAPI()
 
 app.mount("/views", StaticFiles(directory="views"), name="views")
@@ -32,12 +32,12 @@ templates = Jinja2Templates(directory="views/")
 def ui(request: Request):
     return templates.TemplateResponse("config.html", context={'request': request})
 
-@app.get('/config', response_model=FullConfig)
+@app.get('/config', response_model=FullConfigModel)
 def config():
     return config
 
 @app.post('/config')
-async def config(updated_config: FullConfig):
+async def config(updated_config: FullConfigModel):
     global config
     config = updated_config
     with open(config_file, 'w') as outfile:
@@ -83,7 +83,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
         return image_search.collate_results(
             hits,
             model.image_search.image_names,
-            search_config.image.input_directory,
+            config.content_type.image.input_directory,
             results_count)
 
     else:
@@ -92,22 +92,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
 
 @app.get('/regenerate')
 def regenerate(t: Optional[SearchType] = None):
-    if (t == SearchType.Notes or t == None) and search_config.notes:
-        # Extract Entries, Generate Embeddings
-        model.notes_search = asymmetric.setup(search_config.notes, regenerate=True)
-
-    if (t == SearchType.Music or t == None) and search_config.music:
-        # Extract Entries, Generate Song Embeddings
-        model.music_search = asymmetric.setup(search_config.music, regenerate=True)
-
-    if (t == SearchType.Ledger or t == None) and search_config.ledger:
-        # Extract Entries, Generate Embeddings
-        model.ledger_search = symmetric_ledger.setup(search_config.ledger, regenerate=True)
-
-    if (t == SearchType.Image or t == None) and search_config.image:
-        # Extract Images, Generate Embeddings
-        model.image_search = image_search.setup(search_config.image, regenerate=True)
-
+    initialize_search(regenerate=True)
     return {'status': 'ok', 'message': 'regeneration completed'}
 
 
@@ -128,41 +113,40 @@ def chat(q: str):
     return {'status': 'ok', 'response': gpt_response}
 
 
-def initialize_search(regenerate, verbose):
+def initialize_search(regenerate: bool, t: SearchType = None):
     model = SearchModels()
-    search_config = SearchConfig()
 
     # Initialize Org Notes Search
-    if config.content_type.org:
-        search_config.notes = TextSearchConfig(config.content_type.org, verbose)
-        model.notes_search = asymmetric.setup(search_config.notes, regenerate=regenerate)
+    if (t == SearchType.Notes or t == None) and config.content_type.org:
+        # Extract Entries, Generate Notes Embeddings
+        model.notes_search = asymmetric.setup(config.content_type.org, regenerate=regenerate, verbose=verbose)
 
     # Initialize Org Music Search
-    if config.content_type.music:
-        search_config.music = TextSearchConfig(config.content_type.music, verbose)
-        model.music_search = asymmetric.setup(search_config.music, regenerate=regenerate)
+    if (t == SearchType.Music or t == None) and config.content_type.music:
+        # Extract Entries, Generate Music Embeddings
+        model.music_search = asymmetric.setup(config.content_type.music, regenerate=regenerate, verbose=verbose)
 
     # Initialize Ledger Search
-    if config.content_type.ledger:
-        search_config.ledger = TextSearchConfig(config.content_type.org, verbose)
-        model.ledger_search = symmetric_ledger.setup(search_config.ledger, regenerate=regenerate)
+    if (t == SearchType.Ledger or t == None) and config.content_type.ledger:
+        # Extract Entries, Generate Ledger Embeddings
+        model.ledger_search = symmetric_ledger.setup(config.content_type.ledger, regenerate=regenerate, verbose=verbose)
 
     # Initialize Image Search
-    if config.content_type.image:
-        search_config.image = ImageSearchConfig(config.content_type.image, verbose)
-        model.image_search = image_search.setup(search_config.image, regenerate=regenerate)
+    if (t == SearchType.Image or t == None) and config.content_type.image:
+        # Extract Entries, Generate Image Embeddings
+        model.image_search = image_search.setup(config.content_type.image, regenerate=regenerate, verbose=verbose)
 
-    return model, search_config
+    return model
 
 
-def initialize_processor(verbose):
+def initialize_processor():
     if not config.processor:
         return
     
     processor_config = ProcessorConfig()
 
     # Initialize Conversation Processor
-    processor_config.conversation = ConversationProcessorConfig(config.processor.conversation, verbose)
+    processor_config.conversation = ConversationProcessorConfigDTO(config.processor.conversation, verbose)
 
     conversation_logfile = processor_config.conversation.conversation_logfile
     if processor_config.conversation.verbose:
@@ -211,14 +195,17 @@ if __name__ == '__main__':
     # Stores the file path to the config file.
     config_file = args.config_file
 
+    # Store the verbose flag
+    verbose = args.verbose
+
     # Store the raw config data.
     config = args.config
 
-    # Initialize Search from Config
-    model, search_config = initialize_search(args.regenerate, args.verbose)
+    # Initialize the search model from Config
+    model = initialize_search(args.regenerate)
 
     # Initialize Processor from Config
-    processor_config = initialize_processor(args.verbose)
+    processor_config = initialize_processor()
 
     # Start Application Server
     if args.socket:

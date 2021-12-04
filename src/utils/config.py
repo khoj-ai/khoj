@@ -4,9 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 # Internal Packages
-from src.utils.helpers import get_from_dict
-
-from src.utils.rawconfig import TextSearchConfigModel, ImageSearchConfigModel, ProcessorConversationConfigModel
+from src.utils.rawconfig import ProcessorConversationConfigModel
 
 
 class SearchType(str, Enum):
@@ -44,33 +42,7 @@ class SearchModels():
     image_search: ImageSearchModel = None
 
 
-class TextSearchConfigModel():
-    def __init__(self, text_search_config: TextSearchConfigModel, verbose: bool):
-        self.input_files = text_search_config.input_files
-        self.input_filter = text_search_config.input_filter
-        self.compressed_jsonl = Path(text_search_config.compressed_jsonl)
-        self.embeddings_file = Path(text_search_config.embeddings_file)
-        self.verbose = verbose
-
-
-class ImageSearchConfigModel():
-    def __init__(self, image_search_config: ImageSearchConfigModel, verbose):
-        self.input_directory = Path(image_search_config.input_directory)
-        self.embeddings_file = Path(image_search_config.embeddings_file)
-        self.batch_size = image_search_config.batch_size
-        self.use_xmp_metadata = image_search_config.use_xmp_metadata
-        self.verbose = verbose
-
-
-@dataclass
-class SearchConfig():
-    notes: TextSearchConfigModel = None
-    ledger: TextSearchConfigModel = None
-    music: TextSearchConfigModel = None
-    image: ImageSearchConfigModel = None
-
-
-class ConversationProcessorConfig():
+class ConversationProcessorConfigDTO():
     def __init__(self, processor_config: ProcessorConversationConfigModel, verbose: bool):
         self.openai_api_key = processor_config.open_api_key
         self.conversation_logfile = Path(processor_config.conversation_logfile)
@@ -81,4 +53,4 @@ class ConversationProcessorConfig():
 
 @dataclass
 class ProcessorConfig():
-    conversation: ConversationProcessorConfig = None
+    conversation: ConversationProcessorConfigDTO = None
