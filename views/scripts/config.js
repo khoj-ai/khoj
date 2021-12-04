@@ -88,7 +88,7 @@ function makeElementEditable(original, data, key) {
         var inputNewText = document.createElement("input");
         inputNewText.type = "text";
         inputNewText.className = "config-element-edit";
-        inputNewText.value = original.textContent;
+        inputNewText.value = (original.textContent == emptyValueDefault) ? "" : original.textContent;
         fixInputOnFocusOut(inputNewText, data, key);
         original.parentNode.replaceChild(inputNewText, original);
         inputNewText.focus();
@@ -118,7 +118,7 @@ function createValueNode(data, key) {
  */
 function fixInputOnFocusOut(original, data, key) {
     original.addEventListener("blur", () => {
-        data[key] = (!!data[key] && original.value != emptyValueDefault) ? original.value : "";
+        data[key] = (original.value != emptyValueDefault) ? original.value : "";
         original.parentNode.replaceChild(createValueNode(data, key), original);
     })
 }
