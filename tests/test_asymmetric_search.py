@@ -8,7 +8,7 @@ from src.search_type import asymmetric
 def test_asymmetric_setup(search_config):
     # Act
     # Regenerate notes embeddings during asymmetric setup
-    notes_model = asymmetric.setup(search_config.notes, regenerate=True)
+    notes_model = asymmetric.setup(search_config.org, regenerate=True)
 
     # Assert
     assert len(notes_model.entries) == 10
@@ -18,7 +18,7 @@ def test_asymmetric_setup(search_config):
 # ----------------------------------------------------------------------------------------------------
 def test_asymmetric_search(search_config):
     # Arrange
-    model.notes_search = asymmetric.setup(search_config.notes, regenerate=False)
+    model.notes_search = asymmetric.setup(search_config.org, regenerate=False)
     query = "How to git install application?"
 
     # Act
