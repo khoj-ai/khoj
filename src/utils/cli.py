@@ -38,12 +38,14 @@ def cli(args=None):
             config_from_file = yaml.safe_load(config_file)
             args.config = merge_dicts(priority_dict=config_from_file, default_dict=args.config)
             args.config = FullConfigModel.parse_obj(args.config)
+    else:
+        args.config = FullConfigModel.parse_obj(args.config)
 
     if args.org_files:
-        args.config['content-type']['org']['input-files'] = args.org_files
+        args.config.content_type.org.input_files = args.org_files
 
     if args.org_filter:
-        args.config['content-type']['org']['input-filter'] = args.org_filter
+        args.config.content_type.org.input_filter = args.org_filter
 
     return args
 

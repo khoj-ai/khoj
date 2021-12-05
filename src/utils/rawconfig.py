@@ -27,7 +27,7 @@ class TextSearchConfigModel(ConfigBaseModel):
 class ImageSearchConfigModel(ConfigBaseModel):
     use_xmp_metadata: Optional[str]
     batch_size: Optional[int]
-    input_directory: Optional[List[str]]
+    input_directory: Optional[Path]
     input_filter: Optional[str]
     embeddings_file: Optional[Path]
 
