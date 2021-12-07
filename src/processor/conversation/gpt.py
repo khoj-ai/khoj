@@ -113,3 +113,8 @@ def message_to_log(user_message, user_message_metadata, gpt_message, conversatio
 
     conversation_log.extend([human_log, ai_log])
     return conversation_log
+
+def extract_summaries(metadata):
+    """Extract summaries from metadata"""
+    return ''.join(
+        [f'\n{session["summary"]}' for session in metadata])

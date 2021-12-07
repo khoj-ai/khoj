@@ -91,7 +91,7 @@ def regenerate(t: Optional[SearchType] = None):
 @app.get('/chat')
 def chat(q: str):
     # Load Conversation History
-    chat_log = processor_config.conversation.chat_log
+    chat_session = processor_config.conversation.chat_session
     meta_log = processor_config.conversation.meta_log
 
     # Converse with OpenAI GPT
@@ -100,13 +100,13 @@ def chat(q: str):
         query = get_from_dict(metadata, "intent", "query")
         result_list = search(query, n=1, t=SearchType.Notes)
         collated_result = "\n".join([item["Entry"] for item in result_list])
-        gpt_response = summarize(collated_result, metadata["intent"]["memory-type"], user_query=q, api_key=processor_config.conversation.openai_api_key)
+        gpt_response = summarize(collated_result, summary_type="notes", user_query=q, api_key=processor_config.conversation.openai_api_key)
     else:
-        gpt_response = converse(q, chat_log, api_key=processor_config.conversation.openai_api_key)
+        gpt_response = converse(q, chat_session, api_key=processor_config.conversation.openai_api_key)
 
     # Update Conversation History
-    processor_config.conversation.chat_log = message_to_prompt(q, chat_log, gpt_message=gpt_response)
-    processor_config.conversation.meta_log= message_to_log(q, metadata, gpt_response, meta_log)
+    processor_config.conversation.chat_session = message_to_prompt(q, chat_session, gpt_message=gpt_response)
+    processor_config.conversation.meta_log['chat'] = message_to_log(q, metadata, gpt_response, meta_log.get('chat', []))
 
     return {'status': 'ok', 'response': gpt_response}
 
@@ -152,17 +152,11 @@ def initialize_processor(config, verbose):
         with open(get_absolute_path(conversation_logfile), 'r') as f:
             processor_config.conversation.meta_log = json.load(f)
 
-        # Extract Chat Logs from Metadata
-        processor_config.conversation.chat_log = ''.join(
-            [f'\n{item["by"]}: {item["message"]}'
-            for item
-            in processor_config.conversation.meta_log])
-
         print('INFO:\tConversation logs loaded from disk.')
     else:
         # Initialize Conversation Logs
-        processor_config.conversation.meta_log = []
-        processor_config.conversation.chat_log = ""
+        processor_config.conversation.meta_log = {}
+        processor_config.conversation.chat_session = ""
 
     return processor_config
 
@@ -176,13 +170,23 @@ def shutdown_event():
         print('INFO:\tSaving conversation logs to disk...')
 
     # Summarize Conversation Logs for this Session
-    session_summary = summarize(processor_config.conversation.chat_log, "chat", api_key=processor_config.conversation.openai_api_key)
+    chat_session = processor_config.conversation.chat_session
+    openai_api_key = processor_config.conversation.openai_api_key
+    conversation_log = processor_config.conversation.meta_log
+    session = {
+        "summary": summarize(chat_session, summary_type="chat", api_key=openai_api_key),
+        "session-start": conversation_log.get("session", [{"session-end": 0}])[-1]["session-end"],
+        "session-end": len(conversation_log["chat"])
+        }
+    if 'session' in conversation_log:
+        conversation_log['session'].append(session)
+    else:
+        conversation_log['session'] = [session]
 
     # Save Conversation Metadata Logs to Disk
-    conversation_logs = {"session": { "summary": session_summary, "meta": processor_config.conversation.meta_log}},
     conversation_logfile = get_absolute_path(processor_config.conversation.conversation_logfile)
     with open(conversation_logfile, "w+", encoding='utf-8') as logfile:
-        json.dump(conversation_logs, logfile)
+        json.dump(conversation_log, logfile)
 
     print('INFO:\tConversation logs saved to disk.')
 
