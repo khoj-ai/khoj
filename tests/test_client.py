@@ -8,13 +8,13 @@ from fastapi.testclient import TestClient
 from src.main import app, model, config
 from src.search_type import asymmetric, image_search
 from src.utils.helpers import resolve_absolute_path
-from src.utils.rawconfig import FullConfigModel
+from src.utils.rawconfig import FullConfig
 
 
 # Arrange
 # ----------------------------------------------------------------------------------------------------
 client = TestClient(app)
-config = FullConfigModel()
+config = FullConfig()
 
 # Test
 # ----------------------------------------------------------------------------------------------------

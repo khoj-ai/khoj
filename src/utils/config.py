@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 # Internal Packages
-from src.utils.rawconfig import ProcessorConversationConfigModel
+from src.utils.rawconfig import ConversationProcessorConfig
 
 
 class SearchType(str, Enum):
@@ -42,8 +42,8 @@ class SearchModels():
     image_search: ImageSearchModel = None
 
 
-class ConversationProcessorConfigDTO():
-    def __init__(self, processor_config: ProcessorConversationConfigModel, verbose: bool):
+class ConversationProcessorConfigModel():
+    def __init__(self, processor_config: ConversationProcessorConfig, verbose: bool):
         self.openai_api_key = processor_config.open_api_key
         self.conversation_logfile = Path(processor_config.conversation_logfile)
         self.chat_log = ''
@@ -52,5 +52,5 @@ class ConversationProcessorConfigDTO():
         self.verbose = verbose
 
 @dataclass
-class ProcessorConfig():
-    conversation: ConversationProcessorConfigDTO = None
+class ProcessorConfigModel():
+    conversation: ConversationProcessorConfigModel = None

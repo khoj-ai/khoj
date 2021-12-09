@@ -13,13 +13,13 @@ from fastapi.templating import Jinja2Templates
 from src.search_type import asymmetric, symmetric_ledger, image_search
 from src.utils.helpers import get_absolute_path
 from src.utils.cli import cli
-from src.utils.config import SearchType, SearchModels, ProcessorConfig, ConversationProcessorConfigDTO
-from src.utils.rawconfig import FullConfigModel
+from src.utils.config import SearchType, SearchModels, ProcessorConfigModel, ConversationProcessorConfigModel
+from src.utils.rawconfig import FullConfig
 from src.processor.conversation.gpt import converse, message_to_log, message_to_prompt, understand
 
 # Application Global State
 model = SearchModels()
-processor_config = ProcessorConfig()
+processor_config = ProcessorConfigModel()
 config = {}
 config_file = ""
 verbose = 0
@@ -32,12 +32,12 @@ templates = Jinja2Templates(directory="views/")
 def ui(request: Request):
     return templates.TemplateResponse("config.html", context={'request': request})
 
-@app.get('/config', response_model=FullConfigModel)
+@app.get('/config', response_model=FullConfig)
 def config():
     return config
 
 @app.post('/config')
-async def config(updated_config: FullConfigModel):
+async def config(updated_config: FullConfig):
     global config
     config = updated_config
     with open(config_file, 'w') as outfile:
@@ -92,7 +92,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
 
 @app.get('/regenerate')
 def regenerate(t: Optional[SearchType] = None):
-    initialize_search(regenerate=True)
+    initialize_search(regenerate=True, t=t)
     return {'status': 'ok', 'message': 'regeneration completed'}
 
 
@@ -113,7 +113,7 @@ def chat(q: str):
     return {'status': 'ok', 'response': gpt_response}
 
 
-def initialize_search(regenerate: bool, t: SearchType = None):
+def initialize_search(config: FullConfig, regenerate: bool, t: SearchType = None):
     model = SearchModels()
 
     # Initialize Org Notes Search
@@ -139,14 +139,14 @@ def initialize_search(regenerate: bool, t: SearchType = None):
     return model
 
 
-def initialize_processor():
+def initialize_processor(config: FullConfig):
     if not config.processor:
         return
     
-    processor_config = ProcessorConfig()
+    processor_config = ProcessorConfigModel()
 
     # Initialize Conversation Processor
-    processor_config.conversation = ConversationProcessorConfigDTO(config.processor.conversation, verbose)
+    processor_config.conversation = ConversationProcessorConfigModel(config.processor.conversation, verbose)
 
     conversation_logfile = processor_config.conversation.conversation_logfile
     if processor_config.conversation.verbose:
@@ -202,10 +202,10 @@ if __name__ == '__main__':
     config = args.config
 
     # Initialize the search model from Config
-    model = initialize_search(args.regenerate)
+    model = initialize_search(args.config, args.regenerate)
 
     # Initialize Processor from Config
-    processor_config = initialize_processor()
+    processor_config = initialize_processor(args.config)
 
     # Start Application Server
     if args.socket:

@@ -13,7 +13,7 @@ from sentence_transformers import SentenceTransformer, CrossEncoder, util
 from src.utils.helpers import get_absolute_path, resolve_absolute_path
 from src.processor.ledger.beancount_to_jsonl import beancount_to_jsonl
 from src.utils.config import TextSearchModel
-from src.utils.rawconfig import TextSearchConfigModel
+from src.utils.rawconfig import TextSearchConfig
 
 
 def initialize_model():
@@ -141,7 +141,7 @@ def collate_results(hits, entries, count=5):
         in hits[0:count]]
 
 
-def setup(config: TextSearchConfigModel, regenerate: bool, verbose: bool) -> TextSearchModel:
+def setup(config: TextSearchConfig, regenerate: bool, verbose: bool) -> TextSearchModel:
     # Initialize Model
     bi_encoder, cross_encoder, top_k = initialize_model()
 

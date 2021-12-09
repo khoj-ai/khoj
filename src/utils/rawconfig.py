@@ -8,55 +8,55 @@ from pydantic import BaseModel
 # Internal Packages
 from src.utils.helpers import to_snake_case_from_dash
 
-class ConfigBaseModel(BaseModel):
+class ConfigBase(BaseModel):
     class Config:
         alias_generator = to_snake_case_from_dash
         allow_population_by_field_name = True
 
-class SearchConfigModel(ConfigBaseModel):
+class SearchConfig(ConfigBase):
     input_files: Optional[List[str]]
     input_filter: Optional[str]
     embeddings_file: Optional[Path]
 
-class TextSearchConfigModel(ConfigBaseModel):
+class TextSearchConfig(ConfigBase):
     compressed_jsonl: Optional[Path]
     input_files: Optional[List[str]]
     input_filter: Optional[str]
     embeddings_file: Optional[Path]
 
-class ImageSearchConfigModel(ConfigBaseModel):
+class ImageSearchConfig(ConfigBase):
     use_xmp_metadata: Optional[str]
     batch_size: Optional[int]
     input_directory: Optional[Path]
     input_filter: Optional[str]
     embeddings_file: Optional[Path]
 
-class ContentTypeModel(ConfigBaseModel):
-    org: Optional[TextSearchConfigModel]
-    ledger: Optional[TextSearchConfigModel]
-    image: Optional[ImageSearchConfigModel]
-    music: Optional[TextSearchConfigModel]
+class ContentTypeConfig(ConfigBase):
+    org: Optional[TextSearchConfig]
+    ledger: Optional[TextSearchConfig]
+    image: Optional[ImageSearchConfig]
+    music: Optional[TextSearchConfig]
 
-class AsymmetricConfigModel(ConfigBaseModel):
+class AsymmetricConfig(ConfigBase):
     encoder: Optional[str]
     cross_encoder: Optional[str]
 
-class ImageSearchTypeConfigModel(ConfigBaseModel):
+class ImageSearchTypeConfig(ConfigBase):
     encoder: Optional[str]
 
-class SearchTypeConfigModel(ConfigBaseModel):
-    asymmetric: Optional[AsymmetricConfigModel]
-    image: Optional[ImageSearchTypeConfigModel]
+class SearchTypeConfig(ConfigBase):
+    asymmetric: Optional[AsymmetricConfig]
+    image: Optional[ImageSearchTypeConfig]
 
-class ProcessorConversationConfigModel(ConfigBaseModel):
+class ConversationProcessorConfig(ConfigBase):
     open_api_key: Optional[str]
     conversation_logfile: Optional[str]
     conversation_history: Optional[str]
 
-class ProcessorConfigModel(ConfigBaseModel):
-    conversation: Optional[ProcessorConversationConfigModel]
+class ProcessorConfigModel(ConfigBase):
+    conversation: Optional[ConversationProcessorConfig]
 
-class FullConfigModel(ConfigBaseModel):
-    content_type: Optional[ContentTypeModel]
-    search_type: Optional[SearchTypeConfigModel]
+class FullConfig(ConfigBase):
+    content_type: Optional[ContentTypeConfig]
+    search_type: Optional[SearchTypeConfig]
     processor: Optional[ProcessorConfigModel]
