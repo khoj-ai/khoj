@@ -18,9 +18,9 @@ from src.utils.rawconfig import FullConfig
 from src.processor.conversation.gpt import converse, message_to_log, message_to_prompt, understand
 
 # Application Global State
+config = FullConfig()
 model = SearchModels()
 processor_config = ProcessorConfigModel()
-config = {}
 config_file = ""
 verbose = 0
 app = FastAPI()
@@ -33,11 +33,11 @@ def ui(request: Request):
     return templates.TemplateResponse("config.html", context={'request': request})
 
 @app.get('/config', response_model=FullConfig)
-def config():
+def config_data():
     return config
 
 @app.post('/config')
-async def config(updated_config: FullConfig):
+async def config_data(updated_config: FullConfig):
     global config
     config = updated_config
     with open(config_file, 'w') as outfile:
@@ -92,7 +92,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
 
 @app.get('/regenerate')
 def regenerate(t: Optional[SearchType] = None):
-    initialize_search(regenerate=True, t=t)
+    initialize_search(config, regenerate=True, t=t)
     return {'status': 'ok', 'message': 'regeneration completed'}
 
 

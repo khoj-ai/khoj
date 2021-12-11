@@ -154,7 +154,7 @@ def collate_results(hits, image_names, image_directory, count=5):
         in hits[0:count]]
 
 
-def setup(config: ImageSearchConfig, regenerate: bool, verbose: bool) -> ImageSearchModel:
+def setup(config: ImageSearchConfig, regenerate: bool, verbose: bool=False) -> ImageSearchModel:
     # Initialize Model
     encoder = initialize_model()
 
