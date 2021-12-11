@@ -18,6 +18,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - name: Environment dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -q -y install libimage-exiftool-perl
       - name: Cache conda
         uses: actions/cache@v2
         env:
