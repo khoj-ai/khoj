@@ -11,13 +11,16 @@ on:
 jobs:
   test:
     name: Run Tests
-    runs-on: "macos-latest"
+    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash -l {0}
 
     steps:
       - uses: actions/checkout@v2
+      - name: Environment dependencies
+        run: |
+          sudo apt-get -y install libimage-exiftool-perl
       - name: Cache conda
         uses: actions/cache@v2
         env:
