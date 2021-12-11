@@ -15,6 +15,10 @@
    conda env create -f environment.yml
    conda activate semantic-search
    #+end_src
+   *** Install Environment Dependencies
+   #+begin_src shell
+   sudo apt-get -y install libimage-exiftool-perl
+   #+end_src
 
 ** Configure
    Configure application search types and their underlying data source/files in ~sample_config.yml~
