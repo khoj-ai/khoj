@@ -160,7 +160,7 @@ def setup(config: ImageSearchConfig, regenerate: bool, verbose: bool) -> ImageSe
 
     # Extract Entries
     image_directory = resolve_absolute_path(config.input_directory, strict=True)
-    image_names = extract_entries(image_directory, config.verbose)
+    image_names = extract_entries(image_directory, verbose)
 
     # Compute or Load Embeddings
     embeddings_file = resolve_absolute_path(config.embeddings_file)
