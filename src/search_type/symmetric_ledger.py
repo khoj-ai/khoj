@@ -1,9 +1,6 @@
 # Standard Packages
 import json
-import time
 import gzip
-import os
-import sys
 import re
 import argparse
 import pathlib
@@ -15,11 +12,12 @@ from sentence_transformers import SentenceTransformer, CrossEncoder, util
 # Internal Packages
 from src.utils.helpers import get_absolute_path, resolve_absolute_path
 from src.processor.ledger.beancount_to_jsonl import beancount_to_jsonl
-from src.utils.config import TextSearchModel, TextSearchConfig
+from src.utils.config import TextSearchModel
+from src.utils.rawconfig import TextSearchConfig
 
 
 def initialize_model():
-    "Initialize model for symetric semantic search. That is, where query of similar size to results"
+    "Initialize model for symmetric semantic search. That is, where query of similar size to results"
     torch.set_num_threads(4)
     bi_encoder = SentenceTransformer('sentence-transformers/paraphrase-MiniLM-L6-v2') # The encoder encodes all entries to use for semantic search
     top_k = 30                                                                        # Number of entries we want to retrieve with the bi-encoder
@@ -55,7 +53,7 @@ def compute_embeddings(entries, bi_encoder, embeddings_file, regenerate=False, v
         corpus_embeddings = bi_encoder.encode(entries, convert_to_tensor=True, show_progress_bar=True)
         torch.save(corpus_embeddings, get_absolute_path(embeddings_file))
         if verbose > 0:
-            print(f"Computed embeddings and save them to {embeddings_file}")
+            print(f"Computed embeddings and saved them to {embeddings_file}")
 
     return corpus_embeddings
 
@@ -143,7 +141,7 @@ def collate_results(hits, entries, count=5):
         in hits[0:count]]
 
 
-def setup(config: TextSearchConfig, regenerate: bool) -> TextSearchModel:
+def setup(config: TextSearchConfig, regenerate: bool, verbose: bool) -> TextSearchModel:
     # Initialize Model
     bi_encoder, cross_encoder, top_k = initialize_model()
 
@@ -156,9 +154,9 @@ def setup(config: TextSearchConfig, regenerate: bool) -> TextSearchModel:
     top_k = min(len(entries), top_k)
 
     # Compute or Load Embeddings
-    corpus_embeddings = compute_embeddings(entries, bi_encoder, config.embeddings_file, regenerate=regenerate, verbose=config.verbose)
+    corpus_embeddings = compute_embeddings(entries, bi_encoder, config.embeddings_file, regenerate=regenerate, verbose=verbose)
 
-    return TextSearchModel(entries, corpus_embeddings, bi_encoder, cross_encoder, top_k, verbose=config.verbose)
+    return TextSearchModel(entries, corpus_embeddings, bi_encoder, cross_encoder, top_k, verbose=verbose)
 
 
 if __name__ == '__main__':

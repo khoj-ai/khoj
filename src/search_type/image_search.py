@@ -10,9 +10,10 @@ from tqdm import trange
 import torch
 
 # Internal Packages
-from src.utils.helpers import get_absolute_path, resolve_absolute_path
+from src.utils.helpers import resolve_absolute_path
 import src.utils.exiftool as exiftool
-from src.utils.config import ImageSearchModel, ImageSearchConfig
+from src.utils.config import ImageSearchModel
+from src.utils.rawconfig import ImageSearchConfig
 
 
 def initialize_model():
@@ -153,7 +154,7 @@ def collate_results(hits, image_names, image_directory, count=5):
         in hits[0:count]]
 
 
-def setup(config: ImageSearchConfig, regenerate: bool) -> ImageSearchModel:
+def setup(config: ImageSearchConfig, regenerate: bool, verbose: bool) -> ImageSearchModel:
     # Initialize Model
     encoder = initialize_model()
 
@@ -170,13 +171,13 @@ def setup(config: ImageSearchConfig, regenerate: bool) -> ImageSearchModel:
         batch_size=config.batch_size,
         regenerate=regenerate,
         use_xmp_metadata=config.use_xmp_metadata,
-        verbose=config.verbose)
+        verbose=verbose)
 
     return ImageSearchModel(image_names,
                             image_embeddings,
                             image_metadata_embeddings,
                             encoder,
-                            config.verbose)
+                            verbose)
 
 
 if __name__ == '__main__':

@@ -5,15 +5,16 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 # Internal Packages
-from src.main import app, model, search_config as main_search_config
+from src.main import app, model, config
 from src.search_type import asymmetric, image_search
 from src.utils.helpers import resolve_absolute_path
+from src.utils.rawconfig import FullConfig
 
 
 # Arrange
 # ----------------------------------------------------------------------------------------------------
 client = TestClient(app)
-
+config = FullConfig()
 
 # Test
 # ----------------------------------------------------------------------------------------------------
@@ -31,7 +32,7 @@ def test_search_with_invalid_search_type():
 # ----------------------------------------------------------------------------------------------------
 def test_search_with_valid_search_type(search_config):
     # Arrange
-    main_search_config.image = search_config.image
+    config.content_type.image = search_config.image
     for search_type in ["notes", "ledger", "music", "image"]:
         # Act
         response = client.get(f"/search?q=random&t={search_type}")
@@ -51,7 +52,7 @@ def test_regenerate_with_invalid_search_type():
 # ----------------------------------------------------------------------------------------------------
 def test_regenerate_with_valid_search_type(search_config):
     # Arrange
-    main_search_config.image = search_config.image
+    config.content_type.image = search_config.image
     for search_type in ["notes", "ledger", "music", "image"]:
         # Act
         response = client.get(f"/regenerate?t={search_type}")
@@ -62,7 +63,7 @@ def test_regenerate_with_valid_search_type(search_config):
 # ----------------------------------------------------------------------------------------------------
 def test_image_search(search_config):
     # Arrange
-    main_search_config.image = search_config.image
+    config.content_type.image = search_config.image
     model.image_search = image_search.setup(search_config.image, regenerate=False)
     query_expected_image_pairs = [("brown kitten next to fallen plant", "kitten_park.jpg"),
                                   ("a horse and dog on a leash", "horse_dog.jpg"),

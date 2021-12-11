@@ -1,0 +1,29 @@
+:root {
+    --primary-color: #ffffff;
+    --bold-color: #2073ee;
+    --complementary-color: #124408;
+    --accent-color-0: #57f0b5;
+}
+
+input[type=text] {
+    width: 40%;
+}
+
+div.config-element {
+    color: var(--bold-color);
+    margin: 8px;
+}
+
+div.config-title {
+    font-weight: bold;
+}
+
+span.config-element-value {
+    color: var(--complementary-color);
+    font-weight: normal;
+    cursor: pointer;
+}
+
+button {
+    cursor: pointer;
+}
