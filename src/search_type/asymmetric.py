@@ -149,7 +149,7 @@ def collate_results(hits, entries, count=5):
         in hits[0:count]]
 
 
-def setup(config: TextSearchConfig, regenerate: bool, verbose: bool) -> TextSearchModel:
+def setup(config: TextSearchConfig, regenerate: bool, verbose: bool=False) -> TextSearchModel:
     # Initialize Model
     bi_encoder, cross_encoder, top_k = initialize_model()
 
