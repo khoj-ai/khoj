@@ -147,10 +147,10 @@ def setup(config: TextSearchConfig, regenerate: bool, verbose: bool) -> TextSear
 
     # Map notes in Org-Mode files to (compressed) JSONL formatted file
     if not resolve_absolute_path(config.compressed_jsonl).exists() or regenerate:
-        beancount_to_jsonl(config.input_files, config.input_filter, config.compressed_jsonl, config.verbose)
+        beancount_to_jsonl(config.input_files, config.input_filter, config.compressed_jsonl, verbose)
 
     # Extract Entries
-    entries = extract_entries(config.compressed_jsonl, config.verbose)
+    entries = extract_entries(config.compressed_jsonl, verbose)
     top_k = min(len(entries), top_k)
 
     # Compute or Load Embeddings
