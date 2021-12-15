@@ -10,38 +10,50 @@ on:
 
 jobs:
   test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash -l {0}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: linux-64
+            prefix: /usr/share/miniconda3/envs/test
 
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
-      - name: Environment dependencies
-        run: |
-          sudo apt-get -y install libimage-exiftool-perl
-      - name: Cache conda
-        uses: actions/cache@v2
-        env:
-          # Increase this value to reset cache if environment.yml has not changed
-          CACHE_NUMBER: 0
+
+      - name: Install Environment Dependencies
+        shell: bash -l {0}
+        run: sudo apt-get -y install libimage-exiftool-perl
+
+      - name: Setup Mambaforge
+        uses: conda-incubator/setup-miniconda@v2
         with:
-          path: ~/conda_pkgs_dir
-          key:
-            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
-            hashFiles('environment.yml') }}
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
+          miniforge-variant: Mambaforge
+          miniforge-version: latest
           activate-environment: test
+          use-mamba: true
           environment-file: environment.yml
           python-version: 3.8
           auto-activate-base: false
           use-only-tar-bz2: true
-      - name: Conda Info
-        run: |
-          conda info
-          conda list
+
+      - name: Set cache date
+        run: echo "DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
+
+      - uses: actions/cache@v2
+        with:
+          path: ${{ matrix.prefix }}
+          key: ${{ matrix.label }}-conda-${{ hashFiles('environment.yml') }}-${{ env.DATE }}-${{ env.CACHE_NUMBER }}
+        env:
+          # Increase this value to reset cache if environment.yml has not changed
+          CACHE_NUMBER: 0
+        id: cache
+
+      - name: Update environment
+        run: mamba env update -n test -f environment.yml
+        if: steps.cache.outputs.cache-hit != 'true'
+
       - name: Run Pytest
-        run: |
-            python -m pytest
+        shell: bash -l {0}        
+        run: python -m pytest
