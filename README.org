@@ -15,7 +15,8 @@
    conda env create -f environment.yml
    conda activate semantic-search
    #+end_src
-   *** Install Environment Dependencies
+
+*** Install Environmental Dependencies
    #+begin_src shell
    sudo apt-get -y install libimage-exiftool-perl
    #+end_src
