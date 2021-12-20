@@ -6,7 +6,7 @@ dependencies:
   - numpy=1.*
   - pytorch=1.*
   - transformers=4.*
-  - sentence-transformers=2.0.0
+  - sentence-transformers=2.1.0
   - fastapi=0.*
   - uvicorn=0.*
   - pyyaml=5.*
@@ -14,3 +14,7 @@ dependencies:
   - pillow=8.*
   - torchvision=0.*
   - openai=0.*
+  - pydantic=1.*
+  - jinja2=3.0.*
+  - aiofiles=0.*
+  - huggingface_hub=0.*
