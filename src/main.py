@@ -103,11 +103,16 @@ def chat(q: str):
     meta_log = processor_config.conversation.meta_log
 
     # Converse with OpenAI GPT
-    metadata = understand(q, api_key=processor_config.conversation.openai_api_key)
+    metadata = understand(q, api_key=processor_config.conversation.openai_api_key, verbose=verbose)
+    if verbose > 1:
+        print(f'Understood: {get_from_dict(metadata, "intent")}')
+
     if get_from_dict(metadata, "intent", "memory-type") == "notes":
         query = get_from_dict(metadata, "intent", "query")
         result_list = search(query, n=1, t=SearchType.Notes)
         collated_result = "\n".join([item["Entry"] for item in result_list])
+        if verbose > 1:
+            print(f'Semantically Similar Notes:\n{collated_result}')
         gpt_response = summarize(collated_result, summary_type="notes", user_query=q, api_key=processor_config.conversation.openai_api_key)
     else:
         gpt_response = converse(q, chat_session, api_key=processor_config.conversation.openai_api_key)

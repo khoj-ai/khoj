@@ -36,7 +36,7 @@ def summarize(text, summary_type, user_query=None, api_key=None, temperature=0.5
     return str(story).replace("\n\n", "")
 
 
-def understand(text, api_key=None, temperature=0.5, max_tokens=100):
+def understand(text, api_key=None, temperature=0.5, max_tokens=100, verbose=0):
     """
     Understand user input using OpenAI's GPT
     """
@@ -46,6 +46,8 @@ def understand(text, api_key=None, temperature=0.5, max_tokens=100):
 
     # Setup Prompt with Understand Primer
     prompt = message_to_prompt(text, understand_primer, start_sequence="\nA:", restart_sequence="\nQ:")
+    if verbose > 1:
+        print(f"Message -> Prompt: {text} -> {prompt}")
 
     # Get Response from GPT
     response = openai.Completion.create(
