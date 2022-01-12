@@ -51,7 +51,6 @@ class SearchTypeConfig(ConfigBase):
 class ConversationProcessorConfig(ConfigBase):
     openai_api_key: Optional[str]
     conversation_logfile: Optional[str]
-    conversation_history: Optional[str]
 
 class ProcessorConfigModel(ConfigBase):
     conversation: Optional[ConversationProcessorConfig]
