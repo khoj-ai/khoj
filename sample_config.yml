@@ -36,6 +36,7 @@ search-type:
 
   image:
     encoder: "clip-ViT-B-32"
+    model_directory: "tests/data/.image_encoder"
 
 processor:
   conversation:

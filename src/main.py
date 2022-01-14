@@ -145,7 +145,7 @@ def initialize_search(config: FullConfig, regenerate: bool, t: SearchType = None
     # Initialize Image Search
     if (t == SearchType.Image or t == None) and config.content_type.image:
         # Extract Entries, Generate Image Embeddings
-        model.image_search = image_search.setup(config.content_type.image, regenerate=regenerate, verbose=verbose)
+        model.image_search = image_search.setup(config.content_type.image, search_config=config.search_type.image, regenerate=regenerate, verbose=verbose)
 
     return model
 

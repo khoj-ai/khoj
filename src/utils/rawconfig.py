@@ -49,6 +49,7 @@ class AsymmetricConfig(ConfigBase):
 
 class ImageSearchTypeConfig(ConfigBase):
     encoder: Optional[str]
+    model_directory: Optional[Path]
 
 class SearchTypeConfig(ConfigBase):
     asymmetric: Optional[AsymmetricConfig]
