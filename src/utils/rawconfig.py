@@ -37,6 +37,11 @@ class ContentTypeConfig(ConfigBase):
     image: Optional[ImageSearchConfig]
     music: Optional[TextSearchConfig]
 
+class SymmetricConfig(ConfigBase):
+    encoder: Optional[str]
+    cross_encoder: Optional[str]
+    model_directory: Optional[Path]
+
 class AsymmetricConfig(ConfigBase):
     encoder: Optional[str]
     cross_encoder: Optional[str]
@@ -47,6 +52,7 @@ class ImageSearchTypeConfig(ConfigBase):
 
 class SearchTypeConfig(ConfigBase):
     asymmetric: Optional[AsymmetricConfig]
+    symmetric: Optional[SymmetricConfig]
     image: Optional[ImageSearchTypeConfig]
 
 class ConversationProcessorConfig(ConfigBase):

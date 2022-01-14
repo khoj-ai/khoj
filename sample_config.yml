@@ -24,6 +24,11 @@ content-type:
     embeddings-file: "tests/data/.song_embeddings.pt"
 
 search-type:
+  symmetric:
+    encoder: "sentence-transformers/paraphrase-MiniLM-L6-v2"
+    cross-encoder: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    model_directory: "tests/data/.symmetric"
+
   asymmetric:
     encoder: "sentence-transformers/msmarco-MiniLM-L-6-v3"
     cross-encoder: "cross-encoder/ms-marco-MiniLM-L-6-v2"
