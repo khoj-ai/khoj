@@ -38,7 +38,7 @@
      - Run ~M-x semantic-search <user-query>~
 
    - *Semantic Search via API*
-     - Query: ~GET~ [[http://localhost:8000/search?q=%22what%20is%20the%20meaning%20of%20life%22][http://localhost:8000/search?q="What is the meaning of life&t=notes"]]
+     - Query: ~GET~ [[http://localhost:8000/search?q=%22what%20is%20the%20meaning%20of%20life%22][http://localhost:8000/search?q="What is the meaning of life"&t=notes]]
      - Regenerate Embeddings: ~GET~ [[http://localhost:8000/regenerate][http://localhost:8000/regenerate?t=image]]
      - [[http://localhost:8000/docs][Semantic Search API Docs]]
 
