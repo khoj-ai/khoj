@@ -77,14 +77,22 @@ default_config = {
     },
     'search-type':
     {
-        'asymmetric':
+        'symmetric':
+        {
+            'encoder': "sentence-transformers/paraphrase-MiniLM-L6-v2",
+            'cross-encoder': "cross-encoder/ms-marco-MiniLM-L-6-v2",
+            'model_directory': None
+        },
+         'asymmetric':
         {
             'encoder': "sentence-transformers/msmarco-MiniLM-L-6-v3",
-            'cross-encoder': "cross-encoder/ms-marco-MiniLM-L-6-v2"
+            'cross-encoder': "cross-encoder/ms-marco-MiniLM-L-6-v2",
+            'model_directory': None
         },
         'image':
         {
-            'encoder': "clip-ViT-B-32"
+            'encoder': "clip-ViT-B-32",
+            'model_directory': None
         },
     },
     'processor':
