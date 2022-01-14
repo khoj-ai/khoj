@@ -27,6 +27,7 @@ search-type:
   asymmetric:
     encoder: "sentence-transformers/msmarco-MiniLM-L-6-v3"
     cross-encoder: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    model_directory: "tests/data/.asymmetric"
 
   image:
     encoder: "clip-ViT-B-32"

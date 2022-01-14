@@ -40,6 +40,7 @@ class ContentTypeConfig(ConfigBase):
 class AsymmetricConfig(ConfigBase):
     encoder: Optional[str]
     cross_encoder: Optional[str]
+    model_directory: Optional[Path]
 
 class ImageSearchTypeConfig(ConfigBase):
     encoder: Optional[str]

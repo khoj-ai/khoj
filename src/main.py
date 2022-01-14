@@ -130,12 +130,12 @@ def initialize_search(config: FullConfig, regenerate: bool, t: SearchType = None
     # Initialize Org Notes Search
     if (t == SearchType.Notes or t == None) and config.content_type.org:
         # Extract Entries, Generate Notes Embeddings
-        model.notes_search = asymmetric.setup(config.content_type.org, regenerate=regenerate, verbose=verbose)
+        model.notes_search = asymmetric.setup(config.content_type.org, search_config=config.search_type.asymmetric, regenerate=regenerate, verbose=verbose)
 
     # Initialize Org Music Search
     if (t == SearchType.Music or t == None) and config.content_type.music:
         # Extract Entries, Generate Music Embeddings
-        model.music_search = asymmetric.setup(config.content_type.music, regenerate=regenerate, verbose=verbose)
+        model.music_search = asymmetric.setup(config.content_type.music, search_config=config.search_type.asymmetric, regenerate=regenerate, verbose=verbose)
 
     # Initialize Ledger Search
     if (t == SearchType.Ledger or t == None) and config.content_type.ledger:
