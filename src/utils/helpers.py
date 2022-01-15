@@ -1,4 +1,6 @@
+# Standard Packages
 import pathlib
+from os.path import join
 
 
 def is_none_or_empty(item):
@@ -32,3 +34,20 @@ def merge_dicts(priority_dict, default_dict):
         if k not in priority_dict:
             merged_dict[k] = default_dict[k]
     return merged_dict
+
+
+def load_model(model_name, model_dir, model_type):
+    "Load model from disk or huggingface"
+    # Construct model path
+    model_path = join(model_dir, model_name.replace("/", "_")) if model_dir is not None else None
+
+    # Load model from model_path if it exists there
+    if model_path is not None and resolve_absolute_path(model_path).exists():
+        model = model_type(get_absolute_path(model_path))
+    # Else load the model from the model_name
+    else:
+        model = model_type(model_name)
+        if model_path is not None:
+            model.save(model_path)
+
+    return model
