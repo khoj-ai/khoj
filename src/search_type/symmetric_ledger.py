@@ -13,10 +13,10 @@ from sentence_transformers import SentenceTransformer, CrossEncoder, util
 from src.utils.helpers import get_absolute_path, resolve_absolute_path, load_model
 from src.processor.ledger.beancount_to_jsonl import beancount_to_jsonl
 from src.utils.config import TextSearchModel
-from src.utils.rawconfig import SymmetricConfig, TextSearchConfig
+from src.utils.rawconfig import SymmetricSearchConfig, TextContentConfig
 
 
-def initialize_model(search_config: SymmetricConfig):
+def initialize_model(search_config: SymmetricSearchConfig):
     "Initialize model for symmetric semantic search. That is, where query of similar size to results"
     torch.set_num_threads(4)
 
@@ -154,7 +154,7 @@ def collate_results(hits, entries, count=5):
         in hits[0:count]]
 
 
-def setup(config: TextSearchConfig, search_config: SymmetricConfig, regenerate: bool, verbose: bool) -> TextSearchModel:
+def setup(config: TextContentConfig, search_config: SymmetricSearchConfig, regenerate: bool, verbose: bool) -> TextSearchModel:
     # Initialize Model
     bi_encoder, cross_encoder, top_k = initialize_model(search_config)
 

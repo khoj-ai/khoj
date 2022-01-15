@@ -9,7 +9,7 @@ import pytest
 from src.main import app, model, config
 from src.search_type import asymmetric, image_search
 from src.utils.helpers import resolve_absolute_path
-from src.utils.rawconfig import ContentTypeConfig, SearchTypeConfig
+from src.utils.rawconfig import ContentConfig, SearchConfig
 
 
 # Arrange
@@ -30,7 +30,7 @@ def test_search_with_invalid_content_type():
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_search_with_valid_content_type(content_config: ContentTypeConfig, search_config: SearchTypeConfig):
+def test_search_with_valid_content_type(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     config.content_type = content_config
     config.search_type = search_config
@@ -53,7 +53,7 @@ def test_regenerate_with_invalid_content_type():
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_regenerate_with_valid_content_type(content_config: ContentTypeConfig, search_config: SearchTypeConfig):
+def test_regenerate_with_valid_content_type(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     config.content_type = content_config
     config.search_type = search_config
@@ -67,7 +67,7 @@ def test_regenerate_with_valid_content_type(content_config: ContentTypeConfig, s
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.skip(reason="Flaky test. Search doesn't always return expected image path.")
-def test_image_search(content_config: ContentTypeConfig, search_config: SearchTypeConfig):
+def test_image_search(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     config.content_type = content_config
     config.search_type = search_config
@@ -90,7 +90,7 @@ def test_image_search(content_config: ContentTypeConfig, search_config: SearchTy
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_notes_search(content_config: ContentTypeConfig, search_config: SearchTypeConfig):
+def test_notes_search(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     model.notes_search = asymmetric.setup(content_config.org, search_config.asymmetric, regenerate=False)
     user_query = "How to git install application?"
@@ -106,7 +106,7 @@ def test_notes_search(content_config: ContentTypeConfig, search_config: SearchTy
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_notes_search_with_include_filter(content_config: ContentTypeConfig, search_config: SearchTypeConfig):
+def test_notes_search_with_include_filter(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     model.notes_search = asymmetric.setup(content_config.org, search_config.asymmetric, regenerate=False)
     user_query = "How to git install application? +Emacs"
@@ -122,7 +122,7 @@ def test_notes_search_with_include_filter(content_config: ContentTypeConfig, sea
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_notes_search_with_exclude_filter(content_config: ContentTypeConfig, search_config: SearchTypeConfig):
+def test_notes_search_with_exclude_filter(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     model.notes_search = asymmetric.setup(content_config.org, search_config.asymmetric, regenerate=False)
     user_query = "How to git install application? -clone"
