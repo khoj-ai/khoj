@@ -5,14 +5,15 @@ import pytest
 from src.main import model
 from src.search_type import image_search
 from src.utils.helpers import resolve_absolute_path
+from src.utils.rawconfig import ContentTypeConfig, SearchTypeConfig
 
 
 # Test
 # ----------------------------------------------------------------------------------------------------
-def test_image_search_setup(search_config):
+def test_image_search_setup(content_config: ContentTypeConfig, search_config: SearchTypeConfig):
     # Act
     # Regenerate image search embeddings during image setup
-    image_search_model = image_search.setup(search_config.image, regenerate=True)
+    image_search_model = image_search.setup(content_config.image, search_config.image, regenerate=True)
 
     # Assert
     assert len(image_search_model.image_names) == 3
@@ -21,9 +22,9 @@ def test_image_search_setup(search_config):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.skip(reason="results inconsistent currently")
-def test_image_search(search_config):
+def test_image_search(content_config: ContentTypeConfig, search_config: SearchTypeConfig):
     # Arrange
-    model.image_search = image_search.setup(search_config.image, regenerate=False)
+    model.image_search = image_search.setup(content_config.image, search_config.image, regenerate=False)
     query_expected_image_pairs = [("brown kitten next to plant", "kitten_park.jpg"),
                                   ("horse and dog in a farm", "horse_dog.jpg"),
                                   ("A guinea pig eating grass", "guineapig_grass.jpg")]
@@ -38,11 +39,11 @@ def test_image_search(search_config):
         results = image_search.collate_results(
             hits,
             model.image_search.image_names,
-            search_config.image.input_directory,
+            content_config.image.input_directory,
             count=1)
 
         actual_image = results[0]["Entry"]
-        expected_image = resolve_absolute_path(search_config.image.input_directory.joinpath(expected_image_name))
+        expected_image = resolve_absolute_path(content_config.image.input_directory.joinpath(expected_image_name))
 
         # Assert
         assert expected_image == actual_image

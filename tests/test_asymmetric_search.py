@@ -1,14 +1,15 @@
 # Internal Packages
 from src.main import model
 from src.search_type import asymmetric
+from src.utils.rawconfig import ContentTypeConfig, SearchTypeConfig
 
 
 # Test
 # ----------------------------------------------------------------------------------------------------
-def test_asymmetric_setup(search_config):
+def test_asymmetric_setup(content_config: ContentTypeConfig, search_config: SearchTypeConfig):
     # Act
     # Regenerate notes embeddings during asymmetric setup
-    notes_model = asymmetric.setup(search_config.org, regenerate=True)
+    notes_model = asymmetric.setup(content_config.org, search_config.asymmetric, regenerate=True)
 
     # Assert
     assert len(notes_model.entries) == 10
@@ -16,9 +17,9 @@ def test_asymmetric_setup(search_config):
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_asymmetric_search(search_config):
+def test_asymmetric_search(content_config: ContentTypeConfig, search_config: SearchTypeConfig):
     # Arrange
-    model.notes_search = asymmetric.setup(search_config.org, regenerate=False)
+    model.notes_search = asymmetric.setup(content_config.org, search_config.asymmetric, regenerate=False)
     query = "How to git install application?"
 
     # Act
