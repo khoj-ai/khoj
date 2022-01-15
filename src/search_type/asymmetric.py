@@ -15,10 +15,10 @@ from sentence_transformers import SentenceTransformer, CrossEncoder, util
 from src.utils.helpers import get_absolute_path, resolve_absolute_path, load_model
 from src.processor.org_mode.org_to_jsonl import org_to_jsonl
 from src.utils.config import TextSearchModel
-from src.utils.rawconfig import AsymmetricConfig, TextSearchConfig
+from src.utils.rawconfig import AsymmetricSearchConfig, TextContentConfig
 
 
-def initialize_model(search_config: AsymmetricConfig):
+def initialize_model(search_config: AsymmetricSearchConfig):
     "Initialize model for assymetric semantic search. That is, where query smaller than results"
     torch.set_num_threads(4)
 
@@ -162,7 +162,7 @@ def collate_results(hits, entries, count=5):
         in hits[0:count]]
 
 
-def setup(config: TextSearchConfig, search_config: AsymmetricConfig, regenerate: bool, verbose: bool=False) -> TextSearchModel:
+def setup(config: TextContentConfig, search_config: AsymmetricSearchConfig, regenerate: bool, verbose: bool=False) -> TextSearchModel:
     # Initialize Model
     bi_encoder, cross_encoder, top_k = initialize_model(search_config)
 

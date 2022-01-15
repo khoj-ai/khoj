@@ -1,12 +1,12 @@
 # Internal Packages
 from src.main import model
 from src.search_type import asymmetric
-from src.utils.rawconfig import ContentTypeConfig, SearchTypeConfig
+from src.utils.rawconfig import ContentConfig, SearchConfig
 
 
 # Test
 # ----------------------------------------------------------------------------------------------------
-def test_asymmetric_setup(content_config: ContentTypeConfig, search_config: SearchTypeConfig):
+def test_asymmetric_setup(content_config: ContentConfig, search_config: SearchConfig):
     # Act
     # Regenerate notes embeddings during asymmetric setup
     notes_model = asymmetric.setup(content_config.org, search_config.asymmetric, regenerate=True)
@@ -17,7 +17,7 @@ def test_asymmetric_setup(content_config: ContentTypeConfig, search_config: Sear
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_asymmetric_search(content_config: ContentTypeConfig, search_config: SearchTypeConfig):
+def test_asymmetric_search(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     model.notes_search = asymmetric.setup(content_config.org, search_config.asymmetric, regenerate=False)
     query = "How to git install application?"

@@ -13,10 +13,10 @@ import torch
 from src.utils.helpers import resolve_absolute_path, load_model
 import src.utils.exiftool as exiftool
 from src.utils.config import ImageSearchModel
-from src.utils.rawconfig import ImageSearchConfig, ImageSearchTypeConfig
+from src.utils.rawconfig import ImageContentConfig, ImageSearchConfig
 
 
-def initialize_model(search_config: ImageSearchTypeConfig):
+def initialize_model(search_config: ImageSearchConfig):
     # Initialize Model
     torch.set_num_threads(4)
 
@@ -160,7 +160,7 @@ def collate_results(hits, image_names, image_directory, count=5):
         in hits[0:count]]
 
 
-def setup(config: ImageSearchConfig, search_config: ImageSearchTypeConfig, regenerate: bool, verbose: bool=False) -> ImageSearchModel:
+def setup(config: ImageContentConfig, search_config: ImageSearchConfig, regenerate: bool, verbose: bool=False) -> ImageSearchModel:
     # Initialize Model
     encoder = initialize_model(search_config)
 

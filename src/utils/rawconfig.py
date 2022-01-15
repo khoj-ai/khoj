@@ -13,57 +13,52 @@ class ConfigBase(BaseModel):
         alias_generator = to_snake_case_from_dash
         allow_population_by_field_name = True
 
-class SearchConfig(ConfigBase):
-    input_files: Optional[List[str]]
-    input_filter: Optional[str]
-    embeddings_file: Optional[Path]
-
-class TextSearchConfig(ConfigBase):
+class TextContentConfig(ConfigBase):
     compressed_jsonl: Optional[Path]
     input_files: Optional[List[str]]
     input_filter: Optional[str]
     embeddings_file: Optional[Path]
 
-class ImageSearchConfig(ConfigBase):
+class ImageContentConfig(ConfigBase):
     use_xmp_metadata: Optional[str]
     batch_size: Optional[int]
     input_directory: Optional[Path]
     input_filter: Optional[str]
     embeddings_file: Optional[Path]
 
-class ContentTypeConfig(ConfigBase):
-    org: Optional[TextSearchConfig]
-    ledger: Optional[TextSearchConfig]
+class ContentConfig(ConfigBase):
+    org: Optional[TextContentConfig]
+    ledger: Optional[TextContentConfig]
+    image: Optional[ImageContentConfig]
+    music: Optional[TextContentConfig]
+
+class SymmetricSearchConfig(ConfigBase):
+    encoder: Optional[str]
+    cross_encoder: Optional[str]
+    model_directory: Optional[Path]
+
+class AsymmetricSearchConfig(ConfigBase):
+    encoder: Optional[str]
+    cross_encoder: Optional[str]
+    model_directory: Optional[Path]
+
+class ImageSearchConfig(ConfigBase):
+    encoder: Optional[str]
+    model_directory: Optional[Path]
+
+class SearchConfig(ConfigBase):
+    asymmetric: Optional[AsymmetricSearchConfig]
+    symmetric: Optional[SymmetricSearchConfig]
     image: Optional[ImageSearchConfig]
-    music: Optional[TextSearchConfig]
-
-class SymmetricConfig(ConfigBase):
-    encoder: Optional[str]
-    cross_encoder: Optional[str]
-    model_directory: Optional[Path]
-
-class AsymmetricConfig(ConfigBase):
-    encoder: Optional[str]
-    cross_encoder: Optional[str]
-    model_directory: Optional[Path]
-
-class ImageSearchTypeConfig(ConfigBase):
-    encoder: Optional[str]
-    model_directory: Optional[Path]
-
-class SearchTypeConfig(ConfigBase):
-    asymmetric: Optional[AsymmetricConfig]
-    symmetric: Optional[SymmetricConfig]
-    image: Optional[ImageSearchTypeConfig]
 
 class ConversationProcessorConfig(ConfigBase):
     openai_api_key: Optional[str]
     conversation_logfile: Optional[str]
 
-class ProcessorConfigModel(ConfigBase):
+class ProcessorConfig(ConfigBase):
     conversation: Optional[ConversationProcessorConfig]
 
 class FullConfig(ConfigBase):
-    content_type: Optional[ContentTypeConfig]
-    search_type: Optional[SearchTypeConfig]
-    processor: Optional[ProcessorConfigModel]
+    content_type: Optional[ContentConfig]
+    search_type: Optional[SearchConfig]
+    processor: Optional[ProcessorConfig]
