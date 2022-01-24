@@ -3,15 +3,30 @@ services:
   server:
     build:
       context: .
+      dockerfile: Dockerfile
       args:
         - PORT=8000
     ports:
+      # If changing the local port (left hand side), no other changes required.
+      # If changing the remote port (right hand side), 
+      #   change the port in the args in the build section, 
+      #   as well as the port in the command section to match
       - "8000:8000"
+    working_dir: /app
     volumes:
-      - .:/code
-      - /home/saba/notes/:/data/notes/
-      - /home/saba/embeddings/:/data/generated/
-      - /home/saba/images/:/data/images/
-      - /home/saba/ledger/:/data/ledger/
-      - /home/saba/music/:/data/music/
+      - .:/app
+      # These mounted volumes hold the raw data that should be indexed for search. 
+      # The path in your local directory (left hand side)
+      #   points to the files you want to index.
+      # The path of the mounted directory (right hand side),
+      #   must match the path prefix in your config file.
+      - /path/to/notes/:/data/notes/
+      - /path/to/photos/:/data/images/
+      - /path/to/ledger/:/data/ledger/
+      - /path/to/music/:/data/music/
+      # It's ok if you don't have existing embeddings. 
+      # Leave the line as is - an empty volume will be created if it doesn't exist.
+      - /path/to/embeddings/:/data/generated/
+
+    # Use 0.0.0.0 to explicitly set the host ip for the service on the container. https://pythonspeed.com/articles/docker-connection-refused/
     command: --host="0.0.0.0" --port=8000 -c=docker_sample_config.yml
