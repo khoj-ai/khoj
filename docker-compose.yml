@@ -1,0 +1,17 @@
+version: "3.9"
+services:
+  web:
+    build:
+      context: .
+      args:
+        - PORT=8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/code
+      - /home/saba/notes/:/data/notes/
+      - /home/saba/embeddings/:/data/generated/
+      - /home/saba/images/:/data/images/
+      - /home/saba/ledger/:/data/ledger/
+      - /home/saba/music/:/data/music/
+    command: --host="0.0.0.0" --port=8000 -c=docker_sample_config.yml
