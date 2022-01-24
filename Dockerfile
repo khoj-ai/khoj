@@ -1,29 +1,34 @@
 # syntax=docker/dockerfile:1
-FROM ubuntu:18.04
+FROM ubuntu:18.04 AS os-dependencies
 
-# Install system dependencies and Python packages
+# Install system dependencies.
 RUN apt-get update -y && \
     apt-get -y install libimage-exiftool-perl
 
 FROM continuumio/miniconda3:4.10.3p0-alpine
 
-COPY . .
+# From the previous image, copy exiftool into this image.
+COPY --from=os-dependencies /usr/bin/exiftool /usr/bin/exiftool
 
-# Get the arguments from the docker-compose environment
+# Add the local code to the /app directory and set it to be the working directory.
+# Since we mount the /app directory as a volume in docker-compose.yml, this
+# allows us to automatically update the code in the Docker image when it's changed.
+ADD . /app
+WORKDIR /app
+
+# Get the arguments from the docker-compose environment.
 ARG PORT
 EXPOSE ${PORT}
 
-# This allows us to use the arguments during runtime
+# Create the conda environment.
 RUN conda env create -f environment.yml
 
 # Use the conda environment we created to run the application.
-# The docker execution process run conda activate semantic-search, since the lifetime of the environment would only be for the single command.
-# Instead, we'll use the conda run to run the application.
-# Use 0.0.0.0 to explicitly set the host ip for the service on the container. https://pythonspeed.com/articles/docker-connection-refused/
-# Use sh -c to start a shell in order to use environment variables in CMD.
+# To enable the conda env, we cannot simply RUN `conda activate semantic-search`, 
+# since each RUN command in a Dockerfile is a separate bash shell. 
+# The environment would not carry forward.
+# Instead, we'll use `conda run` to run the application.
+# There are more arguments required for the script to run, 
+# but these should be passed in through the docker-compose.yml file.
 ENTRYPOINT ["conda", "run", "--no-capture-output", "--name", "semantic-search", \
     "python3", "-m", "src.main"]
-
-    # "python3", "-m", "src.main", "-c=${CONFIG_FILE}", "-vv" ,"--host=${HOST}, "--port=${PORT}"]
-
-# CMD ["sh", "-c", "echo ${CONFIG_FILE}", "echo ${HOST}", "echo ${PORT}"]
