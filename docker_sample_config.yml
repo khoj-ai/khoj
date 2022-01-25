@@ -18,7 +18,7 @@ content-type:
     input-directory: "/data/images/"
     embeddings-file: "/data/generated/.image_embeddings.pt"
     batch-size: 50
-    use-xmp-metadata: "no"
+    use-xmp-metadata: true
 
   music:
     input-files: null

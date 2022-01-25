@@ -15,7 +15,7 @@ content-type:
     input-directory: "tests/data"
     embeddings-file: "tests/data/.image_embeddings.pt"
     batch-size: 50
-    use-xmp-metadata: "no"
+    use-xmp-metadata: false
 
   music:
     input-files: ["tests/data/music.org"]
