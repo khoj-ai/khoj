@@ -1,14 +1,9 @@
 # syntax=docker/dockerfile:1
-FROM ubuntu:18.04 AS os-dependencies
+FROM continuumio/miniconda3:latest
 
 # Install system dependencies.
 RUN apt-get update -y && \
     apt-get -y install libimage-exiftool-perl
-
-FROM continuumio/miniconda3:4.10.3p0-alpine
-
-# From the previous image, copy exiftool into this image.
-COPY --from=os-dependencies /usr/bin/exiftool /usr/bin/exiftool
 
 # Add the local code to the /app directory and set it to be the working directory.
 # Since we mount the /app directory as a volume in docker-compose.yml, this
