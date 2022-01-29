@@ -1,7 +1,8 @@
 __pycache__
 .DS_Store
 .emacs.desktop*
-tests/data/.*
+tests/data/models
+tests/data/embeddings
 src/.data
 .vscode
 *.gz

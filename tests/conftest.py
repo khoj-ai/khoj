@@ -39,8 +39,8 @@ def model_dir(search_config):
     # Generate Image Embeddings from Test Images
     content_config = ContentConfig()
     content_config.image = ImageContentConfig(
-        input_directory = 'tests/data',
-        embeddings_file = model_dir.joinpath('.image_embeddings.pt'),
+        input_directory = 'tests/data/images',
+        embeddings_file = model_dir.joinpath('image_embeddings.pt'),
         batch_size = 10,
         use_xmp_metadata = False)
 
@@ -48,10 +48,10 @@ def model_dir(search_config):
 
     # Generate Notes Embeddings from Test Notes
     content_config.org = TextContentConfig(
-        input_files = ['tests/data/main_readme.org', 'tests/data/interface_emacs_readme.org'],
-        input_filter = None,
-        compressed_jsonl = model_dir.joinpath('.notes.jsonl.gz'),
-        embeddings_file = model_dir.joinpath('.note_embeddings.pt'))
+        input_files = None,
+        input_filter = 'tests/data/notes/*.org',
+        compressed_jsonl = model_dir.joinpath('notes.jsonl.gz'),
+        embeddings_file = model_dir.joinpath('note_embeddings.pt'))
 
     asymmetric.setup(content_config.org, search_config.asymmetric, regenerate=False, verbose=True)
 
@@ -62,14 +62,14 @@ def model_dir(search_config):
 def content_config(model_dir):
     content_config = ContentConfig()
     content_config.org = TextContentConfig(
-        input_files = ['tests/data/main_readme.org', 'tests/data/interface_emacs_readme.org'],
-        input_filter = None,
-        compressed_jsonl = model_dir.joinpath('.notes.jsonl.gz'),
-        embeddings_file = model_dir.joinpath('.note_embeddings.pt'))
+        input_files = None,
+        input_filter = 'tests/data/notes/*.org',
+        compressed_jsonl = model_dir.joinpath('notes.jsonl.gz'),
+        embeddings_file = model_dir.joinpath('note_embeddings.pt'))
 
     content_config.image = ImageContentConfig(
-        input_directory = 'tests/data',
-        embeddings_file = model_dir.joinpath('.image_embeddings.pt'),
+        input_directory = 'tests/data/images',
+        embeddings_file = model_dir.joinpath('image_embeddings.pt'),
         batch_size = 10,
         use_xmp_metadata = False)
 
