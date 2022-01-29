@@ -3,7 +3,7 @@ services:
   server:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: config/Dockerfile
       args:
         - PORT=8000
     ports:
@@ -30,4 +30,4 @@ services:
       - ./tests/data/models/:/data/models/
 
     # Use 0.0.0.0 to explicitly set the host ip for the service on the container. https://pythonspeed.com/articles/docker-connection-refused/
-    command: --host="0.0.0.0" --port=8000 -c=sample_config.yml -vv
+    command: --host="0.0.0.0" --port=8000 -c=config/sample_config.yml -vv
