@@ -33,7 +33,7 @@ jobs:
           miniforge-version: latest
           activate-environment: test
           use-mamba: true
-          environment-file: environment.yml
+          environment-file: config/environment.yml
           python-version: 3.8
           auto-activate-base: false
           use-only-tar-bz2: true
@@ -44,14 +44,14 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: ${{ matrix.prefix }}
-          key: ${{ matrix.label }}-conda-${{ hashFiles('environment.yml') }}-${{ env.DATE }}-${{ env.CACHE_NUMBER }}
+          key: ${{ matrix.label }}-conda-${{ hashFiles('config/environment.yml') }}-${{ env.DATE }}-${{ env.CACHE_NUMBER }}
         env:
           # Increase this value to reset cache if environment.yml has not changed
           CACHE_NUMBER: 0
         id: cache
 
       - name: Update environment
-        run: mamba env update -n test -f environment.yml
+        run: mamba env update -n test -f config/environment.yml
         if: steps.cache.outputs.cache-hit != 'true'
 
       - name: Run Pytest
