@@ -3,7 +3,7 @@
 * Semantic Search
   /Allow natural language search on user content like notes, images, transactions using transformer based models/
 
-  All data is processed locally. User can interface with semantic-search app via [[./src/interface/emacs/semantic-search.el][Emacs]], API or Commandline
+  All search is done locally. User can interface with semantic-search app via [[./src/interface/emacs/semantic-search.el][Emacs]], API or Commandline
 
 ** Setup
 
@@ -88,6 +88,11 @@
       conda env update -f environment.yml
       conda activate semantic-search
     #+end_src
+
+** Miscellaneous
+   - The experimental /chat API endpoint uses the [[https://openai.com/api/][OpenAI API]]
+     - It is disabled by default
+     - To use it add your ~openai-api-key~ to config.yml
 
 ** Acknowledgments
    - [[https://huggingface.co/sentence-transformers/msmarco-MiniLM-L-6-v3][MiniLM Model]] for Asymmetric Text Search. See [[https://www.sbert.net/examples/applications/retrieve_rerank/README.html][SBert Documentation]]
