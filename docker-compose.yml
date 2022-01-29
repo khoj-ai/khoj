@@ -26,7 +26,7 @@ services:
       - ./tests/data/:/data/music/
       # It's ok if you don't have existing embeddings. 
       # You can set this volume to point to an empty folder.
-      - ./tests/data/:/data/generated/
+      - ./tests/data/embeddings/:/data/generated/
 
     # Use 0.0.0.0 to explicitly set the host ip for the service on the container. https://pythonspeed.com/articles/docker-connection-refused/
     command: --host="0.0.0.0" --port=8000 -c=docker_sample_config.yml -vv
