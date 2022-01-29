@@ -5,7 +5,7 @@ content-type:
   org:
     input-files: null
     input-filter: "/data/notes/*.org"
-    compressed-jsonl: "/data/embeddings/notes.json.gz"
+    compressed-jsonl: "/data/embeddings/notes.jsonl.gz"
     embeddings-file: "/data/embeddings/note_embeddings.pt"
 
   ledger:
