@@ -1,44 +1,47 @@
 content-type:
+  # The /data/folder/ prefix to the folders is here because this is
+  # the directory to which the local files are copied in the docker-compose.
+  # If changing, the docker-compose volumes should also be changed to match.
   org:
-    input-files: ["tests/data/main_readme.org", "tests/data/interface_emacs_readme.org"]
-    input-filter: null
-    compressed-jsonl: "tests/data/.notes.json.gz"
-    embeddings-file: "tests/data/.note_embeddings.pt"
+    input-files: null
+    input-filter: "/data/notes/*.org"
+    compressed-jsonl: "/data/generated/notes.json.gz"
+    embeddings-file: "/data/generated/note_embeddings.pt"
 
   ledger:
     input-files: null
-    input-filter: tests/data/*.beancount
-    compressed-jsonl: tests/data/.transactions.jsonl.gz
-    embeddings-file: tests/data/.transaction_embeddings.pt
+    input-filter: /data/ledger/*.beancount
+    compressed-jsonl: /data/generated/transactions.jsonl.gz
+    embeddings-file: /data/generated/transaction_embeddings.pt
 
   image:
-    input-directory: "tests/data"
-    embeddings-file: "tests/data/.image_embeddings.pt"
+    input-directory: "/data/images/"
+    embeddings-file: "/data/generated/image_embeddings.pt"
     batch-size: 50
-    use-xmp-metadata: false
+    use-xmp-metadata: true
 
   music:
-    input-files: ["tests/data/music.org"]
+    input-files: ["/data/music/music.org"]
     input-filter: null
-    compressed-jsonl: "tests/data/.songs.jsonl.gz"
-    embeddings-file: "tests/data/.song_embeddings.pt"
+    compressed-jsonl: "/data/generated/songs.jsonl.gz"
+    embeddings-file: "/data/generated/song_embeddings.pt"
 
 search-type:
   symmetric:
     encoder: "sentence-transformers/paraphrase-MiniLM-L6-v2"
     cross-encoder: "cross-encoder/ms-marco-MiniLM-L-6-v2"
-    model_directory: "tests/data/.symmetric"
+    model_directory: "/data/models/symmetric"
 
   asymmetric:
     encoder: "sentence-transformers/msmarco-MiniLM-L-6-v3"
     cross-encoder: "cross-encoder/ms-marco-MiniLM-L-6-v2"
-    model_directory: "tests/data/.asymmetric"
+    model_directory: "/data/models/asymmetric"
 
   image:
     encoder: "clip-ViT-B-32"
-    model_directory: "tests/data/.image_encoder"
+    model_directory: "/data/models/image_encoder"
 
 processor:
   conversation:
     openai-api-key: null
-    conversation-logfile: "tests/data/.conversation_logs.json"
+    conversation-logfile: "/data/generated/conversation_logs.json"

@@ -20,13 +20,14 @@ services:
       #   points to the files you want to index.
       # The path of the mounted directory (right hand side),
       #   must match the path prefix in your config file.
-      - ./tests/data/:/data/notes/
-      - ./tests/data/:/data/images/
-      - ./tests/data/:/data/ledger/
-      - ./tests/data/:/data/music/
-      # It's ok if you don't have existing embeddings. 
-      # You can set this volume to point to an empty folder.
+      - ./tests/data/notes/:/data/notes/
+      - ./tests/data/images/:/data/images/
+      - ./tests/data/ledger/:/data/ledger/
+      - ./tests/data/music/:/data/music/
+      # Embeddings and models are populated after the first run
+      # You can set these volumes to point to empty directories on host
       - ./tests/data/embeddings/:/data/generated/
+      - ./tests/data/models/:/data/models/
 
     # Use 0.0.0.0 to explicitly set the host ip for the service on the container. https://pythonspeed.com/articles/docker-connection-refused/
-    command: --host="0.0.0.0" --port=8000 -c=docker_sample_config.yml -vv
+    command: --host="0.0.0.0" --port=8000 -c=sample_config.yml -vv
