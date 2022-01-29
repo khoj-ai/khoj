@@ -1,4 +1,4 @@
-[[https://github.com/debanjum/semantic-search/actions/workflows/test.yml/badge.svg]]
+[[https://github.com/debanjum/semantic-search/actions/workflows/test.yml/badge.svg]] [[https://github.com/debanjum/semantic-search/actions/workflows/build.yml/badge.svg]]
 
 * Semantic Search
   /Allow natural language search on user content like notes, images, transactions using transformer based models/

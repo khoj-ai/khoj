@@ -1,4 +1,4 @@
-name: Publish Container
+name: build
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  publish:
+  build:
     name: Build Docker Image, Push to Container Registry
     runs-on: ubuntu-latest
     steps:
