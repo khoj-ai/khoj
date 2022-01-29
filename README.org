@@ -5,32 +5,52 @@
 
   All data is processed locally. User can interface with semantic-search app via [[./src/interface/emacs/semantic-search.el][Emacs]], API or Commandline
 
-** Dependencies
-   - Python3
-   - [[https://docs.conda.io/en/latest/miniconda.html#latest-miniconda-installer-links][Miniconda]]
+** Setup
 
-** Install
-   #+begin_src shell
-   git clone https://github.com/debanjum/semantic-search && cd semantic-search
-   conda env create -f environment.yml
-   conda activate semantic-search
-   #+end_src
+*** Setup using Docker
 
-*** Install Environmental Dependencies
-   #+begin_src shell
-   sudo apt-get -y install libimage-exiftool-perl
-   #+end_src
+**** 1. Clone Repository
+     #+begin_src shell
+       git clone https://github.com/debanjum/semantic-search && cd semantic-search
+     #+end_src
 
-** Configure
-   Configure application search types and their underlying data source/files in ~sample_config.yml~
-   Use the ~sample_config.yml~ as reference
+**** 2. Configure
+     Add Content Directories for Semantic Search to Docker-Compose
+     Update [[./docker-compose.yml][docker-compose.yml]] to mount your images, org-mode notes, ledger/beancount directories
+     If required, edit config settings in [[./docker_sample_config.yml][docker_sample_config.yml]].
 
-** Run
-   Load ML model, generate embeddings and expose API to query notes, images, transactions etc specified in config YAML
+**** 3. Run
+     #+begin_src shell
+     docker-compose up -d
+     #+end_src
 
-   #+begin_src shell
-   python3 -m src.main -c=sample_config.yml -vv
-   #+end_src
+*** Setup on Local Machine
+
+**** 1. Install Dependencies
+     1. Install Python3 [Required[
+     2. [[https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html][Install Conda]] [Required]
+     3. Install Exiftool [Optional]
+        #+begin_src shell
+        sudo apt-get -y install libimage-exiftool-perl
+        #+end_src
+
+**** 2. Install Semantic Search
+       #+begin_src shell
+       git clone https://github.com/debanjum/semantic-search && cd semantic-search
+       conda env create -f environment.yml
+       conda activate semantic-search
+       #+end_src
+
+**** 3. Configure
+     Configure application search types and their underlying data source/files in ~sample_config.yml~
+     Use the ~sample_config.yml~ as reference
+
+**** 4. Run
+     Load ML model, generate embeddings and expose API to query notes, images, transactions etc specified in config YAML
+
+     #+begin_src shell
+     python3 -m src.main -c=sample_config.yml -vv
+     #+end_src
 
 ** Use
    - *Semantic Search via Emacs*
@@ -39,16 +59,26 @@
 
    - *Semantic Search via API*
      - Query: ~GET~ [[http://localhost:8000/search?q=%22what%20is%20the%20meaning%20of%20life%22][http://localhost:8000/search?q="What is the meaning of life"&t=notes]]
-     - Regenerate Embeddings: ~GET~ [[http://localhost:8000/regenerate][http://localhost:8000/regenerate?t=image]]
+     - Regenerate Embeddings: ~GET~ [[http://localhost:8000/regenerate][http://localhost:8000/regenerate]]
      - [[http://localhost:8000/docs][Semantic Search API Docs]]
 
+   - *UI to Edit Config*
+     - [[https://localhost:8000/ui][Config UI]]
+
 ** Upgrade
-   #+begin_src shell
-     cd semantic-search
-     git pull origin master
-     conda env update -f environment.yml
-     conda activate semantic-search
-   #+end_src
+
+*** Using Docker
+    #+begin_src shell
+      docker-compose up
+    #+end_src
+
+*** On Local Machine
+    #+begin_src shell
+      cd semantic-search
+      git pull origin master
+      conda env update -f environment.yml
+      conda activate semantic-search
+    #+end_src
 
 ** Acknowledgments
    - [[https://huggingface.co/sentence-transformers/msmarco-MiniLM-L-6-v3][MiniLM Model]] for Asymmetric Text Search. See [[https://www.sbert.net/examples/applications/retrieve_rerank/README.html][SBert Documentation]]
