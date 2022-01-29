@@ -5,26 +5,26 @@ content-type:
   org:
     input-files: null
     input-filter: "/data/notes/*.org"
-    compressed-jsonl: "/data/generated/notes.json.gz"
-    embeddings-file: "/data/generated/note_embeddings.pt"
+    compressed-jsonl: "/data/embeddings/notes.json.gz"
+    embeddings-file: "/data/embeddings/note_embeddings.pt"
 
   ledger:
     input-files: null
     input-filter: /data/ledger/*.beancount
-    compressed-jsonl: /data/generated/transactions.jsonl.gz
-    embeddings-file: /data/generated/transaction_embeddings.pt
+    compressed-jsonl: /data/embeddings/transactions.jsonl.gz
+    embeddings-file: /data/embeddings/transaction_embeddings.pt
 
   image:
     input-directory: "/data/images/"
-    embeddings-file: "/data/generated/image_embeddings.pt"
+    embeddings-file: "/data/embeddings/image_embeddings.pt"
     batch-size: 50
     use-xmp-metadata: true
 
   music:
     input-files: ["/data/music/music.org"]
     input-filter: null
-    compressed-jsonl: "/data/generated/songs.jsonl.gz"
-    embeddings-file: "/data/generated/song_embeddings.pt"
+    compressed-jsonl: "/data/embeddings/songs.jsonl.gz"
+    embeddings-file: "/data/embeddings/song_embeddings.pt"
 
 search-type:
   symmetric:
@@ -44,4 +44,4 @@ search-type:
 processor:
   conversation:
     openai-api-key: null
-    conversation-logfile: "/data/generated/conversation_logs.json"
+    conversation-logfile: "/data/embeddings/conversation_logs.json"

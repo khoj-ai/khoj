@@ -26,7 +26,7 @@ services:
       - ./tests/data/music/:/data/music/
       # Embeddings and models are populated after the first run
       # You can set these volumes to point to empty directories on host
-      - ./tests/data/embeddings/:/data/generated/
+      - ./tests/data/embeddings/:/data/embeddings/
       - ./tests/data/models/:/data/models/
 
     # Use 0.0.0.0 to explicitly set the host ip for the service on the container. https://pythonspeed.com/articles/docker-connection-refused/
