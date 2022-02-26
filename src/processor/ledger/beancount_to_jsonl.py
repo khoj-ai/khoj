@@ -6,6 +6,7 @@ import argparse
 import pathlib
 import glob
 import gzip
+import re
 
 # Internal Packages
 from src.processor.org_mode import orgnode
@@ -110,11 +111,19 @@ def get_beancount_files(beancount_files=None, beancount_file_filter=None, verbos
 
 def extract_beancount_entries(beancount_files):
     "Extract entries from specified Beancount files"
+
+    # Initialize Regex for extracting Beancount Entries
+    date_regex = r'^\n?\d{4}-\d{2}-\d{2}'
+    empty_newline = r'^[\n\r\t ]*$'
+
     entries = []
     for beancount_file in beancount_files:
         with open(beancount_file) as f:
-            entries.extend(
-                f.read().split('\n\n'))
+            ledger_content = f.read()
+            entries.extend([entry.strip('\n|\r|\t| ')
+               for entry
+               in re.split(empty_newline, ledger_content, flags=re.MULTILINE)
+               if re.match(date_regex, entry)])
 
     return entries
 
