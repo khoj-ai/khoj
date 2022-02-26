@@ -11,7 +11,7 @@ from sentence_transformers import SentenceTransformer, CrossEncoder, util
 
 # Internal Packages
 from src.utils.helpers import get_absolute_path, resolve_absolute_path, load_model
-from src.processor.ledger.beancount_to_jsonl import beancount_to_jsonl
+from src.processor.ledger.beancount_to_jsonl import beancount_to_jsonl, load_jsonl
 from src.utils.config import TextSearchModel
 from src.utils.rawconfig import SymmetricSearchConfig, TextContentConfig
 
@@ -40,18 +40,9 @@ def initialize_model(search_config: SymmetricSearchConfig):
 
 def extract_entries(notesfile, verbose=0):
     "Load entries from compressed jsonl"
-    entries = []
-    with gzip.open(get_absolute_path(notesfile), 'rt', encoding='utf8') as jsonl:
-        for line in jsonl:
-            note = json.loads(line.strip())
-
-            note_string = f'{note["Title"]} \t {note["Tags"] if "Tags" in note else ""} \n {note["Body"] if "Body" in note else ""}'
-            entries.extend([note_string])
-
-    if verbose > 0:
-        print(f"Loaded {len(entries)} entries from {notesfile}")
-
-    return entries
+    return [f'{entry["Title"]}'
+            for entry
+            in load_jsonl(notesfile, verbose=verbose)]
 
 
 def compute_embeddings(entries, bi_encoder, embeddings_file, regenerate=False, verbose=0):

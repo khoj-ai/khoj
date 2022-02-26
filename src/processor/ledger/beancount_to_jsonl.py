@@ -6,6 +6,7 @@ import argparse
 import pathlib
 import glob
 import gzip
+import re
 
 # Internal Packages
 from src.processor.org_mode import orgnode
@@ -43,7 +44,8 @@ def dump_jsonl(jsonl_data, output_path, verbose=0):
         f.write(jsonl_data)
 
     if verbose > 0:
-        print(f'Wrote {len(jsonl_data)} lines to jsonl at {output_path}')
+        jsonl_entries = len(jsonl_data.split('\n'))
+        print(f'Wrote {jsonl_entries} lines to jsonl at {output_path}')
 
 
 def compress_jsonl_data(jsonl_data, output_path, verbose=0):
@@ -51,16 +53,31 @@ def compress_jsonl_data(jsonl_data, output_path, verbose=0):
         gzip_file.write(jsonl_data)
 
     if verbose > 0:
-        print(f'Wrote {len(jsonl_data)} lines to gzip compressed jsonl at {output_path}')
+        jsonl_entries = len(jsonl_data.split('\n'))
+        print(f'Wrote {jsonl_entries} lines to gzip compressed jsonl at {output_path}')
 
 
 def load_jsonl(input_path, verbose=0):
     "Read List of JSON objects from JSON line file"
+    # Initialize Variables
     data = []
-    with open(get_absolute_path(input_path), 'r', encoding='utf-8') as f:
-        for line in f:
-            data.append(json.loads(line.rstrip('\n|\r')))
+    jsonl_file = None
+    escape_sequences = '\n|\r\t '
 
+    # Open JSONL file
+    if input_path.suffix == ".gz":
+        jsonl_file = gzip.open(get_absolute_path(input_path), 'rt', encoding='utf-8')
+    elif input_path.suffix == ".jsonl":
+        jsonl_file = open(get_absolute_path(input_path), 'r', encoding='utf-8')
+
+    # Read JSONL file
+    for line in jsonl_file:
+        data.append(json.loads(line.strip(escape_sequences)))
+
+    # Close JSONL file
+    jsonl_file.close()
+
+    # Log JSONL entries loaded
     if verbose > 0:
         print(f'Loaded {len(data)} records from {input_path}')
 
@@ -79,7 +96,10 @@ def get_beancount_files(beancount_files=None, beancount_file_filter=None, verbos
 
     all_beancount_files = absolute_beancount_files | filtered_beancount_files
 
-    files_with_non_beancount_extensions = {beancount_file for beancount_file in all_beancount_files if not beancount_file.endswith(".bean")}
+    files_with_non_beancount_extensions = {beancount_file
+                                    for beancount_file
+                                    in all_beancount_files
+                                    if not beancount_file.endswith(".bean") and not beancount_file.endswith(".beancount")}
     if any(files_with_non_beancount_extensions):
         print(f"[Warning] There maybe non beancount files in the input set: {files_with_non_beancount_extensions}")
 
@@ -91,11 +111,19 @@ def get_beancount_files(beancount_files=None, beancount_file_filter=None, verbos
 
 def extract_beancount_entries(beancount_files):
     "Extract entries from specified Beancount files"
+
+    # Initialize Regex for extracting Beancount Entries
+    date_regex = r'^\n?\d{4}-\d{2}-\d{2}'
+    empty_newline = r'^[\n\r\t ]*$'
+
     entries = []
     for beancount_file in beancount_files:
         with open(beancount_file) as f:
-            entries.extend(
-                f.read().split('\n\n'))
+            ledger_content = f.read()
+            entries.extend([entry.strip('\n|\r|\t| ')
+               for entry
+               in re.split(empty_newline, ledger_content, flags=re.MULTILINE)
+               if re.match(date_regex, entry)])
 
     return entries
 
