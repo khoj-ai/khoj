@@ -103,7 +103,7 @@
   (let* ((default-type (semantic-search--buffer-name-to-search-type (buffer-name)))
          (search-type (completing-read "Type: " '("notes" "ledger" "music" "image") nil t default-type))
          (url (semantic-search--construct-api-query query search-type))
-         (buff (get-buffer-create "*semantic-search*")))
+         (buff (get-buffer-create (format "*Semantic Search (q:%s t:%s)*" query search-type))))
     ;; get json response from api
     (with-current-buffer buff
       (let ((inhibit-read-only t))
