@@ -69,16 +69,20 @@
             (lambda (args) (format "\n** \n  [[%s]]" (cdr (assoc 'Entry args))))
             json-response))))
 
-(defun semantic-search--extract-entries-as-ledger (json-response)
+(defun semantic-search--extract-entries-as-ledger (json-response query)
   "Convert json response from API to ledger entries"
   ;; remove leading (, ) or SPC from extracted entries string
   (replace-regexp-in-string
-   "^[\(\) ]" ""
-   ;; extract entries from response as single string and convert to entries
-   (format "%s"
-           (mapcar
-            (lambda (args) (format "* %s" (cdr (assoc 'Entry args))))
-            json-response))))
+   "[\(\) ]$" ""
+   (replace-regexp-in-string
+    "^[\(\) ]" ""
+    ;; extract entries from response as single string and convert to entries
+    (format ";; %s\n\n%s\n"
+            query
+            (mapcar
+             (lambda (args)
+               (format "%s\n\n" (cdr (assoc 'Entry args))))
+             json-response)))))
 
 (defun semantic-search--buffer-name-to-search-type (buffer-name)
   (let ((file-extension (file-name-extension buffer-name)))
@@ -112,10 +116,11 @@
         (erase-buffer)
         (insert
          (cond ((or (equal search-type "notes") (equal search-type "music")) (semantic-search--extract-entries-as-org json-response query))
-               ((equal search-type "ledger") (semantic-search--extract-entries-as-ledger json-response))
+               ((equal search-type "ledger") (semantic-search--extract-entries-as-ledger json-response query))
                ((equal search-type "image") (semantic-search--extract-entries-as-images json-response query))
                (t (format "%s" json-response)))))
       (cond ((equal search-type "notes") (org-mode))
+            ((equal search-type "ledger") (beancount-mode))
             ((equal search-type "music") (progn (org-mode)
                                                 (org-music-mode)))
             ((equal search-type "image") (progn (org-mode)
