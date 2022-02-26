@@ -58,11 +58,25 @@ def compress_jsonl_data(jsonl_data, output_path, verbose=0):
 
 def load_jsonl(input_path, verbose=0):
     "Read List of JSON objects from JSON line file"
+    # Initialize Variables
     data = []
-    with open(get_absolute_path(input_path), 'r', encoding='utf-8') as f:
-        for line in f:
-            data.append(json.loads(line.rstrip('\n|\r')))
+    jsonl_file = None
+    escape_sequences = '\n|\r\t '
 
+    # Open JSONL file
+    if input_path.suffix == ".gz":
+        jsonl_file = gzip.open(get_absolute_path(input_path), 'rt', encoding='utf-8')
+    elif input_path.suffix == ".jsonl":
+        jsonl_file = open(get_absolute_path(input_path), 'r', encoding='utf-8')
+
+    # Read JSONL file
+    for line in jsonl_file:
+        data.append(json.loads(line.strip(escape_sequences)))
+
+    # Close JSONL file
+    jsonl_file.close()
+
+    # Log JSONL entries loaded
     if verbose > 0:
         print(f'Loaded {len(data)} records from {input_path}')
 
