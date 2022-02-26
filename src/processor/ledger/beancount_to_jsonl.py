@@ -43,7 +43,8 @@ def dump_jsonl(jsonl_data, output_path, verbose=0):
         f.write(jsonl_data)
 
     if verbose > 0:
-        print(f'Wrote {len(jsonl_data)} lines to jsonl at {output_path}')
+        jsonl_entries = len(jsonl_data.split('\n'))
+        print(f'Wrote {jsonl_entries} lines to jsonl at {output_path}')
 
 
 def compress_jsonl_data(jsonl_data, output_path, verbose=0):
@@ -51,7 +52,8 @@ def compress_jsonl_data(jsonl_data, output_path, verbose=0):
         gzip_file.write(jsonl_data)
 
     if verbose > 0:
-        print(f'Wrote {len(jsonl_data)} lines to gzip compressed jsonl at {output_path}')
+        jsonl_entries = len(jsonl_data.split('\n'))
+        print(f'Wrote {jsonl_entries} lines to gzip compressed jsonl at {output_path}')
 
 
 def load_jsonl(input_path, verbose=0):
