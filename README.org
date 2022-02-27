@@ -3,39 +3,59 @@
 * Semantic Search
   /Allow natural language search on user content like notes, images, transactions using transformer based models/
 
-  All search is done locally. User can interface with semantic-search app via [[./src/interface/emacs/semantic-search.el][Emacs]], API or Commandline
+  User can interface with semantic-search via the API or [[./src/interface/emacs/semantic-search.el][Emacs]]. All search is done locally[[https://github.com/debanjum/semantic-search#miscellaneous][*]]
 
 ** Setup
 
-*** Setup using Docker
+*** 1. Clone
+    #+begin_src shell
+      git clone https://github.com/debanjum/semantic-search && cd semantic-search
+    #+end_src
 
-**** 1. Clone Repository
-     #+begin_src shell
-       git clone https://github.com/debanjum/semantic-search && cd semantic-search
-     #+end_src
+*** 2. Configure
+    - [Required] Update [[./docker-compose.yml][docker-compose.yml]] to mount your images, org-mode notes and beancount directories
+    - [Optional] Edit application configuration in [[./config/sample_config.yml][sample_config.yml]]
 
-**** 2. Configure
-     - Add Content Directories for Semantic Search to Docker-Compose
-     - Update [[./docker-compose.yml][docker-compose.yml]] to mount your images, org-mode notes, ledger/beancount directories
-     - If required, edit config settings in [[./docker_sample_config.yml][docker_sample_config.yml]].
+*** 3. Run
+    #+begin_src shell
+    docker-compose up -d
+    #+end_src
 
-**** 3. Run
-     #+begin_src shell
-     docker-compose up -d
-     #+end_src
+    /Note: The first run will take time. Let it run, it's mostly not hung, just generating embeddings/
 
-***** Troubleshooting
-      - The first run will take time. Let it run, it's mostly not hung
-      - Symptom: Errors out with "Killed" in error message
-        - Fix: Increase RAM available to Docker Containers in Docker Settings
-        - Refer: [[https://stackoverflow.com/a/50770267][StackOverflow Solution]], [[https://docs.docker.com/desktop/mac/#resources][Configure Resources on Docker for Mac]]
-      - Symptom: Errors out complaining about Tensors mismatch, null etc
-        - Mitigation: Delete content-type > image section from docker_sample_config.yml
+** Use
+   - *Semantic Search via API*
+     - See [[http://localhost:8000/docs][Semantic Search API Docs]]
+     - [[http://localhost:8000/search?q=%22what%20is%20the%20meaning%20of%20life%22][Query]]
+     - [[http://localhost:8000/regenerate?t=ledger][Regenerate Embeddings]]
+     - [[https://localhost:8000/ui][Configure Application]]
 
+   - *Semantic Search via Emacs*
+     - [[https://github.com/debanjum/semantic-search/tree/master/src/interface/emacs#installation][Install]] [[./src/interface/emacs/semantic-search.el][semantic-search.el]]
+     - Run ~M-x semantic-search <user-query>~
+
+** Upgrade
+   #+begin_src shell
+     docker-compose build
+   #+end_src
+
+** Troubleshooting
+   - Symptom: Errors out with "Killed" in error message
+     - Fix: Increase RAM available to Docker Containers in Docker Settings
+     - Refer: [[https://stackoverflow.com/a/50770267][StackOverflow Solution]], [[https://docs.docker.com/desktop/mac/#resources][Configure Resources on Docker for Mac]]
+   - Symptom: Errors out complaining about Tensors mismatch, null etc
+     - Mitigation: Delete content-type > image section from docker_sample_config.yml
+
+** Miscellaneous
+   - The experimental [[localhost:8000/chat][chat]] API endpoint uses the [[https://openai.com/api/][OpenAI API]]
+     - It is disabled by default
+     - To use it add your ~openai-api-key~ to config.yml
+
+** Development Setup
 *** Setup on Local Machine
 
 **** 1. Install Dependencies
-     1. Install Python3 [Required[
+     1. Install Python3 [Required]
      2. [[https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html][Install Conda]] [Required]
      3. Install Exiftool [Optional]
         #+begin_src shell
@@ -61,27 +81,7 @@
      python3 -m src.main -c=sample_config.yml -vv
      #+end_src
 
-** Use
-   - *Semantic Search via Emacs*
-     - [[https://github.com/debanjum/semantic-search/tree/master/src/interface/emacs#installation][Install]] [[./src/interface/emacs/semantic-search.el][semantic-search.el]]
-     - Run ~M-x semantic-search <user-query>~
-
-   - *Semantic Search via API*
-     - Query: ~GET~ [[http://localhost:8000/search?q=%22what%20is%20the%20meaning%20of%20life%22][http://localhost:8000/search?q="What is the meaning of life"&t=notes]]
-     - Regenerate Embeddings: ~GET~ [[http://localhost:8000/regenerate][http://localhost:8000/regenerate]]
-     - [[http://localhost:8000/docs][Semantic Search API Docs]]
-
-   - *UI to Edit Config*
-     - [[https://localhost:8000/ui][Config UI]]
-
-** Upgrade
-
-*** On Docker
-    #+begin_src shell
-      docker-compose build
-    #+end_src
-
-*** On Local Machine
+*** Upgrade On Local Machine
     #+begin_src shell
       cd semantic-search
       git pull origin master
@@ -89,11 +89,6 @@
       conda env update -f environment.yml
       conda activate semantic-search
     #+end_src
-
-** Miscellaneous
-   - The experimental /chat API endpoint uses the [[https://openai.com/api/][OpenAI API]]
-     - It is disabled by default
-     - To use it add your ~openai-api-key~ to config.yml
 
 ** Acknowledgments
    - [[https://huggingface.co/sentence-transformers/msmarco-MiniLM-L-6-v3][MiniLM Model]] for Asymmetric Text Search. See [[https://www.sbert.net/examples/applications/retrieve_rerank/README.html][SBert Documentation]]
