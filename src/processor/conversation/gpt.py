@@ -39,6 +39,55 @@ def summarize(text, summary_type, user_query=None, api_key=None, temperature=0.5
     return str(story).replace("\n\n", "")
 
 
+def extract_search_type(text, api_key=None, temperature=0.5, max_tokens=100, verbose=0):
+    """
+    Extract search type from user query using OpenAI's GPT
+    """
+    # Initialize Variables
+    openai.api_key = api_key or os.getenv("OPENAI_API_KEY")
+    understand_primer = '''
+Objective: Extract search type from user query and return information as JSON
+
+Allowed search types are listed below:
+  - search-type=["notes","ledger","image","music"]
+
+Some examples are given below for reference:
+Q:What fiction book was I reading last week about AI starship?
+A:{ "search-type": "notes" }
+Q:Play some calm classical music?
+A:{ "search-type": "music" }
+Q:How much did I spend at Subway for dinner last time?
+A:{ "search-type": "ledger" }
+Q:What was that popular Sri lankan song that Alex had mentioned?
+A:{ "search-type": "music" }
+Q:Can you recommend a movie to watch from my notes?
+A:{ "search-type": "notes" }
+Q: When did I buy Groceries last?
+A:{ "search-type": "ledger" }
+Q:When did I go surfing last?
+A:{ "search-type": "notes" }'''
+
+    # Setup Prompt with Understand Primer
+    prompt = message_to_prompt(text, understand_primer, start_sequence="\nA:", restart_sequence="\nQ:")
+    if verbose > 1:
+        print(f"Message -> Prompt: {text} -> {prompt}")
+
+    # Get Response from GPT
+    response = openai.Completion.create(
+        engine="davinci",
+        prompt=prompt,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        top_p=1,
+        frequency_penalty=0.2,
+        presence_penalty=0,
+        stop=["\n"])
+
+    # Extract, Clean Message from GPT's Response
+    story = str(response['choices'][0]['text'])
+    return json.loads(story.strip(empty_escape_sequences))
+
+
 def understand(text, api_key=None, temperature=0.5, max_tokens=100, verbose=0):
     """
     Understand user input using OpenAI's GPT

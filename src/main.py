@@ -15,7 +15,7 @@ from src.utils.helpers import get_absolute_path, get_from_dict
 from src.utils.cli import cli
 from src.utils.config import SearchType, SearchModels, ProcessorConfigModel, ConversationProcessorConfigModel
 from src.utils.rawconfig import FullConfig
-from src.processor.conversation.gpt import converse, message_to_log, message_to_prompt, understand, summarize
+from src.processor.conversation.gpt import converse, extract_search_type, message_to_log, message_to_prompt, understand, summarize
 
 # Application Global State
 config = FullConfig()
@@ -94,6 +94,19 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
 def regenerate(t: Optional[SearchType] = None):
     initialize_search(config, regenerate=True, t=t)
     return {'status': 'ok', 'message': 'regeneration completed'}
+
+
+@app.get('/beta/search')
+def search_beta(q: str, n: Optional[int] = 1):
+    # Extract Search Type using GPT
+    metadata = extract_search_type(q, api_key=processor_config.conversation.openai_api_key, verbose=verbose)
+    search_type = get_from_dict(metadata, "search-type")
+
+    # Search
+    search_results = search(q, n=n, t=SearchType(search_type))
+
+    # Return response
+    return {'status': 'ok', 'result': search_results, 'type': search_type}
 
 
 @app.get('/chat')
