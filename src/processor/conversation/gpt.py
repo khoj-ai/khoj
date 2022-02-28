@@ -6,6 +6,9 @@ from datetime import datetime
 # External Packages
 import openai
 
+# Internal Packages
+from src.utils.constants import empty_escape_sequences
+
 
 def summarize(text, summary_type, user_query=None, api_key=None, temperature=0.5, max_tokens=100):
     """
@@ -61,8 +64,8 @@ def understand(text, api_key=None, temperature=0.5, max_tokens=100, verbose=0):
         stop=["\n"])
 
     # Extract, Clean Message from GPT's Response
-    story = response['choices'][0]['text']
-    return json.loads(story)
+    story = str(response['choices'][0]['text'])
+    return json.loads(story.strip(empty_escape_sequences))
 
 
 def converse(text, conversation_history=None, api_key=None, temperature=0.9, max_tokens=150):
@@ -91,8 +94,8 @@ def converse(text, conversation_history=None, api_key=None, temperature=0.9, max
         stop=["\n", "Human:", "AI:"])
 
     # Extract, Clean Message from GPT's Response
-    story = response['choices'][0]['text']
-    return str(story).strip()
+    story = str(response['choices'][0]['text'])
+    return story.strip(empty_escape_sequences)
 
 
 def message_to_prompt(user_message, conversation_history="", gpt_message=None, start_sequence="\nAI:", restart_sequence="\nHuman:"):
