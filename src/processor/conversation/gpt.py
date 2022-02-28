@@ -79,13 +79,13 @@ A: { "intent": {"type": "remember", "memory-type": "ledger", "query": "last Subw
 Q: I'm feeling sleepy
 A: { "intent": {"type": "generate", "activity": "chat", "query": "I'm feeling sleepy"}, "trigger-emotion": "calm" }
 Q: What was that popular Sri lankan song that Alex had mentioned?
-A: { "intent": {"type": "remember", "memory-type": "music", "query": "popular Sri lankan song mentioned by Alex"], "trigger-emotion": "curiosity" }
+A: { "intent": {"type": "remember", "memory-type": "music", "query": "popular Sri lankan song mentioned by Alex"}, "trigger-emotion": "curiosity" }
 Q: You're pretty funny!
 A: { "intent": {"type": "generate", "activity": "chat", "query": "You're pretty funny!"}, "trigger-emotion": "shy" }
 Q: Can you recommend a movie to watch from my notes?
-A: { "intent": {"type": "remember", "memory-type": "notes", "query": "recommend movie to watch"], "trigger-emotion": "curiosity" }
+A: { "intent": {"type": "remember", "memory-type": "notes", "query": "recommend movie to watch"}, "trigger-emotion": "curiosity" }
 Q: When did I go surfing last?
-A: { "intent": {"type": "remember", "memory-type": "notes", "query": "When did I go surfing last"], "trigger-emotion": "calm" }
+A: { "intent": {"type": "remember", "memory-type": "notes", "query": "When did I go surfing last"}, "trigger-emotion": "calm" }
 Q: Can you dance for me?
 A: { "intent": {"type": "generate", "activity": "chat", "query": "Can you dance for me?"}, "trigger-emotion": "sad" }'''
 
