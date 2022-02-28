@@ -16,6 +16,7 @@ from src.utils.helpers import get_absolute_path, resolve_absolute_path, load_mod
 from src.processor.org_mode.org_to_jsonl import org_to_jsonl
 from src.utils.config import TextSearchModel
 from src.utils.rawconfig import AsymmetricSearchConfig, TextContentConfig
+from src.utils.constants import empty_escape_sequences
 
 
 def initialize_model(search_config: AsymmetricSearchConfig):
@@ -43,16 +44,27 @@ def initialize_model(search_config: AsymmetricSearchConfig):
 def extract_entries(notesfile, verbose=0):
     "Load entries from compressed jsonl"
     entries = []
-    with gzip.open(get_absolute_path(notesfile), 'rt', encoding='utf8') as jsonl:
-        for line in jsonl:
-            note = json.loads(line.strip())
+    jsonl_file = None
 
-            # Ignore title notes i.e notes with just headings and empty body
-            if not "Body" in note or note["Body"].strip() == "":
-                continue
+    # Open File
+    if notesfile.suffix == ".gz":
+        jsonl_file = gzip.open(get_absolute_path(notesfile), "rt", encoding='utf8')
+    elif notesfile.suffix == ".jsonl":
+        jsonl_file = open(get_absolute_path(notesfile), "r", encoding='utf8')
 
-            note_string = f'{note["Title"]}\t{note["Tags"] if "Tags" in note else ""}\n{note["Body"] if "Body" in note else ""}'
-            entries.append([note_string, note["Raw"]])
+    # Read File
+    for line in jsonl_file:
+        note = json.loads(line.strip(empty_escape_sequences))
+
+        # Ignore title notes i.e notes with just headings and empty body
+        if not "Body" in note or note["Body"].strip(empty_escape_sequences) == "":
+            continue
+
+        note_string = f'{note["Title"]}\t{note["Tags"] if "Tags" in note else ""}\n{note["Body"] if "Body" in note else ""}'
+        entries.append([note_string, note["Raw"]])
+
+    # Close File
+    jsonl_file.close()
 
     if verbose > 0:
         print(f"Loaded {len(entries)} entries from {notesfile}")
