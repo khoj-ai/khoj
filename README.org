@@ -1,7 +1,7 @@
 [[https://github.com/debanjum/semantic-search/actions/workflows/test.yml/badge.svg]] [[https://github.com/debanjum/semantic-search/actions/workflows/build.yml/badge.svg]]
 
 * Semantic Search
-  /Allow natural language search on user content like notes, images, transactions using transformer based models/
+  /Allow natural language search on user content like notes, images, transactions using transformer ML models/
 
   User can interface with semantic-search via the API or [[./src/interface/emacs/semantic-search.el][Emacs]]. All search is done locally[[https://github.com/debanjum/semantic-search#miscellaneous][*]]
 
@@ -65,7 +65,7 @@
 **** 2. Install Semantic Search
        #+begin_src shell
        git clone https://github.com/debanjum/semantic-search && cd semantic-search
-       conda env create -f environment.yml
+       conda env create -f config/environment.yml
        conda activate semantic-search
        #+end_src
 
@@ -78,7 +78,7 @@
      Load ML model, generate embeddings and expose API to query notes, images, transactions etc specified in config YAML
 
      #+begin_src shell
-     python3 -m src.main -c=sample_config.yml -vv
+     python3 -m src.main -c=config/sample_config.yml -vv
      #+end_src
 
 *** Upgrade On Local Machine
@@ -86,7 +86,7 @@
       cd semantic-search
       git pull origin master
       conda deactivate semantic-search
-      conda env update -f environment.yml
+      conda env update -f config/environment.yml
       conda activate semantic-search
     #+end_src
 
