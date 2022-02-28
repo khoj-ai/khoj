@@ -11,6 +11,7 @@ import re
 # Internal Packages
 from src.processor.org_mode import orgnode
 from src.utils.helpers import get_absolute_path, is_none_or_empty
+from src.utils.constants import empty_escape_sequences
 
 
 # Define Functions
@@ -62,7 +63,6 @@ def load_jsonl(input_path, verbose=0):
     # Initialize Variables
     data = []
     jsonl_file = None
-    escape_sequences = '\n|\r\t '
 
     # Open JSONL file
     if input_path.suffix == ".gz":
@@ -72,7 +72,7 @@ def load_jsonl(input_path, verbose=0):
 
     # Read JSONL file
     for line in jsonl_file:
-        data.append(json.loads(line.strip(escape_sequences)))
+        data.append(json.loads(line.strip(empty_escape_sequences)))
 
     # Close JSONL file
     jsonl_file.close()
@@ -114,13 +114,13 @@ def extract_beancount_entries(beancount_files):
 
     # Initialize Regex for extracting Beancount Entries
     date_regex = r'^\n?\d{4}-\d{2}-\d{2}'
-    empty_newline = r'^[\n\r\t ]*$'
+    empty_newline = f'^[{empty_escape_sequences}]*$'
 
     entries = []
     for beancount_file in beancount_files:
         with open(beancount_file) as f:
             ledger_content = f.read()
-            entries.extend([entry.strip('\n|\r|\t| ')
+            entries.extend([entry.strip(empty_escape_sequences)
                for entry
                in re.split(empty_newline, ledger_content, flags=re.MULTILINE)
                if re.match(date_regex, entry)])

@@ -1,0 +1,1 @@
+empty_escape_sequences = r'\n|\r\t '
