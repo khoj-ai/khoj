@@ -5,6 +5,9 @@
 
   User can interface with semantic-search via the API or [[./src/interface/emacs/semantic-search.el][Emacs]]. All search is done locally[[https://github.com/debanjum/semantic-search#miscellaneous][*]]
 
+** Demo
+   https://user-images.githubusercontent.com/6413477/168417719-8a8bc4e5-8404-42b2-89a7-4493e3d2582c.mp4
+
 ** Setup
 
 *** 1. Clone
