@@ -120,16 +120,6 @@ def convert_org_entries_to_jsonl(entries, verbose=0):
             if verbose > 2:
                 print(f"Body: {entry.Body()}")
 
-        if entry.Scheduled():
-            entry_dict["Scheduled"] = entry.Scheduled().strftime("%Y-%m-%d")
-            if verbose > 2:
-                print(f"Scheduled: {entry.Scheduled().strftime('%Y-%m-%d')}")
-
-        if entry.Deadline():
-            entry_dict["Deadline"] = entry.Deadline().strftime("%Y-%m-%d")
-            if verbose > 2:
-                print(f"Deadline: {entry.Deadline().strftime('%Y-%m-%d')}")
-
         if entry_dict:
             entry_dict["Raw"] = f'{entry}'
 
