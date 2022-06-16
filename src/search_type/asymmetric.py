@@ -60,7 +60,9 @@ def extract_entries(notesfile, verbose=0):
         if not "Body" in note or note["Body"].strip(empty_escape_sequences) == "":
             continue
 
-        note_string = f'{note["Title"]}\t{note["Tags"] if "Tags" in note else ""}\n{note["Body"] if "Body" in note else ""}'
+        note_string = f'''{note["Title"]}\t{note["Tags"] if "Tags" in note else ""}
+{"Scheduled on " + note["Scheduled"] if "Scheduled" in note else ""}
+{note["Body"] if "Body" in note else ""}'''
         entries.append([note_string, note["Raw"]])
 
     # Close File
