@@ -92,7 +92,8 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
 
 @app.get('/regenerate')
 def regenerate(t: Optional[SearchType] = None):
-    initialize_search(config, regenerate=True, t=t)
+    global model
+    model = initialize_search(config, regenerate=True, t=t)
     return {'status': 'ok', 'message': 'regeneration completed'}
 
 
@@ -138,8 +139,6 @@ def chat(q: str):
 
 
 def initialize_search(config: FullConfig, regenerate: bool, t: SearchType = None):
-    model = SearchModels()
-
     # Initialize Org Notes Search
     if (t == SearchType.Notes or t == None) and config.content_type.org:
         # Extract Entries, Generate Notes Embeddings
