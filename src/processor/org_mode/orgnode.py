@@ -56,6 +56,7 @@ def makelist(filename):
    heading       = ""
    bodytext      = ""
    tags          = set()      # set of all tags in headline
+   closed_date   = ''
    sched_date    = ''
    deadline_date = ''
    nodelist      = []
@@ -69,6 +70,9 @@ def makelist(filename):
        if hdng:
           if heading:  # we are processing a heading line
              thisNode = Orgnode(level, heading, bodytext, tags)
+             if closed_date:
+                thisNode.setClosed(closed_date)
+                closed_date = ''
              if sched_date:
                 thisNode.setScheduled(sched_date)
                 sched_date = ""
