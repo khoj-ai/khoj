@@ -110,7 +110,7 @@ def makelist(filename):
            if not in_properties_drawer and line[:1] != '#':
                bodytext = bodytext + line
 
-           prop_srch = re.search(r'^\s*:(.*?):\s*(.*?)\s*$', line)
+           prop_srch = re.search(r'^\s*:([a-zA-Z0-9]+):\s*(.*?)\s*$', line)
            if prop_srch:
               # Set ID property to an id based org-mode link to the entry
               if prop_srch.group(1) == 'ID':
