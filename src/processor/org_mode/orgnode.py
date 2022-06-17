@@ -62,6 +62,7 @@ def makelist(filename):
    nodelist      = []
    propdict      = dict()
    in_properties_drawer = False
+   in_logbook_drawer = False
 
    for line in f:
        ctr += 1
@@ -103,12 +104,17 @@ def makelist(filename):
               in_properties_drawer=False
               continue
 
-           # Ignore Clocking Lines
-           if re.search(r'CLOCK: \[[0-9]{4}-[0-9]{2}-[0-9]{2}', line):
+           # Ignore Logbook Drawer Start, End Lines
+           if re.search(':LOGBOOK:', line):
+              in_logbook_drawer=True
+              continue
+           if in_logbook_drawer and re.search(':END:', line):
+              in_logbook_drawer=False
               continue
 
-           if not in_properties_drawer and line[:1] != '#':
-               bodytext = bodytext + line
+           # Ignore Clocking Lines
+           if re.search(r'CLOCK: \[[0-9]{4}-[0-9]{2}-[0-9]{2}', line):
+              line = ""
 
            prop_srch = re.search(r'^\s*:([a-zA-Z0-9]+):\s*(.*?)\s*$', line)
            if prop_srch:
@@ -118,7 +124,9 @@ def makelist(filename):
               else:
                  propdict[prop_srch.group(1)] = prop_srch.group(2)
               continue
-           sd_re = re.search(r'SCHEDULED:\s+<([0-9]+)\-([0-9]+)\-([0-9]+)', line)
+
+           cd_re = re.search(r'CLOSED:\s*\[([0-9]+)\-([0-9]+)\-([0-9]+)', line)
+           sd_re = re.search(r'SCHEDULED:\s*<([0-9]+)\-([0-9]+)\-([0-9]+)', line)
            if sd_re:
               sched_date = datetime.date(int(sd_re.group(1)),
                                          int(sd_re.group(2)),
@@ -128,6 +136,10 @@ def makelist(filename):
               deadline_date = datetime.date(int(dd_re.group(1)),
                                             int(dd_re.group(2)),
                                             int(dd_re.group(3)) )
+
+           # Ignore property drawer, scheduled, closed, deadline and # lines from body
+           if not in_properties_drawer and not cd_re and not sd_re and not dd_re and line[:1] != '#':
+               bodytext = bodytext + line
 
    # write out last node
    thisNode = Orgnode(level, heading, bodytext, tag1, alltags)
