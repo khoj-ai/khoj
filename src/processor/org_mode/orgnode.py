@@ -83,15 +83,13 @@ def makelist(filename):
           bodytext = ""
           tag1 = ""
           alltags = []       # list of all tags in headline
-          tagsrch = re.search(r'(.*?)\s*:([a-zA-Z0-9].*?):([a-zA-Z0-9].*?):$',heading)
+          tagsrch = re.search(r'(.*?)\s*:([a-zA-Z0-9].*?):$',heading)
           if tagsrch:
               heading = tagsrch.group(1)
-              tag1 = tagsrch.group(2)
-              alltags.append(tag1)
-              tag2 = tagsrch.group(3)
-              if tag2:
-                 for t in tag2.split(':'):
-                    if t != '': alltags.append(t)
+              tags = tagsrch.group(2)
+              if tags:
+                 for tag in tags.split(':'):
+                    if tag != '': alltags.append(tag)
        else:      # we are processing a non-heading line
            if line[:10] == '#+SEQ_TODO':
               kwlist = re.findall(r'([A-Z]+)\(', line)
