@@ -173,7 +173,9 @@ def makelist(filename):
           n.setHeading(prtysrch.group(2))
 
        # Set SOURCE property to a file+heading based org-mode link to the entry
-       n.properties['SOURCE'] = f'[[file:{filename}::*{n.Heading()}]]'
+       escaped_filename = filename.replace("[","\[").replace("]","\]")
+       escaped_heading = n.Heading().replace("[","\[").replace("]","\]")
+       n.properties['SOURCE'] = f'[[file:{escaped_filename}::*{escaped_heading}]]'
 
    return nodelist
 
