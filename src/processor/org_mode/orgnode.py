@@ -125,7 +125,11 @@ def makelist(filename):
                  propdict[prop_srch.group(1)] = prop_srch.group(2)
               continue
 
-           cd_re = re.search(r'CLOSED:\s*\[([0-9]+)\-([0-9]+)\-([0-9]+)', line)
+           cd_re = re.search(r'CLOSED:\s*\[([0-9]{4})-([0-9]{2})-([0-9]{2})', line)
+           if cd_re:
+              closed_date = datetime.date(int(cd_re.group(1)),
+                                         int(cd_re.group(2)),
+                                         int(cd_re.group(3)) )
            sd_re = re.search(r'SCHEDULED:\s*<([0-9]+)\-([0-9]+)\-([0-9]+)', line)
            if sd_re:
               sched_date = datetime.date(int(sd_re.group(1)),
@@ -148,6 +152,8 @@ def makelist(filename):
       thisNode.setScheduled(sched_date)
    if deadline_date:
       thisNode.setDeadline(deadline_date)
+   if closed_date:
+      thisNode.setClosed(closed_date)
    nodelist.append( thisNode )
 
    # using the list of TODO keywords found in the file
@@ -193,6 +199,7 @@ class Orgnode(object):
         self.prty = ""            # empty of A, B or C
         self.scheduled = ""       # Scheduled date
         self.deadline = ""        # Deadline date
+        self.closed = ""          # Closed date
         self.properties = dict()
         for t in alltags:
            self.tags[t] = ''
@@ -325,6 +332,18 @@ class Orgnode(object):
         """
         return self.deadline
 
+    def setClosed(self, dateval):
+        """
+        Set the closed date using the supplied date object
+        """
+        self.closed = dateval
+
+    def Closed(self):
+        """
+        Return the closed date object or null if nonexistent
+        """
+        return self.closed
+
     def __repr__(self):
         """
         Print the level, heading text and tag of a node and the body
@@ -332,7 +351,7 @@ class Orgnode(object):
         """
         # This method is not completed yet.
         n = ''
-        for i in range(0, self.level):
+        for _ in range(0, self.level):
            n = n + '*'
         n = n + ' ' + self.todo + ' '
         if self.prty:
@@ -344,9 +363,19 @@ class Orgnode(object):
            n = n + ':' + t
            closecolon = ':'
         n = n + closecolon
-        # Need to output Scheduled Date, Deadline Date, property tags The
-        # following will output the text used to construct the object
         n = n + "\n"
+
+        # Output Closed Date, Scheduled Date, Deadline Date
+        if self.closed:
+           n = n + f'CLOSED: [{self.closed.strftime("%Y-%m-%d %a")}] '
+        if self.scheduled:
+           n = n + f'SCHEDULED: <{self.scheduled.strftime("%Y-%m-%d %a")}> '
+        if self.deadline:
+           n = n + f'DEADLINE: <{self.deadline.strftime("%Y-%m-%d %a")}> '
+        if self.closed or self.scheduled or self.deadline:
+           n = n + '\n'
+
+        # Ouput Property Drawer
         n = n + ":PROPERTIES:\n"
         for key, value in self.properties.items():
            n = n + f":{key}: {value}\n"
