@@ -110,9 +110,9 @@ def convert_org_entries_to_jsonl(entries, verbose=0):
             print(f"Title: {entry.Heading()}")
 
         if entry.Tags():
-            tags_str = " ".join([tag for tag in entry.Tags()])
+            tags_str = " ".join(entry.Tags())
             entry_dict["Tags"] = tags_str
-            if verbose > 1:
+            if verbose > 2:
                 print(f"Tags: {tags_str}")
 
         if entry.Body():

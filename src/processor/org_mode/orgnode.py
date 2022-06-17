@@ -55,8 +55,7 @@ def makelist(filename):
    level         = 0
    heading       = ""
    bodytext      = ""
-   tag1          = ""      # The first tag enclosed in ::
-   alltags       = []      # list of all tags in headline
+   tags          = set()      # set of all tags in headline
    sched_date    = ''
    deadline_date = ''
    nodelist      = []
@@ -69,7 +68,7 @@ def makelist(filename):
        hdng = re.search(r'^(\*+)\s(.*?)\s*$', line)
        if hdng:
           if heading:  # we are processing a heading line
-             thisNode = Orgnode(level, heading, bodytext, tag1, alltags)
+             thisNode = Orgnode(level, heading, bodytext, tags)
              if sched_date:
                 thisNode.setScheduled(sched_date)
                 sched_date = ""
@@ -82,15 +81,14 @@ def makelist(filename):
           level = hdng.group(1)
           heading =  hdng.group(2)
           bodytext = ""
-          tag1 = ""
-          alltags = []       # list of all tags in headline
+          tags = set()       # set of all tags in headline
           tagsrch = re.search(r'(.*?)\s*:([a-zA-Z0-9].*?):$',heading)
           if tagsrch:
               heading = tagsrch.group(1)
-              tags = tagsrch.group(2)
-              if tags:
-                 for tag in tags.split(':'):
-                    if tag != '': alltags.append(tag)
+              parsedtags = tagsrch.group(2)
+              if parsedtags:
+                 for parsedtag in parsedtags.split(':'):
+                    if parsedtag != '': tags.add(parsedtag)
        else:      # we are processing a non-heading line
            if line[:10] == '#+SEQ_TODO':
               kwlist = re.findall(r'([A-Z]+)\(', line)
@@ -146,7 +144,7 @@ def makelist(filename):
                bodytext = bodytext + line
 
    # write out last node
-   thisNode = Orgnode(level, heading, bodytext, tag1, alltags)
+   thisNode = Orgnode(level, heading, bodytext, tags)
    thisNode.setProperties(propdict)
    if sched_date:
       thisNode.setScheduled(sched_date)
@@ -185,7 +183,7 @@ class Orgnode(object):
     Orgnode class represents a headline, tags and text associated
     with the headline.
     """
-    def __init__(self, level, headline, body, tag, alltags):
+    def __init__(self, level, headline, body, tags):
         """
         Create an Orgnode object given the parameters of level (as the
         raw asterisks), headline text (including the TODO tag), and
@@ -195,16 +193,13 @@ class Orgnode(object):
         self.level = len(level)
         self.headline = headline
         self.body = body
-        self.tag = tag            # The first tag in the list
-        self.tags = dict()        # All tags in the headline
+        self.tags = set(tags)     # All tags in the headline
         self.todo = ""
         self.prty = ""            # empty of A, B or C
         self.scheduled = ""       # Scheduled date
         self.deadline = ""        # Deadline date
         self.closed = ""          # Closed date
         self.properties = dict()
-        for t in alltags:
-           self.tags[t] = ''
 
         # Look for priority in headline and transfer to prty field
 
@@ -248,19 +243,12 @@ class Orgnode(object):
         """
         self.prty = newprty
 
-    def Tag(self):
-        """
-        Returns the value of the first tag.
-        For example, :HOME:COMPUTER: would return HOME
-        """
-        return self.tag
-
     def Tags(self):
         """
-        Returns a list of all tags
-        For example, :HOME:COMPUTER: would return ['HOME', 'COMPUTER']
+        Returns the set of all tags
+        For example, :HOME:COMPUTER: would return {'HOME', 'COMPUTER'}
         """
-        return self.tags.keys()
+        return self.tags
 
     def hasTag(self, srch):
         """
@@ -270,19 +258,11 @@ class Orgnode(object):
         """
         return srch in self.tags
 
-    def setTag(self, newtag):
+    def setTags(self, newtags):
         """
-        Change the value of the first tag to the supplied string
+        Store all the tags found in the headline.
         """
-        self.tag = newtag
-
-    def setTags(self, taglist):
-        """
-        Store all the tags found in the headline. The first tag will
-        also be stored as if the setTag method was called.
-        """
-        for t in taglist:
-           self.tags[t] = ''
+        self.tags = set(newtags)
 
     def Todo(self):
         """
@@ -361,7 +341,7 @@ class Orgnode(object):
         n = n + self.headline
         n = "%-60s " % n     # hack - tags will start in column 62
         closecolon = ''
-        for t in self.tags.keys():
+        for t in self.tags:
            n = n + ':' + t
            closecolon = ':'
         n = n + closecolon
