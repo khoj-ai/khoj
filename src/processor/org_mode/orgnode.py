@@ -67,8 +67,8 @@ def makelist(filename):
    for line in f:
        ctr += 1
        hdng = re.search(r'^(\*+)\s(.*?)\s*$', line)
-       if hdng:
-          if heading:  # we are processing a heading line
+       if hdng:  # we are processing a heading line
+          if heading: # if we have are on second heading, append first heading to headings list
              thisNode = Orgnode(level, heading, bodytext, tags)
              if closed_date:
                 thisNode.setClosed(closed_date)
@@ -81,7 +81,7 @@ def makelist(filename):
                 deadline_date = ''
              thisNode.setProperties(propdict)
              nodelist.append( thisNode )
-             propdict = {'LINE': f'file:{filename}::{ctr}'}
+          propdict = {'LINE': f'file:{filename}::{ctr}'}
           level = hdng.group(1)
           heading =  hdng.group(2)
           bodytext = ""
@@ -175,7 +175,7 @@ def makelist(filename):
           n.setHeading(prtysrch.group(2))
 
        # Set SOURCE property to a file+heading based org-mode link to the entry
-       escaped_filename = filename.replace("[","\[").replace("]","\]")
+       escaped_filename = f'{filename}'.replace("[","\[").replace("]","\]")
        escaped_heading = n.Heading().replace("[","\[").replace("]","\]")
        n.properties['SOURCE'] = f'[[file:{escaped_filename}::*{escaped_heading}]]'
 
