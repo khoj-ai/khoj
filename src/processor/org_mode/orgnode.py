@@ -77,7 +77,7 @@ def makelist(filename):
                 deadline_date = ''
              thisNode.setProperties(propdict)
              nodelist.append( thisNode )
-             propdict = {'SOURCE': f'file:{filename}::{ctr}'}
+             propdict = {'LINE': f'file:{filename}::{ctr}'}
           level = hdng.group(1)
           heading =  hdng.group(2)
           bodytext = ""
@@ -114,7 +114,11 @@ def makelist(filename):
 
            prop_srch = re.search(r'^\s*:(.*?):\s*(.*?)\s*$', line)
            if prop_srch:
-              propdict[prop_srch.group(1)] = prop_srch.group(2)
+              # Set ID property to an id based org-mode link to the entry
+              if prop_srch.group(1) == 'ID':
+                 propdict['ID'] = f'id:{prop_srch.group(2)}'
+              else:
+                 propdict[prop_srch.group(1)] = prop_srch.group(2)
               continue
            sd_re = re.search(r'SCHEDULED:\s+<([0-9]+)\-([0-9]+)\-([0-9]+)', line)
            if sd_re:
@@ -145,10 +149,15 @@ def makelist(filename):
            if todoSrch.group(1) in todos:
                n.setHeading( todoSrch.group(2) )
                n.setTodo ( todoSrch.group(1) )
+
+       # extract, set priority from heading, update heading if necessary
        prtysrch = re.search(r'^\[\#(A|B|C)\] (.*?)$', n.Heading())
        if prtysrch:
           n.setPriority(prtysrch.group(1))
           n.setHeading(prtysrch.group(2))
+
+       # Set SOURCE property to a file+heading based org-mode link to the entry
+       n.properties['SOURCE'] = f'[[file:{filename}::*{n.Heading()}]]'
 
    return nodelist
 
