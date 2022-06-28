@@ -1,6 +1,7 @@
 # Standard Packages
 import datetime
-from operator import contains
+from os.path import relpath
+from pathlib import Path
 
 # Internal Packages
 from src.processor.org_mode import orgnode
@@ -78,17 +79,18 @@ Body Line 1
 Body Line 2
 '''
     orgfile = create_file(tmp_path, entry)
+    normalized_orgfile = f'~/{relpath(orgfile, start=Path.home())}'
 
     # Act
     entries = orgnode.makelist(orgfile)
 
     # Assert
     # SOURCE link rendered with Heading
-    assert f':SOURCE: [[file:{orgfile}::*{entries[0].Heading()}]]' in f'{entries[0]}'
+    assert f':SOURCE: [[file:{normalized_orgfile}::*{entries[0].Heading()}]]' in f'{entries[0]}'
     # ID link rendered with ID
     assert f':ID: id:123-456-789-4234-1231' in f'{entries[0]}'
     # LINE link rendered with line number
-    assert f':LINE: file:{orgfile}::2' in f'{entries[0]}'
+    assert f':LINE: file:{normalized_orgfile}::2' in f'{entries[0]}'
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -111,7 +113,8 @@ Body Line 1'''
     # parsed heading from entry
     assert entries[0].Heading() == "Heading[1]"
     # ensure SOURCE link has square brackets in filename, heading escaped in rendered entries
-    escaped_orgfile = f'{orgfile}'.replace("[1]", "\\[1\\]")
+    normalized_orgfile = f'~/{relpath(orgfile, start=Path.home())}'
+    escaped_orgfile = f'{normalized_orgfile}'.replace("[1]", "\\[1\\]")
     assert f':SOURCE: [[file:{escaped_orgfile}::*Heading\[1\]' in f'{entries[0]}'
 
 

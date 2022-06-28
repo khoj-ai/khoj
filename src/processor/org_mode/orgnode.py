@@ -35,6 +35,13 @@ constructing data structures of these classes.
 
 import re, sys
 import datetime
+from pathlib import Path
+from os.path import relpath
+
+def normalize_filename(filename):
+   file_relative_to_home = f'~/{relpath(filename, start=Path.home())}'
+   escaped_filename = f'{file_relative_to_home}'.replace("[","\[").replace("]","\]")
+   return escaped_filename
 
 def makelist(filename):
    """
@@ -81,7 +88,7 @@ def makelist(filename):
                 deadline_date = ''
              thisNode.setProperties(propdict)
              nodelist.append( thisNode )
-          propdict = {'LINE': f'file:{filename}::{ctr}'}
+          propdict = {'LINE': f'file:{normalize_filename(filename)}::{ctr}'}
           level = hdng.group(1)
           heading =  hdng.group(2)
           bodytext = ""
@@ -175,9 +182,8 @@ def makelist(filename):
           n.setHeading(prtysrch.group(2))
 
        # Set SOURCE property to a file+heading based org-mode link to the entry
-       escaped_filename = f'{filename}'.replace("[","\[").replace("]","\]")
        escaped_heading = n.Heading().replace("[","\[").replace("]","\]")
-       n.properties['SOURCE'] = f'[[file:{escaped_filename}::*{escaped_heading}]]'
+       n.properties['SOURCE'] = f'[[file:{normalize_filename(filename)}::*{escaped_heading}]]'
 
    return nodelist
 
