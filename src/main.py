@@ -90,6 +90,13 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
         return {}
 
 
+@app.get('/reload')
+def regenerate(t: Optional[SearchType] = None):
+    global model
+    model = initialize_search(config, regenerate=False, t=t)
+    return {'status': 'ok', 'message': 'reload completed'}
+
+
 @app.get('/regenerate')
 def regenerate(t: Optional[SearchType] = None):
     global model
