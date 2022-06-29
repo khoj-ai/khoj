@@ -1,5 +1,6 @@
 # Standard Packages
 import pytest
+import torch
 
 # Internal Packages
 from src.search_type import asymmetric, image_search
@@ -35,6 +36,7 @@ def search_config(tmp_path_factory):
 @pytest.fixture(scope='session')
 def model_dir(search_config):
     model_dir = search_config.asymmetric.model_directory
+    device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
 
     # Generate Image Embeddings from Test Images
     content_config = ContentConfig()
@@ -53,7 +55,7 @@ def model_dir(search_config):
         compressed_jsonl = model_dir.joinpath('notes.jsonl.gz'),
         embeddings_file = model_dir.joinpath('note_embeddings.pt'))
 
-    asymmetric.setup(content_config.org, search_config.asymmetric, regenerate=False, verbose=True)
+    asymmetric.setup(content_config.org, search_config.asymmetric, regenerate=False, device=device, verbose=True)
 
     return model_dir
 
