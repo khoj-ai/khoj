@@ -93,7 +93,7 @@ def compute_embeddings(entries, bi_encoder, embeddings_file, regenerate=False, d
     return corpus_embeddings
 
 
-def query(raw_query: str, model: TextSearchModel, device='cpu'):
+def query(raw_query: str, model: TextSearchModel, device=torch.device('cpu')):
     "Search all notes for entries that answer the query"
     # Separate natural query from explicit required, blocked words filters
     query = " ".join([word for word in raw_query.split() if not word.startswith("+") and not word.startswith("-")])
@@ -180,7 +180,7 @@ def collate_results(hits, entries, count=5):
         in hits[0:count]]
 
 
-def setup(config: TextContentConfig, search_config: AsymmetricSearchConfig, regenerate: bool, device='cpu', verbose: bool=False) -> TextSearchModel:
+def setup(config: TextContentConfig, search_config: AsymmetricSearchConfig, regenerate: bool, device=torch.device('cpu'), verbose: bool=False) -> TextSearchModel:
     # Initialize Model
     bi_encoder, cross_encoder, top_k = initialize_model(search_config)
 
