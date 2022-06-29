@@ -44,6 +44,28 @@ def test_search_with_valid_content_type(content_config: ContentConfig, search_co
 
 
 # ----------------------------------------------------------------------------------------------------
+def test_reload_with_invalid_content_type():
+    # Act
+    response = client.get(f"/reload?t=invalid_content_type")
+
+    # Assert
+    assert response.status_code == 422
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_reload_with_valid_content_type(content_config: ContentConfig, search_config: SearchConfig):
+    # Arrange
+    config.content_type = content_config
+    config.search_type = search_config
+
+    for content_type in ["notes", "ledger", "music", "image"]:
+        # Act
+        response = client.get(f"/reload?t={content_type}")
+        # Assert
+        assert response.status_code == 200
+
+
+# ----------------------------------------------------------------------------------------------------
 def test_regenerate_with_invalid_content_type():
     # Act
     response = client.get(f"/regenerate?t=invalid_content_type")
