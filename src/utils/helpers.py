@@ -6,8 +6,10 @@ from os.path import join
 def is_none_or_empty(item):
     return item == None or (hasattr(item, '__iter__') and len(item) == 0)
 
+
 def to_snake_case_from_dash(item: str):
     return item.replace('_', '-')
+
 
 def get_absolute_path(filepath):
     return str(pathlib.Path(filepath).expanduser().absolute())
