@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM continuumio/miniconda3:latest
+FROM continuumio/miniconda3:4.12.0
 
 # Install system dependencies.
 RUN apt-get update -y && \
