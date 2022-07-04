@@ -39,7 +39,7 @@
 
 ** Upgrade
    #+begin_src shell
-     docker-compose build
+     docker-compose build --pull
    #+end_src
 
 ** Troubleshooting

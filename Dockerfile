@@ -8,7 +8,7 @@ RUN apt-get update -y && \
 # Add the local code to the /app directory and set it to be the working directory.
 # Since we mount the /app directory as a volume in docker-compose.yml, this
 # allows us to automatically update the code in the Docker image when it's changed.
-ADD .. /app
+ADD . /app
 WORKDIR /app
 
 # Get the arguments from the docker-compose environment.
