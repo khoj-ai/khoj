@@ -73,4 +73,5 @@ def test_asymmetric_reload(content_config: ContentConfig, search_config: SearchC
 
     # Cleanup
     # delete reload test file added
+    content_config.org.input_files = []
     file_to_add_on_reload.unlink()
