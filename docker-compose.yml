@@ -3,7 +3,7 @@ services:
   server:
     build:
       context: .
-      dockerfile: config/Dockerfile
+      dockerfile: Dockerfile
       args:
         - PORT=8000
     ports:
@@ -28,6 +28,9 @@ services:
       # You can set these volumes to point to empty directories on host
       - ./tests/data/embeddings/:/data/embeddings/
       - ./tests/data/models/:/data/models/
-
+    deploy:
+      resources:
+        limits:
+          memory: 8g
     # Use 0.0.0.0 to explicitly set the host ip for the service on the container. https://pythonspeed.com/articles/docker-connection-refused/
     command: --host="0.0.0.0" --port=8000 -c=config/sample_config.yml -vv

@@ -37,9 +37,13 @@
      - [[https://github.com/debanjum/semantic-search/tree/master/src/interface/emacs#installation][Install]] [[./src/interface/emacs/semantic-search.el][semantic-search.el]]
      - Run ~M-x semantic-search <user-query>~
 
+** Run Unit tests
+
+  `pytest`
+
 ** Upgrade
    #+begin_src shell
-     docker-compose build
+     docker-compose build --pull
    #+end_src
 
 ** Troubleshooting
