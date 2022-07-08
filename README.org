@@ -39,7 +39,9 @@
 
 ** Run Unit tests
 
-  `pytest`
+  #+begin_src shell
+  pytest
+  #+end_src
 
 ** Upgrade
    #+begin_src shell
