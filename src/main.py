@@ -58,17 +58,17 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
 
     if (t == SearchType.Notes or t == None) and model.notes_search:
         # query notes
-        hits = asymmetric.query(user_query, model.notes_search, device=device)
+        hits, entries = asymmetric.query(user_query, model.notes_search, device=device)
 
         # collate and return results
-        return asymmetric.collate_results(hits, model.notes_search.entries, results_count)
+        return asymmetric.collate_results(hits, entries, results_count)
 
     if (t == SearchType.Music or t == None) and model.music_search:
         # query music library
-        hits = asymmetric.query(user_query, model.music_search, device=device)
+        hits, entries = asymmetric.query(user_query, model.music_search, device=device)
 
         # collate and return results
-        return asymmetric.collate_results(hits, model.music_search.entries, results_count)
+        return asymmetric.collate_results(hits, entries, results_count)
 
     if (t == SearchType.Ledger or t == None) and model.ledger_search:
         # query transactions

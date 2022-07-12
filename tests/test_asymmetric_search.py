@@ -26,13 +26,13 @@ def test_asymmetric_search(content_config: ContentConfig, search_config: SearchC
     query = "How to git install application?"
 
     # Act
-    hits = asymmetric.query(
+    hits, entries = asymmetric.query(
         query,
         model = model.notes_search)
 
     results = asymmetric.collate_results(
         hits,
-        model.notes_search.entries,
+        entries,
         count=1)
 
     # Assert
