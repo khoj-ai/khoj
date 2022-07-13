@@ -18,6 +18,7 @@ from src.utils.config import SearchType, SearchModels, ProcessorConfigModel, Con
 from src.utils.rawconfig import FullConfig
 from src.processor.conversation.gpt import converse, extract_search_type, message_to_log, message_to_prompt, understand, summarize
 from src.search_filter.explicit_filter import explicit_filter
+from src.search_filter.date_filter import date_filter
 
 # Application Global State
 config = FullConfig()
@@ -59,7 +60,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
 
     if (t == SearchType.Notes or t == None) and model.notes_search:
         # query notes
-        hits, entries = asymmetric.query(user_query, model.notes_search, device=device, filters=[explicit_filter])
+        hits, entries = asymmetric.query(user_query, model.notes_search, device=device, filters=[explicit_filter, date_filter])
 
         # collate and return results
         return asymmetric.collate_results(hits, entries, results_count)
