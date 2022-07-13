@@ -94,7 +94,7 @@ def compute_embeddings(entries, bi_encoder, embeddings_file, regenerate=False, d
     return corpus_embeddings
 
 
-def query(raw_query: str, model: TextSearchModel, device=torch.device('cpu')):
+def query(raw_query: str, model: TextSearchModel, device=torch.device('cpu'), filters: list = []):
     "Search all notes for entries that answer the query"
 
     # Copy original embeddings, entries to filter them for query
@@ -102,8 +102,9 @@ def query(raw_query: str, model: TextSearchModel, device=torch.device('cpu')):
     corpus_embeddings = deepcopy(model.corpus_embeddings)
     entries = deepcopy(model.entries)
 
-    # Filter to entries that contain all required_words and no blocked_words
-    query, entries, corpus_embeddings = explicit_filter(query, entries, corpus_embeddings)
+    # Filter query, entries and embeddings before semantic search
+    for filter in filters:
+        query, entries, corpus_embeddings = filter(query, entries, corpus_embeddings)
     if entries is None or len(entries) == 0:
         return {}
 

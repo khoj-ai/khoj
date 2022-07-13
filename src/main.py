@@ -17,6 +17,7 @@ from src.utils.cli import cli
 from src.utils.config import SearchType, SearchModels, ProcessorConfigModel, ConversationProcessorConfigModel
 from src.utils.rawconfig import FullConfig
 from src.processor.conversation.gpt import converse, extract_search_type, message_to_log, message_to_prompt, understand, summarize
+from src.search_filter.explicit_filter import explicit_filter
 
 # Application Global State
 config = FullConfig()
@@ -58,14 +59,14 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
 
     if (t == SearchType.Notes or t == None) and model.notes_search:
         # query notes
-        hits, entries = asymmetric.query(user_query, model.notes_search, device=device)
+        hits, entries = asymmetric.query(user_query, model.notes_search, device=device, filters=[explicit_filter])
 
         # collate and return results
         return asymmetric.collate_results(hits, entries, results_count)
 
     if (t == SearchType.Music or t == None) and model.music_search:
         # query music library
-        hits, entries = asymmetric.query(user_query, model.music_search, device=device)
+        hits, entries = asymmetric.query(user_query, model.music_search, device=device, filters=[explicit_filter])
 
         # collate and return results
         return asymmetric.collate_results(hits, entries, results_count)
