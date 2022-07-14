@@ -67,7 +67,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
 
     if (t == SearchType.Music or t == None) and model.music_search:
         # query music library
-        hits, entries = asymmetric.query(user_query, model.music_search, device=device, filters=[explicit_filter])
+        hits, entries = asymmetric.query(user_query, model.music_search, device=device, filters=[explicit_filter, date_filter])
 
         # collate and return results
         return asymmetric.collate_results(hits, entries, results_count)
