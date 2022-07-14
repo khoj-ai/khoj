@@ -55,16 +55,16 @@ def test_date_filter():
 
 
 def test_extract_date_range():
-    assert date_filter.extract_date_range('head dt>"2020-01-04" dt<"2020-01-07" tail') == [datetime(2020, 1, 5, 0, 0, 0).timestamp(), datetime(2020, 1, 7, 0, 0, 0).timestamp()]
-    assert date_filter.extract_date_range('head dt<="2020-01-01"') == [0, datetime(2020, 1, 2, 0, 0, 0).timestamp()]
-    assert date_filter.extract_date_range('head dt>="2020-01-01"') == [datetime(2020, 1, 1, 0, 0, 0).timestamp(), inf]
-    assert date_filter.extract_date_range('head dt:"2020-01-01"') == [datetime(2020, 1, 1, 0, 0, 0).timestamp(), datetime(2020, 1, 2, 0, 0, 0).timestamp()]
+    assert date_filter.extract_date_range('head dt>"1984-01-04" dt<"1984-01-07" tail') == [datetime(1984, 1, 5, 0, 0, 0).timestamp(), datetime(1984, 1, 7, 0, 0, 0).timestamp()]
+    assert date_filter.extract_date_range('head dt<="1984-01-01"') == [0, datetime(1984, 1, 2, 0, 0, 0).timestamp()]
+    assert date_filter.extract_date_range('head dt>="1984-01-01"') == [datetime(1984, 1, 1, 0, 0, 0).timestamp(), inf]
+    assert date_filter.extract_date_range('head dt:"1984-01-01"') == [datetime(1984, 1, 1, 0, 0, 0).timestamp(), datetime(1984, 1, 2, 0, 0, 0).timestamp()]
 
     # No date filter specified in query
     assert date_filter.extract_date_range('head tail') == None
 
     # Non intersecting date ranges
-    assert date_filter.extract_date_range('head dt>"2020-01-01" dt<"2020-01-01" tail') == None
+    assert date_filter.extract_date_range('head dt>"1984-01-01" dt<"1984-01-01" tail') == None
 
 
 def test_parse():
@@ -94,11 +94,11 @@ def test_parse():
 
 
 def test_date_filter_regex():
-    dtrange_match = re.search(date_filter.date_range_regex, 'head dt>"today" dt:"2020-01-01" tail')
-    assert dtrange_match.groups() == ('>', 'today', ':', '2020-01-01')
+    dtrange_match = re.search(date_filter.date_range_regex, 'head dt>"today" dt:"1984-01-01" tail')
+    assert dtrange_match.groups() == ('>', 'today', ':', '1984-01-01')
 
-    dtrange_match = re.search(date_filter.date_range_regex, 'head dt>="today" dt="2020-01-01"')
-    assert dtrange_match.groups() == ('>=', 'today', '=', '2020-01-01')
+    dtrange_match = re.search(date_filter.date_range_regex, 'head dt>="today" dt="1984-01-01"')
+    assert dtrange_match.groups() == ('>=', 'today', '=', '1984-01-01')
 
     dtrange_match = re.search(date_filter.date_range_regex, 'head dt<"today" tail')
     assert dtrange_match.groups() == ('<', 'today', None, None)
