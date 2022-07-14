@@ -28,7 +28,8 @@ def date_filter(query, entries, embeddings):
         return query, entries, embeddings
 
     # remove date range filter from query
-    query = re.sub(date_range_regex, '', query)
+    query = re.sub(f'\s+{date_regex}', ' ', query)
+    query = re.sub(r'\s{2,}', ' ', query).strip()  # remove multiple spaces
 
     # find entries containing any dates that fall with date range specified in query
     entries_to_include = set()
@@ -38,7 +39,7 @@ def date_filter(query, entries, embeddings):
             # Convert date string in entry to unix timestamp
             date_in_entry = datetime.strptime(date_in_entry_string, '%Y-%m-%d').timestamp()
             # Check if date in entry is within date range specified in query
-            if query_daterange[0] <= date_in_entry <= query_daterange[1]:
+            if query_daterange[0] <= date_in_entry < query_daterange[1]:
                 entries_to_include.add(id)
                 break
 
