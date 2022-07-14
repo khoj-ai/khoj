@@ -48,7 +48,9 @@ def date_filter(query, entries, embeddings):
 def parse(date_str, relative_base=None):
     "Parse date string passed in date filter of query to datetime object"
     # clean date string to handle future date parsing by date parser
-    clean_date_str = re.sub(r'later|from now|from today', '', date_str)
+    future_strings = ['later', 'from now', 'from today']
+    prefer_dates_from = {True: 'future', False: 'past'}[any([True for fstr in future_strings if fstr in date_str])]
+    clean_date_str = re.sub('|'.join(future_strings), '', date_str)
 
     # parse date passed in query date filter
     parsed_date = dtparse.parse(
@@ -56,7 +58,7 @@ def parse(date_str, relative_base=None):
         settings= {
             'RELATIVE_BASE': relative_base or datetime.now(),
             'PREFER_DAY_OF_MONTH': 'first',
-            'PREFER_DATES_FROM': 'future'
+            'PREFER_DATES_FROM': prefer_dates_from
         })
 
     if parsed_date is None:
