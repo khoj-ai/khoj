@@ -74,7 +74,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
 
     if (t == SearchType.Ledger or t == None) and model.ledger_search:
         # query transactions
-        hits, entries = symmetric_ledger.query(user_query, model.ledger_search)
+        hits, entries = symmetric_ledger.query(user_query, model.ledger_search, filters=[explicit_filter])
 
         # collate and return results
         return symmetric_ledger.collate_results(hits, entries, results_count)
