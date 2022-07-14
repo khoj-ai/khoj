@@ -63,10 +63,11 @@ def extract_date_range(query):
 
     # extract, parse natural dates ranges from date range filter passed in query
     # e.g today maps to (start_of_day, start_of_tomorrow)
-    for index, (cmp, date_str) in enumerate(date_range_matches):
+    date_ranges_from_filter = []
+    for (cmp, date_str) in date_range_matches:
         if parse(date_str):
             dt_start, dt_end = parse(date_str)
-            date_range_matches[index] = [cmp, (dt_start.timestamp(), dt_end.timestamp())]
+            date_ranges_from_filter += [[cmp, (dt_start.timestamp(), dt_end.timestamp())]]
 
     # Combine dates with their comparators to form date range intervals
     # For e.g
@@ -75,7 +76,7 @@ def extract_date_range(query):
     # ---
     effective_date_range = [0, inf]
     date_range_considering_comparator = []
-    for cmp, (dtrange_start, dtrange_end) in date_range_matches:
+    for cmp, (dtrange_start, dtrange_end) in date_ranges_from_filter:
         if cmp == '>':
             date_range_considering_comparator += [[dtrange_end, inf]]
         elif cmp == '>=':

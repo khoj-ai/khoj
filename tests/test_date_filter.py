@@ -60,6 +60,9 @@ def test_extract_date_range():
     assert date_filter.extract_date_range('head dt>="1984-01-01"') == [datetime(1984, 1, 1, 0, 0, 0).timestamp(), inf]
     assert date_filter.extract_date_range('head dt:"1984-01-01"') == [datetime(1984, 1, 1, 0, 0, 0).timestamp(), datetime(1984, 1, 2, 0, 0, 0).timestamp()]
 
+    # Unparseable date filter specified in query
+    assert date_filter.extract_date_range('head dt:"Summer of 69" tail') == None
+
     # No date filter specified in query
     assert date_filter.extract_date_range('head tail') == None
 
