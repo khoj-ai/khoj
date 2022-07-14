@@ -19,23 +19,28 @@ date_range_regex=f'.*?\s+{date_regex}\s*{date_regex}.*?'
 
 
 def date_filter(query, entries, embeddings):
-    # extract date from query
-    date_regex = r'\d{4}-\d{2}-\d{2}'
-    dates_in_query = re.findall(date_regex, query)
+    "Find entries containing any dates that fall within date range specified in query"
+    # extract date range specified in date filter of query
+    query_daterange = extract_date_range(query)
 
     # if no date in query, return all entries
-    if dates_in_query is None or len(dates_in_query) == 0:
+    if query_daterange is None:
         return query, entries, embeddings
 
-    # remove dates from query
-    query = re.sub(date_regex, '', query)
+    # remove date range filter from query
+    query = re.sub(date_range_regex, '', query)
 
-    # find entries with dates from query in them
+    # find entries containing any dates that fall with date range specified in query
     entries_to_include = set()
     for id, entry in enumerate(entries):
-        for date in dates_in_query:
-            if date in entry[1]:
+        # Extract dates from entry
+        for date_in_entry_string in re.findall(r'\d{4}-\d{2}-\d{2}', entry[1]):
+            # Convert date string in entry to unix timestamp
+            date_in_entry = datetime.strptime(date_in_entry_string, '%Y-%m-%d').timestamp()
+            # Check if date in entry is within date range specified in query
+            if query_daterange[0] <= date_in_entry <= query_daterange[1]:
                 entries_to_include.add(id)
+                break
 
     # delete entries (and their embeddings) marked for exclusion
     entries_to_exclude = set(range(len(entries))) - entries_to_include
@@ -52,6 +57,9 @@ def extract_date_range(query):
     if not date_range_match or date_range_match.groups() == (None, None, None, None):
         return None
 
+    # extract comparators (e.g >,<,=) applied on dates in date filter
+    date_comparators = [date_cmp for date_cmp in date_range_match.groups()[0::2] if date_cmp]
+
     # extract, parse natural dates ranges from date range filter passed in query
     # e.g today maps to (start_of_day, start_of_tomorrow)
     query_dtranges = []
@@ -60,30 +68,35 @@ def extract_date_range(query):
             dt_start, dt_end = parse(date_str)
             query_dtranges.append((dt_start.timestamp(), dt_end.timestamp()))
 
-    date_comparators = [date_cmp for date_cmp in date_range_match.groups()[0::2] if date_cmp]
-
     # Combine dates with their comparators to form date range intervals
     # For e.g
     #   >=yesterday maps to [start_of_yesterday, inf)
     #   <tomorrow maps to [0, start_of_tomorrow)
-    # Then combine above intervals (via AND/intersect)
+    # ---
+    effective_date_range = [0, inf]
+    date_range_considering_comparator = []
+    for ((dtrange_start, dtrange_end), cmp) in zip(query_dtranges, date_comparators):
+        if cmp == '>':
+            date_range_considering_comparator += [[dtrange_end, inf]]
+        elif cmp == '>=':
+            date_range_considering_comparator += [[dtrange_start, inf]]
+        elif cmp == '<':
+            date_range_considering_comparator += [[0, dtrange_start]]
+        elif cmp == '<=':
+            date_range_considering_comparator += [[0, dtrange_end]]
+        elif cmp == '=' or cmp == ':' or cmp == '==':
+            date_range_considering_comparator += [[dtrange_start, dtrange_end]]
+
+    # Combine above intervals (via AND/intersect)
     # In the above example, this gives us [start_of_yesterday, start_of_tomorrow)
     # This is the effective date range to filter entries by
     # ---
-    effective_date_range = [0, inf]
-    for ((dtrange_start, dtrange_end), cmp) in zip(query_dtranges, date_comparators):
-        if cmp == '>' and dtrange_end < effective_date_range[1]:
-            effective_date_range[0] = dtrange_end
-        elif cmp == '<' and dtrange_start > effective_date_range[0]:
-            effective_date_range[1] = dtrange_start
-        elif cmp == '>=' and dtrange_end < effective_date_range[1]:
-            effective_date_range[0] = dtrange_start
-        elif cmp == '<=' and dtrange_start > effective_date_range[0]:
-            effective_date_range[1] = dtrange_end
-        elif cmp == '=' or cmp == ':' or cmp == '==':
-            effective_date_range = [dtrange_start, dtrange_end]
+    for date_range in date_range_considering_comparator:
+        effective_date_range = [
+            max(effective_date_range[0], date_range[0]),
+            min(effective_date_range[1], date_range[1])]
 
-    if effective_date_range == [0, inf]:
+    if effective_date_range == [0, inf] or effective_date_range[0] > effective_date_range[1]:
         return None
     else:
         return effective_date_range

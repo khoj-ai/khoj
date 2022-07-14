@@ -16,6 +16,9 @@ def test_extract_date_range():
     # No date filter specified in query
     assert date_filter.extract_date_range('head tail') == None
 
+    # Non intersecting date ranges
+    assert date_filter.extract_date_range('head dt>"2020-01-01" dt<"2020-01-01" tail') == None
+
 
 def test_parse():
     test_now = datetime(1984, 4, 1, 21, 21, 21)
