@@ -1,9 +1,21 @@
 # Standard Packages
 import re
-from datetime import timedelta, datetime
+from datetime import datetime
+from math import inf
 
 # Application Packages
 from src.search_filter import date_filter
+
+
+def test_extract_date_range():
+    assert date_filter.extract_date_range('head dt>"2020-01-04" dt<"2020-01-07" tail') == [datetime(2020, 1, 5, 0, 0, 0).timestamp(), datetime(2020, 1, 7, 0, 0, 0).timestamp()]
+    assert date_filter.extract_date_range('head dt<="2020-01-01"') == [0, datetime(2020, 1, 2, 0, 0, 0).timestamp()]
+    assert date_filter.extract_date_range('head dt>="2020-01-01"') == [datetime(2020, 1, 1, 0, 0, 0).timestamp(), inf]
+    assert date_filter.extract_date_range('head dt:"2020-01-01"') == [datetime(2020, 1, 1, 0, 0, 0).timestamp(), datetime(2020, 1, 2, 0, 0, 0).timestamp()]
+
+    # No date filter specified in query
+    assert date_filter.extract_date_range('head tail') == None
+
 
 def test_parse():
     test_now = datetime(1984, 4, 1, 21, 21, 21)

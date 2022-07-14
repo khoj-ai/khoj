@@ -45,6 +45,50 @@ def date_filter(query, entries, embeddings):
 
     return query, entries, embeddings
 
+
+def extract_date_range(query):
+    # find date range filter in query
+    date_range_match = re.search(date_range_regex, query)
+    if not date_range_match or date_range_match.groups() == (None, None, None, None):
+        return None
+
+    # extract, parse natural dates ranges from date range filter passed in query
+    # e.g today maps to (start_of_day, start_of_tomorrow)
+    query_dtranges = []
+    for date_str in date_range_match.groups()[1::2]:
+        if date_str and parse(date_str):
+            dt_start, dt_end = parse(date_str)
+            query_dtranges.append((dt_start.timestamp(), dt_end.timestamp()))
+
+    date_comparators = [date_cmp for date_cmp in date_range_match.groups()[0::2] if date_cmp]
+
+    # Combine dates with their comparators to form date range intervals
+    # For e.g
+    #   >=yesterday maps to [start_of_yesterday, inf)
+    #   <tomorrow maps to [0, start_of_tomorrow)
+    # Then combine above intervals (via AND/intersect)
+    # In the above example, this gives us [start_of_yesterday, start_of_tomorrow)
+    # This is the effective date range to filter entries by
+    # ---
+    effective_date_range = [0, inf]
+    for ((dtrange_start, dtrange_end), cmp) in zip(query_dtranges, date_comparators):
+        if cmp == '>' and dtrange_end < effective_date_range[1]:
+            effective_date_range[0] = dtrange_end
+        elif cmp == '<' and dtrange_start > effective_date_range[0]:
+            effective_date_range[1] = dtrange_start
+        elif cmp == '>=' and dtrange_end < effective_date_range[1]:
+            effective_date_range[0] = dtrange_start
+        elif cmp == '<=' and dtrange_start > effective_date_range[0]:
+            effective_date_range[1] = dtrange_end
+        elif cmp == '=' or cmp == ':' or cmp == '==':
+            effective_date_range = [dtrange_start, dtrange_end]
+
+    if effective_date_range == [0, inf]:
+        return None
+    else:
+        return effective_date_range
+
+
 def parse(date_str, relative_base=None):
     "Parse date string passed in date filter of query to datetime object"
     # clean date string to handle future date parsing by date parser
