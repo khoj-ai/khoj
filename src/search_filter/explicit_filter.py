@@ -15,11 +15,11 @@ def explicit_filter(raw_query, entries, embeddings):
         return query, entries, embeddings
 
     # convert each entry to a set of words
+    # split on fullstop, comma, colon, tab, newline or any brackets
+    entry_splitter = r',|\.| |\]|\[\(|\)|\{|\}|\t|\n|\:'
     entries_by_word_set = [set(word.lower()
                              for word
-                             in re.split(
-                                 r',|\.| |\]|\[\(|\)|\{|\}',  # split on fullstop, comma or any brackets
-                                 entry[0])
+                             in re.split(entry_splitter, entry[1])
                              if word != "")
                         for entry in entries]
 
