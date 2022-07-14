@@ -36,7 +36,10 @@ def date_filter(query, entries, embeddings):
         # Extract dates from entry
         for date_in_entry_string in re.findall(r'\d{4}-\d{2}-\d{2}', entry[1]):
             # Convert date string in entry to unix timestamp
-            date_in_entry = datetime.strptime(date_in_entry_string, '%Y-%m-%d').timestamp()
+            try:
+                date_in_entry = datetime.strptime(date_in_entry_string, '%Y-%m-%d').timestamp()
+            except ValueError:
+                continue
             # Check if date in entry is within date range specified in query
             if query_daterange[0] <= date_in_entry < query_daterange[1]:
                 entries_to_include.add(id)
