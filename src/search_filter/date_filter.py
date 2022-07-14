@@ -11,11 +11,10 @@ import dateparser as dtparse
 
 # Date Range Filter Regexes
 # Example filter queries:
-#   - dt>=yesterday dt<"tomorrow"
+#   - dt>="yesterday" dt<"tomorrow"
 #   - dt>="last week"
-#   - dt:"next year"
-date_regex = r'(?:dt([:><=]{1,2})\"?([\w\-\/]+))?\"?'
-date_range_regex=f'.*?\s+{date_regex}\s*{date_regex}.*?'
+#   - dt:"2 years ago"
+date_regex = r"dt([:><=]{1,2})\"(.*?)\""
 
 
 def date_filter(query, entries, embeddings):
@@ -54,20 +53,17 @@ def date_filter(query, entries, embeddings):
 
 def extract_date_range(query):
     # find date range filter in query
-    date_range_match = re.search(date_range_regex, query)
-    if not date_range_match or date_range_match.groups() == (None, None, None, None):
-        return None
+    date_range_matches = re.findall(date_regex, query)
 
-    # extract comparators (e.g >,<,=) applied on dates in date filter
-    date_comparators = [date_cmp for date_cmp in date_range_match.groups()[0::2] if date_cmp]
+    if len(date_range_matches) == 0:
+        return None
 
     # extract, parse natural dates ranges from date range filter passed in query
     # e.g today maps to (start_of_day, start_of_tomorrow)
-    query_dtranges = []
-    for date_str in date_range_match.groups()[1::2]:
-        if date_str and parse(date_str):
+    for index, (cmp, date_str) in enumerate(date_range_matches):
+        if parse(date_str):
             dt_start, dt_end = parse(date_str)
-            query_dtranges.append((dt_start.timestamp(), dt_end.timestamp()))
+            date_range_matches[index] = [cmp, (dt_start.timestamp(), dt_end.timestamp())]
 
     # Combine dates with their comparators to form date range intervals
     # For e.g
@@ -76,7 +72,7 @@ def extract_date_range(query):
     # ---
     effective_date_range = [0, inf]
     date_range_considering_comparator = []
-    for ((dtrange_start, dtrange_end), cmp) in zip(query_dtranges, date_comparators):
+    for cmp, (dtrange_start, dtrange_end) in date_range_matches:
         if cmp == '>':
             date_range_considering_comparator += [[dtrange_end, inf]]
         elif cmp == '>=':

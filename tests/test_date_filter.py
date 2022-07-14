@@ -94,17 +94,20 @@ def test_parse():
 
 
 def test_date_filter_regex():
-    dtrange_match = re.search(date_filter.date_range_regex, 'head dt>"today" dt:"1984-01-01" tail')
-    assert dtrange_match.groups() == ('>', 'today', ':', '1984-01-01')
+    dtrange_match = re.findall(date_filter.date_regex, 'multi word head dt>"today" dt:"1984-01-01"')
+    assert dtrange_match == [('>', 'today'), (':', '1984-01-01')]
 
-    dtrange_match = re.search(date_filter.date_range_regex, 'head dt>="today" dt="1984-01-01"')
-    assert dtrange_match.groups() == ('>=', 'today', '=', '1984-01-01')
+    dtrange_match = re.findall(date_filter.date_regex, 'head dt>"today" dt:"1984-01-01" multi word tail')
+    assert dtrange_match == [('>', 'today'), (':', '1984-01-01')]
 
-    dtrange_match = re.search(date_filter.date_range_regex, 'head dt<"today" tail')
-    assert dtrange_match.groups() == ('<', 'today', None, None)
+    dtrange_match = re.findall(date_filter.date_regex, 'multi word head dt>="today" dt="1984-01-01"')
+    assert dtrange_match == [('>=', 'today'), ('=', '1984-01-01')]
 
-    dtrange_match = re.search(date_filter.date_range_regex, 'head dt<="today"')
-    assert dtrange_match.groups() == ('<=', 'today', None, None)
+    dtrange_match = re.findall(date_filter.date_regex, 'dt<"multi word date" multi word tail')
+    assert dtrange_match == [('<', 'multi word date')]
 
-    dtrange_match = re.search(date_filter.date_range_regex, 'head tail')
-    assert dtrange_match.groups() == (None, None, None, None)
+    dtrange_match = re.findall(date_filter.date_regex, 'head dt<="multi word date"')
+    assert dtrange_match == [('<=', 'multi word date')]
+
+    dtrange_match = re.findall(date_filter.date_regex, 'head tail')
+    assert dtrange_match == []
