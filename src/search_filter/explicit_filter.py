@@ -18,8 +18,8 @@ def explicit_filter(raw_query, entries, embeddings):
     entries_by_word_set = [set(word.lower()
                              for word
                              in re.split(
-                                 r',|\.| |\]|\[\(|\)|\{|\}',  # split on fullstop, comma or any brackets
-                                 entry[0])
+                                 r',|\.| |\]|\[\(|\)|\{|\}|\t|\n|\:',  # split on fullstop, comma or any brackets
+                                 entry[1])
                              if word != "")
                         for entry in entries]
 
