@@ -1,12 +1,12 @@
 # Standard Packages
-import sys, json, yaml
+import sys, json, yaml, os
 from typing import Optional
 
 # External Packages
 import uvicorn
 import torch
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -27,9 +27,15 @@ processor_config = ProcessorConfigModel()
 config_file = ""
 verbose = 0
 app = FastAPI()
+web_directory = f'src/interface/web/'
 
+app.mount("/static", StaticFiles(directory=web_directory), name="static")
 app.mount("/views", StaticFiles(directory="views"), name="views")
 templates = Jinja2Templates(directory="views/")
+
+@app.get("/", response_class=FileResponse)
+def index():
+    return FileResponse(web_directory + "index.html")
 
 @app.get('/ui', response_class=HTMLResponse)
 def ui(request: Request):

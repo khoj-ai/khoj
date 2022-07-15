@@ -1,0 +1,78 @@
+<html lang="en">
+    <script>
+        function render_image(item) {
+            return `<a href="${item.entry}">
+                <img src="${item.entry}"
+                    title="Effective Score: ${item.score}, Meta: ${item.metadata_score}, Image: ${item.image_score}"
+                    class="image">
+            </a>`
+        }
+
+        function render_json(data) {
+            return `<pre id="json">${JSON.stringify(data, null, 2)}</pre>`
+        }
+
+        function search() {
+            query = document.getElementById("query").value;
+            type = document.getElementById("type").value;
+            console.log(query, type);
+            fetch(`/search?q=${query}&t=${type}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    document.getElementById("results").innerHTML =
+                        type == "image"
+                        ? data.map(render_image).join('')
+                        : render_json(data);
+                });
+            }
+    </script>
+
+    <body>
+        <!--Add Text Box To Enter Query -->
+        <input id="query" type="text" placeholder="Search">
+
+        <!--Add Dropdown to Select Query Type.
+            Query Types can be: notes, ledger, images, music.
+            Set Default type to images-->
+        <select id="type">
+            <option value="image">Image</option>
+            <option value="notes">Notes</option>
+            <option value="ledger">Ledger</option>
+            <option value="music">Music</option>
+        </select>
+
+        <!--Add Button To Search -->
+        <button id="search" onclick="search()">Search</button>
+
+        <div id="results"></div>
+    </body>
+
+    <style>
+        body {
+            display: grid;
+            grid-template-columns: 1fr min(65ch, 100%) 1fr;
+            margin: 0px;
+            padding: 0px;
+            text-align: center;
+        }
+        body > * {
+            grid-column: 2;
+            margin: 10px;
+        }
+        #search {
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        .image {
+            width: 20vw;
+            display: inline-grid;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+        }
+        #json {
+            white-space: pre-wrap;
+        }
+    </style>
+
+</html>

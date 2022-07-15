@@ -7,3 +7,5 @@ src/.data
 .vscode
 *.gz
 *.pt
+/src/interface/web/*.jpg
+/src/interface/web/*.png
