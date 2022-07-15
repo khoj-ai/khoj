@@ -85,7 +85,11 @@ def compute_metadata_embeddings(image_names, encoder, embeddings_file, batch_siz
         image_metadata_embeddings = []
         for index in trange(0, len(image_names), batch_size):
             image_metadata = [extract_metadata(image_name, verbose) for image_name in image_names[index:index+batch_size]]
-            image_metadata_embeddings += encoder.encode(image_metadata, convert_to_tensor=True, batch_size=batch_size)
+            try:
+                image_metadata_embeddings += encoder.encode(image_metadata, convert_to_tensor=True, batch_size=batch_size)
+            except RuntimeError as e:
+                print(f"Error encoding metadata for images starting from\n\tindex: {index},\n\timages: {image_names[index:index+batch_size]}\nException: {e}")
+                continue
         torch.save(image_metadata_embeddings, f"{embeddings_file}_metadata")
         if verbose > 0:
             print(f"Saved computed metadata embeddings to {embeddings_file}_metadata")
