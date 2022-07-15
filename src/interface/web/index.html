@@ -2,7 +2,7 @@
     <script>
         function render_image(item) {
             return `<a href="${item.entry}">
-                <img src="${item.entry}"
+                <img id=${item.score} src="${item.entry}?${Math.random()}"
                     title="Effective Score: ${item.score}, Meta: ${item.metadata_score}, Image: ${item.image_score}"
                     class="image">
             </a>`
