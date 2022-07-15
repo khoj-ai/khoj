@@ -82,13 +82,16 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
     if (t == SearchType.Image or t == None) and model.image_search:
         # query transactions
         hits = image_search.query(user_query, results_count, model.image_search)
+        output_directory = f'{os.getcwd()}/{web_directory}'
 
         # collate and return results
         return image_search.collate_results(
             hits,
-            model.image_search.image_names,
-            config.content_type.image.input_directory,
-            results_count)
+            image_names=model.image_search.image_names,
+            image_directory=config.content_type.image.input_directory,
+            output_directory=output_directory,
+            static_files_url='/static',
+            count=results_count)
 
     else:
         return {}

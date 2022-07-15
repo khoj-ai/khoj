@@ -2,6 +2,7 @@
 import argparse
 import pathlib
 import copy
+import shutil
 
 # External Packages
 from sentence_transformers import SentenceTransformer, util
@@ -118,7 +119,7 @@ def query(raw_query, count, model: ImageSearchModel):
     query_embedding = model.image_encoder.encode([query], convert_to_tensor=True, show_progress_bar=False)
 
     # Compute top_k ranked images based on cosine-similarity b/w query and all image embeddings.
-    image_hits = {result['corpus_id']: result['score']
+    image_hits = {result['corpus_id']: {'image_score': result['score'], 'score': result['score']}
                   for result
                   in util.semantic_search(query_embedding, model.image_embeddings, top_k=count)[0]}
 
@@ -130,10 +131,22 @@ def query(raw_query, count, model: ImageSearchModel):
 
         # Sum metadata, image scores of the highest ranked images
         for corpus_id, score in metadata_hits.items():
-            image_hits[corpus_id] = image_hits.get(corpus_id, 0) + score
+            if 'corpus_id' in image_hits:
+                image_hits[corpus_id].update({
+                    'metadata_score': score,
+                    'score': image_hits[corpus_id].get('score', 0) + score,
+                })
+            else:
+                image_hits[corpus_id] = {'metadata_score': score, 'score': score}
 
     # Reformat results in original form from sentence transformer semantic_search()
-    hits = [{'corpus_id': corpus_id, 'score': score} for corpus_id, score in image_hits.items()]
+    hits = [
+        {
+            'corpus_id': corpus_id,
+            'score': scores['score'],
+            'image_score': scores.get('image_score', 0),
+            'metadata_score': scores.get('metadata_score', 0),
+        } for corpus_id, scores in image_hits.items()]
 
     # Sort the images based on their combined metadata, image scores
     return sorted(hits, key=lambda hit: hit["score"], reverse=True)
@@ -149,15 +162,29 @@ def render_results(hits, image_names, image_directory, count):
             img.show()
 
 
-def collate_results(hits, image_names, image_directory, count=5):
+def collate_results(hits, image_names, image_directory, output_directory, static_files_url, count=5):
+    results = []
     image_directory = resolve_absolute_path(image_directory, strict=True)
-    return [
-        {
-            "Entry": image_directory.joinpath(image_names[hit['corpus_id']]),
-            "Score": f"{hit['score']:.3f}"
-        }
-        for hit
-        in hits[0:count]]
+
+    for index, hit in enumerate(hits[:count]):
+        source_image_name = image_names[hit['corpus_id']]
+        source_path = image_directory.joinpath(source_image_name)
+
+        target_image_name = f"{index}{source_path.suffix}"
+        target_path = resolve_absolute_path(f"{output_directory}/{target_image_name}")
+
+        # Copy the image to the output directory
+        shutil.copy(source_path, target_path)
+
+        # Add the image metadata to the results
+        results += [{
+            "entry": f'{static_files_url}/{target_image_name}',
+            "score": f"{hit['score']:.3f}",
+            "image_score": f"{hit['image_score']:.3f}",
+            "metadata_score": f"{hit['metadata_score']:.3f}",
+        }]
+
+    return results
 
 
 def setup(config: ImageContentConfig, search_config: ImageSearchConfig, regenerate: bool, verbose: bool=False) -> ImageSearchModel:
