@@ -26,6 +26,17 @@
                         : render_json(data);
                 });
             }
+
+        function regenerate() {
+            type = document.getElementById("type").value;
+            fetch(`/regenerate?t=${type}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    document.getElementById("results").innerHTML =
+                        render_json(data);
+                });
+        }
     </script>
 
     <body>
@@ -44,6 +55,8 @@
 
         <!--Add Button To Search -->
         <button id="search" onclick="search()">Search</button>
+        <!--Add Button To Search -->
+        <button id="regenerate" onclick="regenerate()">Regenerate</button>
 
         <div id="results"></div>
     </body>
@@ -60,7 +73,7 @@
             grid-column: 2;
             margin: 10px;
         }
-        #search {
+        button {
             border-radius: 5px;
             border: 1px solid #ccc;
         }
