@@ -14,7 +14,6 @@ from sentence_transformers import SentenceTransformer, CrossEncoder, util
 # Internal Packages
 from src.utils.helpers import get_absolute_path, resolve_absolute_path, load_model
 from src.processor.org_mode.org_to_jsonl import org_to_jsonl
-from src.search_filter.explicit_filter import explicit_filter
 from src.utils.config import TextSearchModel
 from src.utils.rawconfig import AsymmetricSearchConfig, TextContentConfig
 from src.utils.constants import empty_escape_sequences
@@ -106,7 +105,7 @@ def query(raw_query: str, model: TextSearchModel, device=torch.device('cpu'), fi
     for filter in filters:
         query, entries, corpus_embeddings = filter(query, entries, corpus_embeddings)
     if entries is None or len(entries) == 0:
-        return {}
+        return [], []
 
     # Encode the query using the bi-encoder
     question_embedding = model.bi_encoder.encode([query], convert_to_tensor=True)
