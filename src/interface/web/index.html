@@ -1,7 +1,12 @@
-<html lang="en">
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Semantic Search</title>
+    </head>
     <script>
         function render_image(item) {
-            return `<a href="${item.entry}">
+            return `
+            <a href="${item.entry}">
                 <img id=${item.score} src="${item.entry}?${Math.random()}"
                     title="Effective Score: ${item.score}, Meta: ${item.metadata_score}, Image: ${item.image_score}"
                     class="image">
@@ -25,7 +30,7 @@
                         ? data.map(render_image).join('')
                         : render_json(data);
                 });
-            }
+        }
 
         function regenerate() {
             type = document.getElementById("type").value;
@@ -40,6 +45,7 @@
     </script>
 
     <body>
+        <h1>Semantic Search</h1>
         <!--Add Text Box To Enter Query -->
         <input id="query" type="text" placeholder="Search">
 
