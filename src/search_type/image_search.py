@@ -102,7 +102,7 @@ def extract_metadata(image_name, verbose=0):
         image_metadata = et.get_tags(["XMP:Subject", "XMP:Description"], str(image_name))
         image_metadata_subjects = set([subject.split(":")[1] for subject in image_metadata.get("XMP:Subject", "") if ":" in subject])
         image_processed_metadata = image_metadata.get("XMP:Description", "") + ". " + ", ".join(image_metadata_subjects)
-        if verbose > 1:
+        if verbose > 2:
             print(f"{image_name}:\t{image_processed_metadata}")
         return image_processed_metadata
 
@@ -135,13 +135,14 @@ def query(raw_query, count, model: ImageSearchModel):
 
         # Sum metadata, image scores of the highest ranked images
         for corpus_id, score in metadata_hits.items():
+            scaling_factor = 0.33
             if 'corpus_id' in image_hits:
                 image_hits[corpus_id].update({
                     'metadata_score': score,
-                    'score': image_hits[corpus_id].get('score', 0) + score,
+                    'score': image_hits[corpus_id].get('score', 0) + scaling_factor*score,
                 })
             else:
-                image_hits[corpus_id] = {'metadata_score': score, 'score': score}
+                image_hits[corpus_id] = {'metadata_score': score, 'score': scaling_factor*score}
 
     # Reformat results in original form from sentence transformer semantic_search()
     hits = [
