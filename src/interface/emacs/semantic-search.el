@@ -66,7 +66,7 @@
    (format "* %s \n%s"
            query
            (mapcar
-            (lambda (args) (format "\n** \n  [[%s]]" (cdr (assoc 'Entry args))))
+            (lambda (args) (format "\n** \n  [[%s%s]]" semantic-search--server-url (cdr (assoc 'entry args))))
             json-response))))
 
 (defun semantic-search--extract-entries-as-ledger (json-response query)
