@@ -61,13 +61,25 @@
   "Convert json response from API to org-mode entries with images"
   ;; remove leading (, ) or SPC from extracted entries string
   (replace-regexp-in-string
-   "^[\(\) ]" ""
-   ;; extract entries from response as single string and convert to entries
-   (format "* %s \n%s"
-           query
-           (mapcar
-            (lambda (args) (format "\n** \n  [[%s%s]]" semantic-search--server-url (cdr (assoc 'entry args))))
-            json-response))))
+   "[\(\) ]$" ""
+   ;; remove leading (, ) or SPC from extracted entries string
+   (replace-regexp-in-string
+    "^[\(\) ]" ""
+    ;; extract entries from response as single string and convert to entries
+    (format "<html>\n<body>\n<h1>%s</h1>%s\n\n</body>\n</html>"
+            query
+            (mapcar
+             (lambda (args) (format
+                             "\n\n<h2>Score: %s Meta: %s Image: %s</h2>\n\n<a href=\"%s%s\">\n<img src=\"%s%s?%s\" width=100 height=100>\n</a>"
+                             (cdr (assoc 'score args))
+                             (cdr (assoc 'metadata_score args))
+                             (cdr (assoc 'image_score args))
+                             semantic-search--server-url
+                             (cdr (assoc 'entry args))
+                             semantic-search--server-url
+                             (cdr (assoc 'entry args))
+                             (random 10000)))
+             json-response)))))
 
 (defun semantic-search--extract-entries-as-ledger (json-response query)
   "Convert json response from API to ledger entries"
@@ -118,15 +130,14 @@
          (cond ((or (equal search-type "notes") (equal search-type "music")) (semantic-search--extract-entries-as-org json-response query))
                ((equal search-type "ledger") (semantic-search--extract-entries-as-ledger json-response query))
                ((equal search-type "image") (semantic-search--extract-entries-as-images json-response query))
-               (t (format "%s" json-response)))))
+               (t (format "%s" json-response))))
       (cond ((equal search-type "notes") (org-mode))
             ((equal search-type "ledger") (beancount-mode))
             ((equal search-type "music") (progn (org-mode)
                                                 (org-music-mode)))
-            ((equal search-type "image") (progn (org-mode)
-                                                (setq org-image-actual-width semantic-search--image-width)
-                                                (org-display-inline-images)))
-            (t (fundamental-mode)))
+            ((equal search-type "image") (progn (shr-render-region (point-min) (point-max))
+                                                (goto-char (point-min))))
+            (t (fundamental-mode))))
       (read-only-mode t))
     (switch-to-buffer buff)))
 
