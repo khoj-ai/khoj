@@ -3,10 +3,11 @@
         <meta charset="utf-8">
         <title>Semantic Search</title>
     </head>
+
     <script>
         function render_image(item) {
             return `
-            <a href="${item.entry}">
+            <a href="${item.entry}" class="image-link">
                 <img id=${item.score} src="${item.entry}?${Math.random()}"
                     title="Effective Score: ${item.score}, Meta: ${item.metadata_score}, Image: ${item.image_score}"
                     class="image">
@@ -21,7 +22,7 @@
             query = document.getElementById("query").value;
             type = document.getElementById("type").value;
             console.log(query, type);
-            fetch(`/search?q=${query}&t=${type}`)
+            fetch(`/search?q=${query}&t=${type}&n=6`)
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
@@ -42,12 +43,19 @@
                         render_json(data);
                 });
         }
+
+        function search_on_enter(event) {
+            if (event.key == 'Enter') {
+                search();
+            }
+        }
     </script>
 
     <body>
         <h1>Semantic Search</h1>
+
         <!--Add Text Box To Enter Query -->
-        <input id="query" type="text" placeholder="Search">
+        <input id="query" type="text" placeholder="Search" onkeydown=search_on_enter(event)>
 
         <!--Add Dropdown to Select Query Type.
             Query Types can be: notes, ledger, images, music.
@@ -61,31 +69,49 @@
 
         <!--Add Button To Search -->
         <button id="search" onclick="search()">Search</button>
-        <!--Add Button To Search -->
+        <!--Add Button To Regenerate -->
         <button id="regenerate" onclick="regenerate()">Regenerate</button>
 
+        <!-- Section to Render Results -->
         <div id="results"></div>
     </body>
 
     <style>
         body {
             display: grid;
-            grid-template-columns: 1fr min(65ch, 100%) 1fr;
+            grid-template-columns: 1fr min(70vw, 100%) 1fr;
             margin: 0px;
             padding: 0px;
+            background: #eee;
+            color: #888;
             text-align: center;
+            font-family: roboto, karma, segoe ui, sans-serif;
+            font-size: 20px;
+            font-weight: 300;
+            line-height: 1.5em;
         }
         body > * {
             grid-column: 2;
+            padding: 10px;
             margin: 10px;
+        }
+        h1 {
+            font-weight: 200;
+            color: #888;
         }
         button {
             border-radius: 5px;
             border: 1px solid #ccc;
         }
+        #results {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+        }
+        .image-link {
+            place-self: center;
+        }
         .image {
             width: 20vw;
-            display: inline-grid;
             border-radius: 10px;
             border: 1px solid #ccc;
         }
