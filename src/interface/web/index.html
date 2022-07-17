@@ -77,26 +77,6 @@
     </body>
 
     <style>
-        body {
-            display: grid;
-            grid-template-columns: 1fr min(70vw, 100%) 1fr;
-            margin: 0px;
-            padding: 0px;
-            background: #eee;
-            color: #888;
-            text-align: center;
-            font-family: roboto, karma, segoe ui, sans-serif;
-            font-size: 20px;
-            font-weight: 300;
-            line-height: 1.5em;
-        }
-        body > * {
-            grid-column: 2;
-            padding: 10px;
-            margin: 10px;
-        }
-
-        /* Switch to 1 Column for Mobile Displays */
         @media only screen and (max-width: 600px) {
             body {
                 display: grid;
@@ -106,7 +86,32 @@
                 grid-column: 1;
             }
         }
+        @media only screen and (min-width: 600px) {
+            body {
+                display: grid;
+                grid-template-columns: 1fr min(70vw, 100%) 1fr;
+                padding-top: 60vw;
+            }
+            body > * {
+                grid-column: 2;
+            }
+        }
 
+        body {
+            padding: 0px;
+            margin: 0px;
+            background: #eee;
+            color: #888;
+            text-align: center;
+            font-family: roboto, karma, segoe ui, sans-serif;
+            font-size: 20px;
+            font-weight: 300;
+            line-height: 1.5em;
+        }
+        body > * {
+            padding: 10px;
+            margin: 10px;
+        }
         h1 {
             font-weight: 200;
             color: #888;
