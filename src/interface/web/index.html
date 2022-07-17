@@ -95,6 +95,18 @@
             padding: 10px;
             margin: 10px;
         }
+
+        /* Switch to 1 Column for Mobile Displays */
+        @media only screen and (max-width: 600px) {
+            body {
+                display: grid;
+                grid-template-columns: 1fr;
+            }
+            body > * {
+                grid-column: 1;
+            }
+        }
+
         h1 {
             font-weight: 200;
             color: #888;
