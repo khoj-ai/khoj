@@ -42,6 +42,6 @@
      #+end_src
 
 ** Acknowledgments
-   - [[https://huggingface.co/sentence-transformers/msmarco-MiniLM-L-6-v3][MiniLM Model]] for Asymmetric Text Search. See [[https://www.sbert.net/examples/applications/retrieve_rerank/README.html][SBert Documentation]]
+   - [[https://huggingface.co/sentence-transformers/multi-qa-MiniLM-L6-cos-v1][MiniLM Model]] for Asymmetric Text Search. See [[https://www.sbert.net/examples/applications/retrieve_rerank/README.html][SBert Documentation]]
    - [[https://github.com/openai/CLIP][OpenAI CLIP Model]] for Image Search. See [[https://www.sbert.net/examples/applications/image-search/README.html][SBert Documentation]]
    - Charles Cave for [[http://members.optusnet.com.au/~charles57/GTD/orgnode.html][OrgNode Parser]]

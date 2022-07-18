@@ -85,7 +85,7 @@ default_config = {
         },
          'asymmetric':
         {
-            'encoder': "sentence-transformers/msmarco-MiniLM-L-6-v3",
+            'encoder': "sentence-transformers/multi-qa-MiniLM-L6-cos-v1",
             'cross-encoder': "cross-encoder/ms-marco-MiniLM-L-6-v2",
             'model_directory': None
         },

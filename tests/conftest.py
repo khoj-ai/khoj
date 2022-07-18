@@ -20,7 +20,7 @@ def search_config(tmp_path_factory):
     )
 
     search_config.asymmetric = AsymmetricSearchConfig(
-        encoder = "sentence-transformers/msmarco-MiniLM-L-6-v3",
+        encoder = "sentence-transformers/multi-qa-MiniLM-L6-cos-v1",
         cross_encoder = "cross-encoder/ms-marco-MiniLM-L-6-v2",
         model_directory = model_dir
     )
