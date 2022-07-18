@@ -59,7 +59,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, default="./.dataset", help="Path to dataset to generate index from")
     parser.add_argument('--column', type=str, default="DATA", help="Name of dataset column to index")
     parser.add_argument('--num_results', type=int, default=10, help="Number of most suitable matches to show")
-    parser.add_argument('--model_name', type=str, default='paraphrase-distilroberta-base-v1', help="Specify name of the SentenceTransformer model to use for encoding")
+    parser.add_argument('--model_name', type=str, default='all-MiniLM-L6-v2', help="Specify name of the SentenceTransformer model to use for encoding")
     args = parser.parse_args()
 
     model = SentenceTransformer(args.model_name)

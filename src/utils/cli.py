@@ -79,7 +79,7 @@ default_config = {
     {
         'symmetric':
         {
-            'encoder': "sentence-transformers/paraphrase-MiniLM-L6-v2",
+            'encoder': "sentence-transformers/all-MiniLM-L6-v2",
             'cross-encoder': "cross-encoder/ms-marco-MiniLM-L-6-v2",
             'model_directory': None
         },
