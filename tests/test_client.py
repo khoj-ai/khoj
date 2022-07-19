@@ -20,7 +20,7 @@ client = TestClient(app)
 # ----------------------------------------------------------------------------------------------------
 def test_search_with_invalid_content_type():
     # Arrange
-    user_query = "How to call semantic search from Emacs?"
+    user_query = "How to call Khoj from Emacs?"
 
     # Act
     response = client.get(f"/search?q={user_query}&t=invalid_content_type")
@@ -122,7 +122,7 @@ def test_notes_search(content_config: ContentConfig, search_config: SearchConfig
 
     # Assert
     assert response.status_code == 200
-    # assert actual_data contains "Semantic Search via Emacs" entry
+    # assert actual_data contains "Khoj via Emacs" entry
     search_result = response.json()[0]["Entry"]
     assert "git clone" in search_result
 

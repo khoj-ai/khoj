@@ -1,11 +1,11 @@
-;;; semantic-search.el --- Semantic search via Emacs
+;;; khoj.el --- Natural Search via Emacs
 
 ;; Copyright (C) 2021-2022 Debanjum Singh Solanky
 
 ;; Author: Debanjum Singh Solanky <debanjum@gmail.com>
 ;; Version: 0.1
 ;; Keywords: search, org-mode, outlines
-;; URL: http://github.com/debanjum/semantic-search/interface/emacs
+;; URL: http://github.com/debanjum/khoj/interface/emacs
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -26,26 +26,27 @@
 
 ;;; Commentary:
 
-;; This package provides semantic search on org-mode files
-;; It is a wrapper that interfaces with transformer based ML model
-;; The models semantic search capabilities are exposed via an HTTP API
+;; This package provides natural language search on org-mode notes,
+;; beancount transactions and images.
+;; It is a wrapper that interfaces with transformer based ML models.
+;; The models search capabilities are exposed via the Khoj HTTP API
 
 ;;; Code:
 
 (require 'url)
 (require 'json)
 
-(defcustom semantic-search--server-url "http://localhost:8000"
-  "Location of semantic search API server."
-  :group 'semantic-search
+(defcustom khoj--server-url "http://localhost:8000"
+  "Location of Khoj API server."
+  :group 'khoj
   :type 'string)
 
-(defcustom semantic-search--image-width 156
-  "Width of rendered images returned by semantic search"
-  :group 'semantic-search
+(defcustom khoj--image-width 156
+  "Width of rendered images returned by Khoj"
+  :group 'khoj
   :type 'integer)
 
-(defun semantic-search--extract-entries-as-org (json-response query)
+(defun khoj--extract-entries-as-org (json-response query)
   "Convert json response from API to org-mode entries"
   ;; remove leading (, ) or SPC from extracted entries string
   (replace-regexp-in-string
@@ -57,7 +58,7 @@
             (lambda (args) (format "%s" (cdr (assoc 'Entry args))))
             json-response))))
 
-(defun semantic-search--extract-entries-as-images (json-response query)
+(defun khoj--extract-entries-as-images (json-response query)
   "Convert json response from API to org-mode entries with images"
   ;; remove leading (, ) or SPC from extracted entries string
   (replace-regexp-in-string
@@ -74,14 +75,14 @@
                              (cdr (assoc 'score args))
                              (cdr (assoc 'metadata_score args))
                              (cdr (assoc 'image_score args))
-                             semantic-search--server-url
+                             khoj--server-url
                              (cdr (assoc 'entry args))
-                             semantic-search--server-url
+                             khoj--server-url
                              (cdr (assoc 'entry args))
                              (random 10000)))
              json-response)))))
 
-(defun semantic-search--extract-entries-as-ledger (json-response query)
+(defun khoj--extract-entries-as-ledger (json-response query)
   "Convert json response from API to ledger entries"
   ;; remove leading (, ) or SPC from extracted entries string
   (replace-regexp-in-string
@@ -96,7 +97,7 @@
                (format "%s\n\n" (cdr (assoc 'Entry args))))
              json-response)))))
 
-(defun semantic-search--buffer-name-to-search-type (buffer-name)
+(defun khoj--buffer-name-to-search-type (buffer-name)
   (let ((file-extension (file-name-extension buffer-name)))
     (cond
      ((equal buffer-name "Music.org") "music")
@@ -104,18 +105,18 @@
      ((equal file-extension "org") "notes")
      (t "notes"))))
 
-(defun semantic-search--construct-api-query (query search-type)
+(defun khoj--construct-api-query (query search-type)
   (let ((encoded-query (url-hexify-string query)))
-    (format "%s/search?q=%s&t=%s" semantic-search--server-url encoded-query search-type)))
+    (format "%s/search?q=%s&t=%s" khoj--server-url encoded-query search-type)))
 
 ;;;###autoload
-(defun semantic-search (query)
-  "Semantic search on org-mode content via semantic-search API"
+(defun khoj (query)
+  "Khoj on org-mode content via khoj API"
   (interactive "sQuery: ")
-  (let* ((default-type (semantic-search--buffer-name-to-search-type (buffer-name)))
+  (let* ((default-type (khoj--buffer-name-to-search-type (buffer-name)))
          (search-type (completing-read "Type: " '("notes" "ledger" "music" "image") nil t default-type))
-         (url (semantic-search--construct-api-query query search-type))
-         (buff (get-buffer-create (format "*Semantic Search (q:%s t:%s)*" query search-type))))
+         (url (khoj--construct-api-query query search-type))
+         (buff (get-buffer-create (format "*Khoj (q:%s t:%s)*" query search-type))))
     ;; get json response from api
     (with-current-buffer buff
       (let ((inhibit-read-only t))
@@ -127,9 +128,9 @@
             (json-response (json-parse-buffer :object-type 'alist)))
         (erase-buffer)
         (insert
-         (cond ((or (equal search-type "notes") (equal search-type "music")) (semantic-search--extract-entries-as-org json-response query))
-               ((equal search-type "ledger") (semantic-search--extract-entries-as-ledger json-response query))
-               ((equal search-type "image") (semantic-search--extract-entries-as-images json-response query))
+         (cond ((or (equal search-type "notes") (equal search-type "music")) (khoj--extract-entries-as-org json-response query))
+               ((equal search-type "ledger") (khoj--extract-entries-as-ledger json-response query))
+               ((equal search-type "image") (khoj--extract-entries-as-images json-response query))
                (t (format "%s" json-response))))
       (cond ((equal search-type "notes") (org-mode))
             ((equal search-type "ledger") (beancount-mode))
@@ -141,6 +142,6 @@
       (read-only-mode t))
     (switch-to-buffer buff)))
 
-(provide 'semantic-search)
+(provide 'khoj)
 
-;;; semantic-search.el ends here
+;;; khoj.el ends here

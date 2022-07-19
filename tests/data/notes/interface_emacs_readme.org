@@ -1,33 +1,33 @@
-* Emacs Semantic Search
-  /An Emacs interface for [[https://github.com/debanjum/semantic-search][semantic-search]]/
+* Emacs Khoj
+  /An Emacs interface for [[https://github.com/debanjum/khoj][khoj]]/
 
 ** Requirements
-   - Install and Run [[https://github.com/debanjum/semantic-search][semantic-search]]
+   - Install and Run [[https://github.com/debanjum/khoj][khoj]]
 
 ** Installation
    - Direct Install
-     - Put ~semantic-search.el~ in your Emacs load path. For e.g ~/.emacs.d/lisp
+     - Put ~khoj.el~ in your Emacs load path. For e.g ~/.emacs.d/lisp
 
      - Load via ~use-package~ in your ~/.emacs.d/init.el or .emacs file by adding below snippet
        #+begin_src elisp
-         ;; Org-Semantic Search Library
-         (use-package semantic-search
-           :load-path "~/.emacs.d/lisp/semantic-search.el"
-           :bind ("C-c s" . 'semantic-search))
+         ;; Khoj Package
+         (use-package khoj
+           :load-path "~/.emacs.d/lisp/khoj.el"
+           :bind ("C-c s" . 'khoj))
        #+end_src
 
    - Use [[https://github.com/quelpa/quelpa#installation][Quelpa]]
      - Ensure [[https://github.com/quelpa/quelpa#installation][Quelpa]], [[https://github.com/quelpa/quelpa-use-package#installation][quelpa-use-package]] are installed
      - Add below snippet to your ~/.emacs.d/init.el or .emacs config file and execute it.
        #+begin_src elisp
-         ;; Org-Semantic Search Library
-         (use-package semantic-search
-           :quelpa (semantic-search :fetcher url :url "https://raw.githubusercontent.com/debanjum/semantic-search/master/interface/emacs/semantic-search.el")
-           :bind ("C-c s" . 'semantic-search))
+         ;; Khoj Package
+         (use-package khoj
+           :quelpa (khoj :fetcher url :url "https://raw.githubusercontent.com/debanjum/khoj/master/interface/emacs/khoj.el")
+           :bind ("C-c s" . 'khoj))
        #+end_src
 
 ** Usage
-   1. Call ~semantic-search~ using keybinding ~C-c s~ or ~M-x semantic-search~
+   1. Call ~khoj~ using keybinding ~C-c s~ or ~M-x khoj~
 
    2. Enter Query in Natural Language
 

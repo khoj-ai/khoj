@@ -1,4 +1,4 @@
-name: semantic-search
+name: khoj
 channels:
   - conda-forge
 dependencies:

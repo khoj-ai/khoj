@@ -1,7 +1,7 @@
-* Semantic Search
+* Khoj
   /Allow natural language search on user content like notes, images using transformer based models/
 
-  All data is processed locally. User can interface with semantic-search app via [[./interface/emacs/semantic-search.el][Emacs]], API or Commandline
+  All data is processed locally. User can interface with khoj app via [[./interface/emacs/khoj.el][Emacs]], API or Commandline
 
 ** Dependencies
    - Python3
@@ -9,9 +9,9 @@
 
 ** Install
    #+begin_src shell
-   git clone https://github.com/debanjum/semantic-search && cd semantic-search
+   git clone https://github.com/debanjum/khoj && cd khoj
    conda env create -f environment.yml
-   conda activate semantic-search
+   conda activate khoj
    #+end_src
 
 ** Run
@@ -22,16 +22,16 @@
    #+end_src
 
 ** Use
-   - *Semantic Search via Emacs*
-     - [[https://github.com/debanjum/semantic-search/tree/master/interface/emacs#installation][Install]] [[./interface/emacs/semantic-search.el][semantic-search.el]]
-     - Run ~M-x semantic-search <user-query>~ or Call ~C-c C-s~
+   - *Khoj via Emacs*
+     - [[https://github.com/debanjum/khoj/tree/master/interface/emacs#installation][Install]] [[./interface/emacs/khoj.el][khoj.el]]
+     - Run ~M-x khoj <user-query>~ or Call ~C-c C-s~
 
-   - *Semantic Search via API*
+   - *Khoj via API*
      - Query: ~GET~ [[http://localhost:8000/search?q=%22what%20is%20the%20meaning%20of%20life%22][http://localhost:8000/search?q="What is the meaning of life"]]
      - Regenerate Embeddings: ~GET~ [[http://localhost:8000/regenerate][http://localhost:8000/regenerate]]
-     - [[http://localhost:8000/docs][Semantic Search API Docs]]
+     - [[http://localhost:8000/docs][Khoj API Docs]]
 
-   - *Call Semantic Search via Python Script Directly*
+   - *Call Khoj via Python Script Directly*
      #+begin_src shell
      python3 search_types/asymmetric.py \
      --compressed-jsonl .notes.jsonl.gz \

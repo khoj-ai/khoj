@@ -15,7 +15,7 @@ def cli(args=None):
         return None
 
     # Setup Argument Parser for the Commandline Interface
-    parser = argparse.ArgumentParser(description="Expose API for Semantic Search")
+    parser = argparse.ArgumentParser(description="Expose API for Khoj")
     parser.add_argument('--org-files', '-i', nargs='*', help="List of org-mode files to process")
     parser.add_argument('--org-filter', type=str, default=None, help="Regex filter for org-mode files to process")
     parser.add_argument('--config-file', '-c', type=pathlib.Path, help="YAML file with user configuration")

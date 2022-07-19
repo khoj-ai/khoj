@@ -19,11 +19,11 @@ EXPOSE ${PORT}
 RUN conda env create -f config/environment.yml
 
 # Use the conda environment we created to run the application.
-# To enable the conda env, we cannot simply RUN `conda activate semantic-search`, 
+# To enable the conda env, we cannot simply RUN `conda activate khoj`,
 # since each RUN command in a Dockerfile is a separate bash shell. 
 # The environment would not carry forward.
 # Instead, we'll use `conda run` to run the application.
 # There are more arguments required for the script to run, 
 # but these should be passed in through the docker-compose.yml file.
-ENTRYPOINT ["conda", "run", "--no-capture-output", "--name", "semantic-search", \
+ENTRYPOINT ["conda", "run", "--no-capture-output", "--name", "khoj", \
     "python3", "-m", "src.main"]

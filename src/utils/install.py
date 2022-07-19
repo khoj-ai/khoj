@@ -22,7 +22,7 @@ def create_script(filepath, content):
 
 if __name__ == '__main__':
     # Setup Argument Parser
-    parser = argparse.ArgumentParser(description="Setup the semantic search program")
+    parser = argparse.ArgumentParser(description="Setup the Khoj program")
     parser.add_argument('--script-dir', '-s', default="./", type=pathlib.Path, help="The project directory. Default: Current Directory")
     parser.add_argument('--install-dir', '-i', default="./", type=pathlib.Path, help="The directory to install the script. Default: Current Directory")
     parser.add_argument('--model-dir', '-m', default="./", type=pathlib.Path, help="The directory to store the model in. Default: Current Directory")
@@ -32,7 +32,7 @@ if __name__ == '__main__':
 
 # Arrange
 eval "$(conda shell.bash hook)"
-conda activate semantic-search
+conda activate khoj
 cd {get_absolute(args.script_dir)}
 
 # Act
@@ -43,7 +43,7 @@ python3 search_types/asymmetric.py -j {get_absolute(args.model_dir)}/notes.jsonl
 
 # Arrange
 eval "$(conda shell.bash hook)"
-conda activate semantic-search
+conda activate khoj
 cd {get_absolute(args.script_dir)}
 
 # Act
@@ -54,4 +54,4 @@ python3 main.py -j {get_absolute(args.model_dir)}/notes.jsonl.gz -e {get_absolut
     create_script(f"{args.install_path}run_server"), run_server_content)
 
     # Create single command for interactive queries over commandline
-    create_script(f"{args.install_path}semantic-search"), search_cmd_content)
+    create_script(f"{args.install_path}khoj"), search_cmd_content)

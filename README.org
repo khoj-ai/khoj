@@ -1,9 +1,9 @@
-[[https://github.com/debanjum/semantic-search/actions/workflows/test.yml/badge.svg]] [[https://github.com/debanjum/semantic-search/actions/workflows/build.yml/badge.svg]]
+[[https://github.com/debanjum/khoj/actions/workflows/test.yml/badge.svg]] [[https://github.com/debanjum/khoj/actions/workflows/build.yml/badge.svg]]
 
-* Semantic Search
+* Khoj
   /Allow natural language search on user content like notes, images, transactions using transformer ML models/
 
-  User can interface with semantic-search via the API or [[./src/interface/emacs/semantic-search.el][Emacs]]. All search is done locally[[https://github.com/debanjum/semantic-search#miscellaneous][*]]
+  User can interface with Khoj via the API or [[./src/interface/emacs/khoj.el][Emacs]]. All search is done locally[[https://github.com/debanjum/khoj#miscellaneous][*]]
 
 ** Demo
    https://user-images.githubusercontent.com/6413477/168417719-8a8bc4e5-8404-42b2-89a7-4493e3d2582c.mp4
@@ -12,7 +12,7 @@
 
 *** 1. Clone
     #+begin_src shell
-      git clone https://github.com/debanjum/semantic-search && cd semantic-search
+      git clone https://github.com/debanjum/khoj && cd khoj
     #+end_src
 
 *** 2. Configure
@@ -27,15 +27,15 @@
     /Note: The first run will take time. Let it run, it's mostly not hung, just generating embeddings/
 
 ** Use
-   - *Semantic Search via API*
-     - See [[http://localhost:8000/docs][Semantic Search API Docs]]
+   - *Khoj via API*
+     - See [[http://localhost:8000/docs][Khoj API Docs]]
      - [[http://localhost:8000/search?q=%22what%20is%20the%20meaning%20of%20life%22][Query]]
      - [[http://localhost:8000/regenerate?t=ledger][Regenerate Embeddings]]
      - [[https://localhost:8000/ui][Configure Application]]
 
-   - *Semantic Search via Emacs*
-     - [[https://github.com/debanjum/semantic-search/tree/master/src/interface/emacs#installation][Install]] [[./src/interface/emacs/semantic-search.el][semantic-search.el]]
-     - Run ~M-x semantic-search <user-query>~
+   - *Khoj via Emacs*
+     - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#installation][Install]] [[./src/interface/emacs/khoj.el][khoj.el]]
+     - Run ~M-x khoj <user-query>~
 
 ** Run Unit tests
 
@@ -71,11 +71,11 @@
         sudo apt-get -y install libimage-exiftool-perl
         #+end_src
 
-**** 2. Install Semantic Search
+**** 2. Install Khoj
        #+begin_src shell
-       git clone https://github.com/debanjum/semantic-search && cd semantic-search
+       git clone https://github.com/debanjum/khoj && cd khoj
        conda env create -f config/environment.yml
-       conda activate semantic-search
+       conda activate khoj
        #+end_src
 
 **** 3. Configure
@@ -92,11 +92,11 @@
 
 *** Upgrade On Local Machine
     #+begin_src shell
-      cd semantic-search
+      cd khoj
       git pull origin master
-      conda deactivate semantic-search
+      conda deactivate khoj
       conda env update -f config/environment.yml
-      conda activate semantic-search
+      conda activate khoj
     #+end_src
 
 ** Acknowledgments

@@ -1,4 +1,4 @@
-name: semantic-search
+name: khoj
 channels:
   - conda-forge
 dependencies:
@@ -113,4 +113,4 @@ dependencies:
   - zipp=3.5.0=pyhd8ed1ab_0
   - zlib=1.2.11=h31e879b_1009
   - zstd=1.5.0=h861e0a7_0
-prefix: /opt/homebrew/Caskroom/miniforge/base/envs/semantic-search
+prefix: /opt/homebrew/Caskroom/miniforge/base/envs/khoj
