@@ -1,8 +1,12 @@
+# Standard Modules
+from pathlib import Path
+from PIL import Image
+
 # External Packages
 import pytest
 
 # Internal Packages
-from src.main import model
+from src.main import model, web_directory
 from src.search_type import image_search
 from src.utils.helpers import resolve_absolute_path
 from src.utils.rawconfig import ContentConfig, SearchConfig
@@ -24,8 +28,9 @@ def test_image_search_setup(content_config: ContentConfig, search_config: Search
 @pytest.mark.skip(reason="results inconsistent currently")
 def test_image_search(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
+    output_directory = resolve_absolute_path(web_directory)
     model.image_search = image_search.setup(content_config.image, search_config.image, regenerate=False)
-    query_expected_image_pairs = [("brown kitten next to plant", "kitten_park.jpg"),
+    query_expected_image_pairs = [("kitten", "kitten_park.jpg"),
                                   ("horse and dog in a farm", "horse_dog.jpg"),
                                   ("A guinea pig eating grass", "guineapig_grass.jpg")]
 
@@ -39,11 +44,12 @@ def test_image_search(content_config: ContentConfig, search_config: SearchConfig
         results = image_search.collate_results(
             hits,
             model.image_search.image_names,
-            content_config.image.input_directory,
+            output_directory=output_directory,
+            static_files_url='/static',
             count=1)
 
-        actual_image = results[0]["Entry"]
-        expected_image = resolve_absolute_path(content_config.image.input_directory.joinpath(expected_image_name))
+        actual_image = Image.open(output_directory.joinpath(Path(results[0]["entry"]).name))
+        expected_image = Image.open(content_config.image.input_directories[0].joinpath(expected_image_name))
 
         # Assert
         assert expected_image == actual_image
