@@ -17,7 +17,7 @@ import dateparser as dtparse
 date_regex = r"dt([:><=]{1,2})\"(.*?)\""
 
 
-def date_filter(query, entries, embeddings):
+def date_filter(query, entries, embeddings, entry_key='raw'):
     "Find entries containing any dates that fall within date range specified in query"
     # extract date range specified in date filter of query
     query_daterange = extract_date_range(query)
@@ -34,7 +34,7 @@ def date_filter(query, entries, embeddings):
     entries_to_include = set()
     for id, entry in enumerate(entries):
         # Extract dates from entry
-        for date_in_entry_string in re.findall(r'\d{4}-\d{2}-\d{2}', entry[1]):
+        for date_in_entry_string in re.findall(r'\d{4}-\d{2}-\d{2}', entry[entry_key]):
             # Convert date string in entry to unix timestamp
             try:
                 date_in_entry = datetime.strptime(date_in_entry_string, '%Y-%m-%d').timestamp()

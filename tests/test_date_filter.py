@@ -13,9 +13,9 @@ from src.search_filter import date_filter
 def test_date_filter():
     embeddings = torch.randn(3, 10)
     entries = [
-        ['', 'Entry with no date'],
-        ['', 'April Fools entry: 1984-04-01'],
-        ['', 'Entry with date:1984-04-02']]
+        {'embed': '', 'raw': 'Entry with no date'},
+        {'embed': '', 'raw': 'April Fools entry: 1984-04-01'},
+        {'embed': '', 'raw': 'Entry with date:1984-04-02'}]
 
     q_with_no_date_filter = 'head tail'
     ret_query, ret_entries, ret_emb = date_filter.date_filter(q_with_no_date_filter, entries.copy(), embeddings)

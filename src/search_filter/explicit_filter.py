@@ -5,7 +5,7 @@ import re
 import torch
 
 
-def explicit_filter(raw_query, entries, embeddings):
+def explicit_filter(raw_query, entries, embeddings, entry_key='raw'):
     # Separate natural query from explicit required, blocked words filters
     query = " ".join([word for word in raw_query.split() if not word.startswith("+") and not word.startswith("-")])
     required_words = set([word[1:].lower() for word in raw_query.split() if word.startswith("+")])
@@ -19,7 +19,7 @@ def explicit_filter(raw_query, entries, embeddings):
     entry_splitter = r',|\.| |\]|\[\(|\)|\{|\}|\t|\n|\:'
     entries_by_word_set = [set(word.lower()
                              for word
-                             in re.split(entry_splitter, entry[1])
+                             in re.split(entry_splitter, entry[entry_key])
                              if word != "")
                         for entry in entries]
 
