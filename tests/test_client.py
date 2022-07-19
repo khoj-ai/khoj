@@ -94,9 +94,9 @@ def test_image_search(content_config: ContentConfig, search_config: SearchConfig
     config.content_type = content_config
     config.search_type = search_config
     model.image_search = image_search.setup(content_config.image, search_config.image, regenerate=False)
-    query_expected_image_pairs = [("brown kitten next to fallen plant", "kitten_park.jpg"),
-                                  ("a horse and dog on a leash", "horse_dog.jpg"),
-                                  ("A guinea pig eating grass", "guineapig_grass.jpg")]
+    query_expected_image_pairs = [("brown kitten next to fallen plant", "/static/0.jpg"), # kitten_park.jpg
+                                  ("a horse and dog on a leash", "static/1.jpg"),         # horse_dog.jpg
+                                  ("A guinea pig eating grass", "static/2.jpg")]          # guineapig_grass.jpg
 
     # Act
     for query, expected_image_name in query_expected_image_pairs:
@@ -104,8 +104,8 @@ def test_image_search(content_config: ContentConfig, search_config: SearchConfig
 
         # Assert
         assert response.status_code == 200
-        actual_image = Path(response.json()[0]["Entry"])
-        expected_image = resolve_absolute_path(content_config.image.input_directory.joinpath(expected_image_name))
+        actual_image = Path(response.json()[0]["entry"])
+        expected_image = Path(expected_image_name)
 
         # Assert
         assert expected_image == actual_image
@@ -123,7 +123,7 @@ def test_notes_search(content_config: ContentConfig, search_config: SearchConfig
     # Assert
     assert response.status_code == 200
     # assert actual_data contains "Khoj via Emacs" entry
-    search_result = response.json()[0]["Entry"]
+    search_result = response.json()[0]["entry"]
     assert "git clone" in search_result
 
 
@@ -139,7 +139,7 @@ def test_notes_search_with_include_filter(content_config: ContentConfig, search_
     # Assert
     assert response.status_code == 200
     # assert actual_data contains explicitly included word "Emacs"
-    search_result = response.json()[0]["Entry"]
+    search_result = response.json()[0]["entry"]
     assert "Emacs" in search_result
 
 
@@ -155,5 +155,5 @@ def test_notes_search_with_exclude_filter(content_config: ContentConfig, search_
     # Assert
     assert response.status_code == 200
     # assert actual_data does not contains explicitly excluded word "Emacs"
-    search_result = response.json()[0]["Entry"]
+    search_result = response.json()[0]["entry"]
     assert "clone" not in search_result
