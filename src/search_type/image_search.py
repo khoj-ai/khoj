@@ -169,13 +169,11 @@ def render_results(hits, image_names, image_directory, count):
             img.show()
 
 
-def collate_results(hits, image_names, image_directory, output_directory, static_files_url, count=5):
+def collate_results(hits, image_names, output_directory, static_files_url, count=5):
     results = []
-    image_directory = resolve_absolute_path(image_directory, strict=True)
 
     for index, hit in enumerate(hits[:count]):
-        source_image_name = image_names[hit['corpus_id']]
-        source_path = image_directory.joinpath(source_image_name)
+        source_path = image_names[hit['corpus_id']]
 
         target_image_name = f"{index}{source_path.suffix}"
         target_path = resolve_absolute_path(f"{output_directory}/{target_image_name}")

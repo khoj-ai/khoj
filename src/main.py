@@ -94,7 +94,6 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
         return image_search.collate_results(
             hits,
             image_names=model.image_search.image_names,
-            image_directory=config.content_type.image.input_directory,
             output_directory=output_directory,
             static_files_url='/static',
             count=results_count)
