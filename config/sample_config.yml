@@ -15,7 +15,7 @@ content-type:
     embeddings-file: /data/embeddings/transaction_embeddings.pt
 
   image:
-    input-directory: "/data/images/"
+    input-directories: ["/data/images/"]
     embeddings-file: "/data/embeddings/image_embeddings.pt"
     batch-size: 50
     use-xmp-metadata: true

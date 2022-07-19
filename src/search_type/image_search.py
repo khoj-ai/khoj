@@ -30,10 +30,12 @@ def initialize_model(search_config: ImageSearchConfig):
     return encoder
 
 
-def extract_entries(image_directory, verbose=0):
-    image_directory = resolve_absolute_path(image_directory, strict=True)
-    image_names = list(image_directory.glob('*.jpg'))
-    image_names.extend(list(image_directory.glob('*.jpeg')))
+def extract_entries(image_directories, verbose=0):
+    image_names = []
+    for image_directory in image_directories:
+        image_directory = resolve_absolute_path(image_directory, strict=True)
+        image_names = list(image_directory.glob('*.jpg'))
+        image_names.extend(list(image_directory.glob('*.jpeg')))
 
     if verbose > 0:
         print(f'Found {len(image_names)} images in {image_directory}')
@@ -197,8 +199,8 @@ def setup(config: ImageContentConfig, search_config: ImageSearchConfig, regenera
     encoder = initialize_model(search_config)
 
     # Extract Entries
-    image_directory = resolve_absolute_path(config.input_directory, strict=True)
-    image_names = extract_entries(image_directory, verbose)
+    image_directories = [resolve_absolute_path(directory, strict=True) for directory in config.input_directories]
+    image_names = extract_entries(image_directories, verbose)
 
     # Compute or Load Embeddings
     embeddings_file = resolve_absolute_path(config.embeddings_file)

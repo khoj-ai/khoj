@@ -22,7 +22,7 @@ class TextContentConfig(ConfigBase):
 class ImageContentConfig(ConfigBase):
     use_xmp_metadata: Optional[bool]
     batch_size: Optional[int]
-    input_directory: Optional[Path]
+    input_directories: Optional[List[Path]]
     input_filter: Optional[str]
     embeddings_file: Optional[Path]
 

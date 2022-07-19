@@ -41,7 +41,7 @@ def model_dir(search_config):
     # Generate Image Embeddings from Test Images
     content_config = ContentConfig()
     content_config.image = ImageContentConfig(
-        input_directory = 'tests/data/images',
+        input_directories = ['tests/data/images'],
         embeddings_file = model_dir.joinpath('image_embeddings.pt'),
         batch_size = 10,
         use_xmp_metadata = False)
@@ -70,7 +70,7 @@ def content_config(model_dir):
         embeddings_file = model_dir.joinpath('note_embeddings.pt'))
 
     content_config.image = ImageContentConfig(
-        input_directory = 'tests/data/images',
+        input_directories = ['tests/data/images'],
         embeddings_file = model_dir.joinpath('image_embeddings.pt'),
         batch_size = 10,
         use_xmp_metadata = False)
