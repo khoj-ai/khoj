@@ -34,11 +34,12 @@ def extract_entries(image_directories, verbose=0):
     image_names = []
     for image_directory in image_directories:
         image_directory = resolve_absolute_path(image_directory, strict=True)
-        image_names = list(image_directory.glob('*.jpg'))
+        image_names.extend(list(image_directory.glob('*.jpg')))
         image_names.extend(list(image_directory.glob('*.jpeg')))
 
     if verbose > 0:
-        print(f'Found {len(image_names)} images in {image_directory}')
+        image_directory_names = ', '.join([str(image_directory) for image_directory in image_directories])
+        print(f'Found {len(image_names)} images in {image_directory_names}')
     return image_names
 
 
