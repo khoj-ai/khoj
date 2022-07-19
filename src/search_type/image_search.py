@@ -40,7 +40,7 @@ def extract_entries(image_directories, verbose=0):
     if verbose > 0:
         image_directory_names = ', '.join([str(image_directory) for image_directory in image_directories])
         print(f'Found {len(image_names)} images in {image_directory_names}')
-    return image_names
+    return sorted(image_names)
 
 
 def compute_embeddings(image_names, encoder, embeddings_file, batch_size=50, use_xmp_metadata=False, regenerate=False, verbose=0):
