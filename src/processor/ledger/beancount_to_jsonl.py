@@ -113,7 +113,7 @@ def extract_beancount_entries(beancount_files):
     "Extract entries from specified Beancount files"
 
     # Initialize Regex for extracting Beancount Entries
-    date_regex = r'^\n?\d{4}-\d{2}-\d{2}'
+    transaction_regex = r'^\n?\d{4}-\d{2}-\d{2} [\*|\!] '
     empty_newline = f'^[{empty_escape_sequences}]*$'
 
     entries = []
@@ -123,7 +123,7 @@ def extract_beancount_entries(beancount_files):
             entries.extend([entry.strip(empty_escape_sequences)
                for entry
                in re.split(empty_newline, ledger_content, flags=re.MULTILINE)
-               if re.match(date_regex, entry)])
+               if re.match(transaction_regex, entry)])
 
     return entries
 
