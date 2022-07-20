@@ -12,7 +12,7 @@ def get_absolute(path):
 def create_script(filepath, content):
     # Create Program Script File
     with open(get_absolute(filepath, 'w')) as run_script:
-        run_script.write(run_script_content)
+        run_script.write(content)
 
     # Make Script Executable
     absolute_install_path = str(get_absolute(filepath))
@@ -51,7 +51,7 @@ python3 main.py -j {get_absolute(args.model_dir)}/notes.jsonl.gz -e {get_absolut
 '''
 
     # Create single command to start API server exposing HTTP interface
-    create_script(f"{args.install_path}run_server"), run_server_content)
+    create_script(f"{args.install_path}run_server", run_server_content)
 
     # Create single command for interactive queries over commandline
-    create_script(f"{args.install_path}khoj"), search_cmd_content)
+    create_script(f"{args.install_path}khoj", search_cmd_content)
