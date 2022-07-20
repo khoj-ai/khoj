@@ -38,7 +38,7 @@ def initialize_model(search_config: SymmetricSearchConfig):
 
 def extract_entries(notesfile, verbose=0):
     "Load entries from compressed jsonl"
-    return [{'raw': f'{entry["Title"]}', 'compiled': f'{entry["Title"]}'}
+    return [{'compiled': f'{entry["compiled"]}', 'raw': f'{entry["raw"]}'}
             for entry
             in load_jsonl(notesfile, verbose=verbose)]
 

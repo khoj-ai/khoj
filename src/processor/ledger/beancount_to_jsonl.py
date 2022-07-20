@@ -132,7 +132,7 @@ def convert_beancount_entries_to_jsonl(entries, verbose=0):
     "Convert each Beancount transaction to JSON and collate as JSONL"
     jsonl = ''
     for entry in entries:
-        entry_dict = {'Title': entry}
+        entry_dict = {'compiled': entry, 'raw': entry}
         # Convert Dictionary to JSON and Append to JSONL string
         jsonl += f'{json.dumps(entry_dict, ensure_ascii=False)}\n'
 
