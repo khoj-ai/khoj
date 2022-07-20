@@ -10,6 +10,7 @@ import gzip
 # Internal Packages
 from src.processor.org_mode import orgnode
 from src.utils.helpers import get_absolute_path, is_none_or_empty
+from src.utils.constants import empty_escape_sequences
 
 
 # Define Functions
@@ -105,33 +106,37 @@ def convert_org_entries_to_jsonl(entries, verbose=0):
     for entry in entries:
         entry_dict = dict()
 
-        entry_dict["Title"] = entry.Heading()
+        # Ignore title notes i.e notes with just headings and empty body
+        if not entry.Body() or entry.Body().strip(empty_escape_sequences) == "":
+            continue
+
+        entry_dict["compiled"] = f'{entry.Heading()}.'
         if verbose > 1:
             print(f"Title: {entry.Heading()}")
 
         if entry.Tags():
             tags_str = " ".join(entry.Tags())
-            entry_dict["Tags"] = tags_str
+            entry_dict["compiled"] += f'\t {tags_str}.'
             if verbose > 2:
                 print(f"Tags: {tags_str}")
 
         if entry.Closed():
-            entry_dict["Closed"] = entry.Closed().strftime("%Y-%m-%d")
+            entry_dict["compiled"] += f'\n Closed on {entry.Closed().strftime("%Y-%m-%d")}.'
             if verbose > 2:
                 print(f'Closed: {entry.Closed().strftime("%Y-%m-%d")}')
 
         if entry.Scheduled():
-            entry_dict["Scheduled"] = entry.Scheduled().strftime("%Y-%m-%d")
+            entry_dict["compiled"] += f'\n Scheduled for {entry.Scheduled().strftime("%Y-%m-%d")}.'
             if verbose > 2:
                 print(f'Scheduled: {entry.Scheduled().strftime("%Y-%m-%d")}')
 
         if entry.Body():
-            entry_dict["Body"] = entry.Body()
+            entry_dict["compiled"] += f'\n {entry.Body()}'
             if verbose > 2:
                 print(f"Body: {entry.Body()}")
 
         if entry_dict:
-            entry_dict["Raw"] = f'{entry}'
+            entry_dict["raw"] = f'{entry}'
 
             # Convert Dictionary to JSON and Append to JSONL string
             jsonl += f'{json.dumps(entry_dict, ensure_ascii=False)}\n'

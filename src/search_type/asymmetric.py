@@ -55,18 +55,7 @@ def extract_entries(notesfile, verbose=0):
     # Read File
     for line in jsonl_file:
         note = json.loads(line.strip(empty_escape_sequences))
-
-        # Ignore title notes i.e notes with just headings and empty body
-        if not "Body" in note or note["Body"].strip(empty_escape_sequences) == "":
-            continue
-
-        scheduled_str = f'\t Scheduled for {note["Scheduled"]}' if "Scheduled" in note else ""
-        closed_str = f'\t Closed on {note["Closed"]}' if "Closed" in note else ""
-        tags_str = f'\t {note["Tags"]}' if "Tags" in note else ""
-        body_str = f'\n {note["Body"]}' if "Body" in note else ""
-
-        note_string = f'{note["Title"]}{tags_str}{closed_str}{scheduled_str}{body_str}'
-        entries.append({'compiled': note_string, 'raw': note["Raw"]})
+        entries.append({'compiled': note['compiled'], 'raw': note["raw"]})
 
     # Close File
     jsonl_file.close()
