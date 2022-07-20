@@ -5,12 +5,12 @@ import json
 import argparse
 import pathlib
 import glob
-import gzip
 import re
 
 # Internal Packages
 from src.utils.helpers import get_absolute_path, is_none_or_empty
 from src.utils.constants import empty_escape_sequences
+from src.utils.jsonl import dump_jsonl, compress_jsonl_data
 
 
 # Define Functions
@@ -36,25 +36,6 @@ def beancount_to_jsonl(beancount_files, beancount_file_filter, output_file, verb
         dump_jsonl(jsonl_data, output_file, verbose=verbose)
 
     return entries
-
-
-def dump_jsonl(jsonl_data, output_path, verbose=0):
-    "Write List of JSON objects to JSON line file"
-    with open(get_absolute_path(output_path), 'w', encoding='utf-8') as f:
-        f.write(jsonl_data)
-
-    if verbose > 0:
-        jsonl_entries = len(jsonl_data.split('\n'))
-        print(f'Wrote {jsonl_entries} lines to jsonl at {output_path}')
-
-
-def compress_jsonl_data(jsonl_data, output_path, verbose=0):
-    with gzip.open(get_absolute_path(output_path), 'wt') as gzip_file:
-        gzip_file.write(jsonl_data)
-
-    if verbose > 0:
-        jsonl_entries = len(jsonl_data.split('\n'))
-        print(f'Wrote {jsonl_entries} lines to gzip compressed jsonl at {output_path}')
 
 
 def get_beancount_files(beancount_files=None, beancount_file_filter=None, verbose=0):

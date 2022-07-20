@@ -10,10 +10,11 @@ import torch
 from sentence_transformers import SentenceTransformer, CrossEncoder, util
 
 # Internal Packages
-from src.utils.helpers import get_absolute_path, resolve_absolute_path, load_model, load_jsonl
+from src.utils.helpers import get_absolute_path, resolve_absolute_path, load_model
 from src.processor.org_mode.org_to_jsonl import org_to_jsonl
 from src.utils.config import TextSearchModel
 from src.utils.rawconfig import AsymmetricSearchConfig, TextContentConfig
+from src.utils.jsonl import load_jsonl
 
 
 def initialize_model(search_config: AsymmetricSearchConfig):

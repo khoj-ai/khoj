@@ -5,12 +5,12 @@ import json
 import argparse
 import pathlib
 import glob
-import gzip
 
 # Internal Packages
 from src.processor.org_mode import orgnode
 from src.utils.helpers import get_absolute_path, is_none_or_empty
 from src.utils.constants import empty_escape_sequences
+from src.utils.jsonl import dump_jsonl, compress_jsonl_data
 
 
 # Define Functions
@@ -36,35 +36,6 @@ def org_to_jsonl(org_files, org_file_filter, output_file, verbose=0):
         dump_jsonl(jsonl_data, output_file, verbose=verbose)
 
     return entries
-
-def dump_jsonl(jsonl_data, output_path, verbose=0):
-    "Write List of JSON objects to JSON line file"
-    with open(get_absolute_path(output_path), 'w', encoding='utf-8') as f:
-        f.write(jsonl_data)
-
-    if verbose > 0:
-        print(f'Wrote {len(jsonl_data)} lines to jsonl at {output_path}')
-
-
-def compress_jsonl_data(jsonl_data, output_path, verbose=0):
-    with gzip.open(get_absolute_path(output_path), 'wt') as gzip_file:
-        gzip_file.write(jsonl_data)
-
-    if verbose > 0:
-        print(f'Wrote {len(jsonl_data)} lines to gzip compressed jsonl at {output_path}')
-
-
-def load_jsonl(input_path, verbose=0):
-    "Read List of JSON objects from JSON line file"
-    data = []
-    with open(get_absolute_path(input_path), 'r', encoding='utf-8') as f:
-        for line in f:
-            data.append(json.loads(line.rstrip('\n|\r')))
-
-    if verbose > 0:
-        print(f'Loaded {len(data)} records from {input_path}')
-
-    return data
 
 
 def get_org_files(org_files=None, org_file_filter=None, verbose=0):
