@@ -37,7 +37,7 @@ def test_asymmetric_search(content_config: ContentConfig, search_config: SearchC
 
     # Assert
     # Actual_data should contain "Khoj via Emacs" entry
-    search_result = results[0]["Entry"]
+    search_result = results[0]["entry"]
     assert "git clone" in search_result
 
 

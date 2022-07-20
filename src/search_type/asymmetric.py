@@ -151,8 +151,8 @@ def render_results(hits, entries, count=5, display_biencoder_results=False):
 def collate_results(hits, entries, count=5):
     return [
         {
-            "Entry": entries[hit['corpus_id']]['raw'],
-            "Score": f"{hit['cross-score']:.3f}"
+            "entry": entries[hit['corpus_id']]['raw'],
+            "score": f"{hit['cross-score']:.3f}"
         }
         for hit
         in hits[0:count]]

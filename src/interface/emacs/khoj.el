@@ -55,7 +55,7 @@
    (format "* %s\n%s"
            query
            (mapcar
-            (lambda (args) (format "%s" (cdr (assoc 'Entry args))))
+            (lambda (args) (format "%s" (cdr (assoc 'entry args))))
             json-response))))
 
 (defun khoj--extract-entries-as-images (json-response query)
@@ -94,7 +94,7 @@
             query
             (mapcar
              (lambda (args)
-               (format "%s\n\n" (cdr (assoc 'Entry args))))
+               (format "%s\n\n" (cdr (assoc 'entry args))))
              json-response)))))
 
 (defun khoj--buffer-name-to-search-type (buffer-name)
