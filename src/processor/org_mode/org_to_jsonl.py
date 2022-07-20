@@ -115,6 +115,16 @@ def convert_org_entries_to_jsonl(entries, verbose=0):
             if verbose > 2:
                 print(f"Tags: {tags_str}")
 
+        if entry.Closed():
+            entry_dict["Closed"] = entry.Closed().strftime("%Y-%m-%d")
+            if verbose > 2:
+                print(f'Closed: {entry.Closed().strftime("%Y-%m-%d")}')
+
+        if entry.Scheduled():
+            entry_dict["Scheduled"] = entry.Scheduled().strftime("%Y-%m-%d")
+            if verbose > 2:
+                print(f'Scheduled: {entry.Scheduled().strftime("%Y-%m-%d")}')
+
         if entry.Body():
             entry_dict["Body"] = entry.Body()
             if verbose > 2:
