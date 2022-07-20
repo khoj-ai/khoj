@@ -9,7 +9,6 @@ import gzip
 import re
 
 # Internal Packages
-from src.processor.org_mode import orgnode
 from src.utils.helpers import get_absolute_path, is_none_or_empty
 from src.utils.constants import empty_escape_sequences
 
@@ -56,32 +55,6 @@ def compress_jsonl_data(jsonl_data, output_path, verbose=0):
     if verbose > 0:
         jsonl_entries = len(jsonl_data.split('\n'))
         print(f'Wrote {jsonl_entries} lines to gzip compressed jsonl at {output_path}')
-
-
-def load_jsonl(input_path, verbose=0):
-    "Read List of JSON objects from JSON line file"
-    # Initialize Variables
-    data = []
-    jsonl_file = None
-
-    # Open JSONL file
-    if input_path.suffix == ".gz":
-        jsonl_file = gzip.open(get_absolute_path(input_path), 'rt', encoding='utf-8')
-    elif input_path.suffix == ".jsonl":
-        jsonl_file = open(get_absolute_path(input_path), 'r', encoding='utf-8')
-
-    # Read JSONL file
-    for line in jsonl_file:
-        data.append(json.loads(line.strip(empty_escape_sequences)))
-
-    # Close JSONL file
-    jsonl_file.close()
-
-    # Log JSONL entries loaded
-    if verbose > 0:
-        print(f'Loaded {len(data)} records from {input_path}')
-
-    return data
 
 
 def get_beancount_files(beancount_files=None, beancount_file_filter=None, verbose=0):

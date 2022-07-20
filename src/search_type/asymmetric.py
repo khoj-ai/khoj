@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
 # Standard Packages
-import json
-import gzip
 import argparse
 import pathlib
 from copy import deepcopy
@@ -12,11 +10,10 @@ import torch
 from sentence_transformers import SentenceTransformer, CrossEncoder, util
 
 # Internal Packages
-from src.utils.helpers import get_absolute_path, resolve_absolute_path, load_model
+from src.utils.helpers import get_absolute_path, resolve_absolute_path, load_model, load_jsonl
 from src.processor.org_mode.org_to_jsonl import org_to_jsonl
 from src.utils.config import TextSearchModel
 from src.utils.rawconfig import AsymmetricSearchConfig, TextContentConfig
-from src.utils.constants import empty_escape_sequences
 
 
 def initialize_model(search_config: AsymmetricSearchConfig):
@@ -43,27 +40,9 @@ def initialize_model(search_config: AsymmetricSearchConfig):
 
 def extract_entries(notesfile, verbose=0):
     "Load entries from compressed jsonl"
-    entries = []
-    jsonl_file = None
-
-    # Open File
-    if notesfile.suffix == ".gz":
-        jsonl_file = gzip.open(get_absolute_path(notesfile), "rt", encoding='utf8')
-    elif notesfile.suffix == ".jsonl":
-        jsonl_file = open(get_absolute_path(notesfile), "r", encoding='utf8')
-
-    # Read File
-    for line in jsonl_file:
-        note = json.loads(line.strip(empty_escape_sequences))
-        entries.append({'compiled': note['compiled'], 'raw': note["raw"]})
-
-    # Close File
-    jsonl_file.close()
-
-    if verbose > 0:
-        print(f"Loaded {len(entries)} entries from {notesfile}")
-
-    return entries
+    return [{'compiled': f'{entry["compiled"]}', 'raw': f'{entry["raw"]}'}
+            for entry
+            in load_jsonl(notesfile, verbose=verbose)]
 
 
 def compute_embeddings(entries, bi_encoder, embeddings_file, regenerate=False, device='cpu', verbose=0):
