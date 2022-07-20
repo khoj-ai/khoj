@@ -66,6 +66,7 @@ def makelist(filename):
    closed_date   = ''
    sched_date    = ''
    deadline_date = ''
+   logbook       = list()
    nodelist      = []
    propdict      = dict()
    in_properties_drawer = False
@@ -86,6 +87,9 @@ def makelist(filename):
              if deadline_date:
                 thisNode.setDeadline(deadline_date)
                 deadline_date = ''
+             if logbook:
+                thisNode.setLogbook(logbook)
+                logbook = list()
              thisNode.setProperties(propdict)
              nodelist.append( thisNode )
           propdict = {'LINE': f'file:{normalize_filename(filename)}::{ctr}'}
@@ -121,8 +125,14 @@ def makelist(filename):
               in_logbook_drawer=False
               continue
 
-           # Ignore Clocking Lines
-           if re.search(r'CLOCK: \[[0-9]{4}-[0-9]{2}-[0-9]{2}', line):
+           # Extract Clocking Lines
+           clocked_re = re.search(r'CLOCK:\s*\[([0-9]{4}-[0-9]{2}-[0-9]{2} [a-zA-Z]{3} [0-9]{2}:[0-9]{2})\]--\[([0-9]{4}-[0-9]{2}-[0-9]{2} [a-zA-Z]{3} [0-9]{2}:[0-9]{2})\]', line)
+           if clocked_re:
+              # convert clock in, clock out strings to datetime objects
+              clocked_in = datetime.datetime.strptime(clocked_re.group(1), '%Y-%m-%d %a %H:%M')
+              clocked_out = datetime.datetime.strptime(clocked_re.group(2), '%Y-%m-%d %a %H:%M')
+              # add clocked time to the entries logbook list
+              logbook += [(clocked_in, clocked_out)]
               line = ""
 
            prop_srch = re.search(r'^\s*:([a-zA-Z0-9]+):\s*(.*?)\s*$', line)
@@ -150,8 +160,8 @@ def makelist(filename):
                                             int(dd_re.group(2)),
                                             int(dd_re.group(3)) )
 
-           # Ignore property drawer, scheduled, closed, deadline and # lines from body
-           if not in_properties_drawer and not cd_re and not sd_re and not dd_re and line[:1] != '#':
+           # Ignore property drawer, scheduled, closed, deadline, logbook entries and # lines from body
+           if not in_properties_drawer and not cd_re and not sd_re and not dd_re and not clocked_re and line[:1] != '#':
                bodytext = bodytext + line
 
    # write out last node
@@ -163,6 +173,8 @@ def makelist(filename):
       thisNode.setDeadline(deadline_date)
    if closed_date:
       thisNode.setClosed(closed_date)
+   if logbook:
+      thisNode.setLogbook(logbook)
    nodelist.append( thisNode )
 
    # using the list of TODO keywords found in the file
@@ -210,6 +222,7 @@ class Orgnode(object):
         self.deadline = ""        # Deadline date
         self.closed = ""          # Closed date
         self.properties = dict()
+        self.logbook = list()     # List of clock-in, clock-out tuples representing logbook entries
 
         # Look for priority in headline and transfer to prty field
 
@@ -335,6 +348,18 @@ class Orgnode(object):
         Return the closed date object or null if nonexistent
         """
         return self.closed
+
+    def setLogbook(self, logbook):
+        """
+        Set the logbook with list of clocked-in, clocked-out tuples for the entry
+        """
+        self.logbook = logbook
+
+    def Logbook(self):
+        """
+        Return the logbook with all clocked-in, clocked-out date object pairs or empty list if nonexistent
+        """
+        return self.logbook
 
     def __repr__(self):
         """

@@ -63,6 +63,7 @@ Body Line 2'''
     assert entries[0].Closed() == datetime.date(1984,4,1)
     assert entries[0].Scheduled() == datetime.date(1984,4,1)
     assert entries[0].Deadline() == datetime.date(1984,4,1)
+    assert entries[0].Logbook() == [(datetime.datetime(1984,4,1,9,0,0), datetime.datetime(1984,4,1,12,0,0))]
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -140,7 +141,7 @@ CLOSED: [1984-04-02 Sun 12:00] SCHEDULED: <1984-04-02 Sun 09:00> DEADLINE: <1984
 :ID: 123-456-789-4234-0002
 :END:
 :LOGBOOK:
-CLOCK: [1984-04-01 Sun 09:00]--[1984-04-01 Sun 12:00] => 3:00
+CLOCK: [1984-04-02 Mon 09:00]--[1984-04-02 Mon 12:00] => 3:00
 - Clocked Log 2
 :END:
 Body 2
@@ -162,6 +163,7 @@ Body 2
         assert entry.Closed() == datetime.date(1984,4,index+1)
         assert entry.Scheduled() == datetime.date(1984,4,index+1)
         assert entry.Deadline() == datetime.date(1984,4,index+1)
+        assert entry.Logbook() == [(datetime.datetime(1984,4,index+1,9,0,0), datetime.datetime(1984,4,index+1,12,0,0))]
 
 
 # Helper Functions
