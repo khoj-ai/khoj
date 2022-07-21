@@ -16,7 +16,7 @@
     #+end_src
 
 *** 2. Configure
-    - [Required] Update [[./docker-compose.yml][docker-compose.yml]] to mount your images, org-mode notes and beancount directories
+    - [Required] Update [[./docker-compose.yml][docker-compose.yml]] to mount your images, (org-mode or markdown) notes and beancount directories
     - [Optional] Edit application configuration in [[./config/sample_config.yml][sample_config.yml]]
 
 *** 3. Run

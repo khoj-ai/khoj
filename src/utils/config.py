@@ -11,6 +11,7 @@ class SearchType(str, Enum):
     Notes = "notes"
     Ledger = "ledger"
     Music = "music"
+    Markdown = "markdown"
     Image = "image"
 
 
@@ -39,6 +40,7 @@ class SearchModels():
     notes_search: TextSearchModel = None
     ledger_search: TextSearchModel = None
     music_search: TextSearchModel = None
+    markdown_search: TextSearchModel = None
     image_search: ImageSearchModel = None
 
 

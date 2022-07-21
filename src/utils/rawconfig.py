@@ -31,6 +31,7 @@ class ContentConfig(ConfigBase):
     ledger: Optional[TextContentConfig]
     image: Optional[ImageContentConfig]
     music: Optional[TextContentConfig]
+    markdown: Optional[TextContentConfig]
 
 class TextSearchConfig(ConfigBase):
     encoder: Optional[str]

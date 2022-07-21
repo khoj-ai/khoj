@@ -14,6 +14,7 @@ from fastapi.templating import Jinja2Templates
 from src.search_type import image_search, text_search
 from src.processor.org_mode.org_to_jsonl import org_to_jsonl
 from src.processor.ledger.beancount_to_jsonl import beancount_to_jsonl
+from src.processor.markdown.markdown_to_jsonl import markdown_to_jsonl
 from src.utils.helpers import get_absolute_path, get_from_dict
 from src.utils.cli import cli
 from src.utils.config import SearchType, SearchModels, ProcessorConfigModel, ConversationProcessorConfigModel
@@ -80,6 +81,13 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
         # collate and return results
         return text_search.collate_results(hits, entries, results_count)
 
+    if (t == SearchType.Markdown or t == None) and model.notes_search:
+        # query markdown files
+        hits, entries = text_search.query(user_query, model.markdown_search, device=device, filters=[explicit_filter, date_filter])
+
+        # collate and return results
+        return text_search.collate_results(hits, entries, results_count)
+
     if (t == SearchType.Ledger or t == None) and model.ledger_search:
         # query transactions
         hits, entries = text_search.query(user_query, model.ledger_search, filters=[explicit_filter, date_filter])
@@ -88,7 +96,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
         return text_search.collate_results(hits, entries, results_count)
 
     if (t == SearchType.Image or t == None) and model.image_search:
-        # query transactions
+        # query images
         hits = image_search.query(user_query, results_count, model.image_search)
         output_directory = f'{os.getcwd()}/{web_directory}'
 
@@ -171,6 +179,11 @@ def initialize_search(config: FullConfig, regenerate: bool, t: SearchType = None
     if (t == SearchType.Music or t == None) and config.content_type.music:
         # Extract Entries, Generate Music Embeddings
         model.music_search = text_search.setup(org_to_jsonl, config.content_type.music, search_config=config.search_type.asymmetric, regenerate=regenerate, device=device, verbose=verbose)
+
+    # Initialize Markdown Search
+    if (t == SearchType.Markdown or t == None) and config.content_type.markdown:
+        # Extract Entries, Generate Markdown Embeddings
+        model.markdown_search = text_search.setup(markdown_to_jsonl, config.content_type.markdown, search_config=config.search_type.asymmetric, regenerate=regenerate, device=device, verbose=verbose)
 
     # Initialize Ledger Search
     if (t == SearchType.Ledger or t == None) and config.content_type.ledger:
