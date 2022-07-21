@@ -37,7 +37,7 @@ def test_search_with_valid_content_type(content_config: ContentConfig, search_co
     config.search_type = search_config
 
     # config.content_type.image = search_config.image
-    for content_type in ["notes", "ledger", "music", "image"]:
+    for content_type in ["org", "markdown", "ledger", "music", "image"]:
         # Act
         response = client.get(f"/search?q=random&t={content_type}")
         # Assert
@@ -59,7 +59,7 @@ def test_reload_with_valid_content_type(content_config: ContentConfig, search_co
     config.content_type = content_config
     config.search_type = search_config
 
-    for content_type in ["notes", "ledger", "music", "image"]:
+    for content_type in ["org", "markdown", "ledger", "music", "image"]:
         # Act
         response = client.get(f"/reload?t={content_type}")
         # Assert
@@ -81,7 +81,7 @@ def test_regenerate_with_valid_content_type(content_config: ContentConfig, searc
     config.content_type = content_config
     config.search_type = search_config
 
-    for content_type in ["notes", "ledger", "music", "image"]:
+    for content_type in ["org", "markdown", "ledger", "music", "image"]:
         # Act
         response = client.get(f"/regenerate?t={content_type}")
         # Assert
@@ -115,11 +115,11 @@ def test_image_search(content_config: ContentConfig, search_config: SearchConfig
 # ----------------------------------------------------------------------------------------------------
 def test_notes_search(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    model.notes_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False)
+    model.orgmode_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False)
     user_query = "How to git install application?"
 
     # Act
-    response = client.get(f"/search?q={user_query}&n=1&t=notes")
+    response = client.get(f"/search?q={user_query}&n=1&t=org")
 
     # Assert
     assert response.status_code == 200
@@ -131,11 +131,11 @@ def test_notes_search(content_config: ContentConfig, search_config: SearchConfig
 # ----------------------------------------------------------------------------------------------------
 def test_notes_search_with_include_filter(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    model.notes_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False)
+    model.orgmode_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False)
     user_query = "How to git install application? +Emacs"
 
     # Act
-    response = client.get(f"/search?q={user_query}&n=1&t=notes")
+    response = client.get(f"/search?q={user_query}&n=1&t=org")
 
     # Assert
     assert response.status_code == 200
@@ -147,11 +147,11 @@ def test_notes_search_with_include_filter(content_config: ContentConfig, search_
 # ----------------------------------------------------------------------------------------------------
 def test_notes_search_with_exclude_filter(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    model.notes_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False)
+    model.orgmode_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False)
     user_query = "How to git install application? -clone"
 
     # Act
-    response = client.get(f"/search?q={user_query}&n=1&t=notes")
+    response = client.get(f"/search?q={user_query}&n=1&t=org")
 
     # Assert
     assert response.status_code == 200

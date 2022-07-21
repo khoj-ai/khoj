@@ -114,9 +114,9 @@
     (cond
      ((equal buffer-name "Music.org") "music")
      ((equal file-extension "bean") "ledger")
-     ((equal file-extension "org") "notes")
+     ((equal file-extension "org") "org")
      ((or (equal file-extension "markdown") (equal file-extension "md")) "markdown")
-     (t "notes"))))
+     (t "org"))))
 
 (defun khoj--construct-api-query (query search-type)
   (let ((encoded-query (url-hexify-string query)))
@@ -127,7 +127,7 @@
   "Search your content naturally using the Khoj API"
   (interactive "sQuery: ")
   (let* ((default-type (khoj--buffer-name-to-search-type (buffer-name)))
-         (search-type (completing-read "Type: " '("notes" "markdown" "ledger" "music" "image") nil t default-type))
+         (search-type (completing-read "Type: " '("org" "markdown" "ledger" "music" "image") nil t default-type))
          (url (khoj--construct-api-query query search-type))
          (buff (get-buffer-create (format "*Khoj (q:%s t:%s)*" query search-type))))
     ;; get json response from api
@@ -141,12 +141,12 @@
             (json-response (json-parse-buffer :object-type 'alist)))
         (erase-buffer)
         (insert
-         (cond ((or (equal search-type "notes") (equal search-type "music")) (khoj--extract-entries-as-org json-response query))
+         (cond ((or (equal search-type "org") (equal search-type "music")) (khoj--extract-entries-as-org json-response query))
                ((equal search-type "markdown") (khoj--extract-entries-as-markdown json-response query))
                ((equal search-type "ledger") (khoj--extract-entries-as-ledger json-response query))
                ((equal search-type "image") (khoj--extract-entries-as-images json-response query))
                (t (format "%s" json-response))))
-      (cond ((equal search-type "notes") (org-mode))
+      (cond ((equal search-type "org") (org-mode))
             ((equal search-type "markdown") (markdown-mode))
             ((equal search-type "ledger") (beancount-mode))
             ((equal search-type "music") (progn (org-mode)

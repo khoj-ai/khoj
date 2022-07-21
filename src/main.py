@@ -67,9 +67,9 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
     user_query = q
     results_count = n
 
-    if (t == SearchType.Notes or t == None) and model.notes_search:
-        # query notes
-        hits, entries = text_search.query(user_query, model.notes_search, device=device, filters=[explicit_filter, date_filter])
+    if (t == SearchType.Org or t == None) and model.orgmode_search:
+        # query org-mode notes
+        hits, entries = text_search.query(user_query, model.orgmode_search, device=device, filters=[explicit_filter, date_filter])
 
         # collate and return results
         return text_search.collate_results(hits, entries, results_count)
@@ -81,7 +81,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
         # collate and return results
         return text_search.collate_results(hits, entries, results_count)
 
-    if (t == SearchType.Markdown or t == None) and model.notes_search:
+    if (t == SearchType.Markdown or t == None) and model.orgmode_search:
         # query markdown files
         hits, entries = text_search.query(user_query, model.markdown_search, device=device, filters=[explicit_filter, date_filter])
 
@@ -154,7 +154,7 @@ def chat(q: str):
 
     if get_from_dict(metadata, "intent", "memory-type") == "notes":
         query = get_from_dict(metadata, "intent", "query")
-        result_list = search(query, n=1, t=SearchType.Notes)
+        result_list = search(query, n=1, t=SearchType.Org)
         collated_result = "\n".join([item["entry"] for item in result_list])
         if verbose > 1:
             print(f'Semantically Similar Notes:\n{collated_result}')
@@ -171,9 +171,9 @@ def chat(q: str):
 
 def initialize_search(config: FullConfig, regenerate: bool, t: SearchType = None, device=torch.device("cpu")):
     # Initialize Org Notes Search
-    if (t == SearchType.Notes or t == None) and config.content_type.org:
+    if (t == SearchType.Org or t == None) and config.content_type.org:
         # Extract Entries, Generate Notes Embeddings
-        model.notes_search = text_search.setup(org_to_jsonl, config.content_type.org, search_config=config.search_type.asymmetric, regenerate=regenerate, device=device, verbose=verbose)
+        model.orgmode_search = text_search.setup(org_to_jsonl, config.content_type.org, search_config=config.search_type.asymmetric, regenerate=regenerate, device=device, verbose=verbose)
 
     # Initialize Org Music Search
     if (t == SearchType.Music or t == None) and config.content_type.music:

@@ -8,7 +8,7 @@ from src.utils.rawconfig import ConversationProcessorConfig
 
 
 class SearchType(str, Enum):
-    Notes = "notes"
+    Org = "org"
     Ledger = "ledger"
     Music = "music"
     Markdown = "markdown"
@@ -37,7 +37,7 @@ class ImageSearchModel():
 
 @dataclass
 class SearchModels():
-    notes_search: TextSearchModel = None
+    orgmode_search: TextSearchModel = None
     ledger_search: TextSearchModel = None
     music_search: TextSearchModel = None
     markdown_search: TextSearchModel = None
