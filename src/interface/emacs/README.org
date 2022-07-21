@@ -16,29 +16,41 @@
            :bind ("C-c s" . 'khoj))
        #+end_src
 
-   - Use [[https://github.com/quelpa/quelpa#installation][Quelpa]]
+   - With [[https://github.com/raxod502/straight.el][straight.el]]
+     - Add below snippet to your ~/.emacs.d/init.el or .emacs config file and execute it.
+       #+begin_src elisp
+         ;; Khoj Package for Semantic Search
+         (use-package khoj
+           :after org
+           :straight (khoj :type git :host github :repo "debanjum/khoj" :files (:defaults "src/interface/emacs/khoj.el"))
+           :bind ("C-c s" . 'khoj))
+       #+end_src
+
+   - With [[https://github.com/quelpa/quelpa#installation][Quelpa]]
      - Ensure [[https://github.com/quelpa/quelpa#installation][Quelpa]], [[https://github.com/quelpa/quelpa-use-package#installation][quelpa-use-package]] are installed
      - Add below snippet to your ~/.emacs.d/init.el or .emacs config file and execute it.
        #+begin_src elisp
          ;; Khoj Package
          (use-package khoj
+           :after org
            :quelpa (khoj :fetcher url :url "https://raw.githubusercontent.com/debanjum/khoj/master/interface/emacs/khoj.el")
            :bind ("C-c s" . 'khoj))
        #+end_src
 
 ** Usage
-   1. Call ~khoj~ using keybinding ~C-c s~ or ~M-x khoj~
+   1. Open Query Interface on Client
 
-   2. Enter Query in Natural Language
+       - In Emacs: Call ~khoj~ using keybinding ~C-c s~ or ~M-x khoj~
+       - On Web: Open http://localhost:8000/
+
+   2. Query in Natural Language
 
       e.g "What is the meaning of life?" "What are my life goals?"
 
-   3. Wait for results
+      *Note: It takes about 4s on a Mac M1 and a >100K line corpus of notes*
 
-      *Note: It takes about 15s on a Mac M1 and a ~100K lines corpus of org-mode files*
+   3. (Optional) Narrow down results further
 
-   4. (Optional) Narrow down results further
+      Include/Exclude specific words or date range from results by updating query with below query format
 
-      Include/Exclude specific words from results by adding to query
-
-      e.g "What is the meaning of life? -god +none"
+      e.g `What is the meaning of life? -god +none dt:"last week"`

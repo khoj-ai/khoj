@@ -3,7 +3,7 @@
 * Khoj
   /Allow natural language search on user content like notes, images, transactions using transformer ML models/
 
-  User can interface with Khoj via the API or [[./src/interface/emacs/khoj.el][Emacs]]. All search is done locally[[https://github.com/debanjum/khoj#miscellaneous][*]]
+  User can interface with Khoj via [[./src/interface/web/index.html][Web]], [[./src/interface/emacs/khoj.el][Emacs]] or the API. All search is done locally[[https://github.com/debanjum/khoj#miscellaneous][*]]
 
 ** Demo
    https://user-images.githubusercontent.com/6413477/168417719-8a8bc4e5-8404-42b2-89a7-4493e3d2582c.mp4
