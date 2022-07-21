@@ -24,6 +24,7 @@ services:
       - ./tests/data/images/:/data/images/
       - ./tests/data/ledger/:/data/ledger/
       - ./tests/data/music/:/data/music/
+      - ./tests/data/markdown/:/data/markdown/
       # Embeddings and models are populated after the first run
       # You can set these volumes to point to empty directories on host
       - ./tests/data/embeddings/:/data/embeddings/

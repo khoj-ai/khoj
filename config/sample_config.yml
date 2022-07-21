@@ -8,6 +8,12 @@ content-type:
     compressed-jsonl: "/data/embeddings/notes.jsonl.gz"
     embeddings-file: "/data/embeddings/note_embeddings.pt"
 
+  markdown:
+    input-files: null
+    input-filter: "/data/markdown/*.md"
+    compressed-jsonl: "/data/embeddings/markdown.jsonl.gz"
+    embeddings-file: "/data/embeddings/markdown_embeddings.pt"
+
   ledger:
     input-files: null
     input-filter: /data/ledger/*.beancount
