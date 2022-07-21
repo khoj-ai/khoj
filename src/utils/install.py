@@ -36,7 +36,7 @@ conda activate khoj
 cd {get_absolute(args.script_dir)}
 
 # Act
-python3 search_types/asymmetric.py -j {get_absolute(args.model_dir)}/notes.jsonl.gz -e {get_absolute(args.model_dir)}/notes_embeddings.pt  -n 5 --interactive
+python3 search_types/text_search.py -j {get_absolute(args.model_dir)}/notes.jsonl.gz -e {get_absolute(args.model_dir)}/notes_embeddings.pt  -n 5 --interactive
 '''
 
     search_cmd_content = f'''#!/bin/bash

@@ -3,8 +3,9 @@ import pytest
 import torch
 
 # Internal Packages
-from src.search_type import asymmetric, image_search
-from src.utils.rawconfig import ContentConfig, TextContentConfig, ImageContentConfig, SearchConfig, SymmetricSearchConfig, AsymmetricSearchConfig, ImageSearchConfig
+from src.search_type import image_search, text_search
+from src.utils.rawconfig import ContentConfig, TextContentConfig, ImageContentConfig, SearchConfig, TextSearchConfig, ImageSearchConfig
+from src.processor.org_mode.org_to_jsonl import org_to_jsonl
 
 
 @pytest.fixture(scope='session')
@@ -13,13 +14,13 @@ def search_config(tmp_path_factory):
 
     search_config = SearchConfig()
 
-    search_config.asymmetric = SymmetricSearchConfig(
+    search_config.symmetric = TextSearchConfig(
         encoder = "sentence-transformers/all-MiniLM-L6-v2",
         cross_encoder = "cross-encoder/ms-marco-MiniLM-L-6-v2",
         model_directory = model_dir
     )
 
-    search_config.asymmetric = AsymmetricSearchConfig(
+    search_config.asymmetric = TextSearchConfig(
         encoder = "sentence-transformers/multi-qa-MiniLM-L6-cos-v1",
         cross_encoder = "cross-encoder/ms-marco-MiniLM-L-6-v2",
         model_directory = model_dir
@@ -55,7 +56,7 @@ def model_dir(search_config):
         compressed_jsonl = model_dir.joinpath('notes.jsonl.gz'),
         embeddings_file = model_dir.joinpath('note_embeddings.pt'))
 
-    asymmetric.setup(content_config.org, search_config.asymmetric, regenerate=False, device=device, verbose=True)
+    text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False, device=device, verbose=True)
 
     return model_dir
 

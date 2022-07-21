@@ -8,9 +8,9 @@ import pytest
 
 # Internal Packages
 from src.main import app, model, config
-from src.search_type import asymmetric, image_search
-from src.utils.helpers import resolve_absolute_path
+from src.search_type import text_search, image_search
 from src.utils.rawconfig import ContentConfig, SearchConfig
+from src.processor.org_mode import org_to_jsonl
 
 
 # Arrange
@@ -115,7 +115,7 @@ def test_image_search(content_config: ContentConfig, search_config: SearchConfig
 # ----------------------------------------------------------------------------------------------------
 def test_notes_search(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    model.notes_search = asymmetric.setup(content_config.org, search_config.asymmetric, regenerate=False)
+    model.notes_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False)
     user_query = "How to git install application?"
 
     # Act
@@ -131,7 +131,7 @@ def test_notes_search(content_config: ContentConfig, search_config: SearchConfig
 # ----------------------------------------------------------------------------------------------------
 def test_notes_search_with_include_filter(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    model.notes_search = asymmetric.setup(content_config.org, search_config.asymmetric, regenerate=False)
+    model.notes_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False)
     user_query = "How to git install application? +Emacs"
 
     # Act
@@ -147,7 +147,7 @@ def test_notes_search_with_include_filter(content_config: ContentConfig, search_
 # ----------------------------------------------------------------------------------------------------
 def test_notes_search_with_exclude_filter(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    model.notes_search = asymmetric.setup(content_config.org, search_config.asymmetric, regenerate=False)
+    model.notes_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False)
     user_query = "How to git install application? -clone"
 
     # Act
