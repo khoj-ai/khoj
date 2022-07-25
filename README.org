@@ -1,7 +1,7 @@
 [[https://github.com/debanjum/khoj/actions/workflows/test.yml/badge.svg]] [[https://github.com/debanjum/khoj/actions/workflows/build.yml/badge.svg]]
 
 * Khoj
-  /Natural language search for your notes, transactions and images using transformer ML models/
+  /Natural language search engine for your personal notes, transactions and images using transformer ML models/
 
   Interface with Khoj via [[./src/interface/web/index.html][Web]], [[./src/interface/emacs/khoj.el][Emacs]] or the [[http://localhost:8000/docs][API]]. All search is done locally[[https://github.com/debanjum/khoj#miscellaneous][*]]
 
@@ -40,12 +40,6 @@
      - [[http://localhost:8000/search?q=%22what%20is%20the%20meaning%20of%20life%22][Query]]
      - [[http://localhost:8000/regenerate?t=ledger][Regenerate Embeddings]]
      - [[https://localhost:8000/ui][Configure Application]]
-
-** Run Unit tests
-
-  #+begin_src shell
-  pytest
-  #+end_src
 
 ** Upgrade
    #+begin_src shell
@@ -101,6 +95,11 @@
       conda deactivate khoj
       conda env update -f config/environment.yml
       conda activate khoj
+    #+end_src
+
+*** Run Unit tests
+    #+begin_src shell
+    pytest
     #+end_src
 
 ** Acknowledgments
