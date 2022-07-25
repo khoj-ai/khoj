@@ -1,15 +1,19 @@
 [[https://github.com/debanjum/khoj/actions/workflows/test.yml/badge.svg]] [[https://github.com/debanjum/khoj/actions/workflows/build.yml/badge.svg]]
 
 * Khoj
-  /Natural language search engine for your personal notes, transactions and images using transformer ML models/
+  /Natural language search engine for your personal notes, transactions and images/
 
-  Interface with Khoj via [[./src/interface/web/index.html][Web]], [[./src/interface/emacs/khoj.el][Emacs]] or the [[http://localhost:8000/docs][API]]. All search is done locally[[https://github.com/debanjum/khoj#miscellaneous][*]]
+** Features
+  - Advanced Natural language understanding using Transformer based ML Models
+  - Your personal data stays local. All search, indexing is done on your machine[[https://github.com/debanjum/khoj#miscellaneous][*]]
+  - Index Org-mode and Markdown notes, Beancount transactions and Photos
+  - Interact with Khoj using a [[./src/interface/web/index.html][Web Browser]], [[./src/interface/emacs/khoj.el][Emacs]] or the [[http://localhost:8000/docs][API]]. 
 
 ** Demo
    https://user-images.githubusercontent.com/6413477/168417719-8a8bc4e5-8404-42b2-89a7-4493e3d2582c.mp4
 
-*** Architecture
-    [[https://github.com/debanjum/khoj/blob/master/docs/khoj_architecture.png]]
+** Architecture
+   [[https://github.com/debanjum/khoj/blob/master/docs/khoj_architecture.png]]
 
 ** Setup
 
@@ -19,8 +23,8 @@
     #+end_src
 
 *** 2. Configure
-    - [Required] Update [[./docker-compose.yml][docker-compose.yml]] to mount your images, (org-mode or markdown) notes and beancount directories
-    - [Optional] Edit application configuration in [[./config/sample_config.yml][sample_config.yml]]
+    - *Required*: Update [[./docker-compose.yml][docker-compose.yml]] to mount your images, (org-mode or markdown) notes and beancount directories
+    - *Optional*: Edit application configuration in [[./config/sample_config.yml][sample_config.yml]]
 
 *** 3. Run
     #+begin_src shell
