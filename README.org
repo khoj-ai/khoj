@@ -8,6 +8,9 @@
 ** Demo
    https://user-images.githubusercontent.com/6413477/168417719-8a8bc4e5-8404-42b2-89a7-4493e3d2582c.mp4
 
+*** Architecture
+    [[https://github.com/debanjum/khoj/blob/master/docs/khoj_architecture.png]]
+
 ** Setup
 
 *** 1. Clone
