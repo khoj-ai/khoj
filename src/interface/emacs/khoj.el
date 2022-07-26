@@ -122,6 +122,19 @@
   (let ((encoded-query (url-hexify-string query)))
     (format "%s/search?q=%s&t=%s" khoj--server-url encoded-query search-type)))
 
+(defun query-khoj (beg end len)
+  (let ((query (minibuffer-contents)))
+    (message "t")))
+
+(defun remove-khoj ()
+  (remove-hook 'after-change-functions #'query-khoj))
+
+(minibuffer-with-setup-hook
+    (lambda ()
+      (add-hook 'after-change-functions #'query-khoj)
+      (add-hook 'minibuffer-exit-hook #'remove-khoj))
+  (read-string "Query: "))
+
 ;;;###autoload
 (defun khoj (query)
   "Search your content naturally using the Khoj API"
