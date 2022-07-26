@@ -1,5 +1,6 @@
 # Standard Packages
 import sys, json, yaml, os
+import time
 from typing import Optional
 
 # External Packages
@@ -66,50 +67,74 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     user_query = q
     results_count = n
+    results = {}
 
     if (t == SearchType.Org or t == None) and model.orgmode_search:
         # query org-mode notes
-        hits, entries = text_search.query(user_query, model.orgmode_search, device=device, filters=[explicit_filter, date_filter])
+        query_start = time.time()
+        hits, entries = text_search.query(user_query, model.orgmode_search, device=device, filters=[explicit_filter, date_filter], verbose=verbose)
+        query_end = time.time()
 
         # collate and return results
-        return text_search.collate_results(hits, entries, results_count)
+        collate_start = time.time()
+        results = text_search.collate_results(hits, entries, results_count)
+        collate_end = time.time()
 
     if (t == SearchType.Music or t == None) and model.music_search:
         # query music library
-        hits, entries = text_search.query(user_query, model.music_search, device=device, filters=[explicit_filter, date_filter])
+        query_start = time.time()
+        hits, entries = text_search.query(user_query, model.music_search, device=device, filters=[explicit_filter, date_filter], verbose=verbose)
+        query_end = time.time()
 
         # collate and return results
-        return text_search.collate_results(hits, entries, results_count)
+        collate_start = time.time()
+        results = text_search.collate_results(hits, entries, results_count)
+        collate_end = time.time()
 
     if (t == SearchType.Markdown or t == None) and model.orgmode_search:
         # query markdown files
-        hits, entries = text_search.query(user_query, model.markdown_search, device=device, filters=[explicit_filter, date_filter])
+        query_start = time.time()
+        hits, entries = text_search.query(user_query, model.markdown_search, device=device, filters=[explicit_filter, date_filter], verbose=verbose)
+        query_end = time.time()
 
         # collate and return results
-        return text_search.collate_results(hits, entries, results_count)
+        collate_start = time.time()
+        results = text_search.collate_results(hits, entries, results_count)
+        collate_end = time.time()
 
     if (t == SearchType.Ledger or t == None) and model.ledger_search:
         # query transactions
-        hits, entries = text_search.query(user_query, model.ledger_search, filters=[explicit_filter, date_filter])
+        query_start = time.time()
+        hits, entries = text_search.query(user_query, model.ledger_search, filters=[explicit_filter, date_filter], verbose=verbose)
+        query_end = time.time()
 
         # collate and return results
-        return text_search.collate_results(hits, entries, results_count)
+        collate_start = time.time()
+        results = text_search.collate_results(hits, entries, results_count)
+        collate_end = time.time()
 
     if (t == SearchType.Image or t == None) and model.image_search:
         # query images
-        hits = image_search.query(user_query, results_count, model.image_search)
+        query_start = time.time()
+        hits = image_search.query(user_query, results_count, model.image_search, verbose=verbose)
         output_directory = f'{os.getcwd()}/{web_directory}'
+        query_end = time.time()
 
         # collate and return results
-        return image_search.collate_results(
+        collate_start = time.time()
+        results = image_search.collate_results(
             hits,
             image_names=model.image_search.image_names,
             output_directory=output_directory,
             static_files_url='/static',
             count=results_count)
+        collate_end = time.time()
 
-    else:
-        return {}
+    if verbose > 1:
+        print(f"Query took {query_end - query_start:.3f} seconds")
+        print(f"Collating results took {collate_end - collate_start:.3f} seconds")
+
+    return results
 
 
 @app.get('/reload')
