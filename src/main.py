@@ -21,8 +21,8 @@ from src.utils.cli import cli
 from src.utils.config import SearchType, SearchModels, ProcessorConfigModel, ConversationProcessorConfigModel
 from src.utils.rawconfig import FullConfig
 from src.processor.conversation.gpt import converse, extract_search_type, message_to_log, message_to_prompt, understand, summarize
-from src.search_filter.explicit_filter import explicit_filter
-from src.search_filter.date_filter import date_filter
+from src.search_filter.explicit_filter import ExplicitFilter
+from src.search_filter.date_filter import DateFilter
 
 # Application Global State
 config = FullConfig()
@@ -72,7 +72,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
     if (t == SearchType.Org or t == None) and model.orgmode_search:
         # query org-mode notes
         query_start = time.time()
-        hits, entries = text_search.query(user_query, model.orgmode_search, device=device, filters=[explicit_filter, date_filter], verbose=verbose)
+        hits, entries = text_search.query(user_query, model.orgmode_search, device=device, filters=[DateFilter(), ExplicitFilter()], verbose=verbose)
         query_end = time.time()
 
         # collate and return results
@@ -83,7 +83,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
     if (t == SearchType.Music or t == None) and model.music_search:
         # query music library
         query_start = time.time()
-        hits, entries = text_search.query(user_query, model.music_search, device=device, filters=[explicit_filter, date_filter], verbose=verbose)
+        hits, entries = text_search.query(user_query, model.music_search, device=device, filters=[DateFilter(), ExplicitFilter()], verbose=verbose)
         query_end = time.time()
 
         # collate and return results
@@ -94,7 +94,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
     if (t == SearchType.Markdown or t == None) and model.orgmode_search:
         # query markdown files
         query_start = time.time()
-        hits, entries = text_search.query(user_query, model.markdown_search, device=device, filters=[explicit_filter, date_filter], verbose=verbose)
+        hits, entries = text_search.query(user_query, model.markdown_search, device=device, filters=[ExplicitFilter(), DateFilter()], verbose=verbose)
         query_end = time.time()
 
         # collate and return results
@@ -105,7 +105,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None):
     if (t == SearchType.Ledger or t == None) and model.ledger_search:
         # query transactions
         query_start = time.time()
-        hits, entries = text_search.query(user_query, model.ledger_search, filters=[explicit_filter, date_filter], verbose=verbose)
+        hits, entries = text_search.query(user_query, model.ledger_search, filters=[ExplicitFilter(), DateFilter()], verbose=verbose)
         query_end = time.time()
 
         # collate and return results

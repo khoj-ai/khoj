@@ -65,24 +65,31 @@ def compute_embeddings(entries, bi_encoder, embeddings_file, regenerate=False, d
 
 def query(raw_query: str, model: TextSearchModel, device='cpu', filters: list = [], verbose=0):
     "Search for entries that answer the query"
-    # Copy original embeddings, entries to filter them for query
-    start = time.time()
     query = raw_query
-    corpus_embeddings = deepcopy(model.corpus_embeddings)
-    entries = deepcopy(model.entries)
+
+    # Use deep copy of original embeddings, entries to filter if query contains filters
+    start = time.time()
+    filters_in_query = [filter for filter in filters if filter.can_filter(query)]
+    if filters_in_query:
+        corpus_embeddings = deepcopy(model.corpus_embeddings)
+        entries = deepcopy(model.entries)
+    else:
+        corpus_embeddings = model.corpus_embeddings
+        entries = model.entries
     end = time.time()
     if verbose > 1:
         print(f"Copy Time: {end - start:.3f} seconds")
 
     # Filter query, entries and embeddings before semantic search
     start = time.time()
-    for filter in filters:
-        query, entries, corpus_embeddings = filter(query, entries, corpus_embeddings)
-    if entries is None or len(entries) == 0:
-        return [], []
+    for filter in filters_in_query:
+        query, entries, corpus_embeddings = filter.filter(query, entries, corpus_embeddings)
     end = time.time()
     if verbose > 1:
         print(f"Filter Time: {end - start:.3f} seconds")
+
+    if entries is None or len(entries) == 0:
+        return [], []
 
     # Encode the query using the bi-encoder
     start = time.time()
