@@ -186,13 +186,18 @@
     ;; Query khoj API only when user in khoj minibuffer.
     ;; Prevents querying during recursive edits or with contents of other buffers user may jump to
     (when (and (active-minibuffer-window) (equal (current-buffer) khoj--minibuffer-window))
-      (khoj--query-api-and-render-results
-       query
-       search-type
-       query-url
-       buffer-name))))
+      (progn
+        (when rerank
+          (message "[Khoj]: Rerank Results"))
+        (khoj--query-api-and-render-results
+         query
+         search-type
+         query-url
+         buffer-name)))))
 
 (defun khoj--teardown-incremental-search ()
+  ;; remove advice to rerank results on normal exit from minibuffer
+  (advice-remove 'exit-minibuffer #'khoj--minibuffer-exit-advice)
   ;; unset khoj minibuffer window
   (setq khoj--minibuffer-window nil)
   ;; cancel rerank timer
@@ -202,6 +207,8 @@
   (remove-hook 'post-command-hook #'khoj--incremental-search)
   (remove-hook 'minibuffer-exit-hook #'khoj--teardown-incremental-search))
 
+(defun khoj--minibuffer-exit-advice (&rest _args)
+  (khoj--incremental-search t))
 
 ;;;###autoload
 (defun khoj ()
@@ -221,6 +228,8 @@
           ;; set current (mini-)buffer entered as khoj minibuffer
           ;; used to query khoj API only when user in khoj minibuffer
           (setq khoj--minibuffer-window (current-buffer))
+          ;; rerank results on normal exit from minibuffer
+          (advice-add 'exit-minibuffer :before #'khoj--minibuffer-exit-advice)
           (add-hook 'post-command-hook #'khoj--incremental-search) ; do khoj incremental search after every user action
           (add-hook 'minibuffer-exit-hook #'khoj--teardown-incremental-search)) ; teardown khoj incremental search on minibuffer exit
       (read-string khoj--query-prompt))))
