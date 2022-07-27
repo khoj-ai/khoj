@@ -42,14 +42,19 @@
   :type 'string)
 
 (defcustom khoj--image-width 156
-  "Width of rendered images returned by Khoj"
+  "Width of rendered images returned by Khoj."
   :group 'khoj
   :type 'integer)
 
 (defcustom khoj--rerank-after-idle-time 1.0
-  "Idle time (in seconds) to trigger cross-encoder to rerank incremental search results"
+  "Idle time (in seconds) to trigger cross-encoder to rerank incremental search results."
   :group 'khoj
   :type 'float)
+
+(defcustom khoj--results-count 5
+  "Number of results to get from Khoj API for each query."
+  :group 'khoj
+  :type 'integer)
 
 (defvar khoj--rerank-timer nil
   "Idle timer to make cross-encoder re-rank incremental search results if user idle.")
@@ -134,8 +139,9 @@
 
 (defun khoj--construct-api-query (query search-type &optional rerank)
   (let ((rerank (or rerank "false"))
+        (results-count (or khoj--results-count 5))
         (encoded-query (url-hexify-string query)))
-    (format "%s/search?q=%s&t=%s&r=%s" khoj--server-url encoded-query search-type rerank)))
+    (format "%s/search?q=%s&t=%s&r=%s&n=%s" khoj--server-url encoded-query search-type rerank results-count)))
 
 (defun khoj--query-api-and-render-results (query search-type query-url buffer-name)
   ;; get json response from api
