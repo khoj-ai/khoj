@@ -46,6 +46,9 @@
   :group 'khoj
   :type 'integer)
 
+(defconst khoj--query-prompt "Khoj: "
+  "Query prompt shown to user in the minibuffer.")
+
 (defun khoj--extract-entries-as-markdown (json-response query)
   "Convert json response from API to markdown entries"
   ;; remove leading (, ) or SPC from extracted entries string
@@ -122,44 +125,23 @@
   (let ((encoded-query (url-hexify-string query)))
     (format "%s/search?q=%s&t=%s" khoj--server-url encoded-query search-type)))
 
-
-;; Incremental Search on Khoj
-(defun remove-khoj ()
-  (remove-hook 'after-change-functions #'query-khoj))
-
-(defun khoj-incremental ()
-  (interactive)
-  (let* ((default-type (khoj--buffer-name-to-search-type (buffer-name)))
-         (search-type (completing-read "Type: " '("org" "markdown" "ledger" "music" "image") nil t default-type))
-         (buff (get-buffer-create (format "*Khoj (t:%s)*" search-type))))
-    (switch-to-buffer buff)
-    (minibuffer-with-setup-hook
-        (lambda ()
-          (add-hook 'after-change-functions #'query-khoj)
-          (add-hook 'minibuffer-exit-hook #'remove-khoj))
-      (read-string "Query: "))))
-
-(defun query-khoj (beg end len)
-  (let* ((query (minibuffer-contents-no-properties))
-         (search-type "org")
-         (buff (get-buffer-create (format "*Khoj (t:%s)*" search-type))))
-    ;; get json response from api
-    (with-current-buffer buff
-      (let ((url (khoj--construct-api-query query search-type))
-            (inhibit-read-only t))
-        (erase-buffer)
-        (url-insert-file-contents url)))
-    ;; render json response into formatted entries
-    (with-current-buffer buff
-      (let ((inhibit-read-only t)
-            (json-response (json-parse-buffer :object-type 'alist)))
-        (erase-buffer)
-        (insert
-         (cond ((or (equal search-type "org") (equal search-type "music")) (khoj--extract-entries-as-org json-response query))
-               ((equal search-type "markdown") (khoj--extract-entries-as-markdown json-response query))
-               ((equal search-type "ledger") (khoj--extract-entries-as-ledger json-response query))
-               ((equal search-type "image") (khoj--extract-entries-as-images json-response query))
-               (t (format "%s" json-response))))
+(defun khoj--query-api-and-render-results (query search-type query-url buffer-name)
+  ;; get json response from api
+  (with-current-buffer buffer-name
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (url-insert-file-contents query-url)))
+  ;; render json response into formatted entries
+  (with-current-buffer buffer-name
+    (let ((inhibit-read-only t)
+          (json-response (json-parse-buffer :object-type 'alist)))
+      (erase-buffer)
+      (insert
+       (cond ((or (equal search-type "org") (equal search-type "music")) (khoj--extract-entries-as-org json-response query))
+             ((equal search-type "markdown") (khoj--extract-entries-as-markdown json-response query))
+             ((equal search-type "ledger") (khoj--extract-entries-as-ledger json-response query))
+             ((equal search-type "image") (khoj--extract-entries-as-images json-response query))
+             (t (format "%s" json-response))))
       (cond ((equal search-type "org") (org-mode))
             ((equal search-type "markdown") (markdown-mode))
             ((equal search-type "ledger") (beancount-mode))
@@ -168,7 +150,38 @@
             ((equal search-type "image") (progn (shr-render-region (point-min) (point-max))
                                                 (goto-char (point-min))))
             (t (fundamental-mode))))
-      (read-only-mode t))))
+    (read-only-mode t)))
+
+;; Incremental Search on Khoj
+(defun khoj--incremental-query (beg end len)
+  (let* ((in-khoj-prompt (equal (minibuffer-prompt) khoj--query-prompt))
+         (search-type "org")
+         (buffer-name (get-buffer-create (format "*Khoj (t:%s)*" search-type)))
+         (query (minibuffer-contents-no-properties))
+         (query-url (khoj--construct-api-query query search-type)))
+    (khoj--query-api-and-render-results
+        query
+        search-type
+        query-url
+        buffer-name)))
+
+(defun khoj--remove-incremental-query ()
+  (remove-hook 'after-change-functions #'khoj--incremental-query)
+  (remove-hook 'minibuffer-exit-hook #'khoj--remove-incremental-query))
+
+;;;###autoload
+(defun khoj-incremental ()
+  "Natural, Incremental Search for your personal notes, transactions and music using Khoj"
+  (interactive)
+  (let* ((default-type (khoj--buffer-name-to-search-type (buffer-name)))
+         (search-type (completing-read "Type: " '("org" "markdown" "ledger" "music") nil t default-type))
+         (buffer-name (get-buffer-create (format "*Khoj (t:%s)*" search-type))))
+    (switch-to-buffer buffer-name)
+    (minibuffer-with-setup-hook
+        (lambda ()
+          (add-hook 'after-change-functions #'khoj--incremental-query)
+          (add-hook 'minibuffer-exit-hook #'khoj--remove-incremental-query))
+      (read-string khoj--query-prompt))))
 
 ;;;###autoload
 (defun khoj (query)
@@ -176,34 +189,14 @@
   (interactive "sQuery: ")
   (let* ((default-type (khoj--buffer-name-to-search-type (buffer-name)))
          (search-type (completing-read "Type: " '("org" "markdown" "ledger" "music" "image") nil t default-type))
-         (url (khoj--construct-api-query query search-type))
-         (buff (get-buffer-create (format "*Khoj (q:%s t:%s)*" query search-type))))
-    ;; get json response from api
-    (with-current-buffer buff
-      (let ((inhibit-read-only t))
-        (erase-buffer)
-        (url-insert-file-contents url)))
-    ;; render json response into formatted entries
-    (with-current-buffer buff
-      (let ((inhibit-read-only t)
-            (json-response (json-parse-buffer :object-type 'alist)))
-        (erase-buffer)
-        (insert
-         (cond ((or (equal search-type "org") (equal search-type "music")) (khoj--extract-entries-as-org json-response query))
-               ((equal search-type "markdown") (khoj--extract-entries-as-markdown json-response query))
-               ((equal search-type "ledger") (khoj--extract-entries-as-ledger json-response query))
-               ((equal search-type "image") (khoj--extract-entries-as-images json-response query))
-               (t (format "%s" json-response))))
-      (cond ((equal search-type "org") (org-mode))
-            ((equal search-type "markdown") (markdown-mode))
-            ((equal search-type "ledger") (beancount-mode))
-            ((equal search-type "music") (progn (org-mode)
-                                                (org-music-mode)))
-            ((equal search-type "image") (progn (shr-render-region (point-min) (point-max))
-                                                (goto-char (point-min))))
-            (t (fundamental-mode))))
-      (read-only-mode t))
-    (switch-to-buffer buff)))
+         (query-url (khoj--construct-api-query query search-type))
+         (buffer-name (get-buffer-create (format "*Khoj (q:%s t:%s)*" query search-type))))
+    (khoj--query-api-and-render-results
+        query
+        search-type
+        query-url
+        buffer-name)
+    (switch-to-buffer buffer-name)))
 
 (provide 'khoj)
 
