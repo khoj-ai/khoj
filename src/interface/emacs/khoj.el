@@ -46,6 +46,14 @@
   :group 'khoj
   :type 'integer)
 
+(defcustom khoj--rerank-after-idle-time 1.0
+  "Idle time (in seconds) to trigger cross-encoder to rerank incremental search results"
+  :group 'khoj
+  :type 'float)
+
+(defvar khoj--rerank-timer nil
+  "Idle timer to make cross-encoder re-rank incremental search results if user idle.")
+
 (defconst khoj--query-prompt "Khoj: "
   "Query prompt shown to user in the minibuffer.")
 
@@ -124,9 +132,10 @@
      ((or (equal file-extension "markdown") (equal file-extension "md")) "markdown")
      (t "org"))))
 
-(defun khoj--construct-api-query (query search-type)
-  (let ((encoded-query (url-hexify-string query)))
-    (format "%s/search?q=%s&t=%s" khoj--server-url encoded-query search-type)))
+(defun khoj--construct-api-query (query search-type &optional rerank)
+  (let ((rerank (or rerank "false"))
+        (encoded-query (url-hexify-string query)))
+    (format "%s/search?q=%s&t=%s&r=%s" khoj--server-url encoded-query search-type rerank)))
 
 (defun khoj--query-api-and-render-results (query search-type query-url buffer-name)
   ;; get json response from api
@@ -156,11 +165,12 @@
     (read-only-mode t)))
 
 ;; Incremental Search on Khoj
-(defun khoj--incremental-query ()
-  (let* ((search-type khoj--search-type)
+(defun khoj--incremental-query (&optional rerank)
+  (let* ((rerank (cond (rerank "true") (t "false")))
+         (search-type khoj--search-type)
          (buffer-name (get-buffer-create (format "*Khoj (t:%s)*" search-type)))
          (query (minibuffer-contents-no-properties))
-         (query-url (khoj--construct-api-query query search-type)))
+         (query-url (khoj--construct-api-query query search-type rerank)))
     (khoj--query-api-and-render-results
      query
      search-type
@@ -168,6 +178,8 @@
      buffer-name)))
 
 (defun khoj--remove-incremental-query ()
+  (khoj--incremental-query t)
+  (cancel-timer khoj--rerank-timer)
   (remove-hook 'post-command-hook #'khoj--incremental-query)
   (remove-hook 'minibuffer-exit-hook #'khoj--remove-incremental-query))
 
@@ -179,6 +191,7 @@
          (search-type (completing-read "Type: " '("org" "markdown" "ledger" "music") nil t default-type))
          (buffer-name (get-buffer-create (format "*Khoj (t:%s)*" search-type))))
     (setq khoj--search-type search-type)
+    (setq khoj--rerank-timer (run-with-idle-timer khoj--rerank-after-idle-time t 'khoj--incremental-query t))
     (switch-to-buffer buffer-name)
     (minibuffer-with-setup-hook
         (lambda ()
