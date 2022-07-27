@@ -49,6 +49,9 @@
 (defconst khoj--query-prompt "Khoj: "
   "Query prompt shown to user in the minibuffer.")
 
+(defvar khoj--search-type "org"
+  "The type of content to perform search on.")
+
 (defun khoj--extract-entries-as-markdown (json-response query)
   "Convert json response from API to markdown entries"
   ;; remove leading (, ) or SPC from extracted entries string
@@ -154,7 +157,7 @@
 
 ;; Incremental Search on Khoj
 (defun khoj--incremental-query ()
-  (let* ((search-type "org")
+  (let* ((search-type khoj--search-type)
          (buffer-name (get-buffer-create (format "*Khoj (t:%s)*" search-type)))
          (query (minibuffer-contents-no-properties))
          (query-url (khoj--construct-api-query query search-type)))
@@ -175,6 +178,7 @@
   (let* ((default-type (khoj--buffer-name-to-search-type (buffer-name)))
          (search-type (completing-read "Type: " '("org" "markdown" "ledger" "music") nil t default-type))
          (buffer-name (get-buffer-create (format "*Khoj (t:%s)*" search-type))))
+    (setq khoj--search-type search-type)
     (switch-to-buffer buffer-name)
     (minibuffer-with-setup-hook
         (lambda ()
