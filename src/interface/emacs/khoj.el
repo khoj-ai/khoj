@@ -36,6 +36,7 @@
 (require 'url)
 (require 'json)
 
+
 (defcustom khoj--server-url "http://localhost:8000"
   "Location of Khoj API server."
   :group 'khoj
@@ -59,11 +60,15 @@
 (defvar khoj--rerank-timer nil
   "Idle timer to make cross-encoder re-rank incremental search results if user idle.")
 
+(defvar khoj--minibuffer-window nil
+  "Minibuffer window being used by user to enter query.")
+
 (defconst khoj--query-prompt "Khoj: "
   "Query prompt shown to user in the minibuffer.")
 
 (defvar khoj--search-type "org"
   "The type of content to perform search on.")
+
 
 (defun khoj--extract-entries-as-markdown (json-response query)
   "Convert json response from API to markdown entries"
@@ -170,24 +175,33 @@
             (t (fundamental-mode))))
     (read-only-mode t)))
 
+
 ;; Incremental Search on Khoj
-(defun khoj--incremental-query (&optional rerank)
-  (let* ((rerank (cond (rerank "true") (t "false")))
+(defun khoj--incremental-search (&optional rerank)
+  (let* ((rerank-str (cond (rerank "true") (t "false")))
          (search-type khoj--search-type)
          (buffer-name (get-buffer-create (format "*Khoj (t:%s)*" search-type)))
          (query (minibuffer-contents-no-properties))
-         (query-url (khoj--construct-api-query query search-type rerank)))
-    (khoj--query-api-and-render-results
-     query
-     search-type
-     query-url
-     buffer-name)))
+         (query-url (khoj--construct-api-query query search-type rerank-str)))
+    ;; Query khoj API only when user in khoj minibuffer.
+    ;; Prevents querying during recursive edits or with contents of other buffers user may jump to
+    (when (and (active-minibuffer-window) (equal (current-buffer) khoj--minibuffer-window))
+      (khoj--query-api-and-render-results
+       query
+       search-type
+       query-url
+       buffer-name))))
 
-(defun khoj--remove-incremental-query ()
-  (khoj--incremental-query t)
-  (cancel-timer khoj--rerank-timer)
-  (remove-hook 'post-command-hook #'khoj--incremental-query)
-  (remove-hook 'minibuffer-exit-hook #'khoj--remove-incremental-query))
+(defun khoj--teardown-incremental-search ()
+  ;; unset khoj minibuffer window
+  (setq khoj--minibuffer-window nil)
+  ;; cancel rerank timer
+  (when (timerp khoj--rerank-timer)
+    (cancel-timer khoj--rerank-timer))
+  ;; remove hooks for khoj incremental query and self
+  (remove-hook 'post-command-hook #'khoj--incremental-search)
+  (remove-hook 'minibuffer-exit-hook #'khoj--teardown-incremental-search))
+
 
 ;;;###autoload
 (defun khoj ()
@@ -197,17 +211,23 @@
          (search-type (completing-read "Type: " '("org" "markdown" "ledger" "music") nil t default-type))
          (buffer-name (get-buffer-create (format "*Khoj (t:%s)*" search-type))))
     (setq khoj--search-type search-type)
-    (setq khoj--rerank-timer (run-with-idle-timer khoj--rerank-after-idle-time t 'khoj--incremental-query t))
+    ;; setup rerank to improve results once user idle for KHOJ--RERANK-AFTER-IDLE-TIME seconds
+    (setq khoj--rerank-timer (run-with-idle-timer khoj--rerank-after-idle-time t 'khoj--incremental-search t))
+    ;; switch to khoj results buffer
     (switch-to-buffer buffer-name)
+    ;; open and setup minibuffer for incremental search
     (minibuffer-with-setup-hook
         (lambda ()
-          (add-hook 'post-command-hook #'khoj--incremental-query nil 'local)
-          (add-hook 'minibuffer-exit-hook #'khoj--remove-incremental-query nil 'local))
+          ;; set current (mini-)buffer entered as khoj minibuffer
+          ;; used to query khoj API only when user in khoj minibuffer
+          (setq khoj--minibuffer-window (current-buffer))
+          (add-hook 'post-command-hook #'khoj--incremental-search) ; do khoj incremental search after every user action
+          (add-hook 'minibuffer-exit-hook #'khoj--teardown-incremental-search)) ; teardown khoj incremental search on minibuffer exit
       (read-string khoj--query-prompt))))
 
 ;;;###autoload
 (defun khoj-simple (query)
-  "Natural Search for your personal notes, transactions, music and images using Khoj"
+  "Natural Search for QUERY in your personal notes, transactions, music and images using Khoj"
   (interactive "sQuery: ")
   (let* ((rerank "true")
          (default-type (khoj--buffer-name-to-search-type (buffer-name)))
