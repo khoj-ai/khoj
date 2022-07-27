@@ -153,20 +153,19 @@
     (read-only-mode t)))
 
 ;; Incremental Search on Khoj
-(defun khoj--incremental-query (beg end len)
-  (let* ((in-khoj-prompt (equal (minibuffer-prompt) khoj--query-prompt))
-         (search-type "org")
+(defun khoj--incremental-query ()
+  (let* ((search-type "org")
          (buffer-name (get-buffer-create (format "*Khoj (t:%s)*" search-type)))
          (query (minibuffer-contents-no-properties))
          (query-url (khoj--construct-api-query query search-type)))
     (khoj--query-api-and-render-results
-        query
-        search-type
-        query-url
-        buffer-name)))
+     query
+     search-type
+     query-url
+     buffer-name)))
 
 (defun khoj--remove-incremental-query ()
-  (remove-hook 'after-change-functions #'khoj--incremental-query)
+  (remove-hook 'post-command-hook #'khoj--incremental-query)
   (remove-hook 'minibuffer-exit-hook #'khoj--remove-incremental-query))
 
 ;;;###autoload
@@ -179,8 +178,8 @@
     (switch-to-buffer buffer-name)
     (minibuffer-with-setup-hook
         (lambda ()
-          (add-hook 'after-change-functions #'khoj--incremental-query)
-          (add-hook 'minibuffer-exit-hook #'khoj--remove-incremental-query))
+          (add-hook 'post-command-hook #'khoj--incremental-query nil 'local)
+          (add-hook 'minibuffer-exit-hook #'khoj--remove-incremental-query nil 'local))
       (read-string khoj--query-prompt))))
 
 ;;;###autoload
