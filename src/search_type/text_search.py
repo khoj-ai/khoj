@@ -20,7 +20,7 @@ def initialize_model(search_config: TextSearchConfig):
     torch.set_num_threads(4)
 
     # Number of entries we want to retrieve with the bi-encoder
-    top_k = 30
+    top_k = 15
 
     # The bi-encoder encodes all entries to use for semantic search
     bi_encoder = load_model(
