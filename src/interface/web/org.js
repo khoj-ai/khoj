@@ -1124,13 +1124,6 @@ var Org = (function () {
 
       switch (node.type) {
       case Node.types.header:
-        // Parse task status
-        var taskStatus = null;
-        if (childText.indexOf("TODO ") === 0)
-          taskStatus = "todo";
-        else if (childText.indexOf("DONE ") === 0)
-          taskStatus = "done";
-
         // Compute section number
         var sectionNumberText = null;
         if (recordHeader) {
@@ -1150,8 +1143,7 @@ var Org = (function () {
           node.sectionNumberText = sectionNumberText; // Can be used in ToC
         }
 
-        text = this.convertHeader(node, childText, auxData,
-                                  taskStatus, sectionNumberText);
+        text = this.convertHeader(node, childText, auxData, sectionNumberText);
 
         if (recordHeader)
           this.headers.push(node);
@@ -1493,14 +1485,19 @@ var Org = (function () {
     // Node conversion
     // ----------------------------------------------------
 
-    convertHeader: function (node, childText, auxData,
-                             taskStatus, sectionNumberText) {
+    convertHeader: function (node, childText, auxData, sectionNumberText) {
       var headerAttributes = {};
 
+      // Parse task status
+      taskStatusRegex = /^\s*([A-Z]+) /
+      taskStatusMatch = childText.match(taskStatusRegex);
+      taskStatus = taskStatusMatch && taskStatusMatch[1];
+      childText = childText.replace(taskStatusRegex, "");
+
       if (taskStatus) {
-        childText = this.inlineTag("span", childText.substring(0, 4), {
+        childText = this.inlineTag("span", taskStatus, {
           "class": "task-status " + taskStatus
-        }) + childText.substring(5);
+        }) + childText;
       }
 
       if (sectionNumberText) {
