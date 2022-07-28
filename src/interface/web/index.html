@@ -47,7 +47,7 @@
                 .then(data => {
                     console.log(data);
                     document.getElementById("results").innerHTML =
-                        `<div id=result-${type}>`
+                        `<div id=results-${type}>`
                         + render_json(data, query, type)
                         + `</div>`;
                 });
@@ -160,6 +160,10 @@
             white-space: pre-wrap;
         }
 
+        #results-org {
+            text-align: left;
+            white-space: pre-line;
+        }
         span.task-status {
             color: white;
             padding: 3.5px 3.5px 0;
