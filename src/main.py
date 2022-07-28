@@ -117,7 +117,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
         # query images
         query_start = time.time()
         hits = image_search.query(user_query, results_count, model.image_search)
-        output_directory = f'{os.getcwd()}/{web_directory}'
+        output_directory = f'{os.getcwd()}/{web_directory}/images'
         query_end = time.time()
 
         # collate and return results
@@ -126,7 +126,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
             hits,
             image_names=model.image_search.image_names,
             output_directory=output_directory,
-            static_files_url='/static',
+            image_files_url='/static/images',
             count=results_count)
         collate_end = time.time()
 

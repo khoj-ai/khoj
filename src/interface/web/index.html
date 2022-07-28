@@ -3,7 +3,8 @@
         <meta charset="utf-8">
         <title>Khoj</title>
     </head>
-    <script type="text/javascript" src="static/org.js"></script>
+    <script type="text/javascript" src="static/assets/org.js"></script>
+    <script type="text/javascript" src="static/assets/markdown-it.js"></script>
 
     <script>
         function render_image(item) {
@@ -25,8 +26,17 @@
             return orgHTMLDocument.toString();
         }
 
+        function render_markdown(query, data) {
+            var md = window.markdownit();
+            return md.render(`# Query: ${query}\n` + data.map(function (item) {
+                return `${item.entry}`
+            }).join("\n"));
+        }
+
         function render_json(data, query, type) {
-            if (type === "org") {
+            if (type === "markdown") {
+                return render_markdown(query, data);
+            } else if (type === "org") {
                 return render_org(query, data);
             } else if (type === "image") {
                 return data.map(render_image).join('');
@@ -160,7 +170,12 @@
             white-space: pre-wrap;
         }
 
-        #results-org {
+        #results-markdown {
+            text-align: left;
+            white-space: pre-line;
+        }
+
+         #results-org {
             text-align: left;
             white-space: pre-line;
         }

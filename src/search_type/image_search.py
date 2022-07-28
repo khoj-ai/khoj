@@ -181,7 +181,7 @@ def render_results(hits, image_names, image_directory, count):
             img.show()
 
 
-def collate_results(hits, image_names, output_directory, static_files_url, count=5):
+def collate_results(hits, image_names, output_directory, image_files_url, count=5):
     results = []
 
     for index, hit in enumerate(hits[:count]):
@@ -195,7 +195,7 @@ def collate_results(hits, image_names, output_directory, static_files_url, count
 
         # Add the image metadata to the results
         results += [{
-            "entry": f'{static_files_url}/{target_image_name}',
+            "entry": f'{image_files_url}/{target_image_name}',
             "score": f"{hit['score']:.3f}",
             "image_score": f"{hit['image_score']:.3f}",
             "metadata_score": f"{hit['metadata_score']:.3f}",
