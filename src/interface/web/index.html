@@ -18,16 +18,19 @@
             return `<pre id="json">${JSON.stringify(data, null, 2)}</pre>`
         }
 
-        function search() {
+        function search(rerank=false) {
             query = document.getElementById("query").value;
             type = document.getElementById("type").value;
             console.log(query, type);
-            fetch(`/search?q=${query}&t=${type}&n=6`)
+            url = type === "image"
+            ? `/search?q=${query}&t=${type}&n=6`
+            : `/search?q=${query}&t=${type}&n=6&r=${rerank}`;
+            fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
                     document.getElementById("results").innerHTML =
-                        type == "image"
+                        type === "image"
                         ? data.map(render_image).join('')
                         : render_json(data);
                 });
@@ -44,9 +47,14 @@
                 });
         }
 
-        function search_on_enter(event) {
-            if (event.key == 'Enter') {
-                search();
+        function incremental_search(event) {
+            type = document.getElementById("type").value;
+            if (event.key === 'Enter') {
+                search(rerank=true);
+            }
+            // Limit incremental search to text types
+            else if (type !== "image") {
+                search(rerank=false);
             }
         }
     </script>
@@ -54,8 +62,8 @@
     <body>
         <h1>Khoj</h1>
 
-        <!--Add Text Box To Enter Query -->
-        <input id="query" type="text" placeholder="Search" onkeydown=search_on_enter(event) autofocus>
+        <!--Add Text Box To Enter Query, Trigger Incremental Search OnChange -->
+        <input type="text" id="query" onkeyup=incremental_search(event) placeholder="What is the meaning of life?">
 
         <!--Add Dropdown to Select Query Type.
             Query Types can be: org, ledger, image, music, markdown.
@@ -68,8 +76,6 @@
             <option value="music">Music</option>
         </select>
 
-        <!--Add Button To Search -->
-        <button id="search" onclick="search()">Search</button>
         <!--Add Button To Regenerate -->
         <button id="regenerate" onclick="regenerate()">Regenerate</button>
 
