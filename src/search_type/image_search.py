@@ -190,6 +190,10 @@ def collate_results(hits, image_names, output_directory, image_files_url, count=
         target_image_name = f"{index}{source_path.suffix}"
         target_path = resolve_absolute_path(f"{output_directory}/{target_image_name}")
 
+        # Create output directory, if it doesn't exist
+        if not target_path.parent.exists():
+            target_path.parent.mkdir(exist_ok=True)
+
         # Copy the image to the output directory
         shutil.copy(source_path, target_path)
 
