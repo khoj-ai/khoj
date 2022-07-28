@@ -92,7 +92,7 @@ var Org = (function () {
         token.indentation = 0;
         token.content     = RegExp.$2;
         // specific
-        token.level       = RegExp.$1.length;
+        token.level       = 2;
       } else if (Syntax.isPreformatted(line)) {
         token.type        = Lexer.tokens.preformatted;
         token.indentation = RegExp.$1.length;

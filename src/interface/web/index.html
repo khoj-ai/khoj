@@ -154,6 +154,14 @@
             border-radius: 5px;
             border: 1px solid #ccc;
         }
+        #query {
+            font-size: larger;
+        }
+        #results {
+            font-size: medium;
+            margin: 0px;
+            line-height: 20px;
+        }
         #results-image {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -172,12 +180,14 @@
 
         #results-markdown {
             text-align: left;
-            white-space: pre-line;
         }
-
-         #results-org {
+        #results-org {
             text-align: left;
             white-space: pre-line;
+        }
+        #results-org h3 {
+            margin: 20px 0 0 0;
+            font-size: larger;
         }
         span.task-status {
             color: white;
@@ -185,6 +195,7 @@
             margin-right: 5px;
             border-radius: 5px;
             background-color: #ed6f00;
+            font-size: medium;
         }
         span.task-status.todo {
             background-color: #048ba8
@@ -198,6 +209,7 @@
             margin-right: 5px;
             border-radius: 5px;
             background-color: #bbb;
+            font-size: small;
         }
     </style>
 
