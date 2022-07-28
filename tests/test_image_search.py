@@ -45,7 +45,7 @@ def test_image_search(content_config: ContentConfig, search_config: SearchConfig
             hits,
             model.image_search.image_names,
             output_directory=output_directory,
-            static_files_url='/static',
+            image_files_url='/static/images',
             count=1)
 
         actual_image = Image.open(output_directory.joinpath(Path(results[0]["entry"]).name))
