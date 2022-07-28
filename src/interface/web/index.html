@@ -3,6 +3,7 @@
         <meta charset="utf-8">
         <title>Khoj</title>
     </head>
+    <script type="text/javascript" src="static/org.js"></script>
 
     <script>
         function render_image(item) {
@@ -14,8 +15,24 @@
             </a>`
         }
 
-        function render_json(data) {
-            return `<pre id="json">${JSON.stringify(data, null, 2)}</pre>`
+        function render_org(query, data) {
+            var orgCode = `Query: ${query}\n` + data.map(function (item) {
+                return `${item.entry}`
+            }).join("\n")
+            var orgParser = new Org.Parser();
+            var orgDocument = orgParser.parse(orgCode);
+            var orgHTMLDocument = orgDocument.convert(Org.ConverterHTML);
+            return orgHTMLDocument.toString();
+        }
+
+        function render_json(data, query, type) {
+            if (type === "org") {
+                return render_org(query, data);
+            } else if (type === "image") {
+                return data.map(render_image).join('');
+            } else {
+                return `<pre id="json">${JSON.stringify(data, null, 2)}</pre>`;
+            }
         }
 
         function search(rerank=false) {
@@ -23,16 +40,16 @@
             type = document.getElementById("type").value;
             console.log(query, type);
             url = type === "image"
-            ? `/search?q=${query}&t=${type}&n=6`
-            : `/search?q=${query}&t=${type}&n=6&r=${rerank}`;
+                ? `/search?q=${query}&t=${type}&n=6`
+                : `/search?q=${query}&t=${type}&n=6&r=${rerank}`;
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
                     document.getElementById("results").innerHTML =
-                        type === "image"
-                        ? data.map(render_image).join('')
-                        : render_json(data);
+                        `<div id=result-${type}>`
+                        + render_json(data, query, type)
+                        + `</div>`;
                 });
         }
 
@@ -127,7 +144,7 @@
             border-radius: 5px;
             border: 1px solid #ccc;
         }
-        #results {
+        #results-image {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
         }
