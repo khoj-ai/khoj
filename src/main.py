@@ -116,7 +116,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
     if (t == SearchType.Image or t == None) and model.image_search:
         # query images
         query_start = time.time()
-        hits = image_search.query(user_query, results_count, model.image_search, verbose=verbose)
+        hits = image_search.query(user_query, results_count, model.image_search)
         output_directory = f'{os.getcwd()}/{web_directory}'
         query_end = time.time()
 
