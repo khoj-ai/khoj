@@ -1500,6 +1500,18 @@ var Org = (function () {
         }) + childText;
       }
 
+      // Parse task tags
+      taskTagsRegex = /:([\w:]+):/g
+      taskTagsMatch = childText.match(taskTagsRegex);
+      taskTags = taskTagsMatch && taskTagsMatch[0].split(":").slice(1,-1);
+      childText = childText.replace(taskTagsRegex, "");
+
+      if (taskTags) {
+        taskTags.forEach(tag => {
+          childText += this.inlineTag("span", tag, { "class": "task-tag" })
+        });
+      }
+
       if (sectionNumberText) {
         childText = this.inlineTag("span", sectionNumberText, {
           "class": "section-number"
