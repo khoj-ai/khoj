@@ -29,7 +29,8 @@ def test_asymmetric_search(content_config: ContentConfig, search_config: SearchC
     # Act
     hits, entries = text_search.query(
         query,
-        model = model.notes_search)
+        model = model.notes_search,
+        rank_results=True)
 
     results = text_search.collate_results(
         hits,

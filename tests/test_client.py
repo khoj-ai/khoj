@@ -119,7 +119,7 @@ def test_notes_search(content_config: ContentConfig, search_config: SearchConfig
     user_query = "How to git install application?"
 
     # Act
-    response = client.get(f"/search?q={user_query}&n=1&t=org")
+    response = client.get(f"/search?q={user_query}&n=1&t=org&r=true")
 
     # Assert
     assert response.status_code == 200

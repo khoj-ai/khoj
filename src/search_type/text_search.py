@@ -2,6 +2,7 @@
 import argparse
 import pathlib
 from copy import deepcopy
+import time
 
 # External Packages
 import torch
@@ -19,7 +20,7 @@ def initialize_model(search_config: TextSearchConfig):
     torch.set_num_threads(4)
 
     # Number of entries we want to retrieve with the bi-encoder
-    top_k = 30
+    top_k = 15
 
     # The bi-encoder encodes all entries to use for semantic search
     bi_encoder = load_model(
@@ -62,38 +63,71 @@ def compute_embeddings(entries, bi_encoder, embeddings_file, regenerate=False, d
     return corpus_embeddings
 
 
-def query(raw_query: str, model: TextSearchModel, device='cpu', filters: list = []):
+def query(raw_query: str, model: TextSearchModel, rank_results=False, device='cpu', filters: list = [], verbose=0):
     "Search for entries that answer the query"
-    # Copy original embeddings, entries to filter them for query
     query = raw_query
-    corpus_embeddings = deepcopy(model.corpus_embeddings)
-    entries = deepcopy(model.entries)
+
+    # Use deep copy of original embeddings, entries to filter if query contains filters
+    start = time.time()
+    filters_in_query = [filter for filter in filters if filter.can_filter(query)]
+    if filters_in_query:
+        corpus_embeddings = deepcopy(model.corpus_embeddings)
+        entries = deepcopy(model.entries)
+    else:
+        corpus_embeddings = model.corpus_embeddings
+        entries = model.entries
+    end = time.time()
+    if verbose > 1:
+        print(f"Copy Time: {end - start:.3f} seconds")
 
     # Filter query, entries and embeddings before semantic search
-    for filter in filters:
-        query, entries, corpus_embeddings = filter(query, entries, corpus_embeddings)
+    start = time.time()
+    for filter in filters_in_query:
+        query, entries, corpus_embeddings = filter.filter(query, entries, corpus_embeddings)
+    end = time.time()
+    if verbose > 1:
+        print(f"Filter Time: {end - start:.3f} seconds")
+
     if entries is None or len(entries) == 0:
         return [], []
 
     # Encode the query using the bi-encoder
+    start = time.time()
     question_embedding = model.bi_encoder.encode([query], convert_to_tensor=True)
     question_embedding.to(device)
     question_embedding = util.normalize_embeddings(question_embedding)
+    end = time.time()
+    if verbose > 1:
+        print(f"Query Encode Time: {end - start:.3f} seconds")
 
     # Find relevant entries for the query
+    start = time.time()
     hits = util.semantic_search(question_embedding, corpus_embeddings, top_k=model.top_k, score_function=util.dot_score)[0]
+    end = time.time()
+    if verbose > 1:
+        print(f"Search Time: {end - start:.3f} seconds")
 
     # Score all retrieved entries using the cross-encoder
-    cross_inp = [[query, entries[hit['corpus_id']]['compiled']] for hit in hits]
-    cross_scores = model.cross_encoder.predict(cross_inp)
+    if rank_results:
+        start = time.time()
+        cross_inp = [[query, entries[hit['corpus_id']]['compiled']] for hit in hits]
+        cross_scores = model.cross_encoder.predict(cross_inp)
+        end = time.time()
+        if verbose > 1:
+            print(f"Cross-Encoder Predict Time: {end - start:.3f} seconds")
 
-    # Store cross-encoder scores in results dictionary for ranking
-    for idx in range(len(cross_scores)):
-        hits[idx]['cross-score'] = cross_scores[idx]
+        # Store cross-encoder scores in results dictionary for ranking
+        for idx in range(len(cross_scores)):
+            hits[idx]['cross-score'] = cross_scores[idx]
 
     # Order results by cross-encoder score followed by bi-encoder score
+    start = time.time()
     hits.sort(key=lambda x: x['score'], reverse=True) # sort by bi-encoder score
-    hits.sort(key=lambda x: x['cross-score'], reverse=True) # sort by cross-encoder score
+    if rank_results:
+        hits.sort(key=lambda x: x['cross-score'], reverse=True) # sort by cross-encoder score
+    end = time.time()
+    if verbose > 1:
+        print(f"Rank Time: {end - start:.3f} seconds")
 
     return hits, entries
 
@@ -120,7 +154,7 @@ def collate_results(hits, entries, count=5):
     return [
         {
             "entry": entries[hit['corpus_id']]['raw'],
-            "score": f"{hit['cross-score']:.3f}"
+            "score": f"{hit['cross-score'] if 'cross-score' in hit else hit['score']:.3f}"
         }
         for hit
         in hits[0:count]]

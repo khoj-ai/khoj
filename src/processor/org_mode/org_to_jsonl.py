@@ -82,7 +82,7 @@ def convert_org_entries_to_jsonl(entries, verbose=0):
             continue
 
         entry_dict["compiled"] = f'{entry.Heading()}.'
-        if verbose > 1:
+        if verbose > 2:
             print(f"Title: {entry.Heading()}")
 
         if entry.Tags():
