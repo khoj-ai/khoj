@@ -10,7 +10,18 @@
   - Interact with Khoj using a [[./src/interface/web/index.html][Web Browser]], [[./src/interface/emacs/khoj.el][Emacs]] or the [[http://localhost:8000/docs][API]]. 
 
 ** Demo
-   https://user-images.githubusercontent.com/6413477/168417719-8a8bc4e5-8404-42b2-89a7-4493e3d2582c.mp4
+   https://user-images.githubusercontent.com/6413477/181664862-31565b0a-0e64-47e1-a79a-599dfc486c74.mp4
+
+*** Description
+    - User searches for "/Setup editor/"
+    - The demo looks for the most relevant section in this readme and the [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs][khoj.el readme]]
+    - Top result is what we are looking for, the [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#installation][section to Install Khoj.el on Emacs]]
+
+*** Analysis
+    - The top result does not have any words from the query
+      - Does the model understand that Emacs is an editor?
+    - The results incrementally update as the query is entered
+    - The results are re-ranked, for better accuracy, once user is idle
 
 ** Architecture
    [[https://github.com/debanjum/khoj/blob/master/docs/khoj_architecture.png]]
