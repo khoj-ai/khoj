@@ -78,14 +78,9 @@
         }
 
         function incremental_search(event) {
-            type = document.getElementById("type").value;
-            if (event.key === 'Enter') {
-                search(rerank=true);
-            }
-            // Limit incremental search to text types
-            else if (type !== "image") {
-                search(rerank=false);
-            }
+            // perform incremental search by default, rerank results if user presses enter
+            event.key === 'Enter' ? search(rerank=true) : search(rerank=false);
+        }
 
         // Fill search form with values passed in URL query parameters, if any.
         window.onload = function () {
