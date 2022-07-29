@@ -43,13 +43,11 @@
        - In Emacs: Call ~khoj~ using keybinding ~C-c s~ or ~M-x khoj~
        - On Web: Open http://localhost:8000/
 
-   2. Query in Natural Language
+   2. Query Incrementally in Natural Language
 
       e.g "What is the meaning of life?" "What are my life goals?"
 
-      *Note: It takes about 4s on a Mac M1 and a >100K line corpus of notes*
-
-   3. (Optional) Narrow down results further
+   3. Apply filters to narrow down results further
 
       Include/Exclude specific words or date range from results by updating query with below query format
 

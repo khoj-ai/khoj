@@ -1,13 +1,39 @@
 [[https://github.com/debanjum/khoj/actions/workflows/test.yml/badge.svg]] [[https://github.com/debanjum/khoj/actions/workflows/build.yml/badge.svg]]
 
 * Khoj
-  /Natural language search engine for your personal notes, transactions and images/
+  /A natural language search engine for your personal notes, transactions and images/
+
+** Table of Contents
+  - [[https://github.com/debanjum/khoj#Features][Features]]
+  - [[https://github.com/debanjum/khoj#Demo][Demo]]
+    - [[https://github.com/debanjum/khoj#Description][Description]]
+    - [[https://github.com/debanjum/khoj#Analysis][Analysis]]
+  - [[https://github.com/debanjum/khoj#Architecture][Architecture]]
+  - [[https://github.com/debanjum/khoj#Setup][Setup]]
+    - [[https://github.com/debanjum/khoj#Clone][Clone]]
+    - [[https://github.com/debanjum/khoj#Configure][Configure]]
+    - [[https://github.com/debanjum/khoj#Run][Run]]
+  - [[https://github.com/debanjum/khoj#Use][Use]]
+  - [[https://github.com/debanjum/khoj#Upgrade][Upgrade]]
+  - [[https://github.com/debanjum/khoj#Troubleshooting][Troubleshooting]]
+  - [[https://github.com/debanjum/khoj#Miscellaneous][Miscellaneous]]
+  - [[https://github.com/debanjum/khoj#Development-setup][Development Setup]]
+    - [[https://github.com/debanjum/khoj#Setup-on-local-machine][Setup on Local Machine]]
+    - [[https://github.com/debanjum/khoj#Upgrade-on-local-machine][Upgrade on Local Machine]]
+    - [[https://github.com/debanjum/khoj#Run-unit-tests][Run Unit Tests]]
+  - [[https://github.com/debanjum/khoj#Performance][Performance]]
+    - [[https://github.com/debanjum/khoj#Query-performance][Query Performance]]
+    - [[https://github.com/debanjum/khoj#Indexing-performance][Indexing Performance]]
+    - [[https://github.com/debanjum/khoj#Miscellaneous-1][Miscellaneous]]
+  - [[https://github.com/debanjum/khoj#Acknowledgments][Acknowledgments]]
 
 ** Features
-  - Advanced Natural language understanding using Transformer based ML Models
-  - Your personal data stays local. All search, indexing is done on your machine[[https://github.com/debanjum/khoj#miscellaneous][*]]
-  - Index Org-mode and Markdown notes, Beancount transactions and Photos
-  - Interact with Khoj using a [[./src/interface/web/index.html][Web Browser]], [[./src/interface/emacs/khoj.el][Emacs]] or the [[http://localhost:8000/docs][API]]. 
+  - *Natural*: Advanced Natural language understanding using Transformer based ML Models
+  - *Local*: Your personal data stays local. All search, indexing is done on your machine[[https://github.com/debanjum/khoj#miscellaneous][*]]
+  - *Incremental*: Incremental search for a fast, search-as-you-type experience
+  - *Pluggable*: Modular architecture makes it relatively easy to plug in new data sources, frontends and ML models
+  - *Multiple Sources*: Search your Org-mode and Markdown notes, Beancount transactions and Photos
+  - *Multiple Interfaces*: Search using a [[./src/interface/web/index.html][Web Browser]], [[./src/interface/emacs/khoj.el][Emacs]] or the [[http://localhost:8000/docs][API]]
 
 ** Demo
    https://user-images.githubusercontent.com/6413477/181664862-31565b0a-0e64-47e1-a79a-599dfc486c74.mp4
@@ -18,8 +44,8 @@
     - Top result is what we are looking for, the [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#installation][section to Install Khoj.el on Emacs]]
 
 *** Analysis
-    - The top result does not have any words from the query
-      - Does the model understand that Emacs is an editor?
+    - The results do not have any words used in the query
+      - /Based on the top result it seems the re-ranking model understands that Emacs is an editor?/
     - The results incrementally update as the query is entered
     - The results are re-ranked, for better accuracy, once user is idle
 
@@ -115,14 +141,31 @@
       conda activate khoj
     #+end_src
 
-*** Run Unit tests
+*** Run Unit Tests
     #+begin_src shell
     pytest
     #+end_src
 
+** Performance
+*** Query performance
+    - Semantic search using the bi-encoder is fairly fast at <5 ms
+    - Reranking using the cross-encoder is slower at <2s on 15 results. Tweak ~top_k~ to tradeoff speed for accuracy of results.
+    - Applying explicit filters is very slow currently at ~6s. This is because the filters are rudimentary. Considerable speed-ups can be achieved using indexes etc.
+
+*** Indexing performance
+    - Indexing is more strongly impacted by the size of the source data
+    - Indexing 100K+ line corpus of notes takes 6 minutes
+    - Indexing 4000+ images takes about 15 minutes and more than 8Gb of RAM
+    - Once https://github.com/debanjum/khoj/issues/36 is implemented, it should only take this long on first run
+
+*** Miscellaneous
+    - Testing done on a Mac M1 and a >100K line corpus of notes
+    - Search, indexing on a GPU has not been tested yet
+
 ** Acknowledgments
-   - [[https://huggingface.co/sentence-transformers/multi-qa-MiniLM-L6-cos-v1][Multi-QA MiniLM Model]] for Asymmetric Text Search. See [[https://www.sbert.net/examples/applications/retrieve_rerank/README.html][SBert Documentation]]
-   - [[https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2][All MiniLM Model]] for Symmetric Text Search
+   - [[https://huggingface.co/sentence-transformers/multi-qa-MiniLM-L6-cos-v1][Multi-QA MiniLM Model]], [[https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2][All MiniLM Model]] for Text Search. See [[https://www.sbert.net/examples/applications/retrieve_rerank/README.html][SBert Documentation]]
    - [[https://github.com/openai/CLIP][OpenAI CLIP Model]] for Image Search. See [[https://www.sbert.net/examples/applications/image-search/README.html][SBert Documentation]]
    - Charles Cave for [[http://members.optusnet.com.au/~charles57/GTD/orgnode.html][OrgNode Parser]]
+   - [[https://mooz.github.io/org-js/][Org.js]] to render Org-mode results on the Web interface
+   - [[https://github.com/markdown-it/markdown-it][Markdown-it]] to render Markdown results on the Web interface
    - Sven Marnach for [[https://github.com/smarnach/pyexiftool/blob/master/exiftool.py][PyExifTool]]
