@@ -63,12 +63,11 @@
 (defvar khoj--minibuffer-window nil
   "Minibuffer window being used by user to enter query.")
 
-(defconst khoj--query-prompt "Khoj: "
+(defconst khoj--query-prompt "🦅Khoj: "
   "Query prompt shown to user in the minibuffer.")
 
 (defvar khoj--search-type "org"
   "The type of content to perform search on.")
-
 
 (defun khoj--extract-entries-as-markdown (json-response query)
   "Convert json response from API to markdown entries"
@@ -237,7 +236,7 @@
 ;;;###autoload
 (defun khoj-simple (query)
   "Natural Search for QUERY in your personal notes, transactions, music and images using Khoj"
-  (interactive "sQuery: ")
+  (interactive "s🦅Khoj: ")
   (let* ((rerank "true")
          (default-type (khoj--buffer-name-to-search-type (buffer-name)))
          (search-type (completing-read "Type: " '("org" "markdown" "ledger" "music" "image") nil t default-type))

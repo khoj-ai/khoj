@@ -1,7 +1,6 @@
+# Khoj 🦅
 ![](https://github.com/debanjum/khoj/actions/workflows/test.yml/badge.svg)
 ![](https://github.com/debanjum/khoj/actions/workflows/build.yml/badge.svg)
-
-# Khoj
 
 *A natural language search engine for your personal notes, transactions and images*
 
