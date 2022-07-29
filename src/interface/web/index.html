@@ -86,6 +86,11 @@
             else if (type !== "image") {
                 search(rerank=false);
             }
+
+        // Fill search form with values passed in URL query parameters, if any.
+        window.onload = function () {
+            document.getElementById("type").value = new URLSearchParams(window.location.search).get("t") || "org";
+            document.getElementById("query").value = new URLSearchParams(window.location.search).get("q") || "What is the meaning of life?";
         }
     </script>
 
@@ -97,13 +102,13 @@
 
         <!--Add Dropdown to Select Query Type.
             Query Types can be: org, ledger, image, music, markdown.
-            Set Default type to image-->
+            Set Default type to org-->
         <select id="type">
-            <option value="image">Image</option>
             <option value="org">Org</option>
-            <option value="markdown">Markdown</option>
             <option value="ledger">Ledger</option>
             <option value="music">Music</option>
+            <option value="image">Image</option>
+            <option value="markdown">Markdown</option>
         </select>
 
         <!--Add Button To Regenerate -->
