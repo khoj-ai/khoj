@@ -16,13 +16,13 @@
             </a>`
         }
 
-        function render_org(query, data) {
+        function render_org(query, data, classPrefix="") {
             var orgCode = `Query: ${query}\n` + data.map(function (item) {
                 return `${item.entry}`
             }).join("\n")
             var orgParser = new Org.Parser();
             var orgDocument = orgParser.parse(orgCode);
-            var orgHTMLDocument = orgDocument.convert(Org.ConverterHTML);
+            var orgHTMLDocument = orgDocument.convert(Org.ConverterHTML, { htmlClassPrefix: classPrefix });
             return orgHTMLDocument.toString();
         }
 
@@ -38,6 +38,8 @@
                 return render_markdown(query, data);
             } else if (type === "org") {
                 return render_org(query, data);
+            } else if (type === "music") {
+                return render_org(query, data, "music-");
             } else if (type === "image") {
                 return data.map(render_image).join('');
             } else {
@@ -181,14 +183,17 @@
         #results-markdown {
             text-align: left;
         }
+        #results-music,
         #results-org {
             text-align: left;
             white-space: pre-line;
         }
+        #results-music h3,
         #results-org h3 {
             margin: 20px 0 0 0;
             font-size: larger;
         }
+        span.music-task-status,
         span.task-status {
             color: white;
             padding: 3.5px 3.5px 0;
@@ -197,12 +202,15 @@
             background-color: #ed6f00;
             font-size: medium;
         }
+        span.music-task-status.todo,
         span.task-status.todo {
             background-color: #048ba8
         }
+        span.music-task-status.done,
         span.task-status.done {
             background-color: #06a77d;
         }
+        span.music-task-tag,
         span.task-tag {
             color: white;
             padding: 3.5px 3.5px 0;
