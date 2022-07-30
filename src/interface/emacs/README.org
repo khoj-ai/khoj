@@ -33,7 +33,7 @@
          ;; Khoj Package
          (use-package khoj
            :after org
-           :quelpa (khoj :fetcher url :url "https://raw.githubusercontent.com/debanjum/khoj/master/interface/emacs/khoj.el")
+           :quelpa (khoj :fetcher url :url "https://raw.githubusercontent.com/debanjum/khoj/master/src/interface/emacs/khoj.el")
            :bind ("C-c s" . 'khoj))
        #+end_src
 
