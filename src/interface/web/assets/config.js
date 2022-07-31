@@ -10,7 +10,7 @@ var emptyValueDefault = "🖊️";
 /**
  * Fetch the existing config file.
  */
-fetch("/config")
+fetch("/config/data")
     .then(response => response.json())
     .then(data => {
         rawConfig = data;
@@ -26,15 +26,16 @@ fetch("/config")
         configForm.addEventListener("submit", (event) => {
             event.preventDefault();
             console.log(rawConfig);
-            const response = fetch("/config", {
+            fetch("/config/data", {
                 method: "POST",
                 credentials: "same-origin",
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(rawConfig)
-            }).then(response => response.json())
-            .then((data) => console.log(data));
+            })
+            .then(response => response.json())
+            .then(data => console.log(data));
         });
 });
 
