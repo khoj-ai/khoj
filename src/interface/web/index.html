@@ -82,10 +82,34 @@
             event.key === 'Enter' ? search(rerank=true) : search(rerank=false);
         }
 
-        // Fill search form with values passed in URL query parameters, if any.
+        function populate_type_dropdown() {
+            // Populate type dropdown field with enabled search types only
+            var possible_search_types = ["org", "markdown", "ledger", "music", "image"];
+            fetch("/config")
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("type").innerHTML =
+                    possible_search_types
+                    .filter(type => data["content-type"].hasOwnProperty(type) && data["content-type"][type])
+                    .map(type => `<option value="${type}">${type.slice(0,1).toUpperCase() + type.slice(1)}</option>`)
+                    .join('');
+                })
+                .then(() => {
+                    // Set type field to search type passed in URL query parameter, if valid
+                    var type_via_url = new URLSearchParams(window.location.search).get("t");
+                    if (type_via_url && possible_search_types.includes(type_via_url))
+                        document.getElementById("type").value = type_via_url;
+                });
+        }
+
         window.onload = function () {
-            document.getElementById("type").value = new URLSearchParams(window.location.search).get("t") || "org";
-            document.getElementById("query").value = new URLSearchParams(window.location.search).get("q") || "What is the meaning of life?";
+            // Dynamically populate type dropdown based on enabled search types and type passed as URL query parameter
+            populate_type_dropdown();
+
+            // Fill query field with value passed in URL query parameters, if any.
+            var query_via_url = new URLSearchParams(window.location.search).get("q");
+            if (query_via_url)
+                document.getElementById("query").value = query_via_url;
         }
     </script>
 
@@ -95,16 +119,8 @@
         <!--Add Text Box To Enter Query, Trigger Incremental Search OnChange -->
         <input type="text" id="query" onkeyup=incremental_search(event) placeholder="What is the meaning of life?">
 
-        <!--Add Dropdown to Select Query Type.
-            Query Types can be: org, ledger, image, music, markdown.
-            Set Default type to org-->
-        <select id="type">
-            <option value="org">Org</option>
-            <option value="ledger">Ledger</option>
-            <option value="music">Music</option>
-            <option value="image">Image</option>
-            <option value="markdown">Markdown</option>
-        </select>
+        <!--Add Dropdown to Select Query Type -->
+        <select id="type"></select>
 
         <!--Add Button To Regenerate -->
         <button id="regenerate" onclick="regenerate()">Regenerate</button>

@@ -32,9 +32,9 @@ def get_from_dict(dictionary, *args):
 
 def merge_dicts(priority_dict, default_dict):
     merged_dict = priority_dict.copy()
-    for k, v in default_dict.items():
-        if k not in priority_dict:
-            merged_dict[k] = default_dict[k]
+    for key, _ in default_dict.items():
+        if key not in priority_dict:
+            merged_dict[key] = default_dict[key]
     return merged_dict
 
 
