@@ -17,7 +17,7 @@
   - [Run](#Run)
 - [Use](#Use)
 - [Upgrade](#Upgrade)
-- [Troubleshooting](#Troubleshooting)
+- [Troubleshoot](#Troubleshoot)
 - [Miscellaneous](#Miscellaneous)
 - [Development Setup](#Development-setup)
   - [Setup on Local Machine](#Setup-on-local-machine)
@@ -27,14 +27,14 @@
   - [Query Performance](#Query-performance)
   - [Indexing Performance](#Indexing-performance)
   - [Miscellaneous](#Miscellaneous-1)
-- [Acknowledgments](#Acknowledgments)
+- [Credits](#Credits)
 
 ## Features
 
 - **Natural**: Advanced Natural language understanding using Transformer based ML Models
 - **Local**: Your personal data stays local. All search, indexing is done on your machine[\*](https://github.com/debanjum/khoj#miscellaneous)
 - **Incremental**: Incremental search for a fast, search-as-you-type experience
-- **Pluggable**: Modular architecture makes it relatively easy to plug in new data sources, frontends and ML models
+- **Pluggable**: Modular architecture makes it easy to plug in new data sources, frontends and ML models
 - **Multiple Sources**: Search your Org-mode and Markdown notes, Beancount transactions and Photos
 - **Multiple Interfaces**: Search using a [Web Browser](./src/interface/web/index.html), [Emacs](./src/interface/emacs/khoj.el) or the [API](http://localhost:8000/docs)
 
@@ -99,7 +99,7 @@ docker-compose up -d
 docker-compose build --pull
 ```
 
-## Troubleshooting
+## Troubleshoot
 
 - Symptom: Errors out with \"Killed\" in error message
   - Fix: Increase RAM available to Docker Containers in Docker Settings
@@ -180,7 +180,7 @@ pytest
 - Testing done on a Mac M1 and a \>100K line corpus of notes
 - Search, indexing on a GPU has not been tested yet
 
-## Acknowledgments
+## Credits
 
 - [Multi-QA MiniLM Model](https://huggingface.co/sentence-transformers/multi-qa-MiniLM-L6-cos-v1), [All MiniLM Model](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) for Text Search. See [SBert Documentation](https://www.sbert.net/examples/applications/retrieve_rerank/README.html)
 - [OpenAI CLIP Model](https://github.com/openai/CLIP) for Image Search. See [SBert Documentation](https://www.sbert.net/examples/applications/image-search/README.html)
