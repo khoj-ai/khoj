@@ -93,12 +93,13 @@
                     .filter(type => data["content-type"].hasOwnProperty(type) && data["content-type"][type])
                     .map(type => `<option value="${type}">${type.slice(0,1).toUpperCase() + type.slice(1)}</option>`)
                     .join('');
+                })
+                .then(() => {
+                    // Set type field to search type passed in URL query parameter, if valid
+                    var type_via_url = new URLSearchParams(window.location.search).get("t");
+                    if (type_via_url && possible_search_types.includes(type_via_url))
+                        document.getElementById("type").value = type_via_url;
                 });
-
-            // Set type field to search type passed in URL query parameter, if valid
-            var type_via_url = new URLSearchParams(window.location.search).get("t");
-            if (type_via_url && type_via_url in possible_search_types)
-                document.getElementById("type").value = type_via_url;
         }
 
         window.onload = function () {
@@ -107,9 +108,8 @@
 
             // Fill query field with value passed in URL query parameters, if any.
             var query_via_url = new URLSearchParams(window.location.search).get("q");
-            if (query_via_url) {
+            if (query_via_url)
                 document.getElementById("query").value = query_via_url;
-            }
         }
     </script>
 
