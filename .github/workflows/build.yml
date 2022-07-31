@@ -4,9 +4,21 @@ on:
   pull_request:
     branches:
       - master
+    paths:
+      - src/**
+      - config/**
+      - Dockerfile
+      - docker-compose.yml
+      - .github/workflows/build.yml
   push:
     branches:
       - master
+    paths:
+      - src/**
+      - config/**
+      - Dockerfile
+      - docker-compose.yml
+      - .github/workflows/build.yml
 
 jobs:
   build:

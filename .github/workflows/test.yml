@@ -4,9 +4,19 @@ on:
   pull_request:
     branches:
       - 'master'
+    paths:
+      - src/**
+      - tests/**
+      - config/**
+      - .github/workflows/test.yml
   push:
     branches:
       - 'master'
+    paths:
+      - src/**
+      - tests/**
+      - config/**
+      - .github/workflows/test.yml
 
 jobs:
   test:
