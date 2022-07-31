@@ -34,22 +34,21 @@ app = FastAPI()
 web_directory = f'src/interface/web/'
 
 app.mount("/static", StaticFiles(directory=web_directory), name="static")
-app.mount("/views", StaticFiles(directory="views"), name="views")
-templates = Jinja2Templates(directory="views/")
+templates = Jinja2Templates(directory=web_directory)
 
 @app.get("/", response_class=FileResponse)
 def index():
     return FileResponse(web_directory + "index.html")
 
-@app.get('/ui', response_class=HTMLResponse)
+@app.get('/config', response_class=HTMLResponse)
 def ui(request: Request):
     return templates.TemplateResponse("config.html", context={'request': request})
 
-@app.get('/config', response_model=FullConfig)
+@app.get('/config/data', response_model=FullConfig)
 def config_data():
     return config
 
-@app.post('/config')
+@app.post('/config/data')
 async def config_data(updated_config: FullConfig):
     global config
     config = updated_config
