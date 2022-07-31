@@ -44,27 +44,11 @@ def cli(args=None):
 default_config = {
     'content-type':
     {
-        'org':
-        {
-            'compressed-jsonl': '.notes.jsonl.gz',
-            'embeddings-file': '.note_embeddings.pt'
-        },
-        'ledger':
-        {
-            'compressed-jsonl': '.transactions.jsonl.gz',
-            'embeddings-file': '.transaction_embeddings.pt'
-        },
-        'image':
-        {
-            'embeddings-file': '.image_embeddings.pt',
-            'batch-size': 50,
-            'use-xmp-metadata': 'no'
-        },
-        'music':
-        {
-            'compressed-jsonl': '.songs.jsonl.gz',
-            'embeddings-file': '.song_embeddings.pt'
-        },
+        'org': None,
+        'ledger': None,
+        'image': None,
+        'music': None,
+        'markdown': None,
     },
     'search-type':
     {
