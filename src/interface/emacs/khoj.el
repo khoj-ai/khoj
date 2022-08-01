@@ -78,7 +78,10 @@
    (format "# %s\n%s"
            query
            (mapcar
-            (lambda (args) (format "%s" (cdr (assoc 'entry args))))
+            (lambda (args)
+              (replace-regexp-in-string
+               "^\#+" "##"
+               (format "%s" (cdr (assoc 'entry args)))))
             json-response))))
 
 (defun khoj--extract-entries-as-org (json-response query)
@@ -90,8 +93,11 @@
    (format "* %s\n%s"
            query
            (mapcar
-            (lambda (args) (format "%s" (cdr (assoc 'entry args))))
-            json-response))))
+            (lambda (args)
+              (replace-regexp-in-string
+               "^\*+" "**"
+               (format "%s" (cdr (assoc 'entry args)))))
+              json-response))))
 
 (defun khoj--extract-entries-as-images (json-response query)
   "Convert json response from API to html with images"
