@@ -6,7 +6,7 @@ setup(
     name='khoj',
     version='1.0',
     description="A natural language search engine for your personal notes, transactions and images",
-    long_description=open('README.md', "r", encoding="utf-8").read(),
+    long_description=open('Readme.md', "r", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     author='Debanjum Singh Solanky, Saba Imran',
     author_email='debanjum@gmail.com',
@@ -48,5 +48,6 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
     ]
 )
