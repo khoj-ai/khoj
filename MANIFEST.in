@@ -1,0 +1,3 @@
+include Readme.md
+graft docs*
+global-exclude .DS_Store *.py[cod]

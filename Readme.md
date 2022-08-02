@@ -12,9 +12,9 @@
   - [Analysis](#Analysis)
 - [Architecture](#Architecture)
 - [Setup](#Setup)
-  - [Clone](#Clone)
-  - [Configure](#Configure)
-  - [Run](#Run)
+  - [Clone](#1.-Clone)
+  - [Configure](#2.-Configure)
+  - [Run](#3.-Run)
 - [Use](#Use)
 - [Upgrade](#Upgrade)
 - [Troubleshoot](#Troubleshoot)
@@ -117,6 +117,34 @@ docker-compose build --pull
 
 ### Setup on Local Machine
 
+#### Using Pip
+1. Install Dependencies
+   1. Python3, Pip \[Required\]
+   2. Virualenv \[Optional\]
+   3. Install Exiftool \[Optional\]
+      ``` shell
+      sudo apt-get -y install libimage-exiftool-perl
+      ```
+
+2. Install Khoj
+   ``` shell
+   virtualenv -m python3 .venv && source .venv/bin/activate # Optional
+   pip install khoj-assistant
+   ```
+
+3. Configure
+   - Configure files/directories to search in `content-type` section of `sample_config.yml`
+   - To run application on test data, update file paths containing `/data/` to `tests/data/` in `sample_config.yml`
+     - Example replace `/data/notes/*.org` with `tests/data/notes/*.org`
+
+4. Run
+   Load ML model, generate embeddings and expose API to query notes, images, transactions etc specified in config YAML
+
+   ``` shell
+   khoj -c=config/sample_config.yml -vv
+   ```
+
+#### Using Conda
 1. Install Dependencies
    1. Install Python3 \[Required\]
    2. [Install Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) \[Required\]
@@ -145,7 +173,12 @@ docker-compose build --pull
    ```
 
 ### Upgrade On Local Machine
+#### Using Pip
+``` shell
+pip install --upgrade khoj-assistant
+```
 
+#### Using Conda
 ``` shell
 cd khoj
 git pull origin master

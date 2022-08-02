@@ -2,6 +2,7 @@
 import sys, json, yaml, os
 import time
 from typing import Optional
+from pathlib import Path
 
 # External Packages
 import uvicorn
@@ -31,14 +32,15 @@ processor_config = ProcessorConfigModel()
 config_file = ""
 verbose = 0
 app = FastAPI()
-web_directory = f'src/interface/web/'
+this_directory = Path(__file__).parent
+web_directory = this_directory / 'interface/web/'
 
 app.mount("/static", StaticFiles(directory=web_directory), name="static")
 templates = Jinja2Templates(directory=web_directory)
 
 @app.get("/", response_class=FileResponse)
 def index():
-    return FileResponse(web_directory + "index.html")
+    return FileResponse(web_directory / "index.html")
 
 @app.get('/config', response_class=HTMLResponse)
 def ui(request: Request):
@@ -116,7 +118,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
         # query images
         query_start = time.time()
         hits = image_search.query(user_query, results_count, model.image_search)
-        output_directory = f'{os.getcwd()}/{web_directory}/images'
+        output_directory = web_directory / 'images'
         query_end = time.time()
 
         # collate and return results
@@ -279,26 +281,31 @@ def shutdown_event():
     print('INFO:\tConversation logs saved to disk.')
 
 
-if __name__ == '__main__':
+def run():
     # Load config from CLI
     args = cli(sys.argv[1:])
 
     # Stores the file path to the config file.
+    global config_file
     config_file = args.config_file
 
     # Store the verbose flag
+    global verbose
     verbose = args.verbose
 
     # Store the raw config data.
+    global config
     config = args.config
 
     # Set device to GPU if available
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
 
     # Initialize the search model from Config
+    global model
     model = initialize_search(args.config, args.regenerate, device=device)
 
     # Initialize Processor from Config
+    global processor_config
     processor_config = initialize_processor(args.config)
 
     # Start Application Server
@@ -306,3 +313,7 @@ if __name__ == '__main__':
         uvicorn.run(app, proxy_headers=True, uds=args.socket)
     else:
         uvicorn.run(app, host=args.host, port=args.port)
+
+
+if __name__ == '__main__':
+    run()
