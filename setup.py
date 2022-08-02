@@ -7,7 +7,7 @@ this_directory = Path(__file__).parent
 
 setup(
     name='khoj-assistant',
-    version='0.1',
+    version='0.1.3',
     description="A natural language search engine for your personal notes, transactions and images",
     long_description=(this_directory / "Readme.md").read_text(encoding="utf-8"),
     long_description_content_type="text/markdown",
@@ -40,6 +40,7 @@ setup(
         "aiofiles == 0.8.0",
         "dateparser == 1.1.1",
     ],
+    include_package_data=True,
     entry_points={"console_scripts": ["khoj = src.main:run"]},
     classifiers=[
         "Development Status :: 4 - Beta",

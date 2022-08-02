@@ -2,6 +2,7 @@
 import sys, json, yaml, os
 import time
 from typing import Optional
+from pathlib import Path
 
 # External Packages
 import uvicorn
@@ -31,14 +32,15 @@ processor_config = ProcessorConfigModel()
 config_file = ""
 verbose = 0
 app = FastAPI()
-web_directory = f'src/interface/web/'
+this_directory = Path(__file__).parent
+web_directory = this_directory / 'interface/web/'
 
 app.mount("/static", StaticFiles(directory=web_directory), name="static")
 templates = Jinja2Templates(directory=web_directory)
 
 @app.get("/", response_class=FileResponse)
 def index():
-    return FileResponse(web_directory + "index.html")
+    return FileResponse(web_directory / "index.html")
 
 @app.get('/config', response_class=HTMLResponse)
 def ui(request: Request):
@@ -116,7 +118,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
         # query images
         query_start = time.time()
         hits = image_search.query(user_query, results_count, model.image_search)
-        output_directory = f'{os.getcwd()}/{web_directory}/images'
+        output_directory = web_directory / 'images'
         query_end = time.time()
 
         # collate and return results
