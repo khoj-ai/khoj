@@ -7,7 +7,7 @@ this_directory = Path(__file__).parent
 
 setup(
     name='khoj-assistant',
-    version='0.1.3',
+    version='0.1.4',
     description="A natural language search engine for your personal notes, transactions and images",
     long_description=(this_directory / "Readme.md").read_text(encoding="utf-8"),
     long_description_content_type="text/markdown",
@@ -36,7 +36,7 @@ setup(
         "jinja2 == 3.1.2",
         "pyyaml == 6.0",
         "pytest == 7.1.2",
-        "pillow == 8.4.0",
+        "pillow >= 9.0.1",
         "aiofiles == 0.8.0",
         "dateparser == 1.1.1",
     ],
