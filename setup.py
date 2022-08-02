@@ -2,17 +2,20 @@
 
 from setuptools import find_packages, setup
 
+from pathlib import Path
+this_directory = Path(__file__).parent
+
 setup(
-    name='khoj',
-    version='1.0',
+    name='khoj-assistant',
+    version='0.1',
     description="A natural language search engine for your personal notes, transactions and images",
-    long_description=open('Readme.md', "r", encoding="utf-8").read(),
+    long_description=(this_directory / "Readme.md").read_text(encoding="utf-8"),
     long_description_content_type="text/markdown",
     author='Debanjum Singh Solanky, Saba Imran',
-    author_email='debanjum@gmail.com',
+    author_email='debanjum+pypi@gmail.com, narmiabas@gmail.com',
     url='https://github.com/debanjum/khoj',
     license="GPLv3",
-    keywords="search semantic-search NLP sentence-transformer org-mode markdown beancount images",
+    keywords="search semantic-search productivity NLP org-mode markdown beancount images",
     python_requires=">=3.5, <4",
     packages=find_packages(
         where=".",

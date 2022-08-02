@@ -4,8 +4,10 @@ __pycache__
 tests/data/models
 tests/data/embeddings
 src/.data
+/src/interface/web/images
 .vscode
 *.gz
 *.pt
-/src/interface/web/*.jpg
-/src/interface/web/*.png
+/build/
+/dist/
+/khoj_assistant.egg-info/

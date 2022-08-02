@@ -128,9 +128,8 @@ docker-compose build --pull
 
 2. Install Khoj
    ``` shell
-   git clone https://github.com/debanjum/khoj && cd khoj
-   virtualenv -m python3 .venv && source .venv/bin/activate
-   pip install .
+   virtualenv -m python3 .venv && source .venv/bin/activate # Optional
+   pip install khoj-assistant
    ```
 
 3. Configure
@@ -176,9 +175,7 @@ docker-compose build --pull
 ### Upgrade On Local Machine
 #### Using Pip
 ``` shell
-cd khoj
-git pull origin master
-pip install --upgrade .
+pip install --upgrade khoj-assistant
 ```
 
 #### Using Conda
