@@ -279,26 +279,31 @@ def shutdown_event():
     print('INFO:\tConversation logs saved to disk.')
 
 
-if __name__ == '__main__':
+def run():
     # Load config from CLI
     args = cli(sys.argv[1:])
 
     # Stores the file path to the config file.
+    global config_file
     config_file = args.config_file
 
     # Store the verbose flag
+    global verbose
     verbose = args.verbose
 
     # Store the raw config data.
+    global config
     config = args.config
 
     # Set device to GPU if available
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
 
     # Initialize the search model from Config
+    global model
     model = initialize_search(args.config, args.regenerate, device=device)
 
     # Initialize Processor from Config
+    global processor_config
     processor_config = initialize_processor(args.config)
 
     # Start Application Server
@@ -306,3 +311,7 @@ if __name__ == '__main__':
         uvicorn.run(app, proxy_headers=True, uds=args.socket)
     else:
         uvicorn.run(app, host=args.host, port=args.port)
+
+
+if __name__ == '__main__':
+    run()
