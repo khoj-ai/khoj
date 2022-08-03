@@ -1,5 +1,5 @@
 # Standard Packages
-import sys, json, yaml, os
+import sys, json, yaml
 import time
 from typing import Optional
 from pathlib import Path
@@ -38,12 +38,14 @@ web_directory = this_directory / 'interface/web/'
 app.mount("/static", StaticFiles(directory=web_directory), name="static")
 templates = Jinja2Templates(directory=web_directory)
 
+
+# Controllers
 @app.get("/", response_class=FileResponse)
 def index():
     return FileResponse(web_directory / "index.html")
 
 @app.get('/config', response_class=HTMLResponse)
-def ui(request: Request):
+def config(request: Request):
     return templates.TemplateResponse("config.html", context={'request': request})
 
 @app.get('/config/data', response_model=FullConfig)

@@ -32,7 +32,7 @@ class DateFilter:
             return query, entries, embeddings
 
         # remove date range filter from query
-        query = re.sub(f'\s+{self.date_regex}', ' ', query)
+        query = re.sub(rf'\s+{self.date_regex}', ' ', query)
         query = re.sub(r'\s{2,}', ' ', query).strip()  # remove multiple spaces
 
         # find entries containing any dates that fall with date range specified in query
