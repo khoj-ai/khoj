@@ -7,6 +7,7 @@ on:
     paths:
       - src/**
       - config/**
+      - setup.py
       - Dockerfile
       - docker-compose.yml
       - .github/workflows/build.yml
@@ -16,6 +17,7 @@ on:
     paths:
       - src/**
       - config/**
+      - setup.py
       - Dockerfile
       - docker-compose.yml
       - .github/workflows/build.yml

@@ -8,6 +8,7 @@ on:
       - src/**
       - tests/**
       - config/**
+      - setup.py
       - .github/workflows/test.yml
   push:
     branches:
@@ -16,6 +17,7 @@ on:
       - src/**
       - tests/**
       - config/**
+      - setup.py
       - .github/workflows/test.yml
 
 jobs:
