@@ -78,8 +78,15 @@
         }
 
         function incremental_search(event) {
-            // perform incremental search by default, rerank results if user presses enter
-            event.key === 'Enter' ? search(rerank=true) : search(rerank=false);
+            type = document.getElementById("type").value;
+            // Search with reranking on 'Enter'
+            if (event.key === 'Enter') {
+                search(rerank=true);
+            }
+            // Limit incremental search to text types
+            else if (type !== "image") {
+                search(rerank=false);
+            }
         }
 
         function populate_type_dropdown() {
