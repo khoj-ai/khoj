@@ -1,6 +1,7 @@
 __pycache__
 .DS_Store
 .emacs.desktop*
+*.py[cod]
 tests/data/models
 tests/data/embeddings
 src/.data
