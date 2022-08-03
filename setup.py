@@ -16,7 +16,7 @@ setup(
     url='https://github.com/debanjum/khoj',
     license="GPLv3",
     keywords="search semantic-search productivity NLP org-mode markdown beancount images",
-    python_requires=">=3.5, <4",
+    python_requires=">=3.8, <4",
     packages=find_packages(
         where=".",
         exclude=["tests*"],
