@@ -11,3 +11,4 @@ src/.data
 /build/
 /dist/
 /khoj_assistant.egg-info/
+/config/*.yml
