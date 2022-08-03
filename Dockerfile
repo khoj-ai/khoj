@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1
 FROM python:3.10-slim-bullseye
+LABEL org.opencontainers.image.source https://github.com/debanjum/khoj
 
 # Install System Dependencies
 RUN apt-get update -y && \
