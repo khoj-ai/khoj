@@ -3,6 +3,7 @@ import sys, json, yaml
 import time
 from typing import Optional
 from pathlib import Path
+from functools import lru_cache
 
 # External Packages
 import uvicorn
@@ -62,6 +63,7 @@ async def config_data(updated_config: FullConfig):
     return config
 
 @app.get('/search')
+@lru_cache(maxsize=100)
 def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Optional[bool] = False):
     if q is None or q == '':
         print(f'No query param (q) passed in API call to initiate search')
