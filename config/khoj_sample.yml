@@ -20,11 +20,11 @@ content-type:
     compressed-jsonl: /data/embeddings/transactions.jsonl.gz
     embeddings-file: /data/embeddings/transaction_embeddings.pt
 
-  image:
-    input-directories: ["/data/images/"]
-    embeddings-file: "/data/embeddings/image_embeddings.pt"
-    batch-size: 50
-    use-xmp-metadata: true
+#  image:
+#    input-directories: ["/data/images/"]
+#    embeddings-file: "/data/embeddings/image_embeddings.pt"
+#    batch-size: 50
+#    use-xmp-metadata: true
 
   music:
     input-files: ["/data/music/music.org"]
