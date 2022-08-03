@@ -28,7 +28,7 @@ git clone https://github.com/debanjum/khoj && cd khoj
     mount your images, (org-mode or markdown) notes and beancount
     directories
 -   \[Optional\] Edit application configuration in
-    [sample~config~.yml](./config/sample_config.yml)
+    [khoj_sample.yml](./config/khoj_sample.yml)
 
 ### 3. Run
 
@@ -113,9 +113,9 @@ docker-compose build --pull
 3.  3\. Configure
 
     -   Configure files/directories to search in `content-type` section
-        of `sample_config.yml`
+        of `khoj_sample.yml`
     -   To run application on test data, update file paths containing
-        `/data/` to `tests/data/` in `sample_config.yml`
+        `/data/` to `tests/data/` in `khoj_sample.yml`
         -   Example replace `/data/notes/*.org` with
             `tests/data/notes/*.org`
 
@@ -125,7 +125,7 @@ docker-compose build --pull
     images, transactions etc specified in config YAML
 
     ``` shell
-    python3 -m src.main -c=config/sample_config.yml -vv
+    python3 -m src.main -c=config/khoj_sample.yml -vv
     ```
 
 ### Upgrade On Local Machine
