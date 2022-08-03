@@ -1,16 +1,6 @@
 name: build
 
 on:
-  pull_request:
-    branches:
-      - master
-    paths:
-      - src/**
-      - config/**
-      - setup.py
-      - Dockerfile
-      - docker-compose.yml
-      - .github/workflows/build.yml
   push:
     branches:
       - master
