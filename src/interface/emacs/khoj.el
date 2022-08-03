@@ -36,7 +36,6 @@
 (require 'url)
 (require 'json)
 
-
 (defcustom khoj--server-url "http://localhost:8000"
   "Location of Khoj API server."
   :group 'khoj
@@ -200,7 +199,16 @@
          query-url
          buffer-name)))))
 
+(defun delete-open-network-connections-to-khoj ()
+  "Delete all network connections to khoj server"
+  (dolist (proc (process-list))
+    (let ((proc-buf (buffer-name (process-buffer proc)))
+          (khoj-network-proc-buf (string-join (split-string khoj--server-url "://") " ")))
+      (when (string-match (format "%s" khoj-network-proc-buf) proc-buf)
+        (delete-process proc)))))
+
 (defun khoj--teardown-incremental-search ()
+  (message "[Khoj]: Teardown Incremental Search")
   ;; remove advice to rerank results on normal exit from minibuffer
   (advice-remove 'exit-minibuffer #'khoj--minibuffer-exit-advice)
   ;; unset khoj minibuffer window
@@ -208,6 +216,8 @@
   ;; cancel rerank timer
   (when (timerp khoj--rerank-timer)
     (cancel-timer khoj--rerank-timer))
+  ;; delete open connections to khoj
+  (delete-open-network-connections-to-khoj)
   ;; remove hooks for khoj incremental query and self
   (remove-hook 'post-command-hook #'khoj--incremental-search)
   (remove-hook 'minibuffer-exit-hook #'khoj--teardown-incremental-search))
