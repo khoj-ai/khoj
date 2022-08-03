@@ -1,0 +1,25 @@
+{
+    "name": "Khoj",
+    "short_name": "Khoj",
+    "description": "A natural language search engine for your personal notes, transactions and photos",
+    "icons": [
+        {
+            "src": "/static/assets/icons/favicon-144x144.png",
+            "sizes": "144x144",
+            "type": "image/png"
+        },
+        {
+            "src": "/static/assets/icons/favicon-32x32.png",
+            "sizes": "32x32",
+            "type": "image/png"
+        },
+        {
+            "src": "/static/assets/icons/favicon-16x16.png",
+            "sizes": "16x16",
+            "type": "image/png"
+        }
+    ],
+    "theme_color": "#ffffff",
+    "background_color": "#ffffff",
+    "display": "standalone"
+}
