@@ -1,53 +1,51 @@
 content-type:
-  # The /data/folder/ prefix to the folders is here because this is
-  # the directory to which the local files are copied in the docker-compose.
-  # If changing, the docker-compose volumes should also be changed to match.
   org:
-    input-files: null
-    input-filter: "/data/notes/*.org"
-    compressed-jsonl: "/data/embeddings/notes.jsonl.gz"
-    embeddings-file: "/data/embeddings/note_embeddings.pt"
+    input-files:  # ["/path/to/org-file.org"]  REQUIRED IF input-filter IS NOT SET OR
+    input-filter: # /path/to/org/*.org         REQUIRED IF input-files IS NOT SET
+    compressed-jsonl: "~/.khoj/content/org/org.jsonl.gz"
+    embeddings-file: "~/.khoj/content/org/org_embeddings.pt"
 
   markdown:
-    input-files: null
-    input-filter: "/data/markdown/*.md"
-    compressed-jsonl: "/data/embeddings/markdown.jsonl.gz"
-    embeddings-file: "/data/embeddings/markdown_embeddings.pt"
+    input-files:  # ["/path/to/markdown-file.md"]  REQUIRED IF input-filter IS NOT SET OR
+    input-filter: # "/path/to/markdown/*.md"       REQUIRED IF input-files IS NOT SET
+    compressed-jsonl: "~/.khoj/content/markdown/markdown.jsonl.gz"
+    embeddings-file: "~/.khoj/content/markdown/markdown_embeddings.pt"
 
   ledger:
-    input-files: null
-    input-filter: /data/ledger/*.beancount
-    compressed-jsonl: /data/embeddings/transactions.jsonl.gz
-    embeddings-file: /data/embeddings/transaction_embeddings.pt
+    input-files:  # ["/path/to/ledger-file.beancount"]  REQUIRED IF input-filter is not set OR
+    input-filter: # /path/to/ledger/*.beancount         REQUIRED IF input-files is not set
+    compressed-jsonl: "~/.khoj/content/ledger/ledger.jsonl.gz"
+    embeddings-file: "~/.khoj/content/ledger/ledger_embeddings.pt"
 
-#  image:
-#    input-directories: ["/data/images/"]
-#    embeddings-file: "/data/embeddings/image_embeddings.pt"
-#    batch-size: 50
-#    use-xmp-metadata: true
+  image:
+    input-directories: # ["/path/to/images/"]   REQUIRED IF input-filter IS NOT SET OR
+    input-filter:      # /path/to/images/*.jpg  REQUIRED IF input-directories IS NOT SET
+    embeddings-file: "~/.khoj/content/image/image_embeddings.pt"
+    batch-size: 50
+    use-xmp-metadata: true
 
   music:
-    input-files: ["/data/music/music.org"]
-    input-filter: null
-    compressed-jsonl: "/data/embeddings/songs.jsonl.gz"
-    embeddings-file: "/data/embeddings/song_embeddings.pt"
+    input-files:  # ["/path/to/music-file.org"] REQUIRED IF input-filter IS NOT SET OR
+    input-filter: # /path/to/music/*.org        REQUIRED IF input-files IS NOT SET
+    compressed-jsonl: "~/.khoj/content/music/music.jsonl.gz"
+    embeddings-file: "~/.khoj/content/music/music_embeddings.pt"
 
 search-type:
   symmetric:
     encoder: "sentence-transformers/all-MiniLM-L6-v2"
     cross-encoder: "cross-encoder/ms-marco-MiniLM-L-6-v2"
-    model_directory: "/data/models/symmetric"
+    model_directory: "~/.khoj/search/symmetric/"
 
   asymmetric:
     encoder: "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"
     cross-encoder: "cross-encoder/ms-marco-MiniLM-L-6-v2"
-    model_directory: "/data/models/asymmetric"
+    model_directory: "~/.khoj/search/asymmetric/"
 
   image:
-    encoder: "clip-ViT-B-32"
-    model_directory: "/data/models/image_encoder"
+    encoder: "sentence-transformers/clip-ViT-B-32"
+    model_directory: "~/.khoj/search/image/"
 
 processor:
   conversation:
-    openai-api-key: null
-    conversation-logfile: "/data/embeddings/conversation_logs.json"
+    openai-api-key: # "YOUR_OPENAI_API_KEY"
+    conversation-logfile: "~/.khoj/processor/conversation/conversation_logs.json"
