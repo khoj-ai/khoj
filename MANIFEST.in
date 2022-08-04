@@ -1,3 +1,5 @@
 include Readme.md
-graft docs*
+graft src/interface/*
+prune src/interface/web/images*
+prune docs*
 global-exclude .DS_Store *.py[cod]

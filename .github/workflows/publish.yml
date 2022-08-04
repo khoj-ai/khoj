@@ -1,0 +1,74 @@
+name: publish
+
+on:
+  pull_request:
+    branches:
+      - 'master'
+    paths:
+      - src/**
+      - setup.py
+      - .github/workflows/publish.yml
+  push:
+    branches:
+      - 'master'
+    paths:
+      - src/**
+      - setup.py
+      - .github/workflows/publish.yml
+
+jobs:
+  publish:
+    name: Publish App to PyPI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Install Application
+        run: |
+          pip install --upgrade .
+
+      - name: Publish Release to PyPI
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_KEY }}
+        run: |
+          rm -rf dist
+          python -m build
+          twine check dist/*
+          twine upload dist/*
+
+      - name: Publish Master to PyPI
+        if: github.ref == 'refs/heads/master'
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_KEY }}
+        run: |
+          sed -E -i "s/version=(.*)',/version=\1a$(date +%s)',/g" setup.py
+          rm -rf dist
+          python -m build
+          twine check dist/*
+          twine upload dist/*
+
+      - name: Publish PR to Test PyPI
+        if: github.event_name == 'pull_request'
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_KEY }}
+          PULL_REQUEST_NUMBER: ${{ github.event.number }}
+        run: |
+          sed -E -i "s/version=(.*)',/version=\1.dev$PULL_REQUEST_NUMBER$(date +%s)',/g" setup.py
+          rm -rf dist
+          python -m build
+          twine check dist/*
+          twine upload -r testpypi dist/*

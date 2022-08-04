@@ -22,50 +22,25 @@ on:
 
 jobs:
   test:
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            label: linux-64
-            prefix: /usr/share/miniconda3/envs/test
-
-    name: ${{ matrix.label }}
-    runs-on: ${{ matrix.os }}
+    name: Run Tests
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - name: Install Environment Dependencies
-        shell: bash -l {0}
-        run: sudo apt-get -y install libimage-exiftool-perl
-
-      - name: Setup Mambaforge
-        uses: conda-incubator/setup-miniconda@v2
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
         with:
-          miniforge-variant: Mambaforge
-          miniforge-version: latest
-          activate-environment: test
-          use-mamba: true
-          environment-file: config/environment.yml
-          python-version: 3.8
-          auto-activate-base: false
-          use-only-tar-bz2: true
+          python-version: '3.10'
 
-      - name: Set cache date
-        run: echo "DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
 
-      - uses: actions/cache@v2
-        with:
-          path: ${{ matrix.prefix }}
-          key: ${{ matrix.label }}-conda-${{ hashFiles('config/environment.yml') }}-${{ env.DATE }}-${{ env.CACHE_NUMBER }}
-        env:
-          # Increase this value to reset cache if environment.yml has not changed
-          CACHE_NUMBER: 0
-        id: cache
+      - name: Install Application
+        run: |
+          pip install --upgrade .
 
-      - name: Update environment
-        run: mamba env update -n test -f config/environment.yml
-        if: steps.cache.outputs.cache-hit != 'true'
-
-      - name: Run Pytest
-        shell: bash -l {0}        
-        run: python -m pytest
+      - name: Test Application
+        run: |
+          pytest 

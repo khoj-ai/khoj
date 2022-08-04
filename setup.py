@@ -7,7 +7,7 @@ this_directory = Path(__file__).parent
 
 setup(
     name='khoj-assistant',
-    version='0.1.4',
+    version='0.1.5',
     description="A natural language search engine for your personal notes, transactions and images",
     long_description=(this_directory / "Readme.md").read_text(encoding="utf-8"),
     long_description_content_type="text/markdown",
@@ -16,7 +16,7 @@ setup(
     url='https://github.com/debanjum/khoj',
     license="GPLv3",
     keywords="search semantic-search productivity NLP org-mode markdown beancount images",
-    python_requires=">=3.5, <4",
+    python_requires=">=3.8, <4",
     packages=find_packages(
         where=".",
         exclude=["tests*"],
