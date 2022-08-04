@@ -13,17 +13,17 @@
   - [Analysis](#Analysis)
 - [Architecture](#Architecture)
 - [Setup](#Setup)
-  - [Clone](#1.-Clone)
-  - [Configure](#2.-Configure)
-  - [Run](#3.-Run)
+  - [Install](#1-Install)
+  - [Configure](#2-Configure)
+  - [Run](#3-Run)
 - [Use](#Use)
 - [Upgrade](#Upgrade)
 - [Troubleshoot](#Troubleshoot)
 - [Miscellaneous](#Miscellaneous)
-- [Development Setup](#Development-setup)
-  - [Setup on Local Machine](#Setup-on-local-machine)
-  - [Upgrade on Local Machine](#Upgrade-on-local-machine)
-  - [Run Unit Tests](#Run-unit-tests)
+- [Development](#Development)
+  - [Setup](#Setup-1)
+  - [Upgrade](#Upgrade-1)
+  - [Test](#Test)
 - [Performance](#Performance)
   - [Query Performance](#Query-performance)
   - [Indexing Performance](#Indexing-performance)
@@ -61,52 +61,45 @@
 ![](https://github.com/debanjum/khoj/blob/master/docs/khoj_architecture.png)
 
 ## Setup
-
-### 1. Clone
-
-``` shell
-git clone https://github.com/debanjum/khoj && cd khoj
-```
+### 1. Install
+   ``` shell
+   pip install khoj-assistant
+   ```
 
 ### 2. Configure
-
-- **Required**: Update [docker-compose.yml](./docker-compose.yml) to mount your images, (org-mode or markdown) notes and beancount directories
-- **Optional**: Edit application configuration in [khoj_sample.yml](./config/khoj_sample.yml)
+   - Set `input-files` or `input-filter` in each relevant `content-type` section of [khoj_sample.yml](./config/khoj_sample.yml)
+     - Set `input-directories` field in `content-type.image` section
+   - Delete `content-type` sections irrelevant for your use-case
 
 ### 3. Run
-
-``` shell
-docker-compose up -d
-```
-
-*Note: The first run will take time. Let it run, it\'s mostly not hung, just generating embeddings*
+   ``` shell
+   khoj config/khoj_sample.yml -vv
+   ```
+   Loads ML model, generates embeddings and exposes API to search notes, images, transactions etc specified in config YAML
 
 ## Use
 
 - **Khoj via Web**
-  - Go to <http://localhost:8000/> or open [index.html](./src/interface/web/index.html) in your browser
+  - Open <http://localhost:8000/>
 - **Khoj via Emacs**
   - [Install](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#installation) [khoj.el](./src/interface/emacs/khoj.el)
   - Run `M-x khoj <user-query>`
 - **Khoj via API**
-  - See [Khoj FastAPI Docs](http://localhost:8000/docs)
-  - [Query](http://localhost:8000/search?q=%22what%20is%20the%20meaning%20of%20life%22)
-  - [Regenerate Embeddings](http://localhost:8000/regenerate?t=ledger)
-  - [Configure Application](https://localhost:8000/ui)
+  - See [Khoj FastAPI Docs](http://localhost:8000/docs), [Khoj FastAPI ReDocs](http://localhost:8000/redocs)
 
 ## Upgrade
-
 ``` shell
-docker-compose build --pull
+pip install --upgrade khoj-assistant
 ```
 
 ## Troubleshoot
 
-- Symptom: Errors out with \"Killed\" in error message
+- Symptom: Errors out complaining about Tensors mismatch, null etc
+  - Mitigation: Delete `content-type` > `image` section from `khoj_sample.yml`
+
+- Symptom: Errors out with \"Killed\" in error message in Docker
   - Fix: Increase RAM available to Docker Containers in Docker Settings
   - Refer: [StackOverflow Solution](https://stackoverflow.com/a/50770267), [Configure Resources on Docker for Mac](https://docs.docker.com/desktop/mac/#resources)
-- Symptom: Errors out complaining about Tensors mismatch, null etc
-  - Mitigation: Delete content-type > image section from `khoj_sample.yml`
 
 ## Miscellaneous
 
@@ -114,45 +107,35 @@ docker-compose build --pull
     - It is disabled by default
     - To use it add your `openai-api-key` to config.yml
 
-## Development Setup
+## Development
+### Setup
+#### Using Docker
+1. Clone
 
-### Setup on Local Machine
+``` shell
+git clone https://github.com/debanjum/khoj && cd khoj
+```
 
-#### Using Pip
-1. Install Dependencies
-   1. Python3, Pip \[Required\]
-   2. Virualenv \[Optional\]
-   3. Install Exiftool \[Optional\]
-      ``` shell
-      sudo apt-get -y install libimage-exiftool-perl
-      ```
+2. Configure
 
-2. Install Khoj
-   ``` shell
-   virtualenv -m python3 .venv && source .venv/bin/activate # Optional
-   pip install khoj-assistant
-   ```
+- **Required**: Update [docker-compose.yml](./docker-compose.yml) to mount your images, (org-mode or markdown) notes and beancount directories
+- **Optional**: Edit application configuration in [khoj_docker.yml](./config/khoj_docker.yml)
 
-3. Configure
-   - Configure files/directories to search in `content-type` section of `khoj_sample.yml`
-   - To run application on test data, update file paths containing `/data/` to `tests/data/` in `khoj_sample.yml`
-     - Example replace `/data/notes/*.org` with `tests/data/notes/*.org`
+3. Run
 
-4. Run
-   Load ML model, generate embeddings and expose API to query notes, images, transactions etc specified in config YAML
+``` shell
+docker-compose up -d
+```
 
-   ``` shell
-   khoj -c=config/khoj_sample.yml -vv
-   ```
+*Note: The first run will take time. Let it run, it\'s mostly not hung, just generating embeddings*
 
 #### Using Conda
 1. Install Dependencies
-   1. Install Python3 \[Required\]
-   2. [Install Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) \[Required\]
-   3. Install Exiftool \[Optional\]
-      ``` shell
-      sudo apt-get -y install libimage-exiftool-perl
-      ```
+   - [Install Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) \[Required\]
+   - Install Exiftool \[Optional\]
+     ``` shell
+     sudo apt -y install libimage-exiftool-perl
+     ```
 
 2. Install Khoj
    ``` shell
@@ -162,9 +145,9 @@ docker-compose build --pull
    ```
 
 3. Configure
-   - Configure files/directories to search in `content-type` section of `khoj_sample.yml`
-   - To run application on test data, update file paths containing `/data/` to `tests/data/` in `khoj_sample.yml`
-     - Example replace `/data/notes/*.org` with `tests/data/notes/*.org`
+   - Set `input-files` or `input-filter` in each relevant `content-type` section of `khoj_sample.yml`
+     - Set `input-directories` field in `image` `content-type` section
+   - Delete `content-type` sections irrelevant for your use-case
 
 4. Run
    Load ML model, generate embeddings and expose API to query notes, images, transactions etc specified in config YAML
@@ -173,10 +156,12 @@ docker-compose build --pull
    python3 -m src.main -c=config/khoj_sample.yml -vv
    ```
 
-### Upgrade On Local Machine
-#### Using Pip
+### Upgrade
+
+#### Using Docker
+
 ``` shell
-pip install --upgrade khoj-assistant
+docker-compose build --pull
 ```
 
 #### Using Conda
@@ -188,7 +173,7 @@ conda env update -f config/environment.yml
 conda activate khoj
 ```
 
-### Run Unit Tests
+### Test
 
 ``` shell
 pytest
