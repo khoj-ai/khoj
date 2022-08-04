@@ -36,8 +36,20 @@ jobs:
           twine check dist/*
 
       - name: Publish App to PyPI
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_KEY }}
+        run: |
+          twine upload dist/*
+
+      - name: Publish App to Test PyPI
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_KEY }}
         run: |
+          sed -E -i "s/version='(.*)',/version=\1-alpha.$(date +%s)',/g" setup.py
+          rm -rf dist
+          python -m build
+          twine check dist/*
           twine upload -r testpypi dist/*
