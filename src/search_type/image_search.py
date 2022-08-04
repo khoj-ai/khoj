@@ -22,6 +22,12 @@ def initialize_model(search_config: ImageSearchConfig):
     # Initialize Model
     torch.set_num_threads(4)
 
+    # Convert model directory to absolute path
+    search_config.model_directory = resolve_absolute_path(search_config.model_directory)
+
+    # Create model directory if it doesn't exist
+    search_config.model_directory.parent.mkdir(parents=True, exist_ok=True)
+
     # Load the CLIP model
     encoder = load_model(
         model_dir  = search_config.model_directory,
@@ -61,9 +67,8 @@ def compute_image_embeddings(image_names, encoder, embeddings_file, batch_size=5
         image_embeddings = torch.load(embeddings_file)
         if verbose > 0:
             print(f"Loaded pre-computed embeddings from {embeddings_file}")
-
     # Else compute the image embeddings from scratch, which can take a while
-    if image_embeddings is None:
+    elif image_embeddings is None:
         image_embeddings = []
         for index in trange(0, len(image_names), batch_size):
             images = [Image.open(image_name) for image_name in image_names[index:index+batch_size]]
@@ -71,6 +76,11 @@ def compute_image_embeddings(image_names, encoder, embeddings_file, batch_size=5
                 images,
                 convert_to_tensor=True,
                 batch_size=min(len(images), batch_size))
+
+        # Create directory for embeddings file, if it doesn't exist
+        embeddings_file.parent.mkdir(parents=True, exist_ok=True)
+
+        # Save computed image embeddings to file
         torch.save(image_embeddings, embeddings_file)
         if verbose > 0:
             print(f"Saved computed embeddings to {embeddings_file}")

@@ -35,7 +35,10 @@ def load_jsonl(input_path, verbose=0):
 
 def dump_jsonl(jsonl_data, output_path, verbose=0):
     "Write List of JSON objects to JSON line file"
-    with open(get_absolute_path(output_path), 'w', encoding='utf-8') as f:
+    # Create output directory, if it doesn't exist
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(output_path, 'w', encoding='utf-8') as f:
         f.write(jsonl_data)
 
     if verbose > 0:
@@ -43,7 +46,10 @@ def dump_jsonl(jsonl_data, output_path, verbose=0):
 
 
 def compress_jsonl_data(jsonl_data, output_path, verbose=0):
-    with gzip.open(get_absolute_path(output_path), 'wt') as gzip_file:
+    # Create output directory, if it doesn't exist
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with gzip.open(output_path, 'wt') as gzip_file:
         gzip_file.write(jsonl_data)
 
     if verbose > 0:

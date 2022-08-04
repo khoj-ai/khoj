@@ -22,6 +22,12 @@ def initialize_model(search_config: TextSearchConfig):
     # Number of entries we want to retrieve with the bi-encoder
     top_k = 15
 
+    # Convert model directory to absolute path
+    search_config.model_directory = resolve_absolute_path(search_config.model_directory)
+
+    # Create model directory if it doesn't exist
+    search_config.model_directory.parent.mkdir(parents=True, exist_ok=True)
+
     # The bi-encoder encodes all entries to use for semantic search
     bi_encoder = load_model(
         model_dir  = search_config.model_directory,
@@ -47,7 +53,7 @@ def extract_entries(jsonl_file, verbose=0):
 def compute_embeddings(entries, bi_encoder, embeddings_file, regenerate=False, device='cpu', verbose=0):
     "Compute (and Save) Embeddings or Load Pre-Computed Embeddings"
     # Load pre-computed embeddings from file if exists
-    if resolve_absolute_path(embeddings_file).exists() and not regenerate:
+    if embeddings_file.exists() and not regenerate:
         corpus_embeddings = torch.load(get_absolute_path(embeddings_file))
         if verbose > 0:
             print(f"Loaded embeddings from {embeddings_file}")
@@ -56,7 +62,7 @@ def compute_embeddings(entries, bi_encoder, embeddings_file, regenerate=False, d
         corpus_embeddings = bi_encoder.encode([entry['compiled'] for entry in entries], convert_to_tensor=True, show_progress_bar=True)
         corpus_embeddings.to(device)
         corpus_embeddings = util.normalize_embeddings(corpus_embeddings)
-        torch.save(corpus_embeddings, get_absolute_path(embeddings_file))
+        torch.save(corpus_embeddings, embeddings_file)
         if verbose > 0:
             print(f"Computed embeddings and saved them to {embeddings_file}")
 
@@ -165,7 +171,8 @@ def setup(text_to_jsonl, config: TextContentConfig, search_config: TextSearchCon
     bi_encoder, cross_encoder, top_k = initialize_model(search_config)
 
     # Map notes in text files to (compressed) JSONL formatted file
-    if not resolve_absolute_path(config.compressed_jsonl).exists() or regenerate:
+    config.compressed_jsonl = resolve_absolute_path(config.compressed_jsonl)
+    if not config.compressed_jsonl.exists() or regenerate:
         text_to_jsonl(config.input_files, config.input_filter, config.compressed_jsonl, verbose)
 
     # Extract Entries
@@ -173,6 +180,7 @@ def setup(text_to_jsonl, config: TextContentConfig, search_config: TextSearchCon
     top_k = min(len(entries), top_k)  # top_k hits can't be more than the total entries in corpus
 
     # Compute or Load Embeddings
+    config.embeddings_file = resolve_absolute_path(config.embeddings_file)
     corpus_embeddings = compute_embeddings(entries, bi_encoder, config.embeddings_file, regenerate=regenerate, device=device, verbose=verbose)
 
     return TextSearchModel(entries, corpus_embeddings, bi_encoder, cross_encoder, top_k, verbose=verbose)
