@@ -1,5 +1,9 @@
 # Standard Modules
 from pathlib import Path
+from random import random
+
+# External Modules
+import pytest
 
 # Internal Packages
 from src.utils.cli import cli
@@ -9,7 +13,7 @@ from src.utils.cli import cli
 # ----------------------------------------------------------------------------------------------------
 def test_cli_minimal_default():
     # Act
-    actual_args = cli(['--config-file=tests/data/config.yml'])
+    actual_args = cli(['tests/data/config.yml'])
 
     # Assert
     assert actual_args.config_file == Path('tests/data/config.yml')
@@ -17,22 +21,15 @@ def test_cli_minimal_default():
     assert actual_args.verbose == 0
 
 # ----------------------------------------------------------------------------------------------------
-def test_cli_flags():
+def test_cli_invalid_config_file_path():
     # Act
-    actual_args = cli(['--config-file=tests/data/config.yml',
-                       '--regenerate',
-                       '-vvv'])
-
-    # Assert
-    assert actual_args.config_file == Path('tests/data/config.yml')
-    assert actual_args.regenerate == True
-    assert actual_args.verbose == 3
-
+    with pytest.raises(ValueError):
+        cli([f"non-existent-khoj-{random()}.yml"])
 
 # ----------------------------------------------------------------------------------------------------
 def test_cli_config_from_file():
     # Act
-    actual_args = cli(['--config-file=tests/data/config.yml',
+    actual_args = cli(['tests/data/config.yml',
                        '--regenerate',
                        '-vvv'])
 

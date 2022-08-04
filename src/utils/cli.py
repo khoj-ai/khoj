@@ -10,12 +10,9 @@ from src.utils.helpers import is_none_or_empty, get_absolute_path, resolve_absol
 from src.utils.rawconfig import FullConfig
 
 def cli(args=None):
-    if is_none_or_empty(args):
-        return None
-
     # Setup Argument Parser for the Commandline Interface
-    parser = argparse.ArgumentParser(description="Expose API for Khoj")
-    parser.add_argument('--config-file', '-c', type=pathlib.Path, help="YAML file with user configuration")
+    parser = argparse.ArgumentParser(description="Start Khoj; A Natural Language Search Engine for your personal Notes, Transactions and Photos")
+    parser.add_argument('config_file', type=pathlib.Path, help="YAML file to configure Khoj")
     parser.add_argument('--regenerate', action='store_true', default=False, help="Regenerate model embeddings from source files. Default: false")
     parser.add_argument('--verbose', '-v', action='count', default=0, help="Show verbose conversion logs. Default: 0")
     parser.add_argument('--host', type=str, default='127.0.0.1', help="Host address of the server. Default: 127.0.0.1")
@@ -24,12 +21,8 @@ def cli(args=None):
 
     args = parser.parse_args(args)
 
-    if not (args.config_file):
-        print(f"Need --config-file flag to be passed from commandline")
-        exit(1)
-    elif not resolve_absolute_path(args.config_file).exists():
-        print(f"Config file {args.config_file} does not exist")
-        exit(1)
+    if not resolve_absolute_path(args.config_file).exists():
+        raise ValueError(f"Config file {args.config_file} does not exist")
 
     # Read Config from YML file
     config_from_file = None
