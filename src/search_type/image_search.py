@@ -1,5 +1,6 @@
 # Standard Packages
 import argparse
+import glob
 import pathlib
 import copy
 import shutil
@@ -11,7 +12,7 @@ from tqdm import trange
 import torch
 
 # Internal Packages
-from src.utils.helpers import resolve_absolute_path, load_model
+from src.utils.helpers import get_absolute_path, resolve_absolute_path, load_model
 import src.utils.exiftool as exiftool
 from src.utils.config import ImageSearchModel
 from src.utils.rawconfig import ImageContentConfig, ImageSearchConfig
@@ -213,13 +214,19 @@ def setup(config: ImageContentConfig, search_config: ImageSearchConfig, regenera
     encoder = initialize_model(search_config)
 
     # Extract Entries
-    image_directories = [resolve_absolute_path(directory, strict=True) for directory in config.input_directories]
-    image_names = extract_entries(image_directories, verbose)
+    absolute_image_files, filtered_image_files = set(), set()
+    if config.input_directories:
+        image_directories = [resolve_absolute_path(directory, strict=True) for directory in config.input_directories]
+        absolute_image_files = set(extract_entries(image_directories, verbose))
+    if config.input_filter:
+        filtered_image_files = set(glob.glob(get_absolute_path(config.input_filter)))
+
+    all_image_files = sorted(list(absolute_image_files | filtered_image_files))
 
     # Compute or Load Embeddings
     embeddings_file = resolve_absolute_path(config.embeddings_file)
     image_embeddings, image_metadata_embeddings = compute_embeddings(
-        image_names,
+        all_image_files,
         encoder,
         embeddings_file,
         batch_size=config.batch_size,
@@ -227,7 +234,7 @@ def setup(config: ImageContentConfig, search_config: ImageSearchConfig, regenera
         use_xmp_metadata=config.use_xmp_metadata,
         verbose=verbose)
 
-    return ImageSearchModel(image_names,
+    return ImageSearchModel(all_image_files,
                             image_embeddings,
                             image_metadata_embeddings,
                             encoder,

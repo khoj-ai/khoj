@@ -293,13 +293,13 @@ def run():
     global config_file
     config_file = args.config_file
 
-    # Store the verbose flag
-    global verbose
-    verbose = args.verbose
-
     # Store the raw config data.
     global config
     config = args.config
+
+    # Store the verbose flag
+    global verbose
+    verbose = args.verbose
 
     # Set device to GPU if available
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
