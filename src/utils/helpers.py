@@ -30,11 +30,13 @@ def get_from_dict(dictionary, *args):
     return current
 
 
-def merge_dicts(priority_dict, default_dict):
+def merge_dicts(priority_dict: dict, default_dict: dict):
     merged_dict = priority_dict.copy()
     for key, _ in default_dict.items():
         if key not in priority_dict:
             merged_dict[key] = default_dict[key]
+        elif isinstance(priority_dict[key], dict) and isinstance(default_dict[key], dict):
+            merged_dict[key] = merge_dicts(priority_dict[key], default_dict[key])
     return merged_dict
 
 
