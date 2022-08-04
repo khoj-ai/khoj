@@ -27,7 +27,7 @@ def search_config(tmp_path_factory):
     )
 
     search_config.image = ImageSearchConfig(
-        encoder = "clip-ViT-B-32",
+        encoder = "sentence-transformers/clip-ViT-B-32",
         model_directory = model_dir
     )
 
