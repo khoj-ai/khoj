@@ -37,18 +37,27 @@ jobs:
         run: |
           pip install --upgrade .
 
-      - name: Build, Check App to Publish
-        run: |
-          rm -rf dist
-          python -m build
-          twine check dist/*
-
-      - name: Publish App to PyPI
+      - name: Publish Release to PyPI
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_KEY }}
         run: |
+          rm -rf dist
+          python -m build
+          twine check dist/*
+          twine upload dist/*
+
+      - name: Publish Master to PyPI
+        if: github.ref == 'refs/heads/master'
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_KEY }}
+        run: |
+          sed -E -i "s/version=(.*)',/version=\1a$(date +%s)',/g" setup.py
+          rm -rf dist
+          python -m build
+          twine check dist/*
           twine upload dist/*
 
       - name: Publish PR to Test PyPI
@@ -63,15 +72,3 @@ jobs:
           python -m build
           twine check dist/*
           twine upload -r testpypi dist/*
-
-      - name: Publish Master to Test PyPI
-        if: github.ref == 'refs/heads/master'
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_KEY }}
-        run: |
-          sed -E -i "s/version=(.*)',/version=\1a$(date +%s)',/g" setup.py
-          rm -rf dist
-          python -m build
-          twine check dist/*
-          twine upload dist/*
