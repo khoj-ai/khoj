@@ -58,7 +58,7 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_KEY }}
           PULL_REQUEST_NUMBER: ${{ github.event.number }}
         run: |
-          sed -E -i "s/version=(.*)',/version=\1-alpha.$PULL_REQUEST_NUMBER.$(date +%s)',/g" setup.py
+          sed -E -i "s/version=(.*)',/version=\1.dev$PULL_REQUEST_NUMBER$(date +%s)',/g" setup.py
           rm -rf dist
           python -m build
           twine check dist/*
@@ -68,10 +68,10 @@ jobs:
         if: github.ref == 'refs/heads/master'
         env:
           TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_KEY }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_KEY }}
         run: |
-          sed -E -i "s/version=(.*)',/version=\1-beta.$(date +%s)',/g" setup.py
+          sed -E -i "s/version=(.*)',/version=\1a$(date +%s)',/g" setup.py
           rm -rf dist
           python -m build
           twine check dist/*
-          twine upload -r testpypi dist/*
+          twine upload dist/*
