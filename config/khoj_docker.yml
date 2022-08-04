@@ -1,0 +1,53 @@
+content-type:
+  # The /data/folder/ prefix to the folders is here because this is
+  # the directory to which the local files are copied in the docker-compose.
+  # If changing, the docker-compose volumes should also be changed to match.
+  org:
+    input-files: null
+    input-filter: "/data/org/*.org"
+    compressed-jsonl: "/data/embeddings/notes.jsonl.gz"
+    embeddings-file: "/data/embeddings/note_embeddings.pt"
+
+  markdown:
+    input-files: null
+    input-filter: "/data/markdown/*.md"
+    compressed-jsonl: "/data/embeddings/markdown.jsonl.gz"
+    embeddings-file: "/data/embeddings/markdown_embeddings.pt"
+
+  ledger:
+    input-files: null
+    input-filter: /data/ledger/*.beancount
+    compressed-jsonl: /data/embeddings/transactions.jsonl.gz
+    embeddings-file: /data/embeddings/transaction_embeddings.pt
+
+#  image:
+#    input-directories: ["/data/images/"]
+#    embeddings-file: "/data/embeddings/image_embeddings.pt"
+#    batch-size: 50
+#    use-xmp-metadata: true
+
+  music:
+    input-files: ["/data/music/music.org"]
+    input-filter: null
+    compressed-jsonl: "/data/embeddings/songs.jsonl.gz"
+    embeddings-file: "/data/embeddings/song_embeddings.pt"
+
+search-type:
+  symmetric:
+    encoder: "sentence-transformers/all-MiniLM-L6-v2"
+    cross-encoder: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    model_directory: "/data/models/symmetric"
+
+  asymmetric:
+    encoder: "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"
+    cross-encoder: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    model_directory: "/data/models/asymmetric"
+
+  image:
+    encoder: "sentence-transformers/clip-ViT-B-32"
+    model_directory: "/data/models/image_encoder"
+
+processor:
+  #conversation:
+  #  openai-api-key: null
+  #  conversation-logfile: "/data/embeddings/conversation_logs.json"
