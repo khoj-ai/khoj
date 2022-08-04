@@ -52,7 +52,7 @@ def model_dir(search_config):
     # Generate Notes Embeddings from Test Notes
     content_config.org = TextContentConfig(
         input_files = None,
-        input_filter = 'tests/data/notes/*.org',
+        input_filter = 'tests/data/org/*.org',
         compressed_jsonl = model_dir.joinpath('notes.jsonl.gz'),
         embeddings_file = model_dir.joinpath('note_embeddings.pt'))
 
@@ -66,7 +66,7 @@ def content_config(model_dir):
     content_config = ContentConfig()
     content_config.org = TextContentConfig(
         input_files = None,
-        input_filter = 'tests/data/notes/*.org',
+        input_filter = 'tests/data/org/*.org',
         compressed_jsonl = model_dir.joinpath('notes.jsonl.gz'),
         embeddings_file = model_dir.joinpath('note_embeddings.pt'))
 

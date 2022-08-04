@@ -16,7 +16,7 @@ services:
       #   points to the files you want to index.
       # The path of the mounted directory (right hand side),
       #   must match the path prefix in your config file.
-      - ./tests/data/notes/:/data/notes/
+      - ./tests/data/org/:/data/org/
       - ./tests/data/images/:/data/images/
       - ./tests/data/ledger/:/data/ledger/
       - ./tests/data/music/:/data/music/

@@ -116,8 +116,8 @@ docker-compose build --pull
         of `khoj_sample.yml`
     -   To run application on test data, update file paths containing
         `/data/` to `tests/data/` in `khoj_sample.yml`
-        -   Example replace `/data/notes/*.org` with
-            `tests/data/notes/*.org`
+        -   Example replace `/data/org/*.org` with
+            `tests/data/org/*.org`
 
 4.  4\. Run
 
