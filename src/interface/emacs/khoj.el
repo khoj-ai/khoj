@@ -153,7 +153,7 @@
   (let ((file-extension (file-name-extension buffer-name)))
     (cond
      ((equal buffer-name "Music.org") "music")
-     ((equal file-extension "bean") "ledger")
+     ((or (equal file-extension "bean") (equal file-extension "beancount")) "ledger")
      ((equal file-extension "org") "org")
      ((or (equal file-extension "markdown") (equal file-extension "md")) "markdown")
      (t "org"))))
