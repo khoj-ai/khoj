@@ -65,6 +65,9 @@
 (defconst khoj--query-prompt "🦅Khoj: "
   "Query prompt shown to user in the minibuffer.")
 
+(defconst khoj--buffer-name "*🦅Khoj*"
+  "Name of buffer to show results from Khoj.")
+
 (defvar khoj--search-type "org"
   "The type of content to perform search on.")
 
@@ -192,7 +195,7 @@
 ;; Incremental Search on Khoj
 (defun khoj--incremental-search (&optional rerank)
   (let* ((rerank-str (cond (rerank "true") (t "false")))
-         (buffer-name (get-buffer-create "*Khoj*"))
+         (khoj-buffer-name (get-buffer-create khoj--buffer-name))
          (query (minibuffer-contents-no-properties))
          (query-url (khoj--construct-api-query query khoj--search-type rerank-str)))
     ;; Query khoj API only when user in khoj minibuffer.
@@ -205,7 +208,7 @@
          query
          khoj--search-type
          query-url
-         buffer-name)))))
+         khoj-buffer-name)))))
 
 (defun delete-open-network-connections-to-khoj ()
   "Delete all network connections to khoj server"
@@ -237,7 +240,7 @@
 (defun khoj ()
   "Natural, Incremental Search for your personal notes, transactions and music using Khoj"
   (interactive)
-  (let* ((khoj-buffer-name (get-buffer-create "*Khoj*")))
+  (let* ((khoj-buffer-name (get-buffer-create khoj--buffer-name)))
     ;; set khoj search type to last used or based on current buffer
     (setq khoj--search-type (or khoj--search-type (khoj--buffer-name-to-search-type (buffer-name))))
     ;; setup temporary keymap for khoj
@@ -266,7 +269,7 @@
          (default-type (khoj--buffer-name-to-search-type (buffer-name)))
          (search-type (completing-read "Type: " '("org" "markdown" "ledger" "music" "image") nil t default-type))
          (query-url (khoj--construct-api-query query search-type rerank))
-         (buffer-name (get-buffer-create (format "*Khoj (q:%s t:%s)*" query search-type))))
+         (buffer-name (get-buffer-create (format "*%s (q:%s t:%s)*" khoj--buffer-name query search-type))))
     (khoj--query-api-and-render-results
         query
         search-type
