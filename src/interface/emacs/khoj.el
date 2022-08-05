@@ -208,12 +208,15 @@ C-x i  | images
          (khoj-buffer-name (get-buffer-create khoj--buffer-name))
          (query (minibuffer-contents-no-properties))
          (query-url (khoj--construct-api-query query khoj--search-type rerank-str)))
-    ;; Query khoj API only when user in khoj minibuffer.
-    ;; Prevents querying during recursive edits or with contents of other buffers user may jump to
-    (when (and (active-minibuffer-window) (equal (current-buffer) khoj--minibuffer-window))
+    ;; Query khoj API only when user in khoj minibuffer and non-empty query
+    ;; Prevents querying if
+    ;;   1. user hasn't started typing query
+    ;;   2. during recursive edits
+    ;;   3. with contents of other buffers user may jump to
+    (when (and (not (equal query "")) (active-minibuffer-window) (equal (current-buffer) khoj--minibuffer-window))
       (progn
         (when rerank
-          (message "[Khoj]: Rerank Results"))
+          (message "Khoj: Rerank Results"))
         (khoj--query-api-and-render-results
          query
          khoj--search-type
