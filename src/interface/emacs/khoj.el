@@ -71,16 +71,7 @@
 (defvar khoj--search-type "org"
   "The type of content to perform search on.")
 
-(defun khoj--make-search-keymap (&optional existing-keymap)
-  "Setup keymap to configure Khoj search"
-  (let ((kmap (or existing-keymap (make-sparse-keymap))))
-    (define-key kmap (kbd "C-x m") '(lambda () (interactive) (setq khoj--search-type "markdown")))
-    (define-key kmap (kbd "C-x o") '(lambda () (interactive) (setq khoj--search-type "org")))
-    (define-key kmap (kbd "C-x l") '(lambda () (interactive) (setq khoj--search-type "ledger")))
-    (define-key kmap (kbd "C-x i") '(lambda () (interactive) (setq khoj--search-type "image")))
-    kmap))
-
-(defvar khoj--keybindings-help-message
+(defvar khoj--keybindings-info-message
   "
      Set Search Type
 -------------------------
@@ -89,6 +80,28 @@ C-x o  | org-mode
 C-x l  | ledger/beancount
 C-x i  | images
 ")
+(defun khoj--search-markdown (interactive) (setq khoj--search-type "markdown"))
+(defun khoj--search-org (interactive) (setq khoj--search-type "org"))
+(defun khoj--search-ledger (interactive) (setq khoj--search-type "ledger"))
+(defun khoj--search-images (interactive) (setq khoj--search-type "image"))
+(defun khoj--make-search-keymap (&optional existing-keymap)
+  "Setup keymap to configure Khoj search"
+  (let ((kmap (or existing-keymap (make-sparse-keymap))))
+    (define-key kmap (kbd "C-x m") #'khoj--search-markdown)
+    (define-key kmap (kbd "C-x o") #'khoj--search-org)
+    (define-key kmap (kbd "C-x l") #'khoj--search-ledger)
+    (define-key kmap (kbd "C-x i") #'khoj--search-images)
+    kmap))
+(defun khoj--display-keybinding-info ()
+  "Display information on keybindings to customize khoj search.
+Use `which-key` if available, else display simple message in echo area"
+  (if (fboundp 'which-key--create-buffer-and-show)
+      (which-key--create-buffer-and-show
+       (kbd "C-x")
+       (symbolp (khoj--make-search-keymap))
+       '(lambda (binding) (string-prefix-p "khoj--" (cdr binding)))
+       "Khoj Bindings")
+    (message "%s" khoj--keybindings-info-message)))
 
 (defun khoj--extract-entries-as-markdown (json-response query)
   "Convert json response from API to markdown entries"
@@ -265,7 +278,8 @@ C-x i  | images
         (lambda ()
           ;; Add khoj keybindings for configuring search to minibuffer keybindings
           (khoj--make-search-keymap minibuffer-local-map)
-          (message "%s" khoj--keybindings-help-message)
+          ;; Display information on keybindings to customize khoj search
+          (khoj--display-keybinding-info)
           ;; set current (mini-)buffer entered as khoj minibuffer
           ;; used to query khoj API only when user in khoj minibuffer
           (setq khoj--minibuffer-window (current-buffer))
