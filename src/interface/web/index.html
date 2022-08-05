@@ -130,11 +130,13 @@
         <!--Add Text Box To Enter Query, Trigger Incremental Search OnChange -->
         <input type="text" id="query" onkeyup=incremental_search(event) autofocus="autofocus" placeholder="What is the meaning of life?">
 
-        <!--Add Dropdown to Select Query Type -->
-        <select id="type"></select>
+        <div id="options">
+            <!--Add Dropdown to Select Query Type -->
+            <select id="type"></select>
 
-        <!--Add Button To Regenerate -->
-        <button id="regenerate" onclick="regenerate()">Regenerate</button>
+            <!--Add Button To Regenerate -->
+            <button id="regenerate" onclick="regenerate()">Regenerate</button>
+        </div>
 
         <!-- Section to Render Results -->
         <div id="results"></div>
@@ -180,10 +182,24 @@
             font-weight: 200;
             color: #888;
         }
-        button {
+
+        #options {
+            padding: 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+        #options > * {
+            padding: 15px;
             border-radius: 5px;
             border: 1px solid #ccc;
         }
+        #options > select {
+            margin-right: 5px;
+        }
+        #options > button {
+            margin-left: 5px;
+        }
+
         #query {
             font-size: larger;
         }
@@ -207,7 +223,6 @@
         #json {
             white-space: pre-wrap;
         }
-
         #results-markdown {
             text-align: left;
         }
