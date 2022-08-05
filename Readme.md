@@ -158,6 +158,18 @@ docker-compose up -d
 
 ### Upgrade
 
+### Using Pip
+```shell
+# To Upgrade To Latest Stable Release
+pip install --upgrade khoj-assistant
+
+# To Upgrade To Latest Pre-Release
+pip install --upgrade --pre khoj-assistant
+
+# To Upgrade To Specific Development Release
+pip install -r testpypi khoj-assistant==0.1.5.dev491659577806
+```
+
 #### Using Docker
 
 ``` shell

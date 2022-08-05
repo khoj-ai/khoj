@@ -143,7 +143,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
 
 
 @app.get('/reload')
-def regenerate(t: Optional[SearchType] = None):
+def reload(t: Optional[SearchType] = None):
     global model
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     model = initialize_search(config, regenerate=False, t=t, device=device)
