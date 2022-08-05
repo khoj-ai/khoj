@@ -80,6 +80,16 @@
     (define-key kmap (kbd "C-x i") '(lambda () (interactive) (setq khoj--search-type "image")))
     kmap))
 
+(defvar khoj--keybindings-help-message
+  "
+     Set Search Type
+-------------------------
+C-x m  | markdown
+C-x o  | org-mode
+C-x l  | ledger/beancount
+C-x i  | images
+")
+
 (defun khoj--extract-entries-as-markdown (json-response query)
   "Convert json response from API to markdown entries"
   ;; remove leading (, ) or SPC from extracted entries string
@@ -252,6 +262,7 @@
         (lambda ()
           ;; Add khoj keybindings for configuring search to minibuffer keybindings
           (khoj--make-search-keymap minibuffer-local-map)
+          (message "%s" khoj--keybindings-help-message)
           ;; set current (mini-)buffer entered as khoj minibuffer
           ;; used to query khoj API only when user in khoj minibuffer
           (setq khoj--minibuffer-window (current-buffer))
