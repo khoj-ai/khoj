@@ -69,7 +69,7 @@
 ### 2. Configure
    - Set `input-files` or `input-filter` in each relevant `content-type` section of [khoj_sample.yml](./config/khoj_sample.yml)
      - Set `input-directories` field in `content-type.image` section
-   - Delete `content-type` sections irrelevant for your use-case
+   - Delete `content-type`, `processor` sub-sections irrelevant for your use-case
 
 ### 3. Run
    ``` shell
@@ -109,6 +109,25 @@ pip install --upgrade khoj-assistant
 
 ## Development
 ### Setup
+#### Using Pip
+1. Install Khoj
+   ``` shell
+   git clone https://github.com/debanjum/khoj && cd khoj
+   python -m venv .venv && source .venv/bin/activate
+   pip install
+   ```
+
+3. Configure
+   - Set `input-files` or `input-filter` in each relevant `content-type` section of `khoj_sample.yml`
+     - Set `input-directories` field in `image` `content-type` section
+   - Delete `content-type`, `processor` sub-sections irrelevant for your use-case
+
+4. Run
+   ``` shell
+   khoj config/khoj_sample.yml -vv
+   ```
+   Load ML model, generate embeddings and expose API to query notes, images, transactions etc specified in config YAML
+
 #### Using Docker
 1. Clone
 
@@ -147,13 +166,13 @@ docker-compose up -d
 3. Configure
    - Set `input-files` or `input-filter` in each relevant `content-type` section of `khoj_sample.yml`
      - Set `input-directories` field in `image` `content-type` section
-   - Delete `content-type` sections irrelevant for your use-case
+   - Delete `content-type`, `processor` sub-sections irrelevant for your use-case
 
 4. Run
    Load ML model, generate embeddings and expose API to query notes, images, transactions etc specified in config YAML
 
    ``` shell
-   python3 -m src.main -c=config/khoj_sample.yml -vv
+   python3 -m src.main config/khoj_sample.yml -vv
    ```
 
 ### Upgrade
