@@ -89,7 +89,7 @@
   (replace-regexp-in-string
    "^[\(\) ]" ""
    ;; extract entries from response as single string and convert to entries
-   (format "#+STARTUP: showall inlineimages\n* %s\n%s"
+   (format "#+STARTUP: showall hidestars inlineimages\n* %s\n%s"
            query
            (mapcar
             (lambda (args)
