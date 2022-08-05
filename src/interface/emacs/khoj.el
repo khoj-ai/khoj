@@ -68,6 +68,15 @@
 (defvar khoj--search-type "org"
   "The type of content to perform search on.")
 
+(defvar khoj--search-keymap
+  (let ((kmap (make-sparse-keymap)))
+    (define-key kmap (kbd "C-x m") '(lambda () (interactive) (setq khoj--search-type "markdown")))
+    (define-key kmap (kbd "C-x o") '(lambda () (interactive) (setq khoj--search-type "org")))
+    (define-key kmap (kbd "C-x l") '(lambda () (interactive) (setq khoj--search-type "ledger")))
+    (define-key kmap (kbd "C-x i") '(lambda () (interactive) (setq khoj--search-type "image")))
+    kmap)
+  "Keymap to configure Khoj search")
+
 (defun khoj--extract-entries-as-markdown (json-response query)
   "Convert json response from API to markdown entries"
   ;; remove leading (, ) or SPC from extracted entries string
@@ -183,10 +192,9 @@
 ;; Incremental Search on Khoj
 (defun khoj--incremental-search (&optional rerank)
   (let* ((rerank-str (cond (rerank "true") (t "false")))
-         (search-type khoj--search-type)
-         (buffer-name (get-buffer-create (format "*Khoj (t:%s)*" search-type)))
+         (buffer-name (get-buffer-create "*Khoj*"))
          (query (minibuffer-contents-no-properties))
-         (query-url (khoj--construct-api-query query search-type rerank-str)))
+         (query-url (khoj--construct-api-query query khoj--search-type rerank-str)))
     ;; Query khoj API only when user in khoj minibuffer.
     ;; Prevents querying during recursive edits or with contents of other buffers user may jump to
     (when (and (active-minibuffer-window) (equal (current-buffer) khoj--minibuffer-window))
@@ -195,7 +203,7 @@
           (message "[Khoj]: Rerank Results"))
         (khoj--query-api-and-render-results
          query
-         search-type
+         khoj--search-type
          query-url
          buffer-name)))))
 
@@ -229,14 +237,15 @@
 (defun khoj ()
   "Natural, Incremental Search for your personal notes, transactions and music using Khoj"
   (interactive)
-  (let* ((default-type (khoj--buffer-name-to-search-type (buffer-name)))
-         (search-type (completing-read "Type: " '("org" "markdown" "ledger" "music") nil t default-type))
-         (buffer-name (get-buffer-create (format "*Khoj (t:%s)*" search-type))))
-    (setq khoj--search-type search-type)
+  (let* ((khoj-buffer-name (get-buffer-create "*Khoj*")))
+    ;; set khoj search type to last used or based on current buffer
+    (setq khoj--search-type (or khoj--search-type (khoj--buffer-name-to-search-type (buffer-name))))
+    ;; setup temporary keymap for khoj
+    (set-transient-map khoj--search-keymap t)
     ;; setup rerank to improve results once user idle for KHOJ--RERANK-AFTER-IDLE-TIME seconds
     (setq khoj--rerank-timer (run-with-idle-timer khoj--rerank-after-idle-time t 'khoj--incremental-search t))
     ;; switch to khoj results buffer
-    (switch-to-buffer buffer-name)
+    (switch-to-buffer khoj-buffer-name)
     ;; open and setup minibuffer for incremental search
     (minibuffer-with-setup-hook
         (lambda ()
