@@ -22,7 +22,7 @@
         }
 
         function render_org(query, data, classPrefix="") {
-            var orgCode = `Query: ${query}\n` + data.map(function (item) {
+            var orgCode = data.map(function (item) {
                 return `${item.entry}`
             }).join("\n")
             var orgParser = new Org.Parser();
@@ -33,7 +33,7 @@
 
         function render_markdown(query, data) {
             var md = window.markdownit();
-            return md.render(`# Query: ${query}\n` + data.map(function (item) {
+            return md.render(data.map(function (item) {
                 return `${item.entry}`
             }).join("\n"));
         }
