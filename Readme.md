@@ -20,14 +20,16 @@
 - [Upgrade](#Upgrade)
 - [Troubleshoot](#Troubleshoot)
 - [Miscellaneous](#Miscellaneous)
-- [Development](#Development)
-  - [Setup](#Setup-1)
-  - [Upgrade](#Upgrade-1)
-  - [Test](#Test)
 - [Performance](#Performance)
   - [Query Performance](#Query-performance)
   - [Indexing Performance](#Indexing-performance)
   - [Miscellaneous](#Miscellaneous-1)
+- [Development](#Development)
+  - [Setup](#Setup)
+    - [Using Pip](#Using-Pip)
+    - [Using Docker](#Using-Docker)
+    - [Using Conda](#Test)
+  - [Test](#Test)
 - [Credits](#Credits)
 
 ## Features
@@ -107,109 +109,6 @@ pip install --upgrade khoj-assistant
     - It is disabled by default
     - To use it add your `openai-api-key` to config.yml
 
-## Development
-### Setup
-#### Using Pip
-1. Install Khoj
-   ``` shell
-   git clone https://github.com/debanjum/khoj && cd khoj
-   python -m venv .venv && source .venv/bin/activate
-   pip install
-   ```
-
-3. Configure
-   - Set `input-files` or `input-filter` in each relevant `content-type` section of `khoj_sample.yml`
-     - Set `input-directories` field in `image` `content-type` section
-   - Delete `content-type`, `processor` sub-sections irrelevant for your use-case
-
-4. Run
-   ``` shell
-   khoj config/khoj_sample.yml -vv
-   ```
-   Load ML model, generate embeddings and expose API to query notes, images, transactions etc specified in config YAML
-
-#### Using Docker
-1. Clone
-
-``` shell
-git clone https://github.com/debanjum/khoj && cd khoj
-```
-
-2. Configure
-
-- **Required**: Update [docker-compose.yml](./docker-compose.yml) to mount your images, (org-mode or markdown) notes and beancount directories
-- **Optional**: Edit application configuration in [khoj_docker.yml](./config/khoj_docker.yml)
-
-3. Run
-
-``` shell
-docker-compose up -d
-```
-
-*Note: The first run will take time. Let it run, it\'s mostly not hung, just generating embeddings*
-
-#### Using Conda
-1. Install Dependencies
-   - [Install Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) \[Required\]
-   - Install Exiftool \[Optional\]
-     ``` shell
-     sudo apt -y install libimage-exiftool-perl
-     ```
-
-2. Install Khoj
-   ``` shell
-   git clone https://github.com/debanjum/khoj && cd khoj
-   conda env create -f config/environment.yml
-   conda activate khoj
-   ```
-
-3. Configure
-   - Set `input-files` or `input-filter` in each relevant `content-type` section of `khoj_sample.yml`
-     - Set `input-directories` field in `image` `content-type` section
-   - Delete `content-type`, `processor` sub-sections irrelevant for your use-case
-
-4. Run
-   Load ML model, generate embeddings and expose API to query notes, images, transactions etc specified in config YAML
-
-   ``` shell
-   python3 -m src.main config/khoj_sample.yml -vv
-   ```
-
-### Upgrade
-
-### Using Pip
-```shell
-# To Upgrade To Latest Stable Release
-pip install --upgrade khoj-assistant
-
-# To Upgrade To Latest Pre-Release
-pip install --upgrade --pre khoj-assistant
-
-# To Upgrade To Specific Development Release
-pip install -r testpypi khoj-assistant==0.1.5.dev491659577806
-```
-
-#### Using Docker
-
-``` shell
-docker-compose build --pull
-```
-
-#### Using Conda
-``` shell
-cd khoj
-git pull origin master
-conda deactivate khoj
-conda env update -f config/environment.yml
-conda activate khoj
-```
-
-### Test
-
-``` shell
-pytest
-```
-
 ## Performance
 
 ### Query performance
@@ -229,6 +128,106 @@ pytest
 
 - Testing done on a Mac M1 and a \>100K line corpus of notes
 - Search, indexing on a GPU has not been tested yet
+
+## Development
+### Setup
+#### Using Pip
+##### 1. Install
+   ``` shell
+   git clone https://github.com/debanjum/khoj && cd khoj
+   python -m venv .venv && source .venv/bin/activate
+   pip install
+   ```
+##### 2. Configure
+   - Set `input-files` or `input-filter` in each relevant `content-type` section of `khoj_sample.yml`
+     - Set `input-directories` field in `image` `content-type` section
+   - Delete `content-type`, `processor` sub-sections irrelevant for your use-case
+
+##### 3. Run
+   ``` shell
+   khoj config/khoj_sample.yml -vv
+   ```
+   Load ML model, generate embeddings and expose API to query notes, images, transactions etc specified in config YAML
+
+##### 4. Upgrade
+
+```shell
+# To Upgrade To Latest Stable Release
+pip install --upgrade khoj-assistant
+
+# To Upgrade To Latest Pre-Release
+pip install --upgrade --pre khoj-assistant
+
+# To Upgrade To Specific Development Release
+pip install -r testpypi khoj-assistant==0.1.5.dev491659577806
+```
+
+#### Using Docker
+##### 1. Clone
+
+``` shell
+git clone https://github.com/debanjum/khoj && cd khoj
+```
+
+##### 2. Configure
+
+- **Required**: Update [docker-compose.yml](./docker-compose.yml) to mount your images, (org-mode or markdown) notes and beancount directories
+- **Optional**: Edit application configuration in [khoj_docker.yml](./config/khoj_docker.yml)
+
+##### 3. Run
+
+``` shell
+docker-compose up -d
+```
+
+*Note: The first run will take time. Let it run, it\'s mostly not hung, just generating embeddings*
+
+##### 4. Upgrade
+
+``` shell
+docker-compose build --pull
+```
+
+#### Using Conda
+##### 1. Install Dependencies
+   - [Install Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) \[Required\]
+   - Install Exiftool \[Optional\]
+     ``` shell
+     sudo apt -y install libimage-exiftool-perl
+     ```
+
+##### 2. Install Khoj
+   ``` shell
+   git clone https://github.com/debanjum/khoj && cd khoj
+   conda env create -f config/environment.yml
+   conda activate khoj
+   ```
+
+##### 3. Configure
+   - Set `input-files` or `input-filter` in each relevant `content-type` section of `khoj_sample.yml`
+     - Set `input-directories` field in `image` `content-type` section
+   - Delete `content-type`, `processor` sub-sections irrelevant for your use-case
+
+##### 4. Run
+   ``` shell
+   python3 -m src.main config/khoj_sample.yml -vv
+   ```
+   Load ML model, generate embeddings and expose API to query notes, images, transactions etc specified in config YAML
+
+##### 5. Upgrade
+``` shell
+cd khoj
+git pull origin master
+conda deactivate khoj
+conda env update -f config/environment.yml
+conda activate khoj
+```
+
+### Test
+
+``` shell
+pytest
+```
 
 ## Credits
 
