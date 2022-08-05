@@ -71,14 +71,14 @@
 (defvar khoj--search-type "org"
   "The type of content to perform search on.")
 
-(defvar khoj--search-keymap
-  (let ((kmap (make-sparse-keymap)))
+(defun khoj--make-search-keymap (&optional existing-keymap)
+  "Setup keymap to configure Khoj search"
+  (let ((kmap (or existing-keymap (make-sparse-keymap))))
     (define-key kmap (kbd "C-x m") '(lambda () (interactive) (setq khoj--search-type "markdown")))
     (define-key kmap (kbd "C-x o") '(lambda () (interactive) (setq khoj--search-type "org")))
     (define-key kmap (kbd "C-x l") '(lambda () (interactive) (setq khoj--search-type "ledger")))
     (define-key kmap (kbd "C-x i") '(lambda () (interactive) (setq khoj--search-type "image")))
-    kmap)
-  "Keymap to configure Khoj search")
+    kmap))
 
 (defun khoj--extract-entries-as-markdown (json-response query)
   "Convert json response from API to markdown entries"
@@ -244,7 +244,7 @@
     ;; set khoj search type to last used or based on current buffer
     (setq khoj--search-type (or khoj--search-type (khoj--buffer-name-to-search-type (buffer-name))))
     ;; setup temporary keymap for khoj
-    (set-transient-map khoj--search-keymap t)
+    (set-transient-map (khoj--search-keymap) t)
     ;; setup rerank to improve results once user idle for KHOJ--RERANK-AFTER-IDLE-TIME seconds
     (setq khoj--rerank-timer (run-with-idle-timer khoj--rerank-after-idle-time t 'khoj--incremental-search t))
     ;; switch to khoj results buffer
