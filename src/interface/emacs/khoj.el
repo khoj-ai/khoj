@@ -243,8 +243,6 @@
   (let* ((khoj-buffer-name (get-buffer-create khoj--buffer-name)))
     ;; set khoj search type to last used or based on current buffer
     (setq khoj--search-type (or khoj--search-type (khoj--buffer-name-to-search-type (buffer-name))))
-    ;; setup temporary keymap for khoj
-    (set-transient-map (khoj--search-keymap) t)
     ;; setup rerank to improve results once user idle for KHOJ--RERANK-AFTER-IDLE-TIME seconds
     (setq khoj--rerank-timer (run-with-idle-timer khoj--rerank-after-idle-time t 'khoj--incremental-search t))
     ;; switch to khoj results buffer
@@ -252,6 +250,8 @@
     ;; open and setup minibuffer for incremental search
     (minibuffer-with-setup-hook
         (lambda ()
+          ;; Add khoj keybindings for configuring search to minibuffer keybindings
+          (khoj--make-search-keymap minibuffer-local-map)
           ;; set current (mini-)buffer entered as khoj minibuffer
           ;; used to query khoj API only when user in khoj minibuffer
           (setq khoj--minibuffer-window (current-buffer))
