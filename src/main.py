@@ -258,7 +258,7 @@ def initialize_processor(config: FullConfig):
 @app.on_event('shutdown')
 def shutdown_event():
     # No need to create empty log file
-    if not processor_config.conversation.meta_log:
+    if not (processor_config and processor_config.conversation and processor_config.conversation.meta_log):
         return
     elif processor_config.conversation.verbose:
         print('INFO:\tSaving conversation logs to disk...')
