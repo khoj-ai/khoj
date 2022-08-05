@@ -39,6 +39,7 @@ setup(
         "pillow >= 9.0.1",
         "aiofiles == 0.8.0",
         "dateparser == 1.1.1",
+        "pyqt6 == 6.3.1",
     ],
     include_package_data=True,
     entry_points={"console_scripts": ["khoj = src.main:run"]},
