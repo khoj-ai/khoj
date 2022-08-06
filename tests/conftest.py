@@ -1,12 +1,11 @@
 # Standard Packages
 import pytest
-import torch
 
 # Internal Packages
 from src.search_type import image_search, text_search
 from src.utils.rawconfig import ContentConfig, TextContentConfig, ImageContentConfig, SearchConfig, TextSearchConfig, ImageSearchConfig
 from src.processor.org_mode.org_to_jsonl import org_to_jsonl
-from src.utils import constants
+from src.utils import state
 
 
 @pytest.fixture(scope='session')
@@ -56,7 +55,7 @@ def model_dir(search_config):
         compressed_jsonl = model_dir.joinpath('notes.jsonl.gz'),
         embeddings_file = model_dir.joinpath('note_embeddings.pt'))
 
-    text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False, device=constants.device, verbose=True)
+    text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False, device=state.device, verbose=True)
 
     return model_dir
 

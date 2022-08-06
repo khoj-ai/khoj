@@ -2,7 +2,7 @@
 from pathlib import Path
 
 # Internal Packages
-from src.utils.constants import model
+from src.utils.state import model
 from src.search_type import text_search
 from src.utils.rawconfig import ContentConfig, SearchConfig
 from src.processor.org_mode.org_to_jsonl import org_to_jsonl

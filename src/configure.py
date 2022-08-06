@@ -11,7 +11,7 @@ from src.processor.org_mode.org_to_jsonl import org_to_jsonl
 from src.search_type import image_search, text_search
 from src.utils.config import SearchType, SearchModels, ProcessorConfigModel, ConversationProcessorConfigModel
 from src.utils.cli import cli
-from src.utils import constants
+from src.utils import state
 from src.utils.helpers import get_absolute_path
 from src.utils.rawconfig import FullConfig
 
@@ -21,19 +21,19 @@ def initialize_server(cmd_args):
     args = cli(cmd_args)
 
     # Stores the file path to the config file.
-    constants.config_file = args.config_file
+    state.config_file = args.config_file
 
     # Store the raw config data.
-    constants.config = args.config
+    state.config = args.config
 
     # Store the verbose flag
-    constants.verbose = args.verbose
+    state.verbose = args.verbose
 
     # Initialize the search model from Config
-    constants.model = initialize_search(constants.model, args.config, args.regenerate, device=constants.device, verbose=constants.verbose)
+    state.model = initialize_search(state.model, args.config, args.regenerate, device=state.device, verbose=state.verbose)
 
     # Initialize Processor from Config
-    constants.processor_config = initialize_processor(args.config, verbose=constants.verbose)
+    state.processor_config = initialize_processor(args.config, verbose=state.verbose)
 
     return args.host, args.port, args.socket
 

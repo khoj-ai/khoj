@@ -8,7 +8,7 @@ import pytest
 
 # Internal Packages
 from src.main import app
-from src.utils.constants import model, config
+from src.utils.state import model, config
 from src.search_type import text_search, image_search
 from src.utils.rawconfig import ContentConfig, SearchConfig
 from src.processor.org_mode import org_to_jsonl

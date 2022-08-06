@@ -6,7 +6,8 @@ from PIL import Image
 import pytest
 
 # Internal Packages
-from src.utils.constants import model, web_directory
+from src.utils.state import model
+from src.utils.constants import web_directory
 from src.search_type import image_search
 from src.utils.helpers import resolve_absolute_path
 from src.utils.rawconfig import ContentConfig, SearchConfig

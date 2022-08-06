@@ -9,9 +9,9 @@ from fastapi.staticfiles import StaticFiles
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 # Internal Packages
-from src.utils import constants
 from src.configure import initialize_server
 from src.router import router
+from src.utils import constants
 
 
 # Initialize the Application Server
