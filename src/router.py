@@ -12,7 +12,7 @@ from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 
 # Internal Packages
-from src.configure import initialize_search
+from src.configure import configure_search
 from src.search_type import image_search, text_search
 from src.processor.conversation.gpt import converse, extract_search_type, message_to_log, message_to_prompt, understand, summarize
 from src.search_filter.explicit_filter import ExplicitFilter
@@ -127,13 +127,13 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
 
 @router.get('/reload')
 def reload(t: Optional[SearchType] = None):
-    state.model = initialize_search(state.model, state.config, regenerate=False, t=t, device=state.device)
+    state.model = configure_search(state.model, state.config, regenerate=False, t=t, device=state.device)
     return {'status': 'ok', 'message': 'reload completed'}
 
 
 @router.get('/regenerate')
 def regenerate(t: Optional[SearchType] = None):
-    state.model = initialize_search(state.model, state.config, regenerate=True, t=t, device=state.device)
+    state.model = configure_search(state.model, state.config, regenerate=True, t=t, device=state.device)
     return {'status': 'ok', 'message': 'regeneration completed'}
 
 

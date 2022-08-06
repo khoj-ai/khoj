@@ -1,6 +1,3 @@
-# Standard Packages
-import sys
-
 # External Packages
 import torch
 
@@ -16,7 +13,7 @@ from src.utils.helpers import get_absolute_path
 from src.utils.rawconfig import FullConfig
 
 
-def initialize_server(cmd_args):
+def configure_server(cmd_args):
     # Load config from CLI
     args = cli(cmd_args)
 
@@ -30,15 +27,15 @@ def initialize_server(cmd_args):
     state.verbose = args.verbose
 
     # Initialize the search model from Config
-    state.model = initialize_search(state.model, args.config, args.regenerate, device=state.device, verbose=state.verbose)
+    state.model = configure_search(state.model, args.config, args.regenerate, device=state.device, verbose=state.verbose)
 
     # Initialize Processor from Config
-    state.processor_config = initialize_processor(args.config, verbose=state.verbose)
+    state.processor_config = configure_processor(args.config, verbose=state.verbose)
 
     return args.host, args.port, args.socket
 
 
-def initialize_search(model: SearchModels, config: FullConfig, regenerate: bool, t: SearchType = None, device=torch.device("cpu"), verbose: int = 0):
+def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, t: SearchType = None, device=torch.device("cpu"), verbose: int = 0):
     # Initialize Org Notes Search
     if (t == SearchType.Org or t == None) and config.content_type.org:
         # Extract Entries, Generate Notes Embeddings
@@ -67,7 +64,7 @@ def initialize_search(model: SearchModels, config: FullConfig, regenerate: bool,
     return model
 
 
-def initialize_processor(config: FullConfig, verbose: int):
+def configure_processor(config: FullConfig, verbose: int):
     if not config.processor:
         return
 

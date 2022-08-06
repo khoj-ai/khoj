@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 # Internal Packages
-from src.configure import initialize_server
+from src.configure import configure_server
 from src.router import router
 from src.utils import constants
 
@@ -22,7 +22,7 @@ app.include_router(router)
 
 def run():
     # Setup Application Server
-    host, port, socket = initialize_server(sys.argv[1:])
+    host, port, socket = configure_server(sys.argv[1:])
 
     # Setup GUI
     gui = QtWidgets.QApplication([])
