@@ -95,12 +95,9 @@ C-x i  | images
 (defun khoj--display-keybinding-info ()
   "Display information on keybindings to customize khoj search.
 Use `which-key` if available, else display simple message in echo area"
-  (if (fboundp 'which-key--create-buffer-and-show)
-      (which-key--create-buffer-and-show
-       (kbd "C-x")
-       (symbolp (khoj--make-search-keymap))
-       '(lambda (binding) (string-prefix-p "khoj--" (cdr binding)))
-       "Khoj Bindings")
+  (if (fboundp 'which-key-show-full-keymap)
+      (let ((khoj--keymap (khoj--make-search-keymap)))
+        (which-key-show-full-keymap 'khoj--keymap))
     (message "%s" khoj--keybindings-info-message)))
 
 (defun khoj--extract-entries-as-markdown (json-response query)
@@ -261,6 +258,7 @@ Use `which-key` if available, else display simple message in echo area"
 
 (defun khoj--minibuffer-exit-advice (&rest _args)
   (khoj--incremental-search t))
+
 
 ;;;###autoload
 (defun khoj ()
