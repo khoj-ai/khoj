@@ -80,10 +80,10 @@ C-x o  | org-mode
 C-x l  | ledger/beancount
 C-x i  | images
 ")
-(defun khoj--search-markdown (interactive) (setq khoj--search-type "markdown"))
-(defun khoj--search-org (interactive) (setq khoj--search-type "org"))
-(defun khoj--search-ledger (interactive) (setq khoj--search-type "ledger"))
-(defun khoj--search-images (interactive) (setq khoj--search-type "image"))
+(defun khoj--search-markdown () (interactive) (setq khoj--search-type "markdown"))
+(defun khoj--search-org () (interactive) (setq khoj--search-type "org"))
+(defun khoj--search-ledger () (interactive) (setq khoj--search-type "ledger"))
+(defun khoj--search-images () (interactive) (setq khoj--search-type "image"))
 (defun khoj--make-search-keymap (&optional existing-keymap)
   "Setup keymap to configure Khoj search"
   (let ((kmap (or existing-keymap (make-sparse-keymap))))
