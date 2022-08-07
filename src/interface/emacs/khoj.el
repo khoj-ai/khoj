@@ -80,20 +80,20 @@
   "The type of content to perform search on.")
 
 (defun khoj--keybindings-info-message ()
-  (let ((enabled-search-types (khoj--get-enabled-search-types)))
+  (let ((enabled-content-types (khoj--get-enabled-content-types)))
     (concat
      "
      Set Search Type
 -------------------------\n"
-     (when (member 'markdown enabled-search-types)
+     (when (member 'markdown enabled-content-types)
          "C-x m  | markdown\n")
-     (when (member 'org enabled-search-types)
+     (when (member 'org enabled-content-types)
        "C-x o  | org-mode\n")
-     (when (member 'ledger enabled-search-types)
+     (when (member 'ledger enabled-content-types)
        "C-x l  | ledger\n")
-     (when (member 'image enabled-search-types)
+     (when (member 'image enabled-content-types)
        "C-x i  | images\n")
-     (when (member 'music enabled-search-types)
+     (when (member 'music enabled-content-types)
        "C-x M  | music\n"))))
 
 (defun khoj--search-markdown () (interactive) (setq khoj--search-type "markdown"))
@@ -103,17 +103,17 @@
 (defun khoj--search-music () (interactive) (setq khoj--search-type "music"))
 (defun khoj--make-search-keymap (&optional existing-keymap)
   "Setup keymap to configure Khoj search"
-  (let ((enabled-search-types (khoj--get-enabled-search-types))
+  (let ((enabled-content-types (khoj--get-enabled-content-types))
         (kmap (or existing-keymap (make-sparse-keymap))))
-    (when (member 'markdown enabled-search-types)
+    (when (member 'markdown enabled-content-types)
       (define-key kmap (kbd "C-x m") #'khoj--search-markdown))
-    (when (member 'org enabled-search-types)
+    (when (member 'org enabled-content-types)
       (define-key kmap (kbd "C-x o") #'khoj--search-org))
-    (when (member 'ledger enabled-search-types)
+    (when (member 'ledger enabled-content-types)
       (define-key kmap (kbd "C-x l") #'khoj--search-ledger))
-    (when (member 'image enabled-search-types)
+    (when (member 'image enabled-content-types)
       (define-key kmap (kbd "C-x i") #'khoj--search-images))
-    (when (member 'music enabled-search-types)
+    (when (member 'music enabled-content-types)
       (define-key kmap (kbd "C-x M") #'khoj--search-music))
     kmap))
 (defun khoj--display-keybinding-info ()
@@ -196,16 +196,17 @@ Use `which-key` if available, else display simple message in echo area"
              json-response)))))
 
 (defun khoj--buffer-name-to-search-type (buffer-name)
-  (let ((enabled-search-types (khoj--get-enabled-search-types))
+  (let ((enabled-content-types (khoj--get-enabled-content-types))
         (file-extension (file-name-extension buffer-name)))
     (cond
-     ((and (member 'music enabled-search-types) (equal buffer-name "Music.org")) "music")
-     ((and (member 'ledger enabled-search-types) (or (equal file-extension "bean") (equal file-extension "beancount"))) "ledger")
-     ((and (member 'org enabled-search-types) (equal file-extension "org")) "org")
-     ((and (member 'markdown enabled-search-types) (or (equal file-extension "markdown") (equal file-extension "md"))) "markdown")
+     ((and (member 'music enabled-content-types) (equal buffer-name "Music.org")) "music")
+     ((and (member 'ledger enabled-content-types) (or (equal file-extension "bean") (equal file-extension "beancount"))) "ledger")
+     ((and (member 'org enabled-content-types) (equal file-extension "org")) "org")
+     ((and (member 'markdown enabled-content-types) (or (equal file-extension "markdown") (equal file-extension "md"))) "markdown")
      (t khoj-default-search-type))))
 
-(defun khoj--get-enabled-search-types ()
+(defun khoj--get-enabled-content-types ()
+  "Get content types enabled for search from API"
   (let ((config-url (format "%s/config/data" khoj--server-url)))
     (with-temp-buffer
       (erase-buffer)
