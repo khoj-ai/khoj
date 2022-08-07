@@ -79,15 +79,23 @@
 (defvar khoj--search-type "org"
   "The type of content to perform search on.")
 
-(defvar khoj--keybindings-info-message
-  "
+(defun khoj--keybindings-info-message ()
+  (let ((enabled-search-types (khoj--get-enabled-search-types)))
+    (concat
+     "
      Set Search Type
--------------------------
-C-x m  | markdown
-C-x o  | org-mode
-C-x l  | ledger/beancount
-C-x i  | images
-")
+-------------------------\n"
+     (when (member 'markdown enabled-search-types)
+         "C-x m  | markdown\n")
+     (when (member 'org enabled-search-types)
+       "C-x o  | org-mode\n")
+     (when (member 'ledger enabled-search-types)
+       "C-x l  | ledger\n")
+     (when (member 'image enabled-search-types)
+       "C-x i  | images\n")
+     (when (member 'music enabled-search-types)
+       "C-x M  | music\n"))))
+
 (defun khoj--search-markdown () (interactive) (setq khoj--search-type "markdown"))
 (defun khoj--search-org () (interactive) (setq khoj--search-type "org"))
 (defun khoj--search-ledger () (interactive) (setq khoj--search-type "ledger"))
@@ -116,7 +124,7 @@ Use `which-key` if available, else display simple message in echo area"
         (which-key--show-keymap (symbol-name 'khoj--keymap)
                                 (symbol-value 'khoj--keymap)
                                 nil t t))
-    (message "%s" khoj--keybindings-info-message)))
+    (message "%s" (khoj--keybindings-info-message))))
 
 (defun khoj--extract-entries-as-markdown (json-response query)
   "Convert json response from API to markdown entries"
