@@ -56,6 +56,14 @@
   :group 'khoj
   :type 'integer)
 
+(defcustom khoj-default-search-type "org"
+  "The default content type to perform search on."
+  :group 'khoj
+  :type '(choice (const "org")
+                 (const "markdown")
+                 (const "ledger")
+                 (const "music")))
+
 (defvar khoj--rerank-timer nil
   "Idle timer to make cross-encoder re-rank incremental search results if user idle.")
 
@@ -180,13 +188,14 @@ Use `which-key` if available, else display simple message in echo area"
              json-response)))))
 
 (defun khoj--buffer-name-to-search-type (buffer-name)
-  (let ((file-extension (file-name-extension buffer-name)))
+  (let ((enabled-search-types (khoj--get-enabled-search-types))
+        (file-extension (file-name-extension buffer-name)))
     (cond
-     ((equal buffer-name "Music.org") "music")
-     ((or (equal file-extension "bean") (equal file-extension "beancount")) "ledger")
-     ((equal file-extension "org") "org")
-     ((or (equal file-extension "markdown") (equal file-extension "md")) "markdown")
-     (t "org"))))
+     ((and (member 'music enabled-search-types) (equal buffer-name "Music.org")) "music")
+     ((and (member 'ledger enabled-search-types) (or (equal file-extension "bean") (equal file-extension "beancount"))) "ledger")
+     ((and (member 'org enabled-search-types) (equal file-extension "org")) "org")
+     ((and (member 'markdown enabled-search-types) (or (equal file-extension "markdown") (equal file-extension "md"))) "markdown")
+     (t khoj-default-search-type))))
 
 (defun khoj--get-enabled-search-types ()
   (let ((config-url (format "%s/config/data" khoj--server-url)))
