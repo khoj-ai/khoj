@@ -84,6 +84,7 @@ C-x i  | images
 (defun khoj--search-org () (interactive) (setq khoj--search-type "org"))
 (defun khoj--search-ledger () (interactive) (setq khoj--search-type "ledger"))
 (defun khoj--search-images () (interactive) (setq khoj--search-type "image"))
+(defun khoj--search-music () (interactive) (setq khoj--search-type "music"))
 (defun khoj--make-search-keymap (&optional existing-keymap)
   "Setup keymap to configure Khoj search"
   (let ((enabled-search-types (khoj--get-enabled-search-types))
@@ -96,6 +97,8 @@ C-x i  | images
       (define-key kmap (kbd "C-x l") #'khoj--search-ledger))
     (when (member 'image enabled-search-types)
       (define-key kmap (kbd "C-x i") #'khoj--search-images))
+    (when (member 'music enabled-search-types)
+      (define-key kmap (kbd "C-x M") #'khoj--search-music))
     kmap))
 (defun khoj--display-keybinding-info ()
   "Display information on keybindings to customize khoj search.
