@@ -97,7 +97,9 @@ C-x i  | images
 Use `which-key` if available, else display simple message in echo area"
   (if (fboundp 'which-key-show-full-keymap)
       (let ((khoj--keymap (khoj--make-search-keymap)))
-        (which-key-show-full-keymap 'khoj--keymap))
+        (which-key--show-keymap (symbol-name 'khoj--keymap)
+                                (symbol-value 'khoj--keymap)
+                                nil t t))
     (message "%s" khoj--keybindings-info-message)))
 
 (defun khoj--extract-entries-as-markdown (json-response query)
@@ -242,7 +244,7 @@ Use `which-key` if available, else display simple message in echo area"
         (delete-process proc)))))
 
 (defun khoj--teardown-incremental-search ()
-  (message "[Khoj]: Teardown Incremental Search")
+  (message "Khoj: Teardown Incremental Search")
   ;; remove advice to rerank results on normal exit from minibuffer
   (advice-remove 'exit-minibuffer #'khoj--minibuffer-exit-advice)
   ;; unset khoj minibuffer window
