@@ -180,6 +180,20 @@ Use `which-key` if available, else display simple message in echo area"
      ((or (equal file-extension "markdown") (equal file-extension "md")) "markdown")
      (t "org"))))
 
+(defun khoj--get-enabled-search-types ()
+  (let ((config-url (format "%s/config/data" khoj--server-url)))
+    (with-temp-buffer
+      (erase-buffer)
+      (url-insert-file-contents config-url)
+      (let* ((json-response (json-parse-buffer :object-type 'alist))
+            (content-type (cdr (assoc 'content-type json-response))))
+        ;; return content-type items with configuration
+        (mapcar
+         'car
+         (cl-remove-if-not
+          '(lambda (a) (not (eq (cdr a) :null)))
+          content-type))))))
+
 (defun khoj--construct-api-query (query search-type &optional rerank)
   (let ((rerank (or rerank "false"))
         (results-count (or khoj--results-count 5))
