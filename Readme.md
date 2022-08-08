@@ -136,7 +136,7 @@ pip install --upgrade khoj-assistant
    ``` shell
    git clone https://github.com/debanjum/khoj && cd khoj
    python -m venv .venv && source .venv/bin/activate
-   pip install
+   pip install .
    ```
 ##### 2. Configure
    - Set `input-files` or `input-filter` in each relevant `content-type` section of `khoj_sample.yml`

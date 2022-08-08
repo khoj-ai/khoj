@@ -121,7 +121,7 @@ def create_system_tray():
     menu_actions = [
         ('Search', lambda: webbrowser.open('http://localhost:8000/')),
         ('Configure', lambda: webbrowser.open('http://localhost:8000/config')),
-        ('Quit', quit),
+        ('Quit', sys.exit),
     ]
 
     # Add the menu actions to the menu
