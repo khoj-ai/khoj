@@ -28,7 +28,7 @@ def run():
     # Setup GUI
     gui = QtWidgets.QApplication([])
     gui.setQuitOnLastWindowClosed(False)
-    tray = create_system_tray()
+    tray = create_system_tray(gui)
     window = ConfigureWindow()
 
     # Start Application Server
@@ -102,7 +102,7 @@ class ConfigureWindow(QtWidgets.QMainWindow):
             self.config_window.layout().removeWidget(self.config_window.layout().itemAt(2).widget())
   
 
-def create_system_tray():
+def create_system_tray(gui: QtWidgets.QApplication):
     """Create System Tray with Menu
     Menu Actions should contain
     1. option to open search page at localhost:8000/
@@ -121,7 +121,7 @@ def create_system_tray():
     menu_actions = [
         ('Search', lambda: webbrowser.open('http://localhost:8000/')),
         ('Configure', lambda: webbrowser.open('http://localhost:8000/config')),
-        ('Quit', sys.exit),
+        ('Quit', gui.quit),
     ]
 
     # Add the menu actions to the menu
