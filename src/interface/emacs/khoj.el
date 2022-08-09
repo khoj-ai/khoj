@@ -46,6 +46,11 @@
   :group 'khoj
   :type 'integer)
 
+(defcustom khoj-image-height 156
+  "Height of rendered images returned by Khoj."
+  :group 'khoj
+  :type 'integer)
+
 (defcustom khoj-rerank-after-idle-time 2.0
   "Idle time (in seconds) to trigger cross-encoder to rerank incremental search results."
   :group 'khoj
@@ -169,7 +174,7 @@ Use `which-key` if available, else display simple message in echo area"
             query
             (mapcar
              (lambda (args) (format
-                             "\n\n<h2>Score: %s Meta: %s Image: %s</h2>\n\n<a href=\"%s%s\">\n<img src=\"%s%s?%s\" width=100 height=100>\n</a>"
+                             "\n\n<h2>Score: %s Meta: %s Image: %s</h2>\n\n<a href=\"%s%s\">\n<img src=\"%s%s?%s\" width=%s height=%s>\n</a>"
                              (cdr (assoc 'score args))
                              (cdr (assoc 'metadata_score args))
                              (cdr (assoc 'image_score args))
@@ -177,7 +182,9 @@ Use `which-key` if available, else display simple message in echo area"
                              (cdr (assoc 'entry args))
                              khoj-server-url
                              (cdr (assoc 'entry args))
-                             (random 10000)))
+                             (random 10000)
+                             khoj-image-width
+                             khoj-image-height))
              json-response)))))
 
 (defun khoj--extract-entries-as-ledger (json-response query)
