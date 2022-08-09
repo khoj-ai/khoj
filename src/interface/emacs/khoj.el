@@ -46,7 +46,7 @@
   :group 'khoj
   :type 'integer)
 
-(defcustom khoj-rerank-after-idle-time 1.0
+(defcustom khoj-rerank-after-idle-time 2.0
   "Idle time (in seconds) to trigger cross-encoder to rerank incremental search results."
   :group 'khoj
   :type 'float)
