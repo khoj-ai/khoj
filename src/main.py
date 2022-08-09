@@ -86,21 +86,30 @@ class ConfigureWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
 
+        # Initialize Configure Window
         self.setWindowTitle("Khoj - Configure")
-
         self.layout = QtWidgets.QVBoxLayout()
 
-        enable_orgmode_search = QtWidgets.QCheckBox("Enable Search on Org-Mode Files")
-        enable_orgmode_search.stateChanged.connect(self.show_orgmode_search_options) 
-        self.layout.addWidget(enable_orgmode_search)
+        # Org Mode Settings
+        orgmode_settings = QtWidgets.QWidget()
+        self.orgmode_layout = QtWidgets.QVBoxLayout(orgmode_settings)
+        enable_orgmode_search = QtWidgets.QCheckBox(
+            "Search Org-Mode Files",
+            stateChanged = self.show_orgmode_search_options)
+        self.orgmode_layout.addWidget(enable_orgmode_search)
+        self.layout.addWidget(orgmode_settings)
 
-        enable_ledger_search = QtWidgets.QCheckBox("Enable Search on Beancount Files")
-        enable_ledger_search.stateChanged.connect(self.show_ledger_search_options) 
-        self.layout.addWidget(enable_ledger_search)
+        # Ledger Settings
+        ledger_settings = QtWidgets.QWidget()
+        self.ledger_layout = QtWidgets.QVBoxLayout(ledger_settings)
+        enable_ledger_search = QtWidgets.QCheckBox(
+            "Search Beancount Files",
+            state_changed=self.show_ledger_search_options)
+        self.ledger_layout.addWidget(enable_ledger_search)
+        self.layout.addWidget(ledger_settings)
 
         # Set the central widget of the Window. Widget will expand
         # to take up all the space in the window by default.
-        # Create Widget for Setting Directory with Org-Mode Files
         self.config_window = QtWidgets.QWidget()
         self.config_window.setLayout(self.layout)
 
@@ -108,19 +117,19 @@ class ConfigureWindow(QtWidgets.QMainWindow):
 
     def show_orgmode_search_options(self, s):
         if Qt.CheckState(s) == Qt.CheckState.Checked:
-            self.config_window.layout().addWidget(QtWidgets.QLabel("Search Org-Mode Files"))
-            self.config_window.layout().addWidget(QtWidgets.QLineEdit())
+            self.orgmode_layout.layout().addWidget(QtWidgets.QLabel("Search Org-Mode Files"))
+            self.orgmode_layout.layout().addWidget(QtWidgets.QLineEdit())
         else:
-            self.config_window.layout().removeWidget(self.config_window.layout().itemAt(2).widget())
-            self.config_window.layout().removeWidget(self.config_window.layout().itemAt(2).widget())
+            self.orgmode_layout.layout().removeWidget(self.orgmode_layout.layout().itemAt(1).widget())
+            self.orgmode_layout.layout().removeWidget(self.orgmode_layout.layout().itemAt(1).widget())
 
     def show_ledger_search_options(self, s):
         if Qt.CheckState(s) == Qt.CheckState.Checked:
-            self.config_window.layout().addWidget(QtWidgets.QLabel("Search Ledger Files"))
-            self.config_window.layout().addWidget(QtWidgets.QLineEdit())
+            self.ledger_layout.layout().addWidget(QtWidgets.QLabel("Search Ledger Files"))
+            self.ledger_layout.layout().addWidget(QtWidgets.QLineEdit())
         else:
-            self.config_window.layout().removeWidget(self.config_window.layout().itemAt(2).widget())
-            self.config_window.layout().removeWidget(self.config_window.layout().itemAt(2).widget())
+            self.ledger_layout.layout().removeWidget(self.ledger_layout.layout().itemAt(1).widget())
+            self.ledger_layout.layout().removeWidget(self.ledger_layout.layout().itemAt(1).widget())
   
 
 def create_system_tray(gui: QtWidgets.QApplication, window: QtWidgets.QMainWindow):
