@@ -36,22 +36,27 @@
 (require 'url)
 (require 'json)
 
-(defcustom khoj--server-url "http://localhost:8000"
+(defcustom khoj-server-url "http://localhost:8000"
   "Location of Khoj API server."
   :group 'khoj
   :type 'string)
 
-(defcustom khoj--image-width 156
+(defcustom khoj-image-width 156
   "Width of rendered images returned by Khoj."
   :group 'khoj
   :type 'integer)
 
-(defcustom khoj--rerank-after-idle-time 1.0
+(defcustom khoj-image-height 156
+  "Height of rendered images returned by Khoj."
+  :group 'khoj
+  :type 'integer)
+
+(defcustom khoj-rerank-after-idle-time 2.0
   "Idle time (in seconds) to trigger cross-encoder to rerank incremental search results."
   :group 'khoj
   :type 'float)
 
-(defcustom khoj--results-count 5
+(defcustom khoj-results-count 5
   "Number of results to get from Khoj API for each query."
   :group 'khoj
   :type 'integer)
@@ -169,15 +174,17 @@ Use `which-key` if available, else display simple message in echo area"
             query
             (mapcar
              (lambda (args) (format
-                             "\n\n<h2>Score: %s Meta: %s Image: %s</h2>\n\n<a href=\"%s%s\">\n<img src=\"%s%s?%s\" width=100 height=100>\n</a>"
+                             "\n\n<h2>Score: %s Meta: %s Image: %s</h2>\n\n<a href=\"%s%s\">\n<img src=\"%s%s?%s\" width=%s height=%s>\n</a>"
                              (cdr (assoc 'score args))
                              (cdr (assoc 'metadata_score args))
                              (cdr (assoc 'image_score args))
-                             khoj--server-url
+                             khoj-server-url
                              (cdr (assoc 'entry args))
-                             khoj--server-url
+                             khoj-server-url
                              (cdr (assoc 'entry args))
-                             (random 10000)))
+                             (random 10000)
+                             khoj-image-width
+                             khoj-image-height))
              json-response)))))
 
 (defun khoj--extract-entries-as-ledger (json-response query)
@@ -207,7 +214,7 @@ Use `which-key` if available, else display simple message in echo area"
 
 (defun khoj--get-enabled-content-types ()
   "Get content types enabled for search from API"
-  (let ((config-url (format "%s/config/data" khoj--server-url)))
+  (let ((config-url (format "%s/config/data" khoj-server-url)))
     (with-temp-buffer
       (erase-buffer)
       (url-insert-file-contents config-url)
@@ -222,9 +229,8 @@ Use `which-key` if available, else display simple message in echo area"
 
 (defun khoj--construct-api-query (query search-type &optional rerank)
   (let ((rerank (or rerank "false"))
-        (results-count (or khoj--results-count 5))
         (encoded-query (url-hexify-string query)))
-    (format "%s/search?q=%s&t=%s&r=%s&n=%s" khoj--server-url encoded-query search-type rerank results-count)))
+    (format "%s/search?q=%s&t=%s&r=%s&n=%s" khoj-server-url encoded-query search-type rerank khoj-results-count)))
 
 (defun khoj--query-api-and-render-results (query search-type query-url buffer-name)
   ;; get json response from api
@@ -279,7 +285,7 @@ Use `which-key` if available, else display simple message in echo area"
   "Delete all network connections to khoj server"
   (dolist (proc (process-list))
     (let ((proc-buf (buffer-name (process-buffer proc)))
-          (khoj-network-proc-buf (string-join (split-string khoj--server-url "://") " ")))
+          (khoj-network-proc-buf (string-join (split-string khoj-server-url "://") " ")))
       (when (string-match (format "%s" khoj-network-proc-buf) proc-buf)
         (delete-process proc)))))
 
@@ -309,8 +315,8 @@ Use `which-key` if available, else display simple message in echo area"
   (let* ((khoj-buffer-name (get-buffer-create khoj--buffer-name)))
     ;; set khoj search type to last used or based on current buffer
     (setq khoj--search-type (or khoj--search-type (khoj--buffer-name-to-search-type (buffer-name))))
-    ;; setup rerank to improve results once user idle for KHOJ--RERANK-AFTER-IDLE-TIME seconds
-    (setq khoj--rerank-timer (run-with-idle-timer khoj--rerank-after-idle-time t 'khoj--incremental-search t))
+    ;; setup rerank to improve results once user idle for KHOJ-RERANK-AFTER-IDLE-TIME seconds
+    (setq khoj--rerank-timer (run-with-idle-timer khoj-rerank-after-idle-time t 'khoj--incremental-search t))
     ;; switch to khoj results buffer
     (switch-to-buffer khoj-buffer-name)
     ;; open and setup minibuffer for incremental search

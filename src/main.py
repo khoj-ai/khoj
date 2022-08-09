@@ -69,10 +69,12 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
         print(f'No query param (q) passed in API call to initiate search')
         return {}
 
+    # initialize variables
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     user_query = q
     results_count = n
     results = {}
+    query_start, query_end, collate_start, collate_end = None, None, None, None
 
     if (t == SearchType.Org or t == None) and model.orgmode_search:
         # query org-mode notes
@@ -136,8 +138,10 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
         collate_end = time.time()
 
     if verbose > 1:
-        print(f"Query took {query_end - query_start:.3f} seconds")
-        print(f"Collating results took {collate_end - collate_start:.3f} seconds")
+        if query_start and query_end:
+            print(f"Query took {query_end - query_start:.3f} seconds")
+        if collate_start and collate_end:
+            print(f"Collating results took {collate_end - collate_start:.3f} seconds")
 
     return results
 
