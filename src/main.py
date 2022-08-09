@@ -108,12 +108,23 @@ class ConfigureWindow(QtWidgets.QMainWindow):
         self.ledger_layout.addWidget(enable_ledger_search)
         self.layout.addWidget(ledger_settings)
 
+        # Button to Save Settings
+        action_bar = QtWidgets.QWidget()
+        action_bar_layout = QtWidgets.QHBoxLayout(action_bar)
+        save_button = QtWidgets.QPushButton("Start", clicked=self.save_settings)
+        action_bar_layout.addWidget(save_button)
+        self.layout.addWidget(action_bar)
+
         # Set the central widget of the Window. Widget will expand
         # to take up all the space in the window by default.
         self.config_window = QtWidgets.QWidget()
         self.config_window.setLayout(self.layout)
 
         self.setCentralWidget(self.config_window)
+
+    def save_settings(self, s):
+        # Save the settings to khoj.yml
+        pass
 
     def show_orgmode_search_options(self, s):
         if Qt.CheckState(s) == Qt.CheckState.Checked:
