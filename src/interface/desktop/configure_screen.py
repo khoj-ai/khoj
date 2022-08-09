@@ -3,7 +3,7 @@ from PyQt6 import QtWidgets
 from PyQt6.QtCore import Qt
 
 
-class ConfigureWindow(QtWidgets.QDialog):
+class ConfigureScreen(QtWidgets.QDialog):
     """Create Window to Configure Khoj
     Allow user to
     1. Enable/Disable search on 1. org-mode, 2. markdown, 3. beancount or 4. image content types
@@ -12,7 +12,7 @@ class ConfigureWindow(QtWidgets.QDialog):
     """
 
     def __init__(self, parent=None):
-        super(ConfigureWindow, self).__init__(parent=parent)
+        super(ConfigureScreen, self).__init__(parent=parent)
 
         # Initialize Configure Window
         self.setWindowTitle("Khoj - Configure")

@@ -13,7 +13,7 @@ from src.configure import configure_server
 from src.router import router
 from src.utils import constants
 from src.utils.cli import cli
-from src.interface.desktop.configure_window import ConfigureWindow
+from src.interface.desktop.configure_screen import ConfigureScreen
 from src.interface.desktop.system_tray import create_system_tray
 
 
@@ -27,8 +27,8 @@ def run():
     # Setup Base GUI
     gui = QtWidgets.QApplication([])
     gui.setQuitOnLastWindowClosed(False)
-    window = ConfigureWindow()
-    tray = create_system_tray(gui, window)
+    configure_screen = ConfigureScreen()
+    tray = create_system_tray(gui, configure_screen)
     tray.show()
 
     # Load config from CLI
@@ -36,7 +36,7 @@ def run():
 
     # Trigger First Run Experience, if required
     if args.config is None:
-        window.show()
+        configure_screen.show()
         gui.exec()
 
     # Reload config after first run
