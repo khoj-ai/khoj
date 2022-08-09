@@ -60,8 +60,14 @@ class ServerThread(QThread):
             uvicorn.run(app, host=self.host, port=self.port)
 
 
-# Subclass QMainWindow to customize your application's main window
 class ConfigureWindow(QtWidgets.QMainWindow):
+    """Create Window to Configure Khoj
+    Allow user to
+    1. Enable/Disable search on 1. org-mode, 2. markdown, 3. beancount or 4. image content types
+    2. Configure the server host and port
+    3. Save the configuration to khoj.yml and start the server
+    """
+
     def __init__(self):
         super().__init__()
 
@@ -134,15 +140,6 @@ def create_system_tray(gui: QtWidgets.QApplication):
     tray.setContextMenu(menu)
 
     return tray
-
-def create_window_to_configure_khoj():
-    """Create Window to Configure Khoj
-    Allow user to 
-    1. Enable/Disable search on 1. org-mode, 2. markdown, 3. beancount or 4. image content types
-    2. Configure the server host and port
-    3. Save the configuration to khoj.yml and start the server
-    """
-
 
 
 if __name__ == '__main__':

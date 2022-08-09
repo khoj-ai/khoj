@@ -89,4 +89,3 @@ def configure_processor(config: FullConfig, verbose: int):
         processor_config.conversation.chat_session = ""
 
     return processor_config
-
