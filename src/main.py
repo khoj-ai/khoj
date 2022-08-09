@@ -13,6 +13,7 @@ from PyQt6.QtCore import Qt, QThread
 from src.configure import configure_server
 from src.router import router
 from src.utils import constants
+from src.utils.cli import cli
 
 
 # Initialize the Application Server
@@ -22,14 +23,30 @@ app.include_router(router)
 
 
 def run():
-    # Setup Application Server
-    host, port, socket = configure_server(sys.argv[1:])
-
-    # Setup GUI
+    # Setup Base GUI
     gui = QtWidgets.QApplication([])
     gui.setQuitOnLastWindowClosed(False)
-    tray = create_system_tray(gui)
     window = ConfigureWindow()
+    tray = create_system_tray(gui, window)
+    tray.show()
+
+    # Load config from CLI
+    args = cli(sys.argv[1:])
+
+    # Trigger First Run Experience, if required
+    if args.config is None:
+        window.show()
+        gui.exec()
+
+    # Reload config after first run
+    args = cli(sys.argv[1:])
+    # Quit if app still not configured
+    if args.config is None:
+        print('Exiting as Khoj is not configured. Configure the application to use it.')
+        sys.exit(1)
+
+    # Setup Application Server
+    host, port, socket = configure_server(args)
 
     # Start Application Server
     server = ServerThread(app, host, port, socket)
@@ -37,8 +54,6 @@ def run():
     gui.aboutToQuit.connect(server.terminate)
 
     # Start the GUI
-    window.show()
-    tray.show()
     gui.exec()
 
 
@@ -108,7 +123,7 @@ class ConfigureWindow(QtWidgets.QMainWindow):
             self.config_window.layout().removeWidget(self.config_window.layout().itemAt(2).widget())
   
 
-def create_system_tray(gui: QtWidgets.QApplication):
+def create_system_tray(gui: QtWidgets.QApplication, window: QtWidgets.QMainWindow):
     """Create System Tray with Menu
     Menu Actions should contain
     1. option to open search page at localhost:8000/
@@ -126,7 +141,7 @@ def create_system_tray(gui: QtWidgets.QApplication):
     menu = QtWidgets.QMenu()
     menu_actions = [
         ('Search', lambda: webbrowser.open('http://localhost:8000/')),
-        ('Configure', lambda: webbrowser.open('http://localhost:8000/config')),
+        ('Configure', window.show),
         ('Quit', gui.quit),
     ]
 

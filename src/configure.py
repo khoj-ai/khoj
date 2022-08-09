@@ -7,16 +7,12 @@ from src.processor.markdown.markdown_to_jsonl import markdown_to_jsonl
 from src.processor.org_mode.org_to_jsonl import org_to_jsonl
 from src.search_type import image_search, text_search
 from src.utils.config import SearchType, SearchModels, ProcessorConfigModel, ConversationProcessorConfigModel
-from src.utils.cli import cli
 from src.utils import state
 from src.utils.helpers import get_absolute_path
 from src.utils.rawconfig import FullConfig
 
 
-def configure_server(cmd_args):
-    # Load config from CLI
-    args = cli(cmd_args)
-
+def configure_server(args):
     # Stores the file path to the config file.
     state.config_file = args.config_file
 
