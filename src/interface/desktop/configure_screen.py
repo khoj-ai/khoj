@@ -1,5 +1,10 @@
 # External Packages
 from PyQt6 import QtWidgets
+from PyQt6.QtCore import Qt
+
+# Internal Packages
+from src.utils.config import SearchType
+from src.interface.desktop.file_browser import FileBrowser
 
 
 class ConfigureScreen(QtWidgets.QDialog):
@@ -14,6 +19,7 @@ class ConfigureScreen(QtWidgets.QDialog):
         super(ConfigureScreen, self).__init__(parent=parent)
 
         # Initialize Configure Window
+        self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
         self.setWindowTitle("Khoj - Configure")
 
         # Initialize Configure Window Layout
@@ -21,27 +27,27 @@ class ConfigureScreen(QtWidgets.QDialog):
         self.setLayout(layout)
 
         # Add Settings Panels for each Search Type to Configure Window Layout
-        for search_type in ["Org-Mode", "Markdown", "Beancount", "Image"]:
-            self.add_settings_panel(search_type, layout)
+        self.settings_panels = []
+        for search_type in SearchType:
+            self.settings_panels += [self.add_settings_panel(search_type, layout)]
         self.add_action_panel(layout)
 
-    def add_settings_panel(self, search_type, parent_layout):
+    def add_settings_panel(self, search_type: SearchType, parent_layout):
         "Add Settings Panel for specified Search Type. Toggle Editable Search Types"
-        orgmode_settings = QtWidgets.QWidget()
-        orgmode_layout = QtWidgets.QVBoxLayout(orgmode_settings)
+        search_type_settings = QtWidgets.QWidget()
+        search_type_layout = QtWidgets.QVBoxLayout(search_type_settings)
 
-        enable_search_type = QtWidgets.QCheckBox(f"Search {search_type} Notes")
-        input_files_label = QtWidgets.QLabel(f"{search_type} Files")
-        input_files = QtWidgets.QLineEdit()
+        enable_search_type = QtWidgets.QCheckBox(f"Search {search_type.name}")
+        input_files = FileBrowser(f'{search_type.name} Files', search_type)
         input_files.setEnabled(enable_search_type.isChecked())
 
         enable_search_type.stateChanged.connect(lambda _: input_files.setEnabled(enable_search_type.isChecked()))
 
-        orgmode_layout.addWidget(enable_search_type)
-        orgmode_layout.addWidget(input_files_label)
-        orgmode_layout.addWidget(input_files)
+        search_type_layout.addWidget(enable_search_type)
+        search_type_layout.addWidget(input_files)
 
-        parent_layout.addWidget(orgmode_settings)
+        parent_layout.addWidget(search_type_settings)
+        return search_type_settings
 
     def add_action_panel(self, parent_layout):
         "Add Action Panel"
@@ -54,6 +60,14 @@ class ConfigureScreen(QtWidgets.QDialog):
         action_bar_layout.addWidget(save_button)
         parent_layout.addWidget(action_bar)
 
-    def save_settings(self, s):
+    def save_settings(self, _):
         # Save the settings to khoj.yml
-        pass
+        for settings_panel in self.settings_panels:
+            for child in settings_panel.children():
+                if isinstance(child, QtWidgets.QCheckBox):
+                    if child.isChecked():
+                        print(f"{child.text()} is enabled")
+                    else:
+                        print(f"{child.text()} is disabled")
+                elif isinstance(child, FileBrowser):
+                    print(f"{child.search_type} files are {child.getPaths()}")
