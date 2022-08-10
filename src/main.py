@@ -8,6 +8,7 @@ from functools import lru_cache
 # External Packages
 import uvicorn
 import torch
+import importlib
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -18,6 +19,7 @@ from src.search_type import image_search, text_search
 from src.processor.org_mode.org_to_jsonl import org_to_jsonl
 from src.processor.ledger.beancount_to_jsonl import beancount_to_jsonl
 from src.processor.markdown.markdown_to_jsonl import markdown_to_jsonl
+from src.processor.yaml.yaml_to_jsonl import yaml_to_jsonl
 from src.utils.helpers import get_absolute_path, get_from_dict
 from src.utils.cli import cli
 from src.utils.config import SearchType, SearchModels, ProcessorConfigModel, ConversationProcessorConfigModel
@@ -102,6 +104,17 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
         # query markdown files
         query_start = time.time()
         hits, entries = text_search.query(user_query, model.markdown_search, rank_results=r, device=device, filters=[ExplicitFilter(), DateFilter()], verbose=verbose)
+        query_end = time.time()
+
+        # collate and return results
+        collate_start = time.time()
+        results = text_search.collate_results(hits, entries, results_count)
+        collate_end = time.time()
+
+    if (t == SearchType.Yaml or t == None) and model.yaml_search:
+        # query yaml files
+        query_start = time.time()
+        hits, entries = text_search.query(user_query, model.yaml_search, rank_results=r, device=device, filters=[ExplicitFilter(), DateFilter()], verbose=verbose)
         query_end = time.time()
 
         # collate and return results
@@ -218,6 +231,11 @@ def initialize_search(config: FullConfig, regenerate: bool, t: SearchType = None
     if (t == SearchType.Markdown or t == None) and config.content_type.markdown:
         # Extract Entries, Generate Markdown Embeddings
         model.markdown_search = text_search.setup(markdown_to_jsonl, config.content_type.markdown, search_config=config.search_type.asymmetric, regenerate=regenerate, device=device, verbose=verbose)
+
+    # Initialize Yaml Search
+    if (t == SearchType.Yaml or t == None) and config.content_type.yaml:
+        # Extract Entries, Generate Yaml Embeddings
+        model.yaml_search = text_search.setup(yaml_to_jsonl, config.content_type.yaml, search_config=config.search_type.asymmetric, regenerate=regenerate, device=device, verbose=verbose)
 
     # Initialize Ledger Search
     if (t == SearchType.Ledger or t == None) and config.content_type.ledger:

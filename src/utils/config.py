@@ -12,6 +12,7 @@ class SearchType(str, Enum):
     Ledger = "ledger"
     Music = "music"
     Markdown = "markdown"
+    Yaml = "yaml"
     Image = "image"
 
 
@@ -41,6 +42,7 @@ class SearchModels():
     ledger_search: TextSearchModel = None
     music_search: TextSearchModel = None
     markdown_search: TextSearchModel = None
+    yaml_search: TextSearchModel = None
     image_search: ImageSearchModel = None
 
 

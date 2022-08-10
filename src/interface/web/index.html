@@ -95,7 +95,7 @@
 
         function populate_type_dropdown() {
             // Populate type dropdown field with enabled search types only
-            var possible_search_types = ["org", "markdown", "ledger", "music", "image"];
+            var possible_search_types = ["org", "markdown", "ledger", "music", "image", "yaml"];
             fetch("/config/data")
                 .then(response => response.json())
                 .then(data => {
