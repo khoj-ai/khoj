@@ -2,12 +2,9 @@
 import argparse
 import pathlib
 
-# External Packages
-import yaml
-
 # Internal Packages
-from src.utils.helpers import get_absolute_path, resolve_absolute_path
-from src.utils.rawconfig import FullConfig
+from src.utils.helpers import resolve_absolute_path
+from src.utils.yaml import load_config_from_file
 
 
 def cli(args=None):
@@ -25,12 +22,6 @@ def cli(args=None):
     if not resolve_absolute_path(args.config_file).exists():
         args.config = None
     else:
-        # Read Config from YML file
-        config_from_file = None
-        with open(get_absolute_path(args.config_file), 'r', encoding='utf-8') as config_file:
-            config_from_file = yaml.safe_load(config_file)
-
-        # Parse, Validate Config in YML file
-        args.config = FullConfig.parse_obj(config_from_file)
+        args.config = load_config_from_file(args.config_file)
 
     return args
