@@ -38,6 +38,8 @@ import datetime
 from pathlib import Path
 from os.path import relpath
 
+indent_regex = re.compile(r'^\s*')
+
 def normalize_filename(filename):
    file_relative_to_home = f'~/{relpath(filename, start=Path.home())}'
    escaped_filename = f'{file_relative_to_home}'.replace("[","\[").replace("]","\]")
@@ -384,7 +386,12 @@ class Orgnode(object):
         n = n + closecolon
         n = n + "\n"
 
+        # Get body indentation from first line of body
+        indent = indent_regex.match(self.body).group()
+
         # Output Closed Date, Scheduled Date, Deadline Date
+        if self.closed or self.scheduled or self.deadline:
+           n = n + indent
         if self.closed:
            n = n + f'CLOSED: [{self.closed.strftime("%Y-%m-%d %a")}] '
         if self.scheduled:
@@ -395,10 +402,10 @@ class Orgnode(object):
            n = n + '\n'
 
         # Ouput Property Drawer
-        n = n + ":PROPERTIES:\n"
+        n = n + indent + ":PROPERTIES:\n"
         for key, value in self.properties.items():
-           n = n + f":{key}: {value}\n"
-        n = n + ":END:\n"
+           n = n + indent + f":{key}: {value}\n"
+        n = n + indent + ":END:\n"
 
         n = n + self.body
 
