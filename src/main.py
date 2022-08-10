@@ -11,7 +11,7 @@ from PyQt6.QtCore import QThread
 # Internal Packages
 from src.configure import configure_server
 from src.router import router
-from src.utils import constants
+from src.utils import constants, state
 from src.utils.cli import cli
 from src.interface.desktop.configure_screen import ConfigureScreen
 from src.interface.desktop.system_tray import create_system_tray
@@ -25,7 +25,8 @@ app.include_router(router)
 
 def run():
     # Load config from CLI
-    args = cli(sys.argv[1:])
+    state.cli_args = sys.argv[1:]
+    args = cli(state.cli_args)
 
     # Setup Base GUI
     gui = QtWidgets.QApplication([])
