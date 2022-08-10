@@ -1,3 +1,6 @@
+# System Packages
+import sys
+
 # External Packages
 import torch
 import json
@@ -13,23 +16,21 @@ from src.utils.helpers import get_absolute_path
 from src.utils.rawconfig import FullConfig, ProcessorConfig
 
 
-def configure_server(args):
-    # Stores the file path to the config file.
-    state.config_file = args.config_file
-
-    # Store the raw config data.
-    state.config = args.config
-
-    # Store the verbose flag
-    state.verbose = args.verbose
+def configure_server(args, required=False):
+    if args.config is None:
+        if required:
+            print('Exiting as Khoj is not configured. Configure the application to use it.')
+            sys.exit(1)
+        else:
+            return
+    else:
+        state.config = args.config
 
     # Initialize the search model from Config
-    state.model = configure_search(state.model, args.config, args.regenerate, device=state.device, verbose=state.verbose)
+    state.model = configure_search(state.model, state.config, args.regenerate, device=state.device, verbose=state.verbose)
 
     # Initialize Processor from Config
     state.processor_config = configure_processor(args.config.processor, verbose=state.verbose)
-
-    return args.host, args.port, args.socket
 
 
 def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, t: SearchType = None, device=torch.device("cpu"), verbose: int = 0):

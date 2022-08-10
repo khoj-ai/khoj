@@ -27,36 +27,33 @@ def run():
     # Load config from CLI
     state.cli_args = sys.argv[1:]
     args = cli(state.cli_args)
+    set_state(args)
 
-    # Setup Base GUI
+    # Setup GUI
     gui = QtWidgets.QApplication([])
     gui.setQuitOnLastWindowClosed(False)
     configure_screen = ConfigureScreen(args.config_file)
     tray = create_system_tray(gui, configure_screen)
     tray.show()
 
+    # Setup Server
+    configure_server(args, required=False)
+    server = ServerThread(app, args.host, args.port, args.socket)
+
     # Trigger First Run Experience, if required
     if args.config is None:
-        configure_screen.show()
-        gui.exec()
+         configure_screen.show()
 
-    # Reload config after first run
-    args = cli(sys.argv[1:])
-    # Quit if app still not configured
-    if args.config is None:
-        print('Exiting as Khoj is not configured. Configure the application to use it.')
-        sys.exit(1)
-
-    # Setup Application Server
-    host, port, socket = configure_server(args)
-
-    # Start Application Server
-    server = ServerThread(app, host, port, socket)
+    # Start Application
     server.start()
     gui.aboutToQuit.connect(server.terminate)
-
-    # Start the GUI
     gui.exec()
+
+
+def set_state(args):
+    state.config_file = args.config_file
+    state.config = args.config
+    state.verbose = args.verbose
 
 
 class ServerThread(QThread):
