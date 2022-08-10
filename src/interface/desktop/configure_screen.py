@@ -33,7 +33,7 @@ class ConfigureScreen(QtWidgets.QDialog):
             self.settings_panels += [self.add_settings_panel(search_type, layout)]
         self.add_action_panel(layout)
 
-    def add_settings_panel(self, search_type: SearchType, parent_layout):
+    def add_settings_panel(self, search_type: SearchType, parent_layout: QtWidgets.QLayout):
         "Add Settings Panel for specified Search Type. Toggle Editable Search Types"
         search_type_settings = QtWidgets.QWidget()
         search_type_layout = QtWidgets.QVBoxLayout(search_type_settings)
@@ -50,7 +50,7 @@ class ConfigureScreen(QtWidgets.QDialog):
         parent_layout.addWidget(search_type_settings)
         return search_type_settings
 
-    def add_action_panel(self, parent_layout):
+    def add_action_panel(self, parent_layout: QtWidgets.QLayout):
         "Add Action Panel"
         # Button to Save Settings
         action_bar = QtWidgets.QWidget()
