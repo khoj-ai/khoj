@@ -370,7 +370,9 @@ class Orgnode(object):
         n = ''
         for _ in range(0, self.level):
            n = n + '*'
-        n = n + ' ' + self.todo + ' '
+        n = n + ' '
+        if self.todo:
+           n = n + self.todo + ' '
         if self.prty:
            n = n +  '[#' + self.prty + '] '
         n = n + self.headline
