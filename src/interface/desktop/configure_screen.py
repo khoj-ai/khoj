@@ -3,7 +3,9 @@ from PyQt6 import QtWidgets
 from PyQt6.QtCore import Qt
 
 # Internal Packages
-from src.utils import constants, yaml as yaml_utils
+from src.configure import configure_server
+from src.utils import constants, state, yaml as yaml_utils
+from src.utils.cli import cli
 from src.utils.config import SearchType
 from src.interface.desktop.file_browser import FileBrowser
 
@@ -79,6 +81,12 @@ class ConfigureScreen(QtWidgets.QDialog):
         # Save the config to app config file
         del config['processor']['conversation']
         yaml_utils.save_config_to_file(config, self.config_file)
+
+        # Load config from app config file
+        args = cli(state.cli_args)
+
+        # Configure server with loaded config
+        configure_server(args, required=True)
 
         self.hide()
 
