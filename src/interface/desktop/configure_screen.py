@@ -38,7 +38,7 @@ class ConfigureScreen(QtWidgets.QDialog):
         search_type_settings = QtWidgets.QWidget()
         search_type_layout = QtWidgets.QVBoxLayout(search_type_settings)
 
-        enable_search_type = QtWidgets.QCheckBox(f"Search {search_type.name}")
+        enable_search_type = CheckBox(f"Search {search_type.name}", search_type)
         input_files = FileBrowser(f'{search_type.name} Files', search_type)
         input_files.setEnabled(enable_search_type.isChecked())
 
@@ -72,3 +72,9 @@ class ConfigureScreen(QtWidgets.QDialog):
                         print(f"{child.text()} is disabled")
                 elif isinstance(child, FileBrowser):
                     print(f"{child.search_type} files are {child.getPaths()}")
+
+
+class CheckBox(QtWidgets.QCheckBox):
+    def __init__(self, text, search_type: SearchType, parent=None):
+        self.search_type = search_type
+        super(CheckBox, self).__init__(text, parent=parent)

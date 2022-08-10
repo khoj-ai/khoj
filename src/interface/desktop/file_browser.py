@@ -5,6 +5,7 @@ from PyQt6.QtCore import QDir
 # Internal Packages
 from src.utils.config import SearchType
 
+
 class FileBrowser(QtWidgets.QWidget):
     def __init__(self, title, search_type: SearchType=None):
         QtWidgets.QWidget.__init__(self)
