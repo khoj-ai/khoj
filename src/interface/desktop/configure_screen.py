@@ -3,6 +3,7 @@ from PyQt6 import QtWidgets
 from PyQt6.QtCore import Qt
 
 # Internal Packages
+from src.utils import constants, yaml as yaml_utils
 from src.utils.config import SearchType
 from src.interface.desktop.file_browser import FileBrowser
 
@@ -62,16 +63,24 @@ class ConfigureScreen(QtWidgets.QDialog):
         parent_layout.addWidget(action_bar)
 
     def save_settings(self, _):
-        # Save the settings to khoj.yml
+        "Save the settings to khoj.yml"
+        # Load the default config
+        config = yaml_utils.load_config_from_file(constants.app_root_directory / 'config/khoj_sample.yml')
+
+        # Update the default config with the settings from the UI
         for settings_panel in self.settings_panels:
             for child in settings_panel.children():
-                if isinstance(child, QtWidgets.QCheckBox):
-                    if child.isChecked():
-                        print(f"{child.text()} is enabled")
-                    else:
-                        print(f"{child.text()} is disabled")
-                elif isinstance(child, FileBrowser):
+                if isinstance(child, CheckBox) and not child.isChecked():
+                        del config['content-type'][child.search_type]
+                elif isinstance(child, FileBrowser) and child.search_type in config['content-type']:
+                    config['content-type'][child.search_type]['input-files'] = child.getPaths()
                     print(f"{child.search_type} files are {child.getPaths()}")
+
+        # Save the config to app config file
+        del config['processor']['conversation']
+        yaml_utils.save_config_to_file(config, self.config_file)
+
+        self.hide()
 
 
 class CheckBox(QtWidgets.QCheckBox):
