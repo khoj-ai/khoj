@@ -1,5 +1,6 @@
 # External Packages
 import torch
+import json
 
 # Internal Packages
 from src.processor.ledger.beancount_to_jsonl import beancount_to_jsonl
@@ -9,7 +10,7 @@ from src.search_type import image_search, text_search
 from src.utils.config import SearchType, SearchModels, ProcessorConfigModel, ConversationProcessorConfigModel
 from src.utils import state
 from src.utils.helpers import get_absolute_path
-from src.utils.rawconfig import FullConfig
+from src.utils.rawconfig import FullConfig, ProcessorConfig
 
 
 def configure_server(args):
@@ -26,7 +27,7 @@ def configure_server(args):
     state.model = configure_search(state.model, args.config, args.regenerate, device=state.device, verbose=state.verbose)
 
     # Initialize Processor from Config
-    state.processor_config = configure_processor(args.config, verbose=state.verbose)
+    state.processor_config = configure_processor(args.config.processor, verbose=state.verbose)
 
     return args.host, args.port, args.socket
 
@@ -60,28 +61,34 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
     return model
 
 
-def configure_processor(config: FullConfig, verbose: int):
-    if not config.processor:
+def configure_processor(processor_config: ProcessorConfig, verbose: int):
+    if not processor_config:
         return
 
-    processor_config = ProcessorConfigModel()
+    processor = ProcessorConfigModel()
 
     # Initialize Conversation Processor
-    processor_config.conversation = ConversationProcessorConfigModel(config.processor.conversation, verbose)
+    processor.conversation = configure_conversation_processor(processor_config.conversation, verbose)
 
-    conversation_logfile = processor_config.conversation.conversation_logfile
-    if processor_config.conversation.verbose:
+    return processor
+
+
+def configure_conversation_processor(conversation_processor_config, verbose: int):
+    conversation_processor = ConversationProcessorConfigModel(conversation_processor_config, verbose)
+
+    conversation_logfile = conversation_processor.conversation_logfile
+    if conversation_processor.verbose:
         print('INFO:\tLoading conversation logs from disk...')
 
     if conversation_logfile.expanduser().absolute().is_file():
         # Load Metadata Logs from Conversation Logfile
         with open(get_absolute_path(conversation_logfile), 'r') as f:
-            processor_config.conversation.meta_log = json.load(f)
+            conversation_processor.meta_log = json.load(f)
 
         print('INFO:\tConversation logs loaded from disk.')
     else:
         # Initialize Conversation Logs
-        processor_config.conversation.meta_log = {}
-        processor_config.conversation.chat_session = ""
+        conversation_processor.meta_log = {}
+        conversation_processor.chat_session = ""
 
-    return processor_config
+    return conversation_processor
