@@ -68,7 +68,8 @@ def configure_processor(processor_config: ProcessorConfig, verbose: int):
     processor = ProcessorConfigModel()
 
     # Initialize Conversation Processor
-    processor.conversation = configure_conversation_processor(processor_config.conversation, verbose)
+    if processor_config.conversation:
+        processor.conversation = configure_conversation_processor(processor_config.conversation, verbose)
 
     return processor
 
