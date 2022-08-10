@@ -152,7 +152,7 @@ Use `which-key` if available, else display simple message in echo area"
   (replace-regexp-in-string
    "^[\(\) ]" ""
    ;; extract entries from response as single string and convert to entries
-   (format "#+STARTUP: showall hidestars inlineimages\n* %s\n%s"
+   (format "* %s\n%s\n#+STARTUP: showall hidestars inlineimages"
            query
            (mapcar
             (lambda (args)
