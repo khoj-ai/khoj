@@ -15,8 +15,9 @@ class ConfigureScreen(QtWidgets.QDialog):
     3. Save the configuration to khoj.yml and start the server
     """
 
-    def __init__(self, parent=None):
+    def __init__(self, config_file, parent=None):
         super(ConfigureScreen, self).__init__(parent=parent)
+        self.config_file = config_file
 
         # Initialize Configure Window
         self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)

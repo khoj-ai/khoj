@@ -24,15 +24,15 @@ app.include_router(router)
 
 
 def run():
+    # Load config from CLI
+    args = cli(sys.argv[1:])
+
     # Setup Base GUI
     gui = QtWidgets.QApplication([])
     gui.setQuitOnLastWindowClosed(False)
-    configure_screen = ConfigureScreen()
+    configure_screen = ConfigureScreen(args.config_file)
     tray = create_system_tray(gui, configure_screen)
     tray.show()
-
-    # Load config from CLI
-    args = cli(sys.argv[1:])
 
     # Trigger First Run Experience, if required
     if args.config is None:
