@@ -158,10 +158,10 @@ pip install --upgrade khoj-assistant
 # To Upgrade To Latest Pre-Release
 pip install --upgrade --pre khoj-assistant
 
-# To Upgrade To Specific Development Release
+# To Upgrade To Specific Development Release.
 # Useful to test, review a PR.
-# A khoj-assistant package is automatically uploaded to Test PyPi
-pip install -r testpypi khoj-assistant==0.1.5.dev491659577806
+# Note: khoj-assistant is published to test PyPi on creating a PR
+pip install -i https://test.pypi.org/simple/ khoj-assistant==0.1.5.dev57166025766
 ```
 
 #### Using Docker
