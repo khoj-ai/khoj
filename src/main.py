@@ -29,31 +29,43 @@ def run():
     args = cli(state.cli_args)
     set_state(args)
 
-    # Setup GUI
-    gui = QtWidgets.QApplication([])
-    gui.setQuitOnLastWindowClosed(False)
-    configure_screen = ConfigureScreen(args.config_file)
-    tray = create_system_tray(gui, configure_screen)
-    tray.show()
+    if args.no_gui:
+        # Start Server
+        configure_server(args, required=True)
+        start_server(app, host=args.host, port=args.port, socket=args.socket)
+    else:
+        # Setup GUI
+        gui = QtWidgets.QApplication([])
+        gui.setQuitOnLastWindowClosed(False)
+        configure_screen = ConfigureScreen(args.config_file)
+        tray = create_system_tray(gui, configure_screen)
+        tray.show()
 
-    # Setup Server
-    configure_server(args, required=False)
-    server = ServerThread(app, args.host, args.port, args.socket)
+        # Setup Server
+        configure_server(args, required=False)
+        server = ServerThread(app, args.host, args.port, args.socket)
 
-    # Trigger First Run Experience, if required
-    if args.config is None:
-         configure_screen.show()
+        # Trigger First Run Experience, if required
+        if args.config is None:
+            configure_screen.show()
 
-    # Start Application
-    server.start()
-    gui.aboutToQuit.connect(server.terminate)
-    gui.exec()
+        # Start Application
+        server.start()
+        gui.aboutToQuit.connect(server.terminate)
+        gui.exec()
 
 
 def set_state(args):
     state.config_file = args.config_file
     state.config = args.config
     state.verbose = args.verbose
+
+
+def start_server(app, host=None, port=None, socket=None):
+    if socket:
+        uvicorn.run(app, proxy_headers=True, uds=socket)
+    else:
+        uvicorn.run(app, host=host, port=port)
 
 
 class ServerThread(QThread):
@@ -68,10 +80,7 @@ class ServerThread(QThread):
         self.wait()
 
     def run(self):
-        if self.socket:
-            uvicorn.run(app, proxy_headers=True, uds=self.socket)
-        else:
-            uvicorn.run(app, host=self.host, port=self.port)
+        start_server(self.app, self.host, self.port, self.socket)
 
 
 if __name__ == '__main__':
