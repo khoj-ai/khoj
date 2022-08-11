@@ -13,6 +13,9 @@ yaml.emitter.Emitter.process_tag = lambda self, *args, **kwargs: None
 
 def save_config_to_file(yaml_config: dict, yaml_config_file: Path):
     "Write config to YML file"
+    # Create output directory, if it doesn't exist
+    yaml_config_file.parent.mkdir(parents=True, exist_ok=True)
+
     with open(get_absolute_path(yaml_config_file), 'w', encoding='utf-8') as config_file:
         yaml.safe_dump(yaml_config, config_file, allow_unicode=True)
 
