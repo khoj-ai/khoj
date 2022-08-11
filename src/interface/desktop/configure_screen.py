@@ -157,7 +157,7 @@ class ConfigureScreen(QtWidgets.QDialog):
                         default_search_config = self.get_default_config(search_type = child.search_type)
                         self.new_config['content-type'][child.search_type.value] = merge_dicts(current_search_config, default_search_config)
                 elif isinstance(child, FileBrowser) and child.search_type in self.new_config['content-type']:
-                    self.new_config['content-type'][child.search_type.value]['input-files'] = child.getPaths()
+                    self.new_config['content-type'][child.search_type.value]['input-files'] = child.getPaths() if child.getPaths() != [] else None
 
     def update_processor_settings(self):
         "Update config with conversation settings from UI"

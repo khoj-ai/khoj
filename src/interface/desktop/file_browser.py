@@ -65,4 +65,7 @@ class FileBrowser(QtWidgets.QWidget):
             self.lineEdit.setText(",".join(self.filepaths))    
 
     def getPaths(self):
-        return self.filepaths
+        if self.lineEdit.text() == '':
+            return []
+        else:
+            return self.lineEdit.text().split(',')
