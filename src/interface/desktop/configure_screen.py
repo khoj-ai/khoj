@@ -132,6 +132,13 @@ class ConfigureScreen(QtWidgets.QDialog):
         else:
             return config
 
+    def add_error_message(self, message: str, parent_layout: QtWidgets.QLayout):
+        "Add Error Message to Configure Screen"
+        error_message = QtWidgets.QLabel()
+        error_message.setText(message)
+        error_message.setStyleSheet("color: red")
+        parent_layout.addWidget(error_message)
+
     def save_settings(self, _):
         "Save the settings to khoj.yml"
         # Update config with search settings from UI
@@ -171,6 +178,20 @@ class ConfigureScreen(QtWidgets.QDialog):
                     if child.processor_type == ProcessorType.Conversation:
                         self.new_config['processor'][child.processor_type.value]['openai-api-key'] = child.text() if child.text() != '' else None
 
+        # Validate config before writing to file
+        try:
+            yaml_utils.parse_config_from_string(self.new_config)
+        except Exception as e:
+            print(f"Error validating config: {e}")
+            self.add_error_message(f"Error validating config: {e}", self.layout())
+            return
+        else:
+            # Remove error message if present
+            for i in range(self.layout().count()):
+                current_widget = self.layout().itemAt(i).widget()
+                if isinstance(current_widget, QtWidgets.QLabel) and current_widget.text().startswith("Error validating config:"):
+                    self.layout().removeWidget(current_widget)
+                    current_widget.deleteLater()
 
         # Save the config to app config file
         yaml_utils.save_config_to_file(self.new_config, self.config_file)
