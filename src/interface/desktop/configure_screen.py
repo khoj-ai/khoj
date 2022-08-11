@@ -40,6 +40,7 @@ class ConfigureScreen(QtWidgets.QDialog):
         for search_type in SearchType:
             current_content_config = self.config['content-type'].get(search_type, {})
             self.settings_panels += [self.add_settings_panel(search_type, current_content_config, layout)]
+        self.add_conversation_processor_panel(layout)
         self.add_action_panel(layout)
 
     def add_settings_panel(self, search_type: SearchType, current_content_config: dict, parent_layout: QtWidgets.QLayout):
@@ -69,6 +70,35 @@ class ConfigureScreen(QtWidgets.QDialog):
 
         return search_type_settings
 
+    def add_conversation_processor_panel(self, parent_layout: QtWidgets.QLayout):
+        "Add Conversation Processor Panel"
+        processor_type_settings = QtWidgets.QWidget()
+        processor_type_layout = QtWidgets.QVBoxLayout(processor_type_settings)
+
+        enable_conversation = QtWidgets.QCheckBox(f"Conversation")
+
+        conversation_settings = QtWidgets.QWidget()
+        conversation_settings_layout = QtWidgets.QHBoxLayout(conversation_settings)
+        input_label = QtWidgets.QLabel()
+        input_label.setText("OpenAI API Key")
+        input_label.setFixedWidth(95)
+
+        input_field = QtWidgets.QLineEdit()
+        input_field.setFixedWidth(245)
+        input_field.setEnabled(enable_conversation.isChecked())
+
+        enable_conversation.stateChanged.connect(lambda _: input_field.setEnabled(enable_conversation.isChecked()))
+
+        conversation_settings_layout.addWidget(input_label)
+        conversation_settings_layout.addWidget(input_field)
+
+        processor_type_layout.addWidget(enable_conversation)
+        processor_type_layout.addWidget(conversation_settings)
+        processor_type_layout.addStretch()
+
+        parent_layout.addWidget(processor_type_settings)
+        return processor_type_settings
+
     def add_action_panel(self, parent_layout: QtWidgets.QLayout):
         "Add Action Panel"
         # Button to Save Settings
@@ -94,7 +124,6 @@ class ConfigureScreen(QtWidgets.QDialog):
                     print(f"{child.search_type} files are {child.getPaths()}")
 
         # Save the config to app config file
-        del self.config['processor']['conversation']
         yaml_utils.save_config_to_file(self.config, self.config_file)
 
         # Load parsed, validated config from app config file
