@@ -7,7 +7,7 @@ from src.utils.config import SearchType
 
 
 class FileBrowser(QtWidgets.QWidget):
-    def __init__(self, title, search_type: SearchType=None):
+    def __init__(self, title, search_type: SearchType=None, default_files=[]):
         QtWidgets.QWidget.__init__(self)
         layout = QtWidgets.QHBoxLayout()
         self.setLayout(layout)
@@ -15,8 +15,7 @@ class FileBrowser(QtWidgets.QWidget):
 
         self.filter_name = self.getFileFilter(search_type)
         self.dirpath = QDir.homePath()
-        self.filepaths = []
-        
+
         self.label = QtWidgets.QLabel()
         self.label.setText(title)
         self.label.setFixedWidth(95)
@@ -24,6 +23,7 @@ class FileBrowser(QtWidgets.QWidget):
         
         self.lineEdit = QtWidgets.QLineEdit(self)
         self.lineEdit.setFixedWidth(180)
+        self.setFiles(default_files)
         
         layout.addWidget(self.lineEdit)
         
@@ -51,14 +51,18 @@ class FileBrowser(QtWidgets.QWidget):
         self.dirpath = path
 
     def getFile(self):
-        self.filepaths = []
+        filepaths = []
         if self.search_type == SearchType.Image:
-            self.filepaths.append(QtWidgets.QFileDialog.getExistingDirectory(self, caption='Choose Directory',
+            filepaths.append(QtWidgets.QFileDialog.getExistingDirectory(self, caption='Choose Directory',
                                                     directory=self.dirpath))
         else:
-            self.filepaths.extend(QtWidgets.QFileDialog.getOpenFileNames(self, caption='Choose Files',
+            filepaths.extend(QtWidgets.QFileDialog.getOpenFileNames(self, caption='Choose Files',
                                                     directory=self.dirpath,
                                                     filter=self.filter_name)[0])
+        self.setFiles(filepaths)
+
+    def setFiles(self, paths):
+        self.filepaths = paths
         if len(self.filepaths) == 0:
             return
         elif len(self.filepaths) == 1:

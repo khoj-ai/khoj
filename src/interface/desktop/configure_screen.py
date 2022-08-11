@@ -22,6 +22,11 @@ class ConfigureScreen(QtWidgets.QDialog):
         super(ConfigureScreen, self).__init__(parent=parent)
         self.config_file = config_file
 
+        # Load config from existing config, if exists, else load from default config
+        self.config = yaml_utils.load_config_from_file(self.config_file)
+        if self.config is None:
+            self.config = yaml_utils.load_config_from_file(constants.app_root_directory / 'config/khoj_sample.yml')
+
         # Initialize Configure Window
         self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
         self.setWindowTitle("Khoj - Configure")
@@ -33,24 +38,35 @@ class ConfigureScreen(QtWidgets.QDialog):
         # Add Settings Panels for each Search Type to Configure Window Layout
         self.settings_panels = []
         for search_type in SearchType:
-            self.settings_panels += [self.add_settings_panel(search_type, layout)]
+            current_content_config = self.config['content-type'].get(search_type, {})
+            self.settings_panels += [self.add_settings_panel(search_type, current_content_config, layout)]
         self.add_action_panel(layout)
 
-    def add_settings_panel(self, search_type: SearchType, parent_layout: QtWidgets.QLayout):
+    def add_settings_panel(self, search_type: SearchType, current_content_config: dict, parent_layout: QtWidgets.QLayout):
         "Add Settings Panel for specified Search Type. Toggle Editable Search Types"
+        # Get current files from config for given search type
+        if search_type == SearchType.Image:
+            current_content_files = current_content_config.get('input-directories', [])
+        else:
+            current_content_files = current_content_config.get('input-files', [])
+
+        # Create widgets to display settings for given search type
         search_type_settings = QtWidgets.QWidget()
         search_type_layout = QtWidgets.QVBoxLayout(search_type_settings)
-
         enable_search_type = CheckBox(f"Search {search_type.name}", search_type)
-        input_files = FileBrowser(f'{search_type.name} Files', search_type)
-        input_files.setEnabled(enable_search_type.isChecked())
+        # Add file browser to set input files for given search type
+        input_files = FileBrowser(f'{search_type.name} Files', search_type, current_content_files)
 
+        # Set enabled/disabled based on checkbox state
+        enable_search_type.setChecked(len(current_content_files) > 0)
+        input_files.setEnabled(enable_search_type.isChecked())
         enable_search_type.stateChanged.connect(lambda _: input_files.setEnabled(enable_search_type.isChecked()))
 
+        # Add setting widgets for given search type to panel
         search_type_layout.addWidget(enable_search_type)
         search_type_layout.addWidget(input_files)
-
         parent_layout.addWidget(search_type_settings)
+
         return search_type_settings
 
     def add_action_panel(self, parent_layout: QtWidgets.QLayout):
@@ -66,23 +82,22 @@ class ConfigureScreen(QtWidgets.QDialog):
 
     def save_settings(self, _):
         "Save the settings to khoj.yml"
-        # Load the default config
-        config = yaml_utils.load_config_from_file(constants.app_root_directory / 'config/khoj_sample.yml')
-
-        # Update the default config with the settings from the UI
+        # Update config with settings from UI
         for settings_panel in self.settings_panels:
             for child in settings_panel.children():
+                if isinstance(child, (CheckBox, FileBrowser)) and child.search_type not in self.config['content-type']:
+                    continue
                 if isinstance(child, CheckBox) and not child.isChecked():
-                        del config['content-type'][child.search_type]
-                elif isinstance(child, FileBrowser) and child.search_type in config['content-type']:
-                    config['content-type'][child.search_type]['input-files'] = child.getPaths()
+                        del self.config['content-type'][child.search_type]
+                elif isinstance(child, FileBrowser):
+                    self.config['content-type'][child.search_type]['input-files'] = child.getPaths()
                     print(f"{child.search_type} files are {child.getPaths()}")
 
         # Save the config to app config file
-        del config['processor']['conversation']
-        yaml_utils.save_config_to_file(config, self.config_file)
+        del self.config['processor']['conversation']
+        yaml_utils.save_config_to_file(self.config, self.config_file)
 
-        # Load config from app config file
+        # Load parsed, validated config from app config file
         args = cli(state.cli_args)
 
         # Configure server with loaded config
