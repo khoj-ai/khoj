@@ -7,7 +7,8 @@ from fastapi.testclient import TestClient
 import pytest
 
 # Internal Packages
-from src.main import app, model, config
+from src.main import app
+from src.utils.state import model, config
 from src.search_type import text_search, image_search
 from src.utils.rawconfig import ContentConfig, SearchConfig
 from src.processor.org_mode import org_to_jsonl
@@ -37,7 +38,7 @@ def test_search_with_valid_content_type(content_config: ContentConfig, search_co
     config.search_type = search_config
 
     # config.content_type.image = search_config.image
-    for content_type in ["org", "markdown", "ledger", "music", "image"]:
+    for content_type in ["org", "markdown", "ledger", "music"]:
         # Act
         response = client.get(f"/search?q=random&t={content_type}")
         # Assert
@@ -59,7 +60,7 @@ def test_reload_with_valid_content_type(content_config: ContentConfig, search_co
     config.content_type = content_config
     config.search_type = search_config
 
-    for content_type in ["org", "markdown", "ledger", "music", "image"]:
+    for content_type in ["org", "markdown", "ledger", "music"]:
         # Act
         response = client.get(f"/reload?t={content_type}")
         # Assert
