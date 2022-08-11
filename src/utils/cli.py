@@ -3,7 +3,7 @@ import argparse
 import pathlib
 
 # Internal Packages
-from src.utils.helpers import resolve_absolute_path
+from src.utils.helpers import get_absolute_path, resolve_absolute_path
 from src.utils.yaml import parse_config_from_file
 
 
@@ -20,7 +20,10 @@ def cli(args=None):
 
     args = parser.parse_args(args)
 
-    if not resolve_absolute_path(args.config_file).exists():
+    # Normalize config_file path to absolute path
+    args.config_file = resolve_absolute_path(args.config_file)
+
+    if not args.config_file.exists():
         args.config = None
     else:
         args.config = parse_config_from_file(args.config_file)
