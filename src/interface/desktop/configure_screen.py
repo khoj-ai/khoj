@@ -11,7 +11,7 @@ from src.interface.desktop.file_browser import FileBrowser
 from src.utils import constants, state, yaml as yaml_utils
 from src.utils.cli import cli
 from src.utils.config import SearchType, ProcessorType
-from src.utils.helpers import merge_dicts
+from src.utils.helpers import merge_dicts, resolve_absolute_path
 
 
 class ConfigureScreen(QtWidgets.QDialog):
@@ -27,9 +27,10 @@ class ConfigureScreen(QtWidgets.QDialog):
         self.config_file = config_file
 
         # Load config from existing config, if exists, else load from default config
-        self.current_config = yaml_utils.load_config_from_file(self.config_file)
-        if self.current_config is None:
-            self.current_config = yaml_utils.load_config_from_file(constants.app_root_directory / 'config/khoj_sample.yml')
+        if resolve_absolute_path(self.config_file).exists():
+            self.current_config = yaml_utils.load_config_from_file(self.config_file)
+        else:
+            self.current_config = constants.default_config
         self.new_config = self.current_config
 
         # Initialize Configure Window
@@ -126,7 +127,7 @@ class ConfigureScreen(QtWidgets.QDialog):
 
     def get_default_config(self, search_type:SearchType=None, processor_type:ProcessorType=None):
         "Get default config"
-        config = yaml_utils.load_config_from_file(constants.app_root_directory / 'config/khoj_sample.yml')
+        config = constants.default_config
         if search_type:
             return config['content-type'][search_type]
         elif processor_type:
