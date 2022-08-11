@@ -9,11 +9,10 @@ from src.utils import constants
 
 
 def create_system_tray(gui: QtWidgets.QApplication, configure_screen: QtWidgets.QDialog):
-    """Create System Tray with Menu
-    Menu Actions should contain
-    1. option to open search page at localhost:8000/
-    2. option to open config screen
-    3. to quit
+    """Create System Tray with Menu.  Menu contain options to
+    1. Open Search Page on the Web Interface
+    2. Open App Configuration Screen
+    3. Quit Application
     """
 
     # Create the system tray with icon
@@ -40,4 +39,3 @@ def create_system_tray(gui: QtWidgets.QApplication, configure_screen: QtWidgets.
     tray.setContextMenu(menu)
 
     return tray
-

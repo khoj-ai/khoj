@@ -17,9 +17,9 @@ from src.utils.helpers import merge_dicts
 class ConfigureScreen(QtWidgets.QDialog):
     """Create Window to Configure Khoj
     Allow user to
-    1. Enable/Disable search on 1. org-mode, 2. markdown, 3. beancount or 4. image content types
-    2. Configure the server host and port
-    3. Save the configuration to khoj.yml and start the server
+    1. Configure content types to search
+    2. Configure conversation processor
+    3. Save the configuration to khoj.yml
     """
 
     def __init__(self, config_file: Path, parent=None):
@@ -202,7 +202,7 @@ class ConfigureScreen(QtWidgets.QDialog):
         return True
 
     def load_updated_settings(self):
-        "Hot swap to using the updated config from file"
+        "Hot swap to use the updated config from config file"
         # Load parsed, validated config from app config file
         args = cli(state.cli_args)
         self.current_config = self.new_config
@@ -229,6 +229,7 @@ class ProcessorCheckBox(QtWidgets.QCheckBox):
     def __init__(self, text, processor_type: ProcessorType, parent=None):
         self.processor_type = processor_type
         super(ProcessorCheckBox, self).__init__(text, parent=parent)
+
 
 class ProcessorLineEdit(QtWidgets.QLineEdit):
     def __init__(self, text, processor_type: ProcessorType, parent=None):
