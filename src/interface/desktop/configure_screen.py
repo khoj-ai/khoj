@@ -137,6 +137,7 @@ class ConfigureScreen(QtWidgets.QDialog):
     def add_error_message(self, message: str, parent_layout: QtWidgets.QLayout):
         "Add Error Message to Configure Screen"
         error_message = QtWidgets.QLabel()
+        error_message.setWordWrap(True)
         error_message.setText(message)
         error_message.setStyleSheet("color: red")
         parent_layout.addWidget(error_message)
