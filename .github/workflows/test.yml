@@ -34,6 +34,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          sudo apt install libegl1 -y
           python -m pip install --upgrade pip
           pip install pytest
 
