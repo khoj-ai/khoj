@@ -28,12 +28,9 @@ class FileBrowser(QtWidgets.QWidget):
         layout.addWidget(self.lineEdit)
         
         self.button = QtWidgets.QPushButton('Add')
-        self.button.clicked.connect(self.getFile)
+        self.button.clicked.connect(self.storeFilesSelectedInFileDialog)
         layout.addWidget(self.button)
         layout.addStretch()
-
-    def setMode(self, search_type):
-        self.search_type = search_type
 
     def getFileFilter(self, search_type):
         if search_type == SearchType.Org:
@@ -47,13 +44,10 @@ class FileBrowser(QtWidgets.QWidget):
         elif search_type == SearchType.Image:
             return 'Images (*.jp[e]g)'
 
-    def setDefaultDir(self, path):
-        self.dirpath = path
-
-    def getFile(self):
+    def storeFilesSelectedInFileDialog(self):
         filepaths = []
         if self.search_type == SearchType.Image:
-            filepaths.append(QtWidgets.QFileDialog.getExistingDirectory(self, caption='Choose Directory',
+            filepaths.append(QtWidgets.QFileDialog.getExistingDirectory(self, caption='Choose Folder',
                                                     directory=self.dirpath))
         else:
             filepaths.extend(QtWidgets.QFileDialog.getOpenFileNames(self, caption='Choose Files',
@@ -69,12 +63,6 @@ class FileBrowser(QtWidgets.QWidget):
             self.lineEdit.setText(self.filepaths[0])
         else:
             self.lineEdit.setText(",".join(self.filepaths))    
-
-    def setLabelWidth(self, width):
-        self.label.setFixedWidth(width)    
-
-    def setlineEditWidth(self, width):
-        self.lineEdit.setFixedWidth(width)
 
     def getPaths(self):
         return self.filepaths
