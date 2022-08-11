@@ -141,9 +141,8 @@ class ConfigureScreen(QtWidgets.QDialog):
         error_message.setStyleSheet("color: red")
         parent_layout.addWidget(error_message)
 
-    def save_settings(self, _):
-        "Save the settings to khoj.yml"
-        # Update config with search settings from UI
+    def update_search_settings(self):
+        "Update config with search settings from UI"
         for settings_panel in self.search_settings_panels:
             for child in settings_panel.children():
                 if not isinstance(child, (SearchCheckBox, FileBrowser)):
@@ -160,7 +159,8 @@ class ConfigureScreen(QtWidgets.QDialog):
                 elif isinstance(child, FileBrowser) and child.search_type in self.new_config['content-type']:
                     self.new_config['content-type'][child.search_type.value]['input-files'] = child.getPaths()
 
-        # Update config with conversation settings from UI
+    def update_processor_settings(self):
+        "Update config with conversation settings from UI"
         for settings_panel in self.processor_settings_panels:
             for child in settings_panel.children():
                 if isinstance(child, QtWidgets.QWidget) and child.findChild(ProcessorLineEdit):
@@ -180,13 +180,14 @@ class ConfigureScreen(QtWidgets.QDialog):
                     if child.processor_type == ProcessorType.Conversation:
                         self.new_config['processor'][child.processor_type.value]['openai-api-key'] = child.text() if child.text() != '' else None
 
+    def save_settings_to_file(self) -> bool:
         # Validate config before writing to file
         try:
             yaml_utils.parse_config_from_string(self.new_config)
         except Exception as e:
             print(f"Error validating config: {e}")
             self.add_error_message(f"Error validating config: {e}", self.layout())
-            return
+            return False
         else:
             # Remove error message if present
             for i in range(self.layout().count()):
@@ -197,7 +198,10 @@ class ConfigureScreen(QtWidgets.QDialog):
 
         # Save the config to app config file
         yaml_utils.save_config_to_file(self.new_config, self.config_file)
+        return True
 
+    def load_updated_settings(self):
+        "Hot swap to using the updated config from file"
         # Load parsed, validated config from app config file
         args = cli(state.cli_args)
         self.current_config = self.new_config
@@ -205,7 +209,13 @@ class ConfigureScreen(QtWidgets.QDialog):
         # Configure server with loaded config
         configure_server(args, required=True)
 
-        self.hide()
+    def save_settings(self):
+        "Save the settings to khoj.yml"
+        self.update_search_settings()
+        self.update_processor_settings()
+        if self.save_settings_to_file():
+            self.load_updated_settings()
+            self.hide()
 
 
 class SearchCheckBox(QtWidgets.QCheckBox):
