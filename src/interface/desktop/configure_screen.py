@@ -59,15 +59,17 @@ class ConfigureScreen(QtWidgets.QDialog):
         # Get current files from config for given search type
         if search_type == SearchType.Image:
             current_content_files = current_content_config.get('input-directories', [])
+            file_input_text = f'{search_type.name} Folders'
         else:
             current_content_files = current_content_config.get('input-files', [])
+            file_input_text = f'{search_type.name} Files'
 
         # Create widgets to display settings for given search type
         search_type_settings = QtWidgets.QWidget()
         search_type_layout = QtWidgets.QVBoxLayout(search_type_settings)
         enable_search_type = SearchCheckBox(f"Search {search_type.name}", search_type)
         # Add file browser to set input files for given search type
-        input_files = FileBrowser(f'{search_type.name} Files', search_type, current_content_files)
+        input_files = FileBrowser(file_input_text, search_type, current_content_files)
 
         # Set enabled/disabled based on checkbox state
         enable_search_type.setChecked(current_content_files is not None and len(current_content_files) > 0)
