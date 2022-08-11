@@ -36,25 +36,38 @@
 (require 'url)
 (require 'json)
 
-(defcustom khoj--server-url "http://localhost:8000"
+(defcustom khoj-server-url "http://localhost:8000"
   "Location of Khoj API server."
   :group 'khoj
   :type 'string)
 
-(defcustom khoj--image-width 156
+(defcustom khoj-image-width 156
   "Width of rendered images returned by Khoj."
   :group 'khoj
   :type 'integer)
 
-(defcustom khoj--rerank-after-idle-time 1.0
+(defcustom khoj-image-height 156
+  "Height of rendered images returned by Khoj."
+  :group 'khoj
+  :type 'integer)
+
+(defcustom khoj-rerank-after-idle-time 2.0
   "Idle time (in seconds) to trigger cross-encoder to rerank incremental search results."
   :group 'khoj
   :type 'float)
 
-(defcustom khoj--results-count 5
+(defcustom khoj-results-count 5
   "Number of results to get from Khoj API for each query."
   :group 'khoj
   :type 'integer)
+
+(defcustom khoj-default-search-type "org"
+  "The default content type to perform search on."
+  :group 'khoj
+  :type '(choice (const "org")
+                 (const "markdown")
+                 (const "ledger")
+                 (const "music")))
 
 (defvar khoj--rerank-timer nil
   "Idle timer to make cross-encoder re-rank incremental search results if user idle.")
@@ -71,37 +84,52 @@
 (defvar khoj--search-type "org"
   "The type of content to perform search on.")
 
-(defvar khoj--keybindings-info-message
-  "
+(defun khoj--keybindings-info-message ()
+  (let ((enabled-content-types (khoj--get-enabled-content-types)))
+    (concat
+     "
      Set Search Type
--------------------------
-C-x m  | markdown
-C-x o  | org-mode
-C-x l  | ledger/beancount
-C-x i  | images
-")
-(defun khoj--search-markdown (interactive) (setq khoj--search-type "markdown"))
-(defun khoj--search-org (interactive) (setq khoj--search-type "org"))
-(defun khoj--search-ledger (interactive) (setq khoj--search-type "ledger"))
-(defun khoj--search-images (interactive) (setq khoj--search-type "image"))
+-------------------------\n"
+     (when (member 'markdown enabled-content-types)
+         "C-x m  | markdown\n")
+     (when (member 'org enabled-content-types)
+       "C-x o  | org-mode\n")
+     (when (member 'ledger enabled-content-types)
+       "C-x l  | ledger\n")
+     (when (member 'image enabled-content-types)
+       "C-x i  | images\n")
+     (when (member 'music enabled-content-types)
+       "C-x M  | music\n"))))
+
+(defun khoj--search-markdown () (interactive) (setq khoj--search-type "markdown"))
+(defun khoj--search-org () (interactive) (setq khoj--search-type "org"))
+(defun khoj--search-ledger () (interactive) (setq khoj--search-type "ledger"))
+(defun khoj--search-images () (interactive) (setq khoj--search-type "image"))
+(defun khoj--search-music () (interactive) (setq khoj--search-type "music"))
 (defun khoj--make-search-keymap (&optional existing-keymap)
   "Setup keymap to configure Khoj search"
-  (let ((kmap (or existing-keymap (make-sparse-keymap))))
-    (define-key kmap (kbd "C-x m") #'khoj--search-markdown)
-    (define-key kmap (kbd "C-x o") #'khoj--search-org)
-    (define-key kmap (kbd "C-x l") #'khoj--search-ledger)
-    (define-key kmap (kbd "C-x i") #'khoj--search-images)
+  (let ((enabled-content-types (khoj--get-enabled-content-types))
+        (kmap (or existing-keymap (make-sparse-keymap))))
+    (when (member 'markdown enabled-content-types)
+      (define-key kmap (kbd "C-x m") #'khoj--search-markdown))
+    (when (member 'org enabled-content-types)
+      (define-key kmap (kbd "C-x o") #'khoj--search-org))
+    (when (member 'ledger enabled-content-types)
+      (define-key kmap (kbd "C-x l") #'khoj--search-ledger))
+    (when (member 'image enabled-content-types)
+      (define-key kmap (kbd "C-x i") #'khoj--search-images))
+    (when (member 'music enabled-content-types)
+      (define-key kmap (kbd "C-x M") #'khoj--search-music))
     kmap))
 (defun khoj--display-keybinding-info ()
   "Display information on keybindings to customize khoj search.
 Use `which-key` if available, else display simple message in echo area"
-  (if (fboundp 'which-key--create-buffer-and-show)
-      (which-key--create-buffer-and-show
-       (kbd "C-x")
-       (symbolp (khoj--make-search-keymap))
-       '(lambda (binding) (string-prefix-p "khoj--" (cdr binding)))
-       "Khoj Bindings")
-    (message "%s" khoj--keybindings-info-message)))
+  (if (fboundp 'which-key-show-full-keymap)
+      (let ((khoj--keymap (khoj--make-search-keymap)))
+        (which-key--show-keymap (symbol-name 'khoj--keymap)
+                                (symbol-value 'khoj--keymap)
+                                nil t t))
+    (message "%s" (khoj--keybindings-info-message))))
 
 (defun khoj--extract-entries-as-markdown (json-response query)
   "Convert json response from API to markdown entries"
@@ -124,7 +152,7 @@ Use `which-key` if available, else display simple message in echo area"
   (replace-regexp-in-string
    "^[\(\) ]" ""
    ;; extract entries from response as single string and convert to entries
-   (format "#+STARTUP: showall hidestars inlineimages\n* %s\n%s"
+   (format "* %s\n%s\n#+STARTUP: showall hidestars inlineimages"
            query
            (mapcar
             (lambda (args)
@@ -146,15 +174,17 @@ Use `which-key` if available, else display simple message in echo area"
             query
             (mapcar
              (lambda (args) (format
-                             "\n\n<h2>Score: %s Meta: %s Image: %s</h2>\n\n<a href=\"%s%s\">\n<img src=\"%s%s?%s\" width=100 height=100>\n</a>"
+                             "\n\n<h2>Score: %s Meta: %s Image: %s</h2>\n\n<a href=\"%s%s\">\n<img src=\"%s%s?%s\" width=%s height=%s>\n</a>"
                              (cdr (assoc 'score args))
                              (cdr (assoc 'metadata_score args))
                              (cdr (assoc 'image_score args))
-                             khoj--server-url
+                             khoj-server-url
                              (cdr (assoc 'entry args))
-                             khoj--server-url
+                             khoj-server-url
                              (cdr (assoc 'entry args))
-                             (random 10000)))
+                             (random 10000)
+                             khoj-image-width
+                             khoj-image-height))
              json-response)))))
 
 (defun khoj--extract-entries-as-ledger (json-response query)
@@ -173,19 +203,34 @@ Use `which-key` if available, else display simple message in echo area"
              json-response)))))
 
 (defun khoj--buffer-name-to-search-type (buffer-name)
-  (let ((file-extension (file-name-extension buffer-name)))
+  (let ((enabled-content-types (khoj--get-enabled-content-types))
+        (file-extension (file-name-extension buffer-name)))
     (cond
-     ((equal buffer-name "Music.org") "music")
-     ((or (equal file-extension "bean") (equal file-extension "beancount")) "ledger")
-     ((equal file-extension "org") "org")
-     ((or (equal file-extension "markdown") (equal file-extension "md")) "markdown")
-     (t "org"))))
+     ((and (member 'music enabled-content-types) (equal buffer-name "Music.org")) "music")
+     ((and (member 'ledger enabled-content-types) (or (equal file-extension "bean") (equal file-extension "beancount"))) "ledger")
+     ((and (member 'org enabled-content-types) (equal file-extension "org")) "org")
+     ((and (member 'markdown enabled-content-types) (or (equal file-extension "markdown") (equal file-extension "md"))) "markdown")
+     (t khoj-default-search-type))))
+
+(defun khoj--get-enabled-content-types ()
+  "Get content types enabled for search from API"
+  (let ((config-url (format "%s/config/data" khoj-server-url)))
+    (with-temp-buffer
+      (erase-buffer)
+      (url-insert-file-contents config-url)
+      (let* ((json-response (json-parse-buffer :object-type 'alist))
+            (content-type (cdr (assoc 'content-type json-response))))
+        ;; return content-type items with configuration
+        (mapcar
+         'car
+         (cl-remove-if-not
+          '(lambda (a) (not (eq (cdr a) :null)))
+          content-type))))))
 
 (defun khoj--construct-api-query (query search-type &optional rerank)
   (let ((rerank (or rerank "false"))
-        (results-count (or khoj--results-count 5))
         (encoded-query (url-hexify-string query)))
-    (format "%s/search?q=%s&t=%s&r=%s&n=%s" khoj--server-url encoded-query search-type rerank results-count)))
+    (format "%s/search?q=%s&t=%s&r=%s&n=%s" khoj-server-url encoded-query search-type rerank khoj-results-count)))
 
 (defun khoj--query-api-and-render-results (query search-type query-url buffer-name)
   ;; get json response from api
@@ -240,12 +285,12 @@ Use `which-key` if available, else display simple message in echo area"
   "Delete all network connections to khoj server"
   (dolist (proc (process-list))
     (let ((proc-buf (buffer-name (process-buffer proc)))
-          (khoj-network-proc-buf (string-join (split-string khoj--server-url "://") " ")))
+          (khoj-network-proc-buf (string-join (split-string khoj-server-url "://") " ")))
       (when (string-match (format "%s" khoj-network-proc-buf) proc-buf)
         (delete-process proc)))))
 
 (defun khoj--teardown-incremental-search ()
-  (message "[Khoj]: Teardown Incremental Search")
+  (message "Khoj: Teardown Incremental Search")
   ;; remove advice to rerank results on normal exit from minibuffer
   (advice-remove 'exit-minibuffer #'khoj--minibuffer-exit-advice)
   ;; unset khoj minibuffer window
@@ -262,6 +307,7 @@ Use `which-key` if available, else display simple message in echo area"
 (defun khoj--minibuffer-exit-advice (&rest _args)
   (khoj--incremental-search t))
 
+
 ;;;###autoload
 (defun khoj ()
   "Natural, Incremental Search for your personal notes, transactions and music using Khoj"
@@ -269,8 +315,8 @@ Use `which-key` if available, else display simple message in echo area"
   (let* ((khoj-buffer-name (get-buffer-create khoj--buffer-name)))
     ;; set khoj search type to last used or based on current buffer
     (setq khoj--search-type (or khoj--search-type (khoj--buffer-name-to-search-type (buffer-name))))
-    ;; setup rerank to improve results once user idle for KHOJ--RERANK-AFTER-IDLE-TIME seconds
-    (setq khoj--rerank-timer (run-with-idle-timer khoj--rerank-after-idle-time t 'khoj--incremental-search t))
+    ;; setup rerank to improve results once user idle for KHOJ-RERANK-AFTER-IDLE-TIME seconds
+    (setq khoj--rerank-timer (run-with-idle-timer khoj-rerank-after-idle-time t 'khoj--incremental-search t))
     ;; switch to khoj results buffer
     (switch-to-buffer khoj-buffer-name)
     ;; open and setup minibuffer for incremental search
