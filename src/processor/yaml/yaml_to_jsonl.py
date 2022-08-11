@@ -9,7 +9,7 @@ import re
 import yaml
 
 # Internal Packages
-from src.processor.yaml import vdb
+from panchayat import vdb
 from src.utils.helpers import get_absolute_path, is_none_or_empty
 from src.utils.constants import empty_escape_sequences
 from src.utils.jsonl import dump_jsonl, compress_jsonl_data
