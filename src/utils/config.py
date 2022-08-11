@@ -15,6 +15,10 @@ class SearchType(str, Enum):
     Image = "image"
 
 
+class ProcessorType(str, Enum):
+    Conversation = "conversation"
+
+
 class TextSearchModel():
     def __init__(self, entries, corpus_embeddings, bi_encoder, cross_encoder, top_k, verbose):
         self.entries = entries

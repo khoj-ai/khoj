@@ -1,13 +1,17 @@
+# Standard Packages
+from pathlib import Path
+
 # External Packages
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import Qt
 
 # Internal Packages
 from src.configure import configure_server
+from src.interface.desktop.file_browser import FileBrowser
 from src.utils import constants, state, yaml as yaml_utils
 from src.utils.cli import cli
-from src.utils.config import SearchType
-from src.interface.desktop.file_browser import FileBrowser
+from src.utils.config import SearchType, ProcessorType
+from src.utils.helpers import merge_dicts
 
 
 class ConfigureScreen(QtWidgets.QDialog):
@@ -18,14 +22,15 @@ class ConfigureScreen(QtWidgets.QDialog):
     3. Save the configuration to khoj.yml and start the server
     """
 
-    def __init__(self, config_file, parent=None):
+    def __init__(self, config_file: Path, parent=None):
         super(ConfigureScreen, self).__init__(parent=parent)
         self.config_file = config_file
 
         # Load config from existing config, if exists, else load from default config
-        self.config = yaml_utils.load_config_from_file(self.config_file)
-        if self.config is None:
-            self.config = yaml_utils.load_config_from_file(constants.app_root_directory / 'config/khoj_sample.yml')
+        self.current_config = yaml_utils.load_config_from_file(self.config_file)
+        if self.current_config is None:
+            self.current_config = yaml_utils.load_config_from_file(constants.app_root_directory / 'config/khoj_sample.yml')
+        self.new_config = self.current_config
 
         # Initialize Configure Window
         self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
@@ -36,14 +41,20 @@ class ConfigureScreen(QtWidgets.QDialog):
         self.setLayout(layout)
 
         # Add Settings Panels for each Search Type to Configure Window Layout
-        self.settings_panels = []
+        self.search_settings_panels = []
         for search_type in SearchType:
-            current_content_config = self.config['content-type'].get(search_type, {})
-            self.settings_panels += [self.add_settings_panel(search_type, current_content_config, layout)]
-        self.add_conversation_processor_panel(layout)
+            current_content_config = self.current_config['content-type'].get(search_type, {})
+            self.search_settings_panels += [self.add_settings_panel(current_content_config, search_type, layout)]
+
+        # Add Conversation Processor Panel to Configure Screen
+        self.processor_settings_panels = []
+        conversation_type = ProcessorType.Conversation
+        current_conversation_config = self.current_config['processor'].get(conversation_type, {})
+        self.processor_settings_panels += [self.add_processor_panel(current_conversation_config, conversation_type, layout)]
+
         self.add_action_panel(layout)
 
-    def add_settings_panel(self, search_type: SearchType, current_content_config: dict, parent_layout: QtWidgets.QLayout):
+    def add_settings_panel(self, current_content_config: dict, search_type: SearchType, parent_layout: QtWidgets.QLayout):
         "Add Settings Panel for specified Search Type. Toggle Editable Search Types"
         # Get current files from config for given search type
         if search_type == SearchType.Image:
@@ -54,12 +65,12 @@ class ConfigureScreen(QtWidgets.QDialog):
         # Create widgets to display settings for given search type
         search_type_settings = QtWidgets.QWidget()
         search_type_layout = QtWidgets.QVBoxLayout(search_type_settings)
-        enable_search_type = CheckBox(f"Search {search_type.name}", search_type)
+        enable_search_type = SearchCheckBox(f"Search {search_type.name}", search_type)
         # Add file browser to set input files for given search type
         input_files = FileBrowser(f'{search_type.name} Files', search_type, current_content_files)
 
         # Set enabled/disabled based on checkbox state
-        enable_search_type.setChecked(len(current_content_files) > 0)
+        enable_search_type.setChecked(current_content_files is not None and len(current_content_files) > 0)
         input_files.setEnabled(enable_search_type.isChecked())
         enable_search_type.stateChanged.connect(lambda _: input_files.setEnabled(enable_search_type.isChecked()))
 
@@ -70,12 +81,14 @@ class ConfigureScreen(QtWidgets.QDialog):
 
         return search_type_settings
 
-    def add_conversation_processor_panel(self, parent_layout: QtWidgets.QLayout):
+    def add_processor_panel(self, current_conversation_config: dict, processor_type: ProcessorType, parent_layout: QtWidgets.QLayout):
         "Add Conversation Processor Panel"
+        current_openai_api_key = current_conversation_config.get('openai-api-key', None)
         processor_type_settings = QtWidgets.QWidget()
         processor_type_layout = QtWidgets.QVBoxLayout(processor_type_settings)
 
-        enable_conversation = QtWidgets.QCheckBox(f"Conversation")
+        enable_conversation = ProcessorCheckBox(f"Conversation", processor_type)
+        enable_conversation.setChecked(current_openai_api_key is not None)
 
         conversation_settings = QtWidgets.QWidget()
         conversation_settings_layout = QtWidgets.QHBoxLayout(conversation_settings)
@@ -83,10 +96,10 @@ class ConfigureScreen(QtWidgets.QDialog):
         input_label.setText("OpenAI API Key")
         input_label.setFixedWidth(95)
 
-        input_field = QtWidgets.QLineEdit()
+        input_field = ProcessorLineEdit(current_openai_api_key, processor_type)
         input_field.setFixedWidth(245)
-        input_field.setEnabled(enable_conversation.isChecked())
 
+        input_field.setEnabled(enable_conversation.isChecked())
         enable_conversation.stateChanged.connect(lambda _: input_field.setEnabled(enable_conversation.isChecked()))
 
         conversation_settings_layout.addWidget(input_label)
@@ -94,7 +107,6 @@ class ConfigureScreen(QtWidgets.QDialog):
 
         processor_type_layout.addWidget(enable_conversation)
         processor_type_layout.addWidget(conversation_settings)
-        processor_type_layout.addStretch()
 
         parent_layout.addWidget(processor_type_settings)
         return processor_type_settings
@@ -110,24 +122,62 @@ class ConfigureScreen(QtWidgets.QDialog):
         action_bar_layout.addWidget(save_button)
         parent_layout.addWidget(action_bar)
 
+    def get_default_config(self, search_type:SearchType=None, processor_type:ProcessorType=None):
+        "Get default config"
+        config = yaml_utils.load_config_from_file(constants.app_root_directory / 'config/khoj_sample.yml')
+        if search_type:
+            return config['content-type'][search_type]
+        elif processor_type:
+            return config['processor'][processor_type]
+        else:
+            return config
+
     def save_settings(self, _):
         "Save the settings to khoj.yml"
-        # Update config with settings from UI
-        for settings_panel in self.settings_panels:
+        # Update config with search settings from UI
+        for settings_panel in self.search_settings_panels:
             for child in settings_panel.children():
-                if isinstance(child, (CheckBox, FileBrowser)) and child.search_type not in self.config['content-type']:
+                if not isinstance(child, (SearchCheckBox, FileBrowser)):
                     continue
-                if isinstance(child, CheckBox) and not child.isChecked():
-                        del self.config['content-type'][child.search_type]
-                elif isinstance(child, FileBrowser):
-                    self.config['content-type'][child.search_type]['input-files'] = child.getPaths()
-                    print(f"{child.search_type} files are {child.getPaths()}")
+                if isinstance(child, SearchCheckBox):
+                    # Search Type Disabled
+                    if not child.isChecked() and child.search_type in self.new_config['content-type']:
+                        del self.new_config['content-type'][child.search_type]
+                    # Search Type (re)-Enabled
+                    if child.isChecked():
+                        current_search_config = self.current_config['content-type'].get(child.search_type, {})
+                        default_search_config = self.get_default_config(search_type = child.search_type)
+                        self.new_config['content-type'][child.search_type.value] = merge_dicts(current_search_config, default_search_config)
+                elif isinstance(child, FileBrowser) and child.search_type in self.new_config['content-type']:
+                    self.new_config['content-type'][child.search_type.value]['input-files'] = child.getPaths()
+
+        # Update config with conversation settings from UI
+        for settings_panel in self.processor_settings_panels:
+            for child in settings_panel.children():
+                if isinstance(child, QtWidgets.QWidget) and child.findChild(ProcessorLineEdit):
+                    child = child.findChild(ProcessorLineEdit)
+                elif not isinstance(child, ProcessorCheckBox):
+                    continue
+                if isinstance(child, ProcessorCheckBox):
+                    # Processor Type Disabled
+                    if not child.isChecked() and child.processor_type in self.new_config['processor']:
+                        del self.new_config['processor'][child.processor_type]
+                    # Processor Type (re)-Enabled
+                    if child.isChecked():
+                        current_processor_config = self.current_config['processor'].get(child.processor_type, {})
+                        default_processor_config = self.get_default_config(processor_type = child.processor_type)
+                        self.new_config['processor'][child.processor_type.value] = merge_dicts(current_processor_config, default_processor_config)
+                elif isinstance(child, ProcessorLineEdit) and child.processor_type in self.new_config['processor']:
+                    if child.processor_type == ProcessorType.Conversation:
+                        self.new_config['processor'][child.processor_type.value]['openai-api-key'] = child.text() if child.text() != '' else None
+
 
         # Save the config to app config file
-        yaml_utils.save_config_to_file(self.config, self.config_file)
+        yaml_utils.save_config_to_file(self.new_config, self.config_file)
 
         # Load parsed, validated config from app config file
         args = cli(state.cli_args)
+        self.current_config = self.new_config
 
         # Configure server with loaded config
         configure_server(args, required=True)
@@ -135,7 +185,21 @@ class ConfigureScreen(QtWidgets.QDialog):
         self.hide()
 
 
-class CheckBox(QtWidgets.QCheckBox):
+class SearchCheckBox(QtWidgets.QCheckBox):
     def __init__(self, text, search_type: SearchType, parent=None):
         self.search_type = search_type
-        super(CheckBox, self).__init__(text, parent=parent)
+        super(SearchCheckBox, self).__init__(text, parent=parent)
+
+
+class ProcessorCheckBox(QtWidgets.QCheckBox):
+    def __init__(self, text, processor_type: ProcessorType, parent=None):
+        self.processor_type = processor_type
+        super(ProcessorCheckBox, self).__init__(text, parent=parent)
+
+class ProcessorLineEdit(QtWidgets.QLineEdit):
+    def __init__(self, text, processor_type: ProcessorType, parent=None):
+        self.processor_type = processor_type
+        if text is None:
+            super(ProcessorLineEdit, self).__init__(parent=parent)
+        else:
+            super(ProcessorLineEdit, self).__init__(text, parent=parent)

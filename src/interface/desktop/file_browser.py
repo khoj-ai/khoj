@@ -63,7 +63,7 @@ class FileBrowser(QtWidgets.QWidget):
 
     def setFiles(self, paths):
         self.filepaths = paths
-        if len(self.filepaths) == 0:
+        if not self.filepaths or len(self.filepaths) == 0:
             return
         elif len(self.filepaths) == 1:
             self.lineEdit.setText(self.filepaths[0])
