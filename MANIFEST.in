@@ -1,5 +1,4 @@
 include Readme.md
-include config/khoj_sample.yml
 graft src/interface/*
 prune src/interface/web/images*
 prune docs*

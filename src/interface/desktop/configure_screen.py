@@ -30,7 +30,7 @@ class ConfigureScreen(QtWidgets.QDialog):
         if resolve_absolute_path(self.config_file).exists():
             self.current_config = yaml_utils.load_config_from_file(self.config_file)
         else:
-            self.current_config = yaml_utils.load_config_from_file(constants.app_root_directory / 'config/khoj_sample.yml')
+            self.current_config = constants.default_config
         self.new_config = self.current_config
 
         # Initialize Configure Window
@@ -127,7 +127,7 @@ class ConfigureScreen(QtWidgets.QDialog):
 
     def get_default_config(self, search_type:SearchType=None, processor_type:ProcessorType=None):
         "Get default config"
-        config = yaml_utils.load_config_from_file(constants.app_root_directory / 'config/khoj_sample.yml')
+        config = constants.default_config
         if search_type:
             return config['content-type'][search_type]
         elif processor_type:
