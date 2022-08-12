@@ -18,7 +18,7 @@ from src.utils.config import SearchType, ProcessorType
 from src.utils.helpers import merge_dicts, resolve_absolute_path
 
 
-class ConfigureScreen(QtWidgets.QDialog):
+class MainWindow(QtWidgets.QMainWindow):
     """Create Window to Configure Khoj
     Allow user to
     1. Configure content types to search
@@ -26,8 +26,8 @@ class ConfigureScreen(QtWidgets.QDialog):
     3. Save the configuration to khoj.yml
     """
 
-    def __init__(self, config_file: Path, parent=None):
-        super(ConfigureScreen, self).__init__(parent=parent)
+    def __init__(self, config_file: Path):
+        super(MainWindow, self).__init__()
         self.config_file = config_file
 
         # Load config from existing config, if exists, else load from default config
@@ -45,24 +45,31 @@ class ConfigureScreen(QtWidgets.QDialog):
         self.setFixedWidth(600)
 
         # Initialize Configure Window Layout
-        layout = QtWidgets.QVBoxLayout()
-        self.setLayout(layout)
+        self.layout = QtWidgets.QVBoxLayout()
 
         # Add Settings Panels for each Search Type to Configure Window Layout
         self.search_settings_panels = []
         for search_type in SearchType:
             current_content_config = self.current_config['content-type'].get(search_type, {})
-            self.search_settings_panels += [self.add_settings_panel(current_content_config, search_type, layout)]
+            self.search_settings_panels += [self.add_settings_panel(current_content_config, search_type)]
 
         # Add Conversation Processor Panel to Configure Screen
         self.processor_settings_panels = []
         conversation_type = ProcessorType.Conversation
         current_conversation_config = self.current_config['processor'].get(conversation_type, {})
-        self.processor_settings_panels += [self.add_processor_panel(current_conversation_config, conversation_type, layout)]
+        self.processor_settings_panels += [self.add_processor_panel(current_conversation_config, conversation_type)]
 
-        self.add_action_panel(layout)
+        # Add Action Buttons Panel
+        self.add_action_panel()
 
-    def add_settings_panel(self, current_content_config: dict, search_type: SearchType, parent_layout: QtWidgets.QLayout):
+        # Set the central widget of the Window. Widget will expand
+        # to take up all the space in the window by default.
+        self.config_window = QtWidgets.QWidget()
+        self.config_window.setLayout(self.layout)
+        self.setCentralWidget(self.config_window)
+
+
+    def add_settings_panel(self, current_content_config: dict, search_type: SearchType):
         "Add Settings Panel for specified Search Type. Toggle Editable Search Types"
         # Get current files from config for given search type
         if search_type == SearchType.Image:
@@ -87,11 +94,11 @@ class ConfigureScreen(QtWidgets.QDialog):
         # Add setting widgets for given search type to panel
         search_type_layout.addWidget(enable_search_type)
         search_type_layout.addWidget(input_files)
-        parent_layout.addWidget(search_type_settings)
+        self.layout.addWidget(search_type_settings)
 
         return search_type_settings
 
-    def add_processor_panel(self, current_conversation_config: dict, processor_type: ProcessorType, parent_layout: QtWidgets.QLayout):
+    def add_processor_panel(self, current_conversation_config: dict, processor_type: ProcessorType):
         "Add Conversation Processor Panel"
         # Get current settings from config for given processor type
         current_openai_api_key = current_conversation_config.get('openai-api-key', None)
@@ -111,11 +118,11 @@ class ConfigureScreen(QtWidgets.QDialog):
         # Add setting widgets for given processor type to panel
         processor_type_layout.addWidget(enable_conversation)
         processor_type_layout.addWidget(input_field)
-        parent_layout.addWidget(processor_type_settings)
+        self.layout.addWidget(processor_type_settings)
 
         return processor_type_settings
 
-    def add_action_panel(self, parent_layout: QtWidgets.QLayout):
+    def add_action_panel(self):
         "Add Action Panel"
         # Button to Save Settings
         action_bar = QtWidgets.QWidget()
@@ -127,7 +134,7 @@ class ConfigureScreen(QtWidgets.QDialog):
 
         action_bar_layout.addWidget(self.configure_button)
         action_bar_layout.addWidget(self.search_button)
-        parent_layout.addWidget(action_bar)
+        self.layout.addWidget(action_bar)
 
     def get_default_config(self, search_type:SearchType=None, processor_type:ProcessorType=None):
         "Get default config"
@@ -139,13 +146,13 @@ class ConfigureScreen(QtWidgets.QDialog):
         else:
             return config
 
-    def add_error_message(self, message: str, parent_layout: QtWidgets.QLayout):
+    def add_error_message(self, message: str):
         "Add Error Message to Configure Screen"
         error_message = QtWidgets.QLabel()
         error_message.setWordWrap(True)
         error_message.setText(message)
         error_message.setStyleSheet("color: red")
-        parent_layout.addWidget(error_message)
+        self.layout.addWidget(error_message)
 
     def update_search_settings(self):
         "Update config with search settings from UI"
@@ -190,14 +197,14 @@ class ConfigureScreen(QtWidgets.QDialog):
             yaml_utils.parse_config_from_string(self.new_config)
         except Exception as e:
             print(f"Error validating config: {e}")
-            self.add_error_message(f"Error validating config: {e}", self.layout())
+            self.add_error_message(f"Error validating config: {e}")
             return False
         else:
             # Remove error message if present
-            for i in range(self.layout().count()):
-                current_widget = self.layout().itemAt(i).widget()
+            for i in range(self.layout.count()):
+                current_widget = self.layout.itemAt(i).widget()
                 if isinstance(current_widget, QtWidgets.QLabel) and current_widget.text().startswith("Error validating config:"):
-                    self.layout().removeWidget(current_widget)
+                    self.layout.removeWidget(current_widget)
                     current_widget.deleteLater()
 
         # Save the config to app config file

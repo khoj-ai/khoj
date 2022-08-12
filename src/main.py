@@ -15,7 +15,7 @@ from src.configure import configure_server
 from src.router import router
 from src.utils import constants, state
 from src.utils.cli import cli
-from src.interface.desktop.configure_screen import ConfigureScreen
+from src.interface.desktop.main_window import MainWindow
 from src.interface.desktop.system_tray import create_system_tray
 
 
@@ -38,24 +38,24 @@ def run():
     else:
         # Setup GUI
         gui = QtWidgets.QApplication([])
-        configure_screen = ConfigureScreen(args.config_file)
+        main_window = MainWindow(args.config_file)
 
         # System tray is only available on Windows, MacOS.
         # On Linux (Gnome) the System tray is not supported.
-        # Since only the Configure Window is available
+        # Since only the Main Window is available
         # Quitting it should quit the application
         if system() in ['Windows', 'Darwin']:
             gui.setQuitOnLastWindowClosed(False)
-            tray = create_system_tray(gui, configure_screen)
+            tray = create_system_tray(gui, main_window)
             tray.show()
 
         # Setup Server
         configure_server(args, required=False)
         server = ServerThread(app, args.host, args.port, args.socket)
 
-        # Show Configure Screen on Linux (etc.) or First Run Experience
+        # Show Main Window on First Run Experience or if on Linux
         if args.config is None or system() not in ['Windows', 'Darwin']:
-            configure_screen.show()
+            main_window.show()
 
         # Setup Signal Handlers
         signal.signal(signal.SIGINT, sigint_handler)

@@ -8,7 +8,7 @@ from PyQt6 import QtGui, QtWidgets
 from src.utils import constants
 
 
-def create_system_tray(gui: QtWidgets.QApplication, configure_screen: QtWidgets.QDialog):
+def create_system_tray(gui: QtWidgets.QApplication, main_window: QtWidgets.QMainWindow):
     """Create System Tray with Menu.  Menu contain options to
     1. Open Search Page on the Web Interface
     2. Open App Configuration Screen
@@ -25,7 +25,7 @@ def create_system_tray(gui: QtWidgets.QApplication, configure_screen: QtWidgets.
     menu = QtWidgets.QMenu()
     menu_actions = [
         ('Search', lambda: webbrowser.open('http://localhost:8000/')),
-        ('Configure', configure_screen.show),
+        ('Configure', main_window.show),
         ('Quit', gui.quit),
     ]
 
