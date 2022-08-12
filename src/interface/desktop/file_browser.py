@@ -27,7 +27,7 @@ class FileBrowser(QtWidgets.QWidget):
         
         layout.addWidget(self.lineEdit)
         
-        self.button = QtWidgets.QPushButton('Add')
+        self.button = QtWidgets.QPushButton('Select')
         self.button.clicked.connect(self.storeFilesSelectedInFileDialog)
         layout.addWidget(self.button)
         layout.addStretch()
