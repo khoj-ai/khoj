@@ -173,7 +173,7 @@ class ConfigureScreen(QtWidgets.QDialog):
                         self.new_config['processor'][child.processor_type.value] = merge_dicts(current_processor_config, default_processor_config)
                 elif isinstance(child, LabelledTextField) and child.processor_type in self.new_config['processor']:
                     if child.processor_type == ProcessorType.Conversation:
-                        self.new_config['processor'][child.processor_type.value]['openai-api-key'] = child.input_field.text() if child.input_field.text() != '' else None
+                        self.new_config['processor'][child.processor_type.value]['openai-api-key'] = child.input_field.toPlainText() if child.input_field.toPlainText() != '' else None
 
     def save_settings_to_file(self) -> bool:
         # Validate config before writing to file
