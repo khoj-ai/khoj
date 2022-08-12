@@ -3,7 +3,7 @@ from pathlib import Path
 
 # External Packages
 from PyQt6 import QtWidgets
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QThread, QObject, pyqtSignal
 
 # Internal Packages
 from src.configure import configure_server
@@ -116,9 +116,9 @@ class ConfigureScreen(QtWidgets.QDialog):
         action_bar = QtWidgets.QWidget()
         action_bar_layout = QtWidgets.QHBoxLayout(action_bar)
 
-        save_button = QtWidgets.QPushButton("Start", clicked=self.save_settings)
+        self.save_button = QtWidgets.QPushButton("Start", clicked=self.save_settings)
 
-        action_bar_layout.addWidget(save_button)
+        action_bar_layout.addWidget(self.save_button)
         parent_layout.addWidget(action_bar)
 
     def get_default_config(self, search_type:SearchType=None, processor_type:ProcessorType=None):
@@ -206,12 +206,45 @@ class ConfigureScreen(QtWidgets.QDialog):
         configure_server(args, required=True)
 
     def save_settings(self):
-        "Save the settings to khoj.yml"
+        "Save the new settings to khoj.yml. Reload app with updated settings"
         self.update_search_settings()
         self.update_processor_settings()
         if self.save_settings_to_file():
-            self.load_updated_settings()
-            self.hide()
+            # Setup thread
+            self.thread = QThread()
+            self.settings_loader = SettingsLoader(self.load_updated_settings)
+            self.settings_loader.moveToThread(self.thread)
+
+            # Connect slots and signals for thread
+            self.thread.started.connect(self.settings_loader.run)
+            self.settings_loader.finished.connect(self.thread.quit)
+            self.settings_loader.finished.connect(self.settings_loader.deleteLater)
+            self.thread.finished.connect(self.thread.deleteLater)
+
+            # Start thread
+            self.thread.start()
+
+            # Disable Save Button
+            self.save_button.setEnabled(False)
+            self.save_button.setText("Saving...")
+
+            # Reset UI
+            self.thread.finished.connect(lambda: self.save_button.setText("Start"))
+            self.thread.finished.connect(lambda: self.save_button.setEnabled(True))
+
+
+class SettingsLoader(QObject):
+    "Load Settings Thread"
+    finished = pyqtSignal()
+
+    def __init__(self, load_settings_func):
+        super(SettingsLoader, self).__init__()
+        self.load_settings_func = load_settings_func
+
+    def run(self):
+        "Load Settings"
+        self.load_settings_func()
+        self.finished.emit()
 
 
 class SearchCheckBox(QtWidgets.QCheckBox):
