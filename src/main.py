@@ -1,4 +1,5 @@
 # Standard Packages
+import signal
 import sys
 
 # External Packages
@@ -6,7 +7,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from PyQt6 import QtWidgets
-from PyQt6.QtCore import QThread
+from PyQt6.QtCore import QThread, QTimer
 
 # Internal Packages
 from src.configure import configure_server
@@ -49,10 +50,22 @@ def run():
         if args.config is None:
             configure_screen.show()
 
+        # Setup Signal Handlers
+        signal.signal(signal.SIGINT, sigint_handler)
+        # Invoke python Interpreter every 500ms to handle signals
+        timer = QTimer()
+        timer.start(500)
+        timer.timeout.connect(lambda: None)
+
         # Start Application
         server.start()
         gui.aboutToQuit.connect(server.terminate)
         gui.exec()
+
+
+def sigint_handler(*args):
+    print("\nShutting down Khoj...")
+    QtWidgets.QApplication.quit()
 
 
 def set_state(args):
