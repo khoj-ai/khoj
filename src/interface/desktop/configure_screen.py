@@ -1,5 +1,7 @@
 # Standard Packages
 from pathlib import Path
+from copy import deepcopy
+
 
 # External Packages
 from PyQt6 import QtWidgets
@@ -31,7 +33,7 @@ class ConfigureScreen(QtWidgets.QDialog):
         if resolve_absolute_path(self.config_file).exists():
             self.current_config = yaml_utils.load_config_from_file(self.config_file)
         else:
-            self.current_config = constants.default_config
+            self.current_config = deepcopy(constants.default_config)
         self.new_config = self.current_config
 
         # Initialize Configure Window
