@@ -23,7 +23,7 @@ class FileBrowser(QtWidgets.QWidget):
         layout.addWidget(self.label)
         
         self.lineEdit = QtWidgets.QPlainTextEdit(self)
-        self.lineEdit.setFixedWidth(180)
+        self.lineEdit.setFixedWidth(330)
         self.setFiles(default_files)
         self.lineEdit.setFixedHeight(min(7+20*len(self.lineEdit.toPlainText().split('\n')),90))
         self.lineEdit.textChanged.connect(self.updateFieldHeight)

@@ -19,7 +19,7 @@ class LabelledTextField(QtWidgets.QWidget):
         layout.addWidget(self.label)
 
         self.input_field = QtWidgets.QTextEdit(self)
-        self.input_field.setFixedWidth(250)
+        self.input_field.setFixedWidth(410)
         self.input_field.setFixedHeight(27)
         self.input_field.setText(default_value)
 
