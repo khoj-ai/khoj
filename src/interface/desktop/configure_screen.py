@@ -1,6 +1,7 @@
 # Standard Packages
 from pathlib import Path
 from copy import deepcopy
+import webbrowser
 
 
 # External Packages
@@ -31,14 +32,16 @@ class ConfigureScreen(QtWidgets.QDialog):
 
         # Load config from existing config, if exists, else load from default config
         if resolve_absolute_path(self.config_file).exists():
+            self.first_run = False
             self.current_config = yaml_utils.load_config_from_file(self.config_file)
         else:
+            self.first_run = True
             self.current_config = deepcopy(constants.default_config)
         self.new_config = self.current_config
 
         # Initialize Configure Window
         self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
-        self.setWindowTitle("Configure - Khoj")
+        self.setWindowTitle("Khoj")
         self.setFixedWidth(600)
 
         # Initialize Configure Window Layout
@@ -118,9 +121,12 @@ class ConfigureScreen(QtWidgets.QDialog):
         action_bar = QtWidgets.QWidget()
         action_bar_layout = QtWidgets.QHBoxLayout(action_bar)
 
-        self.save_button = QtWidgets.QPushButton("Start", clicked=self.save_settings)
+        self.configure_button = QtWidgets.QPushButton("Configure", clicked=self.configure_app)
+        self.search_button = QtWidgets.QPushButton("Search", clicked=lambda: webbrowser.open('http://localhost:8000/'))
+        self.search_button.setEnabled(not self.first_run)
 
-        action_bar_layout.addWidget(self.save_button)
+        action_bar_layout.addWidget(self.configure_button)
+        action_bar_layout.addWidget(self.search_button)
         parent_layout.addWidget(action_bar)
 
     def get_default_config(self, search_type:SearchType=None, processor_type:ProcessorType=None):
@@ -207,12 +213,12 @@ class ConfigureScreen(QtWidgets.QDialog):
         # Configure server with loaded config
         configure_server(args, required=True)
 
-    def save_settings(self):
+    def configure_app(self):
         "Save the new settings to khoj.yml. Reload app with updated settings"
         self.update_search_settings()
         self.update_processor_settings()
         if self.save_settings_to_file():
-            # Setup thread
+            # Setup thread to load updated settings in background
             self.thread = QThread()
             self.settings_loader = SettingsLoader(self.load_updated_settings)
             self.settings_loader.moveToThread(self.thread)
@@ -227,12 +233,14 @@ class ConfigureScreen(QtWidgets.QDialog):
             self.thread.start()
 
             # Disable Save Button
-            self.save_button.setEnabled(False)
-            self.save_button.setText("Saving...")
+            self.search_button.setEnabled(False)
+            self.configure_button.setEnabled(False)
+            self.configure_button.setText("Configuring...")
 
             # Reset UI
-            self.thread.finished.connect(lambda: self.save_button.setText("Start"))
-            self.thread.finished.connect(lambda: self.save_button.setEnabled(True))
+            self.thread.finished.connect(lambda: self.configure_button.setText("Configure"))
+            self.thread.finished.connect(lambda: self.configure_button.setEnabled(True))
+            self.thread.finished.connect(lambda: self.search_button.setEnabled(True))
 
 
 class SettingsLoader(QObject):
