@@ -19,15 +19,17 @@ class FileBrowser(QtWidgets.QWidget):
         self.label = QtWidgets.QLabel()
         self.label.setText(title)
         self.label.setFixedWidth(95)
+        self.label.setWordWrap(True)
         layout.addWidget(self.label)
         
-        self.lineEdit = QtWidgets.QLineEdit(self)
-        self.lineEdit.setFixedWidth(180)
+        self.lineEdit = QtWidgets.QPlainTextEdit(self)
+        self.lineEdit.setFixedWidth(330)
         self.setFiles(default_files)
-        
+        self.lineEdit.setFixedHeight(min(7+20*len(self.lineEdit.toPlainText().split('\n')),90))
+        self.lineEdit.textChanged.connect(self.updateFieldHeight)
         layout.addWidget(self.lineEdit)
         
-        self.button = QtWidgets.QPushButton('Add')
+        self.button = QtWidgets.QPushButton('Select')
         self.button.clicked.connect(self.storeFilesSelectedInFileDialog)
         layout.addWidget(self.button)
         layout.addStretch()
@@ -60,12 +62,15 @@ class FileBrowser(QtWidgets.QWidget):
         if not self.filepaths or len(self.filepaths) == 0:
             return
         elif len(self.filepaths) == 1:
-            self.lineEdit.setText(self.filepaths[0])
+            self.lineEdit.setPlainText(self.filepaths[0])
         else:
-            self.lineEdit.setText(",".join(self.filepaths))    
+            self.lineEdit.setPlainText("\n".join(self.filepaths))
 
     def getPaths(self):
-        if self.lineEdit.text() == '':
+        if self.lineEdit.toPlainText() == '':
             return []
         else:
-            return self.lineEdit.text().split(',')
+            return self.lineEdit.toPlainText().split('\n')
+
+    def updateFieldHeight(self):
+        self.lineEdit.setFixedHeight(min(7+20*len(self.lineEdit.toPlainText().split('\n')),90))

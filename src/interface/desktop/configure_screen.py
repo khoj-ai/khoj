@@ -1,13 +1,16 @@
 # Standard Packages
 from pathlib import Path
+from copy import deepcopy
+
 
 # External Packages
 from PyQt6 import QtWidgets
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QThread, QObject, pyqtSignal
 
 # Internal Packages
 from src.configure import configure_server
 from src.interface.desktop.file_browser import FileBrowser
+from src.interface.desktop.labelled_text_field import LabelledTextField
 from src.utils import constants, state, yaml as yaml_utils
 from src.utils.cli import cli
 from src.utils.config import SearchType, ProcessorType
@@ -30,12 +33,13 @@ class ConfigureScreen(QtWidgets.QDialog):
         if resolve_absolute_path(self.config_file).exists():
             self.current_config = yaml_utils.load_config_from_file(self.config_file)
         else:
-            self.current_config = constants.default_config
+            self.current_config = deepcopy(constants.default_config)
         self.new_config = self.current_config
 
         # Initialize Configure Window
         self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
-        self.setWindowTitle("Khoj - Configure")
+        self.setWindowTitle("Configure - Khoj")
+        self.setFixedWidth(600)
 
         # Initialize Configure Window Layout
         layout = QtWidgets.QVBoxLayout()
@@ -86,32 +90,26 @@ class ConfigureScreen(QtWidgets.QDialog):
 
     def add_processor_panel(self, current_conversation_config: dict, processor_type: ProcessorType, parent_layout: QtWidgets.QLayout):
         "Add Conversation Processor Panel"
+        # Get current settings from config for given processor type
         current_openai_api_key = current_conversation_config.get('openai-api-key', None)
+
+        # Create widgets to display settings for given processor type
         processor_type_settings = QtWidgets.QWidget()
         processor_type_layout = QtWidgets.QVBoxLayout(processor_type_settings)
-
         enable_conversation = ProcessorCheckBox(f"Conversation", processor_type)
+        # Add file browser to set input files for given processor type
+        input_field = LabelledTextField("OpenAI API Key", processor_type, current_openai_api_key)
+
+        # Set enabled/disabled based on checkbox state
         enable_conversation.setChecked(current_openai_api_key is not None)
-
-        conversation_settings = QtWidgets.QWidget()
-        conversation_settings_layout = QtWidgets.QHBoxLayout(conversation_settings)
-        input_label = QtWidgets.QLabel()
-        input_label.setText("OpenAI API Key")
-        input_label.setFixedWidth(95)
-
-        input_field = ProcessorLineEdit(current_openai_api_key, processor_type)
-        input_field.setFixedWidth(245)
-
         input_field.setEnabled(enable_conversation.isChecked())
         enable_conversation.stateChanged.connect(lambda _: input_field.setEnabled(enable_conversation.isChecked()))
 
-        conversation_settings_layout.addWidget(input_label)
-        conversation_settings_layout.addWidget(input_field)
-
+        # Add setting widgets for given processor type to panel
         processor_type_layout.addWidget(enable_conversation)
-        processor_type_layout.addWidget(conversation_settings)
-
+        processor_type_layout.addWidget(input_field)
         parent_layout.addWidget(processor_type_settings)
+
         return processor_type_settings
 
     def add_action_panel(self, parent_layout: QtWidgets.QLayout):
@@ -120,9 +118,9 @@ class ConfigureScreen(QtWidgets.QDialog):
         action_bar = QtWidgets.QWidget()
         action_bar_layout = QtWidgets.QHBoxLayout(action_bar)
 
-        save_button = QtWidgets.QPushButton("Start", clicked=self.save_settings)
+        self.save_button = QtWidgets.QPushButton("Start", clicked=self.save_settings)
 
-        action_bar_layout.addWidget(save_button)
+        action_bar_layout.addWidget(self.save_button)
         parent_layout.addWidget(action_bar)
 
     def get_default_config(self, search_type:SearchType=None, processor_type:ProcessorType=None):
@@ -165,9 +163,7 @@ class ConfigureScreen(QtWidgets.QDialog):
         "Update config with conversation settings from UI"
         for settings_panel in self.processor_settings_panels:
             for child in settings_panel.children():
-                if isinstance(child, QtWidgets.QWidget) and child.findChild(ProcessorLineEdit):
-                    child = child.findChild(ProcessorLineEdit)
-                elif not isinstance(child, ProcessorCheckBox):
+                if not isinstance(child, (ProcessorCheckBox, LabelledTextField)):
                     continue
                 if isinstance(child, ProcessorCheckBox):
                     # Processor Type Disabled
@@ -178,9 +174,9 @@ class ConfigureScreen(QtWidgets.QDialog):
                         current_processor_config = self.current_config['processor'].get(child.processor_type, {})
                         default_processor_config = self.get_default_config(processor_type = child.processor_type)
                         self.new_config['processor'][child.processor_type.value] = merge_dicts(current_processor_config, default_processor_config)
-                elif isinstance(child, ProcessorLineEdit) and child.processor_type in self.new_config['processor']:
+                elif isinstance(child, LabelledTextField) and child.processor_type in self.new_config['processor']:
                     if child.processor_type == ProcessorType.Conversation:
-                        self.new_config['processor'][child.processor_type.value]['openai-api-key'] = child.text() if child.text() != '' else None
+                        self.new_config['processor'][child.processor_type.value]['openai-api-key'] = child.input_field.toPlainText() if child.input_field.toPlainText() != '' else None
 
     def save_settings_to_file(self) -> bool:
         # Validate config before writing to file
@@ -212,12 +208,45 @@ class ConfigureScreen(QtWidgets.QDialog):
         configure_server(args, required=True)
 
     def save_settings(self):
-        "Save the settings to khoj.yml"
+        "Save the new settings to khoj.yml. Reload app with updated settings"
         self.update_search_settings()
         self.update_processor_settings()
         if self.save_settings_to_file():
-            self.load_updated_settings()
-            self.hide()
+            # Setup thread
+            self.thread = QThread()
+            self.settings_loader = SettingsLoader(self.load_updated_settings)
+            self.settings_loader.moveToThread(self.thread)
+
+            # Connect slots and signals for thread
+            self.thread.started.connect(self.settings_loader.run)
+            self.settings_loader.finished.connect(self.thread.quit)
+            self.settings_loader.finished.connect(self.settings_loader.deleteLater)
+            self.thread.finished.connect(self.thread.deleteLater)
+
+            # Start thread
+            self.thread.start()
+
+            # Disable Save Button
+            self.save_button.setEnabled(False)
+            self.save_button.setText("Saving...")
+
+            # Reset UI
+            self.thread.finished.connect(lambda: self.save_button.setText("Start"))
+            self.thread.finished.connect(lambda: self.save_button.setEnabled(True))
+
+
+class SettingsLoader(QObject):
+    "Load Settings Thread"
+    finished = pyqtSignal()
+
+    def __init__(self, load_settings_func):
+        super(SettingsLoader, self).__init__()
+        self.load_settings_func = load_settings_func
+
+    def run(self):
+        "Load Settings"
+        self.load_settings_func()
+        self.finished.emit()
 
 
 class SearchCheckBox(QtWidgets.QCheckBox):
@@ -230,12 +259,3 @@ class ProcessorCheckBox(QtWidgets.QCheckBox):
     def __init__(self, text, processor_type: ProcessorType, parent=None):
         self.processor_type = processor_type
         super(ProcessorCheckBox, self).__init__(text, parent=parent)
-
-
-class ProcessorLineEdit(QtWidgets.QLineEdit):
-    def __init__(self, text, processor_type: ProcessorType, parent=None):
-        self.processor_type = processor_type
-        if text is None:
-            super(ProcessorLineEdit, self).__init__(parent=parent)
-        else:
-            super(ProcessorLineEdit, self).__init__(text, parent=parent)
