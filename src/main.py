@@ -1,4 +1,5 @@
 # Standard Packages
+from platform import system
 import signal
 import sys
 
@@ -37,17 +38,23 @@ def run():
     else:
         # Setup GUI
         gui = QtWidgets.QApplication([])
-        gui.setQuitOnLastWindowClosed(False)
         configure_screen = ConfigureScreen(args.config_file)
-        tray = create_system_tray(gui, configure_screen)
-        tray.show()
+
+        # System tray is only available on Windows, MacOS.
+        # On Linux (Gnome) the System tray is not supported.
+        # Since only the Configure Window is available
+        # Quitting it should quit the application
+        if system() in ['Windows', 'Darwin']:
+            gui.setQuitOnLastWindowClosed(False)
+            tray = create_system_tray(gui, configure_screen)
+            tray.show()
 
         # Setup Server
         configure_server(args, required=False)
         server = ServerThread(app, args.host, args.port, args.socket)
 
-        # Trigger First Run Experience, if required
-        if args.config is None:
+        # Show Configure Screen on Linux (etc.) or First Run Experience
+        if args.config is None or system() not in ['Windows', 'Darwin']:
             configure_screen.show()
 
         # Setup Signal Handlers
