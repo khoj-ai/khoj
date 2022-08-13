@@ -1,15 +1,10 @@
 name: release
 
 on:
-  pull_request:
-    branches:
-      - 'master'
-    paths:
-      - src/**
-      - setup.py
-      - Khoj.spec
-      - .github/workflows/release.yml
   push:
+    tags:
+      - v*
+  pull_request:
     branches:
       - 'master'
     paths:
@@ -31,19 +26,22 @@ jobs:
           python-version: '3.9'
 
       - name: Install Dependencies
-        env: CFLAGS: -arch arm64 -arch x86_64
+        env:
+          CFLAGS: -arch arm64 -arch x86_64
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller
           brew install create-dmg
 
       - name: Install Application
-        env: CFLAGS: -arch arm64 -arch x86_64
+        env:
+          CFLAGS: -arch arm64 -arch x86_64
         run: |
           pip install --upgrade .
 
       - name: Package Mac App
-        env: CFLAGS: -arch arm64 -arch x86_64
+        env:
+          CFLAGS: -arch arm64 -arch x86_64
         run: |
           # Set Target Architecture
           sed -E -i "" "s/target_arch='(.*)'/target_arch='universal2'/g" Khoj.spec
