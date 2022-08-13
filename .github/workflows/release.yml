@@ -16,7 +16,7 @@ on:
 jobs:
   publish:
     name: Create Mac App
-    runs-on: macos-latest
+    runs-on: macos-11.0
     steps:
       - uses: actions/checkout@v3
 
@@ -26,19 +26,22 @@ jobs:
           python-version: '3.9'
 
       - name: Install Dependencies
+        env: CFLAGS: -arch arm64 -arch x86_64
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller
           brew install create-dmg
 
       - name: Install Application
+        env: CFLAGS: -arch arm64 -arch x86_64
         run: |
           pip install --upgrade .
 
       - name: Package Mac App
+        env: CFLAGS: -arch arm64 -arch x86_64
         run: |
           # Set Target Architecture
-          sed -E -i "" "s/target_arch='(.*)'/target_arch='arm64'/g" Khoj.spec
+          sed -E -i "" "s/target_arch='(.*)'/target_arch='universal2'/g" Khoj.spec
           # Create Mac app
           pyinstaller Khoj.spec
           # Copy app to separate dmg folder
