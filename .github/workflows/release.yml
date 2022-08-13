@@ -1,0 +1,57 @@
+name: release
+
+on:
+  push:
+    tags:
+      - v*
+  pull_request:
+    branches:
+      - 'master'
+    paths:
+      - src/**
+      - setup.py
+      - Khoj.spec
+      - .github/workflows/release.yml
+
+jobs:
+  publish:
+    name: Create Mac App
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          brew install create-dmg
+
+      - name: Install Application
+        run: |
+          pip install --upgrade .
+
+      - name: Package Mac App
+        run: |
+          # Set Target Architecture
+          sed -E -i "" "s/target_arch='(.*)'/target_arch='arm64'/g" Khoj.spec
+          # Create Mac app
+          pyinstaller Khoj.spec
+          # Copy app to separate dmg folder
+          mkdir -p dist/dmg && cp -r dist/Khoj.app dist/dmg
+          # Create disk image with the app
+          create-dmg \
+            --volname "Khoj" \
+            --volicon "src/interface/web/assets/icons/favicon.icns" \
+            --window-pos 200 120 \
+            --window-size 600 300 \
+            --icon-size 100 \
+            --icon "Khoj.app" 175 120 \
+            --hide-extension "Khoj.app" \
+            --app-drop-link 425 120 \
+            "dist/Khoj.dmg" \
+            "dist/dmg/"
