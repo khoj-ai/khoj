@@ -76,10 +76,8 @@ jobs:
           cp Khoj.desktop package/usr/share/applications
 
           # Fix permissions to be usable by non-root users
-          find package/opt/Khoj -type f -exec chmod 644 -- {} +
-          find package/opt/Khoj -type d -exec chmod 755 -- {} +
           find package/usr/share -type f -exec chmod 644 -- {} +
-          chmod +x package/opt/Khoj/Khoj
+          chmod 644 package/opt/Khoj
 
           # Package the app
           fpm -s dir -t deb -n Khoj --version "$GITHUB_REF_NAME" -p dist/Khoj.deb
