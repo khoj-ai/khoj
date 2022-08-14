@@ -29,6 +29,9 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            apt install libegl1 -y
+          fi
           python -m pip install --upgrade pip
           pip install pyinstaller
 
@@ -83,7 +86,7 @@ jobs:
           chmod 644 package/opt/Khoj
 
           # Package the app
-          fpm -s dir -t deb -n Khoj --version "$GITHUB_REF_NAME" -p dist/Khoj.deb
+          fpm -C package -s dir -t deb -n "Khoj" --version "$GITHUB_REF_NAME" -p dist/Khoj.deb
 
       - uses: actions/upload-artifact@v3
         if : matrix.os == 'macos-latest'
