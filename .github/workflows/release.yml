@@ -15,8 +15,9 @@ on:
 
 jobs:
   publish:
-    name: Create Mac App
-    runs-on: macos-latest
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v3
 
@@ -36,6 +37,7 @@ jobs:
           pip install --upgrade .
 
       - name: Package Mac App
+        if: matrix.os == 'macos-latest'
         run: |
           # Set Target Architecture
           sed -E -i "" "s/target_arch='(.*)'/target_arch='x86_64'/g" Khoj.spec
@@ -56,6 +58,34 @@ jobs:
             "dist/Khoj.dmg" \
             "dist/dmg/"
       - uses: actions/upload-artifact@v3
+        if : matrix.os == 'macos-latest'
         with:
           name: khoj.dmg
           path: dist/Khoj.dmg
+
+      - name: Package Windows App
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          # Set Target Architecture
+          # sed -E -i "s/target_arch='(.*)'/target_arch='x86_64'/g" Khoj.spec
+          # Create Windows app
+          pyinstaller Khoj.spec
+      - uses: actions/upload-artifact@v3
+        if : matrix.os == 'windows-latest'
+        with:
+          name: khoj.exe
+          path: dist/Khoj.exe
+
+      - name: Package Ubuntu App
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          # Set Target Architecture
+          sed -E -i "s/target_arch='(.*)'/target_arch='x86_64'/g" Khoj.spec
+          # Create Debian app
+          pyinstaller Khoj.spec
+      - uses: actions/upload-artifact@v3
+        if : matrix.os == 'ubuntu-latest'
+        with:
+          name: khoj.deb
+          path: dist/Khoj.deb
