@@ -4,6 +4,14 @@ on:
   push:
     tags:
       - v*
+  pull_request:
+    branches:
+      - 'master'
+    paths:
+      - src/**
+      - setup.py
+      - Khoj.spec
+      - .github/workflows/release.yml
 
 jobs:
   publish:
