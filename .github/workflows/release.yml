@@ -26,19 +26,16 @@ jobs:
           python-version: '3.9'
 
       - name: Install Dependencies
-        env:
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller
           brew install create-dmg
 
       - name: Install Application
-        env:
         run: |
           pip install --upgrade .
 
       - name: Package Mac App
-        env:
         run: |
           # Set Target Architecture
           sed -E -i "" "s/target_arch='(.*)'/target_arch='x86_64'/g" Khoj.spec
