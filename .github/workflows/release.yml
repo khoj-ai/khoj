@@ -55,3 +55,7 @@ jobs:
             --app-drop-link 425 120 \
             "dist/Khoj.dmg" \
             "dist/dmg/"
+      - uses: actions/upload-artifact@v3
+        with:
+          name: khoj.dmg
+          path: dist/Khoj.dmg
