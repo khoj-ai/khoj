@@ -2,6 +2,7 @@
 [![build](https://github.com/debanjum/khoj/actions/workflows/build.yml/badge.svg)](https://github.com/debanjum/khoj/actions/workflows/build.yml)
 [![test](https://github.com/debanjum/khoj/actions/workflows/test.yml/badge.svg)](https://github.com/debanjum/khoj/actions/workflows/test.yml)
 [![publish](https://github.com/debanjum/khoj/actions/workflows/publish.yml/badge.svg)](https://github.com/debanjum/khoj/actions/workflows/publish.yml)
+[![release](https://github.com/debanjum/khoj/actions/workflows/release.yml/badge.svg)](https://github.com/debanjum/khoj/actions/workflows/release.yml)
 
 *A natural language search engine for your personal notes, transactions and images*
 
