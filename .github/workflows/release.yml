@@ -31,19 +31,20 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller
-          brew install create-dmg
 
-      - name: Install Application
+      - name: Install Khoj Application
         run: |
           pip install --upgrade .
 
-      - name: Package Mac App
+      - name: Create Mac App
         if: matrix.os == 'macos-latest'
         run: |
           # Set Target Architecture
           sed -E -i "" "s/target_arch='(.*)'/target_arch='x86_64'/g" Khoj.spec
           # Create Mac app
           pyinstaller Khoj.spec
+          # Install Mac DMG Creator
+          brew install create-dmg
           # Copy app to separate dmg folder
           mkdir -p dist/dmg && cp -r dist/Khoj.app dist/dmg
           # Create disk image with the app
@@ -64,7 +65,7 @@ jobs:
           name: khoj.dmg
           path: dist/Khoj.dmg
 
-      - name: Package Windows App
+      - name: Create Windows App
         if: matrix.os == 'windows-latest'
         shell: bash
         run: |
@@ -78,7 +79,7 @@ jobs:
           name: khoj.exe
           path: dist/Khoj.exe
 
-      - name: Package Ubuntu App
+      - name: Create Debian App
         if: matrix.os == 'ubuntu-latest'
         run: |
           # Set Target Architecture
