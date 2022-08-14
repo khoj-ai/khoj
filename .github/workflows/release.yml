@@ -32,18 +32,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyinstaller
 
-      - name: Install Khoj Application
+      - name: Install Khoj App
         run: |
           pip install --upgrade .
 
-      - name: Create Mac App
+      - name: Package Khoj App
+        shell: bash
+        run: |
+          pyinstaller Khoj.spec
+
+      - name: Create Mac App DMG
         if: matrix.os == 'macos-latest'
         run: |
-          # Set Target Architecture
-          sed -E -i "" "s/target_arch='(.*)'/target_arch='x86_64'/g" Khoj.spec
-          # Create Mac app
-          pyinstaller Khoj.spec
-          # Install Mac DMG Creator
+         # Install Mac DMG Creator
           brew install create-dmg
           # Copy app to separate dmg folder
           mkdir -p dist/dmg && cp -r dist/Khoj.app dist/dmg
@@ -59,35 +60,21 @@ jobs:
             --app-drop-link 425 120 \
             "dist/Khoj.dmg" \
             "dist/dmg/"
+
       - uses: actions/upload-artifact@v3
         if : matrix.os == 'macos-latest'
         with:
           name: khoj.dmg
           path: dist/Khoj.dmg
 
-      - name: Create Windows App
-        if: matrix.os == 'windows-latest'
-        shell: bash
-        run: |
-          # Set Target Architecture
-          # sed -E -i "s/target_arch='(.*)'/target_arch='x86_64'/g" Khoj.spec
-          # Create Windows app
-          pyinstaller Khoj.spec
       - uses: actions/upload-artifact@v3
         if : matrix.os == 'windows-latest'
         with:
           name: khoj.exe
           path: dist/Khoj.exe
 
-      - name: Create Debian App
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          # Set Target Architecture
-          sed -E -i "s/target_arch='(.*)'/target_arch='x86_64'/g" Khoj.spec
-          # Create Debian app
-          pyinstaller Khoj.spec
       - uses: actions/upload-artifact@v3
         if : matrix.os == 'ubuntu-latest'
         with:
-          name: khoj.deb
-          path: dist/Khoj.deb
+          name: khoj
+          path: dist/Khoj
