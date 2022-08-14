@@ -20,6 +20,7 @@ jobs:
           python-version: '3.9'
 
       - name: Install Dependencies
+        shell: bash
         run: |
           if [ "$RUNNER_OS" == "Linux" ]; then
             sudo apt install libegl1 libxcb-xinerama0 -y
