@@ -61,13 +61,16 @@ jobs:
             "dist/Khoj.dmg" \
             "dist/dmg/"
 
+      - uses: ruby/setup-ruby@v1
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          ruby-version: '3.0'
       - name: Create Debian Package
         if: matrix.os == 'ubuntu-latest'
         shell: bash
         run: |
           # Install Debian Packager
-          sudo apt install ruby
-          gem install fpm --user-install
+          gem install fpm
 
           # Copy app files into expected output directory structure
           mkdir -p package/opt package/usr/share/applications package/usr/share/icons/hicolor/128x128/apps
