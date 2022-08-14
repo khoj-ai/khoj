@@ -1,0 +1,100 @@
+name: release
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  publish:
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Dependencies
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            sudo apt install libegl1 libxcb-xinerama0 -y
+          fi
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+
+      - name: Install Khoj App
+        run: |
+          pip install --upgrade .
+
+      - name: Package Khoj App
+        shell: bash
+        run: |
+          pyinstaller Khoj.spec
+
+      - name: Create Mac App DMG
+        if: matrix.os == 'macos-latest'
+        run: |
+         # Install Mac DMG Creator
+          brew install create-dmg
+          # Copy app to separate dmg folder
+          mkdir -p dist/dmg && cp -r dist/Khoj.app dist/dmg
+          # Create disk image with the app
+          create-dmg \
+            --volname "Khoj" \
+            --volicon "src/interface/web/assets/icons/favicon.icns" \
+            --window-pos 200 120 \
+            --window-size 600 300 \
+            --icon-size 100 \
+            --icon "Khoj.app" 175 120 \
+            --hide-extension "Khoj.app" \
+            --app-drop-link 425 120 \
+            "dist/Khoj.dmg" \
+            "dist/dmg/"
+
+      - uses: ruby/setup-ruby@v1
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          ruby-version: '3.0'
+      - name: Create Debian Package
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          # Install Debian Packager
+          gem install fpm
+
+          # Copy app files into expected output directory structure
+          mkdir -p package/opt package/usr/share/applications package/usr/share/icons/hicolor/128x128/apps
+          cp -r dist/Khoj package/opt/Khoj
+          cp src/interface/web/assets/icons/favicon-128x128.png package/usr/share/icons/hicolor/128x128/apps/Khoj.png
+          cp Khoj.desktop package/usr/share/applications
+
+          # Fix permissions to be usable by non-root users
+          find package/usr/share -type f -exec chmod 644 -- {} +
+          chmod 644 package/opt/Khoj
+
+          # Package the app
+          fpm -C package -s dir -t deb -n "Khoj" --version "$GITHUB_REF_NAME" -p dist/Khoj.deb
+
+      - uses: actions/upload-artifact@v3
+        if : matrix.os == 'macos-latest'
+        with:
+          name: khoj.dmg
+          path: dist/Khoj.dmg
+
+      - uses: actions/upload-artifact@v3
+        if : matrix.os == 'windows-latest'
+        with:
+          name: khoj.exe
+          path: dist/Khoj.exe
+
+      - uses: actions/upload-artifact@v3
+        if : matrix.os == 'ubuntu-latest'
+        with:
+          name: khoj.deb
+          path: dist/Khoj.deb
