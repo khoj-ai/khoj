@@ -107,6 +107,7 @@
      (when (member 'music enabled-content-types)
        "C-x M  | music\n"))))
 
+(defvar khoj--rerank nil "Track when re-rank of results triggered")
 (defun khoj--search-markdown () "Set search-type to 'markdown'." (interactive) (setq khoj--search-type "markdown"))
 (defun khoj--search-org () "Set search-type to 'org-mode'." (interactive) (setq khoj--search-type "org"))
 (defun khoj--search-ledger () "Set search-type to 'ledger'." (interactive) (setq khoj--search-type "ledger"))
@@ -285,15 +286,24 @@ Render results in BUFFER-NAME."
     ;;   1. user hasn't started typing query
     ;;   2. during recursive edits
     ;;   3. with contents of other buffers user may jump to
-    (when (and (not (equal query "")) (active-minibuffer-window) (equal (current-buffer) khoj--minibuffer-window))
+    ;;   4. search not triggered right after rerank
+    ;;      ignore to not overwrite reranked results before the user even sees them
+    (if khoj--rerank
+        (setq khoj--rerank nil)
+      (when
+          (and
+           (not (equal query ""))
+           (active-minibuffer-window)
+           (equal (current-buffer) khoj--minibuffer-window))
       (progn
         (when rerank
+          (setq khoj--rerank t)
           (message "Khoj: Rerank Results"))
         (khoj--query-api-and-render-results
          query
          khoj--search-type
          query-url
-         khoj-buffer-name)))))
+         khoj-buffer-name))))))
 
 (defun khoj--delete-open-network-connections-to-server ()
   "Delete all network connections to khoj server."
