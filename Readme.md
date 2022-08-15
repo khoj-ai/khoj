@@ -12,6 +12,7 @@
 - [Demo](#Demo)
   - [Description](#Description)
   - [Analysis](#Analysis)
+  - [Interfaces](#Interfaces)
 - [Architecture](#Architecture)
 - [Setup](#Setup)
   - [Install](#1-Install)
@@ -57,7 +58,11 @@
 - The results do not have any words used in the query
   - *Based on the top result it seems the re-ranking model understands that Emacs is an editor?*
 - The results incrementally update as the query is entered
-- The results are re-ranked, for better accuracy, once user is idle
+- The results are re-ranked, for better accuracy, once user hits enter
+
+### Interfaces
+
+![](https://github.com/debanjum/khoj/blob/master/docs/interfaces.png)
 
 ## Architecture
 
@@ -75,13 +80,16 @@
     ```
 
 ### 3. Configure
+
   1. Enable content types and point to files to search in the First Run Screen that pops up on app start*
   2. Click configure* and wait. The app will load ML model, generates embeddings and exposes the search API
+
+  ![](https://github.com/debanjum/khoj/blob/master/docs/desktop_interface.png)
 
 ## Use
 
 - **Khoj via Web**
-  - Open <http://localhost:8000/>
+  - Open <http://localhost:8000/> via desktop interface or directly
 - **Khoj via Emacs**
   - [Install](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#installation) [khoj.el](./src/interface/emacs/khoj.el)
   - Run `M-x khoj <user-query>`
