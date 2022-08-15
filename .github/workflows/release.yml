@@ -1,6 +1,7 @@
 name: release
 
 on:
+  workflow-dispatch:
   push:
     tags:
       - v*
@@ -9,13 +10,7 @@ jobs:
   publish:
     strategy:
       matrix:
-        include:
-        - os: ubuntu-latest
-          extension: deb
-        - os: macos-latest
-          extension: dmg
-        - os: windows-latest
-          extension: exe
+        os: [macos-latest, ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -42,6 +37,9 @@ jobs:
         shell: bash
         run: |
           pyinstaller Khoj.spec
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            mv dist/Khoj.exe dist/khoj_"$GITHUB_REF_NAME"_amd64.exe
+          fi
 
       - name: Create Mac App DMG
         if: matrix.os == 'macos-latest'
@@ -60,7 +58,7 @@ jobs:
             --icon "Khoj.app" 175 120 \
             --hide-extension "Khoj.app" \
             --app-drop-link 425 120 \
-            "dist/Khoj.dmg" \
+            "dist/khoj_"$GITHUB_REF_NAME"_amd64.dmg" \
             "dist/dmg/"
 
       - uses: ruby/setup-ruby@v1
@@ -85,9 +83,14 @@ jobs:
           chmod 644 package/opt/Khoj
 
           # Package the app
-          fpm -C package -s dir -t deb -n "Khoj" --version "$GITHUB_REF_NAME" -p dist/Khoj.deb
+          fpm -C package -s dir -t deb -n "Khoj" --version "$GITHUB_REF_NAME" -p dist/khoj_"$GITHUB_REF_NAME"_amd64.deb
 
       - uses: actions/upload-artifact@v3
         with:
-          name: khoj_${{github.ref_name}}_amd64.${{ matrix.extension }}
-          path: dist/Khoj.${{ matrix.extension }}
+          path: dist/khoj_${{github.ref_name}}_amd64*
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: khoj_${{github.ref_name}}_amd64*
