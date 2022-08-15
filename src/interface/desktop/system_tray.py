@@ -5,7 +5,7 @@ import webbrowser
 from PyQt6 import QtGui, QtWidgets
 
 # Internal Packages
-from src.utils import constants
+from src.utils import constants, state
 
 
 def create_system_tray(gui: QtWidgets.QApplication, main_window: QtWidgets.QMainWindow):
@@ -24,7 +24,7 @@ def create_system_tray(gui: QtWidgets.QApplication, main_window: QtWidgets.QMain
     # Create the menu and menu actions
     menu = QtWidgets.QMenu()
     menu_actions = [
-        ('Search', lambda: webbrowser.open('http://localhost:8000/')),
+        ('Search', lambda: webbrowser.open(f'http://{state.host}:{state.port}/')),
         ('Configure', main_window.show),
         ('Quit', gui.quit),
     ]

@@ -134,7 +134,7 @@ class MainWindow(QtWidgets.QMainWindow):
         action_bar_layout = QtWidgets.QHBoxLayout(action_bar)
 
         self.configure_button = QtWidgets.QPushButton("Configure", clicked=self.configure_app)
-        self.search_button = QtWidgets.QPushButton("Search", clicked=lambda: webbrowser.open('http://localhost:8000/'))
+        self.search_button = QtWidgets.QPushButton("Search", clicked=lambda: webbrowser.open(f'http://{state.host}:{state.port}/'))
         self.search_button.setEnabled(not self.first_run)
 
         action_bar_layout.addWidget(self.configure_button)

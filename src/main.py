@@ -79,6 +79,8 @@ def set_state(args):
     state.config_file = args.config_file
     state.config = args.config
     state.verbose = args.verbose
+    state.host = args.host
+    state.port = args.port
 
 
 def start_server(app, host=None, port=None, socket=None):
