@@ -45,17 +45,19 @@
 
 ## Demo
 
-<https://user-images.githubusercontent.com/6413477/181664862-31565b0a-0e64-47e1-a79a-599dfc486c74.mp4>
+https://user-images.githubusercontent.com/6413477/184735169-92c78bf1-d827-4663-9087-a1ea194b8f4b.mp4
 
 ### Description
 
-- User searches for \"*Setup editor*\"
-- The demo looks for the most relevant section in this readme and the [khoj.el readme](https://github.com/debanjum/khoj/tree/master/src/interface/emacs)
+- Install Khoj via pip
+- Start Khoj app
+- Add this readme and [khoj.el readme](https://github.com/debanjum/khoj/tree/master/src/interface/emacs) as org-mode for Khoj to index
+- Search \"*Setup editor*\" on the Web and Emacs. Re-rank the results for better accuracy
 - Top result is what we are looking for, the [section to Install Khoj.el on Emacs](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#installation)
 
 ### Analysis
 
-- The results do not have any words used in the query
+- The top result does not have any words used in the query
   - *Based on the top result it seems the re-ranking model understands that Emacs is an editor?*
 - The results incrementally update as the query is entered
 - The results are re-ranked, for better accuracy, once user hits enter
