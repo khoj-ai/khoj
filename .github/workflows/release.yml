@@ -10,7 +10,13 @@ jobs:
   publish:
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        include:
+        - os: ubuntu-latest
+          extension: deb
+        - os: macos-latest
+          extension: dmg
+        - os: windows-latest
+          extension: exe
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -87,10 +93,11 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          path: dist/khoj_${{github.ref_name}}_amd64*
+          name: khoj_${{github.ref_name}}_amd64.${{matrix.extension}}
+          path: dist/khoj_${{github.ref_name}}_amd64.${{matrix.extension}}
 
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: khoj_${{github.ref_name}}_amd64*
+          files: khoj_${{github.ref_name}}_amd64.${{matrix.extension}}
