@@ -1,14 +1,16 @@
 name: publish
 
 on:
-  pull_request:
+  push:
+    tags:
+      - v*
     branches:
       - 'master'
     paths:
       - src/**
       - setup.py
       - .github/workflows/publish.yml
-  push:
+  pull_request:
     branches:
       - 'master'
     paths:
@@ -38,7 +40,7 @@ jobs:
           pip install --upgrade .
 
       - name: Publish Release to PyPI
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+        if: startsWith(github.ref, 'refs/tags')
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_KEY }}
