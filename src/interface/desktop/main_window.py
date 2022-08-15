@@ -45,7 +45,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.new_config = self.current_config
 
         # Initialize Configure Window
-        self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
         self.setWindowTitle("Khoj")
         self.setFixedWidth(600)
 
