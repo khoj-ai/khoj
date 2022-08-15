@@ -1,4 +1,5 @@
 # Standard Packages
+from enum import Enum
 from pathlib import Path
 from copy import deepcopy
 import webbrowser
@@ -29,6 +30,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, config_file: Path):
         super(MainWindow, self).__init__()
         self.config_file = config_file
+        # Set regenerate flag to regenerate embeddings everytime user clicks configure
+        if state.cli_args:
+            state.cli_args += ['--regenerate']
+        else:
+            state.cli_args = ['--regenerate']
 
         # Load config from existing config, if exists, else load from default config
         if resolve_absolute_path(self.config_file).exists():
@@ -40,7 +46,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.new_config = self.current_config
 
         # Initialize Configure Window
-        self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
         self.setWindowTitle("Khoj")
         self.setFixedWidth(600)
 
@@ -129,7 +134,7 @@ class MainWindow(QtWidgets.QMainWindow):
         action_bar_layout = QtWidgets.QHBoxLayout(action_bar)
 
         self.configure_button = QtWidgets.QPushButton("Configure", clicked=self.configure_app)
-        self.search_button = QtWidgets.QPushButton("Search", clicked=lambda: webbrowser.open('http://localhost:8000/'))
+        self.search_button = QtWidgets.QPushButton("Search", clicked=lambda: webbrowser.open(f'http://{state.host}:{state.port}/'))
         self.search_button.setEnabled(not self.first_run)
 
         action_bar_layout.addWidget(self.configure_button)
@@ -148,11 +153,21 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def add_error_message(self, message: str):
         "Add Error Message to Configure Screen"
-        error_message = QtWidgets.QLabel()
-        error_message.setWordWrap(True)
-        error_message.setText(message)
-        error_message.setStyleSheet("color: red")
-        self.layout.addWidget(error_message)
+        # Remove any existing error messages
+        for message_prefix in ErrorType:
+            for i in reversed(range(self.layout.count())):
+                current_widget = self.layout.itemAt(i).widget()
+                if isinstance(current_widget, QtWidgets.QLabel) and current_widget.text().startswith(message_prefix.value):
+                    self.layout.removeWidget(current_widget)
+                    current_widget.deleteLater()
+
+        # Add new error message
+        if message:
+            error_message = QtWidgets.QLabel()
+            error_message.setWordWrap(True)
+            error_message.setText(message)
+            error_message.setStyleSheet("color: red")
+            self.layout.addWidget(error_message)
 
     def update_search_settings(self):
         "Update config with search settings from UI"
@@ -192,22 +207,17 @@ class MainWindow(QtWidgets.QMainWindow):
                         self.new_config['processor'][child.processor_type.value]['openai-api-key'] = child.input_field.toPlainText() if child.input_field.toPlainText() != '' else None
 
     def save_settings_to_file(self) -> bool:
+        "Save validated settings to file"
         # Validate config before writing to file
         try:
             yaml_utils.parse_config_from_string(self.new_config)
         except Exception as e:
             print(f"Error validating config: {e}")
-            self.add_error_message(f"Error validating config: {e}")
+            self.add_error_message(f"{ErrorType.ConfigValidationError.value}: {e}")
             return False
-        else:
-            # Remove error message if present
-            for i in range(self.layout.count()):
-                current_widget = self.layout.itemAt(i).widget()
-                if isinstance(current_widget, QtWidgets.QLabel) and current_widget.text().startswith("Error validating config:"):
-                    self.layout.removeWidget(current_widget)
-                    current_widget.deleteLater()
 
         # Save the config to app config file
+        self.add_error_message(None)
         yaml_utils.save_config_to_file(self.new_config, self.config_file)
         return True
 
@@ -234,6 +244,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.thread.started.connect(self.settings_loader.run)
             self.settings_loader.finished.connect(self.thread.quit)
             self.settings_loader.finished.connect(self.settings_loader.deleteLater)
+            self.settings_loader.error.connect(self.add_error_message)
             self.thread.finished.connect(self.thread.deleteLater)
 
             # Start thread
@@ -253,6 +264,7 @@ class MainWindow(QtWidgets.QMainWindow):
 class SettingsLoader(QObject):
     "Load Settings Thread"
     finished = pyqtSignal()
+    error = pyqtSignal(str)
 
     def __init__(self, load_settings_func):
         super(SettingsLoader, self).__init__()
@@ -260,7 +272,12 @@ class SettingsLoader(QObject):
 
     def run(self):
         "Load Settings"
-        self.load_settings_func()
+        try:
+            self.load_settings_func()
+        except FileNotFoundError as e:
+            self.error.emit(f"{ErrorType.ConfigLoadingError.value}: {e}")
+        else:
+            self.error.emit(None)
         self.finished.emit()
 
 
@@ -274,3 +291,8 @@ class ProcessorCheckBox(QtWidgets.QCheckBox):
     def __init__(self, text, processor_type: ProcessorType, parent=None):
         self.processor_type = processor_type
         super(ProcessorCheckBox, self).__init__(text, parent=parent)
+
+class ErrorType(Enum):
+    "Error Types"
+    ConfigLoadingError = "Config Loading Error"
+    ConfigValidationError = "Config Validation Error"

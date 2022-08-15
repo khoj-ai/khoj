@@ -81,7 +81,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
         results = text_search.collate_results(hits, entries, results_count)
         collate_end = time.time()
 
-    if (t == SearchType.Markdown or t == None) and state.model.orgmode_search:
+    if (t == SearchType.Markdown or t == None) and state.model.markdown_search:
         # query markdown files
         query_start = time.time()
         hits, entries = text_search.query(user_query, state.model.markdown_search, rank_results=r, device=state.device, filters=[ExplicitFilter(), DateFilter()], verbose=state.verbose)
