@@ -29,6 +29,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, config_file: Path):
         super(MainWindow, self).__init__()
         self.config_file = config_file
+        # Set regenerate flag to regenerate embeddings everytime user clicks configure
+        if state.cli_args:
+            state.cli_args += ['--regenerate']
+        else:
+            state.cli_args = ['--regenerate']
 
         # Load config from existing config, if exists, else load from default config
         if resolve_absolute_path(self.config_file).exists():
