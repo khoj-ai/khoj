@@ -64,11 +64,6 @@
   :group 'khoj
   :type 'integer)
 
-(defcustom khoj-rerank-after-idle-time 2.0
-  "Idle time (in seconds) to rerank incremental search results."
-  :group 'khoj
-  :type 'float)
-
 (defcustom khoj-results-count 5
   "Number of results to get from Khoj API for each query."
   :group 'khoj
@@ -81,9 +76,6 @@
                  (const "markdown")
                  (const "ledger")
                  (const "music")))
-
-(defvar khoj--rerank-timer nil
-  "Idle timer to re-rank incremental search results if user idle.")
 
 (defvar khoj--minibuffer-window nil
   "Minibuffer window being used by user to enter query.")
@@ -120,10 +112,12 @@
 (defun khoj--search-ledger () "Set search-type to 'ledger'." (interactive) (setq khoj--search-type "ledger"))
 (defun khoj--search-images () "Set search-type to image." (interactive) (setq khoj--search-type "image"))
 (defun khoj--search-music () "Set search-type to music." (interactive) (setq khoj--search-type "music"))
+(defun khoj--improve-rank () "Use cross-encoder to rerank search results." (interactive) (khoj--incremental-search t))
 (defun khoj--make-search-keymap (&optional existing-keymap)
   "Setup keymap to configure Khoj search. Build of EXISTING-KEYMAP when passed."
   (let ((enabled-content-types (khoj--get-enabled-content-types))
         (kmap (or existing-keymap (make-sparse-keymap))))
+    (define-key kmap (kbd "C-c RET") #'khoj--improve-rank)
     (when (member 'markdown enabled-content-types)
       (define-key kmap (kbd "C-x m") #'khoj--search-markdown))
     (when (member 'org enabled-content-types)
@@ -310,24 +304,15 @@ Render results in BUFFER-NAME."
         (delete-process proc)))))
 
 (defun khoj--teardown-incremental-search ()
-  "Teardown timers and hooks used for incremental search."
+  "Teardown hooks used for incremental search."
   (message "Khoj: Teardown Incremental Search")
-  ;; remove advice to rerank results on normal exit from minibuffer
-  (advice-remove 'exit-minibuffer #'khoj--minibuffer-exit-advice)
   ;; unset khoj minibuffer window
   (setq khoj--minibuffer-window nil)
-  ;; cancel rerank timer
-  (when (timerp khoj--rerank-timer)
-    (cancel-timer khoj--rerank-timer))
   ;; delete open connections to khoj server
   (khoj--delete-open-network-connections-to-server)
   ;; remove hooks for khoj incremental query and self
   (remove-hook 'post-command-hook #'khoj--incremental-search)
   (remove-hook 'minibuffer-exit-hook #'khoj--teardown-incremental-search))
-
-(defun khoj--minibuffer-exit-advice (&rest _args)
-  "Rerank results of incremental search on exiting minibuffer."
-  (khoj--incremental-search t))
 
 
 ;;;###autoload
@@ -337,8 +322,6 @@ Render results in BUFFER-NAME."
   (let* ((khoj-buffer-name (get-buffer-create khoj--buffer-name)))
     ;; set khoj search type to last used or based on current buffer
     (setq khoj--search-type (or khoj--search-type (khoj--buffer-name-to-search-type (buffer-name))))
-    ;; setup rerank to improve results once user idle for KHOJ-RERANK-AFTER-IDLE-TIME seconds
-    (setq khoj--rerank-timer (run-with-idle-timer khoj-rerank-after-idle-time t 'khoj--incremental-search t))
     ;; switch to khoj results buffer
     (switch-to-buffer khoj-buffer-name)
     ;; open and setup minibuffer for incremental search
@@ -351,8 +334,6 @@ Render results in BUFFER-NAME."
           ;; set current (mini-)buffer entered as khoj minibuffer
           ;; used to query khoj API only when user in khoj minibuffer
           (setq khoj--minibuffer-window (current-buffer))
-          ;; rerank results on normal exit from minibuffer
-          (advice-add 'exit-minibuffer :before #'khoj--minibuffer-exit-advice)
           (add-hook 'post-command-hook #'khoj--incremental-search) ; do khoj incremental search after every user action
           (add-hook 'minibuffer-exit-hook #'khoj--teardown-incremental-search)) ; teardown khoj incremental search on minibuffer exit
       (read-string khoj--query-prompt))))
