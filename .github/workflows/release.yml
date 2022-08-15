@@ -100,4 +100,4 @@ jobs:
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: khoj_${{github.ref_name}}_amd64.${{matrix.extension}}
+          files: dist/khoj_${{github.ref_name}}_amd64.${{matrix.extension}}
