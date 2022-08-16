@@ -57,7 +57,7 @@ https://user-images.githubusercontent.com/6413477/184735169-92c78bf1-d827-4663-9
 
 ### Analysis
 
-- The top result does not have any words used in the query
+- The results do not have any words used in the query
   - *Based on the top result it seems the re-ranking model understands that Emacs is an editor?*
 - The results incrementally update as the query is entered
 - The results are re-ranked, for better accuracy, once user hits enter
@@ -72,21 +72,21 @@ https://user-images.githubusercontent.com/6413477/184735169-92c78bf1-d827-4663-9
 
 ## Setup
 ### 1. Install
-    ``` shell
-    pip install khoj-assistant
-    ```
+
+```shell
+pip install khoj-assistant
+```
 
 ### 2. Start App
-    ``` shell
-    khoj
-    ```
+
+```shell
+khoj
+```
 
 ### 3. Configure
 
-  1. Enable content types and point to files to search in the First Run Screen that pops up on app start*
-  2. Click configure* and wait. The app will load ML model, generates embeddings and exposes the search API
-
-  ![](https://github.com/debanjum/khoj/blob/master/docs/desktop_interface.png)
+1. Enable content types and point to files to search in the First Run Screen that pops up on app start
+2. Click configure and wait. The app will load ML model, generates embeddings and expose the search API
 
 ## Use
 
@@ -96,27 +96,28 @@ https://user-images.githubusercontent.com/6413477/184735169-92c78bf1-d827-4663-9
   - [Install](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#installation) [khoj.el](./src/interface/emacs/khoj.el)
   - Run `M-x khoj <user-query>`
 - **Khoj via API**
-  - See the FastAPI [Swagger Docs](http://localhost:8000/docs), [ReDocs](http://localhost:8000/redocs)
+  - See the Khoj FastAPI [Swagger Docs](http://localhost:8000/docs), [ReDocs](http://localhost:8000/redocs)
 
 ## Upgrade
-``` shell
+
+```shell
 pip install --upgrade khoj-assistant
 ```
 
 ## Troubleshoot
 
 - Symptom: Errors out complaining about Tensors mismatch, null etc
-  - Mitigation: Disable `image` section on the desktop GUI
-
+  - Mitigation: Disable `image` search on the desktop GUI
 - Symptom: Errors out with \"Killed\" in error message in Docker
   - Fix: Increase RAM available to Docker Containers in Docker Settings
   - Refer: [StackOverflow Solution](https://stackoverflow.com/a/50770267), [Configure Resources on Docker for Mac](https://docs.docker.com/desktop/mac/#resources)
 
 ## Miscellaneous
 
-- The experimental [chat](localhost:8000/chat) API endpoint uses the [OpenAI API](https://openai.com/api/)
-    - It is disabled by default
-    - To use it add your `openai-api-key` via the app configure screen
+- The beta [chat](http://localhost:8000/beta/chat) and [search](http://localhost:8000/beta/search) API endpoints use [OpenAI API](https://openai.com/api/)
+  - It is disabled by default
+  - To use it add your `openai-api-key` via the app configure screen
+  - Warning: *If you use the above beta APIs, your query and top result(s) will be sent to OpenAI for processing*
 
 ## Performance
 
@@ -142,22 +143,26 @@ pip install --upgrade khoj-assistant
 ### Setup
 #### Using Pip
 ##### 1. Install
-   ``` shell
-   git clone https://github.com/debanjum/khoj && cd khoj
-   python3 -m venv .venv && source .venv/bin/activate
-   pip install -e .
-   ```
+
+```shell
+git clone https://github.com/debanjum/khoj && cd khoj
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .
+```
+
 ##### 2. Configure
-   - Copy the `config/khoj_sample.yml` to `~/.khoj/khoj.yml`
-   - Set `input-files` or `input-filter` in each relevant `content-type` section of `~/.khoj/khoj.yml`
-     - Set `input-directories` field in `image` `content-type` section
-   - Delete `content-type` and `processor` sub-section(s) irrelevant for your use-case
+
+- Copy the `config/khoj_sample.yml` to `~/.khoj/khoj.yml`
+- Set `input-files` or `input-filter` in each relevant `content-type` section of `~/.khoj/khoj.yml`
+  - Set `input-directories` field in `image` `content-type` section
+- Delete `content-type` and `processor` sub-section(s) irrelevant for your use-case
 
 ##### 3. Run
-   ``` shell
-   khoj -vv
-   ```
-   Load ML model, generate embeddings and expose API to query notes, images, transactions etc specified in config YAML
+
+```shell
+khoj -vv
+```
+Load ML model, generate embeddings and expose API to query notes, images, transactions etc specified in config YAML
 
 ##### 4. Upgrade
 
@@ -179,7 +184,7 @@ pip install -i https://test.pypi.org/simple/ khoj-assistant==0.1.5.dev5716602576
 #### Using Docker
 ##### 1. Clone
 
-``` shell
+```shell
 git clone https://github.com/debanjum/khoj && cd khoj
 ```
 
@@ -190,7 +195,7 @@ git clone https://github.com/debanjum/khoj && cd khoj
 
 ##### 3. Run
 
-``` shell
+```shell
 docker-compose up -d
 ```
 
@@ -198,39 +203,39 @@ docker-compose up -d
 
 ##### 4. Upgrade
 
-``` shell
+```shell
 docker-compose build --pull
 ```
 
 #### Using Conda
 ##### 1. Install Dependencies
-   - [Install Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) \[Required\]
-   - Install Exiftool \[Optional\]
-     ``` shell
-     sudo apt -y install libimage-exiftool-perl
-     ```
+- [Install Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) \[Required\]
+- Install Exiftool \[Optional\]
+  ``` shell
+  sudo apt -y install libimage-exiftool-perl
+  ```
 
 ##### 2. Install Khoj
-   ``` shell
-   git clone https://github.com/debanjum/khoj && cd khoj
-   conda env create -f config/environment.yml
-   conda activate khoj
-   ```
+```shell
+git clone https://github.com/debanjum/khoj && cd khoj
+conda env create -f config/environment.yml
+conda activate khoj
+```
 
 ##### 3. Configure
-   - Copy the `config/khoj_sample.yml` to `~/.khoj/khoj.yml`
-   - Set `input-files` or `input-filter` in each relevant `content-type` section of `~/.khoj/khoj.yml`
-     - Set `input-directories` field in `image` `content-type` section
-   - Delete `content-type`, `processor` sub-sections irrelevant for your use-case
+- Copy the `config/khoj_sample.yml` to `~/.khoj/khoj.yml`
+- Set `input-files` or `input-filter` in each relevant `content-type` section of `~/.khoj/khoj.yml`
+  - Set `input-directories` field in `image` `content-type` section
+- Delete `content-type`, `processor` sub-sections irrelevant for your use-case
 
 ##### 4. Run
-   ``` shell
-   python3 -m src.main -vv
-   ```
-   Load ML model, generate embeddings and expose API to query notes, images, transactions etc specified in config YAML
+```shell
+python3 -m src.main -vv
+```
+  Load ML model, generate embeddings and expose API to query notes, images, transactions etc specified in config YAML
 
 ##### 5. Upgrade
-``` shell
+```shell
 cd khoj
 git pull origin master
 conda deactivate khoj
@@ -239,8 +244,7 @@ conda activate khoj
 ```
 
 ### Test
-
-``` shell
+```shell
 pytest
 ```
 
