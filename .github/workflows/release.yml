@@ -2,6 +2,11 @@ name: release
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version Number'
+        required: true
+        type: string
   push:
     tags:
       - v*
@@ -74,6 +79,8 @@ jobs:
       - name: Create Debian Package
         if: matrix.os == 'ubuntu-latest'
         shell: bash
+        env:
+          DEBIAN_PACKAGE_VERSION: ${{ inputs.version }}
         run: |
           # Install Debian Packager
           gem install fpm
@@ -86,11 +93,13 @@ jobs:
 
           # Fix permissions to be usable by non-root users
           find package/usr/share -type f -exec chmod 644 -- {} +
-          chmod 644 package/opt/Khoj
+          chmod 755 package/opt/Khoj
 
           # Package the app
-          export DEBIAN_PACKAGE_VER=$(echo $GITHUB_REF_NAME | sed -E 's/v(.*)/\1/g')
-          fpm -C package -s dir -t deb -n Khoj --version $DEBIAN_PACKAGE_VER -p dist/khoj_"$GITHUB_REF_NAME"_amd64.deb
+          if [ -z "$DEBIAN_PACKAGE_VERSION" ]; then
+            DEBIAN_PACKAGE_VERSION=$(echo $GITHUB_REF_NAME | sed -E 's/v(.*)/\1/g')
+          fi
+          fpm -C package -s dir -t deb -n Khoj --version $DEBIAN_PACKAGE_VERSION -p dist/khoj_"$GITHUB_REF_NAME"_amd64.deb
 
       - uses: actions/upload-artifact@v3
         with:
