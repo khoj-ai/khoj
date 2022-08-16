@@ -154,7 +154,7 @@ def search_beta(q: str, n: Optional[int] = 1):
     return {'status': 'ok', 'result': search_results, 'type': search_type}
 
 
-@router.get('/chat')
+@router.get('/beta/chat')
 def chat(q: str):
     # Load Conversation History
     chat_session = state.processor_config.conversation.chat_session
