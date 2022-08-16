@@ -89,7 +89,8 @@ jobs:
           chmod 644 package/opt/Khoj
 
           # Package the app
-          fpm -C package -s dir -t deb -n "Khoj" --version "$GITHUB_REF_NAME" -p dist/khoj_"$GITHUB_REF_NAME"_amd64.deb
+          export DEBIAN_PACKAGE_VER=$(echo $GITHUB_REF_NAME | sed -E 's/v(.*)/\1/g')
+          fpm -C package -s dir -t deb -n Khoj --version $DEBIAN_PACKAGE_VER -p dist/khoj_"$GITHUB_REF_NAME"_amd64.deb
 
       - uses: actions/upload-artifact@v3
         with:
