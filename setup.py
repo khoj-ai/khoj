@@ -36,7 +36,7 @@ setup(
         "jinja2 == 3.1.2",
         "pyyaml == 6.0",
         "pytest == 7.1.2",
-        "pillow >= 9.0.1",
+        "pillow == 9.2.0",
         "aiofiles == 0.8.0",
         "dateparser == 1.1.1",
         "pyqt6 == 6.3.1",
