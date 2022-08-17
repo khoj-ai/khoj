@@ -49,7 +49,7 @@ jobs:
         run: |
           # Setup Environment for Reproducible Builds
           export PYTHONHASHSEED=42
-          export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct
+          export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
 
           pyinstaller --noconfirm Khoj.spec
           if [ "$RUNNER_OS" == "Windows" ]; then
