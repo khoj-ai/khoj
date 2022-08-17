@@ -2,6 +2,6 @@
 Type=Application
 Name=Khoj
 Comment=A natural language search engine for your personal notes, transactions and images.
-Path=/opt/Khoj
-Exec=/opt/Khoj/Khoj
+Path=/opt
+Exec=/opt/Khoj
 Icon=Khoj
