@@ -41,6 +41,9 @@ torch_lib_paths = {
 }
 a.datas = [entry for entry in a.datas if not entry[0] in torch_lib_paths]
 
+a.datas = [entry for entry in a.datas if not 'torch/_C.cp' in entry[0]]
+a.datas = [entry for entry in a.datas if not 'torch/_dl.cp' in entry[0]]
+
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 if system() != 'Darwin':
