@@ -79,7 +79,7 @@ if system() != 'Darwin':
         target_arch='x86_64',
         codesign_identity=None,
         entitlements_file=None,
-        icon='src/interface/web/assets/icons/favicon.icns',
+        icon='src/interface/web/assets/icons/favicon-144x144.ico',
     )
 else:
     exe = EXE(
