@@ -30,7 +30,7 @@ default_config = {
             'input-filter': None,
             'embeddings-file': '~/.khoj/content/image/image_embeddings.pt',
             'batch-size': 50,
-            'use-xmp-metadata': True
+            'use-xmp-metadata': False
         },
         'music': {
             'input-files': None,
