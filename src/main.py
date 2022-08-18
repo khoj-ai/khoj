@@ -67,6 +67,18 @@ def run():
         # Start Application
         server.start()
         gui.aboutToQuit.connect(server.terminate)
+
+        # Close Splash Screen if still open
+        if system() != 'Darwin':
+            try:
+                import pyi_splash
+                # Update the text on the splash screen
+                pyi_splash.update_text("Khoj setup complete")
+                # Close Splash Screen
+                pyi_splash.close()
+            except:
+                pass
+
         gui.exec()
 
 

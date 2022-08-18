@@ -43,30 +43,66 @@ a.datas = [entry for entry in a.datas if not entry[0] in torch_lib_paths]
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
-exe = EXE(
-    pyz,
-    a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    [],
-    name='Khoj',
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
-    console=False,
-    disable_windowed_traceback=False,
-    argv_emulation=False,
-    target_arch='x86_64',
-    codesign_identity=None,
-    entitlements_file=None,
-    icon='src/interface/web/assets/icons/favicon.icns',
-)
+if system() != 'Darwin':
+    # Add Splash screen to show on app launch
+    splash = Splash(
+        'src/interface/web/assets/icons/favicon-144x144.png',
+        binaries=a.binaries,
+        datas=a.datas,
+        text_pos=(10, 50),
+        text_size=12,
+        text_color='blue',
+        minify_script=True,
+        always_on_top=True
+    )
 
-if system() == 'Darwin':
+    exe = EXE(
+        pyz,
+        a.scripts,
+        a.binaries,
+        a.zipfiles,
+        a.datas,
+        splash,
+        splash.binaries,
+        [],
+        name='Khoj',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=True,
+        upx_exclude=[],
+        runtime_tmpdir=None,
+        console=False,
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+        target_arch='x86_64',
+        codesign_identity=None,
+        entitlements_file=None,
+        icon='src/interface/web/assets/icons/favicon.icns',
+    )
+else:
+    exe = EXE(
+        pyz,
+        a.scripts,
+        a.binaries,
+        a.zipfiles,
+        a.datas,
+        [],
+        name='Khoj',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=True,
+        upx_exclude=[],
+        runtime_tmpdir=None,
+        console=False,
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+        target_arch='x86_64',
+        codesign_identity=None,
+        entitlements_file=None,
+        icon='src/interface/web/assets/icons/favicon.icns',
+    )
     app = BUNDLE(
         exe,
         name='Khoj.app',
