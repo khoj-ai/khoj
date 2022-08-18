@@ -1,7 +1,8 @@
 # Standard Packages
-from platform import system
+import os
 import signal
 import sys
+from platform import system
 
 # External Packages
 import uvicorn
@@ -26,6 +27,9 @@ app.include_router(router)
 
 
 def run():
+    # Turn Tokenizers Parallelism Off. App does not support it.
+    os.environ["TOKENIZERS_PARALLELISM"] = 'false'
+
     # Load config from CLI
     state.cli_args = sys.argv[1:]
     args = cli(state.cli_args)
