@@ -1,5 +1,6 @@
 # Standard Packages
 import pathlib
+import sys
 from os.path import join
 
 
@@ -55,3 +56,8 @@ def load_model(model_name, model_dir, model_type):
             model.save(model_path)
 
     return model
+
+
+def is_pyinstaller_app():
+    "Returns true if the app is running from Native GUI created by PyInstaller"
+    return getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')

@@ -3,7 +3,7 @@ import argparse
 import pathlib
 
 # Internal Packages
-from src.utils.helpers import get_absolute_path, resolve_absolute_path
+from src.utils.helpers import resolve_absolute_path
 from src.utils.yaml import parse_config_from_file
 
 
