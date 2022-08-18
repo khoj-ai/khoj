@@ -32,12 +32,10 @@ a = Analysis(
     noarchive=False,
 )
 
-# Filter out unused, duplicate shared libs
-extension = {'Windows': '.dll', 'Darwin': '.dylib', 'Linux': '.so'}[system()]
+# Filter out unused and/or duplicate shared libs
 torch_lib_paths = {
-    join('torch', 'lib', 'libtorch_cuda' + extension),
-    join('torch', 'lib', 'libtorch_cpu' + extension),
-    join('torch', 'lib', 'libtorch_python' + extension)
+    join('torch', 'lib', 'libtorch_cuda.so'),
+    join('torch', 'lib', 'libtorch_cpu.so'),
 }
 a.datas = [entry for entry in a.datas if not entry[0] in torch_lib_paths]
 
