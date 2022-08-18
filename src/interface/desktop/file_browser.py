@@ -29,7 +29,7 @@ class FileBrowser(QtWidgets.QWidget):
         self.lineEdit.textChanged.connect(self.updateFieldHeight)
         layout.addWidget(self.lineEdit)
         
-        self.button = QtWidgets.QPushButton('Select')
+        self.button = QtWidgets.QPushButton('Add')
         self.button.clicked.connect(self.storeFilesSelectedInFileDialog)
         layout.addWidget(self.button)
         layout.addStretch()
@@ -47,7 +47,7 @@ class FileBrowser(QtWidgets.QWidget):
             return 'Images (*.jp[e]g)'
 
     def storeFilesSelectedInFileDialog(self):
-        filepaths = []
+        filepaths = self.getPaths()
         if self.search_type == SearchType.Image:
             filepaths.append(QtWidgets.QFileDialog.getExistingDirectory(self, caption='Choose Folder',
                                                     directory=self.dirpath))
