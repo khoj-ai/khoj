@@ -32,15 +32,14 @@ a = Analysis(
     noarchive=False,
 )
 
-# Filter out unused, duplicate shared libs under torch/lib
-torch_lib_path = set([
-                join('torch', 'lib', 'libtorch_cuda.so'),
-                join('torch', 'lib', 'libtorch_cuda.dylib'),
-                join('torch', 'lib', 'libtorch_cpu.so'),
-                join('torch', 'lib', 'libtorch_cpu.dylib'),
-                join('torch', 'lib', 'libtorch_python.so'),
-                join('torch', 'lib', 'libtorch_python.dylib')])
-a.datas = [entry for entry in a.datas if not entry[0] in torch_lib_path]
+# Filter out unused, duplicate shared libs
+extension = {'Windows': '.dll', 'Darwin': '.dylib', 'Linux': '.so'}[system()]
+torch_lib_paths = {
+    join('torch', 'lib', 'libtorch_cuda' + extension),
+    join('torch', 'lib', 'libtorch_cpu' + extension),
+    join('torch', 'lib', 'libtorch_python' + extension)
+}
+a.datas = [entry for entry in a.datas if not entry[0] in torch_lib_paths]
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
