@@ -22,7 +22,7 @@ content-type:
     input-filter:      # /path/to/images/*.jpg  REQUIRED IF input-directories IS NOT SET
     embeddings-file: "~/.khoj/content/image/image_embeddings.pt"
     batch-size: 50
-    use-xmp-metadata: true
+    use-xmp-metadata: false
 
   music:
     input-files:  # ["/path/to/music-file.org"] REQUIRED IF input-filter IS NOT SET OR
