@@ -2,8 +2,12 @@
 from os.path import join
 from platform import system
 from PyInstaller.utils.hooks import copy_metadata
+import sysconfig
 
-datas = [('src/interface/web', 'src/interface/web')]
+datas = [
+    ('src/interface/web', 'src/interface/web'),
+    (f'{sysconfig.get_paths()["purelib"]}/transformers', 'transformers')
+]
 datas += copy_metadata('tqdm')
 datas += copy_metadata('regex')
 datas += copy_metadata('requests')
@@ -12,9 +16,7 @@ datas += copy_metadata('filelock')
 datas += copy_metadata('numpy')
 datas += copy_metadata('tokenizers')
 
-
 block_cipher = None
-
 
 a = Analysis(
     ['src/main.py'],
