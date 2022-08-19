@@ -47,8 +47,9 @@ jobs:
         run: |
           # Setup Environment for Reproducible Builds
           export PYTHONHASHSEED=42
-          export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct
+          export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
 
+          # Build and Upload PyPi Package
           rm -rf dist
           python -m build
           twine check dist/*
@@ -60,7 +61,14 @@ jobs:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_KEY }}
         run: |
+          # Set Pre-Release Version
           sed -E -i "s/version=(.*)',/version=\1a$(date +%s)',/g" setup.py
+
+          # Setup Environment for Reproducible Builds
+          export PYTHONHASHSEED=42
+          export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
+
+          # Build and Upload PyPi Package
           rm -rf dist
           python -m build
           twine check dist/*
@@ -73,7 +81,14 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_KEY }}
           PULL_REQUEST_NUMBER: ${{ github.event.number }}
         run: |
+          # Set Development Release Version
           sed -E -i "s/version=(.*)',/version=\1.dev$PULL_REQUEST_NUMBER$(date +%s)',/g" setup.py
+
+          # Setup Environment for Reproducible Builds
+          export PYTHONHASHSEED=42
+          export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
+
+          # Build and Upload PyPi Package
           rm -rf dist
           python -m build
           twine check dist/*
