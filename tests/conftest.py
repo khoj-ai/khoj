@@ -39,14 +39,14 @@ def model_dir(search_config):
     model_dir = search_config.asymmetric.model_directory
 
     # Generate Image Embeddings from Test Images
-    # content_config = ContentConfig()
-    # content_config.image = ImageContentConfig(
-    #     input_directories = ['tests/data/images'],
-    #     embeddings_file = model_dir.joinpath('image_embeddings.pt'),
-    #     batch_size = 10,
-    #     use_xmp_metadata = False)
+    content_config = ContentConfig()
+    content_config.image = ImageContentConfig(
+        input_directories = ['tests/data/images'],
+        embeddings_file = model_dir.joinpath('image_embeddings.pt'),
+        batch_size = 10,
+        use_xmp_metadata = False)
 
-    # image_search.setup(content_config.image, search_config.image, regenerate=False, verbose=True)
+    image_search.setup(content_config.image, search_config.image, regenerate=False, verbose=True)
 
     # Generate Notes Embeddings from Test Notes
     content_config.org = TextContentConfig(
@@ -55,7 +55,7 @@ def model_dir(search_config):
         compressed_jsonl = model_dir.joinpath('notes.jsonl.gz'),
         embeddings_file = model_dir.joinpath('note_embeddings.pt'))
 
-    text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False, device=state.device, verbose=True)
+    text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False, verbose=True)
 
     return model_dir
 
@@ -69,10 +69,10 @@ def content_config(model_dir):
         compressed_jsonl = model_dir.joinpath('notes.jsonl.gz'),
         embeddings_file = model_dir.joinpath('note_embeddings.pt'))
 
-    # content_config.image = ImageContentConfig(
-    #     input_directories = ['tests/data/images'],
-    #     embeddings_file = model_dir.joinpath('image_embeddings.pt'),
-    #     batch_size = 10,
-    #     use_xmp_metadata = False)
+    content_config.image = ImageContentConfig(
+        input_directories = ['tests/data/images'],
+        embeddings_file = model_dir.joinpath('image_embeddings.pt'),
+        batch_size = 1,
+        use_xmp_metadata = False)
 
     return content_config

@@ -24,8 +24,8 @@ setup(
     ),
     install_requires=[
         "numpy == 1.22.4",
-        "torch == 1.11.0",
-        "torchvision == 0.12.0",
+        "torch == 1.12.1",
+        "torchvision == 0.13.1",
         "transformers == 4.21.0",
         "sentence-transformers == 2.1.0",
         "openai == 0.20.0",

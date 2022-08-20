@@ -62,7 +62,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
     if (t == SearchType.Org or t == None) and state.model.orgmode_search:
         # query org-mode notes
         query_start = time.time()
-        hits, entries = text_search.query(user_query, state.model.orgmode_search, rank_results=r, device=state.device, filters=[DateFilter(), ExplicitFilter()], verbose=state.verbose)
+        hits, entries = text_search.query(user_query, state.model.orgmode_search, rank_results=r, filters=[DateFilter(), ExplicitFilter()], verbose=state.verbose)
         query_end = time.time()
 
         # collate and return results
@@ -73,7 +73,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
     if (t == SearchType.Music or t == None) and state.model.music_search:
         # query music library
         query_start = time.time()
-        hits, entries = text_search.query(user_query, state.model.music_search, rank_results=r, device=state.device, filters=[DateFilter(), ExplicitFilter()], verbose=state.verbose)
+        hits, entries = text_search.query(user_query, state.model.music_search, rank_results=r, filters=[DateFilter(), ExplicitFilter()], verbose=state.verbose)
         query_end = time.time()
 
         # collate and return results
@@ -84,7 +84,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
     if (t == SearchType.Markdown or t == None) and state.model.markdown_search:
         # query markdown files
         query_start = time.time()
-        hits, entries = text_search.query(user_query, state.model.markdown_search, rank_results=r, device=state.device, filters=[ExplicitFilter(), DateFilter()], verbose=state.verbose)
+        hits, entries = text_search.query(user_query, state.model.markdown_search, rank_results=r, filters=[ExplicitFilter(), DateFilter()], verbose=state.verbose)
         query_end = time.time()
 
         # collate and return results
@@ -95,7 +95,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
     if (t == SearchType.Ledger or t == None) and state.model.ledger_search:
         # query transactions
         query_start = time.time()
-        hits, entries = text_search.query(user_query, state.model.ledger_search, rank_results=r, device=state.device, filters=[ExplicitFilter(), DateFilter()], verbose=state.verbose)
+        hits, entries = text_search.query(user_query, state.model.ledger_search, rank_results=r, filters=[ExplicitFilter(), DateFilter()], verbose=state.verbose)
         query_end = time.time()
 
         # collate and return results
@@ -131,13 +131,13 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
 
 @router.get('/reload')
 def reload(t: Optional[SearchType] = None):
-    state.model = configure_search(state.model, state.config, regenerate=False, t=t, device=state.device)
+    state.model = configure_search(state.model, state.config, regenerate=False, t=t)
     return {'status': 'ok', 'message': 'reload completed'}
 
 
 @router.get('/regenerate')
 def regenerate(t: Optional[SearchType] = None):
-    state.model = configure_search(state.model, state.config, regenerate=True, t=t, device=state.device)
+    state.model = configure_search(state.model, state.config, regenerate=True, t=t)
     return {'status': 'ok', 'message': 'regeneration completed'}
 
 
