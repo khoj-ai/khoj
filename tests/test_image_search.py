@@ -15,7 +15,6 @@ from src.utils.rawconfig import ContentConfig, SearchConfig
 
 # Test
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.skip(reason="upstream issues in loading image search model. disabled for now")
 def test_image_search_setup(content_config: ContentConfig, search_config: SearchConfig):
     # Act
     # Regenerate image search embeddings during image setup
@@ -27,7 +26,6 @@ def test_image_search_setup(content_config: ContentConfig, search_config: Search
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.skip(reason="results inconsistent currently")
 def test_image_search(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     output_directory = resolve_absolute_path(web_directory)

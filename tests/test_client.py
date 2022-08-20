@@ -90,7 +90,6 @@ def test_regenerate_with_valid_content_type(content_config: ContentConfig, searc
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.skip(reason="Flaky test. Search doesn't always return expected image path.")
 def test_image_search(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     config.content_type = content_config
