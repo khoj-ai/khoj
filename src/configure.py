@@ -27,27 +27,27 @@ def configure_server(args, required=False):
         state.config = args.config
 
     # Initialize the search model from Config
-    state.model = configure_search(state.model, state.config, args.regenerate, device=state.device, verbose=state.verbose)
+    state.model = configure_search(state.model, state.config, args.regenerate, verbose=state.verbose)
 
     # Initialize Processor from Config
     state.processor_config = configure_processor(args.config.processor, verbose=state.verbose)
 
 
-def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, t: SearchType = None, device=torch.device("cpu"), verbose: int = 0):
+def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, t: SearchType = None, verbose: int = 0):
     # Initialize Org Notes Search
     if (t == SearchType.Org or t == None) and config.content_type.org:
         # Extract Entries, Generate Notes Embeddings
-        model.orgmode_search = text_search.setup(org_to_jsonl, config.content_type.org, search_config=config.search_type.asymmetric, regenerate=regenerate, device=device, verbose=verbose)
+        model.orgmode_search = text_search.setup(org_to_jsonl, config.content_type.org, search_config=config.search_type.asymmetric, regenerate=regenerate, verbose=verbose)
 
     # Initialize Org Music Search
     if (t == SearchType.Music or t == None) and config.content_type.music:
         # Extract Entries, Generate Music Embeddings
-        model.music_search = text_search.setup(org_to_jsonl, config.content_type.music, search_config=config.search_type.asymmetric, regenerate=regenerate, device=device, verbose=verbose)
+        model.music_search = text_search.setup(org_to_jsonl, config.content_type.music, search_config=config.search_type.asymmetric, regenerate=regenerate, verbose=verbose)
 
     # Initialize Markdown Search
     if (t == SearchType.Markdown or t == None) and config.content_type.markdown:
         # Extract Entries, Generate Markdown Embeddings
-        model.markdown_search = text_search.setup(markdown_to_jsonl, config.content_type.markdown, search_config=config.search_type.asymmetric, regenerate=regenerate, device=device, verbose=verbose)
+        model.markdown_search = text_search.setup(markdown_to_jsonl, config.content_type.markdown, search_config=config.search_type.asymmetric, regenerate=regenerate, verbose=verbose)
 
     # Initialize Ledger Search
     if (t == SearchType.Ledger or t == None) and config.content_type.ledger:
