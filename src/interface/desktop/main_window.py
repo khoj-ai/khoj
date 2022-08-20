@@ -6,8 +6,8 @@ import webbrowser
 
 
 # External Packages
-from PyQt6 import QtWidgets
-from PyQt6.QtCore import Qt, QThread, QObject, pyqtSignal
+from PyQt6 import QtGui, QtWidgets
+from PyQt6.QtCore import QThread, QObject, pyqtSignal
 
 # Internal Packages
 from src.configure import configure_server
@@ -48,6 +48,10 @@ class MainWindow(QtWidgets.QMainWindow):
         # Initialize Configure Window
         self.setWindowTitle("Khoj")
         self.setFixedWidth(600)
+
+        # Set Window Icon
+        icon_path = constants.web_directory / 'assets/icons/favicon-144x144.png'
+        self.setWindowIcon(QtGui.QIcon(f'{icon_path.absolute()}'))
 
         # Initialize Configure Window Layout
         self.layout = QtWidgets.QVBoxLayout()
