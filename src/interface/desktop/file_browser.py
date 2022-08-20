@@ -4,10 +4,11 @@ from PyQt6.QtCore import QDir
 
 # Internal Packages
 from src.utils.config import SearchType
+from src.utils.helpers import is_none_or_empty
 
 
 class FileBrowser(QtWidgets.QWidget):
-    def __init__(self, title, search_type: SearchType=None, default_files=[]):
+    def __init__(self, title, search_type: SearchType=None, default_files:list=[]):
         QtWidgets.QWidget.__init__(self)
         layout = QtWidgets.QHBoxLayout()
         self.setLayout(layout)
@@ -57,16 +58,11 @@ class FileBrowser(QtWidgets.QWidget):
                                                     filter=self.filter_name)[0])
         self.setFiles(filepaths)
 
-    def setFiles(self, paths):
-        self.filepaths = paths
-        if not self.filepaths or len(self.filepaths) == 0:
-            return
-        elif len(self.filepaths) == 1:
-            self.lineEdit.setPlainText(self.filepaths[0])
-        else:
-            self.lineEdit.setPlainText("\n".join(self.filepaths))
+    def setFiles(self, paths:list):
+        self.filepaths = [path for path in paths if not is_none_or_empty(path)]
+        self.lineEdit.setPlainText("\n".join(self.filepaths))
 
-    def getPaths(self):
+    def getPaths(self) -> list:
         if self.lineEdit.toPlainText() == '':
             return []
         else:
