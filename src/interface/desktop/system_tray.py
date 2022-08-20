@@ -25,7 +25,7 @@ def create_system_tray(gui: QtWidgets.QApplication, main_window: QtWidgets.QMain
     menu = QtWidgets.QMenu()
     menu_actions = [
         ('Search', lambda: webbrowser.open(f'http://{state.host}:{state.port}/')),
-        ('Configure', main_window.show),
+        ('Configure', main_window.show_on_top),
         ('Quit', gui.quit),
     ]
 

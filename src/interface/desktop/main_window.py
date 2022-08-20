@@ -6,7 +6,7 @@ import webbrowser
 
 # External Packages
 from PyQt6 import QtGui, QtWidgets
-from PyQt6.QtCore import QThread, QObject, pyqtSignal
+from PyQt6.QtCore import Qt, QThread, QObject, pyqtSignal
 
 # Internal Packages
 from src.configure import configure_server
@@ -272,6 +272,13 @@ class MainWindow(QtWidgets.QMainWindow):
         screen_center = self.screen().availableGeometry().center()
         window_rectangle.moveCenter(screen_center)
         self.move(window_rectangle.topLeft().x(), 25)
+
+    def show_on_top(self):
+        "Bring Window on Top"
+        self.show()
+        self.setWindowState(Qt.WindowState.WindowActive)
+        self.activateWindow()  # For Bringing to Top on Windows
+        self.raise_()          # For Bringing to Top from Minimized State on OSX
 
 
 class SettingsLoader(QObject):
