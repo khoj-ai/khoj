@@ -53,9 +53,9 @@ if system() != 'Darwin':
         'src/interface/web/assets/icons/favicon-144x144.png',
         binaries=a.binaries,
         datas=a.datas,
-        text_pos=(10, 50),
+        text_pos=(10, 160),
         text_size=12,
-        text_color='blue',
+        text_color='black',
         minify_script=True,
         always_on_top=True
     )
