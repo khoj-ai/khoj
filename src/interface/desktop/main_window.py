@@ -4,7 +4,6 @@ from pathlib import Path
 from copy import deepcopy
 import webbrowser
 
-
 # External Packages
 from PyQt6 import QtGui, QtWidgets
 from PyQt6.QtCore import QThread, QObject, pyqtSignal
@@ -76,7 +75,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.config_window = QtWidgets.QWidget()
         self.config_window.setLayout(self.layout)
         self.setCentralWidget(self.config_window)
-
+        self.position_window()
 
     def add_settings_panel(self, current_content_config: dict, search_type: SearchType):
         "Add Settings Panel for specified Search Type. Toggle Editable Search Types"
@@ -266,6 +265,13 @@ class MainWindow(QtWidgets.QMainWindow):
             self.thread.finished.connect(lambda: self.configure_button.setText("Configure"))
             self.thread.finished.connect(lambda: self.configure_button.setEnabled(True))
             self.thread.finished.connect(lambda: self.search_button.setEnabled(True))
+
+    def position_window(self):
+        "Position the window at center of X axis and near top on Y axis"
+        window_rectangle = self.geometry()
+        screen_center = self.screen().availableGeometry().center()
+        window_rectangle.moveCenter(screen_center)
+        self.move(window_rectangle.topLeft().x(), 25)
 
 
 class SettingsLoader(QObject):
