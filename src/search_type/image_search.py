@@ -60,18 +60,21 @@ def compute_embeddings(image_names, encoder, embeddings_file, batch_size=50, use
 
 
 def compute_image_embeddings(image_names, encoder, embeddings_file, batch_size=50, regenerate=False, verbose=0):
-    image_embeddings = None
-
     # Load pre-computed image embeddings from file if exists
     if resolve_absolute_path(embeddings_file).exists() and not regenerate:
         image_embeddings = torch.load(embeddings_file)
         if verbose > 0:
             print(f"Loaded pre-computed embeddings from {embeddings_file}")
     # Else compute the image embeddings from scratch, which can take a while
-    elif image_embeddings is None:
+    else:
         image_embeddings = []
         for index in trange(0, len(image_names), batch_size):
-            images = [Image.open(image_name) for image_name in image_names[index:index+batch_size]]
+            images = []
+            for image_name in image_names[index:index+batch_size]:
+                image = Image.open(image_name)
+                # Resize images to max width of 640px for faster processing
+                image.thumbnail((640, image.height))
+                images += [image]
             image_embeddings += encoder.encode(
                 images,
                 convert_to_tensor=True,
@@ -137,6 +140,7 @@ def query(raw_query, count, model: ImageSearchModel):
     if pathlib.Path(raw_query).is_file():
         query_imagepath = resolve_absolute_path(pathlib.Path(raw_query), strict=True)
         query = copy.deepcopy(Image.open(query_imagepath))
+        query.thumbnail((640, query.height)) # scale down image for faster processing
         if model.verbose > 0:
             print(f"Find Images similar to Image at {query_imagepath}")
     else:
