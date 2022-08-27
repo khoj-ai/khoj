@@ -5,13 +5,11 @@ import json
 import argparse
 import pathlib
 import glob
-import re
 import yaml
 
 # Internal Packages
 from panchayat import vdb
 from src.utils.helpers import get_absolute_path, is_none_or_empty
-from src.utils.constants import empty_escape_sequences
 from src.utils.jsonl import dump_jsonl, compress_jsonl_data
 
 
@@ -21,22 +19,21 @@ def panchayat_constructor(loader, node):
 
 
 # Define Functions
-def yaml_to_jsonl(yaml_files, yaml_file_filter, output_file, verbose=0):
+def panchayat_to_jsonl(yaml_files, yaml_file_filter, output_file, verbose=0):
 
-    # yaml.add_constructor("!python.vdb.VDB", panchayat_constructor)
     # Input Validation
     if is_none_or_empty(yaml_files) and is_none_or_empty(yaml_file_filter):
         print("At least one of markdown-files or markdown-file-filter is required to be specified")
         exit(1)
 
     # Get Markdown Files to Process
-    yaml_files = get_yaml_files(yaml_files, yaml_file_filter, verbose)
+    yaml_files = get_panchayat_files(yaml_files, yaml_file_filter, verbose)
 
     # Extract Entries from specified Markdown files
-    entries = extract_yaml_entries(yaml_files)
+    entries = extract_panchayat_entries(yaml_files)
 
     # Process Each Entry from All Notes Files
-    jsonl_data = convert_yaml_entries_to_jsonl(entries, verbose=verbose)
+    jsonl_data = convert_panchayat_entries_to_jsonl(entries, verbose=verbose)
 
     # Compress JSONL formatted Data
     if output_file.suffix == ".gz":
@@ -47,8 +44,8 @@ def yaml_to_jsonl(yaml_files, yaml_file_filter, output_file, verbose=0):
     return entries
 
 
-def get_yaml_files(yaml_files=None, yaml_file_filter=None, verbose=0):
-    "Get Yaml files to process"
+def get_panchayat_files(yaml_files=None, yaml_file_filter=None, verbose=0):
+    "Get the Panchayat file to process"
     absolute_yaml_files, filtered_yaml_files = set(), set()
     if yaml_files:
         absolute_yaml_files = {get_absolute_path(yaml_file) for yaml_file in yaml_files}
@@ -73,7 +70,7 @@ def get_yaml_files(yaml_files=None, yaml_file_filter=None, verbose=0):
     return all_yaml_files
 
 
-def extract_yaml_entries(yaml_files):
+def extract_panchayat_entries(yaml_files):
     "Extract entries by post from specified Yaml files"
 
     entries = []
@@ -82,9 +79,6 @@ def extract_yaml_entries(yaml_files):
 
             # try:
             raw_data = yaml.load(f, Loader=yaml.UnsafeLoader)
-
-            # print(raw_data)
-            # print(raw_data.posts.zig_zag())
 
             seen_ids = set()
 
@@ -100,19 +94,11 @@ def extract_yaml_entries(yaml_files):
                             "body": subpost.body}   
                         entries.append(entry)
 
-            # except yaml.YAMLError as exception:
-                # print(f"Exception encountered while parsing {yaml_file}: {exception}")
-
-            # markdown_content = f.read()
-            # entries.extend([f'#{entry.strip(empty_escape_sequences)}'
-            #    for entry
-            #    in re.split(markdown_heading_regex, markdown_content, flags=re.MULTILINE)])
-
     return entries
 
 
-def convert_yaml_entries_to_jsonl(entries, verbose=0):
-    "Convert each Yaml entry to JSON and collate as JSONL"
+def convert_panchayat_entries_to_jsonl(entries, verbose=0):
+    "Convert each Panchayat Yaml entry to JSON and collate as JSONL"
     jsonl = ''
     for entry in entries:
         entry_dict = {'compiled': entry, 'raw': entry["post_id"]}
@@ -135,4 +121,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Map notes in Yaml files to (compressed) JSONL formatted file
-    yaml_to_jsonl(args.input_files, args.input_filter, args.output_file, args.verbose)
+    panchayat_to_jsonl(args.input_files, args.input_filter, args.output_file, args.verbose)

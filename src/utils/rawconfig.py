@@ -4,6 +4,7 @@ from typing import List, Optional
 
 # External Packages
 from pydantic import BaseModel, validator
+import panchayat
 
 # Internal Packages
 from src.utils.helpers import to_snake_case_from_dash
@@ -43,7 +44,7 @@ class ContentConfig(ConfigBase):
     ledger: Optional[TextContentConfig]
     image: Optional[ImageContentConfig]
     music: Optional[TextContentConfig]
-    yaml: Optional[TextContentConfig]
+    panchayat: Optional[TextContentConfig]
     markdown: Optional[TextContentConfig]
 
 class TextSearchConfig(ConfigBase):
