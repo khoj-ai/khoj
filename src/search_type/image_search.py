@@ -4,6 +4,7 @@ import glob
 import pathlib
 import copy
 import shutil
+import time
 
 # External Packages
 from sentence_transformers import SentenceTransformer, util
@@ -16,6 +17,7 @@ from src.utils.helpers import get_absolute_path, resolve_absolute_path, load_mod
 import src.utils.exiftool as exiftool
 from src.utils.config import ImageSearchModel
 from src.utils.rawconfig import ImageContentConfig, ImageSearchConfig
+from src.utils import state
 
 
 def initialize_model(search_config: ImageSearchConfig):
@@ -145,22 +147,34 @@ def query(raw_query, count, model: ImageSearchModel):
             print(f"Find Images similar to Image at {query_imagepath}")
     else:
         query = raw_query
-        if model.verbose > 0:
+        if state.verbose > 0:
             print(f"Find Images by Text: {query}")
 
     # Now we encode the query (which can either be an image or a text string)
+    start = time.time()
     query_embedding = model.image_encoder.encode([query], convert_to_tensor=True, show_progress_bar=False)
+    end = time.time()
+    if state.verbose > 1:
+        print(f"Query Encode Time: {end - start:.3f} seconds")
 
     # Compute top_k ranked images based on cosine-similarity b/w query and all image embeddings.
+    start = time.time()
     image_hits = {result['corpus_id']: {'image_score': result['score'], 'score': result['score']}
                   for result
                   in util.semantic_search(query_embedding, model.image_embeddings, top_k=count)[0]}
+    end = time.time()
+    if state.verbose > 1:
+        print(f"Search Time: {end - start:.3f} seconds")
 
     # Compute top_k ranked images based on cosine-similarity b/w query and all image metadata embeddings.
     if model.image_metadata_embeddings:
+        start = time.time()
         metadata_hits = {result['corpus_id']: result['score']
                          for result
                          in util.semantic_search(query_embedding, model.image_metadata_embeddings, top_k=count)[0]}
+        end = time.time()
+        if state.verbose > 1:
+            print(f"Metadata Search Time: {end - start:.3f} seconds")
 
         # Sum metadata, image scores of the highest ranked images
         for corpus_id, score in metadata_hits.items():
