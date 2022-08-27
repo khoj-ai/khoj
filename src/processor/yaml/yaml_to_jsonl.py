@@ -94,9 +94,10 @@ def extract_yaml_entries(yaml_files):
                     if subpost.post_id not in seen_ids:
                         seen_ids.add(subpost.post_id)
                         entry = {
+                            "post_id": subpost.post_id,
                             "author": subpost.author.username,
                             "title": subpost.title,
-                            "body": subpost.body}
+                            "body": subpost.body}   
                         entries.append(entry)
 
             # except yaml.YAMLError as exception:
@@ -111,10 +112,10 @@ def extract_yaml_entries(yaml_files):
 
 
 def convert_yaml_entries_to_jsonl(entries, verbose=0):
-    "Convert each Markdown entries to JSON and collate as JSONL"
+    "Convert each Yaml entry to JSON and collate as JSONL"
     jsonl = ''
     for entry in entries:
-        entry_dict = {'compiled': entry, 'raw': entry}
+        entry_dict = {'compiled': entry, 'raw': entry["post_id"]}
         # Convert Dictionary to JSON and Append to JSONL string
         jsonl += f'{json.dumps(entry_dict, ensure_ascii=False)}\n'
 
