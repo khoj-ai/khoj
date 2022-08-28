@@ -121,6 +121,12 @@
                 });
         }
 
+        function setTypeInQueryParam(type) {
+            var url = new URL(window.location.href);
+            url.searchParams.set("t", type.value);
+            window.history.pushState({}, "", url.href);
+        }
+
         window.onload = function () {
             // Dynamically populate type dropdown based on enabled search types and type passed as URL query parameter
             populate_type_dropdown();
@@ -140,7 +146,7 @@
 
         <div id="options">
             <!--Add Dropdown to Select Query Type -->
-            <select id="type"></select>
+            <select id="type" onchange="setTypeInQueryParam(this)"></select>
 
             <!--Add Button To Regenerate -->
             <button id="regenerate" onclick="regenerate()">Regenerate</button>
