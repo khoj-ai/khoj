@@ -1,13 +1,17 @@
 # Standard Packages
 import json
 import gzip
+import logging
 
 # Internal Packages
 from src.utils.constants import empty_escape_sequences
 from src.utils.helpers import get_absolute_path
 
 
-def load_jsonl(input_path, verbose=0):
+logger = logging.getLogger(__name__)
+
+
+def load_jsonl(input_path):
     "Read List of JSON objects from JSON line file"
     # Initialize Variables
     data = []
@@ -27,13 +31,12 @@ def load_jsonl(input_path, verbose=0):
     jsonl_file.close()
 
     # Log JSONL entries loaded
-    if verbose > 0:
-        print(f'Loaded {len(data)} records from {input_path}')
+    logger.info(f'Loaded {len(data)} records from {input_path}')
 
     return data
 
 
-def dump_jsonl(jsonl_data, output_path, verbose=0):
+def dump_jsonl(jsonl_data, output_path):
     "Write List of JSON objects to JSON line file"
     # Create output directory, if it doesn't exist
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -41,16 +44,14 @@ def dump_jsonl(jsonl_data, output_path, verbose=0):
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(jsonl_data)
 
-    if verbose > 0:
-        print(f'Wrote {len(jsonl_data)} lines to jsonl at {output_path}')
+    logger.info(f'Wrote {len(jsonl_data)} lines to jsonl at {output_path}')
 
 
-def compress_jsonl_data(jsonl_data, output_path, verbose=0):
+def compress_jsonl_data(jsonl_data, output_path):
     # Create output directory, if it doesn't exist
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     with gzip.open(output_path, 'wt') as gzip_file:
         gzip_file.write(jsonl_data)
 
-    if verbose > 0:
-        print(f'Wrote {len(jsonl_data)} lines to gzip compressed jsonl at {output_path}')
+    logger.info(f'Wrote {len(jsonl_data)} lines to gzip compressed jsonl at {output_path}')

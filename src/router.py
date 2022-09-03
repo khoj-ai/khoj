@@ -2,6 +2,7 @@
 import yaml
 import json
 import time
+import logging
 from typing import Optional
 from functools import lru_cache
 
@@ -22,9 +23,11 @@ from src.utils.config import SearchType
 from src.utils.helpers import get_absolute_path, get_from_dict
 from src.utils import state, constants
 
-router = APIRouter()
 
+router = APIRouter()
 templates = Jinja2Templates(directory=constants.web_directory)
+logger = logging.getLogger(__name__)
+
 
 @router.get("/", response_class=FileResponse)
 def index():
@@ -50,7 +53,7 @@ async def config_data(updated_config: FullConfig):
 @lru_cache(maxsize=100)
 def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Optional[bool] = False):
     if q is None or q == '':
-        print(f'No query param (q) passed in API call to initiate search')
+        logger.info(f'No query param (q) passed in API call to initiate search')
         return {}
 
     # initialize variables
@@ -120,11 +123,10 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
             count=results_count)
         collate_end = time.time()
 
-    if state.verbose > 1:
-        if query_start and query_end:
-            print(f"Query took {query_end - query_start:.3f} seconds")
-        if collate_start and collate_end:
-            print(f"Collating results took {collate_end - collate_start:.3f} seconds")
+    if query_start and query_end:
+        logger.debug(f"Query took {query_end - query_start:.3f} seconds")
+    if collate_start and collate_end:
+        logger.debug(f"Collating results took {collate_end - collate_start:.3f} seconds")
 
     return results
 

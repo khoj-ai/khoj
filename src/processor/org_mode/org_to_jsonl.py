@@ -6,40 +6,43 @@ import json
 import argparse
 import pathlib
 import glob
+import logging
 
 # Internal Packages
 from src.processor.org_mode import orgnode
 from src.utils.helpers import get_absolute_path, is_none_or_empty
-from src.utils.constants import empty_escape_sequences
 from src.utils.jsonl import dump_jsonl, compress_jsonl_data
 
 
+logger = logging.getLogger(__name__)
+
+
 # Define Functions
-def org_to_jsonl(org_files, org_file_filter, output_file, verbose=0):
+def org_to_jsonl(org_files, org_file_filter, output_file):
     # Input Validation
     if is_none_or_empty(org_files) and is_none_or_empty(org_file_filter):
         print("At least one of org-files or org-file-filter is required to be specified")
         exit(1)
 
     # Get Org Files to Process
-    org_files = get_org_files(org_files, org_file_filter, verbose)
+    org_files = get_org_files(org_files, org_file_filter)
 
     # Extract Entries from specified Org files
     entries = extract_org_entries(org_files)
 
     # Process Each Entry from All Notes Files
-    jsonl_data = convert_org_entries_to_jsonl(entries, verbose=verbose)
+    jsonl_data = convert_org_entries_to_jsonl(entries)
 
     # Compress JSONL formatted Data
     if output_file.suffix == ".gz":
-        compress_jsonl_data(jsonl_data, output_file, verbose=verbose)
+        compress_jsonl_data(jsonl_data, output_file)
     elif output_file.suffix == ".jsonl":
-        dump_jsonl(jsonl_data, output_file, verbose=verbose)
+        dump_jsonl(jsonl_data, output_file)
 
     return entries
 
 
-def get_org_files(org_files=None, org_file_filter=None, verbose=0):
+def get_org_files(org_files=None, org_file_filter=None):
     "Get Org files to process"
     absolute_org_files, filtered_org_files = set(), set()
     if org_files:
@@ -53,10 +56,9 @@ def get_org_files(org_files=None, org_file_filter=None, verbose=0):
 
     files_with_non_org_extensions = {org_file for org_file in all_org_files if not org_file.endswith(".org")}
     if any(files_with_non_org_extensions):
-        print(f"[Warning] There maybe non org-mode files in the input set: {files_with_non_org_extensions}")
+        logger.warn(f"There maybe non org-mode files in the input set: {files_with_non_org_extensions}")
 
-    if verbose > 0:
-        print(f'Processing files: {all_org_files}')
+    logger.info(f'Processing files: {all_org_files}')
 
     return all_org_files
 
@@ -72,7 +74,7 @@ def extract_org_entries(org_files):
     return entries
 
 
-def convert_org_entries_to_jsonl(entries, verbose=0) -> str:
+def convert_org_entries_to_jsonl(entries) -> str:
     "Convert each Org-Mode entries to JSON and collate as JSONL"
     jsonl = ''
     for entry in entries:
@@ -83,29 +85,24 @@ def convert_org_entries_to_jsonl(entries, verbose=0) -> str:
             continue
 
         entry_dict["compiled"] = f'{entry.Heading()}.'
-        if verbose > 2:
-            print(f"Title: {entry.Heading()}")
+        logger.debug(f"Title: {entry.Heading()}")
 
         if entry.Tags():
             tags_str = " ".join(entry.Tags())
             entry_dict["compiled"] += f'\t {tags_str}.'
-            if verbose > 2:
-                print(f"Tags: {tags_str}")
+            logger.debug(f"Tags: {tags_str}")
 
         if entry.Closed():
             entry_dict["compiled"] += f'\n Closed on {entry.Closed().strftime("%Y-%m-%d")}.'
-            if verbose > 2:
-                print(f'Closed: {entry.Closed().strftime("%Y-%m-%d")}')
+            logger.debug(f'Closed: {entry.Closed().strftime("%Y-%m-%d")}')
 
         if entry.Scheduled():
             entry_dict["compiled"] += f'\n Scheduled for {entry.Scheduled().strftime("%Y-%m-%d")}.'
-            if verbose > 2:
-                print(f'Scheduled: {entry.Scheduled().strftime("%Y-%m-%d")}')
+            logger.debug(f'Scheduled: {entry.Scheduled().strftime("%Y-%m-%d")}')
 
         if entry.Body():
             entry_dict["compiled"] += f'\n {entry.Body()}'
-            if verbose > 2:
-                print(f"Body: {entry.Body()}")
+            logger.debug(f"Body: {entry.Body()}")
 
         if entry_dict:
             entry_dict["raw"] = f'{entry}'
@@ -113,8 +110,7 @@ def convert_org_entries_to_jsonl(entries, verbose=0) -> str:
             # Convert Dictionary to JSON and Append to JSONL string
             jsonl += f'{json.dumps(entry_dict, ensure_ascii=False)}\n'
 
-    if verbose > 0:
-        print(f"Converted {len(entries)} to jsonl format")
+    logger.info(f"Converted {len(entries)} to jsonl format")
 
     return jsonl
 

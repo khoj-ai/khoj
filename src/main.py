@@ -2,6 +2,7 @@
 import os
 import signal
 import sys
+import logging
 from platform import system
 
 # External Packages
@@ -25,6 +26,33 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory=constants.web_directory), name="static")
 app.include_router(router)
 
+logger = logging.getLogger('src')
+
+
+class CustomFormatter(logging.Formatter):
+
+    blue = "\x1b[1;34m"
+    green = "\x1b[1;32m"
+    grey = "\x1b[38;20m"
+    yellow = "\x1b[33;20m"
+    red = "\x1b[31;20m"
+    bold_red = "\x1b[31;1m"
+    reset = "\x1b[0m"
+    format = "%(levelname)s: %(asctime)s: %(name)s | %(message)s"
+
+    FORMATS = {
+        logging.DEBUG: blue + format + reset,
+        logging.INFO: green + format + reset,
+        logging.WARNING: yellow + format + reset,
+        logging.ERROR: red + format + reset,
+        logging.CRITICAL: bold_red + format + reset
+    }
+
+    def format(self, record):
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)
+
 
 def run():
     # Turn Tokenizers Parallelism Off. App does not support it.
@@ -33,6 +61,20 @@ def run():
     # Load config from CLI
     state.cli_args = sys.argv[1:]
     args = cli(state.cli_args)
+
+    # Setup Logger
+    # logging.basicConfig(format='%(levelname)s: %(asctime)s : %(module)s | %(message)s', datefmt='%d-%m-%Y %H:%M:%S')
+    ch = logging.StreamHandler()
+    ch.setFormatter(CustomFormatter())
+    logger.addHandler(ch)
+    if args.verbose == 0:
+        logger.setLevel(logging.WARN)
+    elif args.verbose == 1:
+        logger.setLevel(logging.INFO)
+    elif args.verbose >= 2:
+        logger.setLevel(logging.DEBUG)
+
+    logger.info("Starting Khoj...")
     set_state(args)
 
     if args.no_gui:

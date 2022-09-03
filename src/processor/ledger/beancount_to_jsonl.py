@@ -6,6 +6,7 @@ import argparse
 import pathlib
 import glob
 import re
+import logging
 
 # Internal Packages
 from src.utils.helpers import get_absolute_path, is_none_or_empty
@@ -13,32 +14,35 @@ from src.utils.constants import empty_escape_sequences
 from src.utils.jsonl import dump_jsonl, compress_jsonl_data
 
 
+logger = logging.getLogger(__name__)
+
+
 # Define Functions
-def beancount_to_jsonl(beancount_files, beancount_file_filter, output_file, verbose=0):
+def beancount_to_jsonl(beancount_files, beancount_file_filter, output_file):
     # Input Validation
     if is_none_or_empty(beancount_files) and is_none_or_empty(beancount_file_filter):
         print("At least one of beancount-files or beancount-file-filter is required to be specified")
         exit(1)
 
     # Get Beancount Files to Process
-    beancount_files = get_beancount_files(beancount_files, beancount_file_filter, verbose)
+    beancount_files = get_beancount_files(beancount_files, beancount_file_filter)
 
     # Extract Entries from specified Beancount files
     entries = extract_beancount_entries(beancount_files)
 
     # Process Each Entry from All Notes Files
-    jsonl_data = convert_beancount_entries_to_jsonl(entries, verbose=verbose)
+    jsonl_data = convert_beancount_entries_to_jsonl(entries)
 
     # Compress JSONL formatted Data
     if output_file.suffix == ".gz":
-        compress_jsonl_data(jsonl_data, output_file, verbose=verbose)
+        compress_jsonl_data(jsonl_data, output_file)
     elif output_file.suffix == ".jsonl":
-        dump_jsonl(jsonl_data, output_file, verbose=verbose)
+        dump_jsonl(jsonl_data, output_file)
 
     return entries
 
 
-def get_beancount_files(beancount_files=None, beancount_file_filter=None, verbose=0):
+def get_beancount_files(beancount_files=None, beancount_file_filter=None):
     "Get Beancount files to process"
     absolute_beancount_files, filtered_beancount_files = set(), set()
     if beancount_files:
@@ -57,8 +61,7 @@ def get_beancount_files(beancount_files=None, beancount_file_filter=None, verbos
     if any(files_with_non_beancount_extensions):
         print(f"[Warning] There maybe non beancount files in the input set: {files_with_non_beancount_extensions}")
 
-    if verbose > 0:
-        print(f'Processing files: {all_beancount_files}')
+    logger.info(f'Processing files: {all_beancount_files}')
 
     return all_beancount_files
 
@@ -82,7 +85,7 @@ def extract_beancount_entries(beancount_files):
     return entries
 
 
-def convert_beancount_entries_to_jsonl(entries, verbose=0):
+def convert_beancount_entries_to_jsonl(entries):
     "Convert each Beancount transaction to JSON and collate as JSONL"
     jsonl = ''
     for entry in entries:
@@ -90,8 +93,7 @@ def convert_beancount_entries_to_jsonl(entries, verbose=0):
         # Convert Dictionary to JSON and Append to JSONL string
         jsonl += f'{json.dumps(entry_dict, ensure_ascii=False)}\n'
 
-    if verbose > 0:
-        print(f"Converted {len(entries)} to jsonl format")
+    logger.info(f"Converted {len(entries)} to jsonl format")
 
     return jsonl
 
