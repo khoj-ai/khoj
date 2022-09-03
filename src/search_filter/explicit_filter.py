@@ -25,6 +25,7 @@ class ExplicitFilter:
         self.entry_key = entry_key
         self.search_type = search_type
         self.entries_by_word_set = None
+        self.cache = {}
 
 
     def load(self, entries, regenerate=False):
@@ -36,6 +37,7 @@ class ExplicitFilter:
             logger.debug(f"Load {self.search_type} entries by word set from file: {end - start} seconds")
         else:
             start = time.time()
+            self.cache = {}  # Clear cache on (re-)generating entries_by_word_set
             entry_splitter = r',|\.| |\]|\[\(|\)|\{|\}|\t|\n|\:'
             self.entries_by_word_set = [set(word.lower()
                                     for word
@@ -72,6 +74,13 @@ class ExplicitFilter:
         logger.debug(f"Extract required, blocked filters from query: {end - start} seconds")
 
         if len(required_words) == 0 and len(blocked_words) == 0:
+            return query, raw_entries, raw_embeddings
+
+        # Return item from cache if exists
+        cache_key = tuple(sorted(required_words)), tuple(sorted(blocked_words))
+        if cache_key in self.cache:
+            logger.info(f"Explicit filter results from cache")
+            entries, embeddings = self.cache[cache_key]
             return query, entries, embeddings
 
         if not self.entries_by_word_set:
@@ -102,5 +111,8 @@ class ExplicitFilter:
             embeddings = torch.cat((embeddings[:id], embeddings[id+1:]))
         end = time.time()
         logger.debug(f"Delete entries not satisfying filter: {end - start} seconds")
+
+        # Cache results
+        self.cache[cache_key] = entries, embeddings
 
         return query, entries, embeddings
