@@ -3,7 +3,6 @@ import argparse
 import pathlib
 import logging
 import time
-from copy import deepcopy
 
 # External Packages
 import torch
@@ -77,22 +76,11 @@ def compute_embeddings(entries, bi_encoder, embeddings_file, regenerate=False):
 
 def query(raw_query: str, model: TextSearchModel, rank_results=False):
     "Search for entries that answer the query"
-    query = raw_query
-
-    # Use deep copy of original embeddings, entries to filter if query contains filters
-    start = time.time()
-    filters_in_query = [filter for filter in model.filters if filter.can_filter(query)]
-    if filters_in_query:
-        corpus_embeddings = deepcopy(model.corpus_embeddings)
-        entries = deepcopy(model.entries)
-    else:
-        corpus_embeddings = model.corpus_embeddings
-        entries = model.entries
-    end = time.time()
-    logger.debug(f"Copy Time: {end - start:.3f} seconds")
+    query, entries, corpus_embeddings = raw_query, model.entries, model.corpus_embeddings
 
     # Filter query, entries and embeddings before semantic search
     start = time.time()
+    filters_in_query = [filter for filter in model.filters if filter.can_filter(query)]
     for filter in filters_in_query:
         query, entries, corpus_embeddings = filter.apply(query, entries, corpus_embeddings)
     end = time.time()

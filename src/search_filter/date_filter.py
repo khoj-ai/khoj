@@ -3,6 +3,7 @@ import re
 from datetime import timedelta, datetime
 from dateutil.relativedelta import relativedelta, MO
 from math import inf
+from copy import deepcopy
 
 # External Packages
 import torch
@@ -31,18 +32,22 @@ class DateFilter:
         return self.extract_date_range(raw_query) is not None
 
 
-    def apply(self, query, entries, embeddings):
+    def apply(self, query, raw_entries, raw_embeddings):
         "Find entries containing any dates that fall within date range specified in query"
         # extract date range specified in date filter of query
         query_daterange = self.extract_date_range(query)
 
         # if no date in query, return all entries
         if query_daterange is None:
-            return query, entries, embeddings
+            return query, raw_entries, raw_embeddings
 
         # remove date range filter from query
         query = re.sub(rf'\s+{self.date_regex}', ' ', query)
         query = re.sub(r'\s{2,}', ' ', query).strip()  # remove multiple spaces
+
+        # deep copy original embeddings, entries before filtering
+        embeddings= deepcopy(raw_embeddings)
+        entries = deepcopy(raw_entries)
 
         # find entries containing any dates that fall with date range specified in query
         entries_to_include = set()

@@ -3,6 +3,7 @@ import re
 import time
 import pickle
 import logging
+from copy import deepcopy
 
 # External Packages
 import torch
@@ -61,7 +62,7 @@ class ExplicitFilter:
         return len(required_words) != 0 or len(blocked_words) != 0
 
 
-    def apply(self, raw_query, entries, embeddings):
+    def apply(self, raw_query, raw_entries, raw_embeddings):
         "Find entries containing required and not blocked words specified in query"
         # Separate natural query from explicit required, blocked words filters
         start = time.time()
@@ -82,6 +83,13 @@ class ExplicitFilter:
             logger.info(f"Explicit filter results from cache")
             entries, embeddings = self.cache[cache_key]
             return query, entries, embeddings
+
+        # deep copy original embeddings, entries before filtering
+        start = time.time()
+        embeddings= deepcopy(raw_embeddings)
+        entries = deepcopy(raw_entries)
+        end = time.time()
+        logger.debug(f"Create copy of embeddings, entries for manipulation: {end - start:.3f} seconds")
 
         if not self.entries_by_word_set:
             self.load(entries, regenerate=False)
