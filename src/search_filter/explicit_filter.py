@@ -52,8 +52,8 @@ class ExplicitFilter:
     def can_filter(self, raw_query):
         "Check if query contains explicit filters"
         # Extract explicit query portion with required, blocked words to filter from natural query
-        required_words = set([word[1:].lower() for word in raw_query.split() if word.startswith("+")])
-        blocked_words = set([word[1:].lower() for word in raw_query.split() if word.startswith("-")])
+        required_words = re.findall(self.required_regex, raw_query)
+        blocked_words = re.findall(self.blocked_regex, raw_query)
 
         return len(required_words) != 0 or len(blocked_words) != 0
 
