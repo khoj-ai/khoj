@@ -2,6 +2,7 @@
 import re
 import time
 import pickle
+import logging
 
 # External Packages
 import torch
@@ -9,6 +10,9 @@ import torch
 # Internal Packages
 from src.utils.helpers import resolve_absolute_path
 from src.utils.config import SearchType
+
+
+logger = logging.getLogger(__name__)
 
 
 class ExplicitFilter:
@@ -24,7 +28,7 @@ class ExplicitFilter:
             with self.filter_file.open('rb') as f:
                 entries_by_word_set = pickle.load(f)
             end = time.time()
-            print(f"Load {self.search_type} entries by word set from file: {end - start} seconds")
+            logger.debug(f"Load {self.search_type} entries by word set from file: {end - start} seconds")
         else:
             start = time.time()
             entry_splitter = r',|\.| |\]|\[\(|\)|\{|\}|\t|\n|\:'
@@ -36,7 +40,7 @@ class ExplicitFilter:
             with self.filter_file.open('wb') as f:
                 pickle.dump(entries_by_word_set, f)
             end = time.time()
-            print(f"Convert all {self.search_type} entries to word sets: {end - start} seconds")
+            logger.debug(f"Convert all {self.search_type} entries to word sets: {end - start} seconds")
 
         return entries_by_word_set
 
@@ -58,7 +62,7 @@ class ExplicitFilter:
         required_words = set([word[1:].lower() for word in raw_query.split() if word.startswith("+")])
         blocked_words = set([word[1:].lower() for word in raw_query.split() if word.startswith("-")])
         end = time.time()
-        print(f"Time to extract required, blocked words: {end - start} seconds")
+        logger.debug(f"Time to extract required, blocked words: {end - start} seconds")
 
         if len(required_words) == 0 and len(blocked_words) == 0:
             return query, entries, embeddings
@@ -82,7 +86,7 @@ class ExplicitFilter:
                 if words_in_entry.intersection(blocked_words):
                     entries_to_exclude.add(id)
         end = time.time()
-        print(f"Mark entries to filter: {end - start} seconds")
+        logger.debug(f"Mark entries to filter: {end - start} seconds")
 
         # delete entries (and their embeddings) marked for exclusion
         start = time.time()
@@ -90,6 +94,6 @@ class ExplicitFilter:
             del entries[id]
             embeddings = torch.cat((embeddings[:id], embeddings[id+1:]))
         end = time.time()
-        print(f"Remove entries to filter from embeddings: {end - start} seconds")
+        logger.debug(f"Remove entries to filter from embeddings: {end - start} seconds")
 
         return query, entries, embeddings
