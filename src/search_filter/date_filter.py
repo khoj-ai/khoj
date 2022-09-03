@@ -17,12 +17,21 @@ class DateFilter:
     #   - dt:"2 years ago"
     date_regex = r"dt([:><=]{1,2})\"(.*?)\""
 
+
+    def __init__(self, entry_key='raw'):
+        self.entry_key = entry_key
+
+
+    def load(*args, **kwargs):
+        pass
+
+
     def can_filter(self, raw_query):
         "Check if query contains date filters"
         return self.extract_date_range(raw_query) is not None
 
 
-    def filter(self, query, entries, embeddings, entry_key='raw'):
+    def apply(self, query, entries, embeddings):
         "Find entries containing any dates that fall within date range specified in query"
         # extract date range specified in date filter of query
         query_daterange = self.extract_date_range(query)
@@ -39,7 +48,7 @@ class DateFilter:
         entries_to_include = set()
         for id, entry in enumerate(entries):
             # Extract dates from entry
-            for date_in_entry_string in re.findall(r'\d{4}-\d{2}-\d{2}', entry[entry_key]):
+            for date_in_entry_string in re.findall(r'\d{4}-\d{2}-\d{2}', entry[self.entry_key]):
                 # Convert date string in entry to unix timestamp
                 try:
                     date_in_entry = datetime.strptime(date_in_entry_string, '%Y-%m-%d').timestamp()
