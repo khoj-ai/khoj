@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 
 class ExplicitFilter:
     # Filter Regex
-    required_regex = r'\+([^\s]+) ?'
-    blocked_regex = r'\-([^\s]+) ?'
+    required_regex = r'\+"(\w+)" ?'
+    blocked_regex = r'\-"(\w+)" ?'
 
     def __init__(self, filter_directory, search_type: SearchType, entry_key='raw'):
         self.filter_file = resolve_absolute_path(filter_directory / f"{search_type.name.lower()}_explicit_filter_entry_word_sets.pkl")

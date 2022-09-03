@@ -27,7 +27,7 @@ def test_explicit_exclude_filter(tmp_path):
     # Arrange
     explicit_filter = ExplicitFilter(tmp_path, SearchType.Org)
     embeddings, entries = arrange_content()
-    q_with_exclude_filter = 'head -exclude_word tail'
+    q_with_exclude_filter = 'head -"exclude_word" tail'
 
     # Act
     can_filter = explicit_filter.can_filter(q_with_exclude_filter)
@@ -44,7 +44,7 @@ def test_explicit_include_filter(tmp_path):
     # Arrange
     explicit_filter = ExplicitFilter(tmp_path, SearchType.Org)
     embeddings, entries = arrange_content()
-    query_with_include_filter = 'head +include_word tail'
+    query_with_include_filter = 'head +"include_word" tail'
 
     # Act
     can_filter = explicit_filter.can_filter(query_with_include_filter)
@@ -61,7 +61,7 @@ def test_explicit_include_and_exclude_filter(tmp_path):
     # Arrange
     explicit_filter = ExplicitFilter(tmp_path, SearchType.Org)
     embeddings, entries = arrange_content()
-    query_with_include_and_exclude_filter = 'head +include_word -exclude_word tail'
+    query_with_include_and_exclude_filter = 'head +"include_word" -"exclude_word" tail'
 
     # Act
     can_filter = explicit_filter.can_filter(query_with_include_and_exclude_filter)

@@ -133,7 +133,7 @@ def test_notes_search(content_config: ContentConfig, search_config: SearchConfig
 def test_notes_search_with_include_filter(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     model.orgmode_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, SearchType.Org, regenerate=False)
-    user_query = "How to git install application? +Emacs"
+    user_query = 'How to git install application? +"Emacs"'
 
     # Act
     response = client.get(f"/search?q={user_query}&n=1&t=org")
@@ -149,7 +149,7 @@ def test_notes_search_with_include_filter(content_config: ContentConfig, search_
 def test_notes_search_with_exclude_filter(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     model.orgmode_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, SearchType.Org, regenerate=False)
-    user_query = "How to git install application? -clone"
+    user_query = 'How to git install application? -"clone"'
 
     # Act
     response = client.get(f"/search?q={user_query}&n=1&t=org")
