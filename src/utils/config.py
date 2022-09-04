@@ -20,11 +20,12 @@ class ProcessorType(str, Enum):
 
 
 class TextSearchModel():
-    def __init__(self, entries, corpus_embeddings, bi_encoder, cross_encoder, top_k):
+    def __init__(self, entries, corpus_embeddings, bi_encoder, cross_encoder, filters, top_k):
         self.entries = entries
         self.corpus_embeddings = corpus_embeddings
         self.bi_encoder = bi_encoder
         self.cross_encoder = cross_encoder
+        self.filters = filters
         self.top_k = top_k
 
 

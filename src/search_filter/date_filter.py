@@ -3,6 +3,7 @@ import re
 from datetime import timedelta, datetime
 from dateutil.relativedelta import relativedelta, MO
 from math import inf
+from copy import deepcopy
 
 # External Packages
 import torch
@@ -17,29 +18,42 @@ class DateFilter:
     #   - dt:"2 years ago"
     date_regex = r"dt([:><=]{1,2})\"(.*?)\""
 
+
+    def __init__(self, entry_key='raw'):
+        self.entry_key = entry_key
+
+
+    def load(*args, **kwargs):
+        pass
+
+
     def can_filter(self, raw_query):
         "Check if query contains date filters"
         return self.extract_date_range(raw_query) is not None
 
 
-    def filter(self, query, entries, embeddings, entry_key='raw'):
+    def apply(self, query, raw_entries, raw_embeddings):
         "Find entries containing any dates that fall within date range specified in query"
         # extract date range specified in date filter of query
         query_daterange = self.extract_date_range(query)
 
         # if no date in query, return all entries
         if query_daterange is None:
-            return query, entries, embeddings
+            return query, raw_entries, raw_embeddings
 
         # remove date range filter from query
         query = re.sub(rf'\s+{self.date_regex}', ' ', query)
         query = re.sub(r'\s{2,}', ' ', query).strip()  # remove multiple spaces
 
+        # deep copy original embeddings, entries before filtering
+        embeddings= deepcopy(raw_embeddings)
+        entries = deepcopy(raw_entries)
+
         # find entries containing any dates that fall with date range specified in query
         entries_to_include = set()
         for id, entry in enumerate(entries):
             # Extract dates from entry
-            for date_in_entry_string in re.findall(r'\d{4}-\d{2}-\d{2}', entry[entry_key]):
+            for date_in_entry_string in re.findall(r'\d{4}-\d{2}-\d{2}', entry[self.entry_key]):
                 # Convert date string in entry to unix timestamp
                 try:
                     date_in_entry = datetime.strptime(date_in_entry_string, '%Y-%m-%d').timestamp()

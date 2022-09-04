@@ -40,22 +40,22 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
     # Initialize Org Notes Search
     if (t == SearchType.Org or t == None) and config.content_type.org:
         # Extract Entries, Generate Notes Embeddings
-        model.orgmode_search = text_search.setup(org_to_jsonl, config.content_type.org, search_config=config.search_type.asymmetric, regenerate=regenerate)
+        model.orgmode_search = text_search.setup(org_to_jsonl, config.content_type.org, search_config=config.search_type.asymmetric, search_type=SearchType.Org, regenerate=regenerate)
 
     # Initialize Org Music Search
     if (t == SearchType.Music or t == None) and config.content_type.music:
         # Extract Entries, Generate Music Embeddings
-        model.music_search = text_search.setup(org_to_jsonl, config.content_type.music, search_config=config.search_type.asymmetric, regenerate=regenerate)
+        model.music_search = text_search.setup(org_to_jsonl, config.content_type.music, search_config=config.search_type.asymmetric, search_type=SearchType.Music, regenerate=regenerate)
 
     # Initialize Markdown Search
     if (t == SearchType.Markdown or t == None) and config.content_type.markdown:
         # Extract Entries, Generate Markdown Embeddings
-        model.markdown_search = text_search.setup(markdown_to_jsonl, config.content_type.markdown, search_config=config.search_type.asymmetric, regenerate=regenerate)
+        model.markdown_search = text_search.setup(markdown_to_jsonl, config.content_type.markdown, search_config=config.search_type.asymmetric, search_type=SearchType.Markdown, regenerate=regenerate)
 
     # Initialize Ledger Search
     if (t == SearchType.Ledger or t == None) and config.content_type.ledger:
         # Extract Entries, Generate Ledger Embeddings
-        model.ledger_search = text_search.setup(beancount_to_jsonl, config.content_type.ledger, search_config=config.search_type.symmetric, regenerate=regenerate)
+        model.ledger_search = text_search.setup(beancount_to_jsonl, config.content_type.ledger, search_config=config.search_type.symmetric, search_type=SearchType.Ledger, regenerate=regenerate)
 
     # Initialize Image Search
     if (t == SearchType.Image or t == None) and config.content_type.image:

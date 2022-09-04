@@ -3,9 +3,9 @@ import pytest
 
 # Internal Packages
 from src.search_type import image_search, text_search
+from src.utils.config import SearchType
 from src.utils.rawconfig import ContentConfig, TextContentConfig, ImageContentConfig, SearchConfig, TextSearchConfig, ImageSearchConfig
 from src.processor.org_mode.org_to_jsonl import org_to_jsonl
-from src.utils import state
 
 
 @pytest.fixture(scope='session')
@@ -46,7 +46,7 @@ def model_dir(search_config):
         batch_size = 10,
         use_xmp_metadata = False)
 
-    image_search.setup(content_config.image, search_config.image, regenerate=False, verbose=True)
+    image_search.setup(content_config.image, search_config.image, regenerate=False)
 
     # Generate Notes Embeddings from Test Notes
     content_config.org = TextContentConfig(
@@ -55,7 +55,7 @@ def model_dir(search_config):
         compressed_jsonl = model_dir.joinpath('notes.jsonl.gz'),
         embeddings_file = model_dir.joinpath('note_embeddings.pt'))
 
-    text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False, verbose=True)
+    text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, SearchType.Org, regenerate=False)
 
     return model_dir
 
