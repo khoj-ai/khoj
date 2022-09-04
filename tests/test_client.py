@@ -4,7 +4,6 @@ from PIL import Image
 
 # External Packages
 from fastapi.testclient import TestClient
-import pytest
 
 # Internal Packages
 from src.main import app
@@ -12,7 +11,8 @@ from src.utils.config import SearchType
 from src.utils.state import model, config
 from src.search_type import text_search, image_search
 from src.utils.rawconfig import ContentConfig, SearchConfig
-from src.processor.org_mode import org_to_jsonl
+from src.processor.org_mode.org_to_jsonl import org_to_jsonl
+from src.search_filter.word_filter import WordFilter
 
 
 # Arrange
@@ -116,7 +116,7 @@ def test_image_search(content_config: ContentConfig, search_config: SearchConfig
 # ----------------------------------------------------------------------------------------------------
 def test_notes_search(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    model.orgmode_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, SearchType.Org, regenerate=False)
+    model.orgmode_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False)
     user_query = "How to git install application?"
 
     # Act
@@ -132,7 +132,8 @@ def test_notes_search(content_config: ContentConfig, search_config: SearchConfig
 # ----------------------------------------------------------------------------------------------------
 def test_notes_search_with_include_filter(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    model.orgmode_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, SearchType.Org, regenerate=False)
+    filters = [WordFilter(content_config.org.compressed_jsonl.parent, search_type=SearchType.Org)]
+    model.orgmode_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False, filters=filters)
     user_query = 'How to git install application? +"Emacs"'
 
     # Act
@@ -148,7 +149,8 @@ def test_notes_search_with_include_filter(content_config: ContentConfig, search_
 # ----------------------------------------------------------------------------------------------------
 def test_notes_search_with_exclude_filter(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    model.orgmode_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, SearchType.Org, regenerate=False)
+    filters = [WordFilter(content_config.org.compressed_jsonl.parent, search_type=SearchType.Org)]
+    model.orgmode_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False, filters=filters)
     user_query = 'How to git install application? -"clone"'
 
     # Act

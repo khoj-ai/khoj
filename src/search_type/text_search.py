@@ -7,13 +7,12 @@ import time
 # External Packages
 import torch
 from sentence_transformers import SentenceTransformer, CrossEncoder, util
-from src.search_filter.date_filter import DateFilter
-from src.search_filter.word_filter import WordFilter
+from src.search_filter.base_filter import BaseFilter
 
 # Internal Packages
 from src.utils import state
 from src.utils.helpers import get_absolute_path, resolve_absolute_path, load_model
-from src.utils.config import SearchType, TextSearchModel
+from src.utils.config import TextSearchModel
 from src.utils.rawconfig import TextSearchConfig, TextContentConfig
 from src.utils.jsonl import load_jsonl
 
@@ -153,7 +152,7 @@ def collate_results(hits, entries, count=5):
         in hits[0:count]]
 
 
-def setup(text_to_jsonl, config: TextContentConfig, search_config: TextSearchConfig, search_type: SearchType, regenerate: bool) -> TextSearchModel:
+def setup(text_to_jsonl, config: TextContentConfig, search_config: TextSearchConfig, regenerate: bool, filters: list[BaseFilter] = []) -> TextSearchModel:
     # Initialize Model
     bi_encoder, cross_encoder, top_k = initialize_model(search_config)
 
@@ -170,8 +169,6 @@ def setup(text_to_jsonl, config: TextContentConfig, search_config: TextSearchCon
     config.embeddings_file = resolve_absolute_path(config.embeddings_file)
     corpus_embeddings = compute_embeddings(entries, bi_encoder, config.embeddings_file, regenerate=regenerate)
 
-    filter_directory = resolve_absolute_path(config.compressed_jsonl.parent)
-    filters = [DateFilter(), WordFilter(filter_directory, search_type=search_type)]
     for filter in filters:
         filter.load(entries, regenerate=regenerate)
 
