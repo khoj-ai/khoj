@@ -28,10 +28,10 @@ def org_to_jsonl(org_files, org_file_filter, output_file):
     org_files = get_org_files(org_files, org_file_filter)
 
     # Extract Entries from specified Org files
-    entries = extract_org_entries(org_files)
+    entries, file_to_entries = extract_org_entries(org_files)
 
     # Process Each Entry from All Notes Files
-    jsonl_data = convert_org_entries_to_jsonl(entries)
+    jsonl_data = convert_org_entries_to_jsonl(entries, file_to_entries)
 
     # Compress JSONL formatted Data
     if output_file.suffix == ".gz":
@@ -66,18 +66,19 @@ def get_org_files(org_files=None, org_file_filter=None):
 def extract_org_entries(org_files):
     "Extract entries from specified Org files"
     entries = []
+    entry_to_file_map = []
     for org_file in org_files:
-        entries.extend(
-            orgnode.makelist(
-                str(org_file)))
+        org_file_entries = orgnode.makelist(str(org_file))
+        entry_to_file_map += [org_file]*len(org_file_entries)
+        entries.extend(org_file_entries)
 
-    return entries
+    return entries, entry_to_file_map
 
 
-def convert_org_entries_to_jsonl(entries) -> str:
+def convert_org_entries_to_jsonl(entries, entry_to_file_map) -> str:
     "Convert each Org-Mode entries to JSON and collate as JSONL"
     jsonl = ''
-    for entry in entries:
+    for entry_id, entry in enumerate(entries):
         entry_dict = dict()
 
         # Ignore title notes i.e notes with just headings and empty body
@@ -106,6 +107,7 @@ def convert_org_entries_to_jsonl(entries) -> str:
 
         if entry_dict:
             entry_dict["raw"] = f'{entry}'
+            entry_dict["file"] = f'{entry_to_file_map[entry_id]}'
 
             # Convert Dictionary to JSON and Append to JSONL string
             jsonl += f'{json.dumps(entry_dict, ensure_ascii=False)}\n'

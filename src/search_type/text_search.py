@@ -52,9 +52,7 @@ def initialize_model(search_config: TextSearchConfig):
 
 def extract_entries(jsonl_file):
     "Load entries from compressed jsonl"
-    return [{'compiled': f'{entry["compiled"]}', 'raw': f'{entry["raw"]}'}
-            for entry
-            in load_jsonl(jsonl_file)]
+    return load_jsonl(jsonl_file)
 
 
 def compute_embeddings(entries, bi_encoder, embeddings_file, regenerate=False):
@@ -83,7 +81,7 @@ def query(raw_query: str, model: TextSearchModel, rank_results=False):
     for filter in filters_in_query:
         query, entries, corpus_embeddings = filter.apply(query, entries, corpus_embeddings)
     end = time.time()
-    logger.debug(f"Filter Time: {end - start:.3f} seconds")
+    logger.debug(f"Total Filter Time: {end - start:.3f} seconds")
 
     if entries is None or len(entries) == 0:
         return [], []
