@@ -3,13 +3,12 @@ import re
 import time
 import pickle
 import logging
-from copy import deepcopy
 
 # External Packages
 import torch
 
 # Internal Packages
-from src.utils.helpers import resolve_absolute_path
+from src.utils.helpers import LRU, resolve_absolute_path
 from src.utils.config import SearchType
 
 
@@ -26,7 +25,7 @@ class ExplicitFilter:
         self.entry_key = entry_key
         self.search_type = search_type
         self.word_to_entry_index = dict()
-        self.cache = {}
+        self.cache = LRU()
 
 
     def load(self, entries, regenerate=False):
