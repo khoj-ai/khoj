@@ -22,10 +22,19 @@ class FileFilter(BaseFilter):
         return re.search(self.file_filter_regex, raw_query) is not None
 
     def apply(self, raw_query, raw_entries, raw_embeddings):
-        files_to_search = re.findall(self.file_filter_regex, raw_query)
-        if not files_to_search:
+        # Extract file filters from raw query
+        raw_files_to_search = re.findall(self.file_filter_regex, raw_query)
+        if not raw_files_to_search:
             return raw_query, raw_entries, raw_embeddings
 
+        # Convert simple file filters with no path separator into regex
+        # e.g. "file:notes.org" -> "file:.*notes.org"
+        files_to_search = []
+        for file in sorted(raw_files_to_search):
+            if '/' not in file and '\\' not in file and '*' not in file:
+                files_to_search += [f'*{file}']
+            else:
+                files_to_search += [file]
         query = re.sub(self.file_filter_regex, '', raw_query).strip()
         included_entry_indices = [id for id, entry in enumerate(raw_entries) for search_file in files_to_search if fnmatch.fnmatch(entry[self.entry_key], search_file)]
         if not included_entry_indices:

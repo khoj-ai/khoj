@@ -22,23 +22,6 @@ def test_no_file_filter():
     assert ret_entries == entries
 
 
-def test_file_filter_with_partial_match():
-    # Arrange
-    file_filter = FileFilter()
-    embeddings, entries = arrange_content()
-    q_with_no_filter = 'head file:"*.org" tail'
-
-    # Act
-    can_filter = file_filter.can_filter(q_with_no_filter)
-    ret_query, ret_entries, ret_emb = file_filter.apply(q_with_no_filter, entries.copy(), embeddings)
-
-    # Assert
-    assert can_filter == True
-    assert ret_query == 'head tail'
-    assert len(ret_emb) == 4
-    assert ret_entries == entries
-
-
 def test_file_filter_with_non_existent_file():
     # Arrange
     file_filter = FileFilter()
@@ -60,7 +43,7 @@ def test_single_file_filter():
     # Arrange
     file_filter = FileFilter()
     embeddings, entries = arrange_content()
-    q_with_no_filter = 'head file:"file1.org" tail'
+    q_with_no_filter = 'head file:"file 1.org" tail'
 
     # Act
     can_filter = file_filter.can_filter(q_with_no_filter)
@@ -73,11 +56,45 @@ def test_single_file_filter():
     assert ret_entries == [entries[0], entries[2]]
 
 
+def test_file_filter_with_partial_match():
+    # Arrange
+    file_filter = FileFilter()
+    embeddings, entries = arrange_content()
+    q_with_no_filter = 'head file:"1.org" tail'
+
+    # Act
+    can_filter = file_filter.can_filter(q_with_no_filter)
+    ret_query, ret_entries, ret_emb = file_filter.apply(q_with_no_filter, entries.copy(), embeddings)
+
+    # Assert
+    assert can_filter == True
+    assert ret_query == 'head tail'
+    assert len(ret_emb) == 2
+    assert ret_entries == [entries[0], entries[2]]
+
+
+def test_file_filter_with_regex_match():
+    # Arrange
+    file_filter = FileFilter()
+    embeddings, entries = arrange_content()
+    q_with_no_filter = 'head file:"*.org" tail'
+
+    # Act
+    can_filter = file_filter.can_filter(q_with_no_filter)
+    ret_query, ret_entries, ret_emb = file_filter.apply(q_with_no_filter, entries.copy(), embeddings)
+
+    # Assert
+    assert can_filter == True
+    assert ret_query == 'head tail'
+    assert len(ret_emb) == 4
+    assert ret_entries == entries
+
+
 def test_multiple_file_filter():
     # Arrange
     file_filter = FileFilter()
     embeddings, entries = arrange_content()
-    q_with_no_filter = 'head tail file:"file1.org" file:"file2.org"'
+    q_with_no_filter = 'head tail file:"file 1.org" file:"file2.org"'
 
     # Act
     can_filter = file_filter.can_filter(q_with_no_filter)
@@ -93,9 +110,9 @@ def test_multiple_file_filter():
 def arrange_content():
     embeddings = torch.randn(4, 10)
     entries = [
-        {'compiled': '', 'raw': 'First Entry', 'file': 'file1.org'},
+        {'compiled': '', 'raw': 'First Entry', 'file': 'file 1.org'},
         {'compiled': '', 'raw': 'Second Entry', 'file': 'file2.org'},
-        {'compiled': '', 'raw': 'Third Entry', 'file': 'file1.org'},
+        {'compiled': '', 'raw': 'Third Entry', 'file': 'file 1.org'},
         {'compiled': '', 'raw': 'Fourth Entry', 'file': 'file2.org'}]
 
     return embeddings, entries
