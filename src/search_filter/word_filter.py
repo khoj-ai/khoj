@@ -8,6 +8,7 @@ import logging
 import torch
 
 # Internal Packages
+from src.search_filter.base_filter import BaseFilter
 from src.utils.helpers import LRU, resolve_absolute_path
 from src.utils.config import SearchType
 
@@ -15,7 +16,7 @@ from src.utils.config import SearchType
 logger = logging.getLogger(__name__)
 
 
-class WordFilter:
+class WordFilter(BaseFilter):
     # Filter Regex
     required_regex = r'\+"(\w+)" ?'
     blocked_regex = r'\-"(\w+)" ?'

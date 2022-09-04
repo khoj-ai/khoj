@@ -1,7 +1,7 @@
 # Standard Packages
 import re
 from datetime import timedelta, datetime
-from dateutil.relativedelta import relativedelta, MO
+from dateutil.relativedelta import relativedelta
 from math import inf
 from copy import deepcopy
 
@@ -9,8 +9,11 @@ from copy import deepcopy
 import torch
 import dateparser as dtparse
 
+# Internal Packages
+from src.search_filter.base_filter import BaseFilter
 
-class DateFilter:
+
+class DateFilter(BaseFilter):
     # Date Range Filter Regexes
     # Example filter queries:
     #   - dt>="yesterday" dt<"tomorrow"
