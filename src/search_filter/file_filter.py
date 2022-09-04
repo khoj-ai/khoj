@@ -67,7 +67,7 @@ class FileFilter(BaseFilter):
         # Get entries (and associated embeddings) satisfying file filters
         start = time.time()
 
-        entries = [entry for id, entry in enumerate(raw_entries) if id in included_entry_indices]
+        entries = [raw_entries[id] for id in included_entry_indices]
         embeddings = torch.index_select(raw_embeddings, 0, torch.tensor(list(included_entry_indices)))
 
         end = time.time()
