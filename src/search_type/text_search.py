@@ -8,7 +8,7 @@ import time
 import torch
 from sentence_transformers import SentenceTransformer, CrossEncoder, util
 from src.search_filter.date_filter import DateFilter
-from src.search_filter.explicit_filter import ExplicitFilter
+from src.search_filter.word_filter import WordFilter
 
 # Internal Packages
 from src.utils import state
@@ -171,7 +171,7 @@ def setup(text_to_jsonl, config: TextContentConfig, search_config: TextSearchCon
     corpus_embeddings = compute_embeddings(entries, bi_encoder, config.embeddings_file, regenerate=regenerate)
 
     filter_directory = resolve_absolute_path(config.compressed_jsonl.parent)
-    filters = [DateFilter(), ExplicitFilter(filter_directory, search_type=search_type)]
+    filters = [DateFilter(), WordFilter(filter_directory, search_type=search_type)]
     for filter in filters:
         filter.load(entries, regenerate=regenerate)
 

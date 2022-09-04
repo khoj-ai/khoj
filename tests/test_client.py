@@ -140,7 +140,7 @@ def test_notes_search_with_include_filter(content_config: ContentConfig, search_
 
     # Assert
     assert response.status_code == 200
-    # assert actual_data contains explicitly included word "Emacs"
+    # assert actual_data contains word "Emacs"
     search_result = response.json()[0]["entry"]
     assert "Emacs" in search_result
 
@@ -156,6 +156,6 @@ def test_notes_search_with_exclude_filter(content_config: ContentConfig, search_
 
     # Assert
     assert response.status_code == 200
-    # assert actual_data does not contains explicitly excluded word "Emacs"
+    # assert actual_data does not contains word "Emacs"
     search_result = response.json()[0]["entry"]
     assert "clone" not in search_result

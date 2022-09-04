@@ -16,8 +16,6 @@ from fastapi.templating import Jinja2Templates
 from src.configure import configure_search
 from src.search_type import image_search, text_search
 from src.processor.conversation.gpt import converse, extract_search_type, message_to_log, message_to_prompt, understand, summarize
-from src.search_filter.explicit_filter import ExplicitFilter
-from src.search_filter.date_filter import DateFilter
 from src.utils.rawconfig import FullConfig
 from src.utils.config import SearchType
 from src.utils.helpers import get_absolute_path, get_from_dict

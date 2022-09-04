@@ -15,13 +15,13 @@ from src.utils.config import SearchType
 logger = logging.getLogger(__name__)
 
 
-class ExplicitFilter:
+class WordFilter:
     # Filter Regex
     required_regex = r'\+"(\w+)" ?'
     blocked_regex = r'\-"(\w+)" ?'
 
     def __init__(self, filter_directory, search_type: SearchType, entry_key='raw'):
-        self.filter_file = resolve_absolute_path(filter_directory / f"{search_type.name.lower()}_explicit_filter_entry_word_sets.pkl")
+        self.filter_file = resolve_absolute_path(filter_directory / f"word_filter_{search_type.name.lower()}_index.pkl")
         self.entry_key = entry_key
         self.search_type = search_type
         self.word_to_entry_index = dict()
@@ -34,7 +34,7 @@ class ExplicitFilter:
             with self.filter_file.open('rb') as f:
                 self.word_to_entry_index = pickle.load(f)
             end = time.time()
-            logger.debug(f"Load {self.search_type} entries by word set from file: {end - start} seconds")
+            logger.debug(f"Load word filter index for {self.search_type} from {self.filter_file}: {end - start} seconds")
         else:
             start = time.time()
             self.cache = {}  # Clear cache on (re-)generating entries_by_word_set
@@ -51,14 +51,13 @@ class ExplicitFilter:
             with self.filter_file.open('wb') as f:
                 pickle.dump(self.word_to_entry_index, f)
             end = time.time()
-            logger.debug(f"Convert all {self.search_type} entries to word sets: {end - start} seconds")
+            logger.debug(f"Index {self.search_type} for word filter to {self.filter_file}: {end - start} seconds")
 
         return self.word_to_entry_index
 
 
     def can_filter(self, raw_query):
-        "Check if query contains explicit filters"
-        # Extract explicit query portion with required, blocked words to filter from natural query
+        "Check if query contains word filters"
         required_words = re.findall(self.required_regex, raw_query)
         blocked_words = re.findall(self.blocked_regex, raw_query)
 
@@ -67,7 +66,7 @@ class ExplicitFilter:
 
     def apply(self, raw_query, raw_entries, raw_embeddings):
         "Find entries containing required and not blocked words specified in query"
-        # Separate natural query from explicit required, blocked words filters
+        # Separate natural query from required, blocked words filters
         start = time.time()
 
         required_words = set([word.lower() for word in re.findall(self.required_regex, raw_query)])
@@ -83,7 +82,7 @@ class ExplicitFilter:
         # Return item from cache if exists
         cache_key = tuple(sorted(required_words)), tuple(sorted(blocked_words))
         if cache_key in self.cache:
-            logger.info(f"Explicit filter results from cache")
+            logger.info(f"Return word filter results from cache")
             entries, embeddings = self.cache[cache_key]
             return query, entries, embeddings
 

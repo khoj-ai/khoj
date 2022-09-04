@@ -125,7 +125,6 @@ pip install --upgrade khoj-assistant
 
 - Semantic search using the bi-encoder is fairly fast at \<50 ms
 - Reranking using the cross-encoder is slower at \<2s on 15 results. Tweak `top_k` to tradeoff speed for accuracy of results
-- Applying explicit filters is very slow currently at \~6s. This is because the filters are rudimentary. Considerable speed-ups can be achieved using indexes etc
 
 ### Indexing performance
 
