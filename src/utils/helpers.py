@@ -2,6 +2,7 @@
 import pathlib
 import sys
 from os.path import join
+from collections import OrderedDict
 
 
 def is_none_or_empty(item):
@@ -61,3 +62,20 @@ def load_model(model_name, model_dir, model_type, device:str=None):
 def is_pyinstaller_app():
     "Returns true if the app is running from Native GUI created by PyInstaller"
     return getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
+
+
+class LRU(OrderedDict):
+    def __init__(self, *args, capacity=128, **kwargs):
+        self.capacity = capacity
+        super().__init__(*args, **kwargs)
+
+    def __getitem__(self, key):
+        value = super().__getitem__(key)
+        self.move_to_end(key)
+        return value
+
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
+        if len(self) > self.capacity:
+            oldest = next(iter(self))
+            del self[oldest]

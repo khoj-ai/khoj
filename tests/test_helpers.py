@@ -28,3 +28,18 @@ def test_merge_dicts():
 
     # do not override existing key in priority_dict with default dict
     assert helpers.merge_dicts(priority_dict={'a': 1}, default_dict={'a': 2}) == {'a': 1}
+
+
+def test_lru_cache():
+    # Test initializing cache
+    cache = helpers.LRU({'a': 1, 'b': 2}, capacity=2)
+    assert cache == {'a': 1, 'b': 2}
+
+    # Test capacity overflow
+    cache['c'] = 3
+    assert cache == {'b': 2, 'c': 3}
+
+    # Test delete least recently used item from LRU cache on capacity overflow
+    cache['b']      # accessing 'b' makes it the most recently used item
+    cache['d'] = 4  # so 'c' is deleted from the cache instead of 'b'
+    assert cache == {'b': 2, 'd': 4}
