@@ -42,19 +42,15 @@ class DateFilter(BaseFilter):
 
         # if no date in query, return all entries
         if query_daterange is None:
-            return query, raw_entries, raw_embeddings
+            return query, set(range(len(raw_entries)))
 
         # remove date range filter from query
         query = re.sub(rf'\s+{self.date_regex}', ' ', query)
         query = re.sub(r'\s{2,}', ' ', query).strip()  # remove multiple spaces
 
-        # deep copy original embeddings, entries before filtering
-        embeddings= deepcopy(raw_embeddings)
-        entries = deepcopy(raw_entries)
-
         # find entries containing any dates that fall with date range specified in query
         entries_to_include = set()
-        for id, entry in enumerate(entries):
+        for id, entry in enumerate(raw_entries):
             # Extract dates from entry
             for date_in_entry_string in re.findall(r'\d{4}-\d{2}-\d{2}', entry[self.entry_key]):
                 # Convert date string in entry to unix timestamp
@@ -67,13 +63,7 @@ class DateFilter(BaseFilter):
                     entries_to_include.add(id)
                     break
 
-        # delete entries (and their embeddings) marked for exclusion
-        entries_to_exclude = set(range(len(entries))) - entries_to_include
-        for id in sorted(list(entries_to_exclude), reverse=True):
-            del entries[id]
-            embeddings = torch.cat((embeddings[:id], embeddings[id+1:]))
-
-        return query, entries, embeddings
+        return query, entries_to_include
 
 
     def extract_date_range(self, query):

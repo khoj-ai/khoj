@@ -78,14 +78,14 @@ class WordFilter(BaseFilter):
         logger.debug(f"Extract required, blocked filters from query: {end - start} seconds")
 
         if len(required_words) == 0 and len(blocked_words) == 0:
-            return query, raw_entries, raw_embeddings
+            return query, set(range(len(raw_entries)))
 
         # Return item from cache if exists
         cache_key = tuple(sorted(required_words)), tuple(sorted(blocked_words))
         if cache_key in self.cache:
             logger.info(f"Return word filter results from cache")
-            entries, embeddings = self.cache[cache_key]
-            return query, entries, embeddings
+            included_entry_indices = self.cache[cache_key]
+            return query, included_entry_indices
 
         if not self.word_to_entry_index:
             self.load(raw_entries, regenerate=False)
@@ -105,17 +105,10 @@ class WordFilter(BaseFilter):
         end = time.time()
         logger.debug(f"Mark entries satisfying filter: {end - start} seconds")
 
-        # get entries (and their embeddings) satisfying inclusion and exclusion filters
-        start = time.time()
-
+        # get entries satisfying inclusion and exclusion filters
         included_entry_indices = entries_with_all_required_words - entries_with_any_blocked_words
-        entries = [entry for id, entry in enumerate(raw_entries) if id in included_entry_indices]
-        embeddings = torch.index_select(raw_embeddings, 0, torch.tensor(list(included_entry_indices)))
-
-        end = time.time()
-        logger.debug(f"Keep entries satisfying filter: {end - start} seconds")
 
         # Cache results
-        self.cache[cache_key] = entries, embeddings
+        self.cache[cache_key] = included_entry_indices
 
-        return query, entries, embeddings
+        return query, included_entry_indices

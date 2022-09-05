@@ -5,9 +5,6 @@ import time
 import logging
 from collections import defaultdict
 
-# External Packages
-import torch
-
 # Internal Packages
 from src.search_filter.base_filter import BaseFilter
 from src.utils.helpers import LRU
@@ -39,7 +36,7 @@ class FileFilter(BaseFilter):
         start = time.time()
         raw_files_to_search = re.findall(self.file_filter_regex, raw_query)
         if not raw_files_to_search:
-            return raw_query, raw_entries, raw_embeddings
+            return raw_query, set(range(len(raw_entries)))
 
         # Convert simple file filters with no path separator into regex
         # e.g. "file:notes.org" -> "file:.*notes.org"
@@ -57,8 +54,11 @@ class FileFilter(BaseFilter):
         cache_key = tuple(files_to_search)
         if cache_key in self.cache:
             logger.info(f"Return file filter results from cache")
-            entries, embeddings = self.cache[cache_key]
-            return query, entries, embeddings
+            included_entry_indices = self.cache[cache_key]
+            return query, included_entry_indices
+
+        if not self.file_to_entry_map:
+            self.load(raw_entries, regenerate=False)
 
         # Mark entries that contain any blocked_words for exclusion
         start = time.time()
@@ -68,21 +68,12 @@ class FileFilter(BaseFilter):
                 for search_file in files_to_search
                 if fnmatch.fnmatch(entry_file, search_file)], set())
         if not included_entry_indices:
-            return query, [], torch.empty(0)
+            return query, {}
 
         end = time.time()
         logger.debug(f"Mark entries satisfying filter: {end - start} seconds")
 
-        # Get entries (and associated embeddings) satisfying file filters
-        start = time.time()
-
-        entries = [raw_entries[id] for id in included_entry_indices]
-        embeddings = torch.index_select(raw_embeddings, 0, torch.tensor(list(included_entry_indices)))
-
-        end = time.time()
-        logger.debug(f"Keep entries satisfying filter: {end - start} seconds")
-
         # Cache results
-        self.cache[cache_key] = entries, embeddings
+        self.cache[cache_key] = included_entry_indices
 
-        return query, entries, embeddings
+        return query, included_entry_indices

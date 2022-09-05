@@ -13,13 +13,12 @@ def test_no_file_filter():
 
     # Act
     can_filter = file_filter.can_filter(q_with_no_filter)
-    ret_query, ret_entries, ret_emb = file_filter.apply(q_with_no_filter, entries.copy(), embeddings)
+    ret_query, entry_indices = file_filter.apply(q_with_no_filter, entries.copy(), embeddings)
 
     # Assert
     assert can_filter == False
     assert ret_query == 'head tail'
-    assert len(ret_emb) == 4
-    assert ret_entries == entries
+    assert entry_indices == {0, 1, 2, 3}
 
 
 def test_file_filter_with_non_existent_file():
@@ -30,13 +29,12 @@ def test_file_filter_with_non_existent_file():
 
     # Act
     can_filter = file_filter.can_filter(q_with_no_filter)
-    ret_query, ret_entries, ret_emb = file_filter.apply(q_with_no_filter, entries.copy(), embeddings)
+    ret_query, entry_indices = file_filter.apply(q_with_no_filter, entries.copy(), embeddings)
 
     # Assert
     assert can_filter == True
     assert ret_query == 'head tail'
-    assert len(ret_emb) == 0
-    assert ret_entries == []
+    assert entry_indices == {}
 
 
 def test_single_file_filter():
@@ -47,13 +45,12 @@ def test_single_file_filter():
 
     # Act
     can_filter = file_filter.can_filter(q_with_no_filter)
-    ret_query, ret_entries, ret_emb = file_filter.apply(q_with_no_filter, entries.copy(), embeddings)
+    ret_query, entry_indices = file_filter.apply(q_with_no_filter, entries.copy(), embeddings)
 
     # Assert
     assert can_filter == True
     assert ret_query == 'head tail'
-    assert len(ret_emb) == 2
-    assert ret_entries == [entries[0], entries[2]]
+    assert entry_indices == {0, 2}
 
 
 def test_file_filter_with_partial_match():
@@ -64,13 +61,12 @@ def test_file_filter_with_partial_match():
 
     # Act
     can_filter = file_filter.can_filter(q_with_no_filter)
-    ret_query, ret_entries, ret_emb = file_filter.apply(q_with_no_filter, entries.copy(), embeddings)
+    ret_query, entry_indices = file_filter.apply(q_with_no_filter, entries.copy(), embeddings)
 
     # Assert
     assert can_filter == True
     assert ret_query == 'head tail'
-    assert len(ret_emb) == 2
-    assert ret_entries == [entries[0], entries[2]]
+    assert entry_indices == {0, 2}
 
 
 def test_file_filter_with_regex_match():
@@ -81,13 +77,12 @@ def test_file_filter_with_regex_match():
 
     # Act
     can_filter = file_filter.can_filter(q_with_no_filter)
-    ret_query, ret_entries, ret_emb = file_filter.apply(q_with_no_filter, entries.copy(), embeddings)
+    ret_query, entry_indices = file_filter.apply(q_with_no_filter, entries.copy(), embeddings)
 
     # Assert
     assert can_filter == True
     assert ret_query == 'head tail'
-    assert len(ret_emb) == 4
-    assert ret_entries == entries
+    assert entry_indices == {0, 1, 2, 3}
 
 
 def test_multiple_file_filter():
@@ -98,13 +93,12 @@ def test_multiple_file_filter():
 
     # Act
     can_filter = file_filter.can_filter(q_with_no_filter)
-    ret_query, ret_entries, ret_emb = file_filter.apply(q_with_no_filter, entries.copy(), embeddings)
+    ret_query, entry_indices = file_filter.apply(q_with_no_filter, entries.copy(), embeddings)
 
     # Assert
     assert can_filter == True
     assert ret_query == 'head tail'
-    assert len(ret_emb) == 4
-    assert ret_entries == entries
+    assert entry_indices == {0, 1, 2, 3}
 
 
 def arrange_content():
