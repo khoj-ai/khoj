@@ -1,33 +1,51 @@
 # Standard Packages
 import re
+import time
+import logging
+from collections import defaultdict
 from datetime import timedelta, datetime
 from dateutil.relativedelta import relativedelta
 from math import inf
-from copy import deepcopy
 
 # External Packages
-import torch
 import dateparser as dtparse
 
 # Internal Packages
 from src.search_filter.base_filter import BaseFilter
+from src.utils.helpers import LRU
+
+
+logger = logging.getLogger(__name__)
 
 
 class DateFilter(BaseFilter):
     # Date Range Filter Regexes
     # Example filter queries:
-    #   - dt>="yesterday" dt<"tomorrow"
-    #   - dt>="last week"
-    #   - dt:"2 years ago"
+    # - dt>="yesterday" dt<"tomorrow"
+    # - dt>="last week"
+    # - dt:"2 years ago"
     date_regex = r"dt([:><=]{1,2})\"(.*?)\""
 
 
     def __init__(self, entry_key='raw'):
         self.entry_key = entry_key
+        self.date_to_entry_ids = defaultdict(set)
+        self.cache = LRU()
 
 
-    def load(*args, **kwargs):
-        pass
+    def load(self, entries, **_):
+        start = time.time()
+        for id, entry in enumerate(entries):
+            # Extract dates from entry
+            for date_in_entry_string in re.findall(r'\d{4}-\d{2}-\d{2}', entry[self.entry_key]):
+                # Convert date string in entry to unix timestamp
+                try:
+                    date_in_entry = datetime.strptime(date_in_entry_string, '%Y-%m-%d').timestamp()
+                except ValueError:
+                    continue
+                self.date_to_entry_ids[date_in_entry].add(id)
+        end = time.time()
+        logger.debug(f"Created file filter index: {end - start} seconds")
 
 
     def can_filter(self, raw_query):
@@ -38,7 +56,10 @@ class DateFilter(BaseFilter):
     def apply(self, query, raw_entries):
         "Find entries containing any dates that fall within date range specified in query"
         # extract date range specified in date filter of query
+        start = time.time()
         query_daterange = self.extract_date_range(query)
+        end = time.time()
+        logger.debug(f"Extract date range to filter from query: {end - start} seconds")
 
         # if no date in query, return all entries
         if query_daterange is None:
@@ -48,20 +69,28 @@ class DateFilter(BaseFilter):
         query = re.sub(rf'\s+{self.date_regex}', ' ', query)
         query = re.sub(r'\s{2,}', ' ', query).strip()  # remove multiple spaces
 
+        # return results from cache if exists
+        cache_key = tuple(query_daterange)
+        if cache_key in self.cache:
+            logger.info(f"Return date filter results from cache")
+            entries_to_include = self.cache[cache_key]
+            return query, entries_to_include
+
+        if not self.date_to_entry_ids:
+            self.load(raw_entries)
+
         # find entries containing any dates that fall with date range specified in query
+        start = time.time()
         entries_to_include = set()
-        for id, entry in enumerate(raw_entries):
-            # Extract dates from entry
-            for date_in_entry_string in re.findall(r'\d{4}-\d{2}-\d{2}', entry[self.entry_key]):
-                # Convert date string in entry to unix timestamp
-                try:
-                    date_in_entry = datetime.strptime(date_in_entry_string, '%Y-%m-%d').timestamp()
-                except ValueError:
-                    continue
-                # Check if date in entry is within date range specified in query
-                if query_daterange[0] <= date_in_entry < query_daterange[1]:
-                    entries_to_include.add(id)
-                    break
+        for date_in_entry in self.date_to_entry_ids.keys():
+            # Check if date in entry is within date range specified in query
+            if query_daterange[0] <= date_in_entry < query_daterange[1]:
+                entries_to_include |= self.date_to_entry_ids[date_in_entry]
+        end = time.time()
+        logger.debug(f"Mark entries satisfying filter: {end - start} seconds")
+
+        # cache results
+        self.cache[cache_key] = entries_to_include
 
         return query, entries_to_include
 
