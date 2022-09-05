@@ -14,7 +14,7 @@ def test_no_word_filter(tmp_path):
 
     # Act
     can_filter = word_filter.can_filter(q_with_no_filter)
-    ret_query, entry_indices = word_filter.apply(q_with_no_filter, entries.copy(), embeddings)
+    ret_query, entry_indices = word_filter.apply(q_with_no_filter, entries)
 
     # Assert
     assert can_filter == False
@@ -30,7 +30,7 @@ def test_word_exclude_filter(tmp_path):
 
     # Act
     can_filter = word_filter.can_filter(q_with_exclude_filter)
-    ret_query, entry_indices = word_filter.apply(q_with_exclude_filter, entries.copy(), embeddings)
+    ret_query, entry_indices = word_filter.apply(q_with_exclude_filter, entries)
 
     # Assert
     assert can_filter == True
@@ -46,7 +46,7 @@ def test_word_include_filter(tmp_path):
 
     # Act
     can_filter = word_filter.can_filter(query_with_include_filter)
-    ret_query, entry_indices = word_filter.apply(query_with_include_filter, entries.copy(), embeddings)
+    ret_query, entry_indices = word_filter.apply(query_with_include_filter, entries)
 
     # Assert
     assert can_filter == True
@@ -62,7 +62,7 @@ def test_word_include_and_exclude_filter(tmp_path):
 
     # Act
     can_filter = word_filter.can_filter(query_with_include_and_exclude_filter)
-    ret_query, entry_indices = word_filter.apply(query_with_include_and_exclude_filter, entries.copy(), embeddings)
+    ret_query, entry_indices = word_filter.apply(query_with_include_and_exclude_filter, entries)
 
     # Assert
     assert can_filter == True

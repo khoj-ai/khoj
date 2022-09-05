@@ -31,7 +31,7 @@ class FileFilter(BaseFilter):
     def can_filter(self, raw_query):
         return re.search(self.file_filter_regex, raw_query) is not None
 
-    def apply(self, raw_query, raw_entries, raw_embeddings):
+    def apply(self, raw_query, raw_entries):
         # Extract file filters from raw query
         start = time.time()
         raw_files_to_search = re.findall(self.file_filter_regex, raw_query)

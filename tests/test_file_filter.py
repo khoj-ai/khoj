@@ -13,7 +13,7 @@ def test_no_file_filter():
 
     # Act
     can_filter = file_filter.can_filter(q_with_no_filter)
-    ret_query, entry_indices = file_filter.apply(q_with_no_filter, entries.copy(), embeddings)
+    ret_query, entry_indices = file_filter.apply(q_with_no_filter, entries)
 
     # Assert
     assert can_filter == False
@@ -29,7 +29,7 @@ def test_file_filter_with_non_existent_file():
 
     # Act
     can_filter = file_filter.can_filter(q_with_no_filter)
-    ret_query, entry_indices = file_filter.apply(q_with_no_filter, entries.copy(), embeddings)
+    ret_query, entry_indices = file_filter.apply(q_with_no_filter, entries)
 
     # Assert
     assert can_filter == True
@@ -45,7 +45,7 @@ def test_single_file_filter():
 
     # Act
     can_filter = file_filter.can_filter(q_with_no_filter)
-    ret_query, entry_indices = file_filter.apply(q_with_no_filter, entries.copy(), embeddings)
+    ret_query, entry_indices = file_filter.apply(q_with_no_filter, entries)
 
     # Assert
     assert can_filter == True
@@ -61,7 +61,7 @@ def test_file_filter_with_partial_match():
 
     # Act
     can_filter = file_filter.can_filter(q_with_no_filter)
-    ret_query, entry_indices = file_filter.apply(q_with_no_filter, entries.copy(), embeddings)
+    ret_query, entry_indices = file_filter.apply(q_with_no_filter, entries)
 
     # Assert
     assert can_filter == True
@@ -77,7 +77,7 @@ def test_file_filter_with_regex_match():
 
     # Act
     can_filter = file_filter.can_filter(q_with_no_filter)
-    ret_query, entry_indices = file_filter.apply(q_with_no_filter, entries.copy(), embeddings)
+    ret_query, entry_indices = file_filter.apply(q_with_no_filter, entries)
 
     # Assert
     assert can_filter == True
@@ -93,7 +93,7 @@ def test_multiple_file_filter():
 
     # Act
     can_filter = file_filter.can_filter(q_with_no_filter)
-    ret_query, entry_indices = file_filter.apply(q_with_no_filter, entries.copy(), embeddings)
+    ret_query, entry_indices = file_filter.apply(q_with_no_filter, entries)
 
     # Assert
     assert can_filter == True

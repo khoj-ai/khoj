@@ -1,6 +1,5 @@
 # System Packages
 from pathlib import Path
-from src.utils.config import SearchType
 
 # Internal Packages
 from src.utils.state import model

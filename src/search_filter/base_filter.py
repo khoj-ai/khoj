@@ -1,6 +1,6 @@
 # Standard Packages
 from abc import ABC, abstractmethod
-from typing import List, Tuple
+from typing import List, Set, Tuple
 
 # External Packages
 import torch
@@ -16,5 +16,5 @@ class BaseFilter(ABC):
         pass
 
     @abstractmethod
-    def apply(self, query:str, raw_entries:List[str], raw_embeddings: torch.Tensor) -> Tuple[str, List[str], torch.Tensor]:
+    def apply(self, query:str, raw_entries:List[str]) -> Tuple[str, Set[int]]:
         pass

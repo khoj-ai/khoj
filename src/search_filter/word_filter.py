@@ -65,7 +65,7 @@ class WordFilter(BaseFilter):
         return len(required_words) != 0 or len(blocked_words) != 0
 
 
-    def apply(self, raw_query, raw_entries, raw_embeddings):
+    def apply(self, raw_query, raw_entries):
         "Find entries containing required and not blocked words specified in query"
         # Separate natural query from required, blocked words filters
         start = time.time()

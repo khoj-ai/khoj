@@ -35,7 +35,7 @@ class DateFilter(BaseFilter):
         return self.extract_date_range(raw_query) is not None
 
 
-    def apply(self, query, raw_entries, raw_embeddings):
+    def apply(self, query, raw_entries):
         "Find entries containing any dates that fall within date range specified in query"
         # extract date range specified in date filter of query
         query_daterange = self.extract_date_range(query)
