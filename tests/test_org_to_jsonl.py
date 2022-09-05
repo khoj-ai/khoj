@@ -21,10 +21,10 @@ def test_entry_with_empty_body_line_to_jsonl(tmp_path):
 
     # Act
     # Extract Entries from specified Org files
-    entries = extract_org_entries(org_files=[orgfile])
+    entries, entry_to_file_map = extract_org_entries(org_files=[orgfile])
 
     # Process Each Entry from All Notes Files
-    jsonl_data = convert_org_entries_to_jsonl(entries)
+    jsonl_data = convert_org_entries_to_jsonl(entries, entry_to_file_map)
 
     # Assert
     assert is_none_or_empty(jsonl_data)
@@ -43,10 +43,10 @@ def test_entry_with_body_to_jsonl(tmp_path):
 
     # Act
     # Extract Entries from specified Org files
-    entries = extract_org_entries(org_files=[orgfile])
+    entries, entry_to_file_map = extract_org_entries(org_files=[orgfile])
 
     # Process Each Entry from All Notes Files
-    jsonl_string = convert_org_entries_to_jsonl(entries)
+    jsonl_string = convert_org_entries_to_jsonl(entries, entry_to_file_map)
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()] 
 
     # Assert

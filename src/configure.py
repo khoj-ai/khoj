@@ -14,6 +14,9 @@ from src.utils.config import SearchType, SearchModels, ProcessorConfigModel, Con
 from src.utils import state
 from src.utils.helpers import resolve_absolute_path
 from src.utils.rawconfig import FullConfig, ProcessorConfig
+from src.search_filter.date_filter import DateFilter
+from src.search_filter.word_filter import WordFilter
+from src.search_filter.file_filter import FileFilter
 
 
 logger = logging.getLogger(__name__)
@@ -39,23 +42,25 @@ def configure_server(args, required=False):
 def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, t: SearchType = None):
     # Initialize Org Notes Search
     if (t == SearchType.Org or t == None) and config.content_type.org:
+        filter_directory = resolve_absolute_path(config.content_type.org.compressed_jsonl.parent)
+        filters = [DateFilter(), WordFilter(filter_directory, search_type=SearchType.Org), FileFilter()]
         # Extract Entries, Generate Notes Embeddings
-        model.orgmode_search = text_search.setup(org_to_jsonl, config.content_type.org, search_config=config.search_type.asymmetric, search_type=SearchType.Org, regenerate=regenerate)
+        model.orgmode_search = text_search.setup(org_to_jsonl, config.content_type.org, search_config=config.search_type.asymmetric, regenerate=regenerate, filters=filters)
 
     # Initialize Org Music Search
     if (t == SearchType.Music or t == None) and config.content_type.music:
         # Extract Entries, Generate Music Embeddings
-        model.music_search = text_search.setup(org_to_jsonl, config.content_type.music, search_config=config.search_type.asymmetric, search_type=SearchType.Music, regenerate=regenerate)
+        model.music_search = text_search.setup(org_to_jsonl, config.content_type.music, search_config=config.search_type.asymmetric, regenerate=regenerate)
 
     # Initialize Markdown Search
     if (t == SearchType.Markdown or t == None) and config.content_type.markdown:
         # Extract Entries, Generate Markdown Embeddings
-        model.markdown_search = text_search.setup(markdown_to_jsonl, config.content_type.markdown, search_config=config.search_type.asymmetric, search_type=SearchType.Markdown, regenerate=regenerate)
+        model.markdown_search = text_search.setup(markdown_to_jsonl, config.content_type.markdown, search_config=config.search_type.asymmetric, regenerate=regenerate)
 
     # Initialize Ledger Search
     if (t == SearchType.Ledger or t == None) and config.content_type.ledger:
         # Extract Entries, Generate Ledger Embeddings
-        model.ledger_search = text_search.setup(beancount_to_jsonl, config.content_type.ledger, search_config=config.search_type.symmetric, search_type=SearchType.Ledger, regenerate=regenerate)
+        model.ledger_search = text_search.setup(beancount_to_jsonl, config.content_type.ledger, search_config=config.search_type.symmetric, regenerate=regenerate)
 
     # Initialize Image Search
     if (t == SearchType.Image or t == None) and config.content_type.image:

@@ -2,9 +2,11 @@
 from enum import Enum
 from dataclasses import dataclass
 from pathlib import Path
+from typing import List
 
 # Internal Packages
 from src.utils.rawconfig import ConversationProcessorConfig
+from src.search_filter.base_filter import BaseFilter
 
 
 class SearchType(str, Enum):
@@ -20,7 +22,7 @@ class ProcessorType(str, Enum):
 
 
 class TextSearchModel():
-    def __init__(self, entries, corpus_embeddings, bi_encoder, cross_encoder, filters, top_k):
+    def __init__(self, entries, corpus_embeddings, bi_encoder, cross_encoder, filters: List[BaseFilter], top_k):
         self.entries = entries
         self.corpus_embeddings = corpus_embeddings
         self.bi_encoder = bi_encoder

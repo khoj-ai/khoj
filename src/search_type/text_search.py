@@ -7,13 +7,12 @@ import time
 # External Packages
 import torch
 from sentence_transformers import SentenceTransformer, CrossEncoder, util
-from src.search_filter.date_filter import DateFilter
-from src.search_filter.explicit_filter import ExplicitFilter
+from src.search_filter.base_filter import BaseFilter
 
 # Internal Packages
 from src.utils import state
 from src.utils.helpers import get_absolute_path, resolve_absolute_path, load_model
-from src.utils.config import SearchType, TextSearchModel
+from src.utils.config import TextSearchModel
 from src.utils.rawconfig import TextSearchConfig, TextContentConfig
 from src.utils.jsonl import load_jsonl
 
@@ -53,9 +52,7 @@ def initialize_model(search_config: TextSearchConfig):
 
 def extract_entries(jsonl_file):
     "Load entries from compressed jsonl"
-    return [{'compiled': f'{entry["compiled"]}', 'raw': f'{entry["raw"]}'}
-            for entry
-            in load_jsonl(jsonl_file)]
+    return load_jsonl(jsonl_file)
 
 
 def compute_embeddings(entries, bi_encoder, embeddings_file, regenerate=False):
@@ -79,12 +76,25 @@ def query(raw_query: str, model: TextSearchModel, rank_results=False):
     query, entries, corpus_embeddings = raw_query, model.entries, model.corpus_embeddings
 
     # Filter query, entries and embeddings before semantic search
-    start = time.time()
+    start_filter = time.time()
+    included_entry_indices = set(range(len(entries)))
     filters_in_query = [filter for filter in model.filters if filter.can_filter(query)]
     for filter in filters_in_query:
-        query, entries, corpus_embeddings = filter.apply(query, entries, corpus_embeddings)
-    end = time.time()
-    logger.debug(f"Filter Time: {end - start:.3f} seconds")
+        query, included_entry_indices_by_filter = filter.apply(query, entries)
+        included_entry_indices.intersection_update(included_entry_indices_by_filter)
+
+    # Get entries (and associated embeddings) satisfying all filters
+    if not included_entry_indices:
+        return [], []
+    else:
+        start = time.time()
+        entries = [entries[id] for id in included_entry_indices]
+        corpus_embeddings = torch.index_select(corpus_embeddings, 0, torch.tensor(list(included_entry_indices)))
+        end = time.time()
+        logger.debug(f"Keep entries satisfying all filters: {end - start} seconds")
+
+    end_filter = time.time()
+    logger.debug(f"Total Filter Time: {end_filter - start_filter:.3f} seconds")
 
     if entries is None or len(entries) == 0:
         return [], []
@@ -153,7 +163,7 @@ def collate_results(hits, entries, count=5):
         in hits[0:count]]
 
 
-def setup(text_to_jsonl, config: TextContentConfig, search_config: TextSearchConfig, search_type: SearchType, regenerate: bool) -> TextSearchModel:
+def setup(text_to_jsonl, config: TextContentConfig, search_config: TextSearchConfig, regenerate: bool, filters: list[BaseFilter] = []) -> TextSearchModel:
     # Initialize Model
     bi_encoder, cross_encoder, top_k = initialize_model(search_config)
 
@@ -170,8 +180,6 @@ def setup(text_to_jsonl, config: TextContentConfig, search_config: TextSearchCon
     config.embeddings_file = resolve_absolute_path(config.embeddings_file)
     corpus_embeddings = compute_embeddings(entries, bi_encoder, config.embeddings_file, regenerate=regenerate)
 
-    filter_directory = resolve_absolute_path(config.compressed_jsonl.parent)
-    filters = [DateFilter(), ExplicitFilter(filter_directory, search_type=search_type)]
     for filter in filters:
         filter.load(entries, regenerate=regenerate)
 

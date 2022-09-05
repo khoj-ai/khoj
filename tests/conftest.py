@@ -1,4 +1,4 @@
-# Standard Packages
+# External Packages
 import pytest
 
 # Internal Packages
@@ -6,10 +6,13 @@ from src.search_type import image_search, text_search
 from src.utils.config import SearchType
 from src.utils.rawconfig import ContentConfig, TextContentConfig, ImageContentConfig, SearchConfig, TextSearchConfig, ImageSearchConfig
 from src.processor.org_mode.org_to_jsonl import org_to_jsonl
+from src.search_filter.date_filter import DateFilter
+from src.search_filter.word_filter import WordFilter
+from src.search_filter.file_filter import FileFilter
 
 
 @pytest.fixture(scope='session')
-def search_config(tmp_path_factory):
+def search_config(tmp_path_factory) -> SearchConfig:
     model_dir = tmp_path_factory.mktemp('data')
 
     search_config = SearchConfig()
@@ -35,7 +38,7 @@ def search_config(tmp_path_factory):
 
 
 @pytest.fixture(scope='session')
-def model_dir(search_config):
+def model_dir(search_config: SearchConfig):
     model_dir = search_config.asymmetric.model_directory
 
     # Generate Image Embeddings from Test Images
@@ -55,13 +58,14 @@ def model_dir(search_config):
         compressed_jsonl = model_dir.joinpath('notes.jsonl.gz'),
         embeddings_file = model_dir.joinpath('note_embeddings.pt'))
 
-    text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, SearchType.Org, regenerate=False)
+    filters = [DateFilter(), WordFilter(model_dir, search_type=SearchType.Org), FileFilter()]
+    text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False, filters=filters)
 
     return model_dir
 
 
 @pytest.fixture(scope='session')
-def content_config(model_dir):
+def content_config(model_dir) -> ContentConfig:
     content_config = ContentConfig()
     content_config.org = TextContentConfig(
         input_files = None,

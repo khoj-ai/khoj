@@ -18,40 +18,34 @@ def test_date_filter():
         {'compiled': '', 'raw': 'Entry with date:1984-04-02'}]
 
     q_with_no_date_filter = 'head tail'
-    ret_query, ret_entries, ret_emb = DateFilter().apply(q_with_no_date_filter, entries.copy(), embeddings)
+    ret_query, entry_indices = DateFilter().apply(q_with_no_date_filter, entries)
     assert ret_query == 'head tail'
-    assert len(ret_emb) == 3
-    assert ret_entries == entries
+    assert entry_indices == {0, 1, 2}
 
     q_with_dtrange_non_overlapping_at_boundary = 'head dt>"1984-04-01" dt<"1984-04-02" tail'
-    ret_query, ret_entries, ret_emb = DateFilter().apply(q_with_dtrange_non_overlapping_at_boundary, entries.copy(), embeddings)
+    ret_query, entry_indices = DateFilter().apply(q_with_dtrange_non_overlapping_at_boundary, entries)
     assert ret_query == 'head tail'
-    assert len(ret_emb) == 0
-    assert ret_entries == []
+    assert entry_indices == set()
 
     query_with_overlapping_dtrange = 'head dt>"1984-04-01" dt<"1984-04-03" tail'
-    ret_query, ret_entries, ret_emb = DateFilter().apply(query_with_overlapping_dtrange, entries.copy(), embeddings)
+    ret_query, entry_indices = DateFilter().apply(query_with_overlapping_dtrange, entries)
     assert ret_query == 'head tail'
-    assert ret_entries == [entries[2]]
-    assert len(ret_emb) == 1
+    assert entry_indices == {2}
 
     query_with_overlapping_dtrange = 'head dt>="1984-04-01" dt<"1984-04-02" tail'
-    ret_query, ret_entries, ret_emb = DateFilter().apply(query_with_overlapping_dtrange, entries.copy(), embeddings)
+    ret_query, entry_indices = DateFilter().apply(query_with_overlapping_dtrange, entries)
     assert ret_query == 'head tail'
-    assert ret_entries == [entries[1]]
-    assert len(ret_emb) == 1
+    assert entry_indices == {1}
 
     query_with_overlapping_dtrange = 'head dt>"1984-04-01" dt<="1984-04-02" tail'
-    ret_query, ret_entries, ret_emb = DateFilter().apply(query_with_overlapping_dtrange, entries.copy(), embeddings)
+    ret_query, entry_indices = DateFilter().apply(query_with_overlapping_dtrange, entries)
     assert ret_query == 'head tail'
-    assert ret_entries == [entries[2]]
-    assert len(ret_emb) == 1
+    assert entry_indices == {2}
 
     query_with_overlapping_dtrange = 'head dt>="1984-04-01" dt<="1984-04-02" tail'
-    ret_query, ret_entries, ret_emb = DateFilter().apply(query_with_overlapping_dtrange, entries.copy(), embeddings)
+    ret_query, entry_indices = DateFilter().apply(query_with_overlapping_dtrange, entries)
     assert ret_query == 'head tail'
-    assert ret_entries == [entries[1], entries[2]]
-    assert len(ret_emb) == 2
+    assert entry_indices == {1, 2}
 
 
 def test_extract_date_range():

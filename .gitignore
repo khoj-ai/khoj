@@ -13,3 +13,4 @@ src/.data
 /dist/
 /khoj_assistant.egg-info/
 /config/khoj*.yml
+.pytest_cache
