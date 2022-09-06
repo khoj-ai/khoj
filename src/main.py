@@ -61,12 +61,9 @@ def run():
     # Load config from CLI
     state.cli_args = sys.argv[1:]
     args = cli(state.cli_args)
+    set_state(args)
 
     # Setup Logger
-    # logging.basicConfig(format='%(levelname)s: %(asctime)s : %(module)s | %(message)s', datefmt='%d-%m-%Y %H:%M:%S')
-    ch = logging.StreamHandler()
-    ch.setFormatter(CustomFormatter())
-    logger.addHandler(ch)
     if args.verbose == 0:
         logger.setLevel(logging.WARN)
     elif args.verbose == 1:
@@ -74,8 +71,17 @@ def run():
     elif args.verbose >= 2:
         logger.setLevel(logging.DEBUG)
 
+    # Set Log Format
+    ch = logging.StreamHandler()
+    ch.setFormatter(CustomFormatter())
+    logger.addHandler(ch)
+
+    # Set Log File
+    fh = logging.FileHandler(state.config_file.parent / 'khoj.log')
+    fh.setLevel(logging.DEBUG)
+    logger.addHandler(fh)
+
     logger.info("Starting Khoj...")
-    set_state(args)
 
     if args.no_gui:
         # Start Server
