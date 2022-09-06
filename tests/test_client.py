@@ -132,7 +132,7 @@ def test_notes_search(content_config: ContentConfig, search_config: SearchConfig
 # ----------------------------------------------------------------------------------------------------
 def test_notes_search_with_include_filter(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    filters = [WordFilter(content_config.org.compressed_jsonl.parent, search_type=SearchType.Org)]
+    filters = [WordFilter()]
     model.orgmode_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False, filters=filters)
     user_query = 'How to git install application? +"Emacs"'
 
@@ -149,7 +149,7 @@ def test_notes_search_with_include_filter(content_config: ContentConfig, search_
 # ----------------------------------------------------------------------------------------------------
 def test_notes_search_with_exclude_filter(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    filters = [WordFilter(content_config.org.compressed_jsonl.parent, search_type=SearchType.Org)]
+    filters = [WordFilter()]
     model.orgmode_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False, filters=filters)
     user_query = 'How to git install application? -"clone"'
 

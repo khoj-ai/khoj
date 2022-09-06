@@ -58,7 +58,7 @@ def model_dir(search_config: SearchConfig):
         compressed_jsonl = model_dir.joinpath('notes.jsonl.gz'),
         embeddings_file = model_dir.joinpath('note_embeddings.pt'))
 
-    filters = [DateFilter(), WordFilter(model_dir, search_type=SearchType.Org), FileFilter()]
+    filters = [DateFilter(), WordFilter(), FileFilter()]
     text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False, filters=filters)
 
     return model_dir

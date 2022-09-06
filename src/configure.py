@@ -48,11 +48,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
             config.content_type.org,
             search_config=config.search_type.asymmetric,
             regenerate=regenerate,
-            filters=[
-                DateFilter(),
-                WordFilter(config.content_type.org.compressed_jsonl.parent, SearchType.Org),
-                FileFilter(),
-            ])
+            filters=[DateFilter(), WordFilter(), FileFilter()])
 
     # Initialize Org Music Search
     if (t == SearchType.Music or t == None) and config.content_type.music:
@@ -71,11 +67,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
             config.content_type.markdown,
             search_config=config.search_type.asymmetric,
             regenerate=regenerate,
-            filters=[
-                DateFilter(),
-                WordFilter(config.content_type.markdown.compressed_jsonl.parent, SearchType.Markdown),
-                FileFilter(),
-            ])
+            filters=[DateFilter(), WordFilter(), FileFilter()])
 
     # Initialize Ledger Search
     if (t == SearchType.Ledger or t == None) and config.content_type.ledger:
@@ -85,11 +77,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
             config.content_type.ledger,
             search_config=config.search_type.symmetric,
             regenerate=regenerate,
-            filters=[
-                DateFilter(),
-                WordFilter(config.content_type.ledger.compressed_jsonl.parent, SearchType.Ledger),
-                FileFilter(),
-            ])
+            filters=[DateFilter(), WordFilter(), FileFilter()])
 
     # Initialize Image Search
     if (t == SearchType.Image or t == None) and config.content_type.image:

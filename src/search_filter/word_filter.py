@@ -3,6 +3,7 @@ import re
 import time
 import pickle
 import logging
+from collections import defaultdict
 
 # Internal Packages
 from src.search_filter.base_filter import BaseFilter
@@ -18,38 +19,24 @@ class WordFilter(BaseFilter):
     required_regex = r'\+"(\w+)" ?'
     blocked_regex = r'\-"(\w+)" ?'
 
-    def __init__(self, filter_directory, search_type: SearchType, entry_key='raw'):
-        self.filter_file = resolve_absolute_path(filter_directory / f"word_filter_{search_type.name.lower()}_index.pkl")
+    def __init__(self, entry_key='raw'):
         self.entry_key = entry_key
-        self.search_type = search_type
-        self.word_to_entry_index = dict()
+        self.word_to_entry_index = defaultdict(set)
         self.cache = LRU()
 
 
     def load(self, entries, regenerate=False):
-        if self.filter_file.exists() and not regenerate:
-            start = time.time()
-            with self.filter_file.open('rb') as f:
-                self.word_to_entry_index = pickle.load(f)
-            end = time.time()
-            logger.debug(f"Load word filter index for {self.search_type} from {self.filter_file}: {end - start} seconds")
-        else:
-            start = time.time()
-            self.cache = {}  # Clear cache on (re-)generating entries_by_word_set
-            entry_splitter = r',|\.| |\]|\[\(|\)|\{|\}|\t|\n|\:'
-            # Create map of words to entries they exist in
-            for entry_index, entry in enumerate(entries):
-                for word in re.split(entry_splitter, entry[self.entry_key].lower()):
-                    if word == '':
-                        continue
-                    if word not in self.word_to_entry_index:
-                        self.word_to_entry_index[word] = set()
-                    self.word_to_entry_index[word].add(entry_index)
-
-            with self.filter_file.open('wb') as f:
-                pickle.dump(self.word_to_entry_index, f)
-            end = time.time()
-            logger.debug(f"Index {self.search_type} for word filter to {self.filter_file}: {end - start} seconds")
+        start = time.time()
+        self.cache = {}  # Clear cache on reload of filter
+        entry_splitter = r',|\.| |\]|\[\(|\)|\{|\}|\<|\>|\t|\n|\:|\;|\?|\!|\(|\)|\&|\^|\$|\@|\%|\+|\=|\/|\\|\||\~|\`|\"|\''
+        # Create map of words to entries they exist in
+        for entry_index, entry in enumerate(entries):
+            for word in re.split(entry_splitter, entry[self.entry_key].lower()):
+                if word == '':
+                    continue
+                self.word_to_entry_index[word].add(entry_index)
+        end = time.time()
+        logger.debug(f"Created word filter index: {end - start} seconds")
 
         return self.word_to_entry_index
 
