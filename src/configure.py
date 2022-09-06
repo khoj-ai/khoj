@@ -42,30 +42,62 @@ def configure_server(args, required=False):
 def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, t: SearchType = None):
     # Initialize Org Notes Search
     if (t == SearchType.Org or t == None) and config.content_type.org:
-        filter_directory = resolve_absolute_path(config.content_type.org.compressed_jsonl.parent)
-        filters = [DateFilter(), WordFilter(filter_directory, search_type=SearchType.Org), FileFilter()]
         # Extract Entries, Generate Notes Embeddings
-        model.orgmode_search = text_search.setup(org_to_jsonl, config.content_type.org, search_config=config.search_type.asymmetric, regenerate=regenerate, filters=filters)
+        model.orgmode_search = text_search.setup(
+            org_to_jsonl,
+            config.content_type.org,
+            search_config=config.search_type.asymmetric,
+            regenerate=regenerate,
+            filters=[
+                DateFilter(),
+                WordFilter(config.content_type.org.compressed_jsonl.parent, SearchType.Org),
+                FileFilter(),
+            ])
 
     # Initialize Org Music Search
     if (t == SearchType.Music or t == None) and config.content_type.music:
         # Extract Entries, Generate Music Embeddings
-        model.music_search = text_search.setup(org_to_jsonl, config.content_type.music, search_config=config.search_type.asymmetric, regenerate=regenerate)
+        model.music_search = text_search.setup(
+            org_to_jsonl,
+            config.content_type.music,
+            search_config=config.search_type.asymmetric,
+            regenerate=regenerate)
 
     # Initialize Markdown Search
     if (t == SearchType.Markdown or t == None) and config.content_type.markdown:
         # Extract Entries, Generate Markdown Embeddings
-        model.markdown_search = text_search.setup(markdown_to_jsonl, config.content_type.markdown, search_config=config.search_type.asymmetric, regenerate=regenerate)
+        model.markdown_search = text_search.setup(
+            markdown_to_jsonl,
+            config.content_type.markdown,
+            search_config=config.search_type.asymmetric,
+            regenerate=regenerate,
+            filters=[
+                DateFilter(),
+                WordFilter(config.content_type.markdown.compressed_jsonl.parent, SearchType.Markdown),
+                FileFilter(),
+            ])
 
     # Initialize Ledger Search
     if (t == SearchType.Ledger or t == None) and config.content_type.ledger:
         # Extract Entries, Generate Ledger Embeddings
-        model.ledger_search = text_search.setup(beancount_to_jsonl, config.content_type.ledger, search_config=config.search_type.symmetric, regenerate=regenerate)
+        model.ledger_search = text_search.setup(
+            beancount_to_jsonl,
+            config.content_type.ledger,
+            search_config=config.search_type.symmetric,
+            regenerate=regenerate,
+            filters=[
+                DateFilter(),
+                WordFilter(config.content_type.ledger.compressed_jsonl.parent, SearchType.Ledger),
+                FileFilter(),
+            ])
 
     # Initialize Image Search
     if (t == SearchType.Image or t == None) and config.content_type.image:
         # Extract Entries, Generate Image Embeddings
-        model.image_search = image_search.setup(config.content_type.image, search_config=config.search_type.image, regenerate=regenerate)
+        model.image_search = image_search.setup(
+            config.content_type.image,
+            search_config=config.search_type.image,
+            regenerate=regenerate)
 
     return model
 

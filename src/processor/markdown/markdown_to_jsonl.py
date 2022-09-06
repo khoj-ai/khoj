@@ -28,10 +28,10 @@ def markdown_to_jsonl(markdown_files, markdown_file_filter, output_file):
     markdown_files = get_markdown_files(markdown_files, markdown_file_filter)
 
     # Extract Entries from specified Markdown files
-    entries = extract_markdown_entries(markdown_files)
+    entries, entry_to_file_map = extract_markdown_entries(markdown_files)
 
     # Process Each Entry from All Notes Files
-    jsonl_data = convert_markdown_entries_to_jsonl(entries)
+    jsonl_data = convert_markdown_entries_to_jsonl(entries, entry_to_file_map)
 
     # Compress JSONL formatted Data
     if output_file.suffix == ".gz":
@@ -74,21 +74,24 @@ def extract_markdown_entries(markdown_files):
     markdown_heading_regex = r'^#'
 
     entries = []
+    entry_to_file_map = []
     for markdown_file in markdown_files:
         with open(markdown_file) as f:
             markdown_content = f.read()
-            entries.extend([f'#{entry.strip(empty_escape_sequences)}'
+            markdown_entries_per_file = [f'#{entry.strip(empty_escape_sequences)}'
                for entry
-               in re.split(markdown_heading_regex, markdown_content, flags=re.MULTILINE)])
+               in re.split(markdown_heading_regex, markdown_content, flags=re.MULTILINE)]
+            entry_to_file_map += [markdown_file]*len(markdown_entries_per_file)
+            entries.extend(markdown_entries_per_file)
 
-    return entries
+    return entries, entry_to_file_map
 
 
-def convert_markdown_entries_to_jsonl(entries):
+def convert_markdown_entries_to_jsonl(entries, entry_to_file_map):
     "Convert each Markdown entries to JSON and collate as JSONL"
     jsonl = ''
-    for entry in entries:
-        entry_dict = {'compiled': entry, 'raw': entry}
+    for entry_id, entry in enumerate(entries):
+        entry_dict = {'compiled': entry, 'raw': entry, 'file': f'{entry_to_file_map[entry_id]}'}
         # Convert Dictionary to JSON and Append to JSONL string
         jsonl += f'{json.dumps(entry_dict, ensure_ascii=False)}\n'
 

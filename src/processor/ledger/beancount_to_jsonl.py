@@ -28,10 +28,10 @@ def beancount_to_jsonl(beancount_files, beancount_file_filter, output_file):
     beancount_files = get_beancount_files(beancount_files, beancount_file_filter)
 
     # Extract Entries from specified Beancount files
-    entries = extract_beancount_entries(beancount_files)
+    entries, transaction_to_file_map = extract_beancount_entries(beancount_files)
 
     # Process Each Entry from All Notes Files
-    jsonl_data = convert_beancount_entries_to_jsonl(entries)
+    jsonl_data = convert_beancount_entries_to_jsonl(entries, transaction_to_file_map)
 
     # Compress JSONL formatted Data
     if output_file.suffix == ".gz":
@@ -74,22 +74,24 @@ def extract_beancount_entries(beancount_files):
     empty_newline = f'^[{empty_escape_sequences}]*$'
 
     entries = []
+    transaction_to_file_map = []
     for beancount_file in beancount_files:
         with open(beancount_file) as f:
             ledger_content = f.read()
-            entries.extend([entry.strip(empty_escape_sequences)
+            transactions_per_file = [entry.strip(empty_escape_sequences)
                for entry
                in re.split(empty_newline, ledger_content, flags=re.MULTILINE)
-               if re.match(transaction_regex, entry)])
+               if re.match(transaction_regex, entry)]
+            transaction_to_file_map += [beancount_file]*len(transactions_per_file)
+            entries.extend(transactions_per_file)
+    return entries, transaction_to_file_map
 
-    return entries
 
-
-def convert_beancount_entries_to_jsonl(entries):
+def convert_beancount_entries_to_jsonl(entries, transaction_to_file_map):
     "Convert each Beancount transaction to JSON and collate as JSONL"
     jsonl = ''
-    for entry in entries:
-        entry_dict = {'compiled': entry, 'raw': entry}
+    for entry_id, entry in enumerate(entries):
+        entry_dict = {'compiled': entry, 'raw': entry, 'file': f'{transaction_to_file_map[entry_id]}'}
         # Convert Dictionary to JSON and Append to JSONL string
         jsonl += f'{json.dumps(entry_dict, ensure_ascii=False)}\n'
 

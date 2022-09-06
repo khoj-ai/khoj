@@ -45,7 +45,7 @@ class DateFilter(BaseFilter):
                     continue
                 self.date_to_entry_ids[date_in_entry].add(id)
         end = time.time()
-        logger.debug(f"Created file filter index: {end - start} seconds")
+        logger.debug(f"Created date filter index: {end - start} seconds")
 
 
     def can_filter(self, raw_query):

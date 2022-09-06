@@ -4,9 +4,6 @@ import time
 import pickle
 import logging
 
-# External Packages
-import torch
-
 # Internal Packages
 from src.search_filter.base_filter import BaseFilter
 from src.utils.helpers import LRU, resolve_absolute_path
