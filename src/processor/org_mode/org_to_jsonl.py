@@ -8,6 +8,7 @@ import pathlib
 import glob
 import logging
 import hashlib
+import time
 
 # Internal Packages
 from src.processor.org_mode import orgnode
@@ -27,20 +28,32 @@ def org_to_jsonl(org_files, org_file_filter, output_file, previous_entries=None)
         exit(1)
 
     # Get Org Files to Process
+    start = time.time()
     org_files = get_org_files(org_files, org_file_filter)
 
     # Extract Entries from specified Org files
+    start = time.time()
     entry_nodes, file_to_entries = extract_org_entries(org_files)
+    end = time.time()
+    logger.debug(f"Parse entries from org files into OrgNode objects: {end - start} seconds")
+
+    start = time.time()
     current_entries = convert_org_nodes_to_entries(entry_nodes, file_to_entries)
+    end = time.time()
+    logger.debug(f"Convert OrgNodes into entry dictionaries: {end - start} seconds")
 
     # Identify, mark and merge any new entries with previous entries
     if not previous_entries:
         entries_with_ids = list(enumerate(current_entries))
     else:
         # Hash all current and previous entries to identify new entries
-        current_entry_hashes = list(map(lambda e: hashlib.md5(bytes(json.dumps(e), encoding='utf-8')).hexdigest(), current_entries))
-        previous_entry_hashes = list(map(lambda e: hashlib.md5(bytes(json.dumps(e), encoding='utf-8')).hexdigest(), previous_entries))
+        start = time.time()
+        current_entry_hashes = list(map(lambda e: hashlib.md5(bytes(e['compiled'], encoding='utf-8')).hexdigest(), current_entries))
+        previous_entry_hashes = list(map(lambda e: hashlib.md5(bytes(e['compiled'], encoding='utf-8')).hexdigest(), previous_entries))
+        end = time.time()
+        logger.debug(f"Hash previous, current entries: {end - start} seconds")
 
+        start = time.time()
         hash_to_current_entries = dict(zip(current_entry_hashes, current_entries))
         hash_to_previous_entries = dict(zip(previous_entry_hashes, previous_entries))
 
@@ -59,10 +72,14 @@ def org_to_jsonl(org_files, org_file_filter, output_file, previous_entries=None)
             (previous_entry_hashes.index(entry_hash), hash_to_previous_entries[entry_hash])
             for entry_hash in existing_entry_hashes
         ]
+
         existing_entries_sorted = sorted(existing_entries, key=lambda e: e[0])
         entries_with_ids = existing_entries_sorted + new_entries
+        end = time.time()
+        logger.debug(f"Identify, Mark, Combine new, existing entries: {end - start} seconds")
 
     # Process Each Entry from All Notes Files
+    start = time.time()
     entries = map(lambda entry: entry[1], entries_with_ids)
     jsonl_data = convert_org_entries_to_jsonl(entries)
 
@@ -71,6 +88,8 @@ def org_to_jsonl(org_files, org_file_filter, output_file, previous_entries=None)
         compress_jsonl_data(jsonl_data, output_file)
     elif output_file.suffix == ".jsonl":
         dump_jsonl(jsonl_data, output_file)
+    end = time.time()
+    logger.debug(f"Write org entries to JSONL file: {end - start} seconds")
 
     return entries_with_ids
 
