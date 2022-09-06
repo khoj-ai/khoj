@@ -7,6 +7,7 @@ import argparse
 import pathlib
 import glob
 import logging
+import hashlib
 
 # Internal Packages
 from src.processor.org_mode import orgnode
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 # Define Functions
-def org_to_jsonl(org_files, org_file_filter, output_file):
+def org_to_jsonl(org_files, org_file_filter, output_file, previous_entries=None):
     # Input Validation
     if is_none_or_empty(org_files) and is_none_or_empty(org_file_filter):
         print("At least one of org-files or org-file-filter is required to be specified")
@@ -29,10 +30,41 @@ def org_to_jsonl(org_files, org_file_filter, output_file):
     org_files = get_org_files(org_files, org_file_filter)
 
     # Extract Entries from specified Org files
-    entries, file_to_entries = extract_org_entries(org_files)
+    entry_nodes, file_to_entries = extract_org_entries(org_files)
+    current_entries = convert_org_nodes_to_entries(entry_nodes, file_to_entries)
+
+    # Identify, mark and merge any new entries with previous entries
+    if not previous_entries:
+        entries_with_ids = list(enumerate(current_entries))
+    else:
+        # Hash all current and previous entries to identify new entries
+        current_entry_hashes = list(map(lambda e: hashlib.md5(bytes(json.dumps(e), encoding='utf-8')).hexdigest(), current_entries))
+        previous_entry_hashes = list(map(lambda e: hashlib.md5(bytes(json.dumps(e), encoding='utf-8')).hexdigest(), previous_entries))
+
+        hash_to_current_entries = dict(zip(current_entry_hashes, current_entries))
+        hash_to_previous_entries = dict(zip(previous_entry_hashes, previous_entries))
+
+        # All entries that did not exist in the previous set are to be added
+        new_entry_hashes = set(current_entry_hashes) - set(previous_entry_hashes)
+        # All entries that exist in both current and previous sets are kept
+        existing_entry_hashes = set(current_entry_hashes) & set(previous_entry_hashes)
+
+        # Mark new entries with no ids for later embeddings generation
+        new_entries = [
+            (None, hash_to_current_entries[entry_hash])
+            for entry_hash in new_entry_hashes
+        ]
+        # Set id of existing entries to their previous ids to reuse their existing encoded embeddings
+        existing_entries = [
+            (previous_entry_hashes.index(entry_hash), hash_to_previous_entries[entry_hash])
+            for entry_hash in existing_entry_hashes
+        ]
+        existing_entries_sorted = sorted(existing_entries, key=lambda e: e[0])
+        entries_with_ids = existing_entries_sorted + new_entries
 
     # Process Each Entry from All Notes Files
-    jsonl_data = convert_org_entries_to_jsonl(entries, file_to_entries)
+    entries = map(lambda entry: entry[1], entries_with_ids)
+    jsonl_data = convert_org_entries_to_jsonl(entries)
 
     # Compress JSONL formatted Data
     if output_file.suffix == ".gz":
@@ -40,7 +72,7 @@ def org_to_jsonl(org_files, org_file_filter, output_file):
     elif output_file.suffix == ".jsonl":
         dump_jsonl(jsonl_data, output_file)
 
-    return entries
+    return entries_with_ids
 
 
 def get_org_files(org_files=None, org_file_filter=None):
@@ -70,16 +102,16 @@ def extract_org_entries(org_files):
     entry_to_file_map = []
     for org_file in org_files:
         org_file_entries = orgnode.makelist(str(org_file))
-        entry_to_file_map += [org_file]*len(org_file_entries)
+        entry_to_file_map += zip(org_file_entries, [org_file]*len(org_file_entries))
         entries.extend(org_file_entries)
 
-    return entries, entry_to_file_map
+    return entries, dict(entry_to_file_map)
 
 
-def convert_org_entries_to_jsonl(entries, entry_to_file_map) -> str:
-    "Convert each Org-Mode entries to JSON and collate as JSONL"
-    jsonl = ''
-    for entry_id, entry in enumerate(entries):
+def convert_org_nodes_to_entries(entries: list[orgnode.Orgnode], entry_to_file_map) -> list[dict]:
+    "Convert Org-Mode entries into list of dictionary"
+    entry_maps = []
+    for entry in entries:
         entry_dict = dict()
 
         # Ignore title notes i.e notes with just headings and empty body
@@ -113,14 +145,17 @@ def convert_org_entries_to_jsonl(entries, entry_to_file_map) -> str:
 
         if entry_dict:
             entry_dict["raw"] = f'{entry}'
-            entry_dict["file"] = f'{entry_to_file_map[entry_id]}'
+            entry_dict["file"] = f'{entry_to_file_map[entry]}'
 
             # Convert Dictionary to JSON and Append to JSONL string
-            jsonl += f'{json.dumps(entry_dict, ensure_ascii=False)}\n'
+            entry_maps.append(entry_dict)
 
-    logger.info(f"Converted {len(entries)} to jsonl format")
+    return entry_maps
 
-    return jsonl
+
+def convert_org_entries_to_jsonl(entries) -> str:
+    "Convert each Org-Mode entry to JSON and collate as JSONL"
+    return ''.join([f'{json.dumps(entry_dict, ensure_ascii=False)}\n' for entry_dict in entries])
 
 
 if __name__ == '__main__':

@@ -3,7 +3,7 @@ import json
 from posixpath import split
 
 # Internal Packages
-from src.processor.org_mode.org_to_jsonl import convert_org_entries_to_jsonl, extract_org_entries
+from src.processor.org_mode.org_to_jsonl import convert_org_entries_to_jsonl, convert_org_nodes_to_entries, extract_org_entries
 from src.utils.helpers import is_none_or_empty
 
 
@@ -21,10 +21,11 @@ def test_entry_with_empty_body_line_to_jsonl(tmp_path):
 
     # Act
     # Extract Entries from specified Org files
-    entries, entry_to_file_map = extract_org_entries(org_files=[orgfile])
+    entry_nodes, file_to_entries = extract_org_entries(org_files=[orgfile])
 
     # Process Each Entry from All Notes Files
-    jsonl_data = convert_org_entries_to_jsonl(entries, entry_to_file_map)
+    entries = convert_org_nodes_to_entries(entry_nodes, file_to_entries)
+    jsonl_data = convert_org_entries_to_jsonl(entries)
 
     # Assert
     assert is_none_or_empty(jsonl_data)
@@ -43,10 +44,11 @@ def test_entry_with_body_to_jsonl(tmp_path):
 
     # Act
     # Extract Entries from specified Org files
-    entries, entry_to_file_map = extract_org_entries(org_files=[orgfile])
+    entry_nodes, file_to_entries = extract_org_entries(org_files=[orgfile])
 
     # Process Each Entry from All Notes Files
-    jsonl_string = convert_org_entries_to_jsonl(entries, entry_to_file_map)
+    entries = convert_org_nodes_to_entries(entry_nodes, file_to_entries)
+    jsonl_string = convert_org_entries_to_jsonl(entries)
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()] 
 
     # Assert

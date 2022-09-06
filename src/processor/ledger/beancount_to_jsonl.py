@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 # Define Functions
-def beancount_to_jsonl(beancount_files, beancount_file_filter, output_file):
+def beancount_to_jsonl(beancount_files, beancount_file_filter, output_file, previous_entries=None):
     # Input Validation
     if is_none_or_empty(beancount_files) and is_none_or_empty(beancount_file_filter):
         print("At least one of beancount-files or beancount-file-filter is required to be specified")
@@ -39,7 +39,7 @@ def beancount_to_jsonl(beancount_files, beancount_file_filter, output_file):
     elif output_file.suffix == ".jsonl":
         dump_jsonl(jsonl_data, output_file)
 
-    return entries
+    return list(enumerate(entries))
 
 
 def get_beancount_files(beancount_files=None, beancount_file_filter=None):

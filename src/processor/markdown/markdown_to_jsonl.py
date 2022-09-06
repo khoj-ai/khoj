@@ -39,7 +39,7 @@ def markdown_to_jsonl(markdown_files, markdown_file_filter, output_file):
     elif output_file.suffix == ".jsonl":
         dump_jsonl(jsonl_data, output_file)
 
-    return entries
+    return list(enumerate(entries))
 
 
 def get_markdown_files(markdown_files=None, markdown_file_filter=None):
