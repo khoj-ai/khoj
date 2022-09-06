@@ -12,6 +12,7 @@ import logging
 from src.processor.org_mode import orgnode
 from src.utils.helpers import get_absolute_path, is_none_or_empty
 from src.utils.jsonl import dump_jsonl, compress_jsonl_data
+from src.utils import state
 
 
 logger = logging.getLogger(__name__)
@@ -86,24 +87,29 @@ def convert_org_entries_to_jsonl(entries, entry_to_file_map) -> str:
             continue
 
         entry_dict["compiled"] = f'{entry.Heading()}.'
-        logger.debug(f"Title: {entry.Heading()}")
+        if state.verbose > 2:
+            logger.debug(f"Title: {entry.Heading()}")
 
         if entry.Tags():
             tags_str = " ".join(entry.Tags())
             entry_dict["compiled"] += f'\t {tags_str}.'
-            logger.debug(f"Tags: {tags_str}")
+            if state.verbose > 2:
+                logger.debug(f"Tags: {tags_str}")
 
         if entry.Closed():
             entry_dict["compiled"] += f'\n Closed on {entry.Closed().strftime("%Y-%m-%d")}.'
-            logger.debug(f'Closed: {entry.Closed().strftime("%Y-%m-%d")}')
+            if state.verbose > 2:
+                logger.debug(f'Closed: {entry.Closed().strftime("%Y-%m-%d")}')
 
         if entry.Scheduled():
             entry_dict["compiled"] += f'\n Scheduled for {entry.Scheduled().strftime("%Y-%m-%d")}.'
-            logger.debug(f'Scheduled: {entry.Scheduled().strftime("%Y-%m-%d")}')
+            if state.verbose > 2:
+                logger.debug(f'Scheduled: {entry.Scheduled().strftime("%Y-%m-%d")}')
 
         if entry.Body():
             entry_dict["compiled"] += f'\n {entry.Body()}'
-            logger.debug(f"Body: {entry.Body()}")
+            if state.verbose > 2:
+                logger.debug(f"Body: {entry.Body()}")
 
         if entry_dict:
             entry_dict["raw"] = f'{entry}'
