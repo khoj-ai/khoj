@@ -48,8 +48,13 @@ def test_image_search(content_config: ContentConfig, search_config: SearchConfig
             image_files_url='/static/images',
             count=1)
 
-        actual_image = Image.open(output_directory.joinpath(Path(results[0]["entry"]).name))
+        actual_image_path = output_directory.joinpath(Path(results[0]["entry"]).name)
+        actual_image = Image.open(actual_image_path)
         expected_image = Image.open(content_config.image.input_directories[0].joinpath(expected_image_name))
 
         # Assert
         assert expected_image == actual_image
+
+    # Cleanup
+    # Delete the image files copied to results directory
+    actual_image_path.unlink()

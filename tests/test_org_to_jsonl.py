@@ -1,6 +1,5 @@
 # Standard Packages
 import json
-from posixpath import split
 
 # Internal Packages
 from src.processor.org_mode.org_to_jsonl import convert_org_entries_to_jsonl, extract_org_entries
