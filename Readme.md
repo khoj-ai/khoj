@@ -131,7 +131,7 @@ pip install --upgrade khoj-assistant
 - Indexing is more strongly impacted by the size of the source data
 - Indexing 100K+ line corpus of notes takes 6 minutes
 - Indexing 4000+ images takes about 15 minutes and more than 8Gb of RAM
-- Once <https://github.com/debanjum/khoj/issues/36> is implemented, it should only take this long on first run
+- Note: *It should only take this long on the first run* as the index is incrementally updated
 
 ### Miscellaneous
 
