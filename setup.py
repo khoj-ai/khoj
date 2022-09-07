@@ -7,7 +7,7 @@ this_directory = Path(__file__).parent
 
 setup(
     name='khoj-assistant',
-    version='0.1.7',
+    version='0.1.8',
     description="A natural language search engine for your personal notes, transactions and images",
     long_description=(this_directory / "Readme.md").read_text(encoding="utf-8"),
     long_description_content_type="text/markdown",
