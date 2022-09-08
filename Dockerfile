@@ -4,7 +4,7 @@ LABEL org.opencontainers.image.source https://github.com/debanjum/khoj
 
 # Install System Dependencies
 RUN apt-get update -y && \
-    apt-get -y install libimage-exiftool-perl
+    apt-get -y install libimage-exiftool-perl python3-pyqt5
 
 # Copy Application to Container
 COPY . /app
