@@ -63,6 +63,9 @@ def run():
     args = cli(state.cli_args)
     set_state(args)
 
+    # Create app directory, if it doesn't exist
+    state.config_file.parent.mkdir(parents=True, exist_ok=True)
+
     # Setup Logger
     if args.verbose == 0:
         logger.setLevel(logging.WARN)
