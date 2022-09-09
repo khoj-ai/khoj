@@ -92,7 +92,7 @@ class MainWindow(QtWidgets.QMainWindow):
         search_type_layout = QtWidgets.QVBoxLayout(search_type_settings)
         enable_search_type = SearchCheckBox(f"Search {search_type.name}", search_type)
         # Add file browser to set input files for given search type
-        input_files = FileBrowser(file_input_text, search_type, current_content_files)
+        input_files = FileBrowser(file_input_text, search_type, current_content_files or [])
 
         # Set enabled/disabled based on checkbox state
         enable_search_type.setChecked(current_content_files is not None and len(current_content_files) > 0)
