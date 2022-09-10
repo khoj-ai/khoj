@@ -118,8 +118,14 @@ def makelist(filename):
               for kw in kwlist: todos[kw] = ""
 
            # Set file title to TITLE property, if it exists
-           if line[:8] == "#+TITLE:":
-               file_title = line[8:].strip()
+           title_search = re.search(r'^#\+TITLE:\s*(.*)$', line)
+           if title_search and title_search.group(1).strip() != '':
+               title_text = title_search.group(1).strip()
+               if file_title == f'{filename}':
+                  file_title = title_text
+               else:
+                  file_title += f' {title_text}'
+               continue
 
            # Ignore Properties Drawers Completely
            if re.search(':PROPERTIES:', line):
