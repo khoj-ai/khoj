@@ -9,6 +9,28 @@ from src.processor.org_mode import orgnode
 
 # Test
 # ----------------------------------------------------------------------------------------------------
+def test_parse_entry_with_no_headings(tmp_path):
+    "Test parsing of entry with minimal fields"
+    # Arrange
+    entry = f'''Body Line 1'''
+    orgfile = create_file(tmp_path, entry)
+
+    # Act
+    entries = orgnode.makelist(orgfile)
+
+    # Assert
+    assert len(entries) == 1
+    assert entries[0].Heading() == f'{orgfile}'
+    assert entries[0].Tags() == list()
+    assert entries[0].Body() == "Body Line 1"
+    assert entries[0].Priority() == ""
+    assert entries[0].Property("ID") == ""
+    assert entries[0].Closed() == ""
+    assert entries[0].Scheduled() == ""
+    assert entries[0].Deadline() == ""
+
+
+# ----------------------------------------------------------------------------------------------------
 def test_parse_minimal_entry(tmp_path):
     "Test parsing of entry with minimal fields"
     # Arrange
@@ -81,18 +103,17 @@ Body Line 1
 Body Line 2
 '''
     orgfile = create_file(tmp_path, entry)
-    normalized_orgfile = f'~/{relpath(orgfile, start=Path.home())}'
 
     # Act
     entries = orgnode.makelist(orgfile)
 
     # Assert
     # SOURCE link rendered with Heading
-    assert f':SOURCE: [[file:{normalized_orgfile}::*{entries[0].Heading()}]]' in f'{entries[0]}'
+    assert f':SOURCE: [[file:{orgfile}::*{entries[0].Heading()}]]' in f'{entries[0]}'
     # ID link rendered with ID
     assert f':ID: id:123-456-789-4234-1231' in f'{entries[0]}'
     # LINE link rendered with line number
-    assert f':LINE: file:{normalized_orgfile}::2' in f'{entries[0]}'
+    assert f':LINE: file:{orgfile}::2' in f'{entries[0]}'
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -115,8 +136,7 @@ Body Line 1'''
     # parsed heading from entry
     assert entries[0].Heading() == "Heading[1]"
     # ensure SOURCE link has square brackets in filename, heading escaped in rendered entries
-    normalized_orgfile = f'~/{relpath(orgfile, start=Path.home())}'
-    escaped_orgfile = f'{normalized_orgfile}'.replace("[1]", "\\[1\\]")
+    escaped_orgfile = f'{orgfile}'.replace("[1]", "\\[1\\]")
     assert f':SOURCE: [[file:{escaped_orgfile}::*Heading\[1\]' in f'{entries[0]}'
 
 
@@ -166,6 +186,76 @@ Body 2
         assert entry.Scheduled() == datetime.date(1984,4,index+1)
         assert entry.Deadline() == datetime.date(1984,4,index+1)
         assert entry.Logbook() == [(datetime.datetime(1984,4,index+1,9,0,0), datetime.datetime(1984,4,index+1,12,0,0))]
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_parse_entry_with_empty_title(tmp_path):
+    "Test parsing of entry with minimal fields"
+    # Arrange
+    entry = f'''#+TITLE: 
+Body Line 1'''
+    orgfile = create_file(tmp_path, entry)
+
+    # Act
+    entries = orgnode.makelist(orgfile)
+
+    # Assert
+    assert len(entries) == 1
+    assert entries[0].Heading() == f'{orgfile}'
+    assert entries[0].Tags() == list()
+    assert entries[0].Body() == "Body Line 1"
+    assert entries[0].Priority() == ""
+    assert entries[0].Property("ID") == ""
+    assert entries[0].Closed() == ""
+    assert entries[0].Scheduled() == ""
+    assert entries[0].Deadline() == ""
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_parse_entry_with_title_and_no_headings(tmp_path):
+    "Test parsing of entry with minimal fields"
+    # Arrange
+    entry = f'''#+TITLE: test
+Body Line 1'''
+    orgfile = create_file(tmp_path, entry)
+
+    # Act
+    entries = orgnode.makelist(orgfile)
+
+    # Assert
+    assert len(entries) == 1
+    assert entries[0].Heading() == 'test'
+    assert entries[0].Tags() == list()
+    assert entries[0].Body() == "Body Line 1"
+    assert entries[0].Priority() == ""
+    assert entries[0].Property("ID") == ""
+    assert entries[0].Closed() == ""
+    assert entries[0].Scheduled() == ""
+    assert entries[0].Deadline() == ""
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_parse_entry_with_multiple_titles_and_no_headings(tmp_path):
+    "Test parsing of entry with minimal fields"
+    # Arrange
+    entry = f'''#+TITLE: title1 
+Body Line 1
+#+TITLE:  title2  '''
+    orgfile = create_file(tmp_path, entry)
+
+    # Act
+    entries = orgnode.makelist(orgfile)
+
+    # Assert
+    assert len(entries) == 1
+    assert entries[0].Heading() == 'title1 title2'
+    assert entries[0].Tags() == list()
+    assert entries[0].Body() == "Body Line 1\n"
+    assert entries[0].Priority() == ""
+    assert entries[0].Property("ID") == ""
+    assert entries[0].Closed() == ""
+    assert entries[0].Scheduled() == ""
+    assert entries[0].Deadline() == ""
 
 
 # Helper Functions

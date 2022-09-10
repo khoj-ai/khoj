@@ -2,7 +2,6 @@
 [![build](https://github.com/debanjum/khoj/actions/workflows/build.yml/badge.svg)](https://github.com/debanjum/khoj/actions/workflows/build.yml)
 [![test](https://github.com/debanjum/khoj/actions/workflows/test.yml/badge.svg)](https://github.com/debanjum/khoj/actions/workflows/test.yml)
 [![publish](https://github.com/debanjum/khoj/actions/workflows/publish.yml/badge.svg)](https://github.com/debanjum/khoj/actions/workflows/publish.yml)
-[![release](https://github.com/debanjum/khoj/actions/workflows/release.yml/badge.svg)](https://github.com/debanjum/khoj/actions/workflows/release.yml)
 
 *A natural language search engine for your personal notes, transactions and images*
 
@@ -107,7 +106,7 @@ pip install --upgrade khoj-assistant
 ## Troubleshoot
 
 - Symptom: Errors out complaining about Tensors mismatch, null etc
-  - Mitigation: Disable `image` search on the desktop GUI
+  - Mitigation: Disable `image` search using the desktop GUI
 - Symptom: Errors out with \"Killed\" in error message in Docker
   - Fix: Increase RAM available to Docker Containers in Docker Settings
   - Refer: [StackOverflow Solution](https://stackoverflow.com/a/50770267), [Configure Resources on Docker for Mac](https://docs.docker.com/desktop/mac/#resources)
@@ -125,11 +124,12 @@ pip install --upgrade khoj-assistant
 
 - Semantic search using the bi-encoder is fairly fast at \<50 ms
 - Reranking using the cross-encoder is slower at \<2s on 15 results. Tweak `top_k` to tradeoff speed for accuracy of results
+- Filters in query (e.g by file, word or date) usually add \<20ms to query latency
 
 ### Indexing performance
 
 - Indexing is more strongly impacted by the size of the source data
-- Indexing 100K+ line corpus of notes takes 6 minutes
+- Indexing 100K+ line corpus of notes takes about 10 minutes
 - Indexing 4000+ images takes about 15 minutes and more than 8Gb of RAM
 - Note: *It should only take this long on the first run* as the index is incrementally updated
 

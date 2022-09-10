@@ -44,7 +44,7 @@ def dump_jsonl(jsonl_data, output_path):
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(jsonl_data)
 
-    logger.info(f'Wrote {len(jsonl_data)} lines to jsonl at {output_path}')
+    logger.info(f'Wrote jsonl data to {output_path}')
 
 
 def compress_jsonl_data(jsonl_data, output_path):

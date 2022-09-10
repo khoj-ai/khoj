@@ -11,7 +11,7 @@ from src.search_filter.base_filter import BaseFilter
 
 # Internal Packages
 from src.utils import state
-from src.utils.helpers import get_absolute_path, resolve_absolute_path, load_model
+from src.utils.helpers import get_absolute_path, is_none_or_empty, resolve_absolute_path, load_model
 from src.utils.config import TextSearchModel
 from src.utils.rawconfig import TextSearchConfig, TextContentConfig
 from src.utils.jsonl import load_jsonl
@@ -187,6 +187,8 @@ def setup(text_to_jsonl, config: TextContentConfig, search_config: TextSearchCon
 
     # Extract Updated Entries
     entries = extract_entries(config.compressed_jsonl)
+    if is_none_or_empty(entries):
+        raise ValueError(f"No valid entries found in specified files: {config.input_files} or {config.input_filter}")
     top_k = min(len(entries), top_k)  # top_k hits can't be more than the total entries in corpus
 
     # Compute or Load Embeddings

@@ -1,5 +1,9 @@
 # System Packages
+from copy import deepcopy
 from pathlib import Path
+
+# External Packages
+import pytest
 
 # Internal Packages
 from src.utils.state import model
@@ -9,6 +13,25 @@ from src.processor.org_mode.org_to_jsonl import org_to_jsonl
 
 
 # Test
+# ----------------------------------------------------------------------------------------------------
+def test_asymmetric_setup_with_empty_file_raises_error(content_config: ContentConfig, search_config: SearchConfig):
+    # Arrange
+    file_to_index = Path(content_config.org.input_filter).parent / "new_file_to_index.org"
+    file_to_index.touch()
+    new_org_content_config = deepcopy(content_config.org)
+    new_org_content_config.input_files = [f'{file_to_index}']
+    new_org_content_config.input_filter = None
+
+    # Act
+    # Generate notes embeddings during asymmetric setup
+    with pytest.raises(ValueError, match=r'^No valid entries found*'):
+        text_search.setup(org_to_jsonl, new_org_content_config, search_config.asymmetric, regenerate=True)
+
+    # Cleanup
+    # delete created test file
+    file_to_index.unlink()
+
+
 # ----------------------------------------------------------------------------------------------------
 def test_asymmetric_setup(content_config: ContentConfig, search_config: SearchConfig):
     # Act
@@ -23,7 +46,7 @@ def test_asymmetric_setup(content_config: ContentConfig, search_config: SearchCo
 # ----------------------------------------------------------------------------------------------------
 def test_asymmetric_search(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    model.notes_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False)
+    model.notes_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=True)
     query = "How to git install application?"
 
     # Act

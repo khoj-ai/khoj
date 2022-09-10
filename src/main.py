@@ -3,7 +3,11 @@ import os
 import signal
 import sys
 import logging
+import warnings
 from platform import system
+
+# Ignore non-actionable warnings
+warnings.filterwarnings("ignore", message=r'snapshot_download.py has been made private', category=FutureWarning)
 
 # External Packages
 import uvicorn
@@ -62,6 +66,9 @@ def run():
     state.cli_args = sys.argv[1:]
     args = cli(state.cli_args)
     set_state(args)
+
+    # Create app directory, if it doesn't exist
+    state.config_file.parent.mkdir(parents=True, exist_ok=True)
 
     # Setup Logger
     if args.verbose == 0:

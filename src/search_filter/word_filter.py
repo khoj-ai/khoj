@@ -27,7 +27,7 @@ class WordFilter(BaseFilter):
 
     def load(self, entries, regenerate=False):
         start = time.time()
-        self.cache = {}  # Clear cache on reload of filter
+        self.cache = {}  # Clear cache on filter (re-)load
         entry_splitter = r',|\.| |\]|\[\(|\)|\{|\}|\<|\>|\t|\n|\:|\;|\?|\!|\(|\)|\&|\^|\$|\@|\%|\+|\=|\/|\\|\||\~|\`|\"|\''
         # Create map of words to entries they exist in
         for entry_index, entry in enumerate(entries):

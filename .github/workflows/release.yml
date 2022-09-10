@@ -1,15 +1,15 @@
 name: release
 
 on:
+  push:
+    tags:
+      - v*
   workflow_dispatch:
     inputs:
       version:
         description: 'Version Number'
         required: true
         type: string
-  push:
-    tags:
-      - v*
 
 jobs:
   publish:
