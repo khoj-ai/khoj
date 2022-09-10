@@ -7,6 +7,7 @@ import pathlib
 import glob
 import re
 import logging
+import time
 
 # Internal Packages
 from src.utils.helpers import get_absolute_path, is_none_or_empty, mark_entries_for_update
@@ -28,18 +29,23 @@ def beancount_to_jsonl(beancount_files, beancount_file_filter, output_file, prev
     beancount_files = get_beancount_files(beancount_files, beancount_file_filter)
 
     # Extract Entries from specified Beancount files
+    start = time.time()
     extracted_transactions, transaction_to_file_map = extract_beancount_entries(beancount_files)
-
-    # Convert Extracted Transactions to Dictionaries
     current_entries = convert_transactions_to_maps(extracted_transactions, transaction_to_file_map)
+    end = time.time()
+    logger.debug(f"Parse transactions from Beancount files into dictionaries: {end - start} seconds")
 
     # Identify, mark and merge any new entries with previous entries
+    start = time.time()
     if not previous_entries:
         entries_with_ids = list(enumerate(current_entries))
     else:
         entries_with_ids = mark_entries_for_update(current_entries, previous_entries, key='compiled', logger=logger)
+    end = time.time()
+    logger.debug(f"Identify new or updated transaction: {end - start} seconds")
 
     # Process Each Entry from All Notes Files
+    start = time.time()
     entries = list(map(lambda entry: entry[1], entries_with_ids))
     jsonl_data = convert_transaction_maps_to_jsonl(entries)
 
@@ -48,6 +54,8 @@ def beancount_to_jsonl(beancount_files, beancount_file_filter, output_file, prev
         compress_jsonl_data(jsonl_data, output_file)
     elif output_file.suffix == ".jsonl":
         dump_jsonl(jsonl_data, output_file)
+    end = time.time()
+    logger.debug(f"Write transactions to JSONL file: {end - start} seconds")
 
     return entries_with_ids
 

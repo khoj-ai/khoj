@@ -7,6 +7,7 @@ import pathlib
 import glob
 import re
 import logging
+import time
 
 # Internal Packages
 from src.utils.helpers import get_absolute_path, is_none_or_empty, mark_entries_for_update
@@ -28,26 +29,33 @@ def markdown_to_jsonl(markdown_files, markdown_file_filter, output_file, previou
     markdown_files = get_markdown_files(markdown_files, markdown_file_filter)
 
     # Extract Entries from specified Markdown files
+    start = time.time()
     extracted_entries, entry_to_file_map = extract_markdown_entries(markdown_files)
-
-    # Convert Extracted Transactions to Dictionaries
     current_entries = convert_markdown_entries_to_maps(extracted_entries, entry_to_file_map)
+    end = time.time()
+    logger.debug(f"Parse entries from Markdown files into dictionaries: {end - start} seconds")
 
     # Identify, mark and merge any new entries with previous entries
+    start = time.time()
     if not previous_entries:
         entries_with_ids = list(enumerate(current_entries))
     else:
         entries_with_ids = mark_entries_for_update(current_entries, previous_entries, key='compiled', logger=logger)
+    end = time.time()
+    logger.debug(f"Identify new or updated entries: {end - start} seconds")
 
     # Process Each Entry from All Notes Files
+    start = time.time()
     entries = list(map(lambda entry: entry[1], entries_with_ids))
-    jsonl_data = convert_markdown_maps_to_jsonl(entries, entry_to_file_map)
+    jsonl_data = convert_markdown_maps_to_jsonl(entries)
 
     # Compress JSONL formatted Data
     if output_file.suffix == ".gz":
         compress_jsonl_data(jsonl_data, output_file)
     elif output_file.suffix == ".jsonl":
         dump_jsonl(jsonl_data, output_file)
+    end = time.time()
+    logger.debug(f"Write markdown entries to JSONL file: {end - start} seconds")
 
     return entries_with_ids
 
