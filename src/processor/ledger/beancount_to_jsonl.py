@@ -99,16 +99,16 @@ def extract_beancount_transactions(beancount_files):
                for entry
                in re.split(empty_newline, ledger_content, flags=re.MULTILINE)
                if re.match(transaction_regex, entry)]
-            transaction_to_file_map += [beancount_file]*len(transactions_per_file)
+            transaction_to_file_map += zip(transactions_per_file, [beancount_file]*len(transactions_per_file))
             entries.extend(transactions_per_file)
-    return entries, transaction_to_file_map
+    return entries, dict(transaction_to_file_map)
 
 
 def convert_transactions_to_maps(entries: list[str], transaction_to_file_map) -> list[dict]:
     "Convert each Beancount transaction into a dictionary"
     entry_maps = []
-    for entry_id, entry in enumerate(entries):
-        entry_maps.append({'compiled': entry, 'raw': entry, 'file': f'{transaction_to_file_map[entry_id]}'})
+    for entry in entries:
+        entry_maps.append({'compiled': entry, 'raw': entry, 'file': f'{transaction_to_file_map[entry]}'})
 
     logger.info(f"Converted {len(entries)} transactions to dictionaries")
 

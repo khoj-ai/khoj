@@ -98,17 +98,17 @@ def extract_markdown_entries(markdown_files):
             markdown_entries_per_file = [f'#{entry.strip(empty_escape_sequences)}'
                for entry
                in re.split(markdown_heading_regex, markdown_content, flags=re.MULTILINE)]
-            entry_to_file_map += [markdown_file]*len(markdown_entries_per_file)
+            entry_to_file_map += zip(markdown_entries_per_file, [markdown_file]*len(markdown_entries_per_file))
             entries.extend(markdown_entries_per_file)
 
-    return entries, entry_to_file_map
+    return entries, dict(entry_to_file_map)
 
 
 def convert_markdown_entries_to_maps(entries: list[str], entry_to_file_map) -> list[dict]:
     "Convert each Markdown entries into a dictionary"
     entry_maps = []
-    for entry_id, entry in enumerate(entries):
-        entry_maps.append({'compiled': entry, 'raw': entry, 'file': f'{entry_to_file_map[entry_id]}'})
+    for entry in entries:
+        entry_maps.append({'compiled': entry, 'raw': entry, 'file': f'{entry_to_file_map[entry]}'})
 
     logger.info(f"Converted {len(entries)} markdown entries to dictionaries")
 

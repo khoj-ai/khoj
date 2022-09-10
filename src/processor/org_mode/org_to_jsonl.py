@@ -141,7 +141,7 @@ def convert_org_nodes_to_entries(entries: list[orgnode.Orgnode], entry_to_file_m
     return entry_maps
 
 
-def convert_org_entries_to_jsonl(entries) -> str:
+def convert_org_entries_to_jsonl(entries: list[dict]) -> str:
     "Convert each Org-Mode entry to JSON and collate as JSONL"
     return ''.join([f'{json.dumps(entry_dict, ensure_ascii=False)}\n' for entry_dict in entries])
 
