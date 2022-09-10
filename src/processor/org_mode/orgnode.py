@@ -73,6 +73,7 @@ def makelist(filename):
    propdict      = dict()
    in_properties_drawer = False
    in_logbook_drawer = False
+   file_title = f'{filename}'
 
    for line in f:
        ctr += 1
@@ -110,6 +111,10 @@ def makelist(filename):
            if line[:10] == '#+SEQ_TODO':
               kwlist = re.findall(r'([A-Z]+)\(', line)
               for kw in kwlist: todos[kw] = ""
+
+           # Set file title to TITLE property, if it exists
+           if line[:8] == "#+TITLE:":
+               file_title = line[8:].strip()
 
            # Ignore Properties Drawers Completely
            if re.search(':PROPERTIES:', line):
@@ -167,7 +172,7 @@ def makelist(filename):
                bodytext = bodytext + line
 
    # write out last node
-   thisNode = Orgnode(level, heading, bodytext, tags)
+   thisNode = Orgnode(level, heading or file_title, bodytext, tags)
    thisNode.setProperties(propdict)
    if sched_date:
       thisNode.setScheduled(sched_date)
@@ -196,8 +201,12 @@ def makelist(filename):
           n.setHeading(prtysrch.group(2))
 
        # Set SOURCE property to a file+heading based org-mode link to the entry
-       escaped_heading = n.Heading().replace("[","\\[").replace("]","\\]")
-       n.properties['SOURCE'] = f'[[file:{normalize_filename(filename)}::*{escaped_heading}]]'
+       if n.Level() == 0:
+         n.properties['LINE'] = f'file:{normalize_filename(filename)}::0'
+         n.properties['SOURCE'] = f'[[file:{normalize_filename(filename)}]]'
+       else:
+         escaped_heading = n.Heading().replace("[","\\[").replace("]","\\]")
+         n.properties['SOURCE'] = f'[[file:{normalize_filename(filename)}::*{escaped_heading}]]'
 
    return nodelist
 
