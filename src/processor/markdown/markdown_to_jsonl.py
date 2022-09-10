@@ -97,7 +97,8 @@ def extract_markdown_entries(markdown_files):
             markdown_content = f.read()
             markdown_entries_per_file = [f'#{entry.strip(empty_escape_sequences)}'
                for entry
-               in re.split(markdown_heading_regex, markdown_content, flags=re.MULTILINE)]
+               in re.split(markdown_heading_regex, markdown_content, flags=re.MULTILINE)
+               if entry.strip(empty_escape_sequences) != '']
             entry_to_file_map += zip(markdown_entries_per_file, [markdown_file]*len(markdown_entries_per_file))
             entries.extend(markdown_entries_per_file)
 

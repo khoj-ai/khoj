@@ -88,7 +88,7 @@ def extract_beancount_transactions(beancount_files):
 
     # Initialize Regex for extracting Beancount Entries
     transaction_regex = r'^\n?\d{4}-\d{2}-\d{2} [\*|\!] '
-    empty_newline = f'^[{empty_escape_sequences}]*$'
+    empty_newline = f'^[\n\r\t\ ]*$'
 
     entries = []
     transaction_to_file_map = []

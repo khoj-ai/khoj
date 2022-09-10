@@ -54,4 +54,4 @@ def compress_jsonl_data(jsonl_data, output_path):
     with gzip.open(output_path, 'wt') as gzip_file:
         gzip_file.write(jsonl_data)
 
-    logger.info(f'Wrote {len(jsonl_data)} lines to gzip compressed jsonl at {output_path}')
+    logger.info(f'Wrote jsonl data to gzip compressed jsonl at {output_path}')
