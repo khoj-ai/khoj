@@ -61,7 +61,7 @@ def makelist(filename):
 
    todos         = { "TODO": "", "WAITING": "", "ACTIVE": "",
                      "DONE": "", "CANCELLED": "", "FAILED": ""} # populated from #+SEQ_TODO line
-   level         = 0
+   level         = ""
    heading       = ""
    bodytext      = ""
    tags          = set()      # set of all tags in headline

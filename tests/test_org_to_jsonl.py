@@ -15,7 +15,7 @@ def test_entry_with_empty_body_line_to_jsonl(tmp_path):
     :PROPERTIES:
     :ID:       42-42-42
     :END:
-    \t\r\n 
+    \t\r 
     '''
     orgfile = create_file(tmp_path, entry)
 
@@ -37,7 +37,29 @@ def test_entry_with_body_to_jsonl(tmp_path):
     :PROPERTIES:
     :ID:       42-42-42
     :END:
-    \t\r\nBody Line 1\n
+    \t\r
+    Body Line 1
+    '''
+    orgfile = create_file(tmp_path, entry)
+
+    # Act
+    # Extract Entries from specified Org files
+    entries, entry_to_file_map = extract_org_entries(org_files=[orgfile])
+
+    # Process Each Entry from All Notes Files
+    jsonl_string = convert_org_entries_to_jsonl(entries, entry_to_file_map)
+    jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
+
+    # Assert
+    assert len(jsonl_data) == 1
+
+
+def test_file_with_no_headings_to_jsonl(tmp_path):
+    "Ensure files with no heading, only body text are loaded."
+    # Arrange
+    entry = f'''
+    - Bullet point 1
+    - Bullet point 2
     '''
     orgfile = create_file(tmp_path, entry)
 
