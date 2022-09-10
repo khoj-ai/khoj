@@ -41,8 +41,13 @@ from os.path import relpath
 indent_regex = re.compile(r'^\s*')
 
 def normalize_filename(filename):
-   file_relative_to_home = f'~/{relpath(filename, start=Path.home())}'
-   escaped_filename = f'{file_relative_to_home}'.replace("[","\[").replace("]","\]")
+   "Normalize and escape filename for rendering"
+   if not Path(filename).is_absolute():
+      # Normalize relative filename to be relative to current directory
+      normalized_filename = f'~/{relpath(filename, start=Path.home())}'
+   else:
+      normalized_filename = filename
+   escaped_filename = f'{normalized_filename}'.replace("[","\[").replace("]","\]")
    return escaped_filename
 
 def makelist(filename):
