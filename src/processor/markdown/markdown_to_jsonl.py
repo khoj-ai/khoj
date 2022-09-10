@@ -7,9 +7,10 @@ import pathlib
 import glob
 import re
 import logging
+import time
 
 # Internal Packages
-from src.utils.helpers import get_absolute_path, is_none_or_empty
+from src.utils.helpers import get_absolute_path, is_none_or_empty, mark_entries_for_update
 from src.utils.constants import empty_escape_sequences
 from src.utils.jsonl import dump_jsonl, compress_jsonl_data
 
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 # Define Functions
-def markdown_to_jsonl(markdown_files, markdown_file_filter, output_file):
+def markdown_to_jsonl(markdown_files, markdown_file_filter, output_file, previous_entries=None):
     # Input Validation
     if is_none_or_empty(markdown_files) and is_none_or_empty(markdown_file_filter):
         print("At least one of markdown-files or markdown-file-filter is required to be specified")
@@ -28,18 +29,34 @@ def markdown_to_jsonl(markdown_files, markdown_file_filter, output_file):
     markdown_files = get_markdown_files(markdown_files, markdown_file_filter)
 
     # Extract Entries from specified Markdown files
-    entries, entry_to_file_map = extract_markdown_entries(markdown_files)
+    start = time.time()
+    current_entries = convert_markdown_entries_to_maps(*extract_markdown_entries(markdown_files))
+    end = time.time()
+    logger.debug(f"Parse entries from Markdown files into dictionaries: {end - start} seconds")
+
+    # Identify, mark and merge any new entries with previous entries
+    start = time.time()
+    if not previous_entries:
+        entries_with_ids = list(enumerate(current_entries))
+    else:
+        entries_with_ids = mark_entries_for_update(current_entries, previous_entries, key='compiled', logger=logger)
+    end = time.time()
+    logger.debug(f"Identify new or updated entries: {end - start} seconds")
 
     # Process Each Entry from All Notes Files
-    jsonl_data = convert_markdown_entries_to_jsonl(entries, entry_to_file_map)
+    start = time.time()
+    entries = list(map(lambda entry: entry[1], entries_with_ids))
+    jsonl_data = convert_markdown_maps_to_jsonl(entries)
 
     # Compress JSONL formatted Data
     if output_file.suffix == ".gz":
         compress_jsonl_data(jsonl_data, output_file)
     elif output_file.suffix == ".jsonl":
         dump_jsonl(jsonl_data, output_file)
+    end = time.time()
+    logger.debug(f"Write markdown entries to JSONL file: {end - start} seconds")
 
-    return entries
+    return entries_with_ids
 
 
 def get_markdown_files(markdown_files=None, markdown_file_filter=None):
@@ -80,24 +97,28 @@ def extract_markdown_entries(markdown_files):
             markdown_content = f.read()
             markdown_entries_per_file = [f'#{entry.strip(empty_escape_sequences)}'
                for entry
-               in re.split(markdown_heading_regex, markdown_content, flags=re.MULTILINE)]
-            entry_to_file_map += [markdown_file]*len(markdown_entries_per_file)
+               in re.split(markdown_heading_regex, markdown_content, flags=re.MULTILINE)
+               if entry.strip(empty_escape_sequences) != '']
+            entry_to_file_map += zip(markdown_entries_per_file, [markdown_file]*len(markdown_entries_per_file))
             entries.extend(markdown_entries_per_file)
 
-    return entries, entry_to_file_map
+    return entries, dict(entry_to_file_map)
 
 
-def convert_markdown_entries_to_jsonl(entries, entry_to_file_map):
+def convert_markdown_entries_to_maps(entries: list[str], entry_to_file_map) -> list[dict]:
+    "Convert each Markdown entries into a dictionary"
+    entry_maps = []
+    for entry in entries:
+        entry_maps.append({'compiled': entry, 'raw': entry, 'file': f'{entry_to_file_map[entry]}'})
+
+    logger.info(f"Converted {len(entries)} markdown entries to dictionaries")
+
+    return entry_maps
+
+
+def convert_markdown_maps_to_jsonl(entries):
     "Convert each Markdown entries to JSON and collate as JSONL"
-    jsonl = ''
-    for entry_id, entry in enumerate(entries):
-        entry_dict = {'compiled': entry, 'raw': entry, 'file': f'{entry_to_file_map[entry_id]}'}
-        # Convert Dictionary to JSON and Append to JSONL string
-        jsonl += f'{json.dumps(entry_dict, ensure_ascii=False)}\n'
-
-    logger.info(f"Converted {len(entries)} to jsonl format")
-
-    return jsonl
+    return ''.join([f'{json.dumps(entry_dict, ensure_ascii=False)}\n' for entry_dict in entries])
 
 
 if __name__ == '__main__':

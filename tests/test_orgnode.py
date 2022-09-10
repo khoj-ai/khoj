@@ -21,7 +21,7 @@ def test_parse_entry_with_no_headings(tmp_path):
     # Assert
     assert len(entries) == 1
     assert entries[0].Heading() == f'{orgfile}'
-    assert entries[0].Tags() == set()
+    assert entries[0].Tags() == list()
     assert entries[0].Body() == "Body Line 1"
     assert entries[0].Priority() == ""
     assert entries[0].Property("ID") == ""
@@ -45,7 +45,7 @@ Body Line 1'''
     # Assert
     assert len(entries) == 1
     assert entries[0].Heading() == "Heading"
-    assert entries[0].Tags() == set()
+    assert entries[0].Tags() == list()
     assert entries[0].Body() == "Body Line 1"
     assert entries[0].Priority() == ""
     assert entries[0].Property("ID") == ""
@@ -79,7 +79,7 @@ Body Line 2'''
     assert len(entries) == 1
     assert entries[0].Heading() == "Heading"
     assert entries[0].Todo() == "DONE"
-    assert entries[0].Tags() == {"Tag1", "TAG2", "tag3"}
+    assert entries[0].Tags() == ["Tag1", "TAG2", "tag3"]
     assert entries[0].Body() == "- Clocked Log 1\nBody Line 1\nBody Line 2"
     assert entries[0].Priority() == "A"
     assert entries[0].Property("ID") == "id:123-456-789-4234-1231"
@@ -178,7 +178,7 @@ Body 2
     for index, entry in enumerate(entries):
         assert entry.Heading() == f"Heading{index+1}"
         assert entry.Todo() == "FAILED" if index == 0 else "CANCELLED"
-        assert entry.Tags() == {f"tag{index+1}"}
+        assert entry.Tags() == [f"tag{index+1}"]
         assert entry.Body() == f"- Clocked Log {index+1}\nBody {index+1}\n\n"
         assert entry.Priority() == "A"
         assert entry.Property("ID") == f"id:123-456-789-4234-000{index+1}"
@@ -202,7 +202,7 @@ Body Line 1'''
     # Assert
     assert len(entries) == 1
     assert entries[0].Heading() == f'{orgfile}'
-    assert entries[0].Tags() == set()
+    assert entries[0].Tags() == list()
     assert entries[0].Body() == "Body Line 1"
     assert entries[0].Priority() == ""
     assert entries[0].Property("ID") == ""
@@ -225,7 +225,7 @@ Body Line 1'''
     # Assert
     assert len(entries) == 1
     assert entries[0].Heading() == 'test'
-    assert entries[0].Tags() == set()
+    assert entries[0].Tags() == list()
     assert entries[0].Body() == "Body Line 1"
     assert entries[0].Priority() == ""
     assert entries[0].Property("ID") == ""
@@ -249,7 +249,7 @@ Body Line 1
     # Assert
     assert len(entries) == 1
     assert entries[0].Heading() == 'title1 title2'
-    assert entries[0].Tags() == set()
+    assert entries[0].Tags() == list()
     assert entries[0].Body() == "Body Line 1\n"
     assert entries[0].Priority() == ""
     assert entries[0].Property("ID") == ""

@@ -69,7 +69,7 @@ def makelist(filename):
    level         = ""
    heading       = ""
    bodytext      = ""
-   tags          = set()      # set of all tags in headline
+   tags          = list()      # set of all tags in headline
    closed_date   = ''
    sched_date    = ''
    deadline_date = ''
@@ -104,14 +104,14 @@ def makelist(filename):
           level = hdng.group(1)
           heading =  hdng.group(2)
           bodytext = ""
-          tags = set()       # set of all tags in headline
+          tags = list()       # set of all tags in headline
           tagsrch = re.search(r'(.*?)\s*:([a-zA-Z0-9].*?):$',heading)
           if tagsrch:
               heading = tagsrch.group(1)
               parsedtags = tagsrch.group(2)
               if parsedtags:
                  for parsedtag in parsedtags.split(':'):
-                    if parsedtag != '': tags.add(parsedtag)
+                    if parsedtag != '': tags.append(parsedtag)
        else:      # we are processing a non-heading line
            if line[:10] == '#+SEQ_TODO':
               kwlist = re.findall(r'([A-Z]+)\(', line)
@@ -237,7 +237,7 @@ class Orgnode(object):
         self.level = len(level)
         self.headline = headline
         self.body = body
-        self.tags = set(tags)     # All tags in the headline
+        self.tags = tags          # All tags in the headline
         self.todo = ""
         self.prty = ""            # empty of A, B or C
         self.scheduled = ""       # Scheduled date
@@ -290,8 +290,8 @@ class Orgnode(object):
 
     def Tags(self):
         """
-        Returns the set of all tags
-        For example, :HOME:COMPUTER: would return {'HOME', 'COMPUTER'}
+        Returns the list of all tags
+        For example, :HOME:COMPUTER: would return ['HOME', 'COMPUTER']
         """
         return self.tags
 
@@ -307,7 +307,7 @@ class Orgnode(object):
         """
         Store all the tags found in the headline.
         """
-        self.tags = set(newtags)
+        self.tags = newtags
 
     def Todo(self):
         """

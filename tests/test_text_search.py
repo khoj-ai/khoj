@@ -100,3 +100,32 @@ def test_asymmetric_reload(content_config: ContentConfig, search_config: SearchC
     # delete reload test file added
     content_config.org.input_files = []
     file_to_add_on_reload.unlink()
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_incremental_update(content_config: ContentConfig, search_config: SearchConfig):
+    # Arrange
+    initial_notes_model = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=True)
+
+    assert len(initial_notes_model.entries) == 10
+    assert len(initial_notes_model.corpus_embeddings) == 10
+
+    file_to_add_on_update = Path(content_config.org.input_filter).parent / "update.org"
+    content_config.org.input_files = [f'{file_to_add_on_update}']
+
+    # append Org-Mode Entry to first Org Input File in Config
+    with open(file_to_add_on_update, "w") as f:
+        f.write("\n* A Chihuahua doing Tango\n- Saw a super cute video of a chihuahua doing the Tango on Youtube\n")
+
+    # Act
+    # update embeddings, entries with the newly added note
+    initial_notes_model = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False)
+
+    # verify new entry added in updated embeddings, entries
+    assert len(initial_notes_model.entries) == 11
+    assert len(initial_notes_model.corpus_embeddings) == 11
+
+    # Cleanup
+    # delete file added for update testing
+    content_config.org.input_files = []
+    file_to_add_on_update.unlink()
