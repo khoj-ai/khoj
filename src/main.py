@@ -3,7 +3,11 @@ import os
 import signal
 import sys
 import logging
+import warnings
 from platform import system
+
+# Ignore non-actionable warnings
+warnings.filterwarnings("ignore", message=r'snapshot_download.py has been made private', category=FutureWarning)
 
 # External Packages
 import uvicorn
