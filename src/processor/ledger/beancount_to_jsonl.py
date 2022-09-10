@@ -30,8 +30,7 @@ def beancount_to_jsonl(beancount_files, beancount_file_filter, output_file, prev
 
     # Extract Entries from specified Beancount files
     start = time.time()
-    extracted_transactions, transaction_to_file_map = extract_beancount_entries(beancount_files)
-    current_entries = convert_transactions_to_maps(extracted_transactions, transaction_to_file_map)
+    current_entries = convert_transactions_to_maps(*extract_beancount_transactions(beancount_files))
     end = time.time()
     logger.debug(f"Parse transactions from Beancount files into dictionaries: {end - start} seconds")
 
@@ -84,7 +83,7 @@ def get_beancount_files(beancount_files=None, beancount_file_filter=None):
     return all_beancount_files
 
 
-def extract_beancount_entries(beancount_files):
+def extract_beancount_transactions(beancount_files):
     "Extract entries from specified Beancount files"
 
     # Initialize Regex for extracting Beancount Entries

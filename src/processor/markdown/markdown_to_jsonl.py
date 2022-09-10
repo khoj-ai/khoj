@@ -30,8 +30,7 @@ def markdown_to_jsonl(markdown_files, markdown_file_filter, output_file, previou
 
     # Extract Entries from specified Markdown files
     start = time.time()
-    extracted_entries, entry_to_file_map = extract_markdown_entries(markdown_files)
-    current_entries = convert_markdown_entries_to_maps(extracted_entries, entry_to_file_map)
+    current_entries = convert_markdown_entries_to_maps(*extract_markdown_entries(markdown_files))
     end = time.time()
     logger.debug(f"Parse entries from Markdown files into dictionaries: {end - start} seconds")
 
