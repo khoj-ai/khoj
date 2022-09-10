@@ -57,12 +57,7 @@ def makelist(filename):
    """
    ctr = 0
 
-   try:
-      f = open(filename, 'r')
-   except IOError:
-      print(f"Unable to open file {filename}")
-      print("Program terminating.")
-      sys.exit(1)
+   f = open(filename, 'r')
 
    todos         = { "TODO": "", "WAITING": "", "ACTIVE": "",
                      "DONE": "", "CANCELLED": "", "FAILED": ""} # populated from #+SEQ_TODO line
