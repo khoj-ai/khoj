@@ -41,8 +41,13 @@ from os.path import relpath
 indent_regex = re.compile(r'^\s*')
 
 def normalize_filename(filename):
-   file_relative_to_home = f'~/{relpath(filename, start=Path.home())}'
-   escaped_filename = f'{file_relative_to_home}'.replace("[","\[").replace("]","\]")
+   "Normalize and escape filename for rendering"
+   if not Path(filename).is_absolute():
+      # Normalize relative filename to be relative to current directory
+      normalized_filename = f'~/{relpath(filename, start=Path.home())}'
+   else:
+      normalized_filename = filename
+   escaped_filename = f'{normalized_filename}'.replace("[","\[").replace("]","\]")
    return escaped_filename
 
 def makelist(filename):
@@ -61,7 +66,7 @@ def makelist(filename):
 
    todos         = { "TODO": "", "WAITING": "", "ACTIVE": "",
                      "DONE": "", "CANCELLED": "", "FAILED": ""} # populated from #+SEQ_TODO line
-   level         = 0
+   level         = ""
    heading       = ""
    bodytext      = ""
    tags          = set()      # set of all tags in headline
@@ -73,6 +78,7 @@ def makelist(filename):
    propdict      = dict()
    in_properties_drawer = False
    in_logbook_drawer = False
+   file_title = f'{filename}'
 
    for line in f:
        ctr += 1
@@ -110,6 +116,16 @@ def makelist(filename):
            if line[:10] == '#+SEQ_TODO':
               kwlist = re.findall(r'([A-Z]+)\(', line)
               for kw in kwlist: todos[kw] = ""
+
+           # Set file title to TITLE property, if it exists
+           title_search = re.search(r'^#\+TITLE:\s*(.*)$', line)
+           if title_search and title_search.group(1).strip() != '':
+               title_text = title_search.group(1).strip()
+               if file_title == f'{filename}':
+                  file_title = title_text
+               else:
+                  file_title += f' {title_text}'
+               continue
 
            # Ignore Properties Drawers Completely
            if re.search(':PROPERTIES:', line):
@@ -167,7 +183,7 @@ def makelist(filename):
                bodytext = bodytext + line
 
    # write out last node
-   thisNode = Orgnode(level, heading, bodytext, tags)
+   thisNode = Orgnode(level, heading or file_title, bodytext, tags)
    thisNode.setProperties(propdict)
    if sched_date:
       thisNode.setScheduled(sched_date)
@@ -196,8 +212,12 @@ def makelist(filename):
           n.setHeading(prtysrch.group(2))
 
        # Set SOURCE property to a file+heading based org-mode link to the entry
-       escaped_heading = n.Heading().replace("[","\\[").replace("]","\\]")
-       n.properties['SOURCE'] = f'[[file:{normalize_filename(filename)}::*{escaped_heading}]]'
+       if n.Level() == 0:
+         n.properties['LINE'] = f'file:{normalize_filename(filename)}::0'
+         n.properties['SOURCE'] = f'[[file:{normalize_filename(filename)}]]'
+       else:
+         escaped_heading = n.Heading().replace("[","\\[").replace("]","\\]")
+         n.properties['SOURCE'] = f'[[file:{normalize_filename(filename)}::*{escaped_heading}]]'
 
    return nodelist
 

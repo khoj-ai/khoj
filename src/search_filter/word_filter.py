@@ -3,6 +3,7 @@ import re
 import time
 import pickle
 import logging
+from collections import defaultdict
 
 # Internal Packages
 from src.search_filter.base_filter import BaseFilter
@@ -37,19 +38,18 @@ class WordFilter(BaseFilter):
             start = time.time()
             self.cache = {}  # Clear cache on (re-)generating entries_by_word_set
             entry_splitter = r',|\.| |\]|\[\(|\)|\{|\}|\t|\n|\:'
+            self.word_to_entry_index = defaultdict(set)
             # Create map of words to entries they exist in
             for entry_index, entry in enumerate(entries):
                 for word in re.split(entry_splitter, entry[self.entry_key].lower()):
                     if word == '':
                         continue
-                    if word not in self.word_to_entry_index:
-                        self.word_to_entry_index[word] = set()
                     self.word_to_entry_index[word].add(entry_index)
 
             with self.filter_file.open('wb') as f:
                 pickle.dump(self.word_to_entry_index, f)
             end = time.time()
-            logger.debug(f"Index {self.search_type} for word filter to {self.filter_file}: {end - start} seconds")
+            logger.debug(f"Indexed {len(self.word_to_entry_index)} words of {self.search_type} type for word filter to {self.filter_file}: {end - start} seconds")
 
         return self.word_to_entry_index
 
