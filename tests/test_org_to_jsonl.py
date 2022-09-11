@@ -6,28 +6,33 @@ from src.processor.org_mode.org_to_jsonl import convert_org_entries_to_jsonl, co
 from src.utils.helpers import is_none_or_empty
 
 
-def test_entry_with_empty_body_line_to_jsonl(tmp_path):
-    '''Ensure entries with empty body are ignored.
+def test_configure_heading_entry_to_jsonl(tmp_path):
+    '''Ensure entries with empty body are ignored, unless explicitly configured to index heading entries.
     Property drawers not considered Body. Ignore control characters for evaluating if Body empty.'''
     # Arrange
     entry = f'''*** Heading
     :PROPERTIES:
     :ID:       42-42-42
     :END:
-    \t\r 
+    \t \r
     '''
     orgfile = create_file(tmp_path, entry)
 
-    # Act
-    # Extract Entries from specified Org files
-    entry_nodes, file_to_entries = extract_org_entries(org_files=[orgfile])
+    for index_heading_entries in [True, False]:
+        # Act
+        # Extract entries into jsonl from specified Org files
+        jsonl_string = convert_org_entries_to_jsonl(convert_org_nodes_to_entries(
+            *extract_org_entries(org_files=[orgfile]),
+            index_heading_entries=index_heading_entries))
+        jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
-    # Process Each Entry from All Notes Files
-    entries = convert_org_nodes_to_entries(entry_nodes, file_to_entries)
-    jsonl_data = convert_org_entries_to_jsonl(entries)
-
-    # Assert
-    assert is_none_or_empty(jsonl_data)
+        # Assert
+        if index_heading_entries:
+            # Entry with empty body indexed when index_heading_entries set to True
+            assert len(jsonl_data) == 1
+        else:
+            # Entry with empty body ignored when index_heading_entries set to False
+            assert is_none_or_empty(jsonl_data)
 
 
 def test_entry_with_body_to_jsonl(tmp_path):

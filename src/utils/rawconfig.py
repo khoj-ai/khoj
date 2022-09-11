@@ -18,6 +18,7 @@ class TextContentConfig(ConfigBase):
     input_filter: Optional[str]
     compressed_jsonl: Path
     embeddings_file: Path
+    index_heading_entries: Optional[bool] = False
 
     @validator('input_filter')
     def input_filter_or_files_required(cls, input_filter, values, **kwargs):

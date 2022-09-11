@@ -14,13 +14,18 @@ from src.processor.org_mode import orgnode
 from src.utils.helpers import get_absolute_path, is_none_or_empty, mark_entries_for_update
 from src.utils.jsonl import dump_jsonl, compress_jsonl_data
 from src.utils import state
+from src.utils.rawconfig import TextContentConfig
 
 
 logger = logging.getLogger(__name__)
 
 
 # Define Functions
-def org_to_jsonl(org_files, org_file_filter, output_file, previous_entries=None):
+def org_to_jsonl(config: TextContentConfig, previous_entries=None):
+    # Extract required fields from config
+    org_files, org_file_filter, output_file = config.input_files, config.input_filter, config.compressed_jsonl
+    index_heading_entries = config.index_heading_entries
+
     # Input Validation
     if is_none_or_empty(org_files) and is_none_or_empty(org_file_filter):
         print("At least one of org-files or org-file-filter is required to be specified")
@@ -37,7 +42,7 @@ def org_to_jsonl(org_files, org_file_filter, output_file, previous_entries=None)
     logger.debug(f"Parse entries from org files into OrgNode objects: {end - start} seconds")
 
     start = time.time()
-    current_entries = convert_org_nodes_to_entries(entry_nodes, file_to_entries)
+    current_entries = convert_org_nodes_to_entries(entry_nodes, file_to_entries, index_heading_entries)
     end = time.time()
     logger.debug(f"Convert OrgNodes into entry dictionaries: {end - start} seconds")
 
@@ -96,40 +101,40 @@ def extract_org_entries(org_files):
     return entries, dict(entry_to_file_map)
 
 
-def convert_org_nodes_to_entries(entries: list[orgnode.Orgnode], entry_to_file_map) -> list[dict]:
+def convert_org_nodes_to_entries(entries: list[orgnode.Orgnode], entry_to_file_map, index_heading_entries=False) -> list[dict]:
     "Convert Org-Mode entries into list of dictionary"
     entry_maps = []
     for entry in entries:
         entry_dict = dict()
 
-        # Ignore title notes i.e notes with just headings and empty body
-        if not entry.Body() or re.sub(r'\n|\t|\r| ', '', entry.Body()) == "":
+        if not entry.hasBody and not index_heading_entries:
+            # Ignore title notes i.e notes with just headings and empty body
             continue
 
-        entry_dict["compiled"] = f'{entry.Heading()}.'
+        entry_dict["compiled"] = f'{entry.heading}.'
         if state.verbose > 2:
-            logger.debug(f"Title: {entry.Heading()}")
+            logger.debug(f"Title: {entry.heading}")
 
-        if entry.Tags():
-            tags_str = " ".join(entry.Tags())
+        if entry.tags:
+            tags_str = " ".join(entry.tags)
             entry_dict["compiled"] += f'\t {tags_str}.'
             if state.verbose > 2:
                 logger.debug(f"Tags: {tags_str}")
 
-        if entry.Closed():
-            entry_dict["compiled"] += f'\n Closed on {entry.Closed().strftime("%Y-%m-%d")}.'
+        if entry.closed:
+            entry_dict["compiled"] += f'\n Closed on {entry.closed.strftime("%Y-%m-%d")}.'
             if state.verbose > 2:
-                logger.debug(f'Closed: {entry.Closed().strftime("%Y-%m-%d")}')
+                logger.debug(f'Closed: {entry.closed.strftime("%Y-%m-%d")}')
 
-        if entry.Scheduled():
-            entry_dict["compiled"] += f'\n Scheduled for {entry.Scheduled().strftime("%Y-%m-%d")}.'
+        if entry.scheduled:
+            entry_dict["compiled"] += f'\n Scheduled for {entry.scheduled.strftime("%Y-%m-%d")}.'
             if state.verbose > 2:
-                logger.debug(f'Scheduled: {entry.Scheduled().strftime("%Y-%m-%d")}')
+                logger.debug(f'Scheduled: {entry.scheduled.strftime("%Y-%m-%d")}')
 
-        if entry.Body():
-            entry_dict["compiled"] += f'\n {entry.Body()}'
+        if entry.hasBody:
+            entry_dict["compiled"] += f'\n {entry.body}'
             if state.verbose > 2:
-                logger.debug(f"Body: {entry.Body()}")
+                logger.debug(f"Body: {entry.body}")
 
         if entry_dict:
             entry_dict["raw"] = f'{entry}'

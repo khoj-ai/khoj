@@ -1,7 +1,5 @@
 # Standard Packages
 import datetime
-from os.path import relpath
-from pathlib import Path
 
 # Internal Packages
 from src.processor.org_mode import orgnode
@@ -20,14 +18,14 @@ def test_parse_entry_with_no_headings(tmp_path):
 
     # Assert
     assert len(entries) == 1
-    assert entries[0].Heading() == f'{orgfile}'
-    assert entries[0].Tags() == list()
-    assert entries[0].Body() == "Body Line 1"
-    assert entries[0].Priority() == ""
+    assert entries[0].heading == f'{orgfile}'
+    assert entries[0].tags == list()
+    assert entries[0].body == "Body Line 1"
+    assert entries[0].priority == ""
     assert entries[0].Property("ID") == ""
-    assert entries[0].Closed() == ""
-    assert entries[0].Scheduled() == ""
-    assert entries[0].Deadline() == ""
+    assert entries[0].closed == ""
+    assert entries[0].scheduled == ""
+    assert entries[0].deadline == ""
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -44,14 +42,14 @@ Body Line 1'''
 
     # Assert
     assert len(entries) == 1
-    assert entries[0].Heading() == "Heading"
-    assert entries[0].Tags() == list()
-    assert entries[0].Body() == "Body Line 1"
-    assert entries[0].Priority() == ""
+    assert entries[0].heading == "Heading"
+    assert entries[0].tags == list()
+    assert entries[0].body == "Body Line 1"
+    assert entries[0].priority == ""
     assert entries[0].Property("ID") == ""
-    assert entries[0].Closed() == ""
-    assert entries[0].Scheduled() == ""
-    assert entries[0].Deadline() == ""
+    assert entries[0].closed == ""
+    assert entries[0].scheduled == ""
+    assert entries[0].deadline == ""
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -77,16 +75,44 @@ Body Line 2'''
 
     # Assert
     assert len(entries) == 1
-    assert entries[0].Heading() == "Heading"
-    assert entries[0].Todo() == "DONE"
-    assert entries[0].Tags() == ["Tag1", "TAG2", "tag3"]
-    assert entries[0].Body() == "- Clocked Log 1\nBody Line 1\nBody Line 2"
-    assert entries[0].Priority() == "A"
+    assert entries[0].heading == "Heading"
+    assert entries[0].todo == "DONE"
+    assert entries[0].tags == ["Tag1", "TAG2", "tag3"]
+    assert entries[0].body == "- Clocked Log 1\nBody Line 1\nBody Line 2"
+    assert entries[0].priority == "A"
     assert entries[0].Property("ID") == "id:123-456-789-4234-1231"
-    assert entries[0].Closed() == datetime.date(1984,4,1)
-    assert entries[0].Scheduled() == datetime.date(1984,4,1)
-    assert entries[0].Deadline() == datetime.date(1984,4,1)
-    assert entries[0].Logbook() == [(datetime.datetime(1984,4,1,9,0,0), datetime.datetime(1984,4,1,12,0,0))]
+    assert entries[0].closed == datetime.date(1984,4,1)
+    assert entries[0].scheduled == datetime.date(1984,4,1)
+    assert entries[0].deadline == datetime.date(1984,4,1)
+    assert entries[0].logbook == [(datetime.datetime(1984,4,1,9,0,0), datetime.datetime(1984,4,1,12,0,0))]
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_render_entry_with_property_drawer_and_empty_body(tmp_path):
+    "Render heading entry with property drawer"
+    # Arrange
+    entry_to_render = f'''
+*** [#A] Heading1   :tag1:
+    :PROPERTIES:
+    :ID: 111-111-111-1111-1111
+    :END:
+\t\r  \n
+'''
+    orgfile = create_file(tmp_path, entry_to_render)
+
+    expected_entry = f'''*** [#A] Heading1                                            :tag1:
+:PROPERTIES:
+:LINE: file:{orgfile}::2
+:ID: id:111-111-111-1111-1111
+:SOURCE: [[file:{orgfile}::*Heading1]]
+:END:
+'''
+
+    # Act
+    parsed_entries = orgnode.makelist(orgfile)
+
+    # Assert
+    assert f'{parsed_entries[0]}' == expected_entry
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -109,7 +135,7 @@ Body Line 2
 
     # Assert
     # SOURCE link rendered with Heading
-    assert f':SOURCE: [[file:{orgfile}::*{entries[0].Heading()}]]' in f'{entries[0]}'
+    assert f':SOURCE: [[file:{orgfile}::*{entries[0].heading}]]' in f'{entries[0]}'
     # ID link rendered with ID
     assert f':ID: id:123-456-789-4234-1231' in f'{entries[0]}'
     # LINE link rendered with line number
@@ -134,7 +160,7 @@ Body Line 1'''
     # Assert
     assert len(entries) == 1
     # parsed heading from entry
-    assert entries[0].Heading() == "Heading[1]"
+    assert entries[0].heading == "Heading[1]"
     # ensure SOURCE link has square brackets in filename, heading escaped in rendered entries
     escaped_orgfile = f'{orgfile}'.replace("[1]", "\\[1\\]")
     assert f':SOURCE: [[file:{escaped_orgfile}::*Heading\[1\]' in f'{entries[0]}'
@@ -176,16 +202,16 @@ Body 2
     # Assert
     assert len(entries) == 2
     for index, entry in enumerate(entries):
-        assert entry.Heading() == f"Heading{index+1}"
-        assert entry.Todo() == "FAILED" if index == 0 else "CANCELLED"
-        assert entry.Tags() == [f"tag{index+1}"]
-        assert entry.Body() == f"- Clocked Log {index+1}\nBody {index+1}\n\n"
-        assert entry.Priority() == "A"
+        assert entry.heading == f"Heading{index+1}"
+        assert entry.todo == "FAILED" if index == 0 else "CANCELLED"
+        assert entry.tags == [f"tag{index+1}"]
+        assert entry.body == f"- Clocked Log {index+1}\nBody {index+1}\n\n"
+        assert entry.priority == "A"
         assert entry.Property("ID") == f"id:123-456-789-4234-000{index+1}"
-        assert entry.Closed() == datetime.date(1984,4,index+1)
-        assert entry.Scheduled() == datetime.date(1984,4,index+1)
-        assert entry.Deadline() == datetime.date(1984,4,index+1)
-        assert entry.Logbook() == [(datetime.datetime(1984,4,index+1,9,0,0), datetime.datetime(1984,4,index+1,12,0,0))]
+        assert entry.closed == datetime.date(1984,4,index+1)
+        assert entry.scheduled == datetime.date(1984,4,index+1)
+        assert entry.deadline == datetime.date(1984,4,index+1)
+        assert entry.logbook == [(datetime.datetime(1984,4,index+1,9,0,0), datetime.datetime(1984,4,index+1,12,0,0))]
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -201,14 +227,14 @@ Body Line 1'''
 
     # Assert
     assert len(entries) == 1
-    assert entries[0].Heading() == f'{orgfile}'
-    assert entries[0].Tags() == list()
-    assert entries[0].Body() == "Body Line 1"
-    assert entries[0].Priority() == ""
+    assert entries[0].heading == f'{orgfile}'
+    assert entries[0].tags == list()
+    assert entries[0].body == "Body Line 1"
+    assert entries[0].priority == ""
     assert entries[0].Property("ID") == ""
-    assert entries[0].Closed() == ""
-    assert entries[0].Scheduled() == ""
-    assert entries[0].Deadline() == ""
+    assert entries[0].closed == ""
+    assert entries[0].scheduled == ""
+    assert entries[0].deadline == ""
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -224,14 +250,14 @@ Body Line 1'''
 
     # Assert
     assert len(entries) == 1
-    assert entries[0].Heading() == 'test'
-    assert entries[0].Tags() == list()
-    assert entries[0].Body() == "Body Line 1"
-    assert entries[0].Priority() == ""
+    assert entries[0].heading == 'test'
+    assert entries[0].tags == list()
+    assert entries[0].body == "Body Line 1"
+    assert entries[0].priority == ""
     assert entries[0].Property("ID") == ""
-    assert entries[0].Closed() == ""
-    assert entries[0].Scheduled() == ""
-    assert entries[0].Deadline() == ""
+    assert entries[0].closed == ""
+    assert entries[0].scheduled == ""
+    assert entries[0].deadline == ""
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -248,14 +274,14 @@ Body Line 1
 
     # Assert
     assert len(entries) == 1
-    assert entries[0].Heading() == 'title1 title2'
-    assert entries[0].Tags() == list()
-    assert entries[0].Body() == "Body Line 1\n"
-    assert entries[0].Priority() == ""
+    assert entries[0].heading == 'title1 title2'
+    assert entries[0].tags == list()
+    assert entries[0].body == "Body Line 1\n"
+    assert entries[0].priority == ""
     assert entries[0].Property("ID") == ""
-    assert entries[0].Closed() == ""
-    assert entries[0].Scheduled() == ""
-    assert entries[0].Deadline() == ""
+    assert entries[0].closed == ""
+    assert entries[0].scheduled == ""
+    assert entries[0].deadline == ""
 
 
 # Helper Functions

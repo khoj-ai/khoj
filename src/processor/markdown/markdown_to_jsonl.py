@@ -13,13 +13,17 @@ import time
 from src.utils.helpers import get_absolute_path, is_none_or_empty, mark_entries_for_update
 from src.utils.constants import empty_escape_sequences
 from src.utils.jsonl import dump_jsonl, compress_jsonl_data
+from src.utils.rawconfig import TextContentConfig
 
 
 logger = logging.getLogger(__name__)
 
 
 # Define Functions
-def markdown_to_jsonl(markdown_files, markdown_file_filter, output_file, previous_entries=None):
+def markdown_to_jsonl(config: TextContentConfig, previous_entries=None):
+    # Extract required fields from config
+    markdown_files, markdown_file_filter, output_file = config.input_files, config.input_filter, config.compressed_jsonl
+
     # Input Validation
     if is_none_or_empty(markdown_files) and is_none_or_empty(markdown_file_filter):
         print("At least one of markdown-files or markdown-file-filter is required to be specified")

@@ -14,6 +14,20 @@ from src.processor.org_mode.org_to_jsonl import org_to_jsonl
 
 # Test
 # ----------------------------------------------------------------------------------------------------
+def test_asymmetric_setup_with_missing_file_raises_error(content_config: ContentConfig, search_config: SearchConfig):
+    # Arrange
+    file_to_index = Path(content_config.org.input_filter).parent / "new_file_to_index.org"
+    new_org_content_config = deepcopy(content_config.org)
+    new_org_content_config.input_files = [f'{file_to_index}']
+    new_org_content_config.input_filter = None
+
+    # Act
+    # Generate notes embeddings during asymmetric setup
+    with pytest.raises(FileNotFoundError):
+        text_search.setup(org_to_jsonl, new_org_content_config, search_config.asymmetric, regenerate=True)
+
+
+# ----------------------------------------------------------------------------------------------------
 def test_asymmetric_setup_with_empty_file_raises_error(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     file_to_index = Path(content_config.org.input_filter).parent / "new_file_to_index.org"
