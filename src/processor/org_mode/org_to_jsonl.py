@@ -106,8 +106,8 @@ def convert_org_nodes_to_entries(entries: list[orgnode.Orgnode], entry_to_file_m
     for entry in entries:
         entry_dict = dict()
 
-        # Ignore title notes i.e notes with just headings and empty body
-        if not entry.Body() or re.sub(r'\n|\t|\r| ', '', entry.Body()) == "":
+        if not entry.hasBody():
+            # Ignore title notes i.e notes with just headings and empty body
             continue
 
         entry_dict["compiled"] = f'{entry.Heading()}.'
@@ -130,7 +130,7 @@ def convert_org_nodes_to_entries(entries: list[orgnode.Orgnode], entry_to_file_m
             if state.verbose > 2:
                 logger.debug(f'Scheduled: {entry.Scheduled().strftime("%Y-%m-%d")}')
 
-        if entry.Body():
+        if entry.hasBody():
             entry_dict["compiled"] += f'\n {entry.Body()}'
             if state.verbose > 2:
                 logger.debug(f"Body: {entry.Body()}")

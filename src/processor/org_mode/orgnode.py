@@ -262,6 +262,12 @@ class Orgnode(object):
         """
         return self.body
 
+    def hasBody(self):
+        """
+        Returns True if node has non empty body, else False
+        """
+        return self.body and re.sub(r'\n|\t|\r| ', '', self.body) != ''
+
     def Level(self):
         """
         Returns an integer corresponding to the level of the node.
