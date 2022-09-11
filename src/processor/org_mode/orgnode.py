@@ -57,7 +57,7 @@ def makelist(filename):
    """
    ctr = 0
 
-   f = open(filename, 'r')
+   f = open(filename, 'r', encoding='utf-8', errors='ignore')
 
    todos         = { "TODO": "", "WAITING": "", "ACTIVE": "",
                      "DONE": "", "CANCELLED": "", "FAILED": ""} # populated from #+SEQ_TODO line
