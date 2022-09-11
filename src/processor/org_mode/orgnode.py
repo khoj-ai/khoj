@@ -38,7 +38,7 @@ import datetime
 from pathlib import Path
 from os.path import relpath
 
-indent_regex = re.compile(r'^\s*')
+indent_regex = re.compile(r'^ *')
 
 def normalize_filename(filename):
    "Normalize and escape filename for rendering"
@@ -455,6 +455,8 @@ class Orgnode(object):
            n = n + indent + f":{key}: {value}\n"
         n = n + indent + ":END:\n"
 
-        n = n + self._body
+        # Output Body
+        if self.hasBody:
+           n = n + self._body
 
         return n

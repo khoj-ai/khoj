@@ -1,7 +1,5 @@
 # Standard Packages
 import datetime
-from os.path import relpath
-from pathlib import Path
 
 # Internal Packages
 from src.processor.org_mode import orgnode
@@ -87,6 +85,34 @@ Body Line 2'''
     assert entries[0].scheduled == datetime.date(1984,4,1)
     assert entries[0].deadline == datetime.date(1984,4,1)
     assert entries[0].logbook == [(datetime.datetime(1984,4,1,9,0,0), datetime.datetime(1984,4,1,12,0,0))]
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_render_entry_with_property_drawer_and_empty_body(tmp_path):
+    "Render heading entry with property drawer"
+    # Arrange
+    entry_to_render = f'''
+*** [#A] Heading1   :tag1:
+    :PROPERTIES:
+    :ID: 111-111-111-1111-1111
+    :END:
+\t\r  \n
+'''
+    orgfile = create_file(tmp_path, entry_to_render)
+
+    expected_entry = f'''*** [#A] Heading1                                            :tag1:
+:PROPERTIES:
+:LINE: file:{orgfile}::2
+:ID: id:111-111-111-1111-1111
+:SOURCE: [[file:{orgfile}::*Heading1]]
+:END:
+'''
+
+    # Act
+    parsed_entries = orgnode.makelist(orgfile)
+
+    # Assert
+    assert f'{parsed_entries[0]}' == expected_entry
 
 
 # ----------------------------------------------------------------------------------------------------
