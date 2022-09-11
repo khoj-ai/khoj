@@ -7,6 +7,7 @@ content-type:
     input-filter: "/data/org/*.org"
     compressed-jsonl: "/data/embeddings/notes.jsonl.gz"
     embeddings-file: "/data/embeddings/note_embeddings.pt"
+    index_heading_entries: false
 
   markdown:
     input-files: null

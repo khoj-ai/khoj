@@ -4,6 +4,7 @@ content-type:
     input-filter: # /path/to/org/*.org         REQUIRED IF input-files IS NOT SET
     compressed-jsonl: "~/.khoj/content/org/org.jsonl.gz"
     embeddings-file: "~/.khoj/content/org/org_embeddings.pt"
+    index_heading_entries: false  # Set to true to index entries with empty body
 
   markdown:
     input-files:  # ["/path/to/markdown-file.md"]  REQUIRED IF input-filter IS NOT SET OR

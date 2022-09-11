@@ -11,7 +11,8 @@ default_config = {
             'input-files': None,
             'input-filter': None,
             'compressed-jsonl': '~/.khoj/content/org/org.jsonl.gz',
-            'embeddings-file': '~/.khoj/content/org/org_embeddings.pt'
+            'embeddings-file': '~/.khoj/content/org/org_embeddings.pt',
+            'index_heading_entries': False
         },
         'markdown': {
             'input-files': None,
