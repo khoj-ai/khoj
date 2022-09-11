@@ -182,7 +182,7 @@ def setup(text_to_jsonl, config: TextContentConfig, search_config: TextSearchCon
 
     # Map notes in text files to (compressed) JSONL formatted file
     config.compressed_jsonl = resolve_absolute_path(config.compressed_jsonl)
-    previous_entries = extract_entries(config.compressed_jsonl) if config.compressed_jsonl.exists() else None
+    previous_entries = extract_entries(config.compressed_jsonl) if config.compressed_jsonl.exists() and not regenerate else None
     entries_with_indices = text_to_jsonl(config, previous_entries)
 
     # Extract Updated Entries
