@@ -57,7 +57,8 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
             org_to_jsonl,
             config.content_type.music,
             search_config=config.search_type.asymmetric,
-            regenerate=regenerate)
+            regenerate=regenerate,
+            filters=[DateFilter(), WordFilter()])
 
     # Initialize Markdown Search
     if (t == SearchType.Markdown or t == None) and config.content_type.markdown:
