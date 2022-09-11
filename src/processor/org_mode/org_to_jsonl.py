@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 def org_to_jsonl(config: TextContentConfig, previous_entries=None):
     # Extract required fields from config
     org_files, org_file_filter, output_file = config.input_files, config.input_filter, config.compressed_jsonl
+    index_heading_entries = config.index_heading_entries
 
     # Input Validation
     if is_none_or_empty(org_files) and is_none_or_empty(org_file_filter):
@@ -41,7 +42,7 @@ def org_to_jsonl(config: TextContentConfig, previous_entries=None):
     logger.debug(f"Parse entries from org files into OrgNode objects: {end - start} seconds")
 
     start = time.time()
-    current_entries = convert_org_nodes_to_entries(entry_nodes, file_to_entries)
+    current_entries = convert_org_nodes_to_entries(entry_nodes, file_to_entries, index_heading_entries)
     end = time.time()
     logger.debug(f"Convert OrgNodes into entry dictionaries: {end - start} seconds")
 
@@ -100,13 +101,13 @@ def extract_org_entries(org_files):
     return entries, dict(entry_to_file_map)
 
 
-def convert_org_nodes_to_entries(entries: list[orgnode.Orgnode], entry_to_file_map) -> list[dict]:
+def convert_org_nodes_to_entries(entries: list[orgnode.Orgnode], entry_to_file_map, index_heading_entries=False) -> list[dict]:
     "Convert Org-Mode entries into list of dictionary"
     entry_maps = []
     for entry in entries:
         entry_dict = dict()
 
-        if not entry.hasBody:
+        if not entry.hasBody and not index_heading_entries:
             # Ignore title notes i.e notes with just headings and empty body
             continue
 
