@@ -106,34 +106,34 @@ def convert_org_nodes_to_entries(entries: list[orgnode.Orgnode], entry_to_file_m
     for entry in entries:
         entry_dict = dict()
 
-        if not entry.hasBody():
+        if not entry.hasBody:
             # Ignore title notes i.e notes with just headings and empty body
             continue
 
-        entry_dict["compiled"] = f'{entry.Heading()}.'
+        entry_dict["compiled"] = f'{entry.heading}.'
         if state.verbose > 2:
-            logger.debug(f"Title: {entry.Heading()}")
+            logger.debug(f"Title: {entry.heading}")
 
-        if entry.Tags():
-            tags_str = " ".join(entry.Tags())
+        if entry.tags:
+            tags_str = " ".join(entry.tags)
             entry_dict["compiled"] += f'\t {tags_str}.'
             if state.verbose > 2:
                 logger.debug(f"Tags: {tags_str}")
 
-        if entry.Closed():
-            entry_dict["compiled"] += f'\n Closed on {entry.Closed().strftime("%Y-%m-%d")}.'
+        if entry.closed:
+            entry_dict["compiled"] += f'\n Closed on {entry.closed.strftime("%Y-%m-%d")}.'
             if state.verbose > 2:
-                logger.debug(f'Closed: {entry.Closed().strftime("%Y-%m-%d")}')
+                logger.debug(f'Closed: {entry.closed.strftime("%Y-%m-%d")}')
 
-        if entry.Scheduled():
-            entry_dict["compiled"] += f'\n Scheduled for {entry.Scheduled().strftime("%Y-%m-%d")}.'
+        if entry.scheduled:
+            entry_dict["compiled"] += f'\n Scheduled for {entry.scheduled.strftime("%Y-%m-%d")}.'
             if state.verbose > 2:
-                logger.debug(f'Scheduled: {entry.Scheduled().strftime("%Y-%m-%d")}')
+                logger.debug(f'Scheduled: {entry.scheduled.strftime("%Y-%m-%d")}')
 
-        if entry.hasBody():
-            entry_dict["compiled"] += f'\n {entry.Body()}'
+        if entry.hasBody:
+            entry_dict["compiled"] += f'\n {entry.body}'
             if state.verbose > 2:
-                logger.debug(f"Body: {entry.Body()}")
+                logger.debug(f"Body: {entry.body}")
 
         if entry_dict:
             entry_dict["raw"] = f'{entry}'
