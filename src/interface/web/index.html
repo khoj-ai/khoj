@@ -63,10 +63,10 @@
         function search(rerank=false) {
             query = document.getElementById("query").value;
             type = document.getElementById("type").value;
-            console.log(query, type);
+            console.log(`Query: ${query}, Type: ${type}`);
             url = type === "image"
-                ? `/search?q=${query}&t=${type}&n=6`
-                : `/search?q=${query}&t=${type}&n=6&r=${rerank}`;
+                ? `/search?q=${encodeURIComponent(query)}&t=${type}&n=6`
+                : `/search?q=${encodeURIComponent(query)}&t=${type}&n=6&r=${rerank}`;
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
