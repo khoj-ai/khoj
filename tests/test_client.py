@@ -1,18 +1,20 @@
 # Standard Modules
 from io import BytesIO
 from PIL import Image
+from urllib.parse import quote
+
 
 # External Packages
 from fastapi.testclient import TestClient
 
 # Internal Packages
 from src.main import app
-from src.utils.config import SearchType
 from src.utils.state import model, config
 from src.search_type import text_search, image_search
 from src.utils.rawconfig import ContentConfig, SearchConfig
 from src.processor.org_mode.org_to_jsonl import org_to_jsonl
 from src.search_filter.word_filter import WordFilter
+from src.search_filter.file_filter import FileFilter
 
 
 # Arrange
@@ -23,7 +25,7 @@ client = TestClient(app)
 # ----------------------------------------------------------------------------------------------------
 def test_search_with_invalid_content_type():
     # Arrange
-    user_query = "How to call Khoj from Emacs?"
+    user_query = quote("How to call Khoj from Emacs?")
 
     # Act
     response = client.get(f"/search?q={user_query}&t=invalid_content_type")
@@ -117,7 +119,7 @@ def test_image_search(content_config: ContentConfig, search_config: SearchConfig
 def test_notes_search(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     model.orgmode_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False)
-    user_query = "How to git install application?"
+    user_query = quote("How to git install application?")
 
     # Act
     response = client.get(f"/search?q={user_query}&n=1&t=org&r=true")
@@ -130,11 +132,28 @@ def test_notes_search(content_config: ContentConfig, search_config: SearchConfig
 
 
 # ----------------------------------------------------------------------------------------------------
+def test_notes_search_with_only_filters(content_config: ContentConfig, search_config: SearchConfig):
+    # Arrange
+    filters = [WordFilter(), FileFilter()]
+    model.orgmode_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False, filters=filters)
+    user_query = quote('+"Emacs" file:"*.org"')
+
+    # Act
+    response = client.get(f"/search?q={user_query}&n=1&t=org")
+
+    # Assert
+    assert response.status_code == 200
+    # assert actual_data contains word "Emacs"
+    search_result = response.json()[0]["entry"]
+    assert "Emacs" in search_result
+
+
+# ----------------------------------------------------------------------------------------------------
 def test_notes_search_with_include_filter(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     filters = [WordFilter()]
     model.orgmode_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False, filters=filters)
-    user_query = 'How to git install application? +"Emacs"'
+    user_query = quote('How to git install application? +"Emacs"')
 
     # Act
     response = client.get(f"/search?q={user_query}&n=1&t=org")
@@ -151,7 +170,7 @@ def test_notes_search_with_exclude_filter(content_config: ContentConfig, search_
     # Arrange
     filters = [WordFilter()]
     model.orgmode_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False, filters=filters)
-    user_query = 'How to git install application? -"clone"'
+    user_query = quote('How to git install application? -"clone"')
 
     # Act
     response = client.get(f"/search?q={user_query}&n=1&t=org")

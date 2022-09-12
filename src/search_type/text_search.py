@@ -112,6 +112,11 @@ def query(raw_query: str, model: TextSearchModel, rank_results=False):
     if entries is None or len(entries) == 0:
         return [], []
 
+    # If query only had filters it'll be empty now. So short-circuit and return results.
+    if query.strip() == "":
+        hits = [{"corpus_id": id, "score": 1.0} for id, _ in enumerate(entries)]
+        return hits, entries
+
     # Encode the query using the bi-encoder
     start = time.time()
     question_embedding = model.bi_encoder.encode([query], convert_to_tensor=True, device=state.device)
