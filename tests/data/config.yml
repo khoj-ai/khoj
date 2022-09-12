@@ -1,9 +1,10 @@
 content-type:
   org:
     input-files: [ "~/first_from_config.org", "~/second_from_config.org" ]
-    input-filter: "*.org"
+    input-filter: ["*.org", "~/notes/*.org"]
     compressed-jsonl: ".notes.json.gz"
     embeddings-file: ".note_embeddings.pt"
+    index-header-entries: true
 
 search-type:
   asymmetric:

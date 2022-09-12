@@ -2,7 +2,7 @@
 import json
 
 # Internal Packages
-from src.processor.markdown.markdown_to_jsonl import extract_markdown_entries, convert_markdown_maps_to_jsonl, convert_markdown_entries_to_maps
+from src.processor.markdown.markdown_to_jsonl import extract_markdown_entries, convert_markdown_maps_to_jsonl, convert_markdown_entries_to_maps, get_markdown_files
 
 
 def test_markdown_file_with_no_headings_to_jsonl(tmp_path):
@@ -72,10 +72,38 @@ def test_multiple_markdown_entries_to_jsonl(tmp_path):
     assert len(jsonl_data) == 2
 
 
+def test_get_markdown_files(tmp_path):
+    "Ensure Markdown files specified via input-filter, input-files extracted"
+    # Arrange
+    # Include via input-filter globs
+    group1_file1 = create_file(tmp_path, filename="group1-file1.md")
+    group1_file2 = create_file(tmp_path, filename="group1-file2.md")
+    group2_file1 = create_file(tmp_path, filename="group2-file1.markdown")
+    group2_file2 = create_file(tmp_path, filename="group2-file2.markdown")
+    # Include via input-file field
+    file1 = create_file(tmp_path, filename="notes.md")
+    # Not included by any filter
+    create_file(tmp_path, filename="not-included-markdown.md")
+    create_file(tmp_path, filename="not-included-text.txt")
+
+    expected_files = set(map(str, [group1_file1, group1_file2, group2_file1, group2_file2, file1]))
+
+    # Setup input-files, input-filters
+    input_files = [tmp_path / 'notes.md']
+    input_filter = [tmp_path / 'group1*.md', tmp_path / 'group2*.markdown']
+
+    # Act
+    extracted_org_files = get_markdown_files(input_files, input_filter)
+
+    # Assert
+    assert len(extracted_org_files) == 5
+    assert extracted_org_files == expected_files
+
+
 # Helper Functions
-def create_file(tmp_path, entry, filename="test.md"):
-    markdown_file = tmp_path / f"notes/{filename}"
-    markdown_file.parent.mkdir()
+def create_file(tmp_path, entry=None, filename="test.md"):
+    markdown_file = tmp_path / filename
     markdown_file.touch()
-    markdown_file.write_text(entry)
+    if entry:
+        markdown_file.write_text(entry)
     return markdown_file

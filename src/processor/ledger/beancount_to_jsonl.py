@@ -63,15 +63,19 @@ def beancount_to_jsonl(config: TextContentConfig, previous_entries=None):
     return entries_with_ids
 
 
-def get_beancount_files(beancount_files=None, beancount_file_filter=None):
+def get_beancount_files(beancount_files=None, beancount_file_filters=None):
     "Get Beancount files to process"
     absolute_beancount_files, filtered_beancount_files = set(), set()
     if beancount_files:
         absolute_beancount_files = {get_absolute_path(beancount_file)
                               for beancount_file
                               in beancount_files}
-    if beancount_file_filter:
-        filtered_beancount_files = set(glob.glob(get_absolute_path(beancount_file_filter)))
+    if beancount_file_filters:
+        filtered_beancount_files = {
+            filtered_file
+            for beancount_file_filter in beancount_file_filters
+            for filtered_file in glob.glob(get_absolute_path(beancount_file_filter))
+        }
 
     all_beancount_files = absolute_beancount_files | filtered_beancount_files
 

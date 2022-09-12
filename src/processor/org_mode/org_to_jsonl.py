@@ -68,15 +68,19 @@ def org_to_jsonl(config: TextContentConfig, previous_entries=None):
     return entries_with_ids
 
 
-def get_org_files(org_files=None, org_file_filter=None):
+def get_org_files(org_files=None, org_file_filters=None):
     "Get Org files to process"
     absolute_org_files, filtered_org_files = set(), set()
     if org_files:
         absolute_org_files = {get_absolute_path(org_file)
                               for org_file
                               in org_files}
-    if org_file_filter:
-        filtered_org_files = set(glob.glob(get_absolute_path(org_file_filter)))
+    if org_file_filters:
+        filtered_org_files = {
+            filtered_file
+            for org_file_filter in org_file_filters
+            for filtered_file in glob.glob(get_absolute_path(org_file_filter))
+        }
 
     all_org_files = absolute_org_files | filtered_org_files
 
