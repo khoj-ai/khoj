@@ -77,12 +77,14 @@ def get_beancount_files(beancount_files=None, beancount_file_filters=None):
             for filtered_file in glob.glob(get_absolute_path(beancount_file_filter))
         }
 
-    all_beancount_files = absolute_beancount_files | filtered_beancount_files
+    all_beancount_files = sorted(absolute_beancount_files | filtered_beancount_files)
 
-    files_with_non_beancount_extensions = {beancount_file
-                                    for beancount_file
-                                    in all_beancount_files
-                                    if not beancount_file.endswith(".bean") and not beancount_file.endswith(".beancount")}
+    files_with_non_beancount_extensions = {
+        beancount_file
+        for beancount_file
+        in all_beancount_files
+        if not beancount_file.endswith(".bean") and not beancount_file.endswith(".beancount")
+    }
     if any(files_with_non_beancount_extensions):
         print(f"[Warning] There maybe non beancount files in the input set: {files_with_non_beancount_extensions}")
 

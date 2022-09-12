@@ -89,7 +89,7 @@ def test_get_beancount_files(tmp_path):
     create_file(tmp_path, filename="not-included-ledger.bean")
     create_file(tmp_path, filename="not-included-text.txt")
 
-    expected_files = set(map(str, [group1_file1, group1_file2, group2_file1, group2_file2, file1]))
+    expected_files = sorted(map(str, [group1_file1, group1_file2, group2_file1, group2_file2, file1]))
 
     # Setup input-files, input-filters
     input_files = [tmp_path / 'ledger.bean']

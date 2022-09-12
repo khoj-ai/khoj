@@ -95,7 +95,7 @@ def test_get_org_files(tmp_path):
     create_file(tmp_path, filename="orgfile2.org")
     create_file(tmp_path, filename="text1.txt")
 
-    expected_files = set(map(str, [group1_file1, group1_file2, group2_file1, group2_file2, orgfile1]))
+    expected_files = sorted(map(str, [group1_file1, group1_file2, group2_file1, group2_file2, orgfile1]))
 
     # Setup input-files, input-filters
     input_files = [tmp_path / 'orgfile1.org']

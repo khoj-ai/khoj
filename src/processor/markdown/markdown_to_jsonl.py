@@ -75,7 +75,7 @@ def get_markdown_files(markdown_files=None, markdown_file_filters=None):
             for filtered_file in glob.glob(get_absolute_path(markdown_file_filter))
         }
 
-    all_markdown_files = absolute_markdown_files | filtered_markdown_files
+    all_markdown_files = sorted(absolute_markdown_files | filtered_markdown_files)
 
     files_with_non_markdown_extensions = {
         md_file

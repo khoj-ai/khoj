@@ -82,7 +82,7 @@ def get_org_files(org_files=None, org_file_filters=None):
             for filtered_file in glob.glob(get_absolute_path(org_file_filter))
         }
 
-    all_org_files = absolute_org_files | filtered_org_files
+    all_org_files = sorted(absolute_org_files | filtered_org_files)
 
     files_with_non_org_extensions = {org_file for org_file in all_org_files if not org_file.endswith(".org")}
     if any(files_with_non_org_extensions):
