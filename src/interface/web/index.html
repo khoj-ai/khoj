@@ -79,9 +79,9 @@
                 });
         }
 
-        function regenerate() {
+        function updateIndex() {
             type = document.getElementById("type").value;
-            fetch(`/regenerate?t=${type}`)
+            fetch(`/reload?t=${type}`)
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
@@ -90,7 +90,7 @@
                 });
         }
 
-        function incremental_search(event) {
+        function incrementalSearch(event) {
             type = document.getElementById("type").value;
             // Search with reranking on 'Enter'
             if (event.key === 'Enter') {
@@ -148,14 +148,15 @@
         <h1>Khoj</h1>
 
         <!--Add Text Box To Enter Query, Trigger Incremental Search OnChange -->
-        <input type="text" id="query" onkeyup=incremental_search(event) autofocus="autofocus" placeholder="What is the meaning of life?">
+        <input type="text" id="query" onkeyup=incrementalSearch(event) autofocus="autofocus" placeholder="What is the meaning of life?">
 
         <div id="options">
             <!--Add Dropdown to Select Query Type -->
             <select id="type" onchange="setTypeInQueryParam(this)"></select>
 
             <!--Add Button To Regenerate -->
-            <button id="regenerate" onclick="regenerate()">Regenerate</button>
+            <button id="update" onclick="updateIndex()">Update</button>
+
             <!--Add Results Count Input To Set Results Count -->
             <input type="number" id="results-count" min="1" max="100" value="6" placeholder="results count">
          </div>
