@@ -1,14 +1,12 @@
 # Standard Packages
 import re
 import time
-import pickle
 import logging
 from collections import defaultdict
 
 # Internal Packages
 from src.search_filter.base_filter import BaseFilter
-from src.utils.helpers import LRU, resolve_absolute_path
-from src.utils.config import SearchType
+from src.utils.helpers import LRU
 
 
 logger = logging.getLogger(__name__)
@@ -16,8 +14,8 @@ logger = logging.getLogger(__name__)
 
 class WordFilter(BaseFilter):
     # Filter Regex
-    required_regex = r'\+"(\w+)" ?'
-    blocked_regex = r'\-"(\w+)" ?'
+    required_regex = r'\+"([a-zA-Z0-9_-]+)" ?'
+    blocked_regex = r'\-"([a-zA-Z0-9_-]+)" ?'
 
     def __init__(self, entry_key='raw'):
         self.entry_key = entry_key
