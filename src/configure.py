@@ -88,6 +88,9 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
             search_config=config.search_type.image,
             regenerate=regenerate)
 
+    # Invalidate Query Cache
+    state.query_cache = {}
+
     return model
 
 

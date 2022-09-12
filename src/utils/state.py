@@ -6,6 +6,7 @@ from pathlib import Path
 
 # Internal Packages
 from src.utils.config import SearchModels, ProcessorConfigModel
+from src.utils.helpers import LRU
 from src.utils.rawconfig import FullConfig
 
 # Application Global State
@@ -17,6 +18,7 @@ verbose: int = 0
 host: str = None
 port: int = None
 cli_args = None
+query_cache = LRU()
 
 if torch.cuda.is_available():
     # Use CUDA GPU

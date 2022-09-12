@@ -4,7 +4,6 @@ import json
 import time
 import logging
 from typing import Optional
-from functools import lru_cache
 
 # External Packages
 from fastapi import APIRouter
@@ -25,6 +24,7 @@ from src.utils import state, constants
 router = APIRouter()
 templates = Jinja2Templates(directory=constants.web_directory)
 logger = logging.getLogger(__name__)
+query_cache = {}
 
 
 @router.get("/", response_class=FileResponse)
@@ -48,17 +48,22 @@ async def config_data(updated_config: FullConfig):
     return state.config
 
 @router.get('/search')
-@lru_cache(maxsize=100)
 def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Optional[bool] = False):
     if q is None or q == '':
         logger.info(f'No query param (q) passed in API call to initiate search')
         return {}
 
     # initialize variables
-    user_query = q
+    user_query = q.strip()
     results_count = n
     results = {}
     query_start, query_end, collate_start, collate_end = None, None, None, None
+
+    # return cached results, if available
+    query_cache_key = f'{user_query}-{n}-{t}-{r}'
+    if query_cache_key in state.query_cache:
+        logger.info(f'Return response from query cache')
+        return state.query_cache[query_cache_key]
 
     if (t == SearchType.Org or t == None) and state.model.orgmode_search:
         # query org-mode notes
@@ -120,6 +125,9 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
             image_files_url='/static/images',
             count=results_count)
         collate_end = time.time()
+
+    # Cache results
+    state.query_cache[query_cache_key] = results
 
     if query_start and query_end:
         logger.debug(f"Query took {query_end - query_start:.3f} seconds")
