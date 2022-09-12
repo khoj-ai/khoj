@@ -63,15 +63,19 @@ def markdown_to_jsonl(config: TextContentConfig, previous_entries=None):
     return entries_with_ids
 
 
-def get_markdown_files(markdown_files=None, markdown_file_filter=None):
+def get_markdown_files(markdown_files=None, markdown_file_filters=None):
     "Get Markdown files to process"
     absolute_markdown_files, filtered_markdown_files = set(), set()
     if markdown_files:
         absolute_markdown_files = {get_absolute_path(markdown_file) for markdown_file in markdown_files}
-    if markdown_file_filter:
-        filtered_markdown_files = set(glob.glob(get_absolute_path(markdown_file_filter)))
+    if markdown_file_filters:
+        filtered_markdown_files = {
+            filtered_file
+            for markdown_file_filter in markdown_file_filters
+            for filtered_file in glob.glob(get_absolute_path(markdown_file_filter))
+        }
 
-    all_markdown_files = absolute_markdown_files | filtered_markdown_files
+    all_markdown_files = sorted(absolute_markdown_files | filtered_markdown_files)
 
     files_with_non_markdown_extensions = {
         md_file

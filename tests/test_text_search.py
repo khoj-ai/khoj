@@ -16,7 +16,7 @@ from src.processor.org_mode.org_to_jsonl import org_to_jsonl
 # ----------------------------------------------------------------------------------------------------
 def test_asymmetric_setup_with_missing_file_raises_error(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    file_to_index = Path(content_config.org.input_filter).parent / "new_file_to_index.org"
+    file_to_index = Path(content_config.org.input_filter[0]).parent / "new_file_to_index.org"
     new_org_content_config = deepcopy(content_config.org)
     new_org_content_config.input_files = [f'{file_to_index}']
     new_org_content_config.input_filter = None
@@ -30,7 +30,7 @@ def test_asymmetric_setup_with_missing_file_raises_error(content_config: Content
 # ----------------------------------------------------------------------------------------------------
 def test_asymmetric_setup_with_empty_file_raises_error(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    file_to_index = Path(content_config.org.input_filter).parent / "new_file_to_index.org"
+    file_to_index = Path(content_config.org.input_filter[0]).parent / "new_file_to_index.org"
     file_to_index.touch()
     new_org_content_config = deepcopy(content_config.org)
     new_org_content_config.input_files = [f'{file_to_index}']
@@ -88,7 +88,7 @@ def test_asymmetric_reload(content_config: ContentConfig, search_config: SearchC
     assert len(initial_notes_model.entries) == 10
     assert len(initial_notes_model.corpus_embeddings) == 10
 
-    file_to_add_on_reload = Path(content_config.org.input_filter).parent / "reload.org"
+    file_to_add_on_reload = Path(content_config.org.input_filter[0]).parent / "reload.org"
     content_config.org.input_files = [f'{file_to_add_on_reload}']
 
     # append Org-Mode Entry to first Org Input File in Config
@@ -124,7 +124,7 @@ def test_incremental_update(content_config: ContentConfig, search_config: Search
     assert len(initial_notes_model.entries) == 10
     assert len(initial_notes_model.corpus_embeddings) == 10
 
-    file_to_add_on_update = Path(content_config.org.input_filter).parent / "update.org"
+    file_to_add_on_update = Path(content_config.org.input_filter[0]).parent / "update.org"
     content_config.org.input_files = [f'{file_to_add_on_update}']
 
     # append Org-Mode Entry to first Org Input File in Config

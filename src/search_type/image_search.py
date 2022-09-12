@@ -241,7 +241,11 @@ def setup(config: ImageContentConfig, search_config: ImageSearchConfig, regenera
         image_directories = [resolve_absolute_path(directory, strict=True) for directory in config.input_directories]
         absolute_image_files = set(extract_entries(image_directories))
     if config.input_filter:
-        filtered_image_files = set(glob.glob(get_absolute_path(config.input_filter)))
+        filtered_image_files = {
+            filtered_file
+            for input_filter in config.input_filter
+            for filtered_file in glob.glob(get_absolute_path(input_filter))
+        }
 
     all_image_files = sorted(list(absolute_image_files | filtered_image_files))
 

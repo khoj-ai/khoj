@@ -2,7 +2,7 @@
 import json
 
 # Internal Packages
-from src.processor.ledger.beancount_to_jsonl import extract_beancount_transactions, convert_transactions_to_maps, convert_transaction_maps_to_jsonl
+from src.processor.ledger.beancount_to_jsonl import extract_beancount_transactions, convert_transactions_to_maps, convert_transaction_maps_to_jsonl, get_beancount_files
 
 
 def test_no_transactions_in_file(tmp_path):
@@ -75,10 +75,38 @@ Assets:Test:Test  -1.00 KES
     assert len(jsonl_data) == 2
 
 
+def test_get_beancount_files(tmp_path):
+    "Ensure Beancount files specified via input-filter, input-files extracted"
+    # Arrange
+    # Include via input-filter globs
+    group1_file1 = create_file(tmp_path, filename="group1-file1.bean")
+    group1_file2 = create_file(tmp_path, filename="group1-file2.bean")
+    group2_file1 = create_file(tmp_path, filename="group2-file1.beancount")
+    group2_file2 = create_file(tmp_path, filename="group2-file2.beancount")
+    # Include via input-file field
+    file1 = create_file(tmp_path, filename="ledger.bean")
+    # Not included by any filter
+    create_file(tmp_path, filename="not-included-ledger.bean")
+    create_file(tmp_path, filename="not-included-text.txt")
+
+    expected_files = sorted(map(str, [group1_file1, group1_file2, group2_file1, group2_file2, file1]))
+
+    # Setup input-files, input-filters
+    input_files = [tmp_path / 'ledger.bean']
+    input_filter = [tmp_path / 'group1*.bean', tmp_path / 'group2*.beancount']
+
+    # Act
+    extracted_org_files = get_beancount_files(input_files, input_filter)
+
+    # Assert
+    assert len(extracted_org_files) == 5
+    assert extracted_org_files == expected_files
+
+
 # Helper Functions
-def create_file(tmp_path, entry, filename="ledger.beancount"):
-    beancount_file = tmp_path / f"notes/{filename}"
-    beancount_file.parent.mkdir()
+def create_file(tmp_path, entry=None, filename="ledger.beancount"):
+    beancount_file = tmp_path / filename
     beancount_file.touch()
-    beancount_file.write_text(entry)
+    if entry:
+        beancount_file.write_text(entry)
     return beancount_file

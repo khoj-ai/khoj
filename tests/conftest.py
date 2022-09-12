@@ -55,7 +55,7 @@ def content_config(tmp_path_factory, search_config: SearchConfig):
     # Generate Notes Embeddings from Test Notes
     content_config.org = TextContentConfig(
         input_files = None,
-        input_filter = 'tests/data/org/*.org',
+        input_filter = ['tests/data/org/*.org'],
         compressed_jsonl = content_dir.joinpath('notes.jsonl.gz'),
         embeddings_file = content_dir.joinpath('note_embeddings.pt'))
 
