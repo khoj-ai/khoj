@@ -128,16 +128,3 @@ def convert_transactions_to_maps(entries: list[str], transaction_to_file_map) ->
 def convert_transaction_maps_to_jsonl(entries: list[dict]) -> str:
     "Convert each Beancount transaction dictionary to JSON and collate as JSONL"
     return ''.join([f'{json.dumps(entry_dict, ensure_ascii=False)}\n' for entry_dict in entries])
-
-
-if __name__ == '__main__':
-    # Setup Argument Parser
-    parser = argparse.ArgumentParser(description="Map Beancount transactions into (compressed) JSONL format")
-    parser.add_argument('--output-file', '-o', type=pathlib.Path, required=True, help="Output file for (compressed) JSONL formatted transactions. Expected file extensions: jsonl or jsonl.gz")
-    parser.add_argument('--input-files', '-i', nargs='*', help="List of beancount files to process")
-    parser.add_argument('--input-filter', type=str, default=None, help="Regex filter for beancount files to process")
-    parser.add_argument('--verbose', '-v', action='count', default=0, help="Show verbose conversion logs, Default: 0")
-    args = parser.parse_args()
-
-    # Map transactions in beancount files to (compressed) JSONL formatted file
-    beancount_to_jsonl(args.input_files, args.input_filter, args.output_file, args.verbose)

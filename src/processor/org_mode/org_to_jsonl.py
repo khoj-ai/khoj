@@ -153,16 +153,3 @@ def convert_org_nodes_to_entries(entries: list[orgnode.Orgnode], entry_to_file_m
 def convert_org_entries_to_jsonl(entries: list[dict]) -> str:
     "Convert each Org-Mode entry to JSON and collate as JSONL"
     return ''.join([f'{json.dumps(entry_dict, ensure_ascii=False)}\n' for entry_dict in entries])
-
-
-if __name__ == '__main__':
-    # Setup Argument Parser
-    parser = argparse.ArgumentParser(description="Map Org-Mode notes into (compressed) JSONL format")
-    parser.add_argument('--output-file', '-o', type=pathlib.Path, required=True, help="Output file for (compressed) JSONL formatted notes. Expected file extensions: jsonl or jsonl.gz")
-    parser.add_argument('--input-files', '-i', nargs='*', help="List of org-mode files to process")
-    parser.add_argument('--input-filter', type=str, default=None, help="Regex filter for org-mode files to process")
-    parser.add_argument('--verbose', '-v', action='count', default=0, help="Show verbose conversion logs, Default: 0")
-    args = parser.parse_args()
-
-    # Map notes in Org-Mode files to (compressed) JSONL formatted file
-    org_to_jsonl(args.input_files, args.input_filter, args.output_file, args.verbose)

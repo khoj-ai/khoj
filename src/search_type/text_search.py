@@ -204,32 +204,3 @@ def setup(text_to_jsonl, config: TextContentConfig, search_config: TextSearchCon
         filter.load(entries, regenerate=regenerate)
 
     return TextSearchModel(entries, corpus_embeddings, bi_encoder, cross_encoder, filters, top_k)
-
-
-if __name__ == '__main__':
-    # Setup Argument Parser
-    parser = argparse.ArgumentParser(description="Map Text files into (compressed) JSONL format")
-    parser.add_argument('--input-files', '-i', nargs='*', help="List of Text files to process")
-    parser.add_argument('--input-filter', type=str, default=None, help="Regex filter for Text files to process")
-    parser.add_argument('--compressed-jsonl', '-j', type=pathlib.Path, default=pathlib.Path("text.jsonl.gz"), help="Compressed JSONL to compute embeddings from")
-    parser.add_argument('--embeddings', '-e', type=pathlib.Path, default=pathlib.Path("text_embeddings.pt"), help="File to save/load model embeddings to/from")
-    parser.add_argument('--regenerate', action='store_true', default=False, help="Regenerate embeddings from text files. Default: false")
-    parser.add_argument('--results-count', '-n', default=5, type=int, help="Number of results to render. Default: 5")
-    parser.add_argument('--interactive', action='store_true', default=False, help="Interactive mode allows user to run queries on the model. Default: true")
-    parser.add_argument('--verbose', action='count', default=0, help="Show verbose conversion logs. Default: 0")
-    args = parser.parse_args()
-
-    entries, corpus_embeddings, bi_encoder, cross_encoder, top_k = setup(args.input_files, args.input_filter, args.compressed_jsonl, args.embeddings, args.regenerate)
-
-    # Run User Queries on Entries in Interactive Mode
-    while args.interactive:
-        # get query from user
-        user_query = input("Enter your query: ")
-        if user_query == "exit":
-            exit(0)
-
-        # query notes
-        hits = query(user_query, corpus_embeddings, entries, bi_encoder, cross_encoder, top_k)
-
-        # render results
-        render_results(hits, entries, count=args.results_count)

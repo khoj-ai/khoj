@@ -263,30 +263,3 @@ def setup(config: ImageContentConfig, search_config: ImageSearchConfig, regenera
                             image_embeddings,
                             image_metadata_embeddings,
                             encoder)
-
-
-if __name__ == '__main__':
-    # Setup Argument Parser
-    parser = argparse.ArgumentParser(description="Semantic Search on Images")
-    parser.add_argument('--image-directory', '-i', required=True, type=pathlib.Path, help="Image directory to query")
-    parser.add_argument('--embeddings-file', '-e', default='image_embeddings.pt', type=pathlib.Path, help="File to save/load model embeddings to/from. Default: ./embeddings.pt")
-    parser.add_argument('--regenerate', action='store_true', default=False, help="Regenerate embeddings of Images in Image Directory . Default: false")
-    parser.add_argument('--results-count', '-n', default=5, type=int, help="Number of results to render. Default: 5")
-    parser.add_argument('--interactive', action='store_true', default=False, help="Interactive mode allows user to run queries on the model. Default: true")
-    parser.add_argument('--verbose', action='count', default=0, help="Show verbose conversion logs. Default: 0")
-    args = parser.parse_args()
-
-    image_names, image_embeddings, image_metadata_embeddings, model = setup(args.image_directory, args.embeddings_file, regenerate=args.regenerate)
-
-    # Run User Queries on Entries in Interactive Mode
-    while args.interactive:
-        # get query from user
-        user_query = input("Enter your query: ")
-        if user_query == "exit":
-            exit(0)
-
-        # query images
-        hits = query(user_query, image_embeddings, image_metadata_embeddings, model, args.results_count, args.verbose)
-
-        # render results
-        render_results(hits, image_names, args.image_directory, count=args.results_count)
