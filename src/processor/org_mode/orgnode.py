@@ -303,7 +303,13 @@ class Orgnode(object):
         """
         return self._tags
 
-    @property
+    @tags.setter
+    def tags(self, newtags):
+        """
+        Store all the tags found in the headline.
+        """
+        self._tags = newtags
+
     def hasTag(self, tag):
         """
         Returns True if the supplied tag is present in this headline
@@ -311,13 +317,6 @@ class Orgnode(object):
         :HOME:COMPUTER: would return True.
         """
         return tag in self._tags
-
-    @tags.setter
-    def tags(self, newtags):
-        """
-        Store all the tags found in the headline.
-        """
-        self._tags = newtags
 
     @property
     def todo(self):
