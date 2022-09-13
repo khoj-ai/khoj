@@ -61,13 +61,26 @@
         }
 
         function search(rerank=false) {
-            query = document.getElementById("query").value;
+            // Extract required fields for search from form
+            query = document.getElementById("query").value.trim();
             type = document.getElementById("type").value;
             results_count = document.getElementById("results-count").value || 6;
             console.log(`Query: ${query}, Type: ${type}`);
+
+            // Short circuit on empty query
+            if (query.length === 0)
+                return;
+
+            // If set query field in url query param on rerank
+            if (rerank)
+                setQueryFieldInUrl(query);
+
+            // Generate Backend API URL to execute Search
             url = type === "image"
                 ? `/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}`
                 : `/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}&r=${rerank}`;
+
+            // Execute Search and Render Results
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
@@ -122,9 +135,21 @@
                 });
         }
 
-        function setTypeInQueryParam(type) {
+        function setTypeFieldInUrl(type) {
             var url = new URL(window.location.href);
             url.searchParams.set("t", type.value);
+            window.history.pushState({}, "", url.href);
+        }
+
+        function setCountFieldInUrl(results_count) {
+            var url = new URL(window.location.href);
+            url.searchParams.set("n", results_count.value);
+            window.history.pushState({}, "", url.href);
+        }
+
+        function setQueryFieldInUrl(query) {
+            var url = new URL(window.location.href);
+            url.searchParams.set("q", query);
             window.history.pushState({}, "", url.href);
         }
 
@@ -152,13 +177,13 @@
 
         <div id="options">
             <!--Add Dropdown to Select Query Type -->
-            <select id="type" onchange="setTypeInQueryParam(this)"></select>
+            <select id="type" onchange="setTypeFieldInUrl(this)"></select>
 
             <!--Add Button To Regenerate -->
             <button id="update" onclick="updateIndex()">Update</button>
 
             <!--Add Results Count Input To Set Results Count -->
-            <input type="number" id="results-count" min="1" max="100" value="6" placeholder="results count">
+            <input type="number" id="results-count" min="1" max="100" value="6" placeholder="results count" onchange="setCountFieldInUrl(this)">
          </div>
 
         <!-- Section to Render Results -->
