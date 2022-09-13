@@ -1,5 +1,6 @@
 # Standard Packages
 from packaging import version
+
 # External Packages
 import torch
 from pathlib import Path
@@ -13,11 +14,11 @@ from src.utils.rawconfig import FullConfig
 config = FullConfig()
 model = SearchModels()
 processor_config = ProcessorConfigModel()
-config_file: Path = ""
+config_file: Path = None
 verbose: int = 0
 host: str = None
 port: int = None
-cli_args = None
+cli_args: list[str] = None
 query_cache = LRU()
 
 if torch.cuda.is_available():

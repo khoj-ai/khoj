@@ -17,14 +17,14 @@ from src.search_type import image_search, text_search
 from src.processor.conversation.gpt import converse, extract_search_type, message_to_log, message_to_prompt, understand, summarize
 from src.utils.rawconfig import FullConfig
 from src.utils.config import SearchType
-from src.utils.helpers import get_absolute_path, get_from_dict
+from src.utils.helpers import LRU, get_absolute_path, get_from_dict
 from src.utils import state, constants
 
 
 router = APIRouter()
 templates = Jinja2Templates(directory=constants.web_directory)
 logger = logging.getLogger(__name__)
-query_cache = {}
+query_cache = LRU()
 
 
 @router.get("/", response_class=FileResponse)

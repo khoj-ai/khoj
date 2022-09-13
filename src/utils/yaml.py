@@ -5,11 +5,12 @@ from pathlib import Path
 import yaml
 
 # Internal Packages
-from src.utils.helpers import get_absolute_path, resolve_absolute_path
 from src.utils.rawconfig import FullConfig
+
 
 # Do not emit tags when dumping to YAML
 yaml.emitter.Emitter.process_tag = lambda self, *args, **kwargs: None
+
 
 def save_config_to_file(yaml_config: dict, yaml_config_file: Path):
     "Write config to YML file"

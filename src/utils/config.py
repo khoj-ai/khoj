@@ -2,7 +2,6 @@
 from enum import Enum
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
 
 # Internal Packages
 from src.utils.rawconfig import ConversationProcessorConfig
@@ -22,7 +21,7 @@ class ProcessorType(str, Enum):
 
 
 class TextSearchModel():
-    def __init__(self, entries, corpus_embeddings, bi_encoder, cross_encoder, filters: List[BaseFilter], top_k):
+    def __init__(self, entries, corpus_embeddings, bi_encoder, cross_encoder, filters: list[BaseFilter], top_k):
         self.entries = entries
         self.corpus_embeddings = corpus_embeddings
         self.bi_encoder = bi_encoder
@@ -54,7 +53,7 @@ class ConversationProcessorConfigModel():
         self.openai_api_key = processor_config.openai_api_key
         self.conversation_logfile = Path(processor_config.conversation_logfile)
         self.chat_session = ''
-        self.meta_log = []
+        self.meta_log: dict = {}
 
 
 @dataclass

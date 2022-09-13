@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 
 # Standard Packages
-import re
 import json
-import argparse
-import pathlib
 import glob
 import logging
 import time
+from typing import Iterable
 
 # Internal Packages
 from src.processor.org_mode import orgnode
@@ -50,7 +48,7 @@ def org_to_jsonl(config: TextContentConfig, previous_entries=None):
     if not previous_entries:
         entries_with_ids = list(enumerate(current_entries))
     else:
-       entries_with_ids = mark_entries_for_update(current_entries, previous_entries, key='compiled', logger=logger)
+        entries_with_ids = mark_entries_for_update(current_entries, previous_entries, key='compiled', logger=logger)
 
     # Process Each Entry from All Notes Files
     start = time.time()
@@ -72,9 +70,11 @@ def get_org_files(org_files=None, org_file_filters=None):
     "Get Org files to process"
     absolute_org_files, filtered_org_files = set(), set()
     if org_files:
-        absolute_org_files = {get_absolute_path(org_file)
-                              for org_file
-                              in org_files}
+        absolute_org_files = {
+            get_absolute_path(org_file)
+            for org_file
+            in org_files
+        }
     if org_file_filters:
         filtered_org_files = {
             filtered_file
@@ -150,6 +150,6 @@ def convert_org_nodes_to_entries(entries: list[orgnode.Orgnode], entry_to_file_m
     return entry_maps
 
 
-def convert_org_entries_to_jsonl(entries: list[dict]) -> str:
+def convert_org_entries_to_jsonl(entries: Iterable[dict]) -> str:
     "Convert each Org-Mode entry to JSON and collate as JSONL"
     return ''.join([f'{json.dumps(entry_dict, ensure_ascii=False)}\n' for entry_dict in entries])

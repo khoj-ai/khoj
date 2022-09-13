@@ -1,10 +1,11 @@
 # Standard Packages
-import pathlib
+from pathlib import Path
 import sys
 import time
 import hashlib
 from os.path import join
 from collections import OrderedDict
+from typing import Optional, Union
 
 
 def is_none_or_empty(item):
@@ -15,12 +16,12 @@ def to_snake_case_from_dash(item: str):
     return item.replace('_', '-')
 
 
-def get_absolute_path(filepath):
-    return str(pathlib.Path(filepath).expanduser().absolute())
+def get_absolute_path(filepath: Union[str, Path]) -> str:
+    return str(Path(filepath).expanduser().absolute())
 
 
-def resolve_absolute_path(filepath, strict=False):
-    return pathlib.Path(filepath).expanduser().absolute().resolve(strict=strict)
+def resolve_absolute_path(filepath: Union[str, Optional[Path]], strict=False) -> Path:
+    return Path(filepath).expanduser().absolute().resolve(strict=strict)
 
 
 def get_from_dict(dictionary, *args):

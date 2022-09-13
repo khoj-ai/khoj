@@ -12,7 +12,7 @@ from src.processor.org_mode.org_to_jsonl import org_to_jsonl
 from src.search_type import image_search, text_search
 from src.utils.config import SearchType, SearchModels, ProcessorConfigModel, ConversationProcessorConfigModel
 from src.utils import state
-from src.utils.helpers import resolve_absolute_path
+from src.utils.helpers import LRU, resolve_absolute_path
 from src.utils.rawconfig import FullConfig, ProcessorConfig
 from src.search_filter.date_filter import DateFilter
 from src.search_filter.word_filter import WordFilter
@@ -89,7 +89,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
             regenerate=regenerate)
 
     # Invalidate Query Cache
-    state.query_cache = {}
+    state.query_cache = LRU()
 
     return model
 
