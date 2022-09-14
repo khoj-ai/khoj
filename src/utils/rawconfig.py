@@ -4,7 +4,6 @@ from typing import List, Optional
 
 # External Packages
 from pydantic import BaseModel, validator
-import panchayat
 
 # Internal Packages
 from src.utils.helpers import to_snake_case_from_dash
