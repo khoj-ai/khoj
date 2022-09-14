@@ -8,6 +8,7 @@ from platform import system
 
 # Ignore non-actionable warnings
 warnings.filterwarnings("ignore", message=r'snapshot_download.py has been made private', category=FutureWarning)
+warnings.filterwarnings("ignore", message=r'legacy way to download files from the HF hub,', category=FutureWarning)
 
 # External Packages
 import uvicorn
