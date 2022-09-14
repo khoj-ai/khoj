@@ -2,7 +2,7 @@
 import json
 
 # Internal Packages
-from src.processor.markdown.markdown_to_jsonl import extract_markdown_entries, convert_markdown_maps_to_jsonl, convert_markdown_entries_to_maps, get_markdown_files
+from src.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 
 
 def test_markdown_file_with_no_headings_to_jsonl(tmp_path):
@@ -16,10 +16,11 @@ def test_markdown_file_with_no_headings_to_jsonl(tmp_path):
 
     # Act
     # Extract Entries from specified Markdown files
-    entry_nodes, file_to_entries = extract_markdown_entries(markdown_files=[markdownfile])
+    entry_nodes, file_to_entries = MarkdownToJsonl.extract_markdown_entries(markdown_files=[markdownfile])
 
     # Process Each Entry from All Notes Files
-    jsonl_string = convert_markdown_maps_to_jsonl(convert_markdown_entries_to_maps(entry_nodes, file_to_entries))
+    jsonl_string = MarkdownToJsonl.convert_markdown_maps_to_jsonl(
+        MarkdownToJsonl.convert_markdown_entries_to_maps(entry_nodes, file_to_entries))
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
@@ -37,10 +38,11 @@ def test_single_markdown_entry_to_jsonl(tmp_path):
 
     # Act
     # Extract Entries from specified Markdown files
-    entries, entry_to_file_map = extract_markdown_entries(markdown_files=[markdownfile])
+    entries, entry_to_file_map = MarkdownToJsonl.extract_markdown_entries(markdown_files=[markdownfile])
 
     # Process Each Entry from All Notes Files
-    jsonl_string = convert_markdown_maps_to_jsonl(convert_markdown_entries_to_maps(entries, entry_to_file_map))
+    jsonl_string = MarkdownToJsonl.convert_markdown_maps_to_jsonl(
+        MarkdownToJsonl.convert_markdown_entries_to_maps(entries, entry_to_file_map))
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
@@ -62,10 +64,11 @@ def test_multiple_markdown_entries_to_jsonl(tmp_path):
 
     # Act
     # Extract Entries from specified Markdown files
-    entries, entry_to_file_map = extract_markdown_entries(markdown_files=[markdownfile])
+    entries, entry_to_file_map = MarkdownToJsonl.extract_markdown_entries(markdown_files=[markdownfile])
 
     # Process Each Entry from All Notes Files
-    jsonl_string = convert_markdown_maps_to_jsonl(convert_markdown_entries_to_maps(entries, entry_to_file_map))
+    jsonl_string = MarkdownToJsonl.convert_markdown_maps_to_jsonl(
+        MarkdownToJsonl.convert_markdown_entries_to_maps(entries, entry_to_file_map))
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
@@ -93,7 +96,7 @@ def test_get_markdown_files(tmp_path):
     input_filter = [tmp_path / 'group1*.md', tmp_path / 'group2*.markdown']
 
     # Act
-    extracted_org_files = get_markdown_files(input_files, input_filter)
+    extracted_org_files = MarkdownToJsonl.get_markdown_files(input_files, input_filter)
 
     # Assert
     assert len(extracted_org_files) == 5

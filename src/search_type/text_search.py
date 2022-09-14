@@ -1,10 +1,12 @@
 # Standard Packages
 import logging
 import time
+from typing import Type
 
 # External Packages
 import torch
 from sentence_transformers import SentenceTransformer, CrossEncoder, util
+from src.processor.text_to_jsonl import TextToJsonl
 from src.search_filter.base_filter import BaseFilter
 
 # Internal Packages
@@ -179,14 +181,14 @@ def collate_results(hits, entries, count=5):
         in hits[0:count]]
 
 
-def setup(text_to_jsonl, config: TextContentConfig, search_config: TextSearchConfig, regenerate: bool, filters: list[BaseFilter] = []) -> TextSearchModel:
+def setup(text_to_jsonl: Type[TextToJsonl], config: TextContentConfig, search_config: TextSearchConfig, regenerate: bool, filters: list[BaseFilter] = []) -> TextSearchModel:
     # Initialize Model
     bi_encoder, cross_encoder, top_k = initialize_model(search_config)
 
     # Map notes in text files to (compressed) JSONL formatted file
     config.compressed_jsonl = resolve_absolute_path(config.compressed_jsonl)
     previous_entries = extract_entries(config.compressed_jsonl) if config.compressed_jsonl.exists() and not regenerate else None
-    entries_with_indices = text_to_jsonl(config, previous_entries)
+    entries_with_indices = text_to_jsonl(config).process(previous_entries)
 
     # Extract Updated Entries
     entries = extract_entries(config.compressed_jsonl)

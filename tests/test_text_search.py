@@ -9,7 +9,7 @@ import pytest
 from src.utils.state import model
 from src.search_type import text_search
 from src.utils.rawconfig import ContentConfig, SearchConfig
-from src.processor.org_mode.org_to_jsonl import org_to_jsonl
+from src.processor.org_mode.org_to_jsonl import OrgToJsonl
 
 
 # Test
@@ -24,7 +24,7 @@ def test_asymmetric_setup_with_missing_file_raises_error(content_config: Content
     # Act
     # Generate notes embeddings during asymmetric setup
     with pytest.raises(FileNotFoundError):
-        text_search.setup(org_to_jsonl, new_org_content_config, search_config.asymmetric, regenerate=True)
+        text_search.setup(OrgToJsonl, new_org_content_config, search_config.asymmetric, regenerate=True)
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -39,7 +39,7 @@ def test_asymmetric_setup_with_empty_file_raises_error(content_config: ContentCo
     # Act
     # Generate notes embeddings during asymmetric setup
     with pytest.raises(ValueError, match=r'^No valid entries found*'):
-        text_search.setup(org_to_jsonl, new_org_content_config, search_config.asymmetric, regenerate=True)
+        text_search.setup(OrgToJsonl, new_org_content_config, search_config.asymmetric, regenerate=True)
 
     # Cleanup
     # delete created test file
@@ -50,7 +50,7 @@ def test_asymmetric_setup_with_empty_file_raises_error(content_config: ContentCo
 def test_asymmetric_setup(content_config: ContentConfig, search_config: SearchConfig):
     # Act
     # Regenerate notes embeddings during asymmetric setup
-    notes_model = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=True)
+    notes_model = text_search.setup(OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=True)
 
     # Assert
     assert len(notes_model.entries) == 10
@@ -60,7 +60,7 @@ def test_asymmetric_setup(content_config: ContentConfig, search_config: SearchCo
 # ----------------------------------------------------------------------------------------------------
 def test_asymmetric_search(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    model.notes_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=True)
+    model.notes_search = text_search.setup(OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=True)
     query = "How to git install application?"
 
     # Act
@@ -83,7 +83,7 @@ def test_asymmetric_search(content_config: ContentConfig, search_config: SearchC
 # ----------------------------------------------------------------------------------------------------
 def test_asymmetric_reload(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    initial_notes_model= text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False)
+    initial_notes_model= text_search.setup(OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=False)
 
     assert len(initial_notes_model.entries) == 10
     assert len(initial_notes_model.corpus_embeddings) == 10
@@ -96,11 +96,11 @@ def test_asymmetric_reload(content_config: ContentConfig, search_config: SearchC
         f.write("\n* A Chihuahua doing Tango\n- Saw a super cute video of a chihuahua doing the Tango on Youtube\n")
 
     # regenerate notes jsonl, model embeddings and model to include entry from new file
-    regenerated_notes_model = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=True)
+    regenerated_notes_model = text_search.setup(OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=True)
 
     # Act
     # reload embeddings, entries, notes model from previously generated notes jsonl and model embeddings files
-    initial_notes_model = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False)
+    initial_notes_model = text_search.setup(OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=False)
 
     # Assert
     assert len(regenerated_notes_model.entries) == 11
@@ -119,7 +119,7 @@ def test_asymmetric_reload(content_config: ContentConfig, search_config: SearchC
 # ----------------------------------------------------------------------------------------------------
 def test_incremental_update(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    initial_notes_model = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=True)
+    initial_notes_model = text_search.setup(OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=True)
 
     assert len(initial_notes_model.entries) == 10
     assert len(initial_notes_model.corpus_embeddings) == 10
@@ -133,7 +133,7 @@ def test_incremental_update(content_config: ContentConfig, search_config: Search
 
     # Act
     # update embeddings, entries with the newly added note
-    initial_notes_model = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False)
+    initial_notes_model = text_search.setup(OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=False)
 
     # verify new entry added in updated embeddings, entries
     assert len(initial_notes_model.entries) == 11

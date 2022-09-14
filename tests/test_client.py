@@ -12,7 +12,7 @@ from src.main import app
 from src.utils.state import model, config
 from src.search_type import text_search, image_search
 from src.utils.rawconfig import ContentConfig, SearchConfig
-from src.processor.org_mode.org_to_jsonl import org_to_jsonl
+from src.processor.org_mode.org_to_jsonl import OrgToJsonl
 from src.search_filter.word_filter import WordFilter
 from src.search_filter.file_filter import FileFilter
 
@@ -118,7 +118,7 @@ def test_image_search(content_config: ContentConfig, search_config: SearchConfig
 # ----------------------------------------------------------------------------------------------------
 def test_notes_search(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    model.orgmode_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False)
+    model.orgmode_search = text_search.setup(OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=False)
     user_query = quote("How to git install application?")
 
     # Act
@@ -135,7 +135,7 @@ def test_notes_search(content_config: ContentConfig, search_config: SearchConfig
 def test_notes_search_with_only_filters(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     filters = [WordFilter(), FileFilter()]
-    model.orgmode_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False, filters=filters)
+    model.orgmode_search = text_search.setup(OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=False, filters=filters)
     user_query = quote('+"Emacs" file:"*.org"')
 
     # Act
@@ -152,7 +152,7 @@ def test_notes_search_with_only_filters(content_config: ContentConfig, search_co
 def test_notes_search_with_include_filter(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     filters = [WordFilter()]
-    model.orgmode_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False, filters=filters)
+    model.orgmode_search = text_search.setup(OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=False, filters=filters)
     user_query = quote('How to git install application? +"Emacs"')
 
     # Act
@@ -169,7 +169,7 @@ def test_notes_search_with_include_filter(content_config: ContentConfig, search_
 def test_notes_search_with_exclude_filter(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     filters = [WordFilter()]
-    model.orgmode_search = text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False, filters=filters)
+    model.orgmode_search = text_search.setup(OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=False, filters=filters)
     user_query = quote('How to git install application? -"clone"')
 
     # Act
