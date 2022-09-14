@@ -77,8 +77,8 @@
 
             // Generate Backend API URL to execute Search
             url = type === "image"
-                ? `/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}`
-                : `/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}&r=${rerank}`;
+                ? `/api/v1.0/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}`
+                : `/api/v1.0/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}&r=${rerank}`;
 
             // Execute Search and Render Results
             fetch(url)
@@ -94,7 +94,7 @@
 
         function updateIndex() {
             type = document.getElementById("type").value;
-            fetch(`/reload?t=${type}`)
+            fetch(`/api/v1.0/update?t=${type}`)
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
@@ -118,7 +118,7 @@
         function populate_type_dropdown() {
             // Populate type dropdown field with enabled search types only
             var possible_search_types = ["org", "markdown", "ledger", "music", "image"];
-            fetch("/config/data")
+            fetch("/api/v1.0/config/data")
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById("type").innerHTML =

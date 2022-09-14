@@ -19,7 +19,9 @@ from PyQt6.QtCore import QThread, QTimer
 
 # Internal Packages
 from src.configure import configure_server
-from src.router import router
+from src.routers.api_v1_0 import api_v1_0
+from src.routers.api_beta import api_beta
+from src.routers.frontend import frontend_router
 from src.utils import constants, state
 from src.utils.cli import cli
 from src.interface.desktop.main_window import MainWindow
@@ -29,7 +31,9 @@ from src.interface.desktop.system_tray import create_system_tray
 # Initialize the Application Server
 app = FastAPI()
 app.mount("/static", StaticFiles(directory=constants.web_directory), name="static")
-app.include_router(router)
+app.include_router(api_v1_0, prefix="/api/v1.0")
+app.include_router(api_beta, prefix="/api/beta")
+app.include_router(frontend_router)
 
 logger = logging.getLogger('src')
 

@@ -85,7 +85,7 @@ khoj
 ### 3. Configure
 
 1. Enable content types and point to files to search in the First Run Screen that pops up on app start
-2. Click configure and wait. The app will load ML model, generates embeddings and expose the search API
+2. Click `Configure` and wait. The app will download ML models and index the content for search
 
 ## Use
 
@@ -113,7 +113,7 @@ pip install --upgrade khoj-assistant
 
 ## Miscellaneous
 
-- The beta [chat](http://localhost:8000/beta/chat) and [search](http://localhost:8000/beta/search) API endpoints use [OpenAI API](https://openai.com/api/)
+- The beta [chat](http://localhost:8000/api/beta/chat) and [search](http://localhost:8000/api/beta/search) API endpoints use [OpenAI API](https://openai.com/api/)
   - It is disabled by default
   - To use it add your `openai-api-key` via the app configure screen
   - Warning: *If you use the above beta APIs, your query and top result(s) will be sent to OpenAI for processing*
