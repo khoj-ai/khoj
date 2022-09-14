@@ -1,11 +1,11 @@
 # Standard Packages
 import pytest
-import torch
 
 # Internal Packages
 from src.search_type import image_search, text_search
 from src.utils.rawconfig import ContentConfig, TextContentConfig, ImageContentConfig, SearchConfig, TextSearchConfig, ImageSearchConfig
 from src.processor.org_mode.org_to_jsonl import org_to_jsonl
+from src.utils import state
 
 
 @pytest.fixture(scope='session')
@@ -37,7 +37,6 @@ def search_config(tmp_path_factory):
 @pytest.fixture(scope='session')
 def model_dir(search_config):
     model_dir = search_config.asymmetric.model_directory
-    device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
 
     # Generate Image Embeddings from Test Images
     content_config = ContentConfig()
@@ -56,7 +55,7 @@ def model_dir(search_config):
         compressed_jsonl = model_dir.joinpath('notes.jsonl.gz'),
         embeddings_file = model_dir.joinpath('note_embeddings.pt'))
 
-    text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False, device=device, verbose=True)
+    text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False, verbose=True)
 
     return model_dir
 
@@ -73,7 +72,7 @@ def content_config(model_dir):
     content_config.image = ImageContentConfig(
         input_directories = ['tests/data/images'],
         embeddings_file = model_dir.joinpath('image_embeddings.pt'),
-        batch_size = 10,
+        batch_size = 1,
         use_xmp_metadata = False)
 
     return content_config

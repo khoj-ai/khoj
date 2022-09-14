@@ -37,7 +37,7 @@ def test_parse_complete_entry(tmp_path):
     "Test parsing of entry with all important fields"
     # Arrange
     entry = f'''
-*** [#A] Heading   :Tag1:TAG2:tag3:
+*** DONE [#A] Heading   :Tag1:TAG2:tag3:
 CLOSED: [1984-04-01 Sun 12:00] SCHEDULED: <1984-04-01 Sun 09:00> DEADLINE: <1984-04-01 Sun>
 :PROPERTIES:
 :ID: 123-456-789-4234-1231
@@ -56,6 +56,7 @@ Body Line 2'''
     # Assert
     assert len(entries) == 1
     assert entries[0].Heading() == "Heading"
+    assert entries[0].Todo() == "DONE"
     assert entries[0].Tags() == {"Tag1", "TAG2", "tag3"}
     assert entries[0].Body() == "- Clocked Log 1\nBody Line 1\nBody Line 2"
     assert entries[0].Priority() == "A"
@@ -124,7 +125,7 @@ def test_parse_multiple_entries(tmp_path):
     "Test parsing of multiple entries"
     # Arrange
     content = f'''
-*** [#A] Heading1   :tag1:
+*** FAILED [#A] Heading1   :tag1:
 CLOSED: [1984-04-01 Sun 12:00] SCHEDULED: <1984-04-01 Sun 09:00> DEADLINE: <1984-04-01 Sun>
 :PROPERTIES:
 :ID: 123-456-789-4234-0001
@@ -135,7 +136,7 @@ CLOCK: [1984-04-01 Sun 09:00]--[1984-04-01 Sun 12:00] => 3:00
 :END:
 Body 1
 
-*** [#A] Heading2   :tag2:
+*** CANCELLED [#A] Heading2   :tag2:
 CLOSED: [1984-04-02 Sun 12:00] SCHEDULED: <1984-04-02 Sun 09:00> DEADLINE: <1984-04-02 Sun>
 :PROPERTIES:
 :ID: 123-456-789-4234-0002
@@ -156,6 +157,7 @@ Body 2
     assert len(entries) == 2
     for index, entry in enumerate(entries):
         assert entry.Heading() == f"Heading{index+1}"
+        assert entry.Todo() == "FAILED" if index == 0 else "CANCELLED"
         assert entry.Tags() == {f"tag{index+1}"}
         assert entry.Body() == f"- Clocked Log {index+1}\nBody {index+1}\n\n"
         assert entry.Priority() == "A"

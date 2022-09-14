@@ -1,10 +1,11 @@
 # Standard Packages
 import pathlib
+import sys
 from os.path import join
 
 
 def is_none_or_empty(item):
-    return item == None or (hasattr(item, '__iter__') and len(item) == 0)
+    return item == None or (hasattr(item, '__iter__') and len(item) == 0) or item == ''
 
 
 def to_snake_case_from_dash(item: str):
@@ -40,18 +41,23 @@ def merge_dicts(priority_dict: dict, default_dict: dict):
     return merged_dict
 
 
-def load_model(model_name, model_dir, model_type):
+def load_model(model_name, model_dir, model_type, device:str=None):
     "Load model from disk or huggingface"
     # Construct model path
     model_path = join(model_dir, model_name.replace("/", "_")) if model_dir is not None else None
 
     # Load model from model_path if it exists there
     if model_path is not None and resolve_absolute_path(model_path).exists():
-        model = model_type(get_absolute_path(model_path))
+        model = model_type(get_absolute_path(model_path), device=device)
     # Else load the model from the model_name
     else:
-        model = model_type(model_name)
+        model = model_type(model_name, device=device)
         if model_path is not None:
             model.save(model_path)
 
     return model
+
+
+def is_pyinstaller_app():
+    "Returns true if the app is running from Native GUI created by PyInstaller"
+    return getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')

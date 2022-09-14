@@ -8,8 +8,8 @@
         <link rel="icon" type="image/png" sizes="144x144" href="/static/assets/icons/favicon-144x144.png">
         <link rel="manifest" href="/static/khoj.webmanifest">
     </head>
-    <script type="text/javascript" src="static/assets/org.js"></script>
-    <script type="text/javascript" src="static/assets/markdown-it.js"></script>
+    <script type="text/javascript" src="static/assets/org.min.js"></script>
+    <script type="text/javascript" src="static/assets/markdown-it.min.js"></script>
 
     <script>
         function render_image(item) {
@@ -38,6 +38,12 @@
             }).join("\n"));
         }
 
+        function render_ledger(query, data) {
+            return `<div id="results-ledger">` + data.map(function (item) {
+                return `<p>${item.entry}</p>`
+            }).join("\n") + `</div>`;
+        }
+
         function render_json(data, query, type) {
             if (type === "markdown") {
                 return render_markdown(query, data);
@@ -47,6 +53,8 @@
                 return render_org(query, data, "music-");
             } else if (type === "image") {
                 return data.map(render_image).join('');
+            } else if (type === "ledger") {
+                return render_ledger(query, data);
             } else {
                 return `<pre id="json">${JSON.stringify(data, null, 2)}</pre>`;
             }
@@ -223,7 +231,11 @@
         #json {
             white-space: pre-wrap;
         }
-        #results-markdown {
+        #results-ledger {
+            white-space: pre-line;
+            text-align: left;
+        }
+         #results-markdown {
             text-align: left;
         }
         #results-music,

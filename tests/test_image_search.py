@@ -6,7 +6,8 @@ from PIL import Image
 import pytest
 
 # Internal Packages
-from src.main import model, web_directory
+from src.utils.state import model
+from src.utils.constants import web_directory
 from src.search_type import image_search
 from src.utils.helpers import resolve_absolute_path
 from src.utils.rawconfig import ContentConfig, SearchConfig
@@ -25,7 +26,6 @@ def test_image_search_setup(content_config: ContentConfig, search_config: Search
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.skip(reason="results inconsistent currently")
 def test_image_search(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     output_directory = resolve_absolute_path(web_directory)

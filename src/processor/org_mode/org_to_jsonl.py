@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 # Standard Packages
+import re
 import json
 import argparse
 import pathlib
@@ -71,14 +72,14 @@ def extract_org_entries(org_files):
     return entries
 
 
-def convert_org_entries_to_jsonl(entries, verbose=0):
+def convert_org_entries_to_jsonl(entries, verbose=0) -> str:
     "Convert each Org-Mode entries to JSON and collate as JSONL"
     jsonl = ''
     for entry in entries:
         entry_dict = dict()
 
         # Ignore title notes i.e notes with just headings and empty body
-        if not entry.Body() or entry.Body().strip(empty_escape_sequences) == "":
+        if not entry.Body() or re.sub(r'\n|\t|\r| ', '', entry.Body()) == "":
             continue
 
         entry_dict["compiled"] = f'{entry.Heading()}.'
