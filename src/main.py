@@ -2,7 +2,12 @@
 import os
 import signal
 import sys
+import logging
+import warnings
 from platform import system
+
+# Ignore non-actionable warnings
+warnings.filterwarnings("ignore", message=r'snapshot_download.py has been made private', category=FutureWarning)
 
 # External Packages
 import uvicorn
@@ -25,6 +30,34 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory=constants.web_directory), name="static")
 app.include_router(router)
 
+logger = logging.getLogger('src')
+
+
+class CustomFormatter(logging.Formatter):
+
+    blue = "\x1b[1;34m"
+    green = "\x1b[1;32m"
+    grey = "\x1b[38;20m"
+    yellow = "\x1b[33;20m"
+    red = "\x1b[31;20m"
+    bold_red = "\x1b[31;1m"
+    reset = "\x1b[0m"
+    format_str = "%(levelname)s: %(asctime)s: %(name)s | %(message)s"
+
+    FORMATS = {
+        logging.DEBUG: blue + format_str + reset,
+        logging.INFO: green + format_str + reset,
+        logging.WARNING: yellow + format_str + reset,
+        logging.ERROR: red + format_str + reset,
+        logging.CRITICAL: bold_red + format_str + reset
+    }
+
+    def format(self, record):
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)
+
+
 def run():
     # Turn Tokenizers Parallelism Off. App does not support it.
     os.environ["TOKENIZERS_PARALLELISM"] = 'false'
@@ -33,6 +66,29 @@ def run():
     state.cli_args = sys.argv[1:]
     args = cli(state.cli_args)
     set_state(args)
+
+    # Create app directory, if it doesn't exist
+    state.config_file.parent.mkdir(parents=True, exist_ok=True)
+
+    # Setup Logger
+    if args.verbose == 0:
+        logger.setLevel(logging.WARN)
+    elif args.verbose == 1:
+        logger.setLevel(logging.INFO)
+    elif args.verbose >= 2:
+        logger.setLevel(logging.DEBUG)
+
+    # Set Log Format
+    ch = logging.StreamHandler()
+    ch.setFormatter(CustomFormatter())
+    logger.addHandler(ch)
+
+    # Set Log File
+    fh = logging.FileHandler(state.config_file.parent / 'khoj.log')
+    fh.setLevel(logging.DEBUG)
+    logger.addHandler(fh)
+
+    logger.info("Starting Khoj...")
 
     if args.no_gui:
         # Start Server

@@ -61,12 +61,26 @@
         }
 
         function search(rerank=false) {
-            query = document.getElementById("query").value;
+            // Extract required fields for search from form
+            query = document.getElementById("query").value.trim();
             type = document.getElementById("type").value;
-            console.log(query, type);
+            results_count = document.getElementById("results-count").value || 6;
+            console.log(`Query: ${query}, Type: ${type}`);
+
+            // Short circuit on empty query
+            if (query.length === 0)
+                return;
+
+            // If set query field in url query param on rerank
+            if (rerank)
+                setQueryFieldInUrl(query);
+
+            // Generate Backend API URL to execute Search
             url = type === "image"
-                ? `/search?q=${query}&t=${type}&n=6`
-                : `/search?q=${query}&t=${type}&n=6&r=${rerank}`;
+                ? `/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}`
+                : `/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}&r=${rerank}`;
+
+            // Execute Search and Render Results
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
@@ -78,9 +92,9 @@
                 });
         }
 
-        function regenerate() {
+        function updateIndex() {
             type = document.getElementById("type").value;
-            fetch(`/regenerate?t=${type}`)
+            fetch(`/reload?t=${type}`)
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
@@ -89,7 +103,7 @@
                 });
         }
 
-        function incremental_search(event) {
+        function incrementalSearch(event) {
             type = document.getElementById("type").value;
             // Search with reranking on 'Enter'
             if (event.key === 'Enter') {
@@ -121,9 +135,32 @@
                 });
         }
 
+        function setTypeFieldInUrl(type) {
+            var url = new URL(window.location.href);
+            url.searchParams.set("t", type.value);
+            window.history.pushState({}, "", url.href);
+        }
+
+        function setCountFieldInUrl(results_count) {
+            var url = new URL(window.location.href);
+            url.searchParams.set("n", results_count.value);
+            window.history.pushState({}, "", url.href);
+        }
+
+        function setQueryFieldInUrl(query) {
+            var url = new URL(window.location.href);
+            url.searchParams.set("q", query);
+            window.history.pushState({}, "", url.href);
+        }
+
         window.onload = function () {
             // Dynamically populate type dropdown based on enabled search types and type passed as URL query parameter
             populate_type_dropdown();
+
+            // Set results count field with value passed in URL query parameters, if any.
+            var results_count = new URLSearchParams(window.location.search).get("n");
+            if (results_count)
+                document.getElementById("results-count").value = results_count;
 
             // Fill query field with value passed in URL query parameters, if any.
             var query_via_url = new URLSearchParams(window.location.search).get("q");
@@ -136,15 +173,18 @@
         <h1>Khoj</h1>
 
         <!--Add Text Box To Enter Query, Trigger Incremental Search OnChange -->
-        <input type="text" id="query" onkeyup=incremental_search(event) autofocus="autofocus" placeholder="What is the meaning of life?">
+        <input type="text" id="query" onkeyup=incrementalSearch(event) autofocus="autofocus" placeholder="What is the meaning of life?">
 
         <div id="options">
             <!--Add Dropdown to Select Query Type -->
-            <select id="type"></select>
+            <select id="type" onchange="setTypeFieldInUrl(this)"></select>
 
             <!--Add Button To Regenerate -->
-            <button id="regenerate" onclick="regenerate()">Regenerate</button>
-        </div>
+            <button id="update" onclick="updateIndex()">Update</button>
+
+            <!--Add Results Count Input To Set Results Count -->
+            <input type="number" id="results-count" min="1" max="100" value="6" placeholder="results count" onchange="setCountFieldInUrl(this)">
+         </div>
 
         <!-- Section to Render Results -->
         <div id="results"></div>
@@ -194,7 +234,7 @@
         #options {
             padding: 0;
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr minmax(70px, 0.5fr);
         }
         #options > * {
             padding: 15px;
@@ -202,10 +242,10 @@
             border: 1px solid #ccc;
         }
         #options > select {
-            margin-right: 5px;
+            margin-right: 10px;
         }
         #options > button {
-            margin-left: 5px;
+            margin-right: 10px;
         }
 
         #query {

@@ -6,9 +6,10 @@ from PyQt6 import QtGui, QtWidgets
 
 # Internal Packages
 from src.utils import constants, state
+from src.interface.desktop.main_window import MainWindow
 
 
-def create_system_tray(gui: QtWidgets.QApplication, main_window: QtWidgets.QMainWindow):
+def create_system_tray(gui: QtWidgets.QApplication, main_window: MainWindow):
     """Create System Tray with Menu.  Menu contain options to
     1. Open Search Page on the Web Interface
     2. Open App Configuration Screen

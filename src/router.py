@@ -2,8 +2,8 @@
 import yaml
 import json
 import time
+import logging
 from typing import Optional
-from functools import lru_cache
 
 # External Packages
 from fastapi import APIRouter
@@ -15,16 +15,17 @@ from fastapi.templating import Jinja2Templates
 from src.configure import configure_search
 from src.search_type import image_search, text_search
 from src.processor.conversation.gpt import converse, extract_search_type, message_to_log, message_to_prompt, understand, summarize
-from src.search_filter.explicit_filter import ExplicitFilter
-from src.search_filter.date_filter import DateFilter
 from src.utils.rawconfig import FullConfig
 from src.utils.config import SearchType
-from src.utils.helpers import get_absolute_path, get_from_dict
+from src.utils.helpers import LRU, get_absolute_path, get_from_dict
 from src.utils import state, constants
 
-router = APIRouter()
 
+router = APIRouter()
 templates = Jinja2Templates(directory=constants.web_directory)
+logger = logging.getLogger(__name__)
+query_cache = LRU()
+
 
 @router.get("/", response_class=FileResponse)
 def index():
@@ -47,22 +48,27 @@ async def config_data(updated_config: FullConfig):
     return state.config
 
 @router.get('/search')
-@lru_cache(maxsize=100)
 def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Optional[bool] = False):
     if q is None or q == '':
-        print(f'No query param (q) passed in API call to initiate search')
+        logger.info(f'No query param (q) passed in API call to initiate search')
         return {}
 
     # initialize variables
-    user_query = q
+    user_query = q.strip()
     results_count = n
     results = {}
     query_start, query_end, collate_start, collate_end = None, None, None, None
 
+    # return cached results, if available
+    query_cache_key = f'{user_query}-{n}-{t}-{r}'
+    if query_cache_key in state.query_cache:
+        logger.info(f'Return response from query cache')
+        return state.query_cache[query_cache_key]
+
     if (t == SearchType.Org or t == None) and state.model.orgmode_search:
         # query org-mode notes
         query_start = time.time()
-        hits, entries = text_search.query(user_query, state.model.orgmode_search, rank_results=r, filters=[DateFilter(), ExplicitFilter()], verbose=state.verbose)
+        hits, entries = text_search.query(user_query, state.model.orgmode_search, rank_results=r)
         query_end = time.time()
 
         # collate and return results
@@ -73,7 +79,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
     if (t == SearchType.Music or t == None) and state.model.music_search:
         # query music library
         query_start = time.time()
-        hits, entries = text_search.query(user_query, state.model.music_search, rank_results=r, filters=[DateFilter(), ExplicitFilter()], verbose=state.verbose)
+        hits, entries = text_search.query(user_query, state.model.music_search, rank_results=r)
         query_end = time.time()
 
         # collate and return results
@@ -84,7 +90,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
     if (t == SearchType.Markdown or t == None) and state.model.markdown_search:
         # query markdown files
         query_start = time.time()
-        hits, entries = text_search.query(user_query, state.model.markdown_search, rank_results=r, filters=[ExplicitFilter(), DateFilter()], verbose=state.verbose)
+        hits, entries = text_search.query(user_query, state.model.markdown_search, rank_results=r)
         query_end = time.time()
 
         # collate and return results
@@ -95,7 +101,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
     if (t == SearchType.Ledger or t == None) and state.model.ledger_search:
         # query transactions
         query_start = time.time()
-        hits, entries = text_search.query(user_query, state.model.ledger_search, rank_results=r, filters=[ExplicitFilter(), DateFilter()], verbose=state.verbose)
+        hits, entries = text_search.query(user_query, state.model.ledger_search, rank_results=r)
         query_end = time.time()
 
         # collate and return results
@@ -131,11 +137,13 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
             count=results_count)
         collate_end = time.time()
 
-    if state.verbose > 1:
-        if query_start and query_end:
-            print(f"Query took {query_end - query_start:.3f} seconds")
-        if collate_start and collate_end:
-            print(f"Collating results took {collate_end - collate_start:.3f} seconds")
+    # Cache results
+    state.query_cache[query_cache_key] = results
+
+    if query_start and query_end:
+        logger.debug(f"Query took {query_end - query_start:.3f} seconds")
+    if collate_start and collate_end:
+        logger.debug(f"Collating results took {collate_end - collate_start:.3f} seconds")
 
     return results
 

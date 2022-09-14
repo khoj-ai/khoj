@@ -33,16 +33,21 @@ headline and associated text from an org-mode file, and routines for
 constructing data structures of these classes.
 """
 
-import re, sys
+import re
 import datetime
 from pathlib import Path
 from os.path import relpath
 
-indent_regex = re.compile(r'^\s*')
+indent_regex = re.compile(r'^ *')
 
 def normalize_filename(filename):
-   file_relative_to_home = f'~/{relpath(filename, start=Path.home())}'
-   escaped_filename = f'{file_relative_to_home}'.replace("[","\[").replace("]","\]")
+   "Normalize and escape filename for rendering"
+   if not Path(filename).is_absolute():
+      # Normalize relative filename to be relative to current directory
+      normalized_filename = f'~/{relpath(filename, start=Path.home())}'
+   else:
+      normalized_filename = filename
+   escaped_filename = f'{normalized_filename}'.replace("[","\[").replace("]","\]")
    return escaped_filename
 
 def makelist(filename):
@@ -52,64 +57,70 @@ def makelist(filename):
    """
    ctr = 0
 
-   try:
-      f = open(filename, 'r')
-   except IOError:
-      print(f"Unable to open file {filename}")
-      print("Program terminating.")
-      sys.exit(1)
+   f = open(filename, 'r')
 
    todos         = { "TODO": "", "WAITING": "", "ACTIVE": "",
                      "DONE": "", "CANCELLED": "", "FAILED": ""} # populated from #+SEQ_TODO line
-   level         = 0
+   level         = ""
    heading       = ""
    bodytext      = ""
-   tags          = set()      # set of all tags in headline
+   tags          = list()      # set of all tags in headline
    closed_date   = ''
    sched_date    = ''
    deadline_date = ''
    logbook       = list()
-   nodelist      = []
-   propdict      = dict()
+   nodelist: list[Orgnode] = list()
+   property_map  = dict()
    in_properties_drawer = False
    in_logbook_drawer = False
+   file_title = f'{filename}'
 
    for line in f:
        ctr += 1
-       hdng = re.search(r'^(\*+)\s(.*?)\s*$', line)
-       if hdng:  # we are processing a heading line
+       heading_search = re.search(r'^(\*+)\s(.*?)\s*$', line)
+       if heading_search:  # we are processing a heading line
           if heading: # if we have are on second heading, append first heading to headings list
              thisNode = Orgnode(level, heading, bodytext, tags)
              if closed_date:
-                thisNode.setClosed(closed_date)
+                thisNode.closed = closed_date
                 closed_date = ''
              if sched_date:
-                thisNode.setScheduled(sched_date)
+                thisNode.scheduled = sched_date
                 sched_date = ""
              if deadline_date:
-                thisNode.setDeadline(deadline_date)
+                thisNode.deadline = deadline_date
                 deadline_date = ''
              if logbook:
-                thisNode.setLogbook(logbook)
+                thisNode.logbook = logbook
                 logbook = list()
-             thisNode.setProperties(propdict)
+             thisNode.properties = property_map
              nodelist.append( thisNode )
-          propdict = {'LINE': f'file:{normalize_filename(filename)}::{ctr}'}
-          level = hdng.group(1)
-          heading =  hdng.group(2)
+          property_map = {'LINE': f'file:{normalize_filename(filename)}::{ctr}'}
+          level = heading_search.group(1)
+          heading =  heading_search.group(2)
           bodytext = ""
-          tags = set()       # set of all tags in headline
-          tagsrch = re.search(r'(.*?)\s*:([a-zA-Z0-9].*?):$',heading)
-          if tagsrch:
-              heading = tagsrch.group(1)
-              parsedtags = tagsrch.group(2)
+          tags = list()       # set of all tags in headline
+          tag_search = re.search(r'(.*?)\s*:([a-zA-Z0-9].*?):$',heading)
+          if tag_search:
+              heading = tag_search.group(1)
+              parsedtags = tag_search.group(2)
               if parsedtags:
                  for parsedtag in parsedtags.split(':'):
-                    if parsedtag != '': tags.add(parsedtag)
+                    if parsedtag != '': tags.append(parsedtag)
        else:      # we are processing a non-heading line
            if line[:10] == '#+SEQ_TODO':
               kwlist = re.findall(r'([A-Z]+)\(', line)
               for kw in kwlist: todos[kw] = ""
+
+           # Set file title to TITLE property, if it exists
+           title_search = re.search(r'^#\+TITLE:\s*(.*)$', line)
+           if title_search and title_search.group(1).strip() != '':
+               title_text = title_search.group(1).strip()
+               if file_title == f'{filename}':
+                  file_title = title_text
+               else:
+                  file_title += f' {title_text}'
+               continue
 
            # Ignore Properties Drawers Completely
            if re.search(':PROPERTIES:', line):
@@ -137,13 +148,13 @@ def makelist(filename):
               logbook += [(clocked_in, clocked_out)]
               line = ""
 
-           prop_srch = re.search(r'^\s*:([a-zA-Z0-9]+):\s*(.*?)\s*$', line)
-           if prop_srch:
+           property_search = re.search(r'^\s*:([a-zA-Z0-9]+):\s*(.*?)\s*$', line)
+           if property_search:
               # Set ID property to an id based org-mode link to the entry
-              if prop_srch.group(1) == 'ID':
-                 propdict['ID'] = f'id:{prop_srch.group(2)}'
+              if property_search.group(1) == 'ID':
+                 property_map['ID'] = f'id:{property_search.group(2)}'
               else:
-                 propdict[prop_srch.group(1)] = prop_srch.group(2)
+                 property_map[property_search.group(1)] = property_search.group(2)
               continue
 
            cd_re = re.search(r'CLOSED:\s*\[([0-9]{4})-([0-9]{2})-([0-9]{2})', line)
@@ -167,37 +178,40 @@ def makelist(filename):
                bodytext = bodytext + line
 
    # write out last node
-   thisNode = Orgnode(level, heading, bodytext, tags)
-   thisNode.setProperties(propdict)
+   thisNode = Orgnode(level, heading or file_title, bodytext, tags)
+   thisNode.properties = property_map
    if sched_date:
-      thisNode.setScheduled(sched_date)
+      thisNode.scheduled = sched_date
    if deadline_date:
-      thisNode.setDeadline(deadline_date)
+      thisNode.deadline = deadline_date
    if closed_date:
-      thisNode.setClosed(closed_date)
+      thisNode.closed = closed_date
    if logbook:
-      thisNode.setLogbook(logbook)
+      thisNode.logbook = logbook
    nodelist.append( thisNode )
 
    # using the list of TODO keywords found in the file
    # process the headings searching for TODO keywords
    for n in nodelist:
-       h = n.Heading()
-       todoSrch = re.search(r'([A-Z]+)\s(.*?)$', h)
-       if todoSrch:
-           if todoSrch.group(1) in todos:
-               n.setHeading( todoSrch.group(2) )
-               n.setTodo ( todoSrch.group(1) )
+       todo_search = re.search(r'([A-Z]+)\s(.*?)$', n.heading)
+       if todo_search:
+           if todo_search.group(1) in todos:
+               n.heading = todo_search.group(2)
+               n.todo = todo_search.group(1)
 
        # extract, set priority from heading, update heading if necessary
-       prtysrch = re.search(r'^\[\#(A|B|C)\] (.*?)$', n.Heading())
-       if prtysrch:
-          n.setPriority(prtysrch.group(1))
-          n.setHeading(prtysrch.group(2))
+       priority_search = re.search(r'^\[\#(A|B|C)\] (.*?)$', n.heading)
+       if priority_search:
+          n.priority = priority_search.group(1)
+          n.heading = priority_search.group(2)
 
        # Set SOURCE property to a file+heading based org-mode link to the entry
-       escaped_heading = n.Heading().replace("[","\\[").replace("]","\\]")
-       n.properties['SOURCE'] = f'[[file:{normalize_filename(filename)}::*{escaped_heading}]]'
+       if n.level == 0:
+         n.properties['LINE'] = f'file:{normalize_filename(filename)}::0'
+         n.properties['SOURCE'] = f'[[file:{normalize_filename(filename)}]]'
+       else:
+         escaped_heading = n.heading.replace("[","\\[").replace("]","\\]")
+         n.properties['SOURCE'] = f'[[file:{normalize_filename(filename)}::*{escaped_heading}]]'
 
    return nodelist
 
@@ -214,199 +228,234 @@ class Orgnode(object):
         first tag. The makelist routine postprocesses the list to
         identify TODO tags and updates headline and todo fields.
         """
-        self.level = len(level)
-        self.headline = headline
-        self.body = body
-        self.tags = set(tags)     # All tags in the headline
-        self.todo = ""
-        self.prty = ""            # empty of A, B or C
-        self.scheduled = ""       # Scheduled date
-        self.deadline = ""        # Deadline date
-        self.closed = ""          # Closed date
-        self.properties = dict()
-        self.logbook = list()     # List of clock-in, clock-out tuples representing logbook entries
+        self._level = len(level)
+        self._heading = headline
+        self._body = body
+        self._tags = tags          # All tags in the headline
+        self._todo = ""
+        self._priority = ""        # empty of A, B or C
+        self._scheduled = ""       # Scheduled date
+        self._deadline = ""        # Deadline date
+        self._closed = ""          # Closed date
+        self._properties = dict()
+        self._logbook = list()     # List of clock-in, clock-out tuples representing logbook entries
 
         # Look for priority in headline and transfer to prty field
 
-    def Heading(self):
+    @property
+    def heading(self):
         """
         Return the Heading text of the node without the TODO tag
         """
-        return self.headline
+        return self._heading
 
-    def setHeading(self, newhdng):
+    @heading.setter
+    def heading(self, newhdng):
         """
         Change the heading to the supplied string
         """
-        self.headline = newhdng
+        self._heading = newhdng
 
-    def Body(self):
+    @property
+    def body(self):
         """
         Returns all lines of text of the body of this node except the
         Property Drawer
         """
-        return self.body
+        return self._body
 
-    def Level(self):
+    @property
+    def hasBody(self):
+        """
+        Returns True if node has non empty body, else False
+        """
+        return self._body and re.sub(r'\n|\t|\r| ', '', self._body) != ''
+
+    @property
+    def level(self):
         """
         Returns an integer corresponding to the level of the node.
         Top level (one asterisk) has a level of 1.
         """
-        return self.level
+        return self._level
 
-    def Priority(self):
+    @property
+    def priority(self):
         """
         Returns the priority of this headline: 'A', 'B', 'C' or empty
         string if priority has not been set.
         """
-        return self.prty
+        return self._priority
 
-    def setPriority(self, newprty):
+    @priority.setter
+    def priority(self, new_priority):
         """
         Change the value of the priority of this headline.
         Values values are '', 'A', 'B', 'C'
         """
-        self.prty = newprty
+        self._priority = new_priority
 
-    def Tags(self):
+    @property
+    def tags(self):
         """
-        Returns the set of all tags
-        For example, :HOME:COMPUTER: would return {'HOME', 'COMPUTER'}
+        Returns the list of all tags
+        For example, :HOME:COMPUTER: would return ['HOME', 'COMPUTER']
         """
-        return self.tags
+        return self._tags
 
-    def hasTag(self, srch):
+    @tags.setter
+    def tags(self, newtags):
+        """
+        Store all the tags found in the headline.
+        """
+        self._tags = newtags
+
+    def hasTag(self, tag):
         """
         Returns True if the supplied tag is present in this headline
         For example, hasTag('COMPUTER') on headling containing
         :HOME:COMPUTER: would return True.
         """
-        return srch in self.tags
+        return tag in self._tags
 
-    def setTags(self, newtags):
-        """
-        Store all the tags found in the headline.
-        """
-        self.tags = set(newtags)
-
-    def Todo(self):
+    @property
+    def todo(self):
         """
         Return the value of the TODO tag
         """
-        return self.todo
+        return self._todo
 
-    def setTodo(self, value):
+    @todo.setter
+    def todo(self, new_todo):
         """
         Set the value of the TODO tag to the supplied string
         """
-        self.todo = value
+        self._todo = new_todo
 
-    def setProperties(self, dictval):
+    @property
+    def properties(self):
+        """
+        Return the dictionary of properties
+        """
+        return self._properties
+
+    @properties.setter
+    def properties(self, new_properties):
         """
         Sets all properties using the supplied dictionary of
         name/value pairs
         """
-        self.properties = dictval
+        self._properties = new_properties
 
-    def Property(self, keyval):
+    def Property(self, property_key):
         """
         Returns the value of the requested property or null if the
         property does not exist.
         """
-        return self.properties.get(keyval, "")
+        return self._properties.get(property_key, "")
 
-    def setScheduled(self, dateval):
+    @property
+    def scheduled(self):
         """
-        Set the scheduled date using the supplied date object
+        Return the scheduled date
         """
-        self.scheduled = dateval
+        return self._scheduled
 
-    def Scheduled(self):
+    @scheduled.setter
+    def scheduled(self, new_scheduled):
         """
-        Return the scheduled date object or null if nonexistent
+        Set the scheduled date to the scheduled date
         """
-        return self.scheduled
+        self._scheduled = new_scheduled
 
-    def setDeadline(self, dateval):
+    @property
+    def deadline(self):
         """
-        Set the deadline (due) date using the supplied date object
+        Return the deadline date
         """
-        self.deadline = dateval
+        return self._deadline
 
-    def Deadline(self):
+    @deadline.setter
+    def deadline(self, new_deadline):
         """
-        Return the deadline date object or null if nonexistent
+        Set the deadline (due) date to the new deadline date
         """
-        return self.deadline
+        self._deadline = new_deadline
 
-    def setClosed(self, dateval):
+    @property
+    def closed(self):
         """
-        Set the closed date using the supplied date object
+        Return the closed date
         """
-        self.closed = dateval
+        return self._closed
 
-    def Closed(self):
+    @closed.setter
+    def closed(self, new_closed):
         """
-        Return the closed date object or null if nonexistent
+        Set the closed date to the new closed date
         """
-        return self.closed
+        self._closed = new_closed
 
-    def setLogbook(self, logbook):
-        """
-        Set the logbook with list of clocked-in, clocked-out tuples for the entry
-        """
-        self.logbook = logbook
-
-    def Logbook(self):
+    @property
+    def logbook(self):
         """
         Return the logbook with all clocked-in, clocked-out date object pairs or empty list if nonexistent
         """
-        return self.logbook
+        return self._logbook
+
+    @logbook.setter
+    def logbook(self, new_logbook):
+        """
+        Set the logbook with list of clocked-in, clocked-out tuples for the entry
+        """
+        self._logbook = new_logbook
 
     def __repr__(self):
         """
         Print the level, heading text and tag of a node and the body
         text as used to construct the node.
         """
-        # This method is not completed yet.
+        # Output heading line
         n = ''
-        for _ in range(0, self.level):
+        for _ in range(0, self._level):
            n = n + '*'
         n = n + ' '
-        if self.todo:
-           n = n + self.todo + ' '
-        if self.prty:
-           n = n +  '[#' + self.prty + '] '
-        n = n + self.headline
+        if self._todo:
+           n = n + self._todo + ' '
+        if self._priority:
+           n = n +  '[#' + self._priority + '] '
+        n = n + self._heading
         n = "%-60s " % n     # hack - tags will start in column 62
         closecolon = ''
-        for t in self.tags:
+        for t in self._tags:
            n = n + ':' + t
            closecolon = ':'
         n = n + closecolon
         n = n + "\n"
 
         # Get body indentation from first line of body
-        indent = indent_regex.match(self.body).group()
+        indent = indent_regex.match(self._body).group()
 
         # Output Closed Date, Scheduled Date, Deadline Date
-        if self.closed or self.scheduled or self.deadline:
+        if self._closed or self._scheduled or self._deadline:
            n = n + indent
-        if self.closed:
-           n = n + f'CLOSED: [{self.closed.strftime("%Y-%m-%d %a")}] '
-        if self.scheduled:
-           n = n + f'SCHEDULED: <{self.scheduled.strftime("%Y-%m-%d %a")}> '
-        if self.deadline:
-           n = n + f'DEADLINE: <{self.deadline.strftime("%Y-%m-%d %a")}> '
-        if self.closed or self.scheduled or self.deadline:
+        if self._closed:
+           n = n + f'CLOSED: [{self._closed.strftime("%Y-%m-%d %a")}] '
+        if self._scheduled:
+           n = n + f'SCHEDULED: <{self._scheduled.strftime("%Y-%m-%d %a")}> '
+        if self._deadline:
+           n = n + f'DEADLINE: <{self._deadline.strftime("%Y-%m-%d %a")}> '
+        if self._closed or self._scheduled or self._deadline:
            n = n + '\n'
 
         # Ouput Property Drawer
         n = n + indent + ":PROPERTIES:\n"
-        for key, value in self.properties.items():
+        for key, value in self._properties.items():
            n = n + indent + f":{key}: {value}\n"
         n = n + indent + ":END:\n"
 
-        n = n + self.body
+        # Output Body
+        if self.hasBody:
+           n = n + self._body
 
         return n

@@ -1,6 +1,7 @@
 # Standard Packages
 import argparse
 import pathlib
+from importlib.metadata import version
 
 # Internal Packages
 from src.utils.helpers import resolve_absolute_path
@@ -16,8 +17,14 @@ def cli(args=None):
     parser.add_argument('--host', type=str, default='127.0.0.1', help="Host address of the server. Default: 127.0.0.1")
     parser.add_argument('--port', '-p', type=int, default=8000, help="Port of the server. Default: 8000")
     parser.add_argument('--socket', type=pathlib.Path, help="Path to UNIX socket for server. Use to run server behind reverse proxy. Default: /tmp/uvicorn.sock")
+    parser.add_argument('--version', '-V', action='store_true', help="Print the installed Khoj version and exit")
 
     args = parser.parse_args(args)
+
+    if args.version:
+        # Show version of khoj installed and exit
+        print(version('khoj-assistant'))
+        exit(0)
 
     # Normalize config_file path to absolute path
     args.config_file = resolve_absolute_path(args.config_file)

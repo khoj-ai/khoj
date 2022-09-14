@@ -28,4 +28,4 @@ services:
       - ./tests/data/embeddings/:/data/embeddings/
       - ./tests/data/models/:/data/models/
     # Use 0.0.0.0 to explicitly set the host ip for the service on the container. https://pythonspeed.com/articles/docker-connection-refused/
-    command: config/khoj_docker.yml --host="0.0.0.0" --port=8000 -vv
+    command: --no-gui -c=config/khoj_docker.yml --host="0.0.0.0" --port=8000 -vv
