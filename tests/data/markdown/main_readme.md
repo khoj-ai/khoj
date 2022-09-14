@@ -96,12 +96,6 @@ docker-compose build --pull
         Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
         \[Required\]
 
-    3.  Install Exiftool \[Optional\]
-
-        ``` shell
-        sudo apt-get -y install libimage-exiftool-perl
-        ```
-
 2.  2\. Install Khoj
 
     ``` shell
@@ -149,5 +143,3 @@ conda activate khoj
     Documentation](https://www.sbert.net/examples/applications/image-search/README.html)
 -   Charles Cave for [OrgNode
     Parser](http://members.optusnet.com.au/~charles57/GTD/orgnode.html)
--   Sven Marnach for
-    [PyExifTool](https://github.com/smarnach/pyexiftool/blob/master/exiftool.py)

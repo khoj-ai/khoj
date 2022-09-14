@@ -208,11 +208,7 @@ docker-compose build --pull
 
 #### Using Conda
 ##### 1. Install Dependencies
-- [Install Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) \[Required\]
-- Install Exiftool \[Optional\]
-  ``` shell
-  sudo apt -y install libimage-exiftool-perl
-  ```
+- [Install Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
 
 ##### 2. Install Khoj
 ```shell
@@ -254,4 +250,3 @@ pytest
 - Charles Cave for [OrgNode Parser](http://members.optusnet.com.au/~charles57/GTD/orgnode.html)
 - [Org.js](https://mooz.github.io/org-js/) to render Org-mode results on the Web interface
 - [Markdown-it](https://github.com/markdown-it/markdown-it) to render Markdown results on the Web interface
-- Sven Marnach for [PyExifTool](https://github.com/smarnach/pyexiftool/blob/master/exiftool.py)
