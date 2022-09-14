@@ -2,14 +2,14 @@ content-type:
   # The /data/folder/ prefix to the folders is here because this is
   # the directory to which the local files are copied in the docker-compose.
   # If changing, the docker-compose volumes should also be changed to match.
-  yaml:
+  panchayat :
     input-files: null
-    input-filter: "/home/saba/projects/panchayat/panchayat/instance/*.yaml"
-    compressed-jsonl: "/data/embeddings/panchyat.jsonl.gz"
-    embeddings-file: "/data/embeddings/panchayat_embeddings.pt"
+    input-filter: "/data/panchayat/*.yaml"
+    compressed-jsonl: "/data/embeddings/new/panchyat.jsonl.gz"
+    embeddings-file: "/data/embeddings/new/panchayat_embeddings.pt"
 
 search-type:
-  symmetric:
+  symmetric: 
     encoder: "sentence-transformers/all-MiniLM-L6-v2"
     cross-encoder: "cross-encoder/ms-marco-MiniLM-L-6-v2"
     model_directory: "/data/models/symmetric"

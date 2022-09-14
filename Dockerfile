@@ -14,6 +14,9 @@ WORKDIR /app
 RUN pip install --upgrade pip && \
     pip install --upgrade .
 
+# https://stackoverflow.com/questions/64776990/python-docker-no-module-found
+ENV PYTHONPATH /app
+
 # Run the Application
 # There are more arguments required for the application to run,
 # but these should be passed in through the docker-compose.yml file.
