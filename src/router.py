@@ -137,16 +137,10 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
     return results
 
 
-@router.get('/reload')
-def reload(t: Optional[SearchType] = None):
-    state.model = configure_search(state.model, state.config, regenerate=False, t=t)
-    return {'status': 'ok', 'message': 'reload completed'}
-
-
-@router.get('/regenerate')
-def regenerate(t: Optional[SearchType] = None):
-    state.model = configure_search(state.model, state.config, regenerate=True, t=t)
-    return {'status': 'ok', 'message': 'regeneration completed'}
+@router.get('/update')
+def update(t: Optional[SearchType] = None, force: Optional[bool] = False):
+    state.model = configure_search(state.model, state.config, regenerate=force, t=t)
+    return {'status': 'ok', 'message': 'index updated completed'}
 
 
 @router.get('/beta/search')
