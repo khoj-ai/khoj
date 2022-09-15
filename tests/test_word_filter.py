@@ -1,6 +1,5 @@
 # Application Packages
 from src.search_filter.word_filter import WordFilter
-from src.utils.config import SearchType
 from src.utils.rawconfig import Entry
 
 

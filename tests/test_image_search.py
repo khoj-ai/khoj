@@ -2,9 +2,6 @@
 from pathlib import Path
 from PIL import Image
 
-# External Packages
-import pytest
-
 # Internal Packages
 from src.utils.state import model
 from src.utils.constants import web_directory

@@ -3,9 +3,6 @@ import re
 from datetime import datetime
 from math import inf
 
-# External Packages
-import torch
-
 # Application Packages
 from src.search_filter.date_filter import DateFilter
 from src.utils.rawconfig import Entry

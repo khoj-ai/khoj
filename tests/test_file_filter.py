@@ -1,6 +1,3 @@
-# External Packages
-import torch
-
 # Application Packages
 from src.search_filter.file_filter import FileFilter
 from src.utils.rawconfig import Entry
@@ -9,7 +6,7 @@ from src.utils.rawconfig import Entry
 def test_no_file_filter():
     # Arrange
     file_filter = FileFilter()
-    embeddings, entries = arrange_content()
+    entries = arrange_content()
     q_with_no_filter = 'head tail'
 
     # Act
@@ -25,7 +22,7 @@ def test_no_file_filter():
 def test_file_filter_with_non_existent_file():
     # Arrange
     file_filter = FileFilter()
-    embeddings, entries = arrange_content()
+    entries = arrange_content()
     q_with_no_filter = 'head file:"nonexistent.org" tail'
 
     # Act
@@ -41,7 +38,7 @@ def test_file_filter_with_non_existent_file():
 def test_single_file_filter():
     # Arrange
     file_filter = FileFilter()
-    embeddings, entries = arrange_content()
+    entries = arrange_content()
     q_with_no_filter = 'head file:"file 1.org" tail'
 
     # Act
@@ -57,7 +54,7 @@ def test_single_file_filter():
 def test_file_filter_with_partial_match():
     # Arrange
     file_filter = FileFilter()
-    embeddings, entries = arrange_content()
+    entries = arrange_content()
     q_with_no_filter = 'head file:"1.org" tail'
 
     # Act
@@ -73,7 +70,7 @@ def test_file_filter_with_partial_match():
 def test_file_filter_with_regex_match():
     # Arrange
     file_filter = FileFilter()
-    embeddings, entries = arrange_content()
+    entries = arrange_content()
     q_with_no_filter = 'head file:"*.org" tail'
 
     # Act
@@ -89,7 +86,7 @@ def test_file_filter_with_regex_match():
 def test_multiple_file_filter():
     # Arrange
     file_filter = FileFilter()
-    embeddings, entries = arrange_content()
+    entries = arrange_content()
     q_with_no_filter = 'head tail file:"file 1.org" file:"file2.org"'
 
     # Act
@@ -103,7 +100,6 @@ def test_multiple_file_filter():
 
 
 def arrange_content():
-    embeddings = torch.randn(4, 10)
     entries = [
         Entry(compiled='', raw='First Entry', file= 'file 1.org'),
         Entry(compiled='', raw='Second Entry', file= 'file2.org'),
