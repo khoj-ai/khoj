@@ -220,12 +220,17 @@ def collate_results(hits, image_names, output_directory, image_files_url, count=
         shutil.copy(source_path, target_path)
 
         # Add the image metadata to the results
-        results += [{
-            "entry": f'{image_files_url}/{target_image_name}',
-            "score": f"{hit['score']:.9f}",
-            "image_score": f"{hit['image_score']:.9f}",
-            "metadata_score": f"{hit['metadata_score']:.9f}",
-        }]
+        results += [
+            {
+                "entry": f'{image_files_url}/{target_image_name}',
+                "score": f"{hit['score']:.9f}",
+                "additional":
+                {
+                    "image_score": f"{hit['image_score']:.9f}",
+                    "metadata_score": f"{hit['metadata_score']:.9f}",
+                }
+            }
+        ]
 
     return results
 

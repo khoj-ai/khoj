@@ -187,8 +187,8 @@ Use `which-key` if available, else display simple message in echo area"
              (lambda (args) (format
                              "\n\n<h2>Score: %s Meta: %s Image: %s</h2>\n\n<a href=\"%s%s\">\n<img src=\"%s%s?%s\" width=%s height=%s>\n</a>"
                              (cdr (assoc 'score args))
-                             (cdr (assoc 'metadata_score args))
-                             (cdr (assoc 'image_score args))
+                             (cdr (assoc 'metadata_score (assoc 'additional args)))
+                             (cdr (assoc 'image_score (assoc 'additional args)))
                              khoj-server-url
                              (cdr (assoc 'entry args))
                              khoj-server-url

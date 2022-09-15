@@ -16,7 +16,7 @@
             return `
             <a href="${item.entry}" class="image-link">
                 <img id=${item.score} src="${item.entry}?${Math.random()}"
-                    title="Effective Score: ${item.score}, Meta: ${item.metadata_score}, Image: ${item.image_score}"
+                    title="Effective Score: ${item.score}, Meta: ${item.additional.metadata_score}, Image: ${item.additional.image_score}"
                     class="image">
             </a>`
         }
