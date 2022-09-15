@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 env:
-  DOCKER_IMAGE_TAG: ${{ github.ref == 'refs/heads/master' && 'latest' || github.ref }}
+  DOCKER_IMAGE_TAG: ${{ github.ref == 'refs/heads/master' && 'latest' || github.ref_name }}
 
 jobs:
   build:
