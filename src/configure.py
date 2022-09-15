@@ -74,7 +74,12 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
     # Initialize Panchayat Search
     if (t == SearchType.Panchayat or t == None) and config.content_type.panchayat:
         # Extract Entries, Generate Yaml Embeddings
-        model.panchayat_search = text_search.setup(panchayat_to_jsonl, config.content_type.panchayat, search_config=config.search_type.asymmetric, regenerate=regenerate, verbose=verbose)
+        model.panchayat_search = text_search.setup(
+            panchayat_to_jsonl,
+            config.content_type.panchayat,
+            search_config=config.search_type.asymmetric,
+            regenerate=regenerate,
+            filters=[])
 
     # Initialize Ledger Search
     if (t == SearchType.Ledger or t == None) and config.content_type.ledger:

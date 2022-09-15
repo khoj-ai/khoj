@@ -112,7 +112,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
     if (t == SearchType.Panchayat or t == None) and state.model.panchayat_search:
         # query Panchayat yaml files
         query_start = time.time()
-        hits, entries = text_search.query(user_query, state.model.panchayat_search, rank_results=r, filters=[ExplicitFilter(), DateFilter()], verbose=state.verbose)
+        hits, entries = text_search.query(user_query, state.model.panchayat_search, rank_results=r)
         query_end = time.time()
 
         # collate and return results
