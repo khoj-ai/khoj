@@ -71,3 +71,8 @@ class FullConfig(ConfigBase):
     content_type: Optional[ContentConfig]
     search_type: Optional[SearchConfig]
     processor: Optional[ProcessorConfig]
+
+class SearchResponse(ConfigBase):
+    entry: str
+    score: str
+    additional: Optional[dict]

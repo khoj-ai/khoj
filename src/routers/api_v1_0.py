@@ -10,7 +10,7 @@ from fastapi import APIRouter
 # Internal Packages
 from src.configure import configure_search
 from src.search_type import image_search, text_search
-from src.utils.rawconfig import FullConfig
+from src.utils.rawconfig import FullConfig, SearchResponse
 from src.utils.config import SearchType
 from src.utils import state, constants
 
@@ -31,16 +31,16 @@ async def config_data(updated_config: FullConfig):
         outfile.close()
     return state.config
 
-@api_v1_0.get('/search')
+@api_v1_0.get('/search', response_model=list[SearchResponse])
 def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Optional[bool] = False):
+    results: list[SearchResponse] = []
     if q is None or q == '':
         logger.info(f'No query param (q) passed in API call to initiate search')
-        return {}
+        return results
 
     # initialize variables
     user_query = q.strip()
     results_count = n
-    results = {}
     query_start, query_end, collate_start, collate_end = None, None, None, None
 
     # return cached results, if available

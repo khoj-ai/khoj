@@ -15,7 +15,7 @@ import torch
 # Internal Packages
 from src.utils.helpers import get_absolute_path, get_from_dict, resolve_absolute_path, load_model
 from src.utils.config import ImageSearchModel
-from src.utils.rawconfig import ImageContentConfig, ImageSearchConfig
+from src.utils.rawconfig import ImageContentConfig, ImageSearchConfig, SearchResponse
 
 
 # Create Logger
@@ -203,8 +203,8 @@ def render_results(hits, image_names, image_directory, count):
             img.show()
 
 
-def collate_results(hits, image_names, output_directory, image_files_url, count=5):
-    results = []
+def collate_results(hits, image_names, output_directory, image_files_url, count=5) -> list[SearchResponse]:
+    results: list[SearchResponse] = []
 
     for index, hit in enumerate(hits[:count]):
         source_path = image_names[hit['corpus_id']]
@@ -220,7 +220,7 @@ def collate_results(hits, image_names, output_directory, image_files_url, count=
         shutil.copy(source_path, target_path)
 
         # Add the image metadata to the results
-        results += [
+        results += [SearchResponse.parse_obj(
             {
                 "entry": f'{image_files_url}/{target_image_name}',
                 "score": f"{hit['score']:.9f}",
@@ -230,7 +230,7 @@ def collate_results(hits, image_names, output_directory, image_files_url, count=
                     "metadata_score": f"{hit['metadata_score']:.9f}",
                 }
             }
-        ]
+        )]
 
     return results
 

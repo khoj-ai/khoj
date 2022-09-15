@@ -13,7 +13,7 @@ from src.search_filter.base_filter import BaseFilter
 from src.utils import state
 from src.utils.helpers import get_absolute_path, is_none_or_empty, resolve_absolute_path, load_model
 from src.utils.config import TextSearchModel
-from src.utils.rawconfig import TextSearchConfig, TextContentConfig
+from src.utils.rawconfig import SearchResponse, TextSearchConfig, TextContentConfig
 from src.utils.jsonl import load_jsonl
 
 
@@ -171,12 +171,12 @@ def render_results(hits, entries, count=5, display_biencoder_results=False):
         print(f"CrossScore: {hit['cross-score']:.3f}\n-----------------\n{entries[hit['corpus_id']]['compiled']}")
 
 
-def collate_results(hits, entries, count=5):
-    return [
+def collate_results(hits, entries, count=5) -> list[SearchResponse]:
+    return [SearchResponse.parse_obj(
         {
             "entry": entries[hit['corpus_id']]['raw'],
             "score": f"{hit['cross-score'] if 'cross-score' in hit else hit['score']:.3f}"
-        }
+        })
         for hit
         in hits[0:count]]
 
