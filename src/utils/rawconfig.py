@@ -1,4 +1,5 @@
 # System Packages
+import json
 from pathlib import Path
 from typing import List, Optional
 
@@ -76,3 +77,27 @@ class SearchResponse(ConfigBase):
     entry: str
     score: str
     additional: Optional[dict]
+
+class Entry():
+    raw: str
+    compiled: str
+    file: Optional[str]
+
+    def __init__(self, raw: str = None, compiled: str = None, file: Optional[str] = None):
+        self.raw = raw
+        self.compiled = compiled
+        self.file = file
+
+    def to_json(self) -> str:
+        return json.dumps(self.__dict__, ensure_ascii=False)
+
+    def __repr__(self) -> str:
+        return self.__dict__.__repr__()
+
+    @classmethod
+    def from_dict(cls, dictionary: dict):
+        return cls(
+            raw=dictionary['raw'],
+            compiled=dictionary['compiled'],
+            file=dictionary.get('file', None)
+        )

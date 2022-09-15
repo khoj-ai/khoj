@@ -8,14 +8,15 @@ import torch
 
 # Application Packages
 from src.search_filter.date_filter import DateFilter
+from src.utils.rawconfig import Entry
 
 
 def test_date_filter():
-    embeddings = torch.randn(3, 10)
     entries = [
-        {'compiled': '', 'raw': 'Entry with no date'},
-        {'compiled': '', 'raw': 'April Fools entry: 1984-04-01'},
-        {'compiled': '', 'raw': 'Entry with date:1984-04-02'}]
+        Entry(compiled='', raw='Entry with no date'),
+        Entry(compiled='', raw='April Fools entry: 1984-04-01'),
+        Entry(compiled='', raw='Entry with date:1984-04-02')
+    ]
 
     q_with_no_date_filter = 'head tail'
     ret_query, entry_indices = DateFilter().apply(q_with_no_date_filter, entries)

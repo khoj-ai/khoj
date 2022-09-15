@@ -24,7 +24,7 @@ class FileFilter(BaseFilter):
     def load(self, entries, *args, **kwargs):
         start = time.time()
         for id, entry in enumerate(entries):
-            self.file_to_entry_map[entry[self.entry_key]].add(id)
+            self.file_to_entry_map[getattr(entry, self.entry_key)].add(id)
         end = time.time()
         logger.debug(f"Created file filter index: {end - start} seconds")
 

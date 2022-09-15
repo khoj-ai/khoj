@@ -3,6 +3,7 @@ import torch
 
 # Application Packages
 from src.search_filter.file_filter import FileFilter
+from src.utils.rawconfig import Entry
 
 
 def test_no_file_filter():
@@ -104,9 +105,10 @@ def test_multiple_file_filter():
 def arrange_content():
     embeddings = torch.randn(4, 10)
     entries = [
-        {'compiled': '', 'raw': 'First Entry', 'file': 'file 1.org'},
-        {'compiled': '', 'raw': 'Second Entry', 'file': 'file2.org'},
-        {'compiled': '', 'raw': 'Third Entry', 'file': 'file 1.org'},
-        {'compiled': '', 'raw': 'Fourth Entry', 'file': 'file2.org'}]
+        Entry(compiled='', raw='First Entry', file= 'file 1.org'),
+        Entry(compiled='', raw='Second Entry', file= 'file2.org'),
+        Entry(compiled='', raw='Third Entry', file= 'file 1.org'),
+        Entry(compiled='', raw='Fourth Entry', file= 'file2.org')
+    ]
 
-    return embeddings, entries
+    return entries

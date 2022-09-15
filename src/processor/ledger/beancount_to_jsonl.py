@@ -1,5 +1,4 @@
 # Standard Packages
-import json
 import glob
 import re
 import logging
@@ -7,9 +6,10 @@ import time
 
 # Internal Packages
 from src.processor.text_to_jsonl import TextToJsonl
-from src.utils.helpers import get_absolute_path, is_none_or_empty, mark_entries_for_update
+from src.utils.helpers import get_absolute_path, is_none_or_empty
 from src.utils.constants import empty_escape_sequences
 from src.utils.jsonl import dump_jsonl, compress_jsonl_data
+from src.utils.rawconfig import Entry
 
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ class BeancountToJsonl(TextToJsonl):
         if not previous_entries:
             entries_with_ids = list(enumerate(current_entries))
         else:
-            entries_with_ids = mark_entries_for_update(current_entries, previous_entries, key='compiled', logger=logger)
+            entries_with_ids = self.mark_entries_for_update(current_entries, previous_entries, key='compiled', logger=logger)
         end = time.time()
         logger.debug(f"Identify new or updated transaction: {end - start} seconds")
 
@@ -111,17 +111,17 @@ class BeancountToJsonl(TextToJsonl):
         return entries, dict(transaction_to_file_map)
 
     @staticmethod
-    def convert_transactions_to_maps(entries: list[str], transaction_to_file_map) -> list[dict]:
-        "Convert each Beancount transaction into a dictionary"
-        entry_maps = []
-        for entry in entries:
-            entry_maps.append({'compiled': entry, 'raw': entry, 'file': f'{transaction_to_file_map[entry]}'})
+    def convert_transactions_to_maps(parsed_entries: list[str], transaction_to_file_map) -> list[Entry]:
+        "Convert each parsed Beancount transaction into a Entry"
+        entries = []
+        for parsed_entry in parsed_entries:
+            entries.append(Entry(compiled=parsed_entry, raw=parsed_entry, file=f'{transaction_to_file_map[parsed_entry]}'))
 
-        logger.info(f"Converted {len(entries)} transactions to dictionaries")
+        logger.info(f"Converted {len(parsed_entries)} transactions to dictionaries")
 
-        return entry_maps
+        return entries
 
     @staticmethod
-    def convert_transaction_maps_to_jsonl(entries: list[dict]) -> str:
-        "Convert each Beancount transaction dictionary to JSON and collate as JSONL"
-        return ''.join([f'{json.dumps(entry_dict, ensure_ascii=False)}\n' for entry_dict in entries])
+    def convert_transaction_maps_to_jsonl(entries: list[Entry]) -> str:
+        "Convert each Beancount transaction entry to JSON and collate as JSONL"
+        return ''.join([f'{entry.to_json()}\n' for entry in entries])
