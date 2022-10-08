@@ -13,8 +13,7 @@ from tqdm import trange
 import torch
 
 # Internal Packages
-from src.utils.helpers import get_absolute_path, resolve_absolute_path, load_model
-import src.utils.exiftool as exiftool
+from src.utils.helpers import get_absolute_path, get_from_dict, resolve_absolute_path, load_model
 from src.utils.config import ImageSearchModel
 from src.utils.rawconfig import ImageContentConfig, ImageSearchConfig
 
@@ -122,17 +121,18 @@ def compute_metadata_embeddings(image_names, encoder, embeddings_file, batch_siz
 
 
 def extract_metadata(image_name):
-    with exiftool.ExifTool() as et:
-        image_metadata = et.get_tags(["XMP:Subject", "XMP:Description"], str(image_name))
-        image_metadata_subjects = set([subject.split(":")[1] for subject in image_metadata.get("XMP:Subject", "") if ":" in subject])
+    image_xmp_metadata = Image.open(image_name).getxmp()
+    image_description = get_from_dict(image_xmp_metadata, 'xmpmeta', 'RDF', 'Description', 'description', 'Alt', 'li', 'text')
+    image_subjects = get_from_dict(image_xmp_metadata, 'xmpmeta', 'RDF', 'Description', 'subject', 'Bag', 'li')
+    image_metadata_subjects = set([subject.split(":")[1] for subject in image_subjects if ":" in subject])
 
-        image_processed_metadata = image_metadata.get("XMP:Description", "")
-        if len(image_metadata_subjects) > 0:
-            image_processed_metadata += ". " + ", ".join(image_metadata_subjects)
+    image_processed_metadata = image_description
+    if len(image_metadata_subjects) > 0:
+        image_processed_metadata += ". " + ", ".join(image_metadata_subjects)
 
-        logger.debug(f"{image_name}:\t{image_processed_metadata}")
+    logger.debug(f"{image_name}:\t{image_processed_metadata}")
 
-        return image_processed_metadata
+    return image_processed_metadata
 
 
 def query(raw_query, count, model: ImageSearchModel):
