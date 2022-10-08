@@ -9,7 +9,7 @@ from src.utils.rawconfig import FullConfig
 
 
 # Do not emit tags when dumping to YAML
-yaml.emitter.Emitter.process_tag = lambda self, *args, **kwargs: None
+yaml.emitter.Emitter.process_tag = lambda self, *args, **kwargs: None  # type: ignore[assignment]
 
 
 def save_config_to_file(yaml_config: dict, yaml_config_file: Path):
