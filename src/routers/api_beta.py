@@ -7,7 +7,7 @@ from typing import Optional
 from fastapi import APIRouter
 
 # Internal Packages
-from src.routers.api_v1_0 import search
+from src.routers.api import search
 from src.processor.conversation.gpt import converse, extract_search_type, message_to_log, message_to_prompt, understand, summarize
 from src.utils.config import SearchType
 from src.utils.helpers import get_absolute_path, get_from_dict

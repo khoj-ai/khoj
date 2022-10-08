@@ -15,23 +15,23 @@ from src.utils.config import SearchType
 from src.utils import state, constants
 
 
-api_v1_0 = APIRouter()
+api = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-@api_v1_0.get('/config/data', response_model=FullConfig)
-def config_data():
+@api.get('/config/data', response_model=FullConfig)
+def get_config_data():
     return state.config
 
-@api_v1_0.post('/config/data')
-async def config_data(updated_config: FullConfig):
+@api.post('/config/data')
+async def set_config_data(updated_config: FullConfig):
     state.config = updated_config
     with open(state.config_file, 'w') as outfile:
         yaml.dump(yaml.safe_load(state.config.json(by_alias=True)), outfile)
         outfile.close()
     return state.config
 
-@api_v1_0.get('/search', response_model=list[SearchResponse])
+@api.get('/search', response_model=list[SearchResponse])
 def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Optional[bool] = False):
     results: list[SearchResponse] = []
     if q is None or q == '':
@@ -121,7 +121,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
     return results
 
 
-@api_v1_0.get('/update')
+@api.get('/update')
 def update(t: Optional[SearchType] = None, force: Optional[bool] = False):
     state.model = configure_search(state.model, state.config, regenerate=force, t=t)
     return {'status': 'ok', 'message': 'index updated'}

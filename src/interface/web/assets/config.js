@@ -10,7 +10,7 @@ var emptyValueDefault = "🖊️";
 /**
  * Fetch the existing config file.
  */
-fetch("/api/v1.0/config/data")
+fetch("/api/config/data")
     .then(response => response.json())
     .then(data => {
         rawConfig = data;
@@ -26,7 +26,7 @@ fetch("/api/v1.0/config/data")
         configForm.addEventListener("submit", (event) => {
             event.preventDefault();
             console.log(rawConfig);
-            fetch("/api/v1.0/config/data", {
+            fetch("/api/config/data", {
                 method: "POST",
                 credentials: "same-origin",
                 headers: {
@@ -46,7 +46,7 @@ regenerateButton.addEventListener("click", (event) => {
     event.preventDefault();
     regenerateButton.style.cursor = "progress";
     regenerateButton.disabled = true;
-    fetch("/api/v1.0/update?force=true")
+    fetch("/api/update?force=true")
         .then(response => response.json())
         .then(data => {
             regenerateButton.style.cursor = "pointer";

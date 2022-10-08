@@ -43,8 +43,8 @@ just generating embeddings*
 
 -   **Khoj via API**
     -   See [Khoj API Docs](http://localhost:8000/docs)
-    -   [Query](http://localhost:8000/api/v1.0/search?q=%22what%20is%20the%20meaning%20of%20life%22)
-    -   [Update Index](http://localhost:8000/api/v1.0/update?t=ledger)
+    -   [Query](http://localhost:8000/api/search?q=%22what%20is%20the%20meaning%20of%20life%22)
+    -   [Update Index](http://localhost:8000/api/update?t=ledger)
     -   [Configure Application](https://localhost:8000/ui)
 -   **Khoj via Emacs**
     -   [Install](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#installation)

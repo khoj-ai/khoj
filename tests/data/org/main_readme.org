@@ -27,8 +27,8 @@
      - Run ~M-x khoj <user-query>~ or Call ~C-c C-s~
 
    - *Khoj via API*
-     - Query: ~GET~ [[http://localhost:8000/api/v1.0/search?q=%22what%20is%20the%20meaning%20of%20life%22][http://localhost:8000/api/v1.0/search?q="What is the meaning of life"]]
-     - Update Index: ~GET~ [[http://localhost:8000/api/v1.0/update][http://localhost:8000/api/v1.0/update]]
+     - Query: ~GET~ [[http://localhost:8000/api/search?q=%22what%20is%20the%20meaning%20of%20life%22][http://localhost:8000/api/search?q="What is the meaning of life"]]
+     - Update Index: ~GET~ [[http://localhost:8000/api/update][http://localhost:8000/api/update]]
      - [[http://localhost:8000/docs][Khoj API Docs]]
 
    - *Call Khoj via Python Script Directly*
