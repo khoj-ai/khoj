@@ -11,6 +11,10 @@ on:
       - Dockerfile
       - docker-compose.yml
       - .github/workflows/build.yml
+  workflow_dispatch:
+
+env:
+  DOCKER_IMAGE_TAG: ${{ github.ref == 'refs/heads/master' && 'latest' || github.ref_name }}
 
 jobs:
   build:
@@ -36,6 +40,6 @@ jobs:
           context: .
           file: Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository }}:latest
+          tags: ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}
           build-args: |
             PORT=8000
