@@ -2,7 +2,7 @@
 import json
 
 # Internal Packages
-from src.processor.org_mode.org_to_jsonl import convert_org_entries_to_jsonl, convert_org_nodes_to_entries, extract_org_entries, get_org_files
+from src.processor.org_mode.org_to_jsonl import OrgToJsonl
 from src.utils.helpers import is_none_or_empty
 
 
@@ -21,8 +21,8 @@ def test_configure_heading_entry_to_jsonl(tmp_path):
     for index_heading_entries in [True, False]:
         # Act
         # Extract entries into jsonl from specified Org files
-        jsonl_string = convert_org_entries_to_jsonl(convert_org_nodes_to_entries(
-            *extract_org_entries(org_files=[orgfile]),
+        jsonl_string = OrgToJsonl.convert_org_entries_to_jsonl(OrgToJsonl.convert_org_nodes_to_entries(
+            *OrgToJsonl.extract_org_entries(org_files=[orgfile]),
             index_heading_entries=index_heading_entries))
         jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
@@ -49,10 +49,10 @@ def test_entry_with_body_to_jsonl(tmp_path):
 
     # Act
     # Extract Entries from specified Org files
-    entries, entry_to_file_map = extract_org_entries(org_files=[orgfile])
+    entries, entry_to_file_map = OrgToJsonl.extract_org_entries(org_files=[orgfile])
 
     # Process Each Entry from All Notes Files
-    jsonl_string = convert_org_entries_to_jsonl(convert_org_nodes_to_entries(entries, entry_to_file_map))
+    jsonl_string = OrgToJsonl.convert_org_entries_to_jsonl(OrgToJsonl.convert_org_nodes_to_entries(entries, entry_to_file_map))
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
@@ -70,11 +70,11 @@ def test_file_with_no_headings_to_jsonl(tmp_path):
 
     # Act
     # Extract Entries from specified Org files
-    entry_nodes, file_to_entries = extract_org_entries(org_files=[orgfile])
+    entry_nodes, file_to_entries = OrgToJsonl.extract_org_entries(org_files=[orgfile])
 
     # Process Each Entry from All Notes Files
-    entries = convert_org_nodes_to_entries(entry_nodes, file_to_entries)
-    jsonl_string = convert_org_entries_to_jsonl(entries)
+    entries = OrgToJsonl.convert_org_nodes_to_entries(entry_nodes, file_to_entries)
+    jsonl_string = OrgToJsonl.convert_org_entries_to_jsonl(entries)
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()] 
 
     # Assert
@@ -102,7 +102,7 @@ def test_get_org_files(tmp_path):
     input_filter = [tmp_path / 'group1*.org', tmp_path / 'group2*.org']
 
     # Act
-    extracted_org_files = get_org_files(input_files, input_filter)
+    extracted_org_files = OrgToJsonl.get_org_files(input_files, input_filter)
 
     # Assert
     assert len(extracted_org_files) == 5

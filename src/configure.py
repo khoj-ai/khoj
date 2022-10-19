@@ -6,9 +6,9 @@ import logging
 import json
 
 # Internal Packages
-from src.processor.ledger.beancount_to_jsonl import beancount_to_jsonl
-from src.processor.markdown.markdown_to_jsonl import markdown_to_jsonl
-from src.processor.org_mode.org_to_jsonl import org_to_jsonl
+from src.processor.ledger.beancount_to_jsonl import BeancountToJsonl
+from src.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
+from src.processor.org_mode.org_to_jsonl import OrgToJsonl
 from src.search_type import image_search, text_search
 from src.utils.config import SearchType, SearchModels, ProcessorConfigModel, ConversationProcessorConfigModel
 from src.utils import state
@@ -44,7 +44,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
     if (t == SearchType.Org or t == None) and config.content_type.org:
         # Extract Entries, Generate Notes Embeddings
         model.orgmode_search = text_search.setup(
-            org_to_jsonl,
+            OrgToJsonl,
             config.content_type.org,
             search_config=config.search_type.asymmetric,
             regenerate=regenerate,
@@ -54,7 +54,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
     if (t == SearchType.Music or t == None) and config.content_type.music:
         # Extract Entries, Generate Music Embeddings
         model.music_search = text_search.setup(
-            org_to_jsonl,
+            OrgToJsonl,
             config.content_type.music,
             search_config=config.search_type.asymmetric,
             regenerate=regenerate,
@@ -64,7 +64,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
     if (t == SearchType.Markdown or t == None) and config.content_type.markdown:
         # Extract Entries, Generate Markdown Embeddings
         model.markdown_search = text_search.setup(
-            markdown_to_jsonl,
+            MarkdownToJsonl,
             config.content_type.markdown,
             search_config=config.search_type.asymmetric,
             regenerate=regenerate,
@@ -74,7 +74,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
     if (t == SearchType.Ledger or t == None) and config.content_type.ledger:
         # Extract Entries, Generate Ledger Embeddings
         model.ledger_search = text_search.setup(
-            beancount_to_jsonl,
+            BeancountToJsonl,
             config.content_type.ledger,
             search_config=config.search_type.symmetric,
             regenerate=regenerate,

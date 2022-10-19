@@ -37,7 +37,7 @@ class DateFilter(BaseFilter):
         start = time.time()
         for id, entry in enumerate(entries):
             # Extract dates from entry
-            for date_in_entry_string in re.findall(r'\d{4}-\d{2}-\d{2}', entry[self.entry_key]):
+            for date_in_entry_string in re.findall(r'\d{4}-\d{2}-\d{2}', getattr(entry, self.entry_key)):
                 # Convert date string in entry to unix timestamp
                 try:
                     date_in_entry = datetime.strptime(date_in_entry_string, '%Y-%m-%d').timestamp()

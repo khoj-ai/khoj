@@ -1,6 +1,6 @@
 # Application Packages
 from src.search_filter.word_filter import WordFilter
-from src.utils.config import SearchType
+from src.utils.rawconfig import Entry
 
 
 def test_no_word_filter():
@@ -69,9 +69,10 @@ def test_word_include_and_exclude_filter():
 
 def arrange_content():
     entries = [
-        {'compiled': '', 'raw': 'Minimal Entry'},
-        {'compiled': '', 'raw': 'Entry with exclude_word'},
-        {'compiled': '', 'raw': 'Entry with include_word'},
-        {'compiled': '', 'raw': 'Entry with include_word and exclude_word'}]
+        Entry(compiled='', raw='Minimal Entry'),
+        Entry(compiled='', raw='Entry with exclude_word'),
+        Entry(compiled='', raw='Entry with include_word'),
+        Entry(compiled='', raw='Entry with include_word and exclude_word')
+    ]
 
     return entries

@@ -16,7 +16,7 @@
             return `
             <a href="${item.entry}" class="image-link">
                 <img id=${item.score} src="${item.entry}?${Math.random()}"
-                    title="Effective Score: ${item.score}, Meta: ${item.metadata_score}, Image: ${item.image_score}"
+                    title="Effective Score: ${item.score}, Meta: ${item.additional.metadata_score}, Image: ${item.additional.image_score}"
                     class="image">
             </a>`
         }
@@ -77,8 +77,8 @@
 
             // Generate Backend API URL to execute Search
             url = type === "image"
-                ? `/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}`
-                : `/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}&r=${rerank}`;
+                ? `/api/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}`
+                : `/api/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}&r=${rerank}`;
 
             // Execute Search and Render Results
             fetch(url)
@@ -94,7 +94,7 @@
 
         function updateIndex() {
             type = document.getElementById("type").value;
-            fetch(`/reload?t=${type}`)
+            fetch(`/api/update?t=${type}`)
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
@@ -118,7 +118,7 @@
         function populate_type_dropdown() {
             // Populate type dropdown field with enabled search types only
             var possible_search_types = ["org", "markdown", "ledger", "music", "image"];
-            fetch("/config/data")
+            fetch("/api/config/data")
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById("type").innerHTML =

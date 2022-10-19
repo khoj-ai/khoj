@@ -6,7 +6,7 @@ from src.search_type import image_search, text_search
 from src.utils.config import SearchType
 from src.utils.helpers import resolve_absolute_path
 from src.utils.rawconfig import ContentConfig, TextContentConfig, ImageContentConfig, SearchConfig, TextSearchConfig, ImageSearchConfig
-from src.processor.org_mode.org_to_jsonl import org_to_jsonl
+from src.processor.org_mode.org_to_jsonl import OrgToJsonl
 from src.search_filter.date_filter import DateFilter
 from src.search_filter.word_filter import WordFilter
 from src.search_filter.file_filter import FileFilter
@@ -60,6 +60,6 @@ def content_config(tmp_path_factory, search_config: SearchConfig):
         embeddings_file = content_dir.joinpath('note_embeddings.pt'))
 
     filters = [DateFilter(), WordFilter(), FileFilter()]
-    text_search.setup(org_to_jsonl, content_config.org, search_config.asymmetric, regenerate=False, filters=filters)
+    text_search.setup(OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=False, filters=filters)
 
     return content_config

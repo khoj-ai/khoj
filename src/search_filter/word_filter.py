@@ -29,7 +29,7 @@ class WordFilter(BaseFilter):
         entry_splitter = r',|\.| |\]|\[\(|\)|\{|\}|\<|\>|\t|\n|\:|\;|\?|\!|\(|\)|\&|\^|\$|\@|\%|\+|\=|\/|\\|\||\~|\`|\"|\''
         # Create map of words to entries they exist in
         for entry_index, entry in enumerate(entries):
-            for word in re.split(entry_splitter, entry[self.entry_key].lower()):
+            for word in re.split(entry_splitter, getattr(entry, self.entry_key).lower()):
                 if word == '':
                     continue
                 self.word_to_entry_index[word].add(entry_index)

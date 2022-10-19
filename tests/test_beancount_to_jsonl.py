@@ -2,7 +2,7 @@
 import json
 
 # Internal Packages
-from src.processor.ledger.beancount_to_jsonl import extract_beancount_transactions, convert_transactions_to_maps, convert_transaction_maps_to_jsonl, get_beancount_files
+from src.processor.ledger.beancount_to_jsonl import BeancountToJsonl
 
 
 def test_no_transactions_in_file(tmp_path):
@@ -16,10 +16,11 @@ def test_no_transactions_in_file(tmp_path):
 
     # Act
     # Extract Entries from specified Beancount files
-    entry_nodes, file_to_entries = extract_beancount_transactions(beancount_files=[beancount_file])
+    entry_nodes, file_to_entries = BeancountToJsonl.extract_beancount_transactions(beancount_files=[beancount_file])
 
     # Process Each Entry from All Beancount Files
-    jsonl_string = convert_transaction_maps_to_jsonl(convert_transactions_to_maps(entry_nodes, file_to_entries))
+    jsonl_string = BeancountToJsonl.convert_transaction_maps_to_jsonl(
+        BeancountToJsonl.convert_transactions_to_maps(entry_nodes, file_to_entries))
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
@@ -38,10 +39,11 @@ Assets:Test:Test  -1.00 KES
 
     # Act
     # Extract Entries from specified Beancount files
-    entries, entry_to_file_map = extract_beancount_transactions(beancount_files=[beancount_file])
+    entries, entry_to_file_map = BeancountToJsonl.extract_beancount_transactions(beancount_files=[beancount_file])
 
     # Process Each Entry from All Beancount Files
-    jsonl_string = convert_transaction_maps_to_jsonl(convert_transactions_to_maps(entries, entry_to_file_map))
+    jsonl_string = BeancountToJsonl.convert_transaction_maps_to_jsonl(
+        BeancountToJsonl.convert_transactions_to_maps(entries, entry_to_file_map))
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
@@ -65,10 +67,11 @@ Assets:Test:Test  -1.00 KES
 
     # Act
     # Extract Entries from specified Beancount files
-    entries, entry_to_file_map = extract_beancount_transactions(beancount_files=[beancount_file])
+    entries, entry_to_file_map = BeancountToJsonl.extract_beancount_transactions(beancount_files=[beancount_file])
 
     # Process Each Entry from All Beancount Files
-    jsonl_string = convert_transaction_maps_to_jsonl(convert_transactions_to_maps(entries, entry_to_file_map))
+    jsonl_string = BeancountToJsonl.convert_transaction_maps_to_jsonl(
+        BeancountToJsonl.convert_transactions_to_maps(entries, entry_to_file_map))
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
@@ -96,7 +99,7 @@ def test_get_beancount_files(tmp_path):
     input_filter = [tmp_path / 'group1*.bean', tmp_path / 'group2*.beancount']
 
     # Act
-    extracted_org_files = get_beancount_files(input_files, input_filter)
+    extracted_org_files = BeancountToJsonl.get_beancount_files(input_files, input_filter)
 
     # Assert
     assert len(extracted_org_files) == 5

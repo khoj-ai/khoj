@@ -2,9 +2,6 @@
 from pathlib import Path
 from PIL import Image
 
-# External Packages
-import pytest
-
 # Internal Packages
 from src.utils.state import model
 from src.utils.constants import web_directory
@@ -70,7 +67,7 @@ def test_image_search(content_config: ContentConfig, search_config: SearchConfig
             image_files_url='/static/images',
             count=1)
 
-        actual_image_path = output_directory.joinpath(Path(results[0]["entry"]).name)
+        actual_image_path = output_directory.joinpath(Path(results[0].entry).name)
         actual_image = Image.open(actual_image_path)
         expected_image = Image.open(content_config.image.input_directories[0].joinpath(expected_image_name))
 
