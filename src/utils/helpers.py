@@ -4,6 +4,7 @@ import sys
 from os.path import join
 from collections import OrderedDict
 from typing import Optional, Union
+import logging
 
 
 def is_none_or_empty(item):
@@ -81,3 +82,26 @@ class LRU(OrderedDict):
             oldest = next(iter(self))
             del self[oldest]
 
+
+class CustomFormatter(logging.Formatter):
+    blue = "\x1b[1;34m"
+    green = "\x1b[1;32m"
+    grey = "\x1b[38;20m"
+    yellow = "\x1b[33;20m"
+    red = "\x1b[31;20m"
+    bold_red = "\x1b[31;1m"
+    reset = "\x1b[0m"
+    format_str = "%(levelname)s: %(asctime)s: %(name)s | %(message)s"
+
+    FORMATS = {
+        logging.DEBUG: blue + format_str + reset,
+        logging.INFO: green + format_str + reset,
+        logging.WARNING: yellow + format_str + reset,
+        logging.ERROR: red + format_str + reset,
+        logging.CRITICAL: bold_red + format_str + reset
+    }
+
+    def format(self, record):
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)

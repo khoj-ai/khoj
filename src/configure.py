@@ -1,8 +1,6 @@
-# System Packages
+# Standard Packages
 import sys
 import logging
-
-# External Packages
 import json
 
 # Internal Packages
