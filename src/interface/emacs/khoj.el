@@ -226,7 +226,8 @@ Use `which-key` if available, else display simple message in echo area"
 
 (defun khoj--get-enabled-content-types ()
   "Get content types enabled for search from API."
-  (let ((config-url (format "%s/config/data" khoj-server-url)))
+  (let ((config-url (format "%s/config/data" khoj-server-url))
+        (url-request-method "GET"))
     (with-temp-buffer
       (erase-buffer)
       (url-insert-file-contents config-url)
@@ -250,7 +251,8 @@ Use `which-key` if available, else display simple message in echo area"
 Render results in BUFFER-NAME."
   ;; get json response from api
   (with-current-buffer buffer-name
-    (let ((inhibit-read-only t))
+    (let ((inhibit-read-only t)
+          (url-request-method "GET"))
       (erase-buffer)
       (url-insert-file-contents query-url)))
   ;; render json response into formatted entries
