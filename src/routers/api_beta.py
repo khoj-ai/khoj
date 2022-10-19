@@ -14,10 +14,12 @@ from src.utils.helpers import get_absolute_path, get_from_dict
 from src.utils import state
 
 
+# Initialize Router
 api_beta = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+# Create Routes
 @api_beta.get('/search')
 def search_beta(q: str, n: Optional[int] = 1):
     # Extract Search Type using GPT
@@ -39,15 +41,13 @@ def chat(q: str):
 
     # Converse with OpenAI GPT
     metadata = understand(q, api_key=state.processor_config.conversation.openai_api_key, verbose=state.verbose)
-    if state.verbose > 1:
-        print(f'Understood: {get_from_dict(metadata, "intent")}')
+    logger.debug(f'Understood: {get_from_dict(metadata, "intent")}')
 
     if get_from_dict(metadata, "intent", "memory-type") == "notes":
         query = get_from_dict(metadata, "intent", "query")
         result_list = search(query, n=1, t=SearchType.Org)
         collated_result = "\n".join([item["entry"] for item in result_list])
-        if state.verbose > 1:
-            print(f'Semantically Similar Notes:\n{collated_result}')
+        logger.debug(f'Semantically Similar Notes:\n{collated_result}')
         gpt_response = summarize(collated_result, summary_type="notes", user_query=q, api_key=state.processor_config.conversation.openai_api_key)
     else:
         gpt_response = converse(q, chat_session, api_key=state.processor_config.conversation.openai_api_key)
@@ -64,8 +64,7 @@ def shutdown_event():
     # No need to create empty log file
     if not (state.processor_config and state.processor_config.conversation and state.processor_config.conversation.meta_log):
         return
-    elif state.processor_config.conversation.verbose:
-        print('INFO:\tSaving conversation logs to disk...')
+    logger.debug('INFO:\tSaving conversation logs to disk...')
 
     # Summarize Conversation Logs for this Session
     chat_session = state.processor_config.conversation.chat_session
@@ -86,4 +85,4 @@ def shutdown_event():
     with open(conversation_logfile, "w+", encoding='utf-8') as logfile:
         json.dump(conversation_log, logfile)
 
-    print('INFO:\tConversation logs saved to disk.')
+    logger.info('INFO:\tConversation logs saved to disk.')

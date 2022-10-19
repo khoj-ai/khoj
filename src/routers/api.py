@@ -15,10 +15,12 @@ from src.utils.config import SearchType
 from src.utils import state, constants
 
 
+# Initialize Router
 api = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+# Create Routes
 @api.get('/config/data', response_model=FullConfig)
 def get_config_data():
     return state.config
