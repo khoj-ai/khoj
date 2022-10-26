@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 import hashlib
 import time
 import logging
+from typing import Callable
 
 # Internal Packages
 from src.utils.rawconfig import Entry, TextContentConfig
@@ -18,11 +19,15 @@ class TextToJsonl(ABC):
     @abstractmethod
     def process(self, previous_entries: list[Entry]=None) -> list[tuple[int, Entry]]: ...
 
+    @staticmethod
+    def hash_func(key: str) -> Callable:
+        return lambda entry: hashlib.md5(bytes(getattr(entry, key), encoding='utf-8')).hexdigest()
+
     def mark_entries_for_update(self, current_entries: list[Entry], previous_entries: list[Entry], key='compiled', logger=None) -> list[tuple[int, Entry]]:
         # Hash all current and previous entries to identify new entries
         start = time.time()
-        current_entry_hashes = list(map(lambda e: hashlib.md5(bytes(getattr(e, key), encoding='utf-8')).hexdigest(), current_entries))
-        previous_entry_hashes = list(map(lambda e: hashlib.md5(bytes(getattr(e, key), encoding='utf-8')).hexdigest(), previous_entries))
+        current_entry_hashes = list(map(TextToJsonl.hash_func(key), current_entries))
+        previous_entry_hashes = list(map(TextToJsonl.hash_func(key), previous_entries))
         end = time.time()
         logger.debug(f"Hash previous, current entries: {end - start} seconds")
 
