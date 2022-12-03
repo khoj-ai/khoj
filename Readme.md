@@ -215,6 +215,7 @@ docker-compose build --pull
 git clone https://github.com/debanjum/khoj && cd khoj
 conda env create -f config/environment.yml
 conda activate khoj
+python3 -m pip install pyqt6  # As conda does not support pyqt6 yet
 ```
 
 ##### 3. Configure
