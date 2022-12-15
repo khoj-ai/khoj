@@ -89,6 +89,12 @@
 (defvar khoj--search-type "org"
   "The type of content to perform search on.")
 
+(declare-function beancount-mode "beancount" ())
+(declare-function markdown-mode "markdown-mode" ())
+(declare-function org-music-mode "org-music" ())
+(declare-function which-key--show-keymap "which-key" (KEYMAP-NAME KEYMAP &optional PRIOR-ARGS ALL
+NO-PAGING FILTER))
+
 (defun khoj--keybindings-info-message ()
   "Show available khoj keybindings in-context, when user invokes Khoj."
   (let ((enabled-content-types (khoj--get-enabled-content-types)))
@@ -107,7 +113,7 @@
      (when (member 'music enabled-content-types)
        "C-x M  | music\n"))))
 
-(defvar khoj--rerank nil "Track when re-rank of results triggered")
+(defvar khoj--rerank nil "Track when re-rank of results triggered.")
 (defun khoj--search-markdown () "Set search-type to 'markdown'." (interactive) (setq khoj--search-type "markdown"))
 (defun khoj--search-org () "Set search-type to 'org-mode'." (interactive) (setq khoj--search-type "org"))
 (defun khoj--search-ledger () "Set search-type to 'ledger'." (interactive) (setq khoj--search-type "ledger"))
