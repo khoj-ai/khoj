@@ -241,9 +241,9 @@ Use `which-key` if available, else display simple message in echo area"
             (content-type (cdr (assoc 'content-type json-response))))
         ;; return content-type items with configuration
         (mapcar
-         'car
+         #'car
          (cl-remove-if-not
-          '(lambda (a) (not (eq (cdr a) :null)))
+          (lambda (a) (not (eq (cdr a) :null)))
           content-type))))))
 
 (defun khoj--construct-api-query (query search-type &optional rerank)
