@@ -1,41 +1,34 @@
 * Emacs Khoj
-  /An Emacs interface for [[https://github.com/debanjum/khoj][Khoj]]/
+  [[https://melpa.org/#/khoj][file:https://melpa.org/packages/khoj-badge.svg]] [[https://stable.melpa.org/#/khoj][file:https://stable.melpa.org/packages/khoj-badge.svg]]
+ 
+  /The Emacs interface for [[https://github.com/debanjum/khoj][Khoj]]/
 
-** Requirements
+** Prerequisites
    - Install and Run [[https://github.com/debanjum/khoj][Khoj]]
 
 ** Installation
-   - Direct Install
-     - Put ~khoj.el~ in your Emacs load path. For e.g ~/.emacs.d/lisp
+**** Using MELPA
+     #+begin_src elisp
+      M-x package-install khoj
+     #+end_src elisp
 
-     - Load via ~use-package~ in your ~/.emacs.d/init.el or .emacs file by adding below snippet
-       #+begin_src elisp
-         ;; Khoj Package
-         (use-package khoj
-           :load-path "~/.emacs.d/lisp/khoj.el"
-           :bind ("C-c s" . 'khoj))
-       #+end_src
+     Add below snippet to your Emacs config file
+     #+begin_src elisp
+     ;; Install Khoj Package using MELPA
+     (use-package khoj
+        :ensure t
+        :bind ("C-c s" . 'khoj))
+     #+end_src
 
-   - With [[https://github.com/raxod502/straight.el][straight.el]]
-     - Add below snippet to your ~/.emacs.d/init.el or .emacs config file and execute it.
-       #+begin_src elisp
-         ;; Khoj Package for Semantic Search
-         (use-package khoj
-           :after org
-           :straight (khoj :type git :host github :repo "debanjum/khoj" :files (:defaults "src/interface/emacs/khoj.el"))
-           :bind ("C-c s" . 'khoj))
-       #+end_src
-
-   - With [[https://github.com/quelpa/quelpa#installation][Quelpa]]
-     - Ensure [[https://github.com/quelpa/quelpa#installation][Quelpa]], [[https://github.com/quelpa/quelpa-use-package#installation][quelpa-use-package]] are installed
-     - Add below snippet to your ~/.emacs.d/init.el or .emacs config file and execute it.
-       #+begin_src elisp
-         ;; Khoj Package
-         (use-package khoj
-           :after org
-           :quelpa (khoj :fetcher url :url "https://raw.githubusercontent.com/debanjum/khoj/master/src/interface/emacs/khoj.el")
-           :bind ("C-c s" . 'khoj))
-       #+end_src
+**** Using [[https://github.com/raxod502/straight.el][Straight.el]]
+     Add below snippet to your Emacs config file
+     #+begin_src elisp
+       ;; Install Khoj Package using Straight.el
+       (use-package khoj
+         :after org
+         :straight (khoj :type git :host github :repo "debanjum/khoj" :files (:defaults "src/interface/emacs/khoj.el"))
+         :bind ("C-c s" . 'khoj))
+     #+end_src
 
 ** Usage
    1. Open Query Interface on Client
