@@ -1,5 +1,5 @@
 * Emacs Khoj
-  [[https://melpa.org/#/khoj][file:https://melpa.org/packages/khoj-badge.svg]] [[https://stable.melpa.org/#/khoj][file:https://stable.melpa.org/packages/khoj-badge.svg]]
+  [[https://stable.melpa.org/#/khoj][file:https://stable.melpa.org/packages/khoj-badge.svg]] [[https://melpa.org/#/khoj][file:https://melpa.org/packages/khoj-badge.svg]]
  
   /The Emacs interface for [[https://github.com/debanjum/khoj][Khoj]]/
 
@@ -14,11 +14,17 @@
 
      Add below snippet to your Emacs config file
      #+begin_src elisp
-     ;; Install Khoj Package using MELPA
+     ;; Install Khoj Package from MELPA Stable
      (use-package khoj
         :ensure t
+        :pin melpa-stable
         :bind ("C-c s" . 'khoj))
      #+end_src
+
+    Note: Install ~khoj.el~ from MELPA (instead of MELPA Stable) if you installed the pre-release version of khoj
+    - That is, use ~:pin melpa~ to install khoj.el in above snippet if khoj was installed with ~pip install --pre khoj-assistant~
+    - Else use ~:pin melpa-stable~ to install khoj.el in above snippet if khoj was installed with ~pip install khoj-assistant~
+    - This ensures both khoj.el and khoj app are from the same version (tagged or latest)
 
 **** Using [[https://github.com/raxod502/straight.el][Straight.el]]
      Add below snippet to your Emacs config file
