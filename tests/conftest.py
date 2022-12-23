@@ -3,7 +3,6 @@ import pytest
 
 # Internal Packages
 from src.search_type import image_search, text_search
-from src.utils.config import SearchType
 from src.utils.helpers import resolve_absolute_path
 from src.utils.rawconfig import ContentConfig, TextContentConfig, ImageContentConfig, SearchConfig, TextSearchConfig, ImageSearchConfig
 from src.processor.org_mode.org_to_jsonl import OrgToJsonl

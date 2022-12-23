@@ -116,7 +116,7 @@ def test_entry_chunking_by_max_tokens(content_config: ContentConfig, search_conf
 # ----------------------------------------------------------------------------------------------------
 def test_asymmetric_reload(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    initial_notes_model= text_search.setup(OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=False)
+    initial_notes_model= text_search.setup(OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=True)
 
     assert len(initial_notes_model.entries) == 10
     assert len(initial_notes_model.corpus_embeddings) == 10
