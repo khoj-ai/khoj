@@ -43,6 +43,11 @@ class OrgToJsonl(TextToJsonl):
         end = time.time()
         logger.debug(f"Convert OrgNodes into entry dictionaries: {end - start} seconds")
 
+        start = time.time()
+        current_entries = self.split_entries_by_max_tokens(current_entries, max_tokens=256)
+        end = time.time()
+        logger.debug(f"Split entries by max token size supported by model: {end - start} seconds")
+
         # Identify, mark and merge any new entries with previous entries
         if not previous_entries:
             entries_with_ids = list(enumerate(current_entries))
