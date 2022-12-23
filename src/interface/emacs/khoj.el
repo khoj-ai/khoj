@@ -41,8 +41,8 @@
 ;;    pip install khoj-assistant
 ;; 2. Start, Configure Khoj Server
 ;;    khoj
-;; 3. Install khoj.el
-;;    (use-package khoj :bind ("C-c s" . 'khoj))
+;; 3. Install khoj.el from MELPA Stable
+;;    (use-package khoj :pin melpa-stable :bind ("C-c s" . 'khoj))
 
 ;;; Code:
 
