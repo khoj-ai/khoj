@@ -150,6 +150,17 @@ def query(raw_query: str, model: TextSearchModel, rank_results=False):
     end = time.time()
     logger.debug(f"Rank Time: {end - start:.3f} seconds on device: {state.device}")
 
+    # Deduplicate entries by raw entry text
+    # Required because entries are split by max_word count supported by ML model. This results in duplicate hits, entries
+    start = time.time()
+    seen, original_hits_count = set(), len(hits)
+    hits = [hit for hit in hits
+            if entries[hit['corpus_id']].raw not in seen and not seen.add(entries[hit['corpus_id']].raw)]
+    duplicate_hits = original_hits_count - len(hits)
+    end = time.time()
+    logger.debug(f"Removed {duplicate_hits} Duplicate Hits")
+    logger.debug(f"Deduplication Time: {end - start:.3f} seconds")
+
     return hits, entries
 
 
