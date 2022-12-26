@@ -35,6 +35,12 @@ class MarkdownToJsonl(TextToJsonl):
         end = time.time()
         logger.debug(f"Parse entries from Markdown files into dictionaries: {end - start} seconds")
 
+        # Split entries by max tokens supported by model
+        start = time.time()
+        current_entries = self.split_entries_by_max_tokens(current_entries, max_tokens=256)
+        end = time.time()
+        logger.debug(f"Split entries by max token size supported by model: {end - start} seconds")
+
         # Identify, mark and merge any new entries with previous entries
         start = time.time()
         if not previous_entries:

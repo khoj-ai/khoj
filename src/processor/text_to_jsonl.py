@@ -23,6 +23,19 @@ class TextToJsonl(ABC):
     def hash_func(key: str) -> Callable:
         return lambda entry: hashlib.md5(bytes(getattr(entry, key), encoding='utf-8')).hexdigest()
 
+    @staticmethod
+    def split_entries_by_max_tokens(entries: list[Entry], max_tokens: int=256) -> list[Entry]:
+        "Split entries if compiled entry length exceeds the max tokens supported by the ML model."
+        chunked_entries: list[Entry] = []
+        for entry in entries:
+            compiled_entry_words = entry.compiled.split()
+            for chunk_index in range(0, len(compiled_entry_words), max_tokens):
+                compiled_entry_words_chunk = compiled_entry_words[chunk_index:chunk_index + max_tokens]
+                compiled_entry_chunk = ' '.join(compiled_entry_words_chunk)
+                entry_chunk = Entry(compiled=compiled_entry_chunk, raw=entry.raw, file=entry.file)
+                chunked_entries.append(entry_chunk)
+        return chunked_entries
+
     def mark_entries_for_update(self, current_entries: list[Entry], previous_entries: list[Entry], key='compiled', logger=None) -> list[tuple[int, Entry]]:
         # Hash all current and previous entries to identify new entries
         start = time.time()

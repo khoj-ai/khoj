@@ -3,6 +3,7 @@ import json
 
 # Internal Packages
 from src.processor.org_mode.org_to_jsonl import OrgToJsonl
+from src.processor.text_to_jsonl import TextToJsonl
 from src.utils.helpers import is_none_or_empty
 
 
@@ -33,6 +34,31 @@ def test_configure_heading_entry_to_jsonl(tmp_path):
         else:
             # Entry with empty body ignored when index_heading_entries set to False
             assert is_none_or_empty(jsonl_data)
+
+
+def test_entry_split_when_exceeds_max_words(tmp_path):
+    "Ensure entries with compiled words exceeding max_words are split."
+    # Arrange
+    entry = f'''*** Heading
+    \t\r
+    Body Line 1
+    '''
+    orgfile = create_file(tmp_path, entry)
+
+    # Act
+    # Extract Entries from specified Org files
+    entries, entry_to_file_map = OrgToJsonl.extract_org_entries(org_files=[orgfile])
+
+    # Split each entry from specified Org files by max words
+    jsonl_string = OrgToJsonl.convert_org_entries_to_jsonl(
+        TextToJsonl.split_entries_by_max_tokens(
+            OrgToJsonl.convert_org_nodes_to_entries(entries, entry_to_file_map),
+            max_tokens = 2)
+        )
+    jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
+
+    # Assert
+    assert len(jsonl_data) == 2
 
 
 def test_entry_with_body_to_jsonl(tmp_path):
