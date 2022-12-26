@@ -40,9 +40,6 @@ def test_entry_split_when_exceeds_max_words(tmp_path):
     "Ensure entries with compiled words exceeding max_words are split."
     # Arrange
     entry = f'''*** Heading
-    :PROPERTIES:
-    :ID:       42-42-42
-    :END:
     \t\r
     Body Line 1
     '''
@@ -52,7 +49,7 @@ def test_entry_split_when_exceeds_max_words(tmp_path):
     # Extract Entries from specified Org files
     entries, entry_to_file_map = OrgToJsonl.extract_org_entries(org_files=[orgfile])
 
-    # Split Each Entry from specified Org files by Max Words
+    # Split each entry from specified Org files by max words
     jsonl_string = OrgToJsonl.convert_org_entries_to_jsonl(
         TextToJsonl.split_entries_by_max_tokens(
             OrgToJsonl.convert_org_nodes_to_entries(entries, entry_to_file_map),

@@ -83,7 +83,7 @@ def test_asymmetric_search(content_config: ContentConfig, search_config: SearchC
 # ----------------------------------------------------------------------------------------------------
 def test_entry_chunking_by_max_tokens(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    initial_notes_model= text_search.setup(OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=False)
+    initial_notes_model= text_search.setup(OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=True)
 
     assert len(initial_notes_model.entries) == 10
     assert len(initial_notes_model.corpus_embeddings) == 10
@@ -91,7 +91,7 @@ def test_entry_chunking_by_max_tokens(content_config: ContentConfig, search_conf
     file_to_add_on_reload = Path(content_config.org.input_filter[0]).parent / "entry_exceeding_max_tokens.org"
     content_config.org.input_files = [f'{file_to_add_on_reload}']
 
-    # Append Org-Mode Entry with size exceeding max token limit to new Org File in Config
+    # Insert org-mode entry with size exceeding max token limit to new org file
     max_tokens = 256
     with open(file_to_add_on_reload, "w") as f:
         f.write(f"* Entry more than {max_tokens} words\n")
