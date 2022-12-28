@@ -14,6 +14,8 @@ from src.utils.jsonl import dump_jsonl, compress_jsonl_data
 from src.utils import state
 from src.utils.rawconfig import TextContentConfig
 
+from typing import List
+
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +107,7 @@ def extract_org_entries(org_files):
     return entries, dict(entry_to_file_map)
 
 
-def convert_org_nodes_to_entries(entries: list[orgnode.Orgnode], entry_to_file_map, index_heading_entries=False) -> list[dict]:
+def convert_org_nodes_to_entries(entries: List[orgnode.Orgnode], entry_to_file_map, index_heading_entries=False) -> List[dict]:
     "Convert Org-Mode entries into list of dictionary"
     entry_maps = []
     for entry in entries:

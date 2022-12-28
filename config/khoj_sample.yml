@@ -2,7 +2,7 @@ content-type:
 
   panchayat:
     input-files: null
-    input-filter: "/home/saba/projects/panchayat/panchayat/instance/*.yaml"
+    input-filter: ["/home/saba/projects/panchayat/panchayat/instance/*.yaml"]
     compressed-jsonl: "./khoj/embeddings/panchyat.jsonl.gz"
     embeddings-file: "./khoj/embeddings/panchayat_embeddings.pt"
 

@@ -14,6 +14,7 @@ from src.utils.config import TextSearchModel
 from src.utils.rawconfig import TextSearchConfig, TextContentConfig
 from src.utils.jsonl import load_jsonl
 
+from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -179,7 +180,7 @@ def collate_results(hits, entries, count=5):
         in hits[0:count]]
 
 
-def setup(text_to_jsonl, config: TextContentConfig, search_config: TextSearchConfig, regenerate: bool, filters: list[BaseFilter] = []) -> TextSearchModel:
+def setup(text_to_jsonl, config: TextContentConfig, search_config: TextSearchConfig, regenerate: bool, filters: List[BaseFilter] = []) -> TextSearchModel:
     # Initialize Model
     bi_encoder, cross_encoder, top_k = initialize_model(search_config)
 

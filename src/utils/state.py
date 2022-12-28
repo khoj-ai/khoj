@@ -10,6 +10,8 @@ from src.utils.config import SearchModels, ProcessorConfigModel
 from src.utils.helpers import LRU
 from src.utils.rawconfig import FullConfig
 
+from typing import List
+
 # Application Global State
 config = FullConfig()
 model = SearchModels()
@@ -18,7 +20,7 @@ config_file: Path = None
 verbose: int = 0
 host: str = None
 port: int = None
-cli_args: list[str] = None
+cli_args: List[str] = None
 query_cache = LRU()
 
 if torch.cuda.is_available():

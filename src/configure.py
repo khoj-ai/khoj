@@ -79,7 +79,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
             config.content_type.panchayat,
             search_config=config.search_type.asymmetric,
             regenerate=regenerate,
-            filters=[])
+            filters=[DateFilter(entry_key='compiled'), WordFilter(entry_key='compiled')])
 
     # Initialize Ledger Search
     if (t == SearchType.Ledger or t == None) and config.content_type.ledger:

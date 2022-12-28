@@ -1,6 +1,8 @@
 # Standard Packages
 from abc import ABC, abstractmethod
 
+from typing import List, Set, Tuple
+
 
 class BaseFilter(ABC):
     @abstractmethod
@@ -12,5 +14,5 @@ class BaseFilter(ABC):
         pass
 
     @abstractmethod
-    def apply(self, query:str, raw_entries:list[str]) -> tuple[str, set[int]]:
+    def apply(self, query:str, raw_entries:List[str]) -> Tuple[str, Set[int]]:
         pass

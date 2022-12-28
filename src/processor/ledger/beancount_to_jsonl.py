@@ -12,6 +12,7 @@ from src.utils.helpers import get_absolute_path, is_none_or_empty, mark_entries_
 from src.utils.constants import empty_escape_sequences
 from src.utils.jsonl import dump_jsonl, compress_jsonl_data
 from src.utils.rawconfig import TextContentConfig
+from typing import List
 
 
 logger = logging.getLogger(__name__)
@@ -112,7 +113,7 @@ def extract_beancount_transactions(beancount_files):
     return entries, dict(transaction_to_file_map)
 
 
-def convert_transactions_to_maps(entries: list[str], transaction_to_file_map) -> list[dict]:
+def convert_transactions_to_maps(entries: List[str], transaction_to_file_map) -> List[dict]:
     "Convert each Beancount transaction into a dictionary"
     entry_maps = []
     for entry in entries:
@@ -123,6 +124,6 @@ def convert_transactions_to_maps(entries: list[str], transaction_to_file_map) ->
     return entry_maps
 
 
-def convert_transaction_maps_to_jsonl(entries: list[dict]) -> str:
+def convert_transaction_maps_to_jsonl(entries: List[dict]) -> str:
     "Convert each Beancount transaction dictionary to JSON and collate as JSONL"
     return ''.join([f'{json.dumps(entry_dict, ensure_ascii=False)}\n' for entry_dict in entries])

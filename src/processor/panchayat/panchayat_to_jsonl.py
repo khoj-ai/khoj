@@ -106,18 +106,15 @@ def extract_panchayat_entries(yaml_files):
                 for subpost in all_subposts:
                     if subpost.post_id not in seen_ids:
                         seen_ids.add(subpost.post_id)
-
-                        # entry = VDBEntry(post_id=subpost.post_id, body=subpost.body, title=subpost.title, author=subpost.author)
-                        # entry = {
-                        #     'post_id': subpost.post_id,
-                        #     'body': subpost.body,
-                        #     'title': subpost.title,
-                        #     'author': subpost.author.username
-                        # }
                         entry = dict()
-                        entry['compiled'] =  f'body: {subpost.body} author: {subpost.author.username} title: {subpost.title}'
+                        
+                        entry['compiled'] = f"""body: {subpost.body}
+                            author: {subpost.author.username}
+                            title: {subpost.title}
+                            created: {subpost.created}
+                            upvotes: {len(subpost.upvotes)}"""
+                        
                         entry['raw'] = subpost.post_id
-                        # entry = f"""body: {subpost.body} title: {subpost.title} author: {subpost.author.username}"""
                         entries.append(entry)
 
     return entries
