@@ -16,6 +16,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import QThread, QTimer
+import schedule
 
 # Internal Packages
 from src.configure import configure_server
@@ -99,10 +100,10 @@ def run():
 
         # Setup Signal Handlers
         signal.signal(signal.SIGINT, sigint_handler)
-        # Invoke python Interpreter every 500ms to handle signals
+        # Invoke Python interpreter every 500ms to handle signals, run scheduled tasks
         timer = QTimer()
         timer.start(500)
-        timer.timeout.connect(lambda: None)
+        timer.timeout.connect(schedule.run_pending)
 
         # Start Application
         server.start()

@@ -41,6 +41,7 @@ setup(
         "dateparser == 1.1.1",
         "pyqt6 == 6.3.1",
         "defusedxml == 0.7.1",
+        'schedule == 1.1.0',
     ],
     include_package_data=True,
     entry_points={"console_scripts": ["khoj = src.main:run"]},
