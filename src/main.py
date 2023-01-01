@@ -3,6 +3,7 @@ import os
 import signal
 import sys
 import logging
+import threading
 import warnings
 from platform import system
 
@@ -73,6 +74,8 @@ def run():
     logger.info("Starting Khoj...")
 
     if args.no_gui:
+        # Setup task scheduler
+        poll_task_scheduler()
         # Start Server
         configure_server(args, required=True)
         start_server(app, host=args.host, port=args.port, socket=args.socket)
@@ -141,6 +144,13 @@ def start_server(app, host=None, port=None, socket=None):
         uvicorn.run(app, proxy_headers=True, uds=socket)
     else:
         uvicorn.run(app, host=host, port=port)
+
+
+def poll_task_scheduler():
+    timer_thread = threading.Timer(60.0, poll_task_scheduler)
+    timer_thread.daemon = True
+    timer_thread.start()
+    schedule.run_pending()
 
 
 class ServerThread(QThread):
