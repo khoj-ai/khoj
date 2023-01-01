@@ -1,4 +1,5 @@
 # Standard Packages
+import threading
 from packaging import version
 
 # External Packages
@@ -20,6 +21,7 @@ host: str = None
 port: int = None
 cli_args: list[str] = None
 query_cache = LRU()
+search_index_lock = threading.Lock()
 
 if torch.cuda.is_available():
     # Use CUDA GPU

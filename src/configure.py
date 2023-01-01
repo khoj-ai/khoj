@@ -34,7 +34,9 @@ def configure_server(args, required=False):
         state.config = args.config
 
     # Initialize the search model from Config
+    state.search_index_lock.acquire()
     state.model = configure_search(state.model, state.config, args.regenerate)
+    state.search_index_lock.release()
 
     # Initialize Processor from Config
     state.processor_config = configure_processor(args.config.processor)
@@ -42,7 +44,9 @@ def configure_server(args, required=False):
 
 @schedule.repeat(schedule.every(1).hour)
 def update_search_index():
+    state.search_index_lock.acquire()
     state.model = configure_search(state.model, state.config, regenerate=False)
+    state.search_index_lock.release()
     logger.info("Search Index updated via Scheduler")
 
 
