@@ -3,6 +3,7 @@ import os
 import signal
 import sys
 import logging
+import threading
 import warnings
 from platform import system
 
@@ -16,6 +17,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import QThread, QTimer
+import schedule
 
 # Internal Packages
 from src.configure import configure_server
@@ -72,6 +74,8 @@ def run():
     logger.info("Starting Khoj...")
 
     if args.no_gui:
+        # Setup task scheduler
+        poll_task_scheduler()
         # Start Server
         configure_server(args, required=True)
         start_server(app, host=args.host, port=args.port, socket=args.socket)
@@ -99,10 +103,10 @@ def run():
 
         # Setup Signal Handlers
         signal.signal(signal.SIGINT, sigint_handler)
-        # Invoke python Interpreter every 500ms to handle signals
+        # Invoke Python interpreter every 500ms to handle signals, run scheduled tasks
         timer = QTimer()
         timer.start(500)
-        timer.timeout.connect(lambda: None)
+        timer.timeout.connect(schedule.run_pending)
 
         # Start Application
         server.start()
@@ -140,6 +144,13 @@ def start_server(app, host=None, port=None, socket=None):
         uvicorn.run(app, proxy_headers=True, uds=socket)
     else:
         uvicorn.run(app, host=host, port=port)
+
+
+def poll_task_scheduler():
+    timer_thread = threading.Timer(60.0, poll_task_scheduler)
+    timer_thread.daemon = True
+    timer_thread.start()
+    schedule.run_pending()
 
 
 class ServerThread(QThread):
