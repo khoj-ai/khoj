@@ -77,7 +77,7 @@ class BeancountToJsonl(TextToJsonl):
             filtered_beancount_files = {
                 filtered_file
                 for beancount_file_filter in beancount_file_filters
-                for filtered_file in glob.glob(get_absolute_path(beancount_file_filter))
+                for filtered_file in glob.glob(get_absolute_path(beancount_file_filter), recursive=True)
             }
 
         all_beancount_files = sorted(absolute_beancount_files | filtered_beancount_files)

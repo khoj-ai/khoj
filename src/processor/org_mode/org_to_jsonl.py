@@ -83,7 +83,7 @@ class OrgToJsonl(TextToJsonl):
             filtered_org_files = {
                 filtered_file
                 for org_file_filter in org_file_filters
-                for filtered_file in glob.glob(get_absolute_path(org_file_filter))
+                for filtered_file in glob.glob(get_absolute_path(org_file_filter), recursive=True)
             }
 
         all_org_files = sorted(absolute_org_files | filtered_org_files)

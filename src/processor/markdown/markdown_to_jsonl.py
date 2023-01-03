@@ -75,7 +75,7 @@ class MarkdownToJsonl(TextToJsonl):
             filtered_markdown_files = {
                 filtered_file
                 for markdown_file_filter in markdown_file_filters
-                for filtered_file in glob.glob(get_absolute_path(markdown_file_filter))
+                for filtered_file in glob.glob(get_absolute_path(markdown_file_filter), recursive=True)
             }
 
         all_markdown_files = sorted(absolute_markdown_files | filtered_markdown_files)
