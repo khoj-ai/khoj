@@ -186,7 +186,10 @@ def collate_results(hits, entries: list[Entry], count=5) -> list[SearchResponse]
     return [SearchResponse.parse_obj(
         {
             "entry": entries[hit['corpus_id']].raw,
-            "score": f"{hit['cross-score'] if 'cross-score' in hit else hit['score']:.3f}"
+            "score": f"{hit['cross-score'] if 'cross-score' in hit else hit['score']:.3f}",
+            "additional": {
+                "file": entries[hit['corpus_id']].file,
+            }
         })
         for hit
         in hits[0:count]]
