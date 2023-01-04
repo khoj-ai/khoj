@@ -22,6 +22,8 @@
   - [Query Filters](#Query-filters)
 - [Upgrade](#Upgrade)
 - [Troubleshoot](#Troubleshoot)
+- [Advanced Usage](#advanced-usage)
+  - [Access Khoj on Mobile](#access-khoj-on-mobile)
 - [Miscellaneous](#Miscellaneous)
 - [Performance](#Performance)
   - [Query Performance](#Query-performance)
@@ -132,6 +134,14 @@ pip install --upgrade khoj-assistant
 - Symptom: Errors out with \"Killed\" in error message in Docker
   - Fix: Increase RAM available to Docker Containers in Docker Settings
   - Refer: [StackOverflow Solution](https://stackoverflow.com/a/50770267), [Configure Resources on Docker for Mac](https://docs.docker.com/desktop/mac/#resources)
+
+# Advanced Usage
+## Access Khoj on Mobile
+1. [Setup Khoj](#Setup) on your personal server. This can be any always-on machine, i.e an old computer, RaspberryPi(?) etc
+2. [Install](https://tailscale.com/kb/installation/) [Tailscale](tailscale.com/) on your personal server and phone
+3. Open the Khoj web interface of the server from your phone browser. It should be `http://tailscale-url-of-server:8000` or `http://name-of-server:8000` if you've setup [MagicDNS](https://tailscale.com/kb/1081/magicdns/)
+4. Click the [Install/Add to Homescreen](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Add_to_home_screen) button
+5. Enjoy exploring your notes, transactions and images from your phone!
 
 ## Miscellaneous
 
