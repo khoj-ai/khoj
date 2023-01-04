@@ -1,16 +1,37 @@
+# Khoj artifacts
+*.gz
+*.pt
+src/.data
+tests/data/models
+tests/data/embeddings
+
+# External app artifacts
 __pycache__
 .DS_Store
 .emacs.desktop*
 *.py[cod]
-tests/data/models
-tests/data/embeddings
-src/.data
-/src/interface/web/images
 .vscode
-*.gz
-*.pt
+
+# Build artifacts
+/src/interface/web/images
 /build/
 /dist/
 /khoj_assistant.egg-info/
 /config/khoj*.yml
 .pytest_cache
+khoj.log
+
+# Obsidian plugin artifacts
+# ---
+# npm
+node_modules
+
+# Don't include the compiled obsidian main.js file in the repo.
+# They should be uploaded to GitHub releases instead.
+main.js
+
+# Exclude sourcemaps
+*.map
+
+# obsidian
+data.json
