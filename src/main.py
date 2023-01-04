@@ -77,7 +77,7 @@ def run():
         # Setup task scheduler
         poll_task_scheduler()
         # Start Server
-        configure_server(args, required=True)
+        configure_server(args, required=False)
         start_server(app, host=args.host, port=args.port, socket=args.socket)
     else:
         # Setup GUI
