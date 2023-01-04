@@ -8,7 +8,7 @@ from typing import Optional
 from fastapi import APIRouter
 
 # Internal Packages
-from src.configure import configure_search
+from src.configure import configure_processor, configure_search
 from src.search_type import image_search, text_search
 from src.utils.rawconfig import FullConfig, SearchResponse
 from src.utils.config import SearchType
@@ -130,4 +130,7 @@ def update(t: Optional[SearchType] = None, force: Optional[bool] = False):
     state.search_index_lock.release()
     logger.info("Search Index updated via API call")
 
-    return {'status': 'ok', 'message': 'index updated'}
+    state.processor_config = configure_processor(state.config.processor)
+    logger.info("Processor reconfigured via API call")
+
+    return {'status': 'ok', 'message': 'khoj reloaded'}
