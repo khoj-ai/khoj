@@ -21,6 +21,9 @@
   - [Interfaces](#Interfaces-1)
   - [Query Filters](#Query-filters)
 - [Upgrade](#Upgrade)
+  - [Khoj Server](#upgrade-khoj-server)
+  - [Khoj.el](#upgrade-khoj-on-emacs)
+  - [Khoj Obsidian](#upgrade-khoj-on-obsidian)
 - [Troubleshoot](#Troubleshoot)
 - [Advanced Usage](#advanced-usage)
   - [Access Khoj on Mobile](#access-khoj-on-mobile)
@@ -89,7 +92,7 @@ https://user-images.githubusercontent.com/6413477/184735169-92c78bf1-d827-4663-9
 ## Setup
 These are the general setup instructions for Khoj.
 
-Check the [Khoj Obsidian Readme]((https://github.com/debanjum/khoj/tree/master/src/interface/obsidian#Setup) to setup Khoj with the Obsidian Plugin. Its simpler as it can skip the configure step below.
+Check the [Khoj Obsidian Readme](https://github.com/debanjum/khoj/tree/master/src/interface/obsidian#Setup) to setup Khoj with the Obsidian Plugin. Its simpler as it can skip the configure step below.
 
 ### 1. Install
 
@@ -142,10 +145,19 @@ Use structured query syntax to filter the natural language search results
     - that best match the natural language query *"what is the meaning of life?"*
 
 ## Upgrade
-
+### Upgrade Khoj Server
 ```shell
 pip install --upgrade khoj-assistant
 ```
+
+### Upgrade Khoj on Emacs
+- Use your Emacs Package Manager to Upgrade
+  - E.g Run `M-x package-refresh-content` followed by `M-x package-reinstall khoj` to upgrade `khoj.el`
+- See [khoj.el readme](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Upgrade) for details
+
+### Upgrade Khoj on Obsidian
+- Upgrade via the Community plugins tab on the settings pane in the Obsidian app
+- See the [khoj plugin readme](https://github.com/debanjum/khoj/tree/master/src/interface/obsidian#2-Setup-Plugin) for details
 
 ## Troubleshoot
 
