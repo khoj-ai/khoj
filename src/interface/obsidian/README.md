@@ -52,7 +52,7 @@ pip install khoj-assistant && khoj --no-gui
 See [official docs](https://help.obsidian.md/Advanced+topics/Community+plugins#Discover+and+install+community+plugins) for details
 
 ## Use
-Click the *Khoj search icon* 🔎 on the [Ribbon](https://help.obsidian.md/User+interface/Workspace/Ribbon) or Search for *Khoj: Search* in the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
+Click the *Khoj search* icon 🔎 on the [Ribbon](https://help.obsidian.md/User+interface/Workspace/Ribbon) or Search for *Khoj: Search* in the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
 
 ### Query Filters
 Use structured query syntax to filter the natural language search results

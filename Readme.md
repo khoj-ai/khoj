@@ -53,7 +53,7 @@
 ### Khoj in Obsidian
 https://user-images.githubusercontent.com/6413477/210486007-36ee3407-e6aa-4185-8a26-b0bfc0a4344f.mp4
 
-#### Description
+<details><summary>Description</summary>
 
 - Install Khoj via `pip` and start Khoj backend in non-gui mode
 - Install Khoj plugin via Community Plugins settings pane on Obsidian app
@@ -62,24 +62,27 @@ https://user-images.githubusercontent.com/6413477/210486007-36ee3407-e6aa-4185-8
 - Open Khoj plugin on Obsidian via Search button on Left Pane
 - Search \"*Announce plugin to folks*\" in the [Obsidian Plugin docs](https://marcus.se.net/obsidian-plugin-docs/)
 - Jump to the [search result](https://marcus.se.net/obsidian-plugin-docs/publishing/submit-your-plugin)
+</details>
 
 ### Khoj in Emacs, Browser
 https://user-images.githubusercontent.com/6413477/184735169-92c78bf1-d827-4663-9087-a1ea194b8f4b.mp4
 
-#### Description
+<details><summary>Description</summary>
 
 - Install Khoj via pip
 - Start Khoj app
 - Add this readme and [khoj.el readme](https://github.com/debanjum/khoj/tree/master/src/interface/emacs) as org-mode for Khoj to index
 - Search \"*Setup editor*\" on the Web and Emacs. Re-rank the results for better accuracy
 - Top result is what we are looking for, the [section to Install Khoj.el on Emacs](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#installation)
+</details>
 
-#### Analysis
+<details><summary>Analysis</summary>
 
 - The results do not have any words used in the query
   - *Based on the top result it seems the re-ranking model understands that Emacs is an editor?*
 - The results incrementally update as the query is entered
 - The results are re-ranked, for better accuracy, once user hits enter
+</details>
 
 ### Interfaces
 
@@ -116,7 +119,7 @@ khoj
 
 - **Khoj via Obsidian**
   - [Install](https://github.com/debanjum/khoj/tree/master/src/interface/obsidian#2-Setup-Plugin) the Khoj Obsidian plugin
-  - Click the *Khoj search icon* 🔎 on the [Ribbon](https://help.obsidian.md/User+interface/Workspace/Ribbon) or Search for *Khoj: Search* in the [Command Palette](https://help.obsidian.md/Plugins/Command+palette) 
+  - Click the *Khoj search* icon 🔎 on the [Ribbon](https://help.obsidian.md/User+interface/Workspace/Ribbon) or Search for *Khoj: Search* in the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
 - **Khoj via Emacs**
   - [Install](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#installation) [khoj.el](./src/interface/emacs/khoj.el)
   - Run `M-x khoj <user-query>`
@@ -152,7 +155,6 @@ pip install --upgrade khoj-assistant
 
 ### Upgrade Khoj on Emacs
 - Use your Emacs Package Manager to Upgrade
-  - E.g Run `M-x package-refresh-content` followed by `M-x package-reinstall khoj` to upgrade `khoj.el`
 - See [khoj.el readme](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Upgrade) for details
 
 ### Upgrade Khoj on Obsidian
