@@ -21,6 +21,10 @@ logger = logging.getLogger(__name__)
 
 
 # Create Routes
+@api.get('/config/data/default')
+def get_default_config_data():
+    return constants.default_config
+
 @api.get('/config/data', response_model=FullConfig)
 def get_config_data():
     return state.config
