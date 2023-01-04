@@ -143,6 +143,8 @@ pip install --upgrade khoj-assistant
 4. Click the [Install/Add to Homescreen](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Add_to_home_screen) button
 5. Enjoy exploring your notes, transactions and images from your phone!
 
+![](https://github.com/debanjum/khoj/blob/master/docs/khoj_pwa_android.png)
+
 ## Miscellaneous
 
 - The beta [chat](http://localhost:8000/api/beta/chat) and [search](http://localhost:8000/api/beta/search) API endpoints use [OpenAI API](https://openai.com/api/)
