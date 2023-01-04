@@ -51,3 +51,18 @@
       Include/Exclude specific words or date range from results by updating query with below query format
 
       e.g `What is the meaning of life? -god +none dt:"last week"`
+
+** Upgrade
+Use your Emacs package manager to upgrade `khoj.el`
+
+- For `khoj.el` from MELPA
+  - Method 1
+    - Run `M-x package-list-packages` to list all packages
+    - Press `U` on `khoj` to mark it for upgrade
+    - Press `x` to execute the marked actions
+  - Method 2
+    - Run `M-x package-refresh-content`
+    - Run `M-x package-reinstall khoj`
+
+- For `khoj.el` from Straight
+  - Run `M-x straight-pull-package khoj`
