@@ -53,7 +53,7 @@ jobs:
           rm -rf dist
           python -m build
           twine check dist/*
-          twine upload dist/*
+          twine upload --verbose dist/*
 
       - name: Publish Master to PyPI
         if: github.ref == 'refs/heads/master'
@@ -72,7 +72,7 @@ jobs:
           rm -rf dist
           python -m build
           twine check dist/*
-          twine upload dist/*
+          twine upload --verbose dist/*
 
       - name: Publish PR to Test PyPI
         if: github.event_name == 'pull_request'
@@ -92,4 +92,4 @@ jobs:
           rm -rf dist
           python -m build
           twine check dist/*
-          twine upload -r testpypi dist/*
+          twine upload -r testpypi --verbose dist/*
