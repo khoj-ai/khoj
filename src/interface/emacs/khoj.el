@@ -114,9 +114,9 @@ NO-PAGING FILTER))
        "C-x M  | music\n"))))
 
 (defvar khoj--rerank nil "Track when re-rank of results triggered.")
-(defun khoj--search-markdown () "Set search-type to 'markdown'." (interactive) (setq khoj--search-type "markdown"))
-(defun khoj--search-org () "Set search-type to 'org-mode'." (interactive) (setq khoj--search-type "org"))
-(defun khoj--search-ledger () "Set search-type to 'ledger'." (interactive) (setq khoj--search-type "ledger"))
+(defun khoj--search-markdown () "Set search-type to `markdown'." (interactive) (setq khoj--search-type "markdown"))
+(defun khoj--search-org () "Set search-type to `org-mode'." (interactive) (setq khoj--search-type "org"))
+(defun khoj--search-ledger () "Set search-type to `ledger'." (interactive) (setq khoj--search-type "ledger"))
 (defun khoj--search-images () "Set search-type to image." (interactive) (setq khoj--search-type "image"))
 (defun khoj--search-music () "Set search-type to music." (interactive) (setq khoj--search-type "music"))
 (defun khoj--improve-rank () "Use cross-encoder to rerank search results." (interactive) (khoj--incremental-search t))
@@ -164,7 +164,7 @@ Use `which-key` if available, else display simple message in echo area"
             json-response))))
 
 (defun khoj--extract-entries-as-org (json-response query)
-  "Convert JSON-RESPONSE, QUERY from API to 'org-mode' entries."
+  "Convert JSON-RESPONSE, QUERY from API to `org-mode' entries."
   ;; remove leading (, ) or SPC from extracted entries string
   (replace-regexp-in-string
    "^[\(\) ]" ""
