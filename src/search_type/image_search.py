@@ -36,7 +36,7 @@ def initialize_model(search_config: ImageSearchConfig):
     encoder = load_model(
         model_dir  = search_config.model_directory,
         model_name = search_config.encoder,
-        model_type = SentenceTransformer)
+        model_type = search_config.encoder_type or SentenceTransformer)
 
     return encoder
 

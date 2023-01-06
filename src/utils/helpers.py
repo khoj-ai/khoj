@@ -1,5 +1,6 @@
 # Standard Packages
 from pathlib import Path
+from importlib import import_module
 import sys
 from os.path import join
 from collections import OrderedDict
@@ -44,17 +45,18 @@ def merge_dicts(priority_dict: dict, default_dict: dict):
     return merged_dict
 
 
-def load_model(model_name, model_dir, model_type, device:str=None):
+def load_model(model_name: str, model_type, model_dir=None, device:str=None):
     "Load model from disk or huggingface"
     # Construct model path
     model_path = join(model_dir, model_name.replace("/", "_")) if model_dir is not None else None
 
     # Load model from model_path if it exists there
+    model_type_class = get_class_by_name(model_type) if isinstance(model_type, str) else model_type
     if model_path is not None and resolve_absolute_path(model_path).exists():
-        model = model_type(get_absolute_path(model_path), device=device)
+        model = model_type_class(get_absolute_path(model_path), device=device)
     # Else load the model from the model_name
     else:
-        model = model_type(model_name, device=device)
+        model = model_type_class(model_name, device=device)
         if model_path is not None:
             model.save(model_path)
 
@@ -64,6 +66,12 @@ def load_model(model_name, model_dir, model_type, device:str=None):
 def is_pyinstaller_app():
     "Returns true if the app is running from Native GUI created by PyInstaller"
     return getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
+
+
+def get_class_by_name(name: str) -> object:
+    "Returns the class object from name string"
+    module_name, class_name = name.rsplit('.', 1)
+    return getattr(import_module(module_name), class_name)
 
 
 class LRU(OrderedDict):

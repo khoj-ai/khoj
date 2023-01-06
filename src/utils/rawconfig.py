@@ -50,10 +50,12 @@ class ContentConfig(ConfigBase):
 class TextSearchConfig(ConfigBase):
     encoder: str
     cross_encoder: str
+    encoder_type: Optional[str]
     model_directory: Optional[Path]
 
 class ImageSearchConfig(ConfigBase):
     encoder: str
+    encoder_type: Optional[str]
     model_directory: Optional[Path]
 
 class SearchConfig(ConfigBase):

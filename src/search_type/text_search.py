@@ -37,7 +37,7 @@ def initialize_model(search_config: TextSearchConfig):
     bi_encoder = load_model(
         model_dir  = search_config.model_directory,
         model_name = search_config.encoder,
-        model_type = SentenceTransformer,
+        model_type = search_config.encoder_type or SentenceTransformer,
         device=f'{state.device}')
 
     # The cross-encoder re-ranks the results to improve quality
