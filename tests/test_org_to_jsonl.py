@@ -5,6 +5,7 @@ import json
 from src.processor.org_mode.org_to_jsonl import OrgToJsonl
 from src.processor.text_to_jsonl import TextToJsonl
 from src.utils.helpers import is_none_or_empty
+from src.utils.rawconfig import Entry
 
 
 def test_configure_heading_entry_to_jsonl(tmp_path):
@@ -59,6 +60,24 @@ def test_entry_split_when_exceeds_max_words(tmp_path):
 
     # Assert
     assert len(jsonl_data) == 2
+
+
+def test_entry_split_drops_large_words(tmp_path):
+    "Ensure entries drops words larger than specified max word length from compiled version."
+    # Arrange
+    entry_text = f'''*** Heading
+    \t\r
+    Body Line 1
+    '''
+    entry = Entry(raw=entry_text, compiled=entry_text)
+
+    # Act
+    # Split entry by max words and drop words larger than max word length
+    processed_entry = TextToJsonl.split_entries_by_max_tokens([entry], max_word_length = 5)[0]
+
+    # Assert
+    # "Heading" dropped from compiled version because its over the set max word limit
+    assert len(processed_entry.compiled.split()) == len(entry_text.split()) - 1
 
 
 def test_entry_with_body_to_jsonl(tmp_path):
