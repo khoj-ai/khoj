@@ -34,13 +34,13 @@ def configure_server(args, required=False):
     else:
         state.config = args.config
 
+    # Initialize Processor from Config
+    state.processor_config = configure_processor(args.config.processor)
+
     # Initialize the search model from Config
     state.search_index_lock.acquire()
     state.model = configure_search(state.model, state.config, args.regenerate)
     state.search_index_lock.release()
-
-    # Initialize Processor from Config
-    state.processor_config = configure_processor(args.config.processor)
 
 
 @schedule.repeat(schedule.every(1).hour)
