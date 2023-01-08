@@ -19,9 +19,19 @@ def summarize(text, summary_type, user_query=None, api_key=None, temperature=0.5
 
     # Setup Prompt based on Summary Type
     if summary_type == "chat":
-        prompt = f"You are an AI. Summarize the conversation below from your perspective:\n\n{text}\n\nSummarize the conversation from the AI's first-person perspective:"
+        prompt = f'''
+You are an AI. Summarize the conversation below from your perspective:
+
+{text}
+
+Summarize the conversation from the AI's first-person perspective:'''
     elif summary_type == "notes":
-        prompt = f"Summarize the below notes about {user_query}:\n\n{text}\n\nSummarize the notes in second person perspective and use past tense:"
+        prompt = f'''
+Summarize the below notes about {user_query}:
+
+{text}
+
+Summarize the notes in second person perspective and use past tense:'''
 
     # Get Response from GPT
     response = openai.Completion.create(
