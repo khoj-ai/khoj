@@ -24,11 +24,13 @@ class TextToJsonl(ABC):
         return lambda entry: hashlib.md5(bytes(getattr(entry, key), encoding='utf-8')).hexdigest()
 
     @staticmethod
-    def split_entries_by_max_tokens(entries: list[Entry], max_tokens: int=256) -> list[Entry]:
+    def split_entries_by_max_tokens(entries: list[Entry], max_tokens: int=256, max_word_length: int=500) -> list[Entry]:
         "Split entries if compiled entry length exceeds the max tokens supported by the ML model."
         chunked_entries: list[Entry] = []
         for entry in entries:
             compiled_entry_words = entry.compiled.split()
+            # Drop long words instead of having entry truncated to maintain quality of entry processed by models
+            compiled_entry_words = [word for word in compiled_entry_words if len(word) <= max_word_length]
             for chunk_index in range(0, len(compiled_entry_words), max_tokens):
                 compiled_entry_words_chunk = compiled_entry_words[chunk_index:chunk_index + max_tokens]
                 compiled_entry_chunk = ' '.join(compiled_entry_words_chunk)

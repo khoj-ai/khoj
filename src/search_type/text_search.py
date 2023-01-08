@@ -27,17 +27,18 @@ def initialize_model(search_config: TextSearchConfig):
     # Number of entries we want to retrieve with the bi-encoder
     top_k = 15
 
-    # Convert model directory to absolute path
-    search_config.model_directory = resolve_absolute_path(search_config.model_directory)
-
-    # Create model directory if it doesn't exist
-    search_config.model_directory.parent.mkdir(parents=True, exist_ok=True)
+    # If model directory is configured
+    if search_config.model_directory:
+        # Convert model directory to absolute path
+        search_config.model_directory = resolve_absolute_path(search_config.model_directory)
+        # Create model directory if it doesn't exist
+        search_config.model_directory.parent.mkdir(parents=True, exist_ok=True)
 
     # The bi-encoder encodes all entries to use for semantic search
     bi_encoder = load_model(
         model_dir  = search_config.model_directory,
         model_name = search_config.encoder,
-        model_type = SentenceTransformer,
+        model_type = search_config.encoder_type or SentenceTransformer,
         device=f'{state.device}')
 
     # The cross-encoder re-ranks the results to improve quality
