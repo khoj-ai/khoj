@@ -45,8 +45,8 @@ def chat(q: str):
 
     if get_from_dict(metadata, "intent", "memory-type") == "notes":
         query = get_from_dict(metadata, "intent", "query")
-        result_list = search(query, n=1, t=SearchType.Org)
-        collated_result = "\n".join([item["entry"] for item in result_list])
+        result_list = search(query, n=1, t=SearchType.Org, r=True)
+        collated_result = "\n".join([item.entry for item in result_list])
         logger.debug(f'Semantically Similar Notes:\n{collated_result}')
         gpt_response = summarize(collated_result, summary_type="notes", user_query=q, api_key=state.processor_config.conversation.openai_api_key)
     else:
