@@ -52,4 +52,5 @@ search-type:
 processor:
   conversation:
     openai-api-key: # "YOUR_OPENAI_API_KEY"
+    model: "text-davinci-003"
     conversation-logfile: "~/.khoj/processor/conversation/conversation_logs.json"

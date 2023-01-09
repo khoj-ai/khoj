@@ -66,6 +66,7 @@ class SearchConfig(ConfigBase):
 class ConversationProcessorConfig(ConfigBase):
     openai_api_key: str
     conversation_logfile: Path
+    model: Optional[str] = "text-davinci-003"
 
 class ProcessorConfig(ConfigBase):
     conversation: Optional[ConversationProcessorConfig]

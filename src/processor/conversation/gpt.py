@@ -10,7 +10,7 @@ import openai
 from src.utils.constants import empty_escape_sequences
 
 
-def summarize(text, summary_type, user_query=None, api_key=None, temperature=0.5, max_tokens=100):
+def summarize(text, summary_type, model, user_query=None, api_key=None, temperature=0.5, max_tokens=100):
     """
     Summarize user input using OpenAI's GPT
     """
@@ -35,8 +35,8 @@ Summarize the notes in second person perspective and use past tense:'''
 
     # Get Response from GPT
     response = openai.Completion.create(
-        engine="davinci-instruct-beta-v3",
         prompt=prompt,
+        model=model,
         temperature=temperature,
         max_tokens=max_tokens,
         top_p=1,
@@ -49,7 +49,7 @@ Summarize the notes in second person perspective and use past tense:'''
     return str(story).replace("\n\n", "")
 
 
-def extract_search_type(text, api_key=None, temperature=0.5, max_tokens=100, verbose=0):
+def extract_search_type(text, model, api_key=None, temperature=0.5, max_tokens=100, verbose=0):
     """
     Extract search type from user query using OpenAI's GPT
     """
@@ -84,8 +84,8 @@ A:{ "search-type": "notes" }'''
 
     # Get Response from GPT
     response = openai.Completion.create(
-        engine="davinci",
         prompt=prompt,
+        model=model,
         temperature=temperature,
         max_tokens=max_tokens,
         top_p=1,
@@ -98,7 +98,7 @@ A:{ "search-type": "notes" }'''
     return json.loads(story.strip(empty_escape_sequences))
 
 
-def understand(text, api_key=None, temperature=0.5, max_tokens=100, verbose=0):
+def understand(text, model, api_key=None, temperature=0.5, max_tokens=100, verbose=0):
     """
     Understand user input using OpenAI's GPT
     """
@@ -155,8 +155,8 @@ A: { "intent": {"type": "generate", "activity": "chat", "query": "Can you dance 
 
     # Get Response from GPT
     response = openai.Completion.create(
-        engine="davinci",
         prompt=prompt,
+        model=model,
         temperature=temperature,
         max_tokens=max_tokens,
         top_p=1,
@@ -169,7 +169,7 @@ A: { "intent": {"type": "generate", "activity": "chat", "query": "Can you dance 
     return json.loads(story.strip(empty_escape_sequences))
 
 
-def converse(text, conversation_history=None, api_key=None, temperature=0.9, max_tokens=150):
+def converse(text, model, conversation_history=None, api_key=None, temperature=0.9, max_tokens=150):
     """
     Converse with user using OpenAI's GPT
     """
@@ -189,8 +189,8 @@ The following is a conversation with an AI assistant. The assistant is helpful, 
 
     # Get Response from GPT
     response = openai.Completion.create(
-        engine="davinci",
         prompt=prompt,
+        model=model,
         temperature=temperature,
         max_tokens=max_tokens,
         top_p=1,

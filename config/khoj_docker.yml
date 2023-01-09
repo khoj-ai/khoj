@@ -51,4 +51,5 @@ search-type:
 processor:
   #conversation:
   #  openai-api-key: null
+  #  model: "text-davinci-003"
   #  conversation-logfile: "/data/embeddings/conversation_logs.json"

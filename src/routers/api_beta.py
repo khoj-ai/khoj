@@ -38,9 +38,11 @@ def chat(q: str):
     # Load Conversation History
     chat_session = state.processor_config.conversation.chat_session
     meta_log = state.processor_config.conversation.meta_log
+    model = state.processor_config.conversation.model
+    api_key = state.processor_config.conversation.openai_api_key
 
     # Converse with OpenAI GPT
-    metadata = understand(q, api_key=state.processor_config.conversation.openai_api_key, verbose=state.verbose)
+    metadata = understand(q, model=model, api_key=api_key, verbose=state.verbose)
     logger.debug(f'Understood: {get_from_dict(metadata, "intent")}')
 
     if get_from_dict(metadata, "intent", "memory-type") == "notes":
@@ -48,9 +50,9 @@ def chat(q: str):
         result_list = search(query, n=1, t=SearchType.Org, r=True)
         collated_result = "\n".join([item.entry for item in result_list])
         logger.debug(f'Semantically Similar Notes:\n{collated_result}')
-        gpt_response = summarize(collated_result, summary_type="notes", user_query=q, api_key=state.processor_config.conversation.openai_api_key)
+        gpt_response = summarize(collated_result, summary_type="notes", user_query=q, model=model, api_key=api_key)
     else:
-        gpt_response = converse(q, chat_session, api_key=state.processor_config.conversation.openai_api_key)
+        gpt_response = converse(q, model, chat_session, api_key=api_key)
 
     # Update Conversation History
     state.processor_config.conversation.chat_session = message_to_prompt(q, chat_session, gpt_message=gpt_response)
@@ -70,8 +72,9 @@ def shutdown_event():
     chat_session = state.processor_config.conversation.chat_session
     openai_api_key = state.processor_config.conversation.openai_api_key
     conversation_log = state.processor_config.conversation.meta_log
+    model = state.processor_config.conversation.model
     session = {
-        "summary": summarize(chat_session, summary_type="chat", api_key=openai_api_key),
+        "summary": summarize(chat_session, summary_type="chat", model=model, api_key=openai_api_key),
         "session-start": conversation_log.get("session", [{"session-end": 0}])[-1]["session-end"],
         "session-end": len(conversation_log["chat"])
         }
