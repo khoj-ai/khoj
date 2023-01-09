@@ -17,7 +17,7 @@ content-type:
 
   ledger:
     input-files: null
-    input-filter: [/data/ledger/*.beancount]
+    input-filter: ["/data/ledger/*.beancount"]
     compressed-jsonl: /data/embeddings/transactions.jsonl.gz
     embeddings-file: /data/embeddings/transaction_embeddings.pt
 
