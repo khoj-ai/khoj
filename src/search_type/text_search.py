@@ -69,7 +69,7 @@ def compute_embeddings(entries_with_ids: list[tuple[int, Entry]], bi_encoder, em
         if new_entries:
             new_embeddings = bi_encoder.encode(new_entries, convert_to_tensor=True, device=state.device, show_progress_bar=True)
             existing_entry_ids = [id for id, _ in entries_with_ids if id != -1]
-            existing_embeddings = torch.index_select(corpus_embeddings, 0, torch.tensor(existing_entry_ids, device=state.device)) if existing_entry_ids else torch.Tensor(device=state.device)
+            existing_embeddings = torch.index_select(corpus_embeddings, 0, torch.tensor(existing_entry_ids, device=state.device)) if existing_entry_ids else torch.tensor([], device=state.device)
             corpus_embeddings = torch.cat([existing_embeddings, new_embeddings], dim=0)
     # Else compute the corpus embeddings from scratch
     else:
