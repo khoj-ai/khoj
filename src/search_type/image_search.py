@@ -193,16 +193,6 @@ def query(raw_query, count, model: ImageSearchModel):
     return sorted(hits, key=lambda hit: hit["score"], reverse=True)
 
 
-def render_results(hits, image_names, image_directory, count):
-    image_directory = resolve_absolute_path(image_directory, strict=True)
-
-    for hit in hits[:count]:
-        print(image_names[hit['corpus_id']])
-        image_path = image_directory.joinpath(image_names[hit['corpus_id']])
-        with Image.open(image_path) as img:
-            img.show()
-
-
 def collate_results(hits, image_names, output_directory, image_files_url, count=5) -> list[SearchResponse]:
     results: list[SearchResponse] = []
 

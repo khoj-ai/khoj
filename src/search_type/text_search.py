@@ -125,24 +125,6 @@ def query(raw_query: str, model: TextSearchModel, rank_results: bool = False):
     return hits, entries
 
 
-def render_results(hits, entries: list[Entry], count=5, display_biencoder_results=False):
-    "Render the Results returned by Search for the Query"
-    if display_biencoder_results:
-        # Output of top hits from bi-encoder
-        print("\n-------------------------\n")
-        print(f"Top-{count} Bi-Encoder Retrieval hits")
-        hits = sorted(hits, key=lambda x: x['score'], reverse=True)
-        for hit in hits[0:count]:
-            print(f"Score: {hit['score']:.3f}\n------------\n{entries[hit['corpus_id']].compiled}")
-
-    # Output of top hits from re-ranker
-    print("\n-------------------------\n")
-    print(f"Top-{count} Cross-Encoder Re-ranker hits")
-    hits = sorted(hits, key=lambda x: x['cross-score'], reverse=True)
-    for hit in hits[0:count]:
-        print(f"CrossScore: {hit['cross-score']:.3f}\n-----------------\n{entries[hit['corpus_id']].compiled}")
-
-
 def collate_results(hits, entries: list[Entry], count=5) -> list[SearchResponse]:
     return [SearchResponse.parse_obj(
         {
