@@ -176,16 +176,14 @@ def converse(text, model, conversation_history=None, api_key=None, temperature=0
     # Initialize Variables
     openai.api_key = api_key or os.getenv("OPENAI_API_KEY")
 
-    ai_prompt = "AI:"
-    human_prompt = "Human:"
     conversation_primer = f'''
 The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and a very friendly companion.
 
-{human_prompt} Hello, who are you?
-{ai_prompt} Hi, I am an AI conversational companion created by OpenAI. How can I help you today?'''
+Human: Hello, who are you?
+AI: Hi, I am an AI conversational companion created by OpenAI. How can I help you today?'''
 
     # Setup Prompt with Primer or Conversation History
-    prompt = message_to_prompt(text, conversation_history or conversation_primer, start_sequence=ai_prompt, restart_sequence=human_prompt)
+    prompt = message_to_prompt(text, conversation_history or conversation_primer)
 
     # Get Response from GPT
     response = openai.Completion.create(

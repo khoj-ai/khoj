@@ -4,8 +4,10 @@ import pytest
 # Internal Packages
 from src.processor.conversation.gpt import converse, understand, message_to_prompt
 
-# Input your OpenAI API key to run the tests below
-api_key = None
+
+# Initialize variables for tests
+model = 'text-davinci-003'
+api_key = None  # Input your OpenAI API key to run the tests below
 
 
 # Test
@@ -27,7 +29,7 @@ def test_message_to_understand_prompt():
                     reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys")
 def test_minimal_chat_with_gpt():
     # Act
-    response = converse("What will happen when the stars go out?", api_key=api_key)
+    response = converse("What will happen when the stars go out?", model=model, api_key=api_key)
 
     # Assert
     assert len(response) > 0
@@ -38,13 +40,17 @@ def test_minimal_chat_with_gpt():
                     reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys")
 def test_chat_with_history():
     # Arrange
-    start_sequence="\nAI:"
-    restart_sequence="\nHuman:"
+    ai_prompt="AI:"
+    human_prompt="Human:"
 
-    conversation_primer = f"The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly companion.\n{restart_sequence} Hello, I am testatron. Who are you?{start_sequence} Hi, I am an AI conversational companion created by OpenAI. How can I help you today?"
+    conversation_primer = f'''
+The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly companion.
+
+{human_prompt} Hello, I am Testatron. Who are you?
+{ai_prompt} Hi, I am Khoj, an AI conversational companion created by OpenAI. How can I help you today?'''
 
     # Act
-    response = converse("Can you tell me my name?", conversation_history=conversation_primer, api_key=api_key, temperature=0, max_tokens=50)
+    response = converse("Hi Khoj, What is my name?", model=model, conversation_history=conversation_primer, api_key=api_key, temperature=0, max_tokens=50)
 
     # Assert
     assert len(response) > 0
@@ -56,8 +62,8 @@ def test_chat_with_history():
                     reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys")
 def test_understand_message_using_gpt():
     # Act
-    response = understand("When did I last dine at Subway?", api_key=api_key)
+    response = understand("When did I last dine at Subway?", model=model, api_key=api_key)
 
     # Assert
     assert len(response) > 0
-    assert "remember(\"ledger\", " in response
+    assert response['intent']['memory-type'] == 'ledger'
