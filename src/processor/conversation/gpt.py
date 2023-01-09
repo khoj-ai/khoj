@@ -174,6 +174,7 @@ def converse(text, model, conversation_history=None, api_key=None, temperature=0
     Converse with user using OpenAI's GPT
     """
     # Initialize Variables
+    max_words = 500
     openai.api_key = api_key or os.getenv("OPENAI_API_KEY")
 
     conversation_primer = f'''
@@ -184,6 +185,7 @@ AI: Hi, I am an AI conversational companion created by OpenAI. How can I help yo
 
     # Setup Prompt with Primer or Conversation History
     prompt = message_to_prompt(text, conversation_history or conversation_primer)
+    prompt = ' '.join(prompt.split()[:max_words])
 
     # Get Response from GPT
     response = openai.Completion.create(
