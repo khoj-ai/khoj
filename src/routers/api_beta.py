@@ -23,8 +23,11 @@ logger = logging.getLogger(__name__)
 @api_beta.get('/search')
 def search_beta(q: str, n: Optional[int] = 1):
     # Extract Search Type using GPT
-    metadata = extract_search_type(q, api_key=state.processor_config.conversation.openai_api_key, verbose=state.verbose)
-    search_type = get_from_dict(metadata, "search-type")
+    try:
+        metadata = extract_search_type(q, api_key=state.processor_config.conversation.openai_api_key, verbose=state.verbose)
+        search_type = get_from_dict(metadata, "search-type")
+    except Exception as e:
+        return {'status': 'error', 'result': [str(e)], 'type': None}
 
     # Search
     search_results = search(q, n=n, t=SearchType(search_type))
@@ -43,18 +46,25 @@ def summarize_beta(q: str):
     result_list = search(q, n=1, t=SearchType.Org, r=True)
     collated_result = "\n".join([item.entry for item in result_list])
     logger.debug(f'Semantically Similar Notes:\n{collated_result}')
-    gpt_response = summarize(collated_result, summary_type="notes", user_query=q, model=model, api_key=api_key)
+    try:
+        gpt_response = summarize(collated_result, summary_type="notes", user_query=q, model=model, api_key=api_key)
+        status = 'ok'
+    except Exception as e:
+        gpt_response = str(e)
+        status = 'error'
 
-    return {'status': 'ok', 'response': gpt_response}
+    return {'status': status, 'response': gpt_response}
 
 
 @api_beta.get('/chat')
 def chat(q: str):
+    # Initialize Variables
+    model = state.processor_config.conversation.model
+    api_key = state.processor_config.conversation.openai_api_key
+
     # Load Conversation History
     chat_session = state.processor_config.conversation.chat_session
     meta_log = state.processor_config.conversation.meta_log
-    model = state.processor_config.conversation.model
-    api_key = state.processor_config.conversation.openai_api_key
 
     # Converse with OpenAI GPT
     metadata = understand(q, model=model, api_key=api_key, verbose=state.verbose)
@@ -65,15 +75,25 @@ def chat(q: str):
         result_list = search(query, n=1, t=SearchType.Org, r=True)
         collated_result = "\n".join([item.entry for item in result_list])
         logger.debug(f'Semantically Similar Notes:\n{collated_result}')
-        gpt_response = summarize(collated_result, summary_type="notes", user_query=q, model=model, api_key=api_key)
+        try:
+            gpt_response = summarize(collated_result, summary_type="notes", user_query=q, model=model, api_key=api_key)
+            status = 'ok'
+        except Exception as e:
+            gpt_response = str(e)
+            status = 'error'
     else:
-        gpt_response = converse(q, model, chat_session, api_key=api_key)
+        try:
+            gpt_response = converse(q, model, chat_session, api_key=api_key)
+            status = 'ok'
+        except Exception as e:
+            gpt_response = str(e)
+            status = 'error'
 
     # Update Conversation History
     state.processor_config.conversation.chat_session = message_to_prompt(q, chat_session, gpt_message=gpt_response)
     state.processor_config.conversation.meta_log['chat'] = message_to_log(q, metadata, gpt_response, meta_log.get('chat', []))
 
-    return {'status': 'ok', 'response': gpt_response}
+    return {'status': status, 'response': gpt_response}
 
 
 @api_beta.on_event('shutdown')
