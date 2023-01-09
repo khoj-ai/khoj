@@ -1,33 +1,33 @@
 content-type:
   org:
     input-files:  # ["/path/to/org-file.org"]  REQUIRED IF input-filter IS NOT SET OR
-    input-filter: # /path/to/org/*.org         REQUIRED IF input-files IS NOT SET
+    input-filter: # [/path/to/org/*.org]       REQUIRED IF input-files IS NOT SET
     compressed-jsonl: "~/.khoj/content/org/org.jsonl.gz"
     embeddings-file: "~/.khoj/content/org/org_embeddings.pt"
     index_heading_entries: false  # Set to true to index entries with empty body
 
   markdown:
     input-files:  # ["/path/to/markdown-file.md"]  REQUIRED IF input-filter IS NOT SET OR
-    input-filter: # "/path/to/markdown/*.md"       REQUIRED IF input-files IS NOT SET
+    input-filter: # ["/path/to/markdown/*.md"]     REQUIRED IF input-files IS NOT SET
     compressed-jsonl: "~/.khoj/content/markdown/markdown.jsonl.gz"
     embeddings-file: "~/.khoj/content/markdown/markdown_embeddings.pt"
 
   ledger:
     input-files:  # ["/path/to/ledger-file.beancount"]  REQUIRED IF input-filter is not set OR
-    input-filter: # /path/to/ledger/*.beancount         REQUIRED IF input-files is not set
+    input-filter: # [/path/to/ledger/*.beancount]       REQUIRED IF input-files is not set
     compressed-jsonl: "~/.khoj/content/ledger/ledger.jsonl.gz"
     embeddings-file: "~/.khoj/content/ledger/ledger_embeddings.pt"
 
   image:
-    input-directories: # ["/path/to/images/"]   REQUIRED IF input-filter IS NOT SET OR
-    input-filter:      # /path/to/images/*.jpg  REQUIRED IF input-directories IS NOT SET
+    input-directories: # ["/path/to/images/"]     REQUIRED IF input-filter IS NOT SET OR
+    input-filter:      # [/path/to/images/*.jpg]  REQUIRED IF input-directories IS NOT SET
     embeddings-file: "~/.khoj/content/image/image_embeddings.pt"
     batch-size: 50
     use-xmp-metadata: false
 
   music:
-    input-files:  # ["/path/to/music-file.org"] REQUIRED IF input-filter IS NOT SET OR
-    input-filter: # /path/to/music/*.org        REQUIRED IF input-files IS NOT SET
+    input-files:  # ["/path/to/music-file.org"]   REQUIRED IF input-filter IS NOT SET OR
+    input-filter: # [/path/to/music/*.org]        REQUIRED IF input-files IS NOT SET
     compressed-jsonl: "~/.khoj/content/music/music.jsonl.gz"
     embeddings-file: "~/.khoj/content/music/music_embeddings.pt"
 
