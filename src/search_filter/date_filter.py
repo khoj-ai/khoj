@@ -12,7 +12,7 @@ import dateparser as dtparse
 
 # Internal Packages
 from src.search_filter.base_filter import BaseFilter
-from src.utils.helpers import LRU
+from src.utils.helpers import LRU, timer
 
 
 logger = logging.getLogger(__name__)
@@ -34,19 +34,16 @@ class DateFilter(BaseFilter):
 
 
     def load(self, entries, *args, **kwargs):
-        start = time.time()
-        for id, entry in enumerate(entries):
-            # Extract dates from entry
-            for date_in_entry_string in re.findall(r'\d{4}-\d{2}-\d{2}', getattr(entry, self.entry_key)):
-                # Convert date string in entry to unix timestamp
-                try:
-                    date_in_entry = datetime.strptime(date_in_entry_string, '%Y-%m-%d').timestamp()
-                except ValueError:
-                    continue
-                self.date_to_entry_ids[date_in_entry].add(id)
-        end = time.time()
-        logger.debug(f"Created date filter index: {end - start} seconds")
-
+        with timer("Created date filter index", logger):
+            for id, entry in enumerate(entries):
+                # Extract dates from entry
+                for date_in_entry_string in re.findall(r'\d{4}-\d{2}-\d{2}', getattr(entry, self.entry_key)):
+                    # Convert date string in entry to unix timestamp
+                    try:
+                        date_in_entry = datetime.strptime(date_in_entry_string, '%Y-%m-%d').timestamp()
+                    except ValueError:
+                        continue
+                    self.date_to_entry_ids[date_in_entry].add(id)
 
     def can_filter(self, raw_query):
         "Check if query contains date filters"
@@ -56,10 +53,8 @@ class DateFilter(BaseFilter):
     def apply(self, query, entries):
         "Find entries containing any dates that fall within date range specified in query"
         # extract date range specified in date filter of query
-        start = time.time()
-        query_daterange = self.extract_date_range(query)
-        end = time.time()
-        logger.debug(f"Extract date range to filter from query: {end - start} seconds")
+        with timer("Extract date range to filter from query", logger):
+            query_daterange = self.extract_date_range(query)
 
         # if no date in query, return all entries
         if query_daterange is None:
@@ -80,14 +75,12 @@ class DateFilter(BaseFilter):
             self.load(entries)
 
         # find entries containing any dates that fall with date range specified in query
-        start = time.time()
-        entries_to_include = set()
-        for date_in_entry in self.date_to_entry_ids.keys():
-            # Check if date in entry is within date range specified in query
-            if query_daterange[0] <= date_in_entry < query_daterange[1]:
-                entries_to_include |= self.date_to_entry_ids[date_in_entry]
-        end = time.time()
-        logger.debug(f"Mark entries satisfying filter: {end - start} seconds")
+        with timer("Mark entries satisfying filter", logger):
+            entries_to_include = set()
+            for date_in_entry in self.date_to_entry_ids.keys():
+                # Check if date in entry is within date range specified in query
+                if query_daterange[0] <= date_in_entry < query_daterange[1]:
+                    entries_to_include |= self.date_to_entry_ids[date_in_entry]
 
         # cache results
         self.cache[cache_key] = entries_to_include

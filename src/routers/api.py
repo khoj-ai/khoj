@@ -10,6 +10,7 @@ from fastapi import APIRouter
 # Internal Packages
 from src.configure import configure_processor, configure_search
 from src.search_type import image_search, text_search
+from src.utils.helpers import timer
 from src.utils.rawconfig import FullConfig, SearchResponse
 from src.utils.config import SearchType
 from src.utils import state, constants
@@ -47,7 +48,6 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
     # initialize variables
     user_query = q.strip()
     results_count = n
-    query_start, query_end, collate_start, collate_end = None, None, None, None
 
     # return cached results, if available
     query_cache_key = f'{user_query}-{n}-{t}-{r}'
@@ -57,72 +57,57 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
 
     if (t == SearchType.Org or t == None) and state.model.orgmode_search:
         # query org-mode notes
-        query_start = time.time()
-        hits, entries = text_search.query(user_query, state.model.orgmode_search, rank_results=r)
-        query_end = time.time()
+        with timer("Query took", logger):
+            hits, entries = text_search.query(user_query, state.model.orgmode_search, rank_results=r)
 
         # collate and return results
-        collate_start = time.time()
-        results = text_search.collate_results(hits, entries, results_count)
-        collate_end = time.time()
+        with timer("Collating results took", logger):
+            results = text_search.collate_results(hits, entries, results_count)
 
     if (t == SearchType.Music or t == None) and state.model.music_search:
         # query music library
-        query_start = time.time()
-        hits, entries = text_search.query(user_query, state.model.music_search, rank_results=r)
-        query_end = time.time()
+        with timer("Query took", logger):
+            hits, entries = text_search.query(user_query, state.model.music_search, rank_results=r)
 
         # collate and return results
-        collate_start = time.time()
-        results = text_search.collate_results(hits, entries, results_count)
-        collate_end = time.time()
+        with timer("Collating results took", logger):
+            results = text_search.collate_results(hits, entries, results_count)
 
     if (t == SearchType.Markdown or t == None) and state.model.markdown_search:
         # query markdown files
-        query_start = time.time()
-        hits, entries = text_search.query(user_query, state.model.markdown_search, rank_results=r)
-        query_end = time.time()
+        with timer("Query took", logger):
+            hits, entries = text_search.query(user_query, state.model.markdown_search, rank_results=r)
 
         # collate and return results
-        collate_start = time.time()
-        results = text_search.collate_results(hits, entries, results_count)
-        collate_end = time.time()
+        with timer("Collating results took", logger):
+            results = text_search.collate_results(hits, entries, results_count)
 
     if (t == SearchType.Ledger or t == None) and state.model.ledger_search:
         # query transactions
-        query_start = time.time()
-        hits, entries = text_search.query(user_query, state.model.ledger_search, rank_results=r)
-        query_end = time.time()
+        with timer("Query took", logger):
+            hits, entries = text_search.query(user_query, state.model.ledger_search, rank_results=r)
 
         # collate and return results
-        collate_start = time.time()
-        results = text_search.collate_results(hits, entries, results_count)
-        collate_end = time.time()
+        with timer("Collating results took", logger):
+            results = text_search.collate_results(hits, entries, results_count)
 
     if (t == SearchType.Image or t == None) and state.model.image_search:
         # query images
-        query_start = time.time()
-        hits = image_search.query(user_query, results_count, state.model.image_search)
-        output_directory = constants.web_directory / 'images'
-        query_end = time.time()
+        with timer("Query took", logger):
+            hits = image_search.query(user_query, results_count, state.model.image_search)
+            output_directory = constants.web_directory / 'images'
 
         # collate and return results
-        collate_start = time.time()
-        results = image_search.collate_results(
-            hits,
-            image_names=state.model.image_search.image_names,
-            output_directory=output_directory,
-            image_files_url='/static/images',
-            count=results_count)
-        collate_end = time.time()
+        with timer("Collating results took", logger):
+            results = image_search.collate_results(
+                hits,
+                image_names=state.model.image_search.image_names,
+                output_directory=output_directory,
+                image_files_url='/static/images',
+                count=results_count)
 
     # Cache results
     state.query_cache[query_cache_key] = results
-
-    if query_start and query_end:
-        logger.debug(f"Query took {query_end - query_start:.3f} seconds")
-    if collate_start and collate_end:
-        logger.debug(f"Collating results took {collate_end - collate_start:.3f} seconds")
 
     return results
 

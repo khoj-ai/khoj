@@ -6,7 +6,7 @@ import time
 
 # Internal Packages
 from src.processor.text_to_jsonl import TextToJsonl
-from src.utils.helpers import get_absolute_path, is_none_or_empty
+from src.utils.helpers import get_absolute_path, is_none_or_empty, timer
 from src.utils.constants import empty_escape_sequences
 from src.utils.jsonl import dump_jsonl, compress_jsonl_data
 from src.utils.rawconfig import Entry
@@ -30,38 +30,30 @@ class BeancountToJsonl(TextToJsonl):
         beancount_files = BeancountToJsonl.get_beancount_files(beancount_files, beancount_file_filter)
 
         # Extract Entries from specified Beancount files
-        start = time.time()
-        current_entries = BeancountToJsonl.convert_transactions_to_maps(*BeancountToJsonl.extract_beancount_transactions(beancount_files))
-        end = time.time()
-        logger.debug(f"Parse transactions from Beancount files into dictionaries: {end - start} seconds")
+        with timer("Parse transactions from Beancount files into dictionaries", logger):
+            current_entries = BeancountToJsonl.convert_transactions_to_maps(*BeancountToJsonl.extract_beancount_transactions(beancount_files))
 
         # Split entries by max tokens supported by model
-        start = time.time()
-        current_entries = self.split_entries_by_max_tokens(current_entries, max_tokens=256)
-        end = time.time()
-        logger.debug(f"Split entries by max token size supported by model: {end - start} seconds")
+        with timer("Split entries by max token size supported by model", logger):
+            current_entries = self.split_entries_by_max_tokens(current_entries, max_tokens=256)
 
         # Identify, mark and merge any new entries with previous entries
-        start = time.time()
-        if not previous_entries:
-            entries_with_ids = list(enumerate(current_entries))
-        else:
-            entries_with_ids = self.mark_entries_for_update(current_entries, previous_entries, key='compiled', logger=logger)
-        end = time.time()
-        logger.debug(f"Identify new or updated transaction: {end - start} seconds")
+        with timer("Identify new or updated transaction", logger):
+            if not previous_entries:
+                entries_with_ids = list(enumerate(current_entries))
+            else:
+                entries_with_ids = self.mark_entries_for_update(current_entries, previous_entries, key='compiled', logger=logger)
 
-        # Process Each Entry from All Notes Files
-        start = time.time()
-        entries = list(map(lambda entry: entry[1], entries_with_ids))
-        jsonl_data = BeancountToJsonl.convert_transaction_maps_to_jsonl(entries)
+        with timer("Write transactions to JSONL file", logger):
+            # Process Each Entry from All Notes Files
+            entries = list(map(lambda entry: entry[1], entries_with_ids))
+            jsonl_data = BeancountToJsonl.convert_transaction_maps_to_jsonl(entries)
 
-        # Compress JSONL formatted Data
-        if output_file.suffix == ".gz":
-            compress_jsonl_data(jsonl_data, output_file)
-        elif output_file.suffix == ".jsonl":
-            dump_jsonl(jsonl_data, output_file)
-        end = time.time()
-        logger.debug(f"Write transactions to JSONL file: {end - start} seconds")
+            # Compress JSONL formatted Data
+            if output_file.suffix == ".gz":
+                compress_jsonl_data(jsonl_data, output_file)
+            elif output_file.suffix == ".jsonl":
+                dump_jsonl(jsonl_data, output_file)
 
         return entries_with_ids
 

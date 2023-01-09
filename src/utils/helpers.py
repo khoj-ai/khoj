@@ -2,10 +2,12 @@
 from __future__ import annotations  # to avoid quoting type hints
 import logging
 import sys
+import torch
 from collections import OrderedDict
 from importlib import import_module
 from os.path import join
 from pathlib import Path
+from time import perf_counter
 from typing import Optional, Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -79,6 +81,25 @@ def get_class_by_name(name: str) -> object:
     "Returns the class object from name string"
     module_name, class_name = name.rsplit('.', 1)
     return getattr(import_module(module_name), class_name)
+
+
+class timer:
+    '''Context manager to log time taken for a block of code to run'''
+    def __init__(self, message: str, logger: logging.Logger, device: torch.device = None):
+        self.message = message
+        self.logger = logger
+        self.device = device
+
+    def __enter__(self):
+        self.start = perf_counter()
+        return self
+
+    def __exit__(self, *_):
+        elapsed = perf_counter() - self.start
+        if self.device is None:
+            self.logger.debug(f"{self.message}: {elapsed:.3f} seconds")
+        else:
+            self.logger.debug(f"{self.message}: {elapsed:.3f} seconds on device: {self.device}")
 
 
 class LRU(OrderedDict):

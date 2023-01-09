@@ -13,7 +13,7 @@ from tqdm import trange
 import torch
 
 # Internal Packages
-from src.utils.helpers import get_absolute_path, get_from_dict, resolve_absolute_path, load_model
+from src.utils.helpers import get_absolute_path, get_from_dict, resolve_absolute_path, load_model, timer
 from src.utils.config import ImageSearchModel
 from src.utils.rawconfig import ImageContentConfig, ImageSearchConfig, SearchResponse
 
@@ -147,27 +147,21 @@ def query(raw_query, count, model: ImageSearchModel):
         logger.info(f"Find Images by Text: {query}")
 
     # Now we encode the query (which can either be an image or a text string)
-    start = time.time()
-    query_embedding = model.image_encoder.encode([query], convert_to_tensor=True, show_progress_bar=False)
-    end = time.time()
-    logger.debug(f"Query Encode Time: {end - start:.3f} seconds")
+    with timer("Query Encode Time", logger):
+        query_embedding = model.image_encoder.encode([query], convert_to_tensor=True, show_progress_bar=False)
 
     # Compute top_k ranked images based on cosine-similarity b/w query and all image embeddings.
-    start = time.time()
-    image_hits = {result['corpus_id']: {'image_score': result['score'], 'score': result['score']}
-                  for result
-                  in util.semantic_search(query_embedding, model.image_embeddings, top_k=count)[0]}
-    end = time.time()
-    logger.debug(f"Search Time: {end - start:.3f} seconds")
+    with timer("Search Time", logger):
+        image_hits = {result['corpus_id']: {'image_score': result['score'], 'score': result['score']}
+                    for result
+                    in util.semantic_search(query_embedding, model.image_embeddings, top_k=count)[0]}
 
     # Compute top_k ranked images based on cosine-similarity b/w query and all image metadata embeddings.
     if model.image_metadata_embeddings:
-        start = time.time()
-        metadata_hits = {result['corpus_id']: result['score']
-                         for result
-                         in util.semantic_search(query_embedding, model.image_metadata_embeddings, top_k=count)[0]}
-        end = time.time()
-        logger.debug(f"Metadata Search Time: {end - start:.3f} seconds")
+        with timer("Metadata Search Time", logger):
+            metadata_hits = {result['corpus_id']: result['score']
+                            for result
+                            in util.semantic_search(query_embedding, model.image_metadata_embeddings, top_k=count)[0]}
 
         # Sum metadata, image scores of the highest ranked images
         for corpus_id, score in metadata_hits.items():

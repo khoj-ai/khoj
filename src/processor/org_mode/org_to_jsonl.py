@@ -7,7 +7,7 @@ from typing import Iterable
 # Internal Packages
 from src.processor.org_mode import orgnode
 from src.processor.text_to_jsonl import TextToJsonl
-from src.utils.helpers import get_absolute_path, is_none_or_empty
+from src.utils.helpers import get_absolute_path, is_none_or_empty, timer
 from src.utils.jsonl import dump_jsonl, compress_jsonl_data
 from src.utils.rawconfig import Entry
 from src.utils import state
@@ -29,24 +29,18 @@ class OrgToJsonl(TextToJsonl):
             exit(1)
 
         # Get Org Files to Process
-        start = time.time()
-        org_files = OrgToJsonl.get_org_files(org_files, org_file_filter)
+        with timer("Get org files to process", logger):
+            org_files = OrgToJsonl.get_org_files(org_files, org_file_filter)
 
         # Extract Entries from specified Org files
-        start = time.time()
-        entry_nodes, file_to_entries = self.extract_org_entries(org_files)
-        end = time.time()
-        logger.debug(f"Parse entries from org files into OrgNode objects: {end - start} seconds")
+        with timer("Parse entries from org files into OrgNode objects", logger):
+            entry_nodes, file_to_entries = self.extract_org_entries(org_files)
 
-        start = time.time()
-        current_entries = self.convert_org_nodes_to_entries(entry_nodes, file_to_entries, index_heading_entries)
-        end = time.time()
-        logger.debug(f"Convert OrgNodes into list of entries: {end - start} seconds")
+        with timer("Convert OrgNodes into list of entries", logger):
+            current_entries = self.convert_org_nodes_to_entries(entry_nodes, file_to_entries, index_heading_entries)
 
-        start = time.time()
-        current_entries = self.split_entries_by_max_tokens(current_entries, max_tokens=256)
-        end = time.time()
-        logger.debug(f"Split entries by max token size supported by model: {end - start} seconds")
+        with timer("Split entries by max token size supported by model", logger):
+            current_entries = self.split_entries_by_max_tokens(current_entries, max_tokens=256)
 
         # Identify, mark and merge any new entries with previous entries
         if not previous_entries:
@@ -55,17 +49,15 @@ class OrgToJsonl(TextToJsonl):
             entries_with_ids = self.mark_entries_for_update(current_entries, previous_entries, key='compiled', logger=logger)
 
         # Process Each Entry from All Notes Files
-        start = time.time()
-        entries = map(lambda entry: entry[1], entries_with_ids)
-        jsonl_data = self.convert_org_entries_to_jsonl(entries)
+        with timer("Write org entries to JSONL file", logger):
+            entries = map(lambda entry: entry[1], entries_with_ids)
+            jsonl_data = self.convert_org_entries_to_jsonl(entries)
 
-        # Compress JSONL formatted Data
-        if output_file.suffix == ".gz":
-            compress_jsonl_data(jsonl_data, output_file)
-        elif output_file.suffix == ".jsonl":
-            dump_jsonl(jsonl_data, output_file)
-        end = time.time()
-        logger.debug(f"Write org entries to JSONL file: {end - start} seconds")
+            # Compress JSONL formatted Data
+            if output_file.suffix == ".gz":
+                compress_jsonl_data(jsonl_data, output_file)
+            elif output_file.suffix == ".jsonl":
+                dump_jsonl(jsonl_data, output_file)
 
         return entries_with_ids
 
