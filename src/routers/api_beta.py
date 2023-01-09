@@ -33,6 +33,21 @@ def search_beta(q: str, n: Optional[int] = 1):
     return {'status': 'ok', 'result': search_results, 'type': search_type}
 
 
+@api_beta.get('/summarize')
+def summarize_beta(q: str):
+    # Initialize Variables
+    model = state.processor_config.conversation.model
+    api_key = state.processor_config.conversation.openai_api_key
+
+    # Converse with OpenAI GPT
+    result_list = search(q, n=1, t=SearchType.Org, r=True)
+    collated_result = "\n".join([item.entry for item in result_list])
+    logger.debug(f'Semantically Similar Notes:\n{collated_result}')
+    gpt_response = summarize(collated_result, summary_type="notes", user_query=q, model=model, api_key=api_key)
+
+    return {'status': 'ok', 'response': gpt_response}
+
+
 @api_beta.get('/chat')
 def chat(q: str):
     # Load Conversation History
