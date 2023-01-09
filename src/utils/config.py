@@ -1,15 +1,19 @@
 # System Packages
+from __future__ import annotations  # to avoid quoting type hints
 from enum import Enum
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 # External Packages
 import torch
 
 # Internal Packages
-from src.utils.rawconfig import ConversationProcessorConfig, Entry
-from src.search_filter.base_filter import BaseFilter
-from src.utils.models import BaseEncoder
+if TYPE_CHECKING:
+    from sentence_transformers import CrossEncoder
+    from src.search_filter.base_filter import BaseFilter
+    from src.utils.models import BaseEncoder
+    from src.utils.rawconfig import ConversationProcessorConfig, Entry
 
 
 class SearchType(str, Enum):
@@ -25,7 +29,7 @@ class ProcessorType(str, Enum):
 
 
 class TextSearchModel():
-    def __init__(self, entries: list[Entry], corpus_embeddings: torch.Tensor, bi_encoder: BaseEncoder, cross_encoder, filters: list[BaseFilter], top_k):
+    def __init__(self, entries: list[Entry], corpus_embeddings: torch.Tensor, bi_encoder: BaseEncoder, cross_encoder: CrossEncoder, filters: list[BaseFilter], top_k):
         self.entries = entries
         self.corpus_embeddings = corpus_embeddings
         self.bi_encoder = bi_encoder

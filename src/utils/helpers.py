@@ -1,17 +1,18 @@
 # Standard Packages
-from pathlib import Path
-from importlib import import_module
-import sys
-from os.path import join
-from collections import OrderedDict
-from typing import Optional, Union
+from __future__ import annotations  # to avoid quoting type hints
 import logging
+import sys
+from collections import OrderedDict
+from importlib import import_module
+from os.path import join
+from pathlib import Path
+from typing import Optional, Union, TYPE_CHECKING
 
-# External Packages
-from sentence_transformers import CrossEncoder
-
-# Internal Packages
-from src.utils.models import BaseEncoder
+if TYPE_CHECKING:
+    # External Packages
+    from sentence_transformers import CrossEncoder
+    # Internal Packages
+    from src.utils.models import BaseEncoder
 
 
 def is_none_or_empty(item):
