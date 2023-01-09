@@ -7,6 +7,12 @@ from collections import OrderedDict
 from typing import Optional, Union
 import logging
 
+# External Packages
+from sentence_transformers import CrossEncoder
+
+# Internal Packages
+from src.utils.models import BaseEncoder
+
 
 def is_none_or_empty(item):
     return item == None or (hasattr(item, '__iter__') and len(item) == 0) or item == ''
@@ -45,7 +51,7 @@ def merge_dicts(priority_dict: dict, default_dict: dict):
     return merged_dict
 
 
-def load_model(model_name: str, model_type, model_dir=None, device:str=None):
+def load_model(model_name: str, model_type, model_dir=None, device:str=None) -> Union[BaseEncoder, CrossEncoder]:
     "Load model from disk or huggingface"
     # Construct model path
     model_path = join(model_dir, model_name.replace("/", "_")) if model_dir is not None else None

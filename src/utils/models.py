@@ -1,3 +1,6 @@
+# Standard Packages
+from abc import ABC, abstractmethod
+
 # External Packages
 import openai
 import torch
@@ -7,7 +10,15 @@ from tqdm import trange
 from src.utils.state import processor_config, config_file
 
 
-class OpenAI:
+class BaseEncoder(ABC):
+    @abstractmethod
+    def __init__(self, model_name: str, device: torch.device=None, **kwargs): ...
+
+    @abstractmethod
+    def encode(self, entries: list[str], device:torch.device=None, **kwargs) -> torch.Tensor: ...
+
+
+class OpenAI(BaseEncoder):
     def __init__(self, model_name, device=None):
         self.model_name = model_name
         if not processor_config or not processor_config.conversation or not processor_config.conversation.openai_api_key:
@@ -15,7 +26,7 @@ class OpenAI:
         openai.api_key = processor_config.conversation.openai_api_key
         self.embedding_dimensions = None
 
-    def encode(self, entries: list[str], device=None, **kwargs):
+    def encode(self, entries, device=None, **kwargs):
         embedding_tensors = []
 
         for index in trange(0, len(entries)):

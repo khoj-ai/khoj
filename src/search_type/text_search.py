@@ -13,6 +13,7 @@ from src.search_filter.base_filter import BaseFilter
 from src.utils import state
 from src.utils.helpers import get_absolute_path, is_none_or_empty, resolve_absolute_path, load_model
 from src.utils.config import TextSearchModel
+from src.utils.models import BaseEncoder
 from src.utils.rawconfig import SearchResponse, TextSearchConfig, TextContentConfig, Entry
 from src.utils.jsonl import load_jsonl
 
@@ -56,7 +57,7 @@ def extract_entries(jsonl_file) -> list[Entry]:
     return list(map(Entry.from_dict, load_jsonl(jsonl_file)))
 
 
-def compute_embeddings(entries_with_ids: list[tuple[int, Entry]], bi_encoder, embeddings_file, regenerate=False):
+def compute_embeddings(entries_with_ids: list[tuple[int, Entry]], bi_encoder: BaseEncoder, embeddings_file, regenerate=False):
     "Compute (and Save) Embeddings or Load Pre-Computed Embeddings"
     new_entries = []
     # Load pre-computed embeddings from file if exists and update them if required

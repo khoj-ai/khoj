@@ -9,6 +9,7 @@ import torch
 # Internal Packages
 from src.utils.rawconfig import ConversationProcessorConfig, Entry
 from src.search_filter.base_filter import BaseFilter
+from src.utils.models import BaseEncoder
 
 
 class SearchType(str, Enum):
@@ -24,7 +25,7 @@ class ProcessorType(str, Enum):
 
 
 class TextSearchModel():
-    def __init__(self, entries: list[Entry], corpus_embeddings: torch.Tensor, bi_encoder, cross_encoder, filters: list[BaseFilter], top_k):
+    def __init__(self, entries: list[Entry], corpus_embeddings: torch.Tensor, bi_encoder: BaseEncoder, cross_encoder, filters: list[BaseFilter], top_k):
         self.entries = entries
         self.corpus_embeddings = corpus_embeddings
         self.bi_encoder = bi_encoder
@@ -34,7 +35,7 @@ class TextSearchModel():
 
 
 class ImageSearchModel():
-    def __init__(self, image_names, image_embeddings, image_metadata_embeddings, image_encoder):
+    def __init__(self, image_names, image_embeddings, image_metadata_embeddings, image_encoder: BaseEncoder):
         self.image_encoder = image_encoder
         self.image_names = image_names
         self.image_embeddings = image_embeddings
