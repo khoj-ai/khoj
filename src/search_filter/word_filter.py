@@ -23,7 +23,7 @@ class WordFilter(BaseFilter):
         self.cache = LRU()
 
 
-    def load(self, entries, regenerate=False):
+    def load(self, entries, *args, **kwargs):
         start = time.time()
         self.cache = {}  # Clear cache on filter (re-)load
         entry_splitter = r',|\.| |\]|\[\(|\)|\{|\}|\<|\>|\t|\n|\:|\;|\?|\!|\(|\)|\&|\^|\$|\@|\%|\+|\=|\/|\\|\||\~|\`|\"|\''
@@ -47,20 +47,20 @@ class WordFilter(BaseFilter):
         return len(required_words) != 0 or len(blocked_words) != 0
 
 
-    def apply(self, raw_query, raw_entries):
+    def apply(self, query, entries):
         "Find entries containing required and not blocked words specified in query"
         # Separate natural query from required, blocked words filters
         start = time.time()
 
-        required_words = set([word.lower() for word in re.findall(self.required_regex, raw_query)])
-        blocked_words = set([word.lower() for word in re.findall(self.blocked_regex, raw_query)])
-        query = re.sub(self.blocked_regex, '', re.sub(self.required_regex, '', raw_query)).strip()
+        required_words = set([word.lower() for word in re.findall(self.required_regex, query)])
+        blocked_words = set([word.lower() for word in re.findall(self.blocked_regex, query)])
+        query = re.sub(self.blocked_regex, '', re.sub(self.required_regex, '', query)).strip()
 
         end = time.time()
         logger.debug(f"Extract required, blocked filters from query: {end - start} seconds")
 
         if len(required_words) == 0 and len(blocked_words) == 0:
-            return query, set(range(len(raw_entries)))
+            return query, set(range(len(entries)))
 
         # Return item from cache if exists
         cache_key = tuple(sorted(required_words)), tuple(sorted(blocked_words))
@@ -70,12 +70,12 @@ class WordFilter(BaseFilter):
             return query, included_entry_indices
 
         if not self.word_to_entry_index:
-            self.load(raw_entries, regenerate=False)
+            self.load(entries, regenerate=False)
 
         start = time.time()
 
         # mark entries that contain all required_words for inclusion
-        entries_with_all_required_words = set(range(len(raw_entries)))
+        entries_with_all_required_words = set(range(len(entries)))
         if len(required_words) > 0:
             entries_with_all_required_words = set.intersection(*[self.word_to_entry_index.get(word, set()) for word in required_words])
 

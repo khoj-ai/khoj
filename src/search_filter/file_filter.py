@@ -31,12 +31,12 @@ class FileFilter(BaseFilter):
     def can_filter(self, raw_query):
         return re.search(self.file_filter_regex, raw_query) is not None
 
-    def apply(self, raw_query, raw_entries):
+    def apply(self, query, entries):
         # Extract file filters from raw query
         start = time.time()
-        raw_files_to_search = re.findall(self.file_filter_regex, raw_query)
+        raw_files_to_search = re.findall(self.file_filter_regex, query)
         if not raw_files_to_search:
-            return raw_query, set(range(len(raw_entries)))
+            return query, set(range(len(entries)))
 
         # Convert simple file filters with no path separator into regex
         # e.g. "file:notes.org" -> "file:.*notes.org"
@@ -50,7 +50,7 @@ class FileFilter(BaseFilter):
         logger.debug(f"Extract files_to_search from query: {end - start} seconds")
 
         # Return item from cache if exists
-        query = re.sub(self.file_filter_regex, '', raw_query).strip()
+        query = re.sub(self.file_filter_regex, '', query).strip()
         cache_key = tuple(files_to_search)
         if cache_key in self.cache:
             logger.info(f"Return file filter results from cache")
@@ -58,7 +58,7 @@ class FileFilter(BaseFilter):
             return query, included_entry_indices
 
         if not self.file_to_entry_map:
-            self.load(raw_entries, regenerate=False)
+            self.load(entries, regenerate=False)
 
         # Mark entries that contain any blocked_words for exclusion
         start = time.time()

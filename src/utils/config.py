@@ -3,8 +3,11 @@ from enum import Enum
 from dataclasses import dataclass
 from pathlib import Path
 
+# External Packages
+import torch
+
 # Internal Packages
-from src.utils.rawconfig import ConversationProcessorConfig
+from src.utils.rawconfig import ConversationProcessorConfig, Entry
 from src.search_filter.base_filter import BaseFilter
 
 
@@ -21,7 +24,7 @@ class ProcessorType(str, Enum):
 
 
 class TextSearchModel():
-    def __init__(self, entries, corpus_embeddings, bi_encoder, cross_encoder, filters: list[BaseFilter], top_k):
+    def __init__(self, entries: list[Entry], corpus_embeddings: torch.Tensor, bi_encoder, cross_encoder, filters: list[BaseFilter], top_k):
         self.entries = entries
         self.corpus_embeddings = corpus_embeddings
         self.bi_encoder = bi_encoder

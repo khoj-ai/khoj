@@ -33,7 +33,7 @@ class DateFilter(BaseFilter):
         self.cache = LRU()
 
 
-    def load(self, entries, **_):
+    def load(self, entries, *args, **kwargs):
         start = time.time()
         for id, entry in enumerate(entries):
             # Extract dates from entry
@@ -53,7 +53,7 @@ class DateFilter(BaseFilter):
         return self.extract_date_range(raw_query) is not None
 
 
-    def apply(self, query, raw_entries):
+    def apply(self, query, entries):
         "Find entries containing any dates that fall within date range specified in query"
         # extract date range specified in date filter of query
         start = time.time()
@@ -63,7 +63,7 @@ class DateFilter(BaseFilter):
 
         # if no date in query, return all entries
         if query_daterange is None:
-            return query, set(range(len(raw_entries)))
+            return query, set(range(len(entries)))
 
         # remove date range filter from query
         query = re.sub(rf'\s+{self.date_regex}', ' ', query)
@@ -77,7 +77,7 @@ class DateFilter(BaseFilter):
             return query, entries_to_include
 
         if not self.date_to_entry_ids:
-            self.load(raw_entries)
+            self.load(entries)
 
         # find entries containing any dates that fall with date range specified in query
         start = time.time()
