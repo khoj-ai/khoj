@@ -22,9 +22,13 @@ logger = logging.getLogger(__name__)
 # Create Routes
 @api_beta.get('/search')
 def search_beta(q: str, n: Optional[int] = 1):
+    # Initialize Variables
+    model = state.processor_config.conversation.model
+    api_key = state.processor_config.conversation.openai_api_key
+
     # Extract Search Type using GPT
     try:
-        metadata = extract_search_type(q, api_key=state.processor_config.conversation.openai_api_key, verbose=state.verbose)
+        metadata = extract_search_type(q, model=model, api_key=api_key, verbose=state.verbose)
         search_type = get_from_dict(metadata, "search-type")
     except Exception as e:
         return {'status': 'error', 'result': [str(e)], 'type': None}
