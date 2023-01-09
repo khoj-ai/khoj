@@ -1,4 +1,6 @@
 # External Packages
+from copy import deepcopy
+from pathlib import Path
 import pytest
 
 # Internal Packages
@@ -62,3 +64,24 @@ def content_config(tmp_path_factory, search_config: SearchConfig):
     text_search.setup(OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=False, filters=filters)
 
     return content_config
+
+
+@pytest.fixture(scope='function')
+def new_org_file(content_config: ContentConfig):
+    # Setup
+    new_org_file = Path(content_config.org.input_filter[0]).parent / "new_file.org"
+    new_org_file.touch()
+
+    yield new_org_file
+
+    # Cleanup
+    if new_org_file.exists():
+        new_org_file.unlink()
+
+
+@pytest.fixture(scope='function')
+def org_config_with_only_new_file(content_config: ContentConfig, new_org_file: Path):
+    new_org_config = deepcopy(content_config.org)
+    new_org_config.input_files = [f'{new_org_file}']
+    new_org_config.input_filter = None
+    return new_org_config
