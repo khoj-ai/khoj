@@ -6,12 +6,14 @@ export interface KhojSetting {
     resultsCount: number;
     khojUrl: string;
     obsidianVaultPath: string;
+    connectedToBackend: boolean;
 }
 
 export const DEFAULT_SETTINGS: KhojSetting = {
     resultsCount: 6,
     khojUrl: 'http://localhost:8000',
-    obsidianVaultPath: getVaultAbsolutePath()
+    obsidianVaultPath: getVaultAbsolutePath(),
+    connectedToBackend: false,
 }
 
 export class KhojSettingTab extends PluginSettingTab {
@@ -25,6 +27,13 @@ export class KhojSettingTab extends PluginSettingTab {
     display(): void {
         const { containerEl } = this;
         containerEl.empty();
+
+        // Add notice if unable to connect to khoj backend
+        if (!this.plugin.settings.connectedToBackend) {
+            containerEl.createEl('small', { text: '❗Ensure Khoj backend is running and Khoj URL is correctly set below' });
+        }
+
+        // Add khoj settings configurable from the plugin settings tab
         new Setting(containerEl)
             .setName('Vault Paths')
             .setDesc('The Obsidian Vault to search with Khoj')

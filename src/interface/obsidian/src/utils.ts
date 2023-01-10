@@ -16,13 +16,15 @@ export async function configureKhojBackend(setting: KhojSetting) {
     // Check if khoj backend is configured, show error if backend is not running
     let khoj_already_configured = await request(khojConfigUrl)
         .then(response => {
+            setting.connectedToBackend = true;
             return response !== "null"
         })
         .catch(error => {
-            new Notice(`❗️Ensure Khoj backend is running and Khoj URL is pointing to it in the Khoj plugin settings.\n\n${error}`);
+            setting.connectedToBackend = false;
+            new Notice(`❗️Ensure Khoj backend is running and Khoj URL is pointing to it in the plugin settings.\n\n${error}`);
         })
     // Short-circuit configuring khoj if unable to connect to khoj backend
-    if (khoj_already_configured === null) return;
+    if (!setting.connectedToBackend) return;
 
     // Get current config if khoj backend configured, else get default config from khoj backend
     await request(khoj_already_configured ? khojConfigUrl : `${khojConfigUrl}/default`)
