@@ -67,6 +67,7 @@ export class KhojSettingTab extends PluginSettingTab {
             .setDesc('Manually force Khoj to re-index your Obsidian Vault')
             .addButton(button => button
                 .setButtonText('Update')
+                .setCta()
                 .onClick(async () => {
                     await request(`${this.plugin.settings.khojUrl}/api/update?t=markdown&force=true`);
                 }

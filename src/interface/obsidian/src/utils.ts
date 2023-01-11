@@ -82,7 +82,7 @@ export async function configureKhojBackend(setting: KhojSetting) {
             new Notice(`✅ Successfully Setup Khoj`);
         })
         .catch(error => {
-            new Notice(`❗️Failed to configure Khoj backend. Contact developer on Github. \n\nError: ${error}`);
+            new Notice(`❗️Failed to configure Khoj backend. Contact developer on Github.\n\nError: ${error}`);
         })
 }
 
