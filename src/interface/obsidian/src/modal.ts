@@ -1,6 +1,5 @@
 import { App, SuggestModal, Notice, request, MarkdownRenderer, Instruction, Platform } from 'obsidian';
 import { KhojSetting } from 'src/settings';
-import { getVaultAbsolutePath } from 'src/utils';
 
 export interface SearchResult {
     entry: string;
@@ -36,7 +35,7 @@ export class KhojModal extends SuggestModal<SearchResult> {
                 purpose: 'to open',
             },
             {
-                command: Platform.isMacOS ? 'cmd ↵': 'ctrl ↵',
+                command: Platform.isMacOS ? 'cmd ↵' : 'ctrl ↵',
                 purpose: 'to rerank',
             },
             {
@@ -73,23 +72,24 @@ export class KhojModal extends SuggestModal<SearchResult> {
     }
 
     async onChooseSuggestion(result: SearchResult, _: MouseEvent | KeyboardEvent) {
+        // Get all markdown files in vault
         const mdFiles = this.app.vault.getMarkdownFiles();
-        const vaultPath = getVaultAbsolutePath();
-
-        if (!vaultPath) {
-            new Notice('Khoj: Cannot open file. Make sure we are in a file system vault');
-            return;
-        }
 
         // Find the vault file matching file of result. Open file at result heading
-        mdFiles.forEach((file) => {
-            if (`${vaultPath}/${file.path}` === result.file) {
-                let resultHeading = result.entry.split('\n', 1)[0];
-                let linkToEntry = `${file.path}${resultHeading}`
-                this.app.workspace.openLinkText(linkToEntry, '');
-                console.log(`Link: ${linkToEntry}, File: ${file.path}, Heading: ${resultHeading}`);
-                return
-            }
-        });
+        mdFiles
+            // Sort by descending length of path
+            // This finds longest path match when multiple files have same name
+            .sort((a, b) => b.path.length - a.path.length)
+            .forEach((file) => {
+                // Find best file match across operating systems
+                // E.g Khoj Server on Linux, Obsidian Vault on Android
+                if (result.file.endsWith(file.path)) {
+                    let resultHeading = result.entry.split('\n', 1)[0];
+                    let linkToEntry = `${file.path}${resultHeading}`
+                    this.app.workspace.openLinkText(linkToEntry, '');
+                    console.log(`Link: ${linkToEntry}, File: ${file.path}, Heading: ${resultHeading}`);
+                    return
+                }
+            });
     }
 }
