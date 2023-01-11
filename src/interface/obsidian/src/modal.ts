@@ -1,4 +1,4 @@
-import { App, SuggestModal, Notice, request, MarkdownRenderer } from 'obsidian';
+import { App, SuggestModal, Notice, request, MarkdownRenderer, Instruction, Platform } from 'obsidian';
 import { KhojSetting } from 'src/settings';
 import { getVaultAbsolutePath } from 'src/utils';
 
@@ -27,6 +27,27 @@ export class KhojModal extends SuggestModal<SearchResult> {
             });
             this.rerank = false
         });
+
+        // Add Hints to Modal for available Keybindings
+        const modalInstructions: Instruction[] = [
+            {
+                command: '↑↓',
+                purpose: 'to navigate',
+            },
+            {
+                command: '↵',
+                purpose: 'to open',
+            },
+            {
+                command: Platform.isMacOS ? 'cmd ↵': 'ctrl ↵',
+                purpose: 'to rerank',
+            },
+            {
+                command: 'esc',
+                purpose: 'to dismiss',
+            },
+        ]
+        this.setInstructions(modalInstructions);
     }
 
     async getSuggestions(query: string): Promise<SearchResult[]> {
