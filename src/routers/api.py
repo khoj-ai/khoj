@@ -1,11 +1,11 @@
 # Standard Packages
 import yaml
-import time
 import logging
 from typing import Optional
 
 # External Packages
 from fastapi import APIRouter
+from fastapi import HTTPException
 
 # Internal Packages
 from src.configure import configure_processor, configure_search
@@ -114,12 +114,22 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
 
 @api.get('/update')
 def update(t: Optional[SearchType] = None, force: Optional[bool] = False):
-    state.search_index_lock.acquire()
-    state.model = configure_search(state.model, state.config, regenerate=force, t=t)
-    state.search_index_lock.release()
-    logger.info("Search Index updated via API call")
+    try:
+        state.search_index_lock.acquire()
+        state.model = configure_search(state.model, state.config, regenerate=force, t=t)
+        state.search_index_lock.release()
+    except ValueError as e:
+        logger.error(e)
+        raise HTTPException(status_code=500, detail=str(e))
+    else:
+        logger.info("Search Index updated via API call")
 
-    state.processor_config = configure_processor(state.config.processor)
-    logger.info("Processor reconfigured via API call")
+    try:
+        state.processor_config = configure_processor(state.config.processor)
+    except ValueError as e:
+        logger.error(e)
+        raise HTTPException(status_code=500, detail=str(e))
+    else:
+        logger.info("Processor reconfigured via API call")
 
     return {'status': 'ok', 'message': 'khoj reloaded'}

@@ -1,18 +1,15 @@
-import { App, PluginSettingTab, request, Setting } from 'obsidian';
+import { App, Notice, PluginSettingTab, request, Setting } from 'obsidian';
 import Khoj from 'src/main';
-import { getVaultAbsolutePath } from 'src/utils';
 
 export interface KhojSetting {
     resultsCount: number;
     khojUrl: string;
-    obsidianVaultPath: string;
     connectedToBackend: boolean;
 }
 
 export const DEFAULT_SETTINGS: KhojSetting = {
     resultsCount: 6,
     khojUrl: 'http://localhost:8000',
-    obsidianVaultPath: getVaultAbsolutePath(),
     connectedToBackend: false,
 }
 
@@ -28,49 +25,58 @@ export class KhojSettingTab extends PluginSettingTab {
         const { containerEl } = this;
         containerEl.empty();
 
-        // Add notice if unable to connect to khoj backend
-        if (!this.plugin.settings.connectedToBackend) {
-            containerEl.createEl('small', { text: '❗Ensure Khoj backend is running and Khoj URL is correctly set below' });
-        }
+        // Add notice whether able to connect to khoj backend or not
+        containerEl.createEl('small', { text: this.getBackendStatusMessage() });
 
         // Add khoj settings configurable from the plugin settings tab
-        new Setting(containerEl)
-            .setName('Vault Path')
-            .setDesc('The Obsidian Vault to search with Khoj')
-            .addText(text => text
-                .setValue(`${this.plugin.settings.obsidianVaultPath}`)
-                .onChange(async (value) => {
-                    this.plugin.settings.obsidianVaultPath = value;
-                    await this.plugin.saveSettings();
-                }));
         new Setting(containerEl)
             .setName('Khoj URL')
             .setDesc('The URL of the Khoj backend')
             .addText(text => text
                 .setValue(`${this.plugin.settings.khojUrl}`)
                 .onChange(async (value) => {
-                    this.plugin.settings.khojUrl = value;
-                    await this.plugin.saveSettings();
+                    this.plugin.settings.khojUrl = value.trim();
+                    await this.plugin.saveSettings()
+                    .finally(() => containerEl.firstElementChild?.setText(this.getBackendStatusMessage()));
                 }));
          new Setting(containerEl)
             .setName('Results Count')
             .setDesc('The number of search results to show')
-            .addText(text => text
-                .setPlaceholder('6')
-                .setValue(`${this.plugin.settings.resultsCount}`)
+            .addSlider(slider => slider
+                .setLimits(1, 10, 1)
+                .setValue(this.plugin.settings.resultsCount)
+                .setDynamicTooltip()
                 .onChange(async (value) => {
-                    this.plugin.settings.resultsCount = parseInt(value);
+                    this.plugin.settings.resultsCount = value;
                     await this.plugin.saveSettings();
                 }));
-        new Setting(containerEl)
+        let indexVaultSetting = new Setting(containerEl);
+        indexVaultSetting
             .setName('Index Vault')
             .setDesc('Manually force Khoj to re-index your Obsidian Vault')
             .addButton(button => button
                 .setButtonText('Update')
                 .setCta()
                 .onClick(async () => {
-                    await request(`${this.plugin.settings.khojUrl}/api/update?t=markdown&force=true`);
-                }
-            ));
+                    // Disable button while updating index
+                    button.setButtonText('Updating...');
+                    button.removeCta()
+                    indexVaultSetting = indexVaultSetting.setDisabled(true);
+
+                    await request(`${this.plugin.settings.khojUrl}/api/update?t=markdown&force=true`)
+                    .then(() => new Notice('✅ Updated Khoj index.'));
+
+                    // Re-enable button once index is updated
+                    button.setButtonText('Update');
+                    button.setCta()
+                    indexVaultSetting = indexVaultSetting.setDisabled(false);
+                })
+            );
+    }
+
+    getBackendStatusMessage() {
+        return !this.plugin.settings.connectedToBackend
+        ? '❗Disconnected from Khoj backend. Ensure Khoj backend is running and Khoj URL is correctly set below.'
+        : '✅ Connected to Khoj backend.';
     }
 }
