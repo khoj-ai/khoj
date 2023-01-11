@@ -10,7 +10,7 @@ export function getVaultAbsolutePath(): string {
 }
 
 export async function configureKhojBackend(setting: KhojSetting, notify: boolean = true) {
-    let mdInVault = `${setting.obsidianVaultPath}/**/*.md`;
+    let mdInVault = `${getVaultAbsolutePath()}/**/*.md`;
     let khojConfigUrl = `${setting.khojUrl}/api/config/data`;
 
     // Check if khoj backend is configured, show error if backend is not running
@@ -34,7 +34,7 @@ export async function configureKhojBackend(setting: KhojSetting, notify: boolean
             // If khoj backend not configured yet
             if (!khoj_already_configured) {
                 // Create khoj content-type config with only markdown configured
-                let khojObsidianPluginPath = `${setting.obsidianVaultPath}/${this.app.vault.configDir}/plugins/khoj/`;
+                let khojObsidianPluginPath = `${getVaultAbsolutePath()}/${this.app.vault.configDir}/plugins/khoj/`;
                 data["content-type"] = {
                     "markdown": {
                         "input-filter": [mdInVault],
@@ -55,7 +55,7 @@ export async function configureKhojBackend(setting: KhojSetting, notify: boolean
             else if (!data["content-type"]["markdown"]) {
                 // Add markdown config to khoj content-type config
                 // Set markdown config to index markdown files in configured obsidian vault
-                let khojObsidianPluginPath = `${setting.obsidianVaultPath}/${this.app.vault.configDir}/plugins/khoj/`;
+                let khojObsidianPluginPath = `${getVaultAbsolutePath()}/${this.app.vault.configDir}/plugins/khoj/`;
                 data["content-type"]["markdown"] = {
                     "input-filter": [mdInVault],
                     "input-files": null,
@@ -99,5 +99,5 @@ export async function updateKhojBackend(khojUrl: string, khojConfig: Object) {
     // Save khojConfig on khoj backend at khojConfigUrl
     await request(requestContent)
         // Refresh khoj search index after updating config
-        .then(_ => request(`${khojUrl}/api/update?t=markdown`));
+        .then(_ => request(`${khojUrl}/api/update?t=markdown&force=true`));
 }
