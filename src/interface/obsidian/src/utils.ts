@@ -108,7 +108,7 @@ export async function updateKhojBackend(khojUrl: string, khojConfig: Object) {
     // Save khojConfig on khoj backend at khojConfigUrl
     await request(requestContent)
         // Refresh khoj search index after updating config
-        .then(_ => request(`${khojUrl}/api/update?t=markdown&force=true`));
+        .then(_ => request(`${khojUrl}/api/update?t=markdown`));
 }
 
 function getIndexDirectoryFromBackendConfig(khojConfig: any) {
