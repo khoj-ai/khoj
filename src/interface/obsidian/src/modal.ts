@@ -48,12 +48,15 @@ export class KhojModal extends SuggestModal<SearchResult> {
             },
         ]
         this.setInstructions(modalInstructions);
+
+        // Set Placeholder Text for Modal
+        this.setPlaceholder('Search with Khoj...');
     }
 
     async getSuggestions(query: string): Promise<SearchResult[]> {
         // Query Khoj backend for search results
-        var searchUrl = `${this.setting.khojUrl}/api/search?q=${query}&n=${this.setting.resultsCount}&r=${this.rerank}&t=markdown`
-        var results = await request(searchUrl)
+        let searchUrl = `${this.setting.khojUrl}/api/search?q=${query}&n=${this.setting.resultsCount}&r=${this.rerank}&t=markdown`
+        let results = await request(searchUrl)
             .then(response => JSON.parse(response))
             .then(data => {
                 return data.map((result: any) => {
