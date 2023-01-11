@@ -45,7 +45,7 @@ export default class Khoj extends Plugin {
     }
 
     async saveSettings() {
-        await configureKhojBackend(this.settings)
+        await configureKhojBackend(this.settings, false)
             .then(() => this.saveData(this.settings));
     }
 }

@@ -9,7 +9,7 @@ export function getVaultAbsolutePath(): string {
     return '';
 }
 
-export async function configureKhojBackend(setting: KhojSetting) {
+export async function configureKhojBackend(setting: KhojSetting, notify: boolean = true) {
     let mdInVault = `${setting.obsidianVaultPath}/**/*.md`;
     let khojConfigUrl = `${setting.khojUrl}/api/config/data`;
 
@@ -21,7 +21,8 @@ export async function configureKhojBackend(setting: KhojSetting) {
         })
         .catch(error => {
             setting.connectedToBackend = false;
-            new Notice(`❗️Ensure Khoj backend is running and Khoj URL is pointing to it in the plugin settings.\n\n${error}`);
+            if (notify)
+                new Notice(`❗️Ensure Khoj backend is running and Khoj URL is pointing to it in the plugin settings.\n\n${error}`);
         })
     // Short-circuit configuring khoj if unable to connect to khoj backend
     if (!setting.connectedToBackend) return;
@@ -79,10 +80,10 @@ export async function configureKhojBackend(setting: KhojSetting) {
                 updateKhojBackend(setting.khojUrl, data);
                 console.log(`Khoj: Updated markdown config in khoj backend config:\n${JSON.stringify(data["content-type"]["markdown"])}`)
             }
-            new Notice(`✅ Successfully Setup Khoj`);
         })
         .catch(error => {
-            new Notice(`❗️Failed to configure Khoj backend. Contact developer on Github.\n\nError: ${error}`);
+            if (notify)
+                new Notice(`❗️Failed to configure Khoj backend. Contact developer on Github.\n\nError: ${error}`);
         })
 }
 

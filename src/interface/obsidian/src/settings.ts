@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, request, Setting } from 'obsidian';
+import { App, Notice, PluginSettingTab, request, Setting } from 'obsidian';
 import Khoj from 'src/main';
 import { getVaultAbsolutePath } from 'src/utils';
 
@@ -28,10 +28,8 @@ export class KhojSettingTab extends PluginSettingTab {
         const { containerEl } = this;
         containerEl.empty();
 
-        // Add notice if unable to connect to khoj backend
-        if (!this.plugin.settings.connectedToBackend) {
-            containerEl.createEl('small', { text: '❗Ensure Khoj backend is running and Khoj URL is correctly set below' });
-        }
+        // Add notice whether able to connect to khoj backend or not
+        containerEl.createEl('small', { text: this.getBackendStatusMessage() });
 
         // Add khoj settings configurable from the plugin settings tab
         new Setting(containerEl)
@@ -49,8 +47,9 @@ export class KhojSettingTab extends PluginSettingTab {
             .addText(text => text
                 .setValue(`${this.plugin.settings.khojUrl}`)
                 .onChange(async (value) => {
-                    this.plugin.settings.khojUrl = value;
-                    await this.plugin.saveSettings();
+                    this.plugin.settings.khojUrl = value.trim();
+                    await this.plugin.saveSettings()
+                    .finally(() => containerEl.firstElementChild?.setText(this.getBackendStatusMessage()));
                 }));
          new Setting(containerEl)
             .setName('Results Count')
@@ -69,8 +68,15 @@ export class KhojSettingTab extends PluginSettingTab {
                 .setButtonText('Update')
                 .setCta()
                 .onClick(async () => {
-                    await request(`${this.plugin.settings.khojUrl}/api/update?t=markdown&force=true`);
-                }
-            ));
+                    await request(`${this.plugin.settings.khojUrl}/api/update?t=markdown&force=true`)
+                    .then(() => new Notice('✅ Updated Khoj index.'))
+                })
+            );
+    }
+
+    getBackendStatusMessage() {
+        return !this.plugin.settings.connectedToBackend
+        ? '❗Disconnected from Khoj backend. Ensure Khoj backend is running and Khoj URL is correctly set below.'
+        : '✅ Connected to Khoj backend.';
     }
 }
