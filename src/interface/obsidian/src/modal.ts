@@ -1,4 +1,4 @@
-import { App, SuggestModal, Notice, request, MarkdownRenderer } from 'obsidian';
+import { App, SuggestModal, Notice, request, MarkdownRenderer, Instruction, Platform } from 'obsidian';
 import { KhojSetting } from 'src/settings';
 import { getVaultAbsolutePath } from 'src/utils';
 
@@ -9,16 +9,54 @@ export interface SearchResult {
 
 export class KhojModal extends SuggestModal<SearchResult> {
     setting: KhojSetting;
+    rerank: boolean;
 
     constructor(app: App, setting: KhojSetting) {
         super(app);
         this.setting = setting;
+        this.rerank = false;
+
+        // Register Modal Keybindings to Rerank Results
+        this.scope.register(['Mod'], 'Enter', async () => {
+            this.rerank = true
+            let results = await this.getSuggestions(this.inputEl.value);
+
+            this.resultContainerEl.empty();
+            results.forEach((result) => {
+                this.renderSuggestion(result, this.resultContainerEl);
+            });
+            this.rerank = false
+        });
+
+        // Add Hints to Modal for available Keybindings
+        const modalInstructions: Instruction[] = [
+            {
+                command: '↑↓',
+                purpose: 'to navigate',
+            },
+            {
+                command: '↵',
+                purpose: 'to open',
+            },
+            {
+                command: Platform.isMacOS ? 'cmd ↵': 'ctrl ↵',
+                purpose: 'to rerank',
+            },
+            {
+                command: 'esc',
+                purpose: 'to dismiss',
+            },
+        ]
+        this.setInstructions(modalInstructions);
+
+        // Set Placeholder Text for Modal
+        this.setPlaceholder('Search with Khoj...');
     }
 
     async getSuggestions(query: string): Promise<SearchResult[]> {
         // Query Khoj backend for search results
-        var searchUrl = `${this.setting.khojUrl}/api/search?q=${query}&n=${this.setting.resultsCount}&t=markdown`
-        var results = await request(searchUrl)
+        let searchUrl = `${this.setting.khojUrl}/api/search?q=${query}&n=${this.setting.resultsCount}&r=${this.rerank}&t=markdown`
+        let results = await request(searchUrl)
             .then(response => JSON.parse(response))
             .then(data => {
                 return data.map((result: any) => {

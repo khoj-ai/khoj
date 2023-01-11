@@ -13,16 +13,25 @@ export async function configureKhojBackend(setting: KhojSetting) {
     let mdInVault = `${setting.obsidianVaultPath}/**/*.md`;
     let khojConfigUrl = `${setting.khojUrl}/api/config/data`;
 
-    // Load khoj app config from backend API, Update Markdown config and save
-    let khoj_configured = await request(khojConfigUrl)
-        .then(response => response !== "null");
+    // Check if khoj backend is configured, show error if backend is not running
+    let khoj_already_configured = await request(khojConfigUrl)
+        .then(response => {
+            setting.connectedToBackend = true;
+            return response !== "null"
+        })
+        .catch(error => {
+            setting.connectedToBackend = false;
+            new Notice(`❗️Ensure Khoj backend is running and Khoj URL is pointing to it in the plugin settings.\n\n${error}`);
+        })
+    // Short-circuit configuring khoj if unable to connect to khoj backend
+    if (!setting.connectedToBackend) return;
 
     // Get current config if khoj backend configured, else get default config from khoj backend
-    await request(khoj_configured ? khojConfigUrl : `${khojConfigUrl}/default`)
+    await request(khoj_already_configured ? khojConfigUrl : `${khojConfigUrl}/default`)
         .then(response => JSON.parse(response))
         .then(data => {
             // If khoj backend not configured yet
-            if (!khoj_configured) {
+            if (!khoj_already_configured) {
                 // Create khoj content-type config with only markdown configured
                 let khojObsidianPluginPath = `${setting.obsidianVaultPath}/${this.app.vault.configDir}/plugins/khoj/`;
                 data["content-type"] = {
@@ -70,9 +79,10 @@ export async function configureKhojBackend(setting: KhojSetting) {
                 updateKhojBackend(setting.khojUrl, data);
                 console.log(`Khoj: Updated markdown config in khoj backend config:\n${JSON.stringify(data["content-type"]["markdown"])}`)
             }
+            new Notice(`✅ Successfully Setup Khoj`);
         })
         .catch(error => {
-            new Notice(`Ensure Khoj backend is running and Khoj URL is correct in the Khoj plugin settings.\nError: ${error}`);
+            new Notice(`❗️Failed to configure Khoj backend. Contact developer on Github. \n\nError: ${error}`);
         })
 }
 

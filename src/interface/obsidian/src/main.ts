@@ -1,4 +1,4 @@
-import { Plugin } from 'obsidian';
+import { Notice, Plugin } from 'obsidian';
 import { KhojSetting, KhojSettingTab, DEFAULT_SETTINGS } from 'src/settings'
 import { KhojModal } from 'src/modal'
 import { configureKhojBackend } from './utils';
@@ -14,18 +14,22 @@ export default class Khoj extends Plugin {
         this.addCommand({
             id: 'search',
             name: 'Search',
-            callback: () => {
-                new KhojModal(this.app, this.settings).open();
+            checkCallback: (checking) => {
+                if (!checking && this.settings.connectedToBackend)
+                    new KhojModal(this.app, this.settings).open();
+                return this.settings.connectedToBackend;
             }
         });
 
         // Create an icon in the left ribbon.
         this.addRibbonIcon('search', 'Khoj', (_: MouseEvent) => {
             // Called when the user clicks the icon.
-            new KhojModal(this.app, this.settings).open();
+            this.settings.connectedToBackend
+            ? new KhojModal(this.app, this.settings).open()
+            : new Notice(`❗️Ensure Khoj backend is running and Khoj URL is pointing to it in the plugin settings`);
         });
 
-        // Add a settings tab so the user can configure various aspects of the plugin
+        // Add a settings tab so the user can configure khoj
         this.addSettingTab(new KhojSettingTab(this.app, this));
     }
 
@@ -41,7 +45,7 @@ export default class Khoj extends Plugin {
     }
 
     async saveSettings() {
-        await this.saveData(this.settings)
-            .then(() => configureKhojBackend(this.settings));
+        await configureKhojBackend(this.settings)
+            .then(() => this.saveData(this.settings));
     }
 }
