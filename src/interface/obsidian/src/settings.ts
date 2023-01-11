@@ -49,15 +49,26 @@ export class KhojSettingTab extends PluginSettingTab {
                     this.plugin.settings.resultsCount = parseInt(value);
                     await this.plugin.saveSettings();
                 }));
-        new Setting(containerEl)
+        let indexVaultSetting = new Setting(containerEl);
+        indexVaultSetting
             .setName('Index Vault')
             .setDesc('Manually force Khoj to re-index your Obsidian Vault')
             .addButton(button => button
                 .setButtonText('Update')
                 .setCta()
                 .onClick(async () => {
+                    // Disable button while updating index
+                    button.setButtonText('Updating...');
+                    button.removeCta()
+                    indexVaultSetting = indexVaultSetting.setDisabled(true);
+
                     await request(`${this.plugin.settings.khojUrl}/api/update?t=markdown&force=true`)
-                    .then(() => new Notice('✅ Updated Khoj index.'))
+                    .then(() => new Notice('✅ Updated Khoj index.'));
+
+                    // Re-enable button once index is updated
+                    button.setButtonText('Update');
+                    button.setCta()
+                    indexVaultSetting = indexVaultSetting.setDisabled(false);
                 })
             );
     }
