@@ -42,11 +42,12 @@ export class KhojSettingTab extends PluginSettingTab {
          new Setting(containerEl)
             .setName('Results Count')
             .setDesc('The number of search results to show')
-            .addText(text => text
-                .setPlaceholder('6')
-                .setValue(`${this.plugin.settings.resultsCount}`)
+            .addSlider(slider => slider
+                .setLimits(1, 10, 1)
+                .setValue(this.plugin.settings.resultsCount)
+                .setDynamicTooltip()
                 .onChange(async (value) => {
-                    this.plugin.settings.resultsCount = parseInt(value);
+                    this.plugin.settings.resultsCount = value;
                     await this.plugin.saveSettings();
                 }));
         let indexVaultSetting = new Setting(containerEl);
