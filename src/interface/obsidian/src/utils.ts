@@ -13,7 +13,7 @@ export async function configureKhojBackend(setting: KhojSetting, notify: boolean
     let mdInVault = `${getVaultAbsolutePath()}/**/*.md`;
     let khojConfigUrl = `${setting.khojUrl}/api/config/data`;
 
-    // Check if khoj backend is configured, show error if backend is not running
+    // Check if khoj backend is configured, note if cannot connect to backend
     let khoj_already_configured = await request(khojConfigUrl)
         .then(response => {
             setting.connectedToBackend = true;
@@ -27,6 +27,13 @@ export async function configureKhojBackend(setting: KhojSetting, notify: boolean
     // Short-circuit configuring khoj if unable to connect to khoj backend
     if (!setting.connectedToBackend) return;
 
+    // Set index name from the path of the current vault
+    let indexName = getVaultAbsolutePath().replace(/\//g, '_').replace(/ /g, '_');
+    // Get default index directory from khoj backend
+    let khojDefaultIndexDirectory = await request(`${khojConfigUrl}/default`)
+        .then(response => JSON.parse(response))
+        .then(data => { return getIndexDirectoryFromBackendConfig(data); });
+
     // Get current config if khoj backend configured, else get default config from khoj backend
     await request(khoj_already_configured ? khojConfigUrl : `${khojConfigUrl}/default`)
         .then(response => JSON.parse(response))
@@ -34,13 +41,12 @@ export async function configureKhojBackend(setting: KhojSetting, notify: boolean
             // If khoj backend not configured yet
             if (!khoj_already_configured) {
                 // Create khoj content-type config with only markdown configured
-                let khojObsidianPluginPath = `${getVaultAbsolutePath()}/${this.app.vault.configDir}/plugins/khoj/`;
                 data["content-type"] = {
                     "markdown": {
                         "input-filter": [mdInVault],
                         "input-files": null,
-                        "embeddings-file": `${khojObsidianPluginPath}/markdown_embeddings.pt`,
-                        "compressed-jsonl": `${khojObsidianPluginPath}/markdown.jsonl.gz`,
+                        "embeddings-file": `${khojDefaultIndexDirectory}/${indexName}.pt`,
+                        "compressed-jsonl": `${khojDefaultIndexDirectory}/${indexName}.jsonl.gz`,
                     }
                 }
                 // Disable khoj processors, as not required
@@ -55,12 +61,11 @@ export async function configureKhojBackend(setting: KhojSetting, notify: boolean
             else if (!data["content-type"]["markdown"]) {
                 // Add markdown config to khoj content-type config
                 // Set markdown config to index markdown files in configured obsidian vault
-                let khojObsidianPluginPath = `${getVaultAbsolutePath()}/${this.app.vault.configDir}/plugins/khoj/`;
                 data["content-type"]["markdown"] = {
                     "input-filter": [mdInVault],
                     "input-files": null,
-                    "embeddings-file": `${khojObsidianPluginPath}/markdown_embeddings.pt`,
-                    "compressed-jsonl": `${khojObsidianPluginPath}/markdown.jsonl.gz`,
+                    "embeddings-file": `${khojDefaultIndexDirectory}/${indexName}.pt`,
+                    "compressed-jsonl": `${khojDefaultIndexDirectory}/${indexName}.jsonl.gz`,
                 }
 
                 // Save updated config and refresh index on khoj backend
@@ -73,9 +78,13 @@ export async function configureKhojBackend(setting: KhojSetting, notify: boolean
                 data["content-type"]["markdown"]["input-filter"][0] !== mdInVault) {
                 // Update markdown config in khoj content-type config
                 // Set markdown config to only index markdown files in configured obsidian vault
-                data["content-type"]["markdown"]["input-filter"] = [mdInVault]
-                data["content-type"]["markdown"]["input-files"] = null
-
+                let khojIndexDirectory = getIndexDirectoryFromBackendConfig(data);
+                data["content-type"]["markdown"] = {
+                    "input-filter": [mdInVault],
+                    "input-files": null,
+                    "embeddings-file": `${khojIndexDirectory}/${indexName}.pt`,
+                    "compressed-jsonl": `${khojIndexDirectory}/${indexName}.jsonl.gz`,
+                }
                 // Save updated config and refresh index on khoj backend
                 updateKhojBackend(setting.khojUrl, data);
                 console.log(`Khoj: Updated markdown config in khoj backend config:\n${JSON.stringify(data["content-type"]["markdown"])}`)
@@ -100,4 +109,8 @@ export async function updateKhojBackend(khojUrl: string, khojConfig: Object) {
     await request(requestContent)
         // Refresh khoj search index after updating config
         .then(_ => request(`${khojUrl}/api/update?t=markdown&force=true`));
+}
+
+function getIndexDirectoryFromBackendConfig(khojConfig: any) {
+    return khojConfig["content-type"]["markdown"]["embeddings-file"].split("/").slice(0, -1).join("/");
 }
