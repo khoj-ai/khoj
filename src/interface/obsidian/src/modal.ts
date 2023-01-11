@@ -9,22 +9,19 @@ export interface SearchResult {
 
 export class KhojModal extends SuggestModal<SearchResult> {
     setting: KhojSetting;
-    rerank: boolean;
+    rerank: boolean = false;
 
     constructor(app: App, setting: KhojSetting) {
         super(app);
         this.setting = setting;
-        this.rerank = false;
 
         // Register Modal Keybindings to Rerank Results
         this.scope.register(['Mod'], 'Enter', async () => {
+            // Re-rank when explicitly triggered by user
             this.rerank = true
-            let results = await this.getSuggestions(this.inputEl.value);
-
-            this.resultContainerEl.empty();
-            results.forEach((result) => {
-                this.renderSuggestion(result, this.resultContainerEl);
-            });
+            // Trigger input event to get and render (reranked) results from khoj backend
+            this.inputEl.dispatchEvent(new Event('input'));
+            // Rerank disabled by default to satisfy latency requirements for incremental search
             this.rerank = false
         });
 
