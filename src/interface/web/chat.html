@@ -1,0 +1,113 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
+        <title>Khoj</title>
+
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 144 144%22><text y=%22.86em%22 font-size=%22144%22>🦅</text></svg>">
+        <link rel="icon" type="image/png" sizes="144x144" href="/static/assets/icons/favicon-144x144.png">
+        <link rel="manifest" href="/static/khoj.webmanifest">
+    </head>
+    <script>
+        function setTypeFieldInUrl(type) {
+            var url = new URL(window.location.href);
+            url.searchParams.set("t", type.value);
+            window.history.pushState({}, "", url.href);
+        }
+
+        function setQueryFieldInUrl(query) {
+            var url = new URL(window.location.href);
+            url.searchParams.set("q", query);
+            window.history.pushState({}, "", url.href);
+        }
+
+        function renderMessage(message, by, type_) {
+            var current_time = new Date().toLocaleTimeString();
+            document.getElementById("chat-body").innerHTML += `
+                <div class="chat-message ${type_} ${by}">
+                    <div class="chat-message-info">
+                        <div class="chat-message-name">${by}</div>
+                        <div class="chat-message-time">${current_time}</div>
+                    </div>
+                    <div class="chat-message-text">${message}</div>
+                </div>
+            `;
+        }
+
+        function chat() {
+            // Extract required fields for search from form
+            query = document.getElementById("chat-input").value.trim();
+            type_ = document.getElementById("chat-type").value;
+            console.log(`Query: ${query}, Type: ${type_}`);
+
+            // Short circuit on empty query
+            if (query.length === 0)
+                return;
+
+            // Set query field in url query param
+            setQueryFieldInUrl(query);
+
+            // Add message by user to chat body
+            renderMessage(query, "You", type_);
+            document.getElementById("chat-input").value = "";
+
+            // Generate backend API URL to execute query
+            url = type_ === "chat"
+                ? `/api/beta/chat?q=${encodeURIComponent(query)}`
+                : `/api/beta/summarize?q=${encodeURIComponent(query)}`;
+
+            // Call specified Khoj API
+            fetch(url)
+                .then(response => response.json())
+                .then(data => data.response)
+                .then(response => {
+                    // Render message by Khoj to chat body
+                    console.log(response);
+                    renderMessage(response, "Khoj", type_);
+                });
+            // document.getElementById("chat-body").innerHTML += renderMessage(response, "Khoj", type_);
+        }
+
+        function incrementalChat(event) {
+            // Send chat message on 'Enter'
+            if (event.key === 'Enter') {
+                chat();
+            }
+        }
+
+        window.onload = function () {
+            // Set welcome message on load
+            renderMessage("Hey, what's up?", "Khoj", "chat");
+
+            // Fill type field with value passed in URL query parameters, if any.
+            var type_via_url = new URLSearchParams(window.location.search).get("t");
+            if (type_via_url)
+                document.getElementById("chat-type").value = type_via_url;
+
+            // Fill query field with value passed in URL query parameters, if any.
+            var query_via_url = new URLSearchParams(window.location.search).get("q");
+            if (query_via_url) {
+                document.getElementById("chat-input").value = query_via_url;
+                chat();
+            }
+        }
+    </script>
+    <body>
+        <!-- Chat Header -->
+        <h1>Khoj</h1>
+
+        <!-- Chat Body -->
+        <div id="chat-body"></div>
+
+        <!-- Chat Footer -->
+        <div id="chat-footer">
+            <input type="text" id="chat-input" onkeyup=incrementalChat(event) autofocus="autofocus" placeholder="What is the meaning of life?">
+
+            <!--Select Chat Type from: Chat, Summarize -->
+            <select id="chat-type" onchange="setTypeFieldInUrl(this)">
+                <option value="chat">Chat</option>
+                <option value="summarize">Summarize</option>
+            </select>
+        </div>
+    </body>
+</html>
