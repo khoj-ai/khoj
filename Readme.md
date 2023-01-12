@@ -75,7 +75,7 @@ https://user-images.githubusercontent.com/6413477/184735169-92c78bf1-d827-4663-9
 - Start Khoj app
 - Add this readme and [khoj.el readme](https://github.com/debanjum/khoj/tree/master/src/interface/emacs) as org-mode for Khoj to index
 - Search \"*Setup editor*\" on the Web and Emacs. Re-rank the results for better accuracy
-- Top result is what we are looking for, the [section to Install Khoj.el on Emacs](https://github.com/debanjum/khoj/master/src/interface/emacs/#2-install-khojel)
+- Top result is what we are looking for, the [section to Install Khoj.el on Emacs](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#2-Install-Khojel)
 </details>
 
 <details><summary>Analysis</summary>
@@ -97,8 +97,8 @@ https://user-images.githubusercontent.com/6413477/184735169-92c78bf1-d827-4663-9
 ## Setup
 These are the general setup instructions for Khoj.
 
-- Check the [Khoj.el Readme](https://github.com/debanjum/khoj/master/src/interface/emacs#Setup) to setup Khoj with Emacs
-- Check the [Khoj Obsidian Readme](https://github.com/debanjum/khoj/tree/master/src/interface/obsidian#Setup) to setup Khoj with the Obsidian Plugin<br />
+- Check the [Khoj.el Readme](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Setup) to setup Khoj with Emacs
+- Check the [Khoj Obsidian Readme](https://github.com/debanjum/khoj/tree/master/src/interface/obsidian#Setup) to setup Khoj with Obsidian<br />
   Its simpler as it can skip the configure step below.
 
 ### 1. Install
