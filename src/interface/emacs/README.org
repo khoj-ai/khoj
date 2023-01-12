@@ -1,12 +1,34 @@
-* Emacs Khoj
+* Khoj Emacs 🦅
   [[https://stable.melpa.org/#/khoj][file:https://stable.melpa.org/packages/khoj-badge.svg]] [[https://melpa.org/#/khoj][file:https://melpa.org/packages/khoj-badge.svg]]
  
-  /The Emacs interface for [[https://github.com/debanjum/khoj][Khoj]]/
+  /Natural language search from within Emacs using [[https://github.com/debanjum/khoj][Khoj]]/
 
-** Prerequisites
-   - Install and Run [[https://github.com/debanjum/khoj][Khoj]]
+** Table of Contents
+   - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#features][Features]]
+   - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Interface][Interface]]
+   - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Setup][Setup]]
+     - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#1-Setup-Backend][Setup Backend]]
+     - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#2-Install-Khojel][Install Khoj.el]]
+   - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Use][Use]]
+   - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Upgrade][Upgrade]]
+     - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Upgrade-Khoj-Backend][Upgrade Backend]]
+     - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Upgrade-Khojel][Upgrade Khoj.el]]
 
-** Installation
+** Features
+   - *Natural*: Advanced natural language understanding using Transformer based ML Models
+   - *Local*: Your personal data stays local. All search, indexing is done on your machine*
+   - *Incremental*: Incremental search for a fast, search-as-you-type experience
+
+** Interface
+   [[/docs/khoj_on_emacs.png]]
+
+** Setup
+*** 1. Setup Backend
+    #+begin_src shell
+      pip install khoj-assistant && khoj
+    #+end_src
+
+*** 2. Install Khoj.el
 **** Using MELPA
      #+begin_src elisp
       M-x package-install khoj
@@ -36,7 +58,7 @@
          :bind ("C-c s" . 'khoj))
      #+end_src
 
-** Usage
+** Use
    1. Open Query Interface on Client
 
        - In Emacs: Call ~khoj~ using keybinding ~C-c s~ or ~M-x khoj~
@@ -46,23 +68,29 @@
 
       e.g "What is the meaning of life?" "What are my life goals?"
 
-   3. Apply filters to narrow down results further
+   3. Apply filters to narrow down results further. See [[https://github.com/debanjum/khoj/#query-filters][query filters]] for details
 
       Include/Exclude specific words or date range from results by updating query with below query format
 
-      e.g `What is the meaning of life? -god +none dt:"last week"`
+      e.g `What is the meaning of life? -"god" +"none" dt>"last week"`
 
 ** Upgrade
-Use your Emacs package manager to upgrade `khoj.el`
+*** Upgrade Khoj Backend
+    #+begin_src shell
+      pip install --upgrade khoj-assistant
+    #+end_src
 
-- For `khoj.el` from MELPA
+*** Upgrade Khoj.el
+Use your Emacs package manager to upgrade ~khoj.el~
+
+- For ~khoj.el~ from MELPA
   - Method 1
-    - Run `M-x package-list-packages` to list all packages
-    - Press `U` on `khoj` to mark it for upgrade
-    - Press `x` to execute the marked actions
+    - Run ~M-x package-list-packages~ to list all packages
+    - Press ~U~ on ~khoj~ to mark it for upgrade
+    - Press ~x~ to execute the marked actions
   - Method 2
-    - Run `M-x package-refresh-content`
-    - Run `M-x package-reinstall khoj`
+    - Run ~M-x package-refresh-content~
+    - Run ~M-x package-reinstall khoj~
 
-- For `khoj.el` from Straight
-  - Run `M-x straight-pull-package khoj`
+- For ~khoj.el~ from Straight
+  - Run ~M-x straight-pull-package khoj~
