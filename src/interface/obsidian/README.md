@@ -26,14 +26,17 @@
 ## Demo
 https://user-images.githubusercontent.com/6413477/210486007-36ee3407-e6aa-4185-8a26-b0bfc0a4344f.mp4
 
-### Description
+<details><summary>Description</summary>
+
 1. Install Khoj via `pip` and start Khoj backend in non-gui mode
 2. Install Khoj plugin via Community Plugins settings pane on Obsidian app
 3. Check the new Khoj plugin settings
-4. Let Khoj backend index the markdown files in the current Vault
+4. Wait for Khoj backend to index markdown files in the current Vault
 5. Open Khoj plugin on Obsidian via Search button on Left Pane
 6. Search \"*Announce plugin to folks*\" in the [Obsidian Plugin docs](https://marcus.se.net/obsidian-plugin-docs/)
 7. Jump to the [search result](https://marcus.se.net/obsidian-plugin-docs/publishing/submit-your-plugin)
+
+</details>
 
 ### Interface
 ![](https://github.com/debanjum/khoj/blob/master/src/interface/obsidian/docs/khoj_obsidian_screenshot_0.1.0.png)
@@ -54,7 +57,8 @@ See [official docs](https://help.obsidian.md/Advanced+topics/Community+plugins#D
 ## Use
 Click the *Khoj search* icon 🔎 on the [Ribbon](https://help.obsidian.md/User+interface/Workspace/Ribbon) or Search for *Khoj: Search* in the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
 
-### Query Filters
+<details><summary>Query Filters</summary>
+
 Use structured query syntax to filter the natural language search results
 - **Word Filter**: Get entries that include/exclude a specified term
   - Entries that contain term_to_include: `+"term_to_include"`
@@ -73,6 +77,8 @@ Use structured query syntax to filter the natural language search results
     - excluding words *"big"* and *"brother"*
     - that best match the natural language query *"what is the meaning of life?"*
 
+</details>
+
 ## Upgrade
 ### 1. Upgrade Backend
   ```shell
@@ -86,6 +92,11 @@ Use structured query syntax to filter the natural language search results
 ## Troubleshooting
   1. Open the Khoj plugin settings pane, in case you need to configure Khoj
   2. Toggle Enable/Disable Khoj, in case settings changes have not applied
+  3. Click *Update* button to force index to refresh if results are failing or stale
+
+## Current Limitations
+- The plugin loads index of only one vault at a time.<br/>
+  So notes across multiple vaults **cannot** be search at the same time
 
 ## Implementation
 The plugin implements the following functionality to search your notes with Khoj:
@@ -95,4 +106,4 @@ The plugin implements the following functionality to search your notes with Khoj
   - Set Obsidian Vault to Index with Khoj. Defaults to all markdown files in current Vault
   - Set URL of Khoj backend
   - Set Number of Search Results to show in Search Modal
-- [ ] Allow user to trigger reranking of result to improve search quality
+- [X] Allow user to trigger reranking of result to improve search quality

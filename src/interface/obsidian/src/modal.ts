@@ -46,7 +46,7 @@ export class KhojModal extends SuggestModal<SearchResult> {
         this.setInstructions(modalInstructions);
 
         // Set Placeholder Text for Modal
-        this.setPlaceholder('Search with Khoj...');
+        this.setPlaceholder('Search with Khoj 🦅...');
     }
 
     async getSuggestions(query: string): Promise<SearchResult[]> {
