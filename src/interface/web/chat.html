@@ -101,13 +101,91 @@
 
         <!-- Chat Footer -->
         <div id="chat-footer">
-            <input type="text" id="chat-input" onkeyup=incrementalChat(event) autofocus="autofocus" placeholder="What is the meaning of life?">
+            <input type="text" id="chat-input" class="option" onkeyup=incrementalChat(event) autofocus="autofocus" placeholder="What is the meaning of life?">
 
             <!--Select Chat Type from: Chat, Summarize -->
-            <select id="chat-type" onchange="setTypeFieldInUrl(this)">
+            <select id="chat-type" class="option" onchange="setTypeFieldInUrl(this)">
                 <option value="chat">Chat</option>
                 <option value="summarize">Summarize</option>
             </select>
         </div>
     </body>
+
+    <style>
+        html, body {
+            height: 100%;
+            width: 100%;
+            padding: 0px;
+            margin: 0px;
+        }
+        body {
+            display: grid;
+            background: #f8fafc;
+            color: #475569;
+            text-align: center;
+            font-family: roboto, karma, segoe ui, sans-serif;
+            font-size: 20px;
+            font-weight: 300;
+            line-height: 1.5em;
+        }
+        body > * {
+            padding: 10px;
+            margin: 10px;
+        }
+        h1 {
+            font-weight: 200;
+            color: #017eff;
+        }
+
+        #chat-body {
+            font-size: medium;
+            margin: 0px;
+            line-height: 20px;
+            overflow-y: scroll;
+        }
+
+        #chat-footer {
+            padding: 0;
+            display: grid;
+            grid-template-columns: minmax(70px, 85%) auto;
+            grid-column-gap: 10px;
+            grid-row-gap: 10px;
+        }
+        #chat-footer > * {
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #475569;
+            background: #f9fafc
+        }
+        .option:hover {
+            box-shadow: 0 0 11px #aaa;
+        }
+        #chat-input {
+            font-size: medium;
+        }
+
+        @media only screen and (max-width: 600px) {
+            body {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto minmax(80px, 100%) auto;
+            }
+            body > * {
+                grid-column: 1;
+            }
+            #chat-footer {
+                padding: 0;
+                margin: 4px;
+                grid-template-columns: auto;
+            }
+        }
+        @media only screen and (min-width: 600px) {
+            body {
+                grid-template-columns: auto min(70vw, 100%) auto;
+                grid-template-rows: auto minmax(80px, 100%) auto;
+            }
+            body > * {
+                grid-column: 2;
+            }
+        }
+    </style>
 </html>
