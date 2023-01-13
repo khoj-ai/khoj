@@ -32,6 +32,9 @@
                     <div class="chat-message-text">${message}</div>
                 </div>
             `;
+
+            // Scroll to bottom of input-body element
+            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
         }
 
         function chat() {
