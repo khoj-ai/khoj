@@ -173,14 +173,14 @@
         <h1>Khoj</h1>
 
         <!--Add Text Box To Enter Query, Trigger Incremental Search OnChange -->
-        <input type="text" id="query" onkeyup=incrementalSearch(event) autofocus="autofocus" placeholder="What is the meaning of life?">
+        <input type="text" id="query" class="option" onkeyup=incrementalSearch(event) autofocus="autofocus" placeholder="What is the meaning of life?">
 
         <div id="options">
             <!--Add Dropdown to Select Query Type -->
-            <select id="type" onchange="setTypeFieldInUrl(this)"></select>
+            <select id="type" class="option" onchange="setTypeFieldInUrl(this)"></select>
 
             <!--Add Button To Regenerate -->
-            <button id="update" onclick="updateIndex()">Update</button>
+            <button id="update" class="option" onclick="updateIndex()">Update</button>
 
             <!--Add Results Count Input To Set Results Count -->
             <input type="number" id="results-count" min="1" max="100" value="6" placeholder="results count" onchange="setCountFieldInUrl(this)">
@@ -216,8 +216,8 @@
         body {
             padding: 0px;
             margin: 0px;
-            background: #eee;
-            color: #888;
+            background: #f8fafc;
+            color: #475569;
             text-align: center;
             font-family: roboto, karma, segoe ui, sans-serif;
             font-size: 20px;
@@ -230,7 +230,7 @@
         }
         h1 {
             font-weight: 200;
-            color: #888;
+            color: #017eff;
         }
 
         #options {
@@ -241,7 +241,11 @@
         #options > * {
             padding: 15px;
             border-radius: 5px;
-            border: 1px solid #ccc;
+            border: 1px solid #475569;
+            background: #f9fafc
+        }
+        .option:hover {
+            box-shadow: 0 0 11px #aaa;
         }
         #options > select {
             margin-right: 10px;
@@ -268,7 +272,7 @@
         .image {
             width: 20vw;
             border-radius: 10px;
-            border: 1px solid #ccc;
+            border: 1px solid #475569;
         }
         #json {
             white-space: pre-wrap;
@@ -296,16 +300,16 @@
             padding: 3.5px 3.5px 0;
             margin-right: 5px;
             border-radius: 5px;
-            background-color: #ed6f00;
+            background-color: #eab308;
             font-size: medium;
         }
         span.music-task-status.todo,
         span.task-status.todo {
-            background-color: #048ba8
+            background-color: #3b82f6
         }
         span.music-task-status.done,
         span.task-status.done {
-            background-color: #06a77d;
+            background-color: #22c55e;
         }
         span.music-task-tag,
         span.task-tag {
@@ -313,7 +317,8 @@
             padding: 3.5px 3.5px 0;
             margin-right: 5px;
             border-radius: 5px;
-            background-color: #bbb;
+            border: 1px solid #475569;
+            background-color: #ef4444;
             font-size: small;
         }
     </style>
