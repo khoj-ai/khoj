@@ -10,29 +10,33 @@
     </head>
     <script>
         function setTypeFieldInUrl(type) {
-            var url = new URL(window.location.href);
+            let url = new URL(window.location.href);
             url.searchParams.set("t", type.value);
             window.history.pushState({}, "", url.href);
         }
 
         function setQueryFieldInUrl(query) {
-            var url = new URL(window.location.href);
+            let url = new URL(window.location.href);
             url.searchParams.set("q", query);
             window.history.pushState({}, "", url.href);
         }
 
-        function renderMessage(message, by, type_) {
-            var current_time = new Date().toLocaleTimeString();
+        function formatDate(date) {
+            // Format date in HH:MM, DD MMM YYYY format
+            let time_string = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
+            let date_string = date.toLocaleString('en-IN', { year: 'numeric', month: 'short', day: '2-digit'}).replaceAll('-', ' ');
+            return `${time_string}, ${date_string}`;
+        }
+
+        function renderMessage(message, by, dt=null) {
+            let message_time = formatDate(dt ?? new Date());
+            let by_name =  by == "khoj" ? "🦅 Khoj" : "😲 You";
+            // Generate HTML for Chat Message and Append to Chat Body
             document.getElementById("chat-body").innerHTML += `
-                <div class="chat-message ${type_} ${by}">
-                    <div class="chat-message-info">
-                        <div class="chat-message-name">${by}</div>
-                        <div class="chat-message-time">${current_time}</div>
-                    </div>
-                    <div class="chat-message-text">${message}</div>
+                <div data-meta="${by_name} at ${message_time}" class="chat-message ${by}">
+                    <div class="chat-message-text ${by}">${message}</div>
                 </div>
             `;
-
             // Scroll to bottom of input-body element
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
         }
@@ -51,7 +55,7 @@
             setQueryFieldInUrl(query);
 
             // Add message by user to chat body
-            renderMessage(query, "You", type_);
+            renderMessage(query, "you");
             document.getElementById("chat-input").value = "";
 
             // Generate backend API URL to execute query
@@ -66,9 +70,8 @@
                 .then(response => {
                     // Render message by Khoj to chat body
                     console.log(response);
-                    renderMessage(response, "Khoj", type_);
+                    renderMessage(response, "khoj");
                 });
-            // document.getElementById("chat-body").innerHTML += renderMessage(response, "Khoj", type_);
         }
 
         function incrementalChat(event) {
@@ -79,13 +82,13 @@
         }
 
         window.onload = function () {
-            // Set welcome message on load
-            renderMessage("Hey, what's up?", "Khoj", "chat");
-
             // Fill type field with value passed in URL query parameters, if any.
             var type_via_url = new URLSearchParams(window.location.search).get("t");
             if (type_via_url)
                 document.getElementById("chat-type").value = type_via_url;
+
+             // Set welcome message on load
+            renderMessage("Hey, what's up?", "khoj");
 
             // Fill query field with value passed in URL query parameters, if any.
             var query_via_url = new URLSearchParams(window.location.search).get("q");
@@ -145,6 +148,61 @@
             margin: 0px;
             line-height: 20px;
             overflow-y: scroll;
+        }
+        .chat-message::after {
+            content: attr(data-meta);
+            display: block;
+            font-size: x-small;
+            color: #475569;
+            margin: -12px 7px 0 -5px;
+        }
+        .chat-message.khoj {
+            margin-left: auto;
+            text-align: left;
+        }
+        .chat-message.you {
+            margin-right: auto;
+            text-align: right;
+        }
+        .chat-message-text {
+            margin: 10px;
+            border-radius: 10px;
+            padding: 10px;
+            position: relative;
+            display: inline-block;
+            max-width: 80%;
+            text-align: left;
+        }
+        .chat-message-text.khoj {
+            color: #f8fafc;
+            background: #017eff;
+            margin-left: auto;
+        }
+        .chat-message-text.khoj:after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: -7px;
+            border: 10px solid transparent;
+            border-top-color: #017eff;
+            border-bottom: 0;
+            transform: rotate(-60deg);
+        }
+        .chat-message-text.you {
+            color: #f8fafc;
+            background: #475569;
+            margin-right: auto;
+        }
+        .chat-message-text.you:after {
+            content: '';
+            position: absolute;
+            top: 91%;
+            right: -2px;
+            border: 10px solid transparent;
+            border-left-color: #475569;
+            border-right: 0;
+            margin-top: -10px;
+            transform: rotate(-60deg)
         }
 
         #chat-footer {
