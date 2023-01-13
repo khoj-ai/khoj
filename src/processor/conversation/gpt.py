@@ -31,7 +31,7 @@ Summarize the below notes about {user_query}:
 
 {text}
 
-Summarize the notes in second person perspective and use past tense:'''
+Summarize the notes in second person perspective:'''
 
     # Get Response from GPT
     response = openai.Completion.create(
