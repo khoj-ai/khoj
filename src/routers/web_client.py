@@ -21,3 +21,7 @@ def index():
 @web_client.get('/config', response_class=HTMLResponse)
 def config_page(request: Request):
     return templates.TemplateResponse("config.html", context={'request': request})
+
+@web_client.get("/chat", response_class=FileResponse)
+def chat_page():
+    return FileResponse(constants.web_directory / "chat.html")

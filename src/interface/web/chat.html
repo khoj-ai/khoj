@@ -1,0 +1,261 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
+        <title>Khoj</title>
+
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 144 144%22><text y=%22.86em%22 font-size=%22144%22>🦅</text></svg>">
+        <link rel="icon" type="image/png" sizes="144x144" href="/static/assets/icons/favicon-144x144.png">
+        <link rel="manifest" href="/static/khoj.webmanifest">
+    </head>
+    <script>
+        function setTypeFieldInUrl(type) {
+            let url = new URL(window.location.href);
+            url.searchParams.set("t", type.value);
+            window.history.pushState({}, "", url.href);
+        }
+
+        function formatDate(date) {
+            // Format date in HH:MM, DD MMM YYYY format
+            let time_string = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
+            let date_string = date.toLocaleString('en-IN', { year: 'numeric', month: 'short', day: '2-digit'}).replaceAll('-', ' ');
+            return `${time_string}, ${date_string}`;
+        }
+
+        function renderMessage(message, by, dt=null) {
+            let message_time = formatDate(dt ?? new Date());
+            let by_name =  by == "khoj" ? "🦅 Khoj" : "🤔 You";
+            // Generate HTML for Chat Message and Append to Chat Body
+            document.getElementById("chat-body").innerHTML += `
+                <div data-meta="${by_name} at ${message_time}" class="chat-message ${by}">
+                    <div class="chat-message-text ${by}">${message}</div>
+                </div>
+            `;
+            // Scroll to bottom of input-body element
+            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+        }
+
+        function chat() {
+            // Extract required fields for search from form
+            query = document.getElementById("chat-input").value.trim();
+            type_ = document.getElementById("chat-type").value;
+            console.log(`Query: ${query}, Type: ${type_}`);
+
+            // Short circuit on empty query
+            if (query.length === 0)
+                return;
+
+            // Add message by user to chat body
+            renderMessage(query, "you");
+            document.getElementById("chat-input").value = "";
+
+            // Generate backend API URL to execute query
+            url = type_ === "chat"
+                ? `/api/beta/chat?q=${encodeURIComponent(query)}`
+                : `/api/beta/summarize?q=${encodeURIComponent(query)}`;
+
+            // Call specified Khoj API
+            fetch(url)
+                .then(response => response.json())
+                .then(data => data.response)
+                .then(response => {
+                    // Render message by Khoj to chat body
+                    console.log(response);
+                    renderMessage(response, "khoj");
+                });
+        }
+
+        function incrementalChat(event) {
+            // Send chat message on 'Enter'
+            if (event.key === 'Enter') {
+                chat();
+            }
+        }
+
+        window.onload = function () {
+            // Fill type field with value passed in URL query parameters, if any.
+            var type_via_url = new URLSearchParams(window.location.search).get("t");
+            if (type_via_url)
+                document.getElementById("chat-type").value = type_via_url;
+
+            fetch('/api/beta/chat')
+                .then(response => response.json())
+                .then(data => data.response)
+                .then(chat_logs => {
+                    // Render conversation history, if any
+                    chat_logs.forEach(chat_log => {
+                        renderMessage(chat_log.message, chat_log.by, new Date(chat_log.created));
+                    });
+                });
+
+             // Set welcome message on load
+            renderMessage("Hey, what's up?", "khoj");
+
+            // Fill query field with value passed in URL query parameters, if any.
+            var query_via_url = new URLSearchParams(window.location.search).get("q");
+            if (query_via_url) {
+                document.getElementById("chat-input").value = query_via_url;
+                chat();
+            }
+        }
+    </script>
+    <body>
+        <!-- Chat Header -->
+        <h1>Khoj</h1>
+
+        <!-- Chat Body -->
+        <div id="chat-body"></div>
+
+        <!-- Chat Footer -->
+        <div id="chat-footer">
+            <input type="text" id="chat-input" class="option" onkeyup=incrementalChat(event) autofocus="autofocus" placeholder="What is the meaning of life?">
+
+            <!--Select Chat Type from: Chat, Summarize -->
+            <select id="chat-type" class="option" onchange="setTypeFieldInUrl(this)">
+                <option value="chat">Chat</option>
+                <option value="summarize">Summarize</option>
+            </select>
+        </div>
+    </body>
+
+    <style>
+        html, body {
+            height: 100%;
+            width: 100%;
+            padding: 0px;
+            margin: 0px;
+        }
+        body {
+            display: grid;
+            background: #f8fafc;
+            color: #475569;
+            text-align: center;
+            font-family: roboto, karma, segoe ui, sans-serif;
+            font-size: 20px;
+            font-weight: 300;
+            line-height: 1.5em;
+        }
+        body > * {
+            padding: 10px;
+            margin: 10px;
+        }
+        h1 {
+            font-weight: 200;
+            color: #017eff;
+        }
+
+        #chat-body {
+            font-size: medium;
+            margin: 0px;
+            line-height: 20px;
+            overflow-y: scroll; /* Make chat body scroll to see history */
+        }
+        /* add chat metatdata to bottom of bubble */
+        .chat-message::after {
+            content: attr(data-meta);
+            display: block;
+            font-size: x-small;
+            color: #475569;
+            margin: -12px 7px 0 -5px;
+        }
+        /* move message by khoj to left */
+        .chat-message.khoj {
+            margin-left: auto;
+            text-align: left;
+        }
+        /* move message by you to right */
+        .chat-message.you {
+            margin-right: auto;
+            text-align: right;
+        }
+        /* basic style chat message text */
+        .chat-message-text {
+            margin: 10px;
+            border-radius: 10px;
+            padding: 10px;
+            position: relative;
+            display: inline-block;
+            max-width: 80%;
+            text-align: left;
+        }
+        /* color chat bubble by khoj blue */
+        .chat-message-text.khoj {
+            color: #f8fafc;
+            background: #017eff;
+            margin-left: auto;
+        }
+        /* add left protrusion to khoj chat bubble */
+        .chat-message-text.khoj:after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: -7px;
+            border: 10px solid transparent;
+            border-top-color: #017eff;
+            border-bottom: 0;
+            transform: rotate(-60deg);
+        }
+        /* color chat bubble by you dark grey */
+        .chat-message-text.you {
+            color: #f8fafc;
+            background: #475569;
+            margin-right: auto;
+        }
+        /* add right protrusion to you chat bubble */
+        .chat-message-text.you:after {
+            content: '';
+            position: absolute;
+            top: 91%;
+            right: -2px;
+            border: 10px solid transparent;
+            border-left-color: #475569;
+            border-right: 0;
+            margin-top: -10px;
+            transform: rotate(-60deg)
+        }
+
+        #chat-footer {
+            padding: 0;
+            display: grid;
+            grid-template-columns: minmax(70px, 85%) auto;
+            grid-column-gap: 10px;
+            grid-row-gap: 10px;
+        }
+        #chat-footer > * {
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #475569;
+            background: #f9fafc
+        }
+        .option:hover {
+            box-shadow: 0 0 11px #aaa;
+        }
+        #chat-input {
+            font-size: medium;
+        }
+
+        @media only screen and (max-width: 600px) {
+            body {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto minmax(80px, 100%) auto;
+            }
+            body > * {
+                grid-column: 1;
+            }
+            #chat-footer {
+                padding: 0;
+                margin: 4px;
+                grid-template-columns: auto;
+            }
+        }
+        @media only screen and (min-width: 600px) {
+            body {
+                grid-template-columns: auto min(70vw, 100%) auto;
+                grid-template-rows: auto minmax(80px, 100%) auto;
+            }
+            body > * {
+                grid-column: 2;
+            }
+        }
+    </style>
+</html>
