@@ -81,7 +81,10 @@ def chat(q: Optional[str]=None):
 
     # If user query is empty, return chat history
     if not q:
-        return {'status': 'ok', 'response': meta_log["chat"]}
+        if meta_log.get('chat'):
+            return {'status': 'ok', 'response': meta_log["chat"]}
+        else:
+            return {'status': 'ok', 'response': []}
 
     # Converse with OpenAI GPT
     metadata = understand(q, model=model, api_key=api_key, verbose=state.verbose)
