@@ -4,13 +4,14 @@ import logging
 from typing import Optional
 
 # External Packages
+import schedule
 from fastapi import APIRouter
 
 # Internal Packages
 from src.routers.api import search
 from src.processor.conversation.gpt import converse, extract_search_type, message_to_log, message_to_prompt, understand, summarize
 from src.utils.config import SearchType
-from src.utils.helpers import get_absolute_path, get_from_dict
+from src.utils.helpers import get_from_dict, resolve_absolute_path
 from src.utils import state
 
 
@@ -100,12 +101,11 @@ def chat(q: str):
     return {'status': status, 'response': gpt_response}
 
 
-@api_beta.on_event('shutdown')
-def shutdown_event():
+@schedule.repeat(schedule.every(5).minutes)
+def save_chat_session():
     # No need to create empty log file
-    if not (state.processor_config and state.processor_config.conversation and state.processor_config.conversation.meta_log):
+    if not (state.processor_config and state.processor_config.conversation and state.processor_config.conversation.meta_log and state.processor_config.conversation.chat_session):
         return
-    logger.debug('INFO:\tSaving conversation logs to disk...')
 
     # Summarize Conversation Logs for this Session
     chat_session = state.processor_config.conversation.chat_session
@@ -121,10 +121,13 @@ def shutdown_event():
         conversation_log['session'].append(session)
     else:
         conversation_log['session'] = [session]
+    logger.info('Added new chat session to conversation logs')
 
     # Save Conversation Metadata Logs to Disk
-    conversation_logfile = get_absolute_path(state.processor_config.conversation.conversation_logfile)
+    conversation_logfile = resolve_absolute_path(state.processor_config.conversation.conversation_logfile)
+    conversation_logfile.parent.mkdir(parents=True, exist_ok=True) # create conversation directory if doesn't exist
     with open(conversation_logfile, "w+", encoding='utf-8') as logfile:
         json.dump(conversation_log, logfile)
 
-    logger.info('INFO:\tConversation logs saved to disk.')
+    state.processor_config.conversation.chat_session = None
+    logger.info('Saved updated conversation logs to disk.')
