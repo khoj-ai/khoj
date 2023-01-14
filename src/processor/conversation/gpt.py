@@ -210,19 +210,30 @@ def message_to_prompt(user_message, conversation_history="", gpt_message=None, s
     return f"{conversation_history}{restart_sequence} {user_message}{start_sequence}{gpt_message}"
 
 
-def message_to_log(user_message, user_message_metadata, gpt_message, conversation_log=[]):
+def message_to_log(user_message, gpt_message, user_message_metadata={}, conversation_log=[]):
     """Create json logs from messages, metadata for conversation log"""
+    default_user_message_metadata = {
+        "intent": {
+            "type": "remember",
+            "memory-type": "notes",
+            "query": user_message
+        },
+        "trigger-emotion": "calm"
+    }
+    current_dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     # Create json log from Human's message
-    human_log = user_message_metadata
+    human_log = user_message_metadata or default_user_message_metadata
     human_log["message"] = user_message
-    human_log["by"] = "Human"
-    human_log["created"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    human_log["by"] = "you"
+    human_log["created"] = current_dt
 
     # Create json log from GPT's response
-    ai_log = {"message": gpt_message, "by": "AI", "created": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+    khoj_log = {"message": gpt_message, "by": "khoj", "created": current_dt}
 
-    conversation_log.extend([human_log, ai_log])
+    conversation_log.extend([human_log, khoj_log])
     return conversation_log
+
 
 def extract_summaries(metadata):
     """Extract summaries from metadata"""
