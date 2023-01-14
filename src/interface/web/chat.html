@@ -87,6 +87,16 @@
             if (type_via_url)
                 document.getElementById("chat-type").value = type_via_url;
 
+            fetch('/api/beta/chat')
+                .then(response => response.json())
+                .then(data => data.response)
+                .then(chat_logs => {
+                    // Render conversation history, if any
+                    chat_logs.forEach(chat_log => {
+                        renderMessage(chat_log.message, chat_log.by, new Date(chat_log.created));
+                    });
+                });
+
              // Set welcome message on load
             renderMessage("Hey, what's up?", "khoj");
 
