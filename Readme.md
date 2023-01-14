@@ -167,25 +167,32 @@ pip install --upgrade khoj-assistant
 
 ## Troubleshoot
 
-- Symptom: Errors out complaining about Tensors mismatch, null etc
-  - Mitigation: Disable `image` search using the desktop GUI
-- Symptom: Errors out with \"Killed\" in error message in Docker
-  - Fix: Increase RAM available to Docker Containers in Docker Settings
-  - Refer: [StackOverflow Solution](https://stackoverflow.com/a/50770267), [Configure Resources on Docker for Mac](https://docs.docker.com/desktop/mac/#resources)
-- Symptom: `pip install khoj-assistant` fails while building the `tokenizers` dependency. Complains about Rust.
-  - Fix: Install Rust to build the tokenizers package. For example on Mac run:
+#### Install fails while building Tokenizer dependency
+- **Details**: `pip install khoj-assistant` fails while building the `tokenizers` dependency. Complains about Rust.
+- **Fix**: Install Rust to build the tokenizers package. For example on Mac run:
     ```shell
     brew install rustup
     rustup-init
     source ~/.cargo/env
     ```
-  - Refer: [Issue with Fix](https://github.com/debanjum/khoj/issues/82#issuecomment-1241890946) for more details
+- **Refer**: [Issue with Fix](https://github.com/debanjum/khoj/issues/82#issuecomment-1241890946) for more details
 
-# Advanced Usage
+#### Search starts giving wonky results
+- **Fix**: Open `<khoj-url>/api/update?force=true` in browser to regenerate index from scratch.  Default: http://localhost:8000/api/update?force=true
+- **Note**: *This is a fix for when you percieve the search results have degraded. Not if you think they've always given wonky results*
+
+#### Khoj in Docker errors out with \"Killed\" in error message
+- **Fix**: Increase RAM available to Docker Containers in Docker Settings
+- **Refer**: [StackOverflow Solution](https://stackoverflow.com/a/50770267), [Configure Resources on Docker for Mac](https://docs.docker.com/desktop/mac/#resources)
+
+#### Khoj errors out complaining about Tensors mismatch or null
+- **Mitigation**: Disable `image` search using the desktop GUI
+
+## Advanced Usage
 ## Access Khoj on Mobile
 1. [Setup Khoj](#Setup) on your personal server. This can be any always-on machine, i.e an old computer, RaspberryPi(?) etc
 2. [Install](https://tailscale.com/kb/installation/) [Tailscale](tailscale.com/) on your personal server and phone
-3. Open the Khoj web interface of the server from your phone browser.<br /> It should be `http://tailscale-url-of-server:8000` or `http://name-of-server:8000` if you've setup [MagicDNS](https://tailscale.com/kb/1081/magicdns/)
+3. Open the Khoj web interface of the server from your phone browser.<br /> It should be `http://tailscale-ip-of-server:8000` or `http://name-of-server:8000` if you've setup [MagicDNS](https://tailscale.com/kb/1081/magicdns/)
 4. Click the [Add to Homescreen](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Add_to_home_screen) button
 5. Enjoy exploring your notes, transactions and images from your phone!
 
