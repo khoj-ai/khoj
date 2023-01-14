@@ -62,7 +62,7 @@ def summarize_beta(q: str):
 
 
 @api_beta.get('/chat')
-def chat(q: str):
+def chat(q: Optional[str]=None):
     # Initialize Variables
     model = state.processor_config.conversation.model
     api_key = state.processor_config.conversation.openai_api_key
@@ -70,6 +70,10 @@ def chat(q: str):
     # Load Conversation History
     chat_session = state.processor_config.conversation.chat_session
     meta_log = state.processor_config.conversation.meta_log
+
+    # If user query is empty, return chat history
+    if not q:
+        return {'status': 'ok', 'response': meta_log["chat"]}
 
     # Converse with OpenAI GPT
     metadata = understand(q, model=model, api_key=api_key, verbose=state.verbose)
