@@ -148,8 +148,9 @@
             font-size: medium;
             margin: 0px;
             line-height: 20px;
-            overflow-y: scroll;
+            overflow-y: scroll; /* Make chat body scroll to see history */
         }
+        /* add chat metatdata to bottom of bubble */
         .chat-message::after {
             content: attr(data-meta);
             display: block;
@@ -157,14 +158,17 @@
             color: #475569;
             margin: -12px 7px 0 -5px;
         }
+        /* move message by khoj to left */
         .chat-message.khoj {
             margin-left: auto;
             text-align: left;
         }
+        /* move message by you to right */
         .chat-message.you {
             margin-right: auto;
             text-align: right;
         }
+        /* basic style chat message text */
         .chat-message-text {
             margin: 10px;
             border-radius: 10px;
@@ -174,11 +178,13 @@
             max-width: 80%;
             text-align: left;
         }
+        /* color chat bubble by khoj blue */
         .chat-message-text.khoj {
             color: #f8fafc;
             background: #017eff;
             margin-left: auto;
         }
+        /* add left protrusion to khoj chat bubble */
         .chat-message-text.khoj:after {
             content: '';
             position: absolute;
@@ -189,11 +195,13 @@
             border-bottom: 0;
             transform: rotate(-60deg);
         }
+        /* color chat bubble by you dark grey */
         .chat-message-text.you {
             color: #f8fafc;
             background: #475569;
             margin-right: auto;
         }
+        /* add right protrusion to you chat bubble */
         .chat-message-text.you:after {
             content: '';
             position: absolute;
