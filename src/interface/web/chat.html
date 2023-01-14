@@ -15,12 +15,6 @@
             window.history.pushState({}, "", url.href);
         }
 
-        function setQueryFieldInUrl(query) {
-            let url = new URL(window.location.href);
-            url.searchParams.set("q", query);
-            window.history.pushState({}, "", url.href);
-        }
-
         function formatDate(date) {
             // Format date in HH:MM, DD MMM YYYY format
             let time_string = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -30,7 +24,7 @@
 
         function renderMessage(message, by, dt=null) {
             let message_time = formatDate(dt ?? new Date());
-            let by_name =  by == "khoj" ? "🦅 Khoj" : "😲 You";
+            let by_name =  by == "khoj" ? "🦅 Khoj" : "🤔 You";
             // Generate HTML for Chat Message and Append to Chat Body
             document.getElementById("chat-body").innerHTML += `
                 <div data-meta="${by_name} at ${message_time}" class="chat-message ${by}">
@@ -50,9 +44,6 @@
             // Short circuit on empty query
             if (query.length === 0)
                 return;
-
-            // Set query field in url query param
-            setQueryFieldInUrl(query);
 
             // Add message by user to chat body
             renderMessage(query, "you");
