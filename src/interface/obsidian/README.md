@@ -16,6 +16,7 @@
   - [Upgrade Backend](#1-Upgrade-Backend)
   - [Upgrade Plugin](#2-Upgrade-Plugin)
 - [Troubleshoot](#Troubleshoot)
+- [Visualize Codebase](#Visualize-Codebase)
 - [Implementation](#Implementation)
 
 ## Features
@@ -97,6 +98,9 @@ Use structured query syntax to filter the natural language search results
 ## Current Limitations
 - The plugin loads index of only one vault at a time.<br/>
   So notes across multiple vaults **cannot** be search at the same time
+
+## Visualize Codebase
+<img src="https://github.com/debanjum/khoj/blob/master/src/interface/obsidian/docs/khoj_obsidian_codebase_visualization_0.2.1.png" width="700" />
 
 ## Implementation
 The plugin implements the following functionality to search your notes with Khoj:
