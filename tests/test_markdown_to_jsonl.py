@@ -103,6 +103,25 @@ def test_get_markdown_files(tmp_path):
     assert extracted_org_files == expected_files
 
 
+def test_extract_entries_with_different_level_headings(tmp_path):
+    "Extract markdown entries with different level headings."
+    # Arrange
+    entry = f'''
+# Heading 1
+## Heading 2
+'''
+    markdownfile = create_file(tmp_path, entry)
+
+    # Act
+    # Extract Entries from specified Markdown files
+    entries, _ = MarkdownToJsonl.extract_markdown_entries(markdown_files=[markdownfile])
+
+    # Assert
+    assert len(entries) == 2
+    assert entries[0] == "# Heading 1"
+    assert entries[1] == "## Heading 2"
+
+
 # Helper Functions
 def create_file(tmp_path, entry=None, filename="test.md"):
     markdown_file = tmp_path / filename

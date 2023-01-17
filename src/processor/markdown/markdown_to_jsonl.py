@@ -98,10 +98,12 @@ class MarkdownToJsonl(TextToJsonl):
         for markdown_file in markdown_files:
             with open(markdown_file) as f:
                 markdown_content = f.read()
-                markdown_entries_per_file = [f'#{entry.strip(empty_escape_sequences)}'
-                for entry
-                in re.split(markdown_heading_regex, markdown_content, flags=re.MULTILINE)
-                if entry.strip(empty_escape_sequences) != '']
+                markdown_entries_per_file = []
+                for entry in re.split(markdown_heading_regex, markdown_content, flags=re.MULTILINE):
+                    prefix = '#' if entry.startswith('#') else '# '
+                    if entry.strip(empty_escape_sequences) != '':
+                        markdown_entries_per_file.append(f'{prefix}{entry.strip(empty_escape_sequences)}')
+
                 entry_to_file_map += zip(markdown_entries_per_file, [markdown_file]*len(markdown_entries_per_file))
                 entries.extend(markdown_entries_per_file)
 

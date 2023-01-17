@@ -154,6 +154,25 @@ def test_get_org_files(tmp_path):
     assert extracted_org_files == expected_files
 
 
+def test_extract_entries_with_different_level_headings(tmp_path):
+    "Extract org entries with different level headings."
+    # Arrange
+    entry = f'''
+* Heading 1
+** Heading 2
+'''
+    orgfile = create_file(tmp_path, entry)
+
+    # Act
+    # Extract Entries from specified Org files
+    entries, _ = OrgToJsonl.extract_org_entries(org_files=[orgfile])
+
+    # Assert
+    assert len(entries) == 2
+    assert f'{entries[0]}'.startswith("* Heading 1")
+    assert f'{entries[1]}'.startswith("** Heading 2")
+
+
 # Helper Functions
 def create_file(tmp_path, entry=None, filename="test.org"):
     org_file = tmp_path / filename
