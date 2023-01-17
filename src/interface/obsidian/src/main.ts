@@ -10,7 +10,7 @@ export default class Khoj extends Plugin {
     async onload() {
         await this.loadSettings();
 
-        // Add a search command. It can be triggered from anywhere
+        // Add search command. It can be triggered from anywhere
         this.addCommand({
             id: 'search',
             name: 'Search',
@@ -21,11 +21,11 @@ export default class Khoj extends Plugin {
             }
         });
 
-        // Add a similar notes command
+        // Add similar notes command. It can only be triggered from the editor
         this.addCommand({
             id: 'similar',
             name: 'Find Similar Notes',
-            checkCallback: (checking) => {
+            editorCheckCallback: (checking) => {
                 if (!checking && this.settings.connectedToBackend)
                     new KhojModal(this.app, this.settings, true).open();
                 return this.settings.connectedToBackend;
@@ -36,8 +36,8 @@ export default class Khoj extends Plugin {
         this.addRibbonIcon('search', 'Khoj', (_: MouseEvent) => {
             // Called when the user clicks the icon.
             this.settings.connectedToBackend
-            ? new KhojModal(this.app, this.settings).open()
-            : new Notice(`❗️Ensure Khoj backend is running and Khoj URL is pointing to it in the plugin settings`);
+                ? new KhojModal(this.app, this.settings).open()
+                : new Notice(`❗️Ensure Khoj backend is running and Khoj URL is pointing to it in the plugin settings`);
         });
 
         // Add a settings tab so the user can configure khoj
