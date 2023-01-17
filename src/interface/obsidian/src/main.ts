@@ -21,6 +21,17 @@ export default class Khoj extends Plugin {
             }
         });
 
+        // Add a similar notes command
+        this.addCommand({
+            id: 'similar',
+            name: 'Find Similar Notes',
+            checkCallback: (checking) => {
+                if (!checking && this.settings.connectedToBackend)
+                    new KhojModal(this.app, this.settings, true).open();
+                return this.settings.connectedToBackend;
+            }
+        });
+
         // Create an icon in the left ribbon.
         this.addRibbonIcon('search', 'Khoj', (_: MouseEvent) => {
             // Called when the user clicks the icon.
