@@ -54,15 +54,8 @@ export class KhojModal extends SuggestModal<SearchResult> {
         let searchUrl = `${this.setting.khojUrl}/api/search?q=${query}&n=${this.setting.resultsCount}&r=${this.rerank}&t=markdown`
         let results = await request(searchUrl)
             .then(response => JSON.parse(response))
-            .then(data => {
-                return data.map((result: any) => {
-                    let processedResult: SearchResult = {
-                        entry: result.entry,
-                        file: result.additional.file
-                    };
-                    return processedResult;
-                })
-            });
+            .then(data => data
+                .map((result: any) => { return { entry: result.entry, file: result.additional.file } as SearchResult; }));
 
         return results;
     }
