@@ -40,7 +40,7 @@ https://user-images.githubusercontent.com/6413477/210486007-36ee3407-e6aa-4185-8
 </details>
 
 ### Interface
-![](https://github.com/debanjum/khoj/blob/master/src/interface/obsidian/docs/khoj_obsidian_screenshot_0.1.0.png)
+![](https://github.com/debanjum/khoj/blob/master/src/interface/obsidian/docs/khoj_on_obsidian_0.2.5.png?)
 
 ## Setup
 ### 1. Setup Backend
