@@ -1,4 +1,4 @@
-import { App, SuggestModal, Notice, request, MarkdownRenderer, Instruction, Platform } from 'obsidian';
+import { App, SuggestModal, request, MarkdownRenderer, Instruction, Platform } from 'obsidian';
 import { KhojSetting } from 'src/settings';
 
 export interface SearchResult {
@@ -68,7 +68,11 @@ export class KhojModal extends SuggestModal<SearchResult> {
     }
 
     async renderSuggestion(result: SearchResult, el: HTMLElement) {
-        MarkdownRenderer.renderMarkdown(result.entry, el, null, null);
+        let words_to_render = 30;
+        let entry_words = result.entry.split(' ')
+        let entry_snipped_indicator = entry_words.length > words_to_render ? ' **...**' : '';
+        let snipped_entry = entry_words.slice(0, words_to_render).join(' ');
+        MarkdownRenderer.renderMarkdown(snipped_entry + entry_snipped_indicator, el, null, null);
     }
 
     async onChooseSuggestion(result: SearchResult, _: MouseEvent | KeyboardEvent) {
