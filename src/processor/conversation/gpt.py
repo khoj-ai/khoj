@@ -10,7 +10,7 @@ import openai
 from src.utils.constants import empty_escape_sequences
 
 
-def summarize(text, summary_type, model, user_query=None, api_key=None, temperature=0.5, max_tokens=100):
+def summarize(text, summary_type, model, user_query=None, api_key=None, temperature=0.5, max_tokens=200):
     """
     Summarize user input using OpenAI's GPT
     """
@@ -39,9 +39,7 @@ Summarize the notes in second person perspective:'''
         model=model,
         temperature=temperature,
         max_tokens=max_tokens,
-        top_p=1,
         frequency_penalty=0.2,
-        presence_penalty=0,
         stop="\"\"\"")
 
     # Extract, Clean Message from GPT's Response
@@ -88,9 +86,7 @@ A:{ "search-type": "notes" }'''
         model=model,
         temperature=temperature,
         max_tokens=max_tokens,
-        top_p=1,
         frequency_penalty=0.2,
-        presence_penalty=0,
         stop=["\n"])
 
     # Extract, Clean Message from GPT's Response
@@ -159,9 +155,7 @@ A: { "intent": {"type": "generate", "activity": "chat", "query": "Can you dance 
         model=model,
         temperature=temperature,
         max_tokens=max_tokens,
-        top_p=1,
         frequency_penalty=0.2,
-        presence_penalty=0,
         stop=["\n"])
 
     # Extract, Clean Message from GPT's Response
@@ -193,8 +187,6 @@ AI: Hi, I am an AI conversational companion created by OpenAI. How can I help yo
         model=model,
         temperature=temperature,
         max_tokens=max_tokens,
-        top_p=1,
-        frequency_penalty=0,
         presence_penalty=0.6,
         stop=["\n", "Human:", "AI:"])
 
