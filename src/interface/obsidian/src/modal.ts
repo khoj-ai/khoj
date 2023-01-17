@@ -51,7 +51,8 @@ export class KhojModal extends SuggestModal<SearchResult> {
 
     async getSuggestions(query: string): Promise<SearchResult[]> {
         // Query Khoj backend for search results
-        let searchUrl = `${this.setting.khojUrl}/api/search?q=${query}&n=${this.setting.resultsCount}&r=${this.rerank}&t=markdown`
+        let encodedQuery = encodeURIComponent(query);
+        let searchUrl = `${this.setting.khojUrl}/api/search?q=${encodedQuery}&n=${this.setting.resultsCount}&r=${this.rerank}&t=markdown`
         let results = await request(searchUrl)
             .then(response => JSON.parse(response))
             .then(data => data
