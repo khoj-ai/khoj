@@ -134,6 +134,7 @@ def collate_results(hits, entries: list[Entry], count=5) -> list[SearchResponse]
             "score": f"{hit['cross-score'] if 'cross-score' in hit else hit['score']:.3f}",
             "additional": {
                 "file": entries[hit['corpus_id']].file,
+                "compiled": entries[hit['corpus_id']].compiled
             }
         })
         for hit
