@@ -6,7 +6,7 @@
 ;; Description: Natural, Incremental Search for your Second Brain
 ;; Keywords: search, org-mode, outlines, markdown, beancount, ledger, image
 ;; Version: 0.2.2
-;; Package-Requires: ((emacs "27.1"))
+;; Package-Requires: ((emacs "27.1") (transient "0.3.0"))
 ;; URL: https://github.com/debanjum/khoj/tree/master/src/interface/emacs
 
 ;; This file is NOT part of GNU Emacs.
@@ -48,6 +48,7 @@
 
 (require 'url)
 (require 'json)
+(require 'transient)
 
 (defcustom khoj-server-url "http://localhost:8000"
   "Location of Khoj API server."
@@ -332,14 +333,10 @@ Render results in BUFFER-NAME."
   (remove-hook 'post-command-hook #'khoj--incremental-search)
   (remove-hook 'minibuffer-exit-hook #'khoj--teardown-incremental-search))
 
-
-;;;###autoload
-(defun khoj ()
+(defun khoj-incremental ()
   "Natural, Incremental Search for your personal notes, transactions and music."
   (interactive)
   (let* ((khoj-buffer-name (get-buffer-create khoj--buffer-name)))
-    ;; set khoj search type to last used or based on current buffer
-    (setq khoj--search-type (or khoj--search-type (khoj--buffer-name-to-search-type (buffer-name))))
     ;; switch to khoj results buffer
     (switch-to-buffer khoj-buffer-name)
     ;; open and setup minibuffer for incremental search
@@ -355,6 +352,32 @@ Render results in BUFFER-NAME."
           (add-hook 'post-command-hook #'khoj--incremental-search) ; do khoj incremental search after every user action
           (add-hook 'minibuffer-exit-hook #'khoj--teardown-incremental-search)) ; teardown khoj incremental search on minibuffer exit
       (read-string khoj--query-prompt))))
+
+(transient-define-argument khoj--content-type-switch ()
+  :class 'transient-switches
+  :argument-format "--content-type=%s"
+  :argument-regexp ".+"
+  ;; set content type to last used or based on current buffer or to default
+  :init-value (lambda (obj) (oset obj value (format "--content-type=%s" (or khoj--search-type (khoj--buffer-name-to-search-type (buffer-name))))))
+  :choices '("org" "markdown" "ledger" "music" "image"))
+
+(transient-define-suffix khoj--search (&optional args)
+  (interactive (list (transient-args transient-current-command)))
+    (progn
+      ;; set search type to last used or based on current buffer or to default
+      (setq khoj--search-type (or (transient-arg-value "--content-type=" args) (khoj--buffer-name-to-search-type (buffer-name))))
+      ;; set results count to last used or to default
+      (setq khoj-results-count (or (transient-arg-value "--results-count=" args) khoj-results-count))
+      ;; trigger incremental search
+      (call-interactively #'khoj-incremental)))
+
+
+;;;###autoload
+(transient-define-prefix khoj ()
+  [["Set"
+    ("t" "Content Type" khoj--content-type-switch)
+    ("n" "Results Count" "--results-count=" :init-value (lambda (obj) (oset obj value (format "%s" khoj-results-count))))]]
+  [["Act" ("s" "Search" khoj--search)]])
 
 ;;;###autoload
 (defun khoj-simple (query)
