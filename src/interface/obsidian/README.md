@@ -11,7 +11,8 @@
   - [Setup Backend](#1-Setup-Backend)
   - [Setup Plugin](#2-Setup-Plugin)
 - [Use](#Use)
-  - [Query Filters](#Query-filters)
+  - [Search](#search)
+  - [Find Similar Notes](#find-similar-notes)
 - [Upgrade](#Upgrade)
   - [Upgrade Backend](#1-Upgrade-Backend)
   - [Upgrade Plugin](#2-Upgrade-Plugin)
@@ -56,7 +57,8 @@ pip install khoj-assistant && khoj --no-gui
 See [official docs](https://help.obsidian.md/Advanced+topics/Community+plugins#Discover+and+install+community+plugins) for details
 
 ## Use
-Click the *Khoj search* icon 🔎 on the [Ribbon](https://help.obsidian.md/User+interface/Workspace/Ribbon) or Search for *Khoj: Search* in the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
+### Search
+Click the *Khoj search* icon 🔎 on the [Ribbon](https://help.obsidian.md/User+interface/Workspace/Ribbon) or run *Khoj: Search* from the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
 
 <details><summary>Query Filters</summary>
 
@@ -79,6 +81,9 @@ Use structured query syntax to filter the natural language search results
     - that best match the natural language query *"what is the meaning of life?"*
 
 </details>
+
+### Find Similar Notes
+To see other notes similar to the current one, run *Khoj: Find Similar Notes* from the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
 
 ## Upgrade
 ### 1. Upgrade Backend
