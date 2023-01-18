@@ -96,13 +96,13 @@ To see other notes similar to the current one, run *Khoj: Find Similar Notes* fr
   3. Click the *Update* button next to Khoj, if available
 
 ## Troubleshooting
-  1. Open the Khoj plugin settings pane, in case you need to configure Khoj
-  2. Toggle Enable/Disable Khoj, in case settings changes have not applied
-  3. Click *Update* button to force index to refresh if results are failing or stale
+  - Open the Khoj plugin settings pane, to configure Khoj
+  - Toggle Enable/Disable Khoj, if setting changes have not applied
+  - Click *Update* button to force index to refresh, if results are failing or stale
 
 ## Current Limitations
-- The plugin loads index of only one vault at a time.<br/>
-  So notes across multiple vaults **cannot** be search at the same time
+- The plugin loads the index of only one vault at a time.<br/>
+  So notes across multiple vaults **cannot** be searched at the same time
 
 ## Visualize Codebase
 <img src="https://github.com/debanjum/khoj/blob/master/src/interface/obsidian/docs/khoj_obsidian_codebase_visualization_0.2.1.png" width="700" />
@@ -115,4 +115,5 @@ The plugin implements the following functionality to search your notes with Khoj
   - Set Obsidian Vault to Index with Khoj. Defaults to all markdown files in current Vault
   - Set URL of Khoj backend
   - Set Number of Search Results to show in Search Modal
-- [X] Allow user to trigger reranking of result to improve search quality
+- [X] Allow reranking of result to improve search quality
+- [X] Allow Finding notes similar to current note being viewed
