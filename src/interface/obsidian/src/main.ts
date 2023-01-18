@@ -44,9 +44,6 @@ export default class Khoj extends Plugin {
         this.addSettingTab(new KhojSettingTab(this.app, this));
     }
 
-    onunload() {
-    }
-
     async loadSettings() {
         // Load khoj obsidian plugin settings
         this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
