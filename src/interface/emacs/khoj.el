@@ -373,13 +373,28 @@ Render results in BUFFER-NAME."
       ;; trigger incremental search
       (call-interactively #'khoj-incremental)))
 
+(transient-define-suffix khoj--update (&optional args)
+  (interactive (list (transient-args transient-current-command)))
+  (let* ((force-update (if (member "--force-update" args) "true" "false"))
+         (content-type (or (transient-arg-value "--content-type=" args) (khoj--buffer-name-to-content-type (buffer-name))))
+         (config-url (format "%s/api/update?t=%s&force=%s" khoj-server-url content-type force-update))
+         (url-request-method "GET"))
+    ;; Call khoj API to update content type
+    (url-retrieve
+     config-url
+     (lambda (_) (message "Khoj %s index %supdated!" content-type (if (member "--force-update" args) "force " ""))))))
 
 ;;;###autoload
 (transient-define-prefix khoj ()
   [["Set"
-    ("t" "Content Type" khoj--content-type-switch)
-    ("n" "Results Count" "--results-count=" :init-value (lambda (obj) (oset obj value (format "%s" khoj-results-count))))]]
-  [["Act" ("s" "Search" khoj--search)]])
+    ("t" "Content Type" khoj--content-type-switch)]
+   ["Set Search"
+    ("n" "Results Count" "--results-count=" :init-value (lambda (obj) (oset obj value (format "%s" khoj-results-count))))]
+   ["Set Update"
+    ("-f" "Force Update" "--force-update")]]
+  [["Act"
+    ("s" "Search" khoj--search)
+    ("u" "Update" khoj--update)]])
 
 ;;;###autoload
 (defun khoj-simple (query)
