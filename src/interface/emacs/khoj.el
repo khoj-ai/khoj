@@ -421,7 +421,8 @@ Render results in BUFFER-NAME."
     ("-f" "Force Update" "--force-update")]]
   [["Act"
     ("s" "Search" khoj--search-command)
-    ("u" "Update" khoj--update-command)]])
+    ("u" "Update" khoj--update-command)
+    ("q" "Quit" transient-quit-one)]])
 
 
 ;; ----------
