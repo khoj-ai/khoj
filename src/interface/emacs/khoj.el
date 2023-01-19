@@ -76,13 +76,14 @@
   :type '(choice (const "org")
                  (const "markdown")
                  (const "ledger")
+                 (const "image")
                  (const "music")))
 
 (defvar khoj--minibuffer-window nil
-  "Minibuffer window being used by user to enter query.")
+  "Minibuffer window used to enter query.")
 
 (defconst khoj--query-prompt "🦅Khoj: "
-  "Query prompt shown to user in the minibuffer.")
+  "Query prompt shown in the minibuffer.")
 
 (defconst khoj--buffer-name "*🦅Khoj*"
   "Name of buffer to show results from Khoj.")
@@ -97,7 +98,7 @@
 NO-PAGING FILTER))
 
 (defun khoj--keybindings-info-message ()
-  "Show available khoj keybindings in-context, when user invokes Khoj."
+  "Show available khoj keybindings in-context, when khoj invoked."
   (let ((enabled-content-types (khoj--get-enabled-content-types)))
     (concat
      "
@@ -110,7 +111,7 @@ NO-PAGING FILTER))
      (when (member 'ledger enabled-content-types)
        "C-x l  | ledger\n")
      (when (member 'image enabled-content-types)
-       "C-x i  | images\n")
+       "C-x i  | image\n")
      (when (member 'music enabled-content-types)
        "C-x M  | music\n"))))
 
