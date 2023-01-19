@@ -413,11 +413,11 @@ Render results in BUFFER-NAME."
 
 (transient-define-prefix khoj-menu ()
   "Create Khoj Menu to Configure and Execute Commands."
-  [["Set"
+  [["Configure General"
     ("t" "Content Type" khoj--content-type-switch)]
-   ["Set Search"
+   ["Configure Search"
     ("n" "Results Count" "--results-count=" :init-value (lambda (obj) (oset obj value (format "%s" khoj-results-count))))]
-   ["Set Update"
+   ["Configure Update"
     ("-f" "Force Update" "--force-update")]]
   [["Act"
     ("s" "Search" khoj--search-command)
