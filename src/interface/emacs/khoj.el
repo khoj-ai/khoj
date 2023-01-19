@@ -70,7 +70,7 @@
   :group 'khoj
   :type 'integer)
 
-(defcustom khoj-default-search-type "org"
+(defcustom khoj-default-content-type "org"
   "The default content type to perform search on."
   :group 'khoj
   :type '(choice (const "org")
@@ -88,7 +88,7 @@
 (defconst khoj--buffer-name "*🦅Khoj*"
   "Name of buffer to show results from Khoj.")
 
-(defvar khoj--search-type "org"
+(defvar khoj--content-type "org"
   "The type of content to perform search on.")
 
 (declare-function beancount-mode "beancount" ())
@@ -102,7 +102,7 @@ NO-PAGING FILTER))
   (let ((enabled-content-types (khoj--get-enabled-content-types)))
     (concat
      "
-     Set Search Type
+     Set Content Type
 -------------------------\n"
      (when (member 'markdown enabled-content-types)
          "C-x m  | markdown\n")
@@ -116,11 +116,11 @@ NO-PAGING FILTER))
        "C-x M  | music\n"))))
 
 (defvar khoj--rerank nil "Track when re-rank of results triggered.")
-(defun khoj--search-markdown () "Set search-type to `markdown'." (interactive) (setq khoj--search-type "markdown"))
-(defun khoj--search-org () "Set search-type to `org-mode'." (interactive) (setq khoj--search-type "org"))
-(defun khoj--search-ledger () "Set search-type to `ledger'." (interactive) (setq khoj--search-type "ledger"))
-(defun khoj--search-images () "Set search-type to image." (interactive) (setq khoj--search-type "image"))
-(defun khoj--search-music () "Set search-type to music." (interactive) (setq khoj--search-type "music"))
+(defun khoj--search-markdown () "Set content-type to `markdown'." (interactive) (setq khoj--content-type "markdown"))
+(defun khoj--search-org () "Set content-type to `org-mode'." (interactive) (setq khoj--content-type "org"))
+(defun khoj--search-ledger () "Set content-type to `ledger'." (interactive) (setq khoj--content-type "ledger"))
+(defun khoj--search-images () "Set content-type to image." (interactive) (setq khoj--content-type "image"))
+(defun khoj--search-music () "Set content-type to music." (interactive) (setq khoj--content-type "music"))
 (defun khoj--improve-rank () "Use cross-encoder to rerank search results." (interactive) (khoj--incremental-search t))
 (defun khoj--make-search-keymap (&optional existing-keymap)
   "Setup keymap to configure Khoj search. Build of EXISTING-KEYMAP when passed."
@@ -221,8 +221,8 @@ Use `which-key` if available, else display simple message in echo area"
                (format "%s\n\n" (cdr (assoc 'entry args))))
              json-response)))))
 
-(defun khoj--buffer-name-to-search-type (buffer-name)
-  "Infer search type based on BUFFER-NAME."
+(defun khoj--buffer-name-to-content-type (buffer-name)
+  "Infer content type based on BUFFER-NAME."
   (let ((enabled-content-types (khoj--get-enabled-content-types))
         (file-extension (file-name-extension buffer-name)))
     (cond
@@ -230,7 +230,7 @@ Use `which-key` if available, else display simple message in echo area"
      ((and (member 'ledger enabled-content-types) (or (equal file-extension "bean") (equal file-extension "beancount"))) "ledger")
      ((and (member 'org enabled-content-types) (equal file-extension "org")) "org")
      ((and (member 'markdown enabled-content-types) (or (equal file-extension "markdown") (equal file-extension "md"))) "markdown")
-     (t khoj-default-search-type))))
+     (t khoj-default-content-type))))
 
 (defun khoj--get-enabled-content-types ()
   "Get content types enabled for search from API."
@@ -248,14 +248,14 @@ Use `which-key` if available, else display simple message in echo area"
           (lambda (a) (not (eq (cdr a) :null)))
           content-type))))))
 
-(defun khoj--construct-api-query (query search-type &optional rerank)
-  "Construct API Query from QUERY, SEARCH-TYPE and (optional) RERANK params."
+(defun khoj--construct-api-query (query content-type &optional rerank)
+  "Construct API Query from QUERY, CONTENT-TYPE and (optional) RERANK params."
   (let ((rerank (or rerank "false"))
         (encoded-query (url-hexify-string query)))
-    (format "%s/api/search?q=%s&t=%s&r=%s&n=%s" khoj-server-url encoded-query search-type rerank khoj-results-count)))
+    (format "%s/api/search?q=%s&t=%s&r=%s&n=%s" khoj-server-url encoded-query content-type rerank khoj-results-count)))
 
-(defun khoj--query-api-and-render-results (query search-type query-url buffer-name)
-  "Query Khoj API using QUERY, SEARCH-TYPE, QUERY-URL.
+(defun khoj--query-api-and-render-results (query content-type query-url buffer-name)
+  "Query Khoj API using QUERY, CONTENT-TYPE, QUERY-URL.
 Render results in BUFFER-NAME."
   ;; get json response from api
   (with-current-buffer buffer-name
@@ -269,17 +269,17 @@ Render results in BUFFER-NAME."
           (json-response (json-parse-buffer :object-type 'alist)))
       (erase-buffer)
       (insert
-       (cond ((or (equal search-type "org") (equal search-type "music")) (khoj--extract-entries-as-org json-response query))
-             ((equal search-type "markdown") (khoj--extract-entries-as-markdown json-response query))
-             ((equal search-type "ledger") (khoj--extract-entries-as-ledger json-response query))
-             ((equal search-type "image") (khoj--extract-entries-as-images json-response query))
+       (cond ((or (equal content-type "org") (equal content-type "music")) (khoj--extract-entries-as-org json-response query))
+             ((equal content-type "markdown") (khoj--extract-entries-as-markdown json-response query))
+             ((equal content-type "ledger") (khoj--extract-entries-as-ledger json-response query))
+             ((equal content-type "image") (khoj--extract-entries-as-images json-response query))
              (t (format "%s" json-response))))
-      (cond ((equal search-type "org") (org-mode))
-            ((equal search-type "markdown") (markdown-mode))
-            ((equal search-type "ledger") (beancount-mode))
-            ((equal search-type "music") (progn (org-mode)
+      (cond ((equal content-type "org") (org-mode))
+            ((equal content-type "markdown") (markdown-mode))
+            ((equal content-type "ledger") (beancount-mode))
+            ((equal content-type "music") (progn (org-mode)
                                                 (org-music-mode)))
-            ((equal search-type "image") (progn (shr-render-region (point-min) (point-max))
+            ((equal content-type "image") (progn (shr-render-region (point-min) (point-max))
                                                 (goto-char (point-min))))
             (t (fundamental-mode))))
     (read-only-mode t)))
@@ -290,7 +290,7 @@ Render results in BUFFER-NAME."
   (let* ((rerank-str (cond (rerank "true") (t "false")))
          (khoj-buffer-name (get-buffer-create khoj--buffer-name))
          (query (minibuffer-contents-no-properties))
-         (query-url (khoj--construct-api-query query khoj--search-type rerank-str)))
+         (query-url (khoj--construct-api-query query khoj--content-type rerank-str)))
     ;; Query khoj API only when user in khoj minibuffer and non-empty query
     ;; Prevents querying if
     ;;   1. user hasn't started typing query
@@ -311,7 +311,7 @@ Render results in BUFFER-NAME."
           (message "Khoj: Rerank Results"))
         (khoj--query-api-and-render-results
          query
-         khoj--search-type
+         khoj--content-type
          query-url
          khoj-buffer-name))))))
 
@@ -359,15 +359,15 @@ Render results in BUFFER-NAME."
   :argument-format "--content-type=%s"
   :argument-regexp ".+"
   ;; set content type to last used or based on current buffer or to default
-  :init-value (lambda (obj) (oset obj value (format "--content-type=%s" (or khoj--search-type (khoj--buffer-name-to-search-type (buffer-name))))))
+  :init-value (lambda (obj) (oset obj value (format "--content-type=%s" (or khoj--content-type (khoj--buffer-name-to-content-type (buffer-name))))))
   ;; dynamically set choices to content types enabled on khoj backend
   :choices (mapcar #'symbol-name (khoj--get-enabled-content-types)))
 
 (transient-define-suffix khoj--search (&optional args)
   (interactive (list (transient-args transient-current-command)))
     (progn
-      ;; set search type to last used or based on current buffer or to default
-      (setq khoj--search-type (or (transient-arg-value "--content-type=" args) (khoj--buffer-name-to-search-type (buffer-name))))
+      ;; set content type to last used or based on current buffer or to default
+      (setq khoj--content-type (or (transient-arg-value "--content-type=" args) (khoj--buffer-name-to-content-type (buffer-name))))
       ;; set results count to last used or to default
       (setq khoj-results-count (or (transient-arg-value "--results-count=" args) khoj-results-count))
       ;; trigger incremental search
@@ -386,13 +386,13 @@ Render results in BUFFER-NAME."
   "Natural Search for QUERY on your personal notes, transactions, music and images."
   (interactive "s🦅Khoj: ")
   (let* ((rerank "true")
-         (default-type (khoj--buffer-name-to-search-type (buffer-name)))
-         (search-type (completing-read "Type: " '("org" "markdown" "ledger" "music" "image") nil t default-type))
-         (query-url (khoj--construct-api-query query search-type rerank))
-         (buffer-name (get-buffer-create (format "*%s (q:%s t:%s)*" khoj--buffer-name query search-type))))
+         (default-content-type (khoj--buffer-name-to-content-type (buffer-name)))
+         (content-type (completing-read "Type: " '("org" "markdown" "ledger" "music" "image") nil t default-content-type))
+         (query-url (khoj--construct-api-query query content-type rerank))
+         (buffer-name (get-buffer-create (format "*%s (q:%s t:%s)*" khoj--buffer-name query content-type))))
     (khoj--query-api-and-render-results
         query
-        search-type
+        content-type
         query-url
         buffer-name)
     (switch-to-buffer buffer-name)))
