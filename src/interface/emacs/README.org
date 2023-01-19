@@ -1,5 +1,5 @@
 * Khoj Emacs 🦅
-  [[https://stable.melpa.org/#/khoj][file:https://stable.melpa.org/packages/khoj-badge.svg]] [[https://melpa.org/#/khoj][file:https://melpa.org/packages/khoj-badge.svg]]
+  [[https://stable.melpa.org/#/khoj][file:https://stable.melpa.org/packages/khoj-badge.svg]] [[https://melpa.org/#/khoj][file:https://melpa.org/packages/khoj-badge.svg]] [[https://github.com/debanjum/khoj/actions/workflows/build_khoj_el.yml][https://github.com/debanjum/khoj/actions/workflows/build_khoj_el.yml/badge.svg?]]
  
   /Natural language search from within Emacs using [[https://github.com/debanjum/khoj][Khoj]]/
 
