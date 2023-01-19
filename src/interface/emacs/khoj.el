@@ -50,6 +50,11 @@
 (require 'json)
 (require 'transient)
 
+
+;; -------------------------
+;; Khoj Static Configuration
+;; -------------------------
+
 (defcustom khoj-server-url "http://localhost:8000"
   "Location of Khoj API server."
   :group 'khoj
@@ -79,6 +84,11 @@
                  (const "image")
                  (const "music")))
 
+
+;; --------------------------
+;; Khoj Dynamic Configuration
+;; --------------------------
+
 (defvar khoj--minibuffer-window nil
   "Minibuffer window used to enter query.")
 
@@ -105,7 +115,7 @@ NO-PAGING FILTER))
      Set Content Type
 -------------------------\n"
      (when (member 'markdown enabled-content-types)
-         "C-x m  | markdown\n")
+       "C-x m  | markdown\n")
      (when (member 'org enabled-content-types)
        "C-x o  | org-mode\n")
      (when (member 'ledger enabled-content-types)
@@ -149,6 +159,11 @@ Use `which-key` if available, else display simple message in echo area"
                                 (symbol-value 'khoj--keymap)
                                 nil t t))
     (message "%s" (khoj--keybindings-info-message))))
+
+
+;; -----------------------------------------------
+;; Extract and Render Entries of each Content Type
+;; -----------------------------------------------
 
 (defun khoj--extract-entries-as-markdown (json-response query)
   "Convert JSON-RESPONSE, QUERY from API to markdown entries."
@@ -232,6 +247,11 @@ Use `which-key` if available, else display simple message in echo area"
      ((and (member 'markdown enabled-content-types) (or (equal file-extension "markdown") (equal file-extension "md"))) "markdown")
      (t khoj-default-content-type))))
 
+
+;; --------------
+;; Query Khoj API
+;; --------------
+
 (defun khoj--get-enabled-content-types ()
   "Get content types enabled for search from API."
   (let ((config-url (format "%s/api/config/data" khoj-server-url))
@@ -284,6 +304,10 @@ Render results in BUFFER-NAME."
             (t (fundamental-mode))))
     (read-only-mode t)))
 
+
+;; ------------------
+;; Incremental Search
+;; ------------------
 
 (defun khoj--incremental-search (&optional rerank)
   "Perform Incremental Search on Khoj. Allow optional RERANK of results."
@@ -354,6 +378,11 @@ Render results in BUFFER-NAME."
           (add-hook 'minibuffer-exit-hook #'khoj--teardown-incremental-search)) ; teardown khoj incremental search on minibuffer exit
       (read-string khoj--query-prompt))))
 
+
+;; ---------
+;; Khoj Menu
+;; ---------
+
 (transient-define-argument khoj--content-type-switch ()
   :class 'transient-switches
   :argument-format "--content-type=%s"
@@ -363,7 +392,7 @@ Render results in BUFFER-NAME."
   ;; dynamically set choices to content types enabled on khoj backend
   :choices (mapcar #'symbol-name (khoj--get-enabled-content-types)))
 
-(transient-define-suffix khoj--search (&optional args)
+(transient-define-suffix khoj--search-command (&optional args)
   (interactive (list (transient-args transient-current-command)))
     (progn
       ;; set content type to last used or based on current buffer or to default
@@ -373,19 +402,17 @@ Render results in BUFFER-NAME."
       ;; trigger incremental search
       (call-interactively #'khoj-incremental)))
 
-(transient-define-suffix khoj--update (&optional args)
+(transient-define-suffix khoj--update-command (&optional args)
+  "Call khoj API to update index of specified content type."
   (interactive (list (transient-args transient-current-command)))
   (let* ((force-update (if (member "--force-update" args) "true" "false"))
          (content-type (or (transient-arg-value "--content-type=" args) (khoj--buffer-name-to-content-type (buffer-name))))
-         (config-url (format "%s/api/update?t=%s&force=%s" khoj-server-url content-type force-update))
+         (update-url (format "%s/api/update?t=%s&force=%s" khoj-server-url content-type force-update))
          (url-request-method "GET"))
-    ;; Call khoj API to update content type
-    (url-retrieve
-     config-url
-     (lambda (_) (message "Khoj %s index %supdated!" content-type (if (member "--force-update" args) "force " ""))))))
+    (url-retrieve update-url (lambda (_) (message "Khoj %s index %supdated!" content-type (if (member "--force-update" args) "force " ""))))))
 
-;;;###autoload
-(transient-define-prefix khoj ()
+(transient-define-prefix khoj-menu ()
+  "Create Khoj Menu to Configure and Execute Commands."
   [["Set"
     ("t" "Content Type" khoj--content-type-switch)]
    ["Set Search"
@@ -393,24 +420,19 @@ Render results in BUFFER-NAME."
    ["Set Update"
     ("-f" "Force Update" "--force-update")]]
   [["Act"
-    ("s" "Search" khoj--search)
-    ("u" "Update" khoj--update)]])
+    ("s" "Search" khoj--search-command)
+    ("u" "Update" khoj--update-command)]])
+
+
+;; ----------
+;; Entrypoint
+;; ----------
 
 ;;;###autoload
-(defun khoj-simple (query)
-  "Natural Search for QUERY on your personal notes, transactions, music and images."
-  (interactive "s🦅Khoj: ")
-  (let* ((rerank "true")
-         (default-content-type (khoj--buffer-name-to-content-type (buffer-name)))
-         (content-type (completing-read "Type: " '("org" "markdown" "ledger" "music" "image") nil t default-content-type))
-         (query-url (khoj--construct-api-query query content-type rerank))
-         (buffer-name (get-buffer-create (format "*%s (q:%s t:%s)*" khoj--buffer-name query content-type))))
-    (khoj--query-api-and-render-results
-        query
-        content-type
-        query-url
-        buffer-name)
-    (switch-to-buffer buffer-name)))
+(defun khoj ()
+  "Natural, Incremental Search for your personal notes, transactions and images."
+  (interactive)
+  (khoj-menu))
 
 (provide 'khoj)
 
