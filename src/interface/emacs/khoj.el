@@ -359,7 +359,8 @@ Render results in BUFFER-NAME."
   :argument-regexp ".+"
   ;; set content type to last used or based on current buffer or to default
   :init-value (lambda (obj) (oset obj value (format "--content-type=%s" (or khoj--search-type (khoj--buffer-name-to-search-type (buffer-name))))))
-  :choices '("org" "markdown" "ledger" "music" "image"))
+  ;; dynamically set choices to content types enabled on khoj backend
+  :choices (mapcar #'symbol-name (khoj--get-enabled-content-types)))
 
 (transient-define-suffix khoj--search (&optional args)
   (interactive (list (transient-args transient-current-command)))
