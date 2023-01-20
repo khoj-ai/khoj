@@ -378,6 +378,43 @@ Render results in BUFFER-NAME."
           (add-hook 'minibuffer-exit-hook #'khoj--teardown-incremental-search)) ; teardown khoj incremental search on minibuffer exit
       (read-string khoj--query-prompt))))
 
+
+;; --------------
+;; Similar Search
+;; --------------
+
+(defun khoj--get-current-org-entry-text ()
+  "Get text in org entry at point."
+  (with-current-buffer (current-buffer)
+    (org-with-wide-buffer
+     ;; jump to cursor in current buffer
+     (goto-char (point))
+     ;; trim trailing whitespaces from text
+     (replace-regexp-in-string
+      "[ \t\n]*$" ""
+      ;; get text of current entry
+      (save-excursion
+       ;; jump to heading of current entry
+       (org-back-to-heading t)
+       ;; get text of current entry using org-element-at-point
+       (buffer-substring-no-properties
+        (org-element-property :begin (org-element-at-point))
+        (org-element-property :end (org-element-at-point))))))))
+
+(defun khoj--find-similar-notes ()
+  "Search for org entries similar to entry at point."
+  (let* ((rerank "true")
+         (content-type (khoj--buffer-name-to-content-type (buffer-name)))
+         (query (khoj--get-current-org-entry-text))
+         (query-url (khoj--construct-api-query query content-type rerank))
+         (buffer-name (get-buffer-create khoj--buffer-name)))
+    (khoj--query-api-and-render-results
+     ;; extract headline from query string containing org-entry
+     (replace-regexp-in-string "^\\** " "" (car (split-string query "\n")))
+     content-type
+     query-url
+     buffer-name)
+    (switch-to-buffer buffer-name)))
 
 
 ;; ---------
@@ -403,6 +440,11 @@ Render results in BUFFER-NAME."
       ;; trigger incremental search
       (call-interactively #'khoj-incremental)))
 
+(transient-define-suffix khoj--find-similar-command (&optional _)
+  "Find other notes similar to current note at point."
+  (interactive)
+  (khoj--find-similar-notes))
+
 (transient-define-suffix khoj--update-command (&optional args)
   "Call khoj API to update index of specified content type."
   (interactive (list (transient-args transient-current-command)))
@@ -422,6 +464,7 @@ Render results in BUFFER-NAME."
     ("-f" "Force Update" "--force-update")]]
   [["Act"
     ("s" "Search" khoj--search-command)
+    ("f" "Find Similar Notes" khoj--find-similar-command)
     ("u" "Update" khoj--update-command)
     ("q" "Quit" transient-quit-one)]])
 
