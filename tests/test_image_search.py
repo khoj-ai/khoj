@@ -23,6 +23,7 @@ def test_image_search_setup(content_config: ContentConfig, search_config: Search
     assert len(image_search_model.image_embeddings) == 3
 
 
+# ----------------------------------------------------------------------------------------------------
 def test_image_metadata(content_config: ContentConfig):
     "Verify XMP Description and Subjects Extracted from Image"
     # Arrange
@@ -78,6 +79,28 @@ def test_image_search(content_config: ContentConfig, search_config: SearchConfig
     # Cleanup
     # Delete the image files copied to results directory
     actual_image_path.unlink()
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_image_search_query_truncated(content_config: ContentConfig, search_config: SearchConfig, caplog):
+    # Arrange
+    model.image_search = image_search.setup(content_config.image, search_config.image, regenerate=False)
+    max_words_supported = 10
+    query = " ".join(["hello"]*100)
+    truncated_query = " ".join(["hello"]*max_words_supported)
+
+    # Act
+    try:
+        with caplog.at_level(logging.INFO, logger="src.search_type.image_search"):
+            image_search.query(
+                query,
+                count = 1,
+                model = model.image_search)
+    # Assert
+    except RuntimeError as e:
+        if "The size of tensor a (102) must match the size of tensor b (77)" in str(e):
+            assert False, f"Query length exceeds max tokens supported by model\n"
+    assert f"Find Images by Text: {truncated_query}" in caplog.text, "Query not truncated"
 
 
 # ----------------------------------------------------------------------------------------------------

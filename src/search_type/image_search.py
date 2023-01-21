@@ -143,7 +143,9 @@ def query(raw_query, count, model: ImageSearchModel):
         query.thumbnail((640, query.height)) # scale down image for faster processing
         logger.info(f"Find Images by Image: {query_imagepath}")
     else:
-        query = raw_query
+        # Truncate words in query to stay below max_tokens supported by ML model
+        max_words = 20
+        query = " ".join(raw_query.split()[:max_words])
         logger.info(f"Find Images by Text: {query}")
 
     # Now we encode the query (which can either be an image or a text string)
