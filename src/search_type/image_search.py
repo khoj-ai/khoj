@@ -136,12 +136,12 @@ def extract_metadata(image_name):
 
 
 def query(raw_query, count, model: ImageSearchModel):
-    # Set query to image content if query is a filepath
-    if pathlib.Path(raw_query).is_file():
-        query_imagepath = resolve_absolute_path(pathlib.Path(raw_query), strict=True)
+    # Set query to image content if query is of form file:/path/to/file.png
+    if raw_query.startswith("file:") and pathlib.Path(raw_query[5:]).is_file():
+        query_imagepath = resolve_absolute_path(pathlib.Path(raw_query[5:]), strict=True)
         query = copy.deepcopy(Image.open(query_imagepath))
         query.thumbnail((640, query.height)) # scale down image for faster processing
-        logger.info(f"Find Images similar to Image at {query_imagepath}")
+        logger.info(f"Find Images by Image: {query_imagepath}")
     else:
         query = raw_query
         logger.info(f"Find Images by Text: {query}")

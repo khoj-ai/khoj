@@ -1,4 +1,5 @@
 # Standard Modules
+import logging
 from pathlib import Path
 from PIL import Image
 
@@ -73,6 +74,45 @@ def test_image_search(content_config: ContentConfig, search_config: SearchConfig
 
         # Assert
         assert expected_image == actual_image
+
+    # Cleanup
+    # Delete the image files copied to results directory
+    actual_image_path.unlink()
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_image_search_by_filepath(content_config: ContentConfig, search_config: SearchConfig, caplog):
+    # Arrange
+    output_directory = resolve_absolute_path(web_directory)
+    model.image_search = image_search.setup(content_config.image, search_config.image, regenerate=False)
+    image_directory = content_config.image.input_directories[0]
+
+    query = f"file:{image_directory.joinpath('kitten_park.jpg')}"
+    expected_image_path = f"{image_directory.joinpath('kitten_park.jpg')}"
+
+    # Act
+    with caplog.at_level(logging.INFO, logger="src.search_type.image_search"):
+        hits = image_search.query(
+            query,
+            count = 1,
+            model = model.image_search)
+
+        results = image_search.collate_results(
+            hits,
+            model.image_search.image_names,
+            output_directory=output_directory,
+            image_files_url='/static/images',
+            count=1)
+
+    actual_image_path = output_directory.joinpath(Path(results[0].entry).name)
+    actual_image = Image.open(actual_image_path)
+    expected_image = Image.open(expected_image_path)
+
+    # Assert
+    # Ensure file search triggered instead of query with file path as string
+    assert f"Find Images by Image: {resolve_absolute_path(expected_image_path)}" in caplog.text, "File search not triggered"
+    # Ensure the correct image is returned
+    assert expected_image == actual_image, "Incorrect image returned by file search"
 
     # Cleanup
     # Delete the image files copied to results directory
