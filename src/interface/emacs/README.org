@@ -4,63 +4,63 @@
   /Natural language search from within Emacs using [[https://github.com/debanjum/khoj][Khoj]]/
 
 ** Table of Contents
-   - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#features][Features]]
-   - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Interface][Interface]]
-   - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Setup][Setup]]
-     - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#1-Setup-Backend][Setup Backend]]
-     - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#2-Install-Khojel][Install Khoj.el]]
-   - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Use][Use]]
-     - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Search][Search]]
-     - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Find-similar-entries][Find Similar Entries]]
-     - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Advanced-usage][Advanced Usage]]
-     - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Khoj-menu][Khoj Menu]]
-   - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Upgrade][Upgrade]]
-     - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Upgrade-Khoj-Backend][Upgrade Backend]]
-     - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Upgrade-Khojel][Upgrade Khoj.el]]
+  - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#features][Features]]
+  - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Interface][Interface]]
+  - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Setup][Setup]]
+    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#1-Setup-Backend][Setup Backend]]
+    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#2-Install-Khojel][Install Khoj.el]]
+  - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Use][Use]]
+    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Search][Search]]
+    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Find-similar-entries][Find Similar Entries]]
+    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Advanced-usage][Advanced Usage]]
+    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Khoj-menu][Khoj Menu]]
+  - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Upgrade][Upgrade]]
+    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Upgrade-Khoj-Backend][Upgrade Backend]]
+    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Upgrade-Khojel][Upgrade Khoj.el]]
 
 ** Features
-   - *Natural*: Advanced natural language understanding using Transformer based ML Models
-   - *Local*: Your personal data stays local. All search, indexing is done on your machine*
-   - *Incremental*: Incremental search for a fast, search-as-you-type experience
+  - *Natural*: Advanced natural language understanding using Transformer based ML Models
+  - *Local*: Your personal data stays local. All search, indexing is done on your machine*
+  - *Incremental*: Incremental search for a fast, search-as-you-type experience
 
 ** Interface
-   [[/docs/khoj_on_emacs.png]]
+  [[/docs/khoj_on_emacs.png]]
 
 ** Setup
 *** 1. Setup Backend
-    #+begin_src shell
-      pip install khoj-assistant && khoj
-    #+end_src
+  #+begin_src shell
+    pip install khoj-assistant && khoj
+  #+end_src
 
 *** 2. Install Khoj.el
 **** Using MELPA
-     #+begin_src elisp
-      M-x package-install khoj
-     #+end_src elisp
+  #+begin_src elisp
+    M-x package-install khoj
+  #+end_src elisp
 
-     Add below snippet to your Emacs config file
-     #+begin_src elisp
-     ;; Install Khoj Package from MELPA Stable
-     (use-package khoj
-        :ensure t
-        :pin melpa-stable
-        :bind ("C-c s" . 'khoj))
-     #+end_src
+  Add below snippet to your Emacs config file
+  #+begin_src elisp
+    ;; Install Khoj Package from MELPA Stable
+    (use-package khoj
+      :ensure t
+      :pin melpa-stable
+      :bind ("C-c s" . 'khoj))
+  #+end_src
 
-    Note: Install ~khoj.el~ from MELPA (instead of MELPA Stable) if you installed the pre-release version of khoj
-    - That is, use ~:pin melpa~ to install khoj.el in above snippet if khoj was installed with ~pip install --pre khoj-assistant~
-    - Else use ~:pin melpa-stable~ to install khoj.el in above snippet if khoj was installed with ~pip install khoj-assistant~
-    - This ensures both khoj.el and khoj app are from the same version (tagged or latest)
+  Note: Install ~khoj.el~ from MELPA (instead of MELPA Stable) if you installed the pre-release version of khoj
+  - That is, use ~:pin melpa~ to install khoj.el in above snippet if khoj was installed with ~pip install --pre khoj-assistant~
+  - Else use ~:pin melpa-stable~ to install khoj.el in above snippet if khoj was installed with ~pip install khoj-assistant~
+  - This ensures both khoj.el and khoj app are from the same version (tagged or latest)
 
 **** Using [[https://github.com/raxod502/straight.el][Straight.el]]
-     Add below snippet to your Emacs config file
-     #+begin_src elisp
-       ;; Install Khoj Package using Straight.el
-       (use-package khoj
-         :after org
-         :straight (khoj :type git :host github :repo "debanjum/khoj" :files (:defaults "src/interface/emacs/khoj.el"))
-         :bind ("C-c s" . 'khoj))
-     #+end_src
+  Add below snippet to your Emacs config file
+  #+begin_src elisp
+    ;; Install Khoj Package using Straight.el
+    (use-package khoj
+      :after org
+      :straight (khoj :type git :host github :repo "debanjum/khoj" :files (:defaults "src/interface/emacs/khoj.el"))
+      :bind ("C-c s" . 'khoj))
+  #+end_src
 
 ** Use
 *** Search
@@ -102,21 +102,21 @@
 
 ** Upgrade
 *** Upgrade Khoj Backend
-    #+begin_src shell
-      pip install --upgrade khoj-assistant
-    #+end_src
+  #+begin_src shell
+    pip install --upgrade khoj-assistant
+  #+end_src
 
 *** Upgrade Khoj.el
-Use your Emacs package manager to upgrade ~khoj.el~
+  Use your Emacs package manager to upgrade ~khoj.el~
 
-- For ~khoj.el~ from MELPA
-  - Method 1
-    - Run ~M-x package-list-packages~ to list all packages
-    - Press ~U~ on ~khoj~ to mark it for upgrade
-    - Press ~x~ to execute the marked actions
-  - Method 2
-    - Run ~M-x package-refresh-content~
-    - Run ~M-x package-reinstall khoj~
+  - For ~khoj.el~ from MELPA
+    - Method 1
+      - Run ~M-x package-list-packages~ to list all packages
+      - Press ~U~ on ~khoj~ to mark it for upgrade
+      - Press ~x~ to execute the marked actions
+    - Method 2
+      - Run ~M-x package-refresh-content~
+      - Run ~M-x package-reinstall khoj~
 
-- For ~khoj.el~ from Straight
-  - Run ~M-x straight-pull-package khoj~
+  - For ~khoj.el~ from Straight
+    - Run ~M-x straight-pull-package khoj~
