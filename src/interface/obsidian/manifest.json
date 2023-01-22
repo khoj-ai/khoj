@@ -1,7 +1,7 @@
 {
 	"id": "khoj",
 	"name": "Khoj",
-	"version": "0.2.2",
+	"version": "0.2.5",
 	"minAppVersion": "0.15.0",
 	"description": "Natural, Incremental Search for your Second Brain 🦅",
 	"author": "Debanjum Singh Solanky",
