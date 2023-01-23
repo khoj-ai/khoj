@@ -395,9 +395,16 @@ Use `which-key` if available, else display simple message in echo area"
      (replace-regexp-in-string
       "[ \t\n]*$" ""
       ;; get text of current outline entry
-      (buffer-substring-no-properties
-       (save-excursion (outline-previous-heading) (point))
-       (save-excursion (outline-next-heading) (point)))))))
+      (cond
+       ;; when at heading of entry
+       ((looking-at outline-regexp)
+        (buffer-substring-no-properties
+         (point)
+         (save-excursion (outline-next-heading) (point))))
+       ;; when within entry
+       (t (buffer-substring-no-properties
+           (save-excursion (outline-previous-heading) (point))
+           (save-excursion (outline-next-heading) (point)))))))))
 
 (defun khoj--get-current-paragraph-text ()
   "Get text in current paragraph at point."
