@@ -417,10 +417,16 @@ Use `which-key` if available, else display simple message in echo area"
     ;; trim trailing whitespaces from text
      (replace-regexp-in-string
       "[ \t\n]*$" ""
-      ;; get text of current entry
-      (buffer-substring-no-properties
-       (save-excursion (backward-paragraph) (point))
-       (save-excursion (forward-paragraph) (point)))))))
+      (cond
+       ;; when at beginning of a middle paragraph
+       ((and (looking-at paragraph-start) (not (equal (point) (point-min))))
+        (buffer-substring-no-properties
+         (save-excursion (backward-paragraph) (point))
+         (point)))
+       ;; else
+       (t (buffer-substring-no-properties
+           (save-excursion (backward-paragraph) (point))
+           (save-excursion (forward-paragraph) (point)))))))))
 
 (defun khoj--find-similar (&optional content-type)
   "Find items of CONTENT-TYPE in khoj index similar to text surrounding point."
