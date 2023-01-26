@@ -78,12 +78,12 @@ export class KhojModal extends SuggestModal<SearchResult> {
     async getSuggestions(query: string): Promise<SearchResult[]> {
         // Query Khoj backend for search results
         let encodedQuery = encodeURIComponent(query);
-        let searchUrl = `${this.setting.khojUrl}/api/search?q=${encodedQuery}&n=${this.setting.resultsCount}&r=${this.rerank}&t=markdown`
-        let results = await request(searchUrl)
-            .then(response => JSON.parse(response))
-            .then(data => data
-                .filter((result: any) => !this.find_similar_notes || !result.additional.file.endsWith(this.app.workspace.getActiveFile()?.path))
-                .map((result: any) => { return { entry: result.entry, file: result.additional.file } as SearchResult; }));
+        let searchUrl = `${this.setting.khojUrl}/api/search?q=${encodedQuery}&n=${this.setting.resultsCount}&r=${this.rerank}&t=markdown`;
+        let response = await request(searchUrl);
+        let data = JSON.parse(response);
+        let results = data
+            .filter((result: any) => !this.find_similar_notes || !result.additional.file.endsWith(this.app.workspace.getActiveFile()?.path))
+            .map((result: any) => { return { entry: result.entry, file: result.additional.file } as SearchResult; });
 
         return results;
     }

@@ -36,8 +36,8 @@ export class KhojSettingTab extends PluginSettingTab {
                 .setValue(`${this.plugin.settings.khojUrl}`)
                 .onChange(async (value) => {
                     this.plugin.settings.khojUrl = value.trim();
-                    await this.plugin.saveSettings()
-                    .finally(() => containerEl.firstElementChild?.setText(this.getBackendStatusMessage()));
+                    await this.plugin.saveSettings();
+                    containerEl.firstElementChild?.setText(this.getBackendStatusMessage());
                 }));
          new Setting(containerEl)
             .setName('Results Count')
@@ -60,15 +60,15 @@ export class KhojSettingTab extends PluginSettingTab {
                 .onClick(async () => {
                     // Disable button while updating index
                     button.setButtonText('Updating...');
-                    button.removeCta()
+                    button.removeCta();
                     indexVaultSetting = indexVaultSetting.setDisabled(true);
 
-                    await request(`${this.plugin.settings.khojUrl}/api/update?t=markdown&force=true`)
-                    .then(() => new Notice('✅ Updated Khoj index.'));
+                    await request(`${this.plugin.settings.khojUrl}/api/update?t=markdown&force=true`);
+                    new Notice('✅ Updated Khoj index.');
 
                     // Re-enable button once index is updated
                     button.setButtonText('Update');
-                    button.setCta()
+                    button.setCta();
                     indexVaultSetting = indexVaultSetting.setDisabled(false);
                 })
             );
