@@ -24,7 +24,7 @@ export default class Khoj extends Plugin {
         // Add similar notes command. It can only be triggered from the editor
         this.addCommand({
             id: 'similar',
-            name: 'Find Similar Notes',
+            name: 'Find similar notes',
             editorCheckCallback: (checking) => {
                 if (!checking && this.settings.connectedToBackend)
                     new KhojModal(this.app, this.settings, true).open();
