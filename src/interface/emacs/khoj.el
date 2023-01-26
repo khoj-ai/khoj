@@ -169,74 +169,80 @@ Use `which-key` if available, else display simple message in echo area"
 
 (defun khoj--extract-entries-as-markdown (json-response query)
   "Convert JSON-RESPONSE, QUERY from API to markdown entries."
-  ;; remove leading (, ) or SPC from extracted entries string
-  (replace-regexp-in-string
-   "^[\(\) ]" ""
-   ;; extract entries from response as single string and convert to entries
-   (format "# %s\n%s"
-           query
-           (mapcar
-            (lambda (args)
-              (replace-regexp-in-string
-               "^\#+" "##"
-               (format "%s" (cdr (assoc 'entry args)))))
-            json-response))))
+  (thread-last
+    json-response
+    ;; Extract and render each markdown entry from response
+    (mapcar (lambda (json-response-item)
+              (thread-last
+                ;; Extract markdown entry from each item in json response
+                (cdr (assoc 'entry json-response-item))
+                ;; Format markdown entry as a string
+                (format "%s")
+                ;; Standardize results to 2nd level heading for consistent rendering
+                (replace-regexp-in-string "^\#+" "##"))))
+    ;; Render entries into markdown formatted string with query set as as top level heading
+    (format "# %s\n%s" query)
+    ;; remove leading (, ) or SPC from extracted entries string
+    (replace-regexp-in-string "^[\(\) ]" "")))
 
 (defun khoj--extract-entries-as-org (json-response query)
   "Convert JSON-RESPONSE, QUERY from API to `org-mode' entries."
-  ;; remove leading (, ) or SPC from extracted entries string
-  (replace-regexp-in-string
-   "^[\(\) ]" ""
-   ;; extract entries from response as single string and convert to entries
-   (format "* %s\n%s\n#+STARTUP: showall hidestars inlineimages"
-           query
-           (mapcar
-            (lambda (args)
-              (replace-regexp-in-string
-               "^\*+" "**"
-               (format "%s" (cdr (assoc 'entry args)))))
-              json-response))))
+  (let ((org-results-buffer-format-str "* %s\n%s\n#+STARTUP: showall hidestars inlineimages"))
+    (thread-last
+      json-response
+      ;; Extract and render each org-mode entry from response
+      (mapcar (lambda (json-response-item)
+                (thread-last
+                  ;; Extract org entry from each item in json response
+                  (cdr (assoc 'entry json-response-item))
+                  ;; Format org entry as a string
+                  (format "%s")
+                  ;; Standardize results to 2nd level heading for consistent rendering
+                  (replace-regexp-in-string "^\*+" "**"))))
+      ;; Render entries into org formatted string with query set as as top level heading
+      (format org-results-buffer-format-str query)
+      ;; remove leading (, ) or SPC from extracted entries string
+      (replace-regexp-in-string "^[\(\) ]" ""))))
 
 (defun khoj--extract-entries-as-images (json-response query)
   "Convert JSON-RESPONSE, QUERY from API to html with images."
-  ;; remove leading (, ) or SPC from extracted entries string
-  (replace-regexp-in-string
-   "[\(\) ]$" ""
-   ;; remove leading (, ) or SPC from extracted entries string
-   (replace-regexp-in-string
-    "^[\(\) ]" ""
-    ;; extract entries from response as single string and convert to entries
-    (format "<html>\n<body>\n<h1>%s</h1>%s\n\n</body>\n</html>"
-            query
-            (mapcar
-             (lambda (args) (format
-                             "\n\n<h2>Score: %s Meta: %s Image: %s</h2>\n\n<a href=\"%s%s\">\n<img src=\"%s%s?%s\" width=%s height=%s>\n</a>"
-                             (cdr (assoc 'score args))
-                             (cdr (assoc 'metadata_score (assoc 'additional args)))
-                             (cdr (assoc 'image_score (assoc 'additional args)))
-                             khoj-server-url
-                             (cdr (assoc 'entry args))
-                             khoj-server-url
-                             (cdr (assoc 'entry args))
-                             (random 10000)
-                             khoj-image-width
-                             khoj-image-height))
-             json-response)))))
+  (let ((image-results-buffer-html-format-str "<html>\n<body>\n<h1>%s</h1>%s\n\n</body>\n</html>")
+        ;; Format string to wrap images into html img, href tags with metadata in headings
+        (image-result-html-format-str "\n\n<h2>Score: %s Meta: %s Image: %s</h2>\n\n<a href=\"%s\">\n<img src=\"%s?%s\" width=%s height=%s>\n</a>"))
+    (thread-last
+      json-response
+      ;; Extract each image entry from response and render as html
+      (mapcar (lambda (json-response-item)
+                (let ((score (cdr (assoc 'score json-response-item)))
+                      (metadata_score (cdr (assoc 'metadata_score (assoc 'additional json-response-item))))
+                      (image_score (cdr (assoc 'image_score (assoc 'additional json-response-item))))
+                      (image_url (concat khoj-server-url (cdr (assoc 'entry json-response-item)))))
+                  ;; Wrap images into html img, href tags with metadata in headings
+                  (format image-result-html-format-str
+                          ;; image scores metadata
+                          score metadata_score image_score
+                          ;; image url
+                          image_url image_url (random 10000)
+                          ;; image dimensions
+                          khoj-image-width khoj-image-height))))
+      ;; Collate entries into single html page string
+      (format image-results-buffer-html-format-str query)
+      ;; remove leading (, ) or SPC from extracted entries string
+      (replace-regexp-in-string "^[\(\) ]" "")
+      ;; remove trailing (, ) or SPC from extracted entries string
+      (replace-regexp-in-string "[\(\) ]$" ""))))
 
 (defun khoj--extract-entries-as-ledger (json-response query)
   "Convert JSON-RESPONSE, QUERY from API to ledger entries."
-  ;; remove leading (, ) or SPC from extracted entries string
-  (replace-regexp-in-string
-   "[\(\) ]$" ""
-   (replace-regexp-in-string
-    "^[\(\) ]" ""
-    ;; extract entries from response as single string and convert to entries
-    (format ";; %s\n\n%s\n"
-            query
-            (mapcar
-             (lambda (args)
-               (format "%s\n\n" (cdr (assoc 'entry args))))
-             json-response)))))
+  (thread-last json-response
+               ;; extract and render entries from API response
+               (mapcar (lambda (args) (format "%s\n\n" (cdr (assoc 'entry args)))))
+               ;; Set query as heading in rendered results buffer
+               (format ";; %s\n\n%s\n" query)
+               ;; remove leading (, ) or SPC from extracted entries string
+               (replace-regexp-in-string "^[\(\) ]" "")
+               ;; remove trailing (, ) or SPC from extracted entries string
+               (replace-regexp-in-string "[\(\) ]$" "")))
 
 (defun khoj--buffer-name-to-content-type (buffer-name)
   "Infer content type based on BUFFER-NAME."
