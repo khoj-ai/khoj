@@ -49,11 +49,11 @@ export default class Khoj extends Plugin {
         this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 
         // Load, configure khoj server settings
-        await configureKhojBackend(this.settings);
+        await configureKhojBackend(this.app.vault, this.settings);
     }
 
     async saveSettings() {
-        await configureKhojBackend(this.settings, false)
+        await configureKhojBackend(this.app.vault, this.settings, false)
             .then(() => this.saveData(this.settings));
     }
 }

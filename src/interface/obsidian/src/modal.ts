@@ -10,9 +10,11 @@ export class KhojModal extends SuggestModal<SearchResult> {
     setting: KhojSetting;
     rerank: boolean = false;
     find_similar_notes: boolean;
+    app: App;
 
     constructor(app: App, setting: KhojSetting, find_similar_notes: boolean = false) {
         super(app);
+        this.app = app;
         this.setting = setting;
         this.find_similar_notes = find_similar_notes;
 
