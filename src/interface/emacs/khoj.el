@@ -177,7 +177,7 @@ Use `which-key` if available, else display simple message in echo area"
                 ;; Extract markdown entry from each item in json response
                 (cdr (assoc 'entry json-response-item))
                 ;; Format markdown entry as a string
-                (format "%s")
+                (format "%s\n\n")
                 ;; Standardize results to 2nd level heading for consistent rendering
                 (replace-regexp-in-string "^\#+" "##"))))
     ;; Render entries into markdown formatted string with query set as as top level heading
@@ -203,6 +203,18 @@ Use `which-key` if available, else display simple message in echo area"
       (format org-results-buffer-format-str query)
       ;; remove leading (, ) or SPC from extracted entries string
       (replace-regexp-in-string "^[\(\) ]" ""))))
+
+(defun khoj--extract-entries-as-ledger (json-response query)
+  "Convert JSON-RESPONSE, QUERY from API to ledger entries."
+  (thread-last json-response
+               ;; extract and render entries from API response
+               (mapcar (lambda (args) (format "%s\n\n" (cdr (assoc 'entry args)))))
+               ;; Set query as heading in rendered results buffer
+               (format ";; %s\n\n%s\n" query)
+               ;; remove leading (, ) or SPC from extracted entries string
+               (replace-regexp-in-string "^[\(\) ]" "")
+               ;; remove trailing (, ) or SPC from extracted entries string
+               (replace-regexp-in-string "[\(\) ]$" "")))
 
 (defun khoj--extract-entries-as-images (json-response query)
   "Convert JSON-RESPONSE, QUERY from API to html with images."
@@ -231,18 +243,6 @@ Use `which-key` if available, else display simple message in echo area"
       (replace-regexp-in-string "^[\(\) ]" "")
       ;; remove trailing (, ) or SPC from extracted entries string
       (replace-regexp-in-string "[\(\) ]$" ""))))
-
-(defun khoj--extract-entries-as-ledger (json-response query)
-  "Convert JSON-RESPONSE, QUERY from API to ledger entries."
-  (thread-last json-response
-               ;; extract and render entries from API response
-               (mapcar (lambda (args) (format "%s\n\n" (cdr (assoc 'entry args)))))
-               ;; Set query as heading in rendered results buffer
-               (format ";; %s\n\n%s\n" query)
-               ;; remove leading (, ) or SPC from extracted entries string
-               (replace-regexp-in-string "^[\(\) ]" "")
-               ;; remove trailing (, ) or SPC from extracted entries string
-               (replace-regexp-in-string "[\(\) ]$" "")))
 
 (defun khoj--buffer-name-to-content-type (buffer-name)
   "Infer content type based on BUFFER-NAME."

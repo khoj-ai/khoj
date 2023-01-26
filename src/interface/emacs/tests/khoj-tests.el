@@ -44,7 +44,7 @@
          (json-read-from-string
           "[\
 {\
-  \"entry\": \"## Upgrade\\n\\n Penance to Immortality\\n\",\
+  \"entry\": \"## Upgrade\\n\\n Penance to Immortality\",\
   \"score\": \"0.376\",\
   \"additional\": {\
     \"file\": \"/home/ravan/upgrade.md\",\
@@ -52,7 +52,7 @@
   }\
 },\
 {\
-  \"entry\": \"## Act\\n\\n Rule everything\\n\",\
+  \"entry\": \"## Act\\n\\n Rule everything\",\
   \"score\": \"0.153\",\
   \"additional\": {\
     \"file\": \"/home/ravan/act.md\",\
@@ -67,10 +67,10 @@
 # Become God\n\
 ## Upgrade\n\
 \n\
-Penance to Immortality\n\
+Penance to Immortality\n\n\
 ## Act\n\
 \n\
-Rule everything\n"))))
+Rule everything\n\n"))))
 
 
 (ert-deftest khoj-tests--extract-entries-as-org ()
