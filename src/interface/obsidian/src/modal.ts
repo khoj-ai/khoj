@@ -101,21 +101,21 @@ export class KhojModal extends SuggestModal<SearchResult> {
         // Get all markdown files in vault
         const mdFiles = this.app.vault.getMarkdownFiles();
 
-        // Find the vault file matching file of result. Open file at result heading
-        mdFiles
+        // Find the vault file matching file of chosen search result
+        let file_match = mdFiles
             // Sort by descending length of path
             // This finds longest path match when multiple files have same name
             .sort((a, b) => b.path.length - a.path.length)
-            .forEach((file) => {
-                // Find best file match across operating systems
-                // E.g Khoj Server on Linux, Obsidian Vault on Android
-                if (result.file.endsWith(file.path)) {
-                    let resultHeading = result.entry.split('\n', 1)[0];
-                    let linkToEntry = `${file.path}${resultHeading}`
-                    this.app.workspace.openLinkText(linkToEntry, '');
-                    console.log(`Link: ${linkToEntry}, File: ${file.path}, Heading: ${resultHeading}`);
-                    return
-                }
-            });
+            // The first match is the best file match across OS
+            // e.g Khoj server on Linux, Obsidian vault on Android
+            .find(file => result.file.endsWith(file.path))
+
+        // Open vault file at heading of chosen search result
+        if (file_match){
+            let resultHeading = result.entry.split('\n', 1)[0];
+            let linkToEntry = `${file_match.path}${resultHeading}`
+            this.app.workspace.openLinkText(linkToEntry, '');
+            console.log(`Link: ${linkToEntry}, File: ${file_match.path}, Heading: ${resultHeading}`);
+        }
     }
 }
