@@ -10,9 +10,11 @@ export class KhojModal extends SuggestModal<SearchResult> {
     setting: KhojSetting;
     rerank: boolean = false;
     find_similar_notes: boolean;
+    app: App;
 
     constructor(app: App, setting: KhojSetting, find_similar_notes: boolean = false) {
         super(app);
+        this.app = app;
         this.setting = setting;
         this.find_similar_notes = find_similar_notes;
 
@@ -61,8 +63,9 @@ export class KhojModal extends SuggestModal<SearchResult> {
             if (file && file.extension === 'md') {
                 // Enable rerank of search results
                 this.rerank = true
-                // Set contents of active markdown file to input element
-                this.inputEl.value = await this.app.vault.read(file);
+                // Set input element to contents of active markdown file
+                // truncate to first 8,000 characters to avoid hitting query size limits
+                this.inputEl.value = await this.app.vault.read(file).then(file_str => file_str.slice(0, 8000));
                 // Trigger search to get and render similar notes from khoj backend
                 this.inputEl.dispatchEvent(new Event('input'));
                 this.rerank = false
@@ -76,12 +79,12 @@ export class KhojModal extends SuggestModal<SearchResult> {
     async getSuggestions(query: string): Promise<SearchResult[]> {
         // Query Khoj backend for search results
         let encodedQuery = encodeURIComponent(query);
-        let searchUrl = `${this.setting.khojUrl}/api/search?q=${encodedQuery}&n=${this.setting.resultsCount}&r=${this.rerank}&t=markdown`
-        let results = await request(searchUrl)
-            .then(response => JSON.parse(response))
-            .then(data => data
-                .filter((result: any) => !this.find_similar_notes || !result.additional.file.endsWith(this.app.workspace.getActiveFile()?.path))
-                .map((result: any) => { return { entry: result.entry, file: result.additional.file } as SearchResult; }));
+        let searchUrl = `${this.setting.khojUrl}/api/search?q=${encodedQuery}&n=${this.setting.resultsCount}&r=${this.rerank}&t=markdown`;
+        let response = await request(searchUrl);
+        let data = JSON.parse(response);
+        let results = data
+            .filter((result: any) => !this.find_similar_notes || !result.additional.file.endsWith(this.app.workspace.getActiveFile()?.path))
+            .map((result: any) => { return { entry: result.entry, file: result.additional.file } as SearchResult; });
 
         return results;
     }
@@ -98,21 +101,21 @@ export class KhojModal extends SuggestModal<SearchResult> {
         // Get all markdown files in vault
         const mdFiles = this.app.vault.getMarkdownFiles();
 
-        // Find the vault file matching file of result. Open file at result heading
-        mdFiles
+        // Find the vault file matching file of chosen search result
+        let file_match = mdFiles
             // Sort by descending length of path
             // This finds longest path match when multiple files have same name
             .sort((a, b) => b.path.length - a.path.length)
-            .forEach((file) => {
-                // Find best file match across operating systems
-                // E.g Khoj Server on Linux, Obsidian Vault on Android
-                if (result.file.endsWith(file.path)) {
-                    let resultHeading = result.entry.split('\n', 1)[0];
-                    let linkToEntry = `${file.path}${resultHeading}`
-                    this.app.workspace.openLinkText(linkToEntry, '');
-                    console.log(`Link: ${linkToEntry}, File: ${file.path}, Heading: ${resultHeading}`);
-                    return
-                }
-            });
+            // The first match is the best file match across OS
+            // e.g Khoj server on Linux, Obsidian vault on Android
+            .find(file => result.file.endsWith(file.path))
+
+        // Open vault file at heading of chosen search result
+        if (file_match){
+            let resultHeading = result.entry.split('\n', 1)[0];
+            let linkToEntry = `${file_match.path}${resultHeading}`
+            this.app.workspace.openLinkText(linkToEntry, '');
+            console.log(`Link: ${linkToEntry}, File: ${file_match.path}, Heading: ${resultHeading}`);
+        }
     }
 }
