@@ -9,7 +9,7 @@ setup(
     name='khoj-assistant',
     version='0.2.6',
     description="A natural language search engine for your personal notes, transactions and images",
-    long_description=(this_directory / "Readme.md").read_text(encoding="utf-8"),
+    long_description=(this_directory / "README.md").read_text(encoding="utf-8"),
     long_description_content_type="text/markdown",
     author='Debanjum Singh Solanky, Saba Imran',
     author_email='debanjum+pypi@gmail.com, narmiabas@gmail.com',
