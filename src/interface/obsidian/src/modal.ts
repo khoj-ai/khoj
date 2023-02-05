@@ -91,7 +91,7 @@ export class KhojModal extends SuggestModal<SearchResult> {
 
     async renderSuggestion(result: SearchResult, el: HTMLElement) {
         // Max Size (words or number of lines)
-        let lines_to_render = 5;
+        let lines_to_render = 8;
         let words_to_render = 30;
         var path = "";
         var basename = "";
@@ -118,6 +118,7 @@ export class KhojModal extends SuggestModal<SearchResult> {
                 }
             }
         }
+        entry_lines_split = entry_lines_split.join('\n').trim().split('\n');
         let entry_lines = entry_lines_split.slice(0, lines_to_render).join('\n');
         let entry_words_split = entry_lines.split(' ');
         let entry_snipped_indicator = entry_words_split.length > words_to_render ? ' **...**' : '';
