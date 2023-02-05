@@ -1,4 +1,4 @@
-import { App, SuggestModal, request, MarkdownRenderer, Instruction, Platform, TFile } from 'obsidian';
+import { App, SuggestModal, request, MarkdownRenderer, Instruction, Platform} from 'obsidian';
 import { KhojSetting } from 'src/settings';
 
 export interface SearchResult {
