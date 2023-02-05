@@ -31,6 +31,6 @@ If your plugin does not need CSS, delete this file.
     margin-bottom: 0.2em;
   }
 
-  .khoj-result-entry .internal-embed:not(.image-embed) {
-    display: inline-block;
+  .khoj-result-entry p br {
+    display: none;
   }
