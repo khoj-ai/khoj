@@ -25,3 +25,12 @@ If your plugin does not need CSS, delete this file.
   .khoj-result-entry > * {
     font-size: medium;
   }
+
+  .khoj-result-entry > p {
+    margin-top: 0.2em;
+    margin-bottom: 0.2em;
+  }
+
+  .khoj-result-entry .internal-embed:not(.image-embed) {
+    display: inline-block;
+  }
