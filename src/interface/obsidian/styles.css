@@ -6,3 +6,24 @@ available in the app when your plugin is enabled.
 If your plugin does not need CSS, delete this file.
 
 */
+.khoj-result-file {
+    font-weight: 600;
+  }
+  
+  .khoj-result-entry {
+    color: var(--text-muted);
+    margin-left: 2em;
+    padding-left: 0.5em;
+    line-height: normal;
+    margin-top: 0.2em;
+    margin-bottom: 0.2em;
+    border-left-style: solid;
+    border-left-color: var(--color-accent-2);
+    white-space: normal;
+  }
+
+  .khoj-result-entry > * {
+    /* margin-top: 0;
+    margin-bottom: 0; */
+    font-size: medium;
+  }
