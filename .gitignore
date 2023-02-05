@@ -35,3 +35,6 @@ main.js
 
 # obsidian
 data.json
+
+# symlink to configuratio file
+.khoj
