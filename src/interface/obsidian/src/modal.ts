@@ -105,7 +105,7 @@ export class KhojModal extends SuggestModal<SearchResult> {
             path = result.file.split('/').slice(0, -1).join('/');
             basename = result.file.split('/').slice(-1)[0];
         }
-
+        basename = basename.replace('.md', '');
         let entry_lines_split = result.entry.split('\n')
         // remove frontmatter if present
         if (entry_lines_split[0] == '# ---'){
