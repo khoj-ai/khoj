@@ -1,4 +1,4 @@
-import { App, SuggestModal, request, MarkdownRenderer, Instruction, Platform } from 'obsidian';
+import { App, SuggestModal, request, MarkdownRenderer, Instruction, Platform, TFile } from 'obsidian';
 import { KhojSetting } from 'src/settings';
 
 export interface SearchResult {
@@ -93,6 +93,18 @@ export class KhojModal extends SuggestModal<SearchResult> {
         // Max Size (words or number of lines)
         let lines_to_render = 5;
         let words_to_render = 30;
+        var path = "";
+        var basename = "";
+
+        // set path and basename of file depending on OS
+        if (result.file.indexOf('\\') > -1) {
+            path = result.file.split('\\').slice(0, -1).join('\\');
+            basename = result.file.split('\\').slice(-1)[0];
+        }
+        if (result.file.indexOf('/') > -1) {
+            path = result.file.split('/').slice(0, -1).join('/');
+            basename = result.file.split('/').slice(-1)[0];
+        }
 
         let entry_lines_split = result.entry.split('\n')
         // remove frontmatter if present
@@ -109,12 +121,10 @@ export class KhojModal extends SuggestModal<SearchResult> {
         let entry_lines = entry_lines_split.slice(0, lines_to_render).join('\n');
         let entry_words_split = entry_lines.split(' ');
         let entry_snipped_indicator = entry_words_split.length > words_to_render ? ' **...**' : '';
-        let entry_words = entry_words_split.slice(0, words_to_render).join(' ');
-        let result_file = "";
-        result_file = result.file.split('/').pop();
-        el.createEl("div",{ cls: 'khoj-result-file' }).setText(result_file);
+        let entry_words = entry_words_split.slice(0, words_to_render).join(' ').trim();
+        el.createEl("div",{ cls: 'khoj-result-file' }).setText(basename);
         var result_div = el.createEl("div", { cls: 'khoj-result-entry' })
-        MarkdownRenderer.renderMarkdown(entry_words + entry_snipped_indicator, result_div, null, null);
+        MarkdownRenderer.renderMarkdown(entry_words + entry_snipped_indicator, result_div, path, null);
     }
 
     async onChooseSuggestion(result: SearchResult, _: MouseEvent | KeyboardEvent) {
