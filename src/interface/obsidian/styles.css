@@ -23,7 +23,5 @@ If your plugin does not need CSS, delete this file.
   }
 
   .khoj-result-entry > * {
-    /* margin-top: 0;
-    margin-bottom: 0; */
     font-size: medium;
   }
