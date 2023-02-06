@@ -44,8 +44,10 @@ https://user-images.githubusercontent.com/6413477/210486007-36ee3407-e6aa-4185-8
 ![](https://github.com/debanjum/khoj/blob/master/src/interface/obsidian/docs/khoj_on_obsidian_0.2.5.png?)
 
 ## Setup
-### 1. Setup Backend
+*Note: Ensure you follow the ordering of the setup steps. Install the plugin after starting the khoj backend. This allows the plugin to configure the khoj backend.*
 
+### 1. Setup Backend
+Run below command in your terminal to install and start the khoj backend
 ```shell
 pip install khoj-assistant && khoj --no-gui
 ```
@@ -58,6 +60,8 @@ See [official docs](https://help.obsidian.md/Advanced+topics/Community+plugins#D
 ## Use
 ### Search
 Click the *Khoj search* icon 🔎 on the [Ribbon](https://help.obsidian.md/User+interface/Workspace/Ribbon) or run *Khoj: Search* from the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
+
+*Note: Ensure the khoj server is running in the background before searching. Execute `khoj --no-gui` in your terminal if it is not already running*
 
 <details><summary>Query Filters</summary>
 

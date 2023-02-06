@@ -29,11 +29,13 @@
   - [Khoj Server](#upgrade-khoj-server)
   - [Khoj.el](#upgrade-khoj-on-emacs)
   - [Khoj Obsidian](#upgrade-khoj-on-obsidian)
+- [Uninstall Khoj](#uninstall-khoj)
 - [Troubleshoot](#Troubleshoot)
 - [Advanced Usage](#advanced-usage)
   - [Access Khoj on Mobile](#access-khoj-on-mobile)
   - [Chat with Notes](#chat-with-notes)
   - [Use OpenAI Models for Search](#use-openai-models-for-search)
+  - [Search across Different Languages](#search-across-different-languages)
 - [Miscellaneous](#Miscellaneous)
   - [Setup OpenAI API key in Khoj](#set-your-openai-api-key-in-khoj)
   - [Beta API](#beta-api)
@@ -173,6 +175,12 @@ pip install --upgrade khoj-assistant
 - Upgrade via the Community plugins tab on the settings pane in the Obsidian app
 - See the [khoj plugin readme](https://github.com/debanjum/khoj/tree/master/src/interface/obsidian#2-Setup-Plugin) for details
 
+## Uninstall Khoj
+1. (Optional) Hit `Ctrl-C` in the terminal running the khoj server to stop it
+2. Delete the khoj directory in your home folder (i.e `~/.khoj` on Linux, Mac or `C:\Users\<your-username>\.khoj` on Windows)
+3. Uninstall the khoj server with `pip uninstall khoj-assistant`
+4. (Optional) Uninstall khoj.el or the khoj obsidian plugin in the standard way on Emacs, Obsidian
+
 ## Troubleshoot
 
 #### Install fails while building Tokenizer dependency
@@ -217,7 +225,7 @@ pip install --upgrade khoj-assistant
 
 #### Use
 1. [Setup your OpenAI API key in Khoj](#set-your-openai-api-key-in-khoj)
-2. Open [/chat?type=summarize](http://localhost:8000/chat?type=summarize)[^2]
+2. Open [/chat?t=summarize](http://localhost:8000/chat?t=summarize)[^2]
 3. Type your queries, see summarized response by Khoj from your notes
 
 #### Demo
@@ -246,6 +254,19 @@ pip install --upgrade khoj-assistant
   - You will be **charged by OpenAI** based on the total tokens processed
   - It *requires an active internet connection* to search and index
 
+### Search across Different Languages
+  To search for notes in multiple, different languages, you can use a [multi-lingual model](https://www.sbert.net/docs/pretrained_models.html#multi-lingual-models).<br />
+  For example, the [paraphrase-multilingual-MiniLM-L12-v2](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2) supports [50+ languages](https://www.sbert.net/docs/pretrained_models.html#:~:text=we%20used%20the%20following%2050%2B%20languages), has good search quality and speed. To use it:
+  1. Manually update `search-type > asymmetric > encoder` to `sentence-transformer/paraphrase-multilingual-MiniLM-L12-v2` in your `~/.khoj/khoj.yml` file for now. See diff of `khoj.yml` below for illustration:
+  ```diff
+   asymmetric:
+- encoder: "sentence-transformers/multi-qa-MiniLM-L6-cos-vi"
++ encoder: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+     cross-encoder: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+     model_directory: "~/.khoj/search/asymmetric/"
+  ```
+
+  2. Regenerate your content index. For example, by opening [\<khoj-url\>/api/update?t=force](http://localhost:8000/api/update?t=force)
 
 ## Miscellaneous
 ### Set your OpenAI API key in Khoj
