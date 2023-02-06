@@ -37,6 +37,7 @@ import re
 import datetime
 from pathlib import Path
 from os.path import relpath
+from typing import List
 
 indent_regex = re.compile(r'^ *')
 
@@ -69,7 +70,7 @@ def makelist(filename):
    sched_date    = ''
    deadline_date = ''
    logbook       = list()
-   nodelist: list[Orgnode] = list()
+   nodelist: List[Orgnode] = list()
    property_map  = dict()
    in_properties_drawer = False
    in_logbook_drawer = False

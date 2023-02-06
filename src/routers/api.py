@@ -1,7 +1,7 @@
 # Standard Packages
 import yaml
 import logging
-from typing import Optional
+from typing import List, Optional
 
 # External Packages
 from fastapi import APIRouter
@@ -38,9 +38,9 @@ async def set_config_data(updated_config: FullConfig):
         outfile.close()
     return state.config
 
-@api.get('/search', response_model=list[SearchResponse])
+@api.get('/search', response_model=List[SearchResponse])
 def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Optional[bool] = False):
-    results: list[SearchResponse] = []
+    results: List[SearchResponse] = []
     if q is None or q == '':
         logger.info(f'No query param (q) passed in API call to initiate search')
         return results

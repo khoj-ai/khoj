@@ -3,7 +3,7 @@ from __future__ import annotations  # to avoid quoting type hints
 from enum import Enum
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 # External Packages
 import torch
@@ -29,7 +29,7 @@ class ProcessorType(str, Enum):
 
 
 class TextSearchModel():
-    def __init__(self, entries: list[Entry], corpus_embeddings: torch.Tensor, bi_encoder: BaseEncoder, cross_encoder: CrossEncoder, filters: list[BaseFilter], top_k):
+    def __init__(self, entries: List[Entry], corpus_embeddings: torch.Tensor, bi_encoder: BaseEncoder, cross_encoder: CrossEncoder, filters: List[BaseFilter], top_k):
         self.entries = entries
         self.corpus_embeddings = corpus_embeddings
         self.bi_encoder = bi_encoder

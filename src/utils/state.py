@@ -1,5 +1,6 @@
 # Standard Packages
 import threading
+from typing import List
 from packaging import version
 
 # External Packages
@@ -19,7 +20,7 @@ config_file: Path = None
 verbose: int = 0
 host: str = None
 port: int = None
-cli_args: list[str] = None
+cli_args: List[str] = None
 query_cache = LRU()
 search_index_lock = threading.Lock()
 

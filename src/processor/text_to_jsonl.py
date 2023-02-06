@@ -1,9 +1,8 @@
 # Standard Packages
 from abc import ABC, abstractmethod
 import hashlib
-import time
 import logging
-from typing import Callable
+from typing import Callable, List, Tuple
 from src.utils.helpers import timer
 
 # Internal Packages
@@ -18,16 +17,16 @@ class TextToJsonl(ABC):
         self.config = config
 
     @abstractmethod
-    def process(self, previous_entries: list[Entry]=None) -> list[tuple[int, Entry]]: ...
+    def process(self, previous_entries: List[Entry]=None) -> List[Tuple[int, Entry]]: ...
 
     @staticmethod
     def hash_func(key: str) -> Callable:
         return lambda entry: hashlib.md5(bytes(getattr(entry, key), encoding='utf-8')).hexdigest()
 
     @staticmethod
-    def split_entries_by_max_tokens(entries: list[Entry], max_tokens: int=256, max_word_length: int=500) -> list[Entry]:
+    def split_entries_by_max_tokens(entries: List[Entry], max_tokens: int=256, max_word_length: int=500) -> List[Entry]:
         "Split entries if compiled entry length exceeds the max tokens supported by the ML model."
-        chunked_entries: list[Entry] = []
+        chunked_entries: List[Entry] = []
         for entry in entries:
             compiled_entry_words = entry.compiled.split()
             # Drop long words instead of having entry truncated to maintain quality of entry processed by models
@@ -39,7 +38,7 @@ class TextToJsonl(ABC):
                 chunked_entries.append(entry_chunk)
         return chunked_entries
 
-    def mark_entries_for_update(self, current_entries: list[Entry], previous_entries: list[Entry], key='compiled', logger=None) -> list[tuple[int, Entry]]:
+    def mark_entries_for_update(self, current_entries: List[Entry], previous_entries: List[Entry], key='compiled', logger=None) -> List[Tuple[int, Entry]]:
         # Hash all current and previous entries to identify new entries
         with timer("Hash previous, current entries", logger):
             current_entry_hashes = list(map(TextToJsonl.hash_func(key), current_entries))

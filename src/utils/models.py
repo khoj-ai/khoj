@@ -1,5 +1,6 @@
 # Standard Packages
 from abc import ABC, abstractmethod
+from typing import List
 
 # External Packages
 import openai
@@ -15,7 +16,7 @@ class BaseEncoder(ABC):
     def __init__(self, model_name: str, device: torch.device=None, **kwargs): ...
 
     @abstractmethod
-    def encode(self, entries: list[str], device:torch.device=None, **kwargs) -> torch.Tensor: ...
+    def encode(self, entries: List[str], device:torch.device=None, **kwargs) -> torch.Tensor: ...
 
 
 class OpenAI(BaseEncoder):

@@ -3,6 +3,7 @@ import glob
 import re
 import logging
 import time
+from typing import List
 
 # Internal Packages
 from src.processor.text_to_jsonl import TextToJsonl
@@ -110,7 +111,7 @@ class MarkdownToJsonl(TextToJsonl):
         return entries, dict(entry_to_file_map)
 
     @staticmethod
-    def convert_markdown_entries_to_maps(parsed_entries: list[str], entry_to_file_map) -> list[Entry]:
+    def convert_markdown_entries_to_maps(parsed_entries: List[str], entry_to_file_map) -> List[Entry]:
         "Convert each Markdown entries into a dictionary"
         entries = []
         for parsed_entry in parsed_entries:
@@ -121,6 +122,6 @@ class MarkdownToJsonl(TextToJsonl):
         return entries
 
     @staticmethod
-    def convert_markdown_maps_to_jsonl(entries: list[Entry]):
+    def convert_markdown_maps_to_jsonl(entries: List[Entry]):
         "Convert each Markdown entry to JSON and collate as JSONL"
         return ''.join([f'{entry.to_json()}\n' for entry in entries])

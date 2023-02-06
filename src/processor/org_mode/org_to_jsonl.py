@@ -2,7 +2,7 @@
 import glob
 import logging
 import time
-from typing import Iterable
+from typing import Iterable, List
 
 # Internal Packages
 from src.processor.org_mode import orgnode
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 class OrgToJsonl(TextToJsonl):
     # Define Functions
-    def process(self, previous_entries: list[Entry]=None):
+    def process(self, previous_entries: List[Entry]=None):
         # Extract required fields from config
         org_files, org_file_filter, output_file = self.config.input_files, self.config.input_filter, self.config.compressed_jsonl
         index_heading_entries = self.config.index_heading_entries
@@ -101,9 +101,9 @@ class OrgToJsonl(TextToJsonl):
         return entries, dict(entry_to_file_map)
 
     @staticmethod
-    def convert_org_nodes_to_entries(parsed_entries: list[orgnode.Orgnode], entry_to_file_map, index_heading_entries=False) -> list[Entry]:
+    def convert_org_nodes_to_entries(parsed_entries: List[orgnode.Orgnode], entry_to_file_map, index_heading_entries=False) -> List[Entry]:
         "Convert Org-Mode nodes into list of Entry objects"
-        entries: list[Entry] = []
+        entries: List[Entry] = []
         for parsed_entry in parsed_entries:
             if not parsed_entry.hasBody and not index_heading_entries:
                 # Ignore title notes i.e notes with just headings and empty body

@@ -2,7 +2,7 @@
 import glob
 import re
 import logging
-import time
+from typing import List
 
 # Internal Packages
 from src.processor.text_to_jsonl import TextToJsonl
@@ -109,7 +109,7 @@ class BeancountToJsonl(TextToJsonl):
         return entries, dict(transaction_to_file_map)
 
     @staticmethod
-    def convert_transactions_to_maps(parsed_entries: list[str], transaction_to_file_map) -> list[Entry]:
+    def convert_transactions_to_maps(parsed_entries: List[str], transaction_to_file_map) -> List[Entry]:
         "Convert each parsed Beancount transaction into a Entry"
         entries = []
         for parsed_entry in parsed_entries:
@@ -120,6 +120,6 @@ class BeancountToJsonl(TextToJsonl):
         return entries
 
     @staticmethod
-    def convert_transaction_maps_to_jsonl(entries: list[Entry]) -> str:
+    def convert_transaction_maps_to_jsonl(entries: List[Entry]) -> str:
         "Convert each Beancount transaction entry to JSON and collate as JSONL"
         return ''.join([f'{entry.to_json()}\n' for entry in entries])

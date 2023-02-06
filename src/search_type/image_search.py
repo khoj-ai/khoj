@@ -5,6 +5,7 @@ import copy
 import shutil
 import time
 import logging
+from typing import List
 
 # External Packages
 from sentence_transformers import SentenceTransformer, util
@@ -189,8 +190,8 @@ def query(raw_query, count, model: ImageSearchModel):
     return sorted(hits, key=lambda hit: hit["score"], reverse=True)
 
 
-def collate_results(hits, image_names, output_directory, image_files_url, count=5) -> list[SearchResponse]:
-    results: list[SearchResponse] = []
+def collate_results(hits, image_names, output_directory, image_files_url, count=5) -> List[SearchResponse]:
+    results: List[SearchResponse] = []
 
     for index, hit in enumerate(hits[:count]):
         source_path = image_names[hit['corpus_id']]

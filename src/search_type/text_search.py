@@ -2,7 +2,7 @@
 import logging
 from pathlib import Path
 import time
-from typing import Type
+from typing import List, Tuple, Type
 
 # External Packages
 import torch
@@ -53,12 +53,12 @@ def initialize_model(search_config: TextSearchConfig):
     return bi_encoder, cross_encoder, top_k
 
 
-def extract_entries(jsonl_file) -> list[Entry]:
+def extract_entries(jsonl_file) -> List[Entry]:
     "Load entries from compressed jsonl"
     return list(map(Entry.from_dict, load_jsonl(jsonl_file)))
 
 
-def compute_embeddings(entries_with_ids: list[tuple[int, Entry]], bi_encoder: BaseEncoder, embeddings_file: Path, regenerate=False):
+def compute_embeddings(entries_with_ids: List[Tuple[int, Entry]], bi_encoder: BaseEncoder, embeddings_file: Path, regenerate=False):
     "Compute (and Save) Embeddings or Load Pre-Computed Embeddings"
     new_entries = []
     # Load pre-computed embeddings from file if exists and update them if required
@@ -90,7 +90,7 @@ def compute_embeddings(entries_with_ids: list[tuple[int, Entry]], bi_encoder: Ba
     return corpus_embeddings
 
 
-def query(raw_query: str, model: TextSearchModel, rank_results: bool = False) -> tuple[list[dict], list[Entry]]:
+def query(raw_query: str, model: TextSearchModel, rank_results: bool = False) -> Tuple[List[dict], List[Entry]]:
     "Search for entries that answer the query"
     query, entries, corpus_embeddings = raw_query, model.entries, model.corpus_embeddings
 
@@ -127,7 +127,7 @@ def query(raw_query: str, model: TextSearchModel, rank_results: bool = False) ->
     return hits, entries
 
 
-def collate_results(hits, entries: list[Entry], count=5) -> list[SearchResponse]:
+def collate_results(hits, entries: List[Entry], count=5) -> List[SearchResponse]:
     return [SearchResponse.parse_obj(
         {
             "entry": entries[hit['corpus_id']].raw,
@@ -141,7 +141,7 @@ def collate_results(hits, entries: list[Entry], count=5) -> list[SearchResponse]
         in hits[0:count]]
 
 
-def setup(text_to_jsonl: Type[TextToJsonl], config: TextContentConfig, search_config: TextSearchConfig, regenerate: bool, filters: list[BaseFilter] = []) -> TextSearchModel:
+def setup(text_to_jsonl: Type[TextToJsonl], config: TextContentConfig, search_config: TextSearchConfig, regenerate: bool, filters: List[BaseFilter] = []) -> TextSearchModel:
     # Initialize Model
     bi_encoder, cross_encoder, top_k = initialize_model(search_config)
 
@@ -166,7 +166,7 @@ def setup(text_to_jsonl: Type[TextToJsonl], config: TextContentConfig, search_co
     return TextSearchModel(entries, corpus_embeddings, bi_encoder, cross_encoder, filters, top_k)
 
 
-def apply_filters(query: str, entries: list[Entry], corpus_embeddings: torch.Tensor, filters: list[BaseFilter]) -> tuple[str, list[Entry], torch.Tensor]:
+def apply_filters(query: str, entries: List[Entry], corpus_embeddings: torch.Tensor, filters: List[BaseFilter]) -> Tuple[str, List[Entry], torch.Tensor]:
     '''Filter query, entries and embeddings before semantic search'''
 
     with timer("Total Filter Time", logger, state.device):
@@ -186,7 +186,7 @@ def apply_filters(query: str, entries: list[Entry], corpus_embeddings: torch.Ten
     return query, entries, corpus_embeddings
 
 
-def cross_encoder_score(cross_encoder: CrossEncoder, query: str, entries: list[Entry], hits: list[dict]) -> list[dict]:
+def cross_encoder_score(cross_encoder: CrossEncoder, query: str, entries: List[Entry], hits: List[dict]) -> List[dict]:
     '''Score all retrieved entries using the cross-encoder'''
     with timer("Cross-Encoder Predict Time", logger, state.device):
         cross_inp = [[query, entries[hit['corpus_id']].compiled] for hit in hits]
@@ -199,7 +199,7 @@ def cross_encoder_score(cross_encoder: CrossEncoder, query: str, entries: list[E
     return hits
 
 
-def sort_results(rank_results: bool, hits: list[dict]) -> list[dict]:
+def sort_results(rank_results: bool, hits: List[dict]) -> List[dict]:
     '''Order results by cross-encoder score followed by bi-encoder score'''
     with timer("Rank Time", logger, state.device):
         hits.sort(key=lambda x: x['score'], reverse=True) # sort by bi-encoder score
@@ -208,7 +208,7 @@ def sort_results(rank_results: bool, hits: list[dict]) -> list[dict]:
     return hits
 
 
-def deduplicate_results(entries: list[Entry], hits: list[dict]) -> list[dict]:
+def deduplicate_results(entries: List[Entry], hits: List[dict]) -> List[dict]:
     '''Deduplicate entries by raw entry text before showing to users
     Compiled entries are split by max tokens supported by ML models.
     This can result in duplicate hits, entries shown to user.'''
