@@ -4,20 +4,20 @@ content-type:
   # If changing, the docker-compose volumes should also be changed to match.
   org:
     input-files: null
-    input-filter: ["/data/org/*.org"]
+    input-filter: ["/data/org/**/*.org"]
     compressed-jsonl: "/data/embeddings/notes.jsonl.gz"
     embeddings-file: "/data/embeddings/note_embeddings.pt"
     index_heading_entries: false
 
   markdown:
     input-files: null
-    input-filter: ["/data/markdown/*.md"]
+    input-filter: ["/data/markdown/**/*.md"]
     compressed-jsonl: "/data/embeddings/markdown.jsonl.gz"
     embeddings-file: "/data/embeddings/markdown_embeddings.pt"
 
   ledger:
     input-files: null
-    input-filter: ["/data/ledger/*.beancount"]
+    input-filter: ["/data/ledger/**/*.beancount"]
     compressed-jsonl: /data/embeddings/transactions.jsonl.gz
     embeddings-file: /data/embeddings/transaction_embeddings.pt
 
