@@ -97,7 +97,7 @@ class MarkdownToJsonl(TextToJsonl):
         entries = []
         entry_to_file_map = []
         for markdown_file in markdown_files:
-            with open(markdown_file) as f:
+            with open(markdown_file, 'r', encoding='utf8') as f:
                 markdown_content = f.read()
                 markdown_entries_per_file = []
                 for entry in re.split(markdown_heading_regex, markdown_content, flags=re.MULTILINE):
