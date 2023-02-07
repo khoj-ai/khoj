@@ -64,15 +64,6 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
         with timer("Collating results took", logger):
             results = text_search.collate_results(hits, entries, results_count)
 
-    elif (t == SearchType.Music or t == None) and state.model.music_search:
-        # query music library
-        with timer("Query took", logger):
-            hits, entries = text_search.query(user_query, state.model.music_search, rank_results=r)
-
-        # collate and return results
-        with timer("Collating results took", logger):
-            results = text_search.collate_results(hits, entries, results_count)
-
     elif (t == SearchType.Markdown or t == None) and state.model.markdown_search:
         # query markdown files
         with timer("Query took", logger):
@@ -86,6 +77,15 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
         # query transactions
         with timer("Query took", logger):
             hits, entries = text_search.query(user_query, state.model.ledger_search, rank_results=r)
+
+        # collate and return results
+        with timer("Collating results took", logger):
+            results = text_search.collate_results(hits, entries, results_count)
+
+    elif (t == SearchType.Music or t == None) and state.model.music_search:
+        # query music library
+        with timer("Query took", logger):
+            hits, entries = text_search.query(user_query, state.model.music_search, rank_results=r)
 
         # collate and return results
         with timer("Collating results took", logger):
