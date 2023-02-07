@@ -64,7 +64,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
         with timer("Collating results took", logger):
             results = text_search.collate_results(hits, entries, results_count)
 
-    if (t == SearchType.Music or t == None) and state.model.music_search:
+    elif (t == SearchType.Music or t == None) and state.model.music_search:
         # query music library
         with timer("Query took", logger):
             hits, entries = text_search.query(user_query, state.model.music_search, rank_results=r)
@@ -73,7 +73,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
         with timer("Collating results took", logger):
             results = text_search.collate_results(hits, entries, results_count)
 
-    if (t == SearchType.Markdown or t == None) and state.model.markdown_search:
+    elif (t == SearchType.Markdown or t == None) and state.model.markdown_search:
         # query markdown files
         with timer("Query took", logger):
             hits, entries = text_search.query(user_query, state.model.markdown_search, rank_results=r)
@@ -82,7 +82,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
         with timer("Collating results took", logger):
             results = text_search.collate_results(hits, entries, results_count)
 
-    if (t == SearchType.Ledger or t == None) and state.model.ledger_search:
+    elif (t == SearchType.Ledger or t == None) and state.model.ledger_search:
         # query transactions
         with timer("Query took", logger):
             hits, entries = text_search.query(user_query, state.model.ledger_search, rank_results=r)
@@ -91,7 +91,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
         with timer("Collating results took", logger):
             results = text_search.collate_results(hits, entries, results_count)
 
-    if (t == SearchType.Image or t == None) and state.model.image_search:
+    elif (t == SearchType.Image or t == None) and state.model.image_search:
         # query images
         with timer("Query took", logger):
             hits = image_search.query(user_query, results_count, state.model.image_search)
