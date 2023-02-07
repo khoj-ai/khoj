@@ -52,7 +52,7 @@ def summarize_beta(q: str):
     meta_log = state.processor_config.conversation.meta_log
 
     # Converse with OpenAI GPT
-    result_list = search(q, n=1, t=SearchType.Org, r=True)
+    result_list = search(q, n=1, r=True)
     collated_result = "\n".join([item.entry for item in result_list])
     logger.debug(f'Semantically Similar Notes:\n{collated_result}')
     try:
