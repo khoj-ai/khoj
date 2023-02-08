@@ -1,10 +1,10 @@
 {
-    "id": "khoj",
-    "name": "Khoj",
-    "version": "0.2.6",
-    "minAppVersion": "0.15.0",
-    "description": "Natural, Incremental Search for your Second Brain 🦅",
-    "author": "Debanjum Singh Solanky",
-    "authorUrl": "https://github.com/debanjum",
-    "isDesktopOnly": false
+	"id": "khoj",
+	"name": "Khoj",
+	"version": "0.3.0",
+	"minAppVersion": "0.15.0",
+	"description": "Natural, Incremental Search for your Second Brain 🦅",
+	"author": "Debanjum Singh Solanky",
+	"authorUrl": "https://github.com/debanjum",
+	"isDesktopOnly": false
 }
