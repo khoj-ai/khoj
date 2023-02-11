@@ -55,7 +55,7 @@ pip install khoj-assistant && khoj --no-gui
   1. Open [Khoj](https://obsidian.md/plugins?id=khoj) from the *Community plugins* tab in Obsidian settings panel
   2. Click *Install*, then *Enable* on the Khoj plugin page in Obsidian
 
-See [official docs](https://help.obsidian.md/Advanced+topics/Community+plugins#Discover+and+install+community+plugins) for details
+See [official Obsidian plugin docs](https://help.obsidian.md/Extending+Obsidian/Community+plugins) for details
 
 ## Use
 ### Search
