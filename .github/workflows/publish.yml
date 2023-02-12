@@ -10,13 +10,6 @@ on:
       - src/**
       - setup.py
       - .github/workflows/publish.yml
-  pull_request:
-    branches:
-      - 'master'
-    paths:
-      - src/**
-      - setup.py
-      - .github/workflows/publish.yml
 
 jobs:
   publish:
