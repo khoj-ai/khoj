@@ -51,7 +51,7 @@ def compress_jsonl_data(jsonl_data, output_path):
     # Create output directory, if it doesn't exist
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with gzip.open(output_path, 'wt') as gzip_file:
+    with gzip.open(output_path, 'wt', encoding='utf-8') as gzip_file:
         gzip_file.write(jsonl_data)
 
     logger.info(f'Wrote jsonl data to gzip compressed jsonl at {output_path}')
