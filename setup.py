@@ -23,13 +23,9 @@ setup(
         include=["src*"]
     ),
     install_requires=[
-        "numpy == 1.22.4",
         "torch == 1.13.1",
-        "torchvision == 0.14.1",
-        "transformers == 4.21.0",
-        "sentence-transformers == 2.1.0",
+        "sentence-transformers == 2.2.2",
         "openai == 0.20.0",
-        "huggingface_hub == 0.8.1",
         "pydantic == 1.9.1",
         "fastapi == 0.77.1",
         "uvicorn == 0.17.6",
@@ -37,7 +33,6 @@ setup(
         "pyyaml == 6.0",
         "pytest == 7.1.2",
         "pillow == 9.3.0",
-        "aiofiles == 0.8.0",
         "dateparser == 1.1.1",
         "pyqt6 == 6.3.1",
         "defusedxml == 0.7.1",
