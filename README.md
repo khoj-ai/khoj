@@ -59,7 +59,7 @@
 - **Incremental**: Incremental search for a fast, search-as-you-type experience
 - **Pluggable**: Modular architecture makes it easy to plug in new data sources, frontends and ML models
 - **Multiple Sources**: Search your Org-mode and Markdown notes, Beancount transactions and Photos
-- **Multiple Interfaces**: Search using a [Web Browser](./src/khoj/interface/web/index.html), [Emacs](./src/interface/emacs/khoj.el) or the [API](http://localhost:8000/docs)
+- **Multiple Interfaces**: Search from your [Web Browser](./src/khoj/interface/web/index.html), [Emacs](./src/interface/emacs/khoj.el) or [Obsidian](./src/interface/obsidian/)
 
 ## Demos
 ### Khoj in Obsidian
