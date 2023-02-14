@@ -10,6 +10,13 @@ on:
       - src/**
       - setup.py
       - .github/workflows/publish.yml
+  pull_request:
+    branches:
+      - 'master'
+    paths:
+      - src/**
+      - setup.py
+      - .github/workflows/publish.yml
 
 jobs:
   publish:
@@ -67,8 +74,8 @@ jobs:
           twine check dist/*
           twine upload --verbose dist/*
 
-      - name: Publish PR to Test PyPI
-        if: github.event_name == 'pull_request'
+      - name: Publish Repo PR to Test PyPI
+        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_KEY }}
