@@ -59,14 +59,37 @@ export class KhojSettingTab extends PluginSettingTab {
                 .setCta()
                 .onClick(async () => {
                     // Disable button while updating index
-                    button.setButtonText('Updating...');
+                    button.setButtonText('Updating 🌑');
                     button.removeCta();
                     indexVaultSetting = indexVaultSetting.setDisabled(true);
+
+                    // Show indicator for indexing in progress
+                    const progress_indicator = window.setInterval(() => {
+                        if (button.buttonEl.innerText === 'Updating 🌑') {
+                            button.setButtonText('Updating 🌘');
+                        } else if (button.buttonEl.innerText === 'Updating 🌘') {
+                            button.setButtonText('Updating 🌗');
+                        } else if (button.buttonEl.innerText === 'Updating 🌗') {
+                            button.setButtonText('Updating 🌖');
+                        } else if (button.buttonEl.innerText === 'Updating 🌖') {
+                            button.setButtonText('Updating 🌕');
+                        } else if (button.buttonEl.innerText === 'Updating 🌕') {
+                            button.setButtonText('Updating 🌔');
+                        } else if (button.buttonEl.innerText === 'Updating 🌔') {
+                            button.setButtonText('Updating 🌓');
+                        } else if (button.buttonEl.innerText === 'Updating 🌓') {
+                            button.setButtonText('Updating 🌒');
+                        } else if (button.buttonEl.innerText === 'Updating 🌒') {
+                            button.setButtonText('Updating 🌑');
+                        }
+                    }, 300);
+                    this.plugin.registerInterval(progress_indicator);
 
                     await request(`${this.plugin.settings.khojUrl}/api/update?t=markdown&force=true`);
                     new Notice('✅ Updated Khoj index.');
 
-                    // Re-enable button once index is updated
+                    // Reset button once index is updated
+                    window.clearInterval(progress_indicator);
                     button.setButtonText('Update');
                     button.setCta();
                     indexVaultSetting = indexVaultSetting.setDisabled(false);
