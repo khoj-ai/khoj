@@ -8,13 +8,13 @@ from urllib.parse import quote
 from fastapi.testclient import TestClient
 
 # Internal Packages
-from src.main import app
-from src.utils.state import model, config
-from src.search_type import text_search, image_search
-from src.utils.rawconfig import ContentConfig, SearchConfig
-from src.processor.org_mode.org_to_jsonl import OrgToJsonl
-from src.search_filter.word_filter import WordFilter
-from src.search_filter.file_filter import FileFilter
+from khoj.main import app
+from khoj.utils.state import model, config
+from khoj.search_type import text_search, image_search
+from khoj.utils.rawconfig import ContentConfig, SearchConfig
+from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
+from khoj.search_filter.word_filter import WordFilter
+from khoj.search_filter.file_filter import FileFilter
 
 
 # Arrange

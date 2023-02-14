@@ -1,7 +1,6 @@
 # Khoj artifacts
 *.gz
 *.pt
-src/.data
 tests/data/models
 tests/data/embeddings
 
@@ -13,10 +12,10 @@ __pycache__
 .vscode
 
 # Build artifacts
-/src/interface/web/images
+/src/khoj/interface/web/images
 /build/
 /dist/
-/khoj_assistant.egg-info/
+khoj_assistant.egg-info
 /config/khoj*.yml
 .pytest_cache
 khoj.log

@@ -17,10 +17,10 @@ setup(
     license="GPLv3",
     keywords="search semantic-search productivity NLP org-mode markdown beancount images",
     python_requires=">=3.8, <3.11",
+    package_dir={"": "src"},
     packages=find_packages(
-        where=".",
-        exclude=["tests*"],
-        include=["src*"]
+        where="src",
+        include=["khoj*"]
     ),
     install_requires=[
         "torch == 1.13.1",
@@ -39,7 +39,7 @@ setup(
         'schedule == 1.1.0',
     ],
     include_package_data=True,
-    entry_points={"console_scripts": ["khoj = src.main:run"]},
+    entry_points={"console_scripts": ["khoj = khoj.main:run"]},
     classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",

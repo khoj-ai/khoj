@@ -2,7 +2,7 @@
 import json
 
 # Internal Packages
-from src.processor.ledger.beancount_to_jsonl import BeancountToJsonl
+from khoj.processor.ledger.beancount_to_jsonl import BeancountToJsonl
 
 
 def test_no_transactions_in_file(tmp_path):

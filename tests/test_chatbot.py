@@ -2,7 +2,7 @@
 import pytest
 
 # Internal Packages
-from src.processor.conversation.gpt import converse, understand, message_to_prompt
+from khoj.processor.conversation.gpt import converse, understand, message_to_prompt
 
 
 # Initialize variables for tests

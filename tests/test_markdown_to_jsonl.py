@@ -2,7 +2,7 @@
 import json
 
 # Internal Packages
-from src.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
+from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 
 
 def test_markdown_file_with_no_headings_to_jsonl(tmp_path):

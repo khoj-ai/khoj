@@ -6,8 +6,8 @@
 *Allow natural language search on user content like notes, images,
 transactions using transformer ML models*
 
-User can interface with Khoj via [Web](./src/interface/web/index.html),
-[Emacs](./src/interface/emacs/khoj.el) or the API. All search is done
+User can interface with Khoj via [Web](./src/khoj/interface/web/index.html),
+[Emacs](./src/khoj/interface/emacs/khoj.el) or the API. All search is done
 locally[\*](https://github.com/debanjum/khoj#miscellaneous)
 
 ## Demo
@@ -47,8 +47,8 @@ just generating embeddings*
     -   [Update Index](http://localhost:8000/api/update?t=ledger)
     -   [Configure Application](https://localhost:8000/ui)
 -   **Khoj via Emacs**
-    -   [Install](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#installation)
-        [khoj.el](./src/interface/emacs/khoj.el)
+    -   [Install](https://github.com/debanjum/khoj/tree/master/src/khoj/interface/emacs#installation)
+        [khoj.el](./src/khoj/interface/emacs/khoj.el)
     -   Run `M-x khoj <user-query>`
 
 ## Run Unit tests
@@ -118,7 +118,7 @@ docker-compose build --pull
     images, transactions etc specified in config YAML
 
     ``` shell
-    python3 -m src.main -c=config/khoj_sample.yml -vv
+    python3 -m src.khoj.main -c=config/khoj_sample.yml -vv
     ```
 
 ### Upgrade On Local Machine

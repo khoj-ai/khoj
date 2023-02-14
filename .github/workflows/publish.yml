@@ -7,14 +7,14 @@ on:
     branches:
       - 'master'
     paths:
-      - src/**
+      - src/khoj/**
       - setup.py
       - .github/workflows/publish.yml
   pull_request:
     branches:
       - 'master'
     paths:
-      - src/**
+      - src/khoj/**
       - setup.py
       - .github/workflows/publish.yml
 
