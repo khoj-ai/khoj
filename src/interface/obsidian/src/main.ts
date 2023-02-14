@@ -48,12 +48,16 @@ export default class Khoj extends Plugin {
         // Load khoj obsidian plugin settings
         this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 
-        // Load, configure khoj server settings
-        await configureKhojBackend(this.app.vault, this.settings);
+        if (this.settings.autoConfigure) {
+            // Load, configure khoj server settings
+            await configureKhojBackend(this.app.vault, this.settings);
+        }
     }
 
     async saveSettings() {
-        await configureKhojBackend(this.app.vault, this.settings, false)
-            .then(() => this.saveData(this.settings));
-    }
+        if (this.settings.autoConfigure) {
+            await configureKhojBackend(this.app.vault, this.settings, false);
+        }
+        this.saveData(this.settings);
+   }
 }
