@@ -64,6 +64,8 @@ Click the *Khoj search* icon 🔎 on the [Ribbon](https://help.obsidian.md/User+
 
 *Note: Ensure the khoj server is running in the background before searching. Execute `khoj --no-gui` in your terminal if it is not already running*
 
+https://user-images.githubusercontent.com/6413477/218801155-cd67e8b4-a770-404a-8179-d6b61caa0f93.mp4
+
 <details><summary>Query Filters</summary>
 
 Use structured query syntax to filter the natural language search results
