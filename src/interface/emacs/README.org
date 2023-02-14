@@ -4,19 +4,19 @@
   /Natural, Incremental Search for your Second Brain/
 
 ** Table of Contents
-  - [[https://github.com/debanjum/khoj/tree/master/src/khoj/interface/emacs#features][Features]]
-  - [[https://github.com/debanjum/khoj/tree/master/src/khoj/interface/emacs#Interface][Interface]]
-  - [[https://github.com/debanjum/khoj/tree/master/src/khoj/interface/emacs#Setup][Setup]]
-    - [[https://github.com/debanjum/khoj/tree/master/src/khoj/interface/emacs#1-Setup-Backend][Setup Backend]]
-    - [[https://github.com/debanjum/khoj/tree/master/src/khoj/interface/emacs#2-Install-Khojel][Install Khoj.el]]
-  - [[https://github.com/debanjum/khoj/tree/master/src/khoj/interface/emacs#Use][Use]]
-    - [[https://github.com/debanjum/khoj/tree/master/src/khoj/interface/emacs#Search][Search]]
-    - [[https://github.com/debanjum/khoj/tree/master/src/khoj/interface/emacs#Find-similar-entries][Find Similar Entries]]
-    - [[https://github.com/debanjum/khoj/tree/master/src/khoj/interface/emacs#Advanced-usage][Advanced Usage]]
-    - [[https://github.com/debanjum/khoj/tree/master/src/khoj/interface/emacs#Khoj-menu][Khoj Menu]]
-  - [[https://github.com/debanjum/khoj/tree/master/src/khoj/interface/emacs#Upgrade][Upgrade]]
-    - [[https://github.com/debanjum/khoj/tree/master/src/khoj/interface/emacs#Upgrade-Khoj-Backend][Upgrade Backend]]
-    - [[https://github.com/debanjum/khoj/tree/master/src/khoj/interface/emacs#Upgrade-Khojel][Upgrade Khoj.el]]
+  - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#features][Features]]
+  - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Interface][Interface]]
+  - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Setup][Setup]]
+    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#1-Setup-Backend][Setup Backend]]
+    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#2-Install-Khojel][Install Khoj.el]]
+  - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Use][Use]]
+    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Search][Search]]
+    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Find-similar-entries][Find Similar Entries]]
+    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Advanced-usage][Advanced Usage]]
+    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Khoj-menu][Khoj Menu]]
+  - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Upgrade][Upgrade]]
+    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Upgrade-Khoj-Backend][Upgrade Backend]]
+    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Upgrade-Khojel][Upgrade Khoj.el]]
 
 ** Features
   - *Natural*: Advanced natural language understanding using Transformer based ML Models
@@ -58,7 +58,7 @@
     ;; Install Khoj Package using Straight.el
     (use-package khoj
       :after org
-      :straight (khoj :type git :host github :repo "debanjum/khoj" :files (:defaults "src/khoj/interface/emacs/khoj.el"))
+      :straight (khoj :type git :host github :repo "debanjum/khoj" :files (:defaults "src/interface/emacs/khoj.el"))
       :bind ("C-c s" . 'khoj))
   #+end_src
 

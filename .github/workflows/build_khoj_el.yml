@@ -7,13 +7,13 @@ on:
     branches:
       - 'master'
     paths:
-      - src/khoj/interface/emacs/*.el
+      - src/interface/emacs/*.el
       - .github/workflows/build_khoj_el.yml
   pull_request:
     branches:
       - 'master'
     paths:
-      - src/khoj/interface/emacs/*.el
+      - src/interface/emacs/*.el
       - .github/workflows/build_khoj_el.yml
 
 jobs:
@@ -33,7 +33,7 @@ jobs:
     - name: Run
       env:
         # Khoj recipe from https://github.com/melpa/melpa/pull/8321/files
-        RECIPE: (khoj :fetcher github :repo "debanjum/khoj" :files ("src/khoj/interface/emacs/*.el"))
+        RECIPE: (khoj :fetcher github :repo "debanjum/khoj" :files ("src/interface/emacs/*.el"))
         EXIST_OK: true
         LOCAL_REPO: ${{ github.workspace }}
       run: echo $GITHUB_REF && make -C ~/melpazoid

@@ -5,15 +5,15 @@ on:
     branches:
       - 'master'
     paths:
-      - src/khoj/interface/emacs/*.el
-      - src/khoj/interface/emacs/tests/*.el
+      - src/interface/emacs/*.el
+      - src/interface/emacs/tests/*.el
       - .github/workflows/test_khoj_el.yml
   pull_request:
     branches:
       - 'master'
     paths:
-      - src/khoj/interface/emacs/*.el
-      - src/khoj/interface/emacs/tests/*.el
+      - src/interface/emacs/*.el
+      - src/interface/emacs/tests/*.el
       - .github/workflows/test_khoj_el.yml
 
 jobs:
@@ -44,6 +44,6 @@ jobs:
                     (unless package-archive-contents (package-refresh-contents)) \
                     (unless (package-installed-p 'transient) (package-install 'transient)))" \
            -l ert \
-           -l ./src/khoj/interface/emacs/khoj.el \
-           -l ./src/khoj/interface/emacs/tests/khoj-tests.el \
+           -l ./src/interface/emacs/khoj.el \
+           -l ./src/interface/emacs/tests/khoj-tests.el \
            -f ert-run-tests-batch-and-exit

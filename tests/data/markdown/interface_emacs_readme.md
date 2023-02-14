@@ -28,7 +28,7 @@
         ;; Khoj Package for Semantic Search
         (use-package khoj
           :after org
-          :straight (khoj :type git :host github :repo "debanjum/khoj" :files (:defaults "src/khoj/interface/emacs/khoj.el"))
+          :straight (khoj :type git :host github :repo "debanjum/khoj" :files (:defaults "src/interface/emacs/khoj.el"))
           :bind ("C-c s" . 'khoj))
         ```
 -   With [Quelpa](https://github.com/quelpa/quelpa#installation)

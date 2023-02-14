@@ -7,8 +7,8 @@
 
 **Supported Plugins**
 
-[![Khoj on Obsidian](https://img.shields.io/badge/Obsidian-%23483699.svg?style=for-the-badge&logo=obsidian&logoColor=white)](https://github.com/debanjum/khoj/tree/master/src/khoj/interface/obsidian#readme)
-[![Khoj on Emacs](https://img.shields.io/badge/Emacs-%237F5AB6.svg?&style=for-the-badge&logo=gnu-emacs&logoColor=white)](https://github.com/debanjum/khoj/tree/master/src/khoj/interface/emacs#readme)
+[![Khoj on Obsidian](https://img.shields.io/badge/Obsidian-%23483699.svg?style=for-the-badge&logo=obsidian&logoColor=white)](https://github.com/debanjum/khoj/tree/master/src/interface/obsidian#readme)
+[![Khoj on Emacs](https://img.shields.io/badge/Emacs-%237F5AB6.svg?&style=for-the-badge&logo=gnu-emacs&logoColor=white)](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#readme)
 
 ## Table of Contents
 
@@ -59,7 +59,7 @@
 - **Incremental**: Incremental search for a fast, search-as-you-type experience
 - **Pluggable**: Modular architecture makes it easy to plug in new data sources, frontends and ML models
 - **Multiple Sources**: Search your Org-mode and Markdown notes, Beancount transactions and Photos
-- **Multiple Interfaces**: Search using a [Web Browser](./src/khoj/interface/web/index.html), [Emacs](./src/khoj/interface/emacs/khoj.el) or the [API](http://localhost:8000/docs)
+- **Multiple Interfaces**: Search using a [Web Browser](./src/khoj/interface/web/index.html), [Emacs](./src/interface/emacs/khoj.el) or the [API](http://localhost:8000/docs)
 
 ## Demos
 ### Khoj in Obsidian
@@ -83,9 +83,9 @@ https://user-images.githubusercontent.com/6413477/184735169-92c78bf1-d827-4663-9
 
 - Install Khoj via pip
 - Start Khoj app
-- Add this readme and [khoj.el readme](https://github.com/debanjum/khoj/tree/master/src/khoj/interface/emacs) as org-mode for Khoj to index
+- Add this readme and [khoj.el readme](https://github.com/debanjum/khoj/tree/master/src/interface/emacs) as org-mode for Khoj to index
 - Search \"*Setup editor*\" on the Web and Emacs. Re-rank the results for better accuracy
-- Top result is what we are looking for, the [section to Install Khoj.el on Emacs](https://github.com/debanjum/khoj/tree/master/src/khoj/interface/emacs#2-Install-Khojel)
+- Top result is what we are looking for, the [section to Install Khoj.el on Emacs](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#2-Install-Khojel)
 </details>
 
 <details><summary>Analysis</summary>
@@ -107,8 +107,8 @@ https://user-images.githubusercontent.com/6413477/184735169-92c78bf1-d827-4663-9
 ## Setup
 These are the general setup instructions for Khoj.
 
-- Check the [Khoj.el Readme](https://github.com/debanjum/khoj/tree/master/src/khoj/interface/emacs#Setup) to setup Khoj with Emacs
-- Check the [Khoj Obsidian Readme](https://github.com/debanjum/khoj/tree/master/src/khoj/interface/obsidian#Setup) to setup Khoj with Obsidian<br />
+- Check the [Khoj.el Readme](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Setup) to setup Khoj with Emacs
+- Check the [Khoj Obsidian Readme](https://github.com/debanjum/khoj/tree/master/src/interface/obsidian#Setup) to setup Khoj with Obsidian<br />
   Its simpler as it can skip the configure step below.
 
 ### 1. Install
@@ -132,10 +132,10 @@ khoj
 ### Interfaces
 
 - **Khoj via Obsidian**
-  - [Install](https://github.com/debanjum/khoj/tree/master/src/khoj/interface/obsidian#2-Setup-Plugin) the Khoj Obsidian plugin
+  - [Install](https://github.com/debanjum/khoj/tree/master/src/interface/obsidian#2-Setup-Plugin) the Khoj Obsidian plugin
   - Click the *Khoj search* icon 🔎 on the [Ribbon](https://help.obsidian.md/User+interface/Workspace/Ribbon) or Search for *Khoj: Search* in the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
 - **Khoj via Emacs**
-  - [Install](https://github.com/debanjum/khoj/tree/master/src/khoj/interface/emacs#installation) [khoj.el](./src/khoj/interface/emacs/khoj.el)
+  - [Install](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#installation) [khoj.el](./src/interface/emacs/khoj.el)
   - Run `M-x khoj <user-query>`
 - **Khoj via Web**
   - Open <http://localhost:8000/> via desktop interface or directly
@@ -169,11 +169,11 @@ pip install --upgrade khoj-assistant
 
 ### Upgrade Khoj on Emacs
 - Use your Emacs Package Manager to Upgrade
-- See [khoj.el readme](https://github.com/debanjum/khoj/tree/master/src/khoj/interface/emacs#Upgrade) for details
+- See [khoj.el readme](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Upgrade) for details
 
 ### Upgrade Khoj on Obsidian
 - Upgrade via the Community plugins tab on the settings pane in the Obsidian app
-- See the [khoj plugin readme](https://github.com/debanjum/khoj/tree/master/src/khoj/interface/obsidian#2-Setup-Plugin) for details
+- See the [khoj plugin readme](https://github.com/debanjum/khoj/tree/master/src/interface/obsidian#2-Setup-Plugin) for details
 
 ## Uninstall Khoj
 1. (Optional) Hit `Ctrl-C` in the terminal running the khoj server to stop it

@@ -2,6 +2,6 @@ include README.md
 graft src/khoj/interface/*
 prune src/khoj/interface/web/images*
 prune docs*
-prune src/khoj/interface/obsidian*
-prune src/khoj/interface/emacs*
+prune src/interface/obsidian*
+prune src/interface/emacs*
 global-exclude .DS_Store *.py[cod]

@@ -5,7 +5,7 @@
 ;; Author: Debanjum Singh Solanky <debanjum@gmail.com>
 ;; Version: 0.0.0
 ;; Package-Requires: ((emacs "27.1") (transient "0.3.0"))
-;; URL: https://github.com/debanjum/khoj/tree/master/src/khoj/interface/emacs
+;; URL: https://github.com/debanjum/khoj/tree/master/src/interface/emacs
 
 ;;; License:
 
