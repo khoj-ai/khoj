@@ -4,11 +4,11 @@ from pathlib import Path
 from PIL import Image
 
 # Internal Packages
-from src.utils.state import model
-from src.utils.constants import web_directory
-from src.search_type import image_search
-from src.utils.helpers import resolve_absolute_path
-from src.utils.rawconfig import ContentConfig, SearchConfig
+from khoj.utils.state import model
+from khoj.utils.constants import web_directory
+from khoj.search_type import image_search
+from khoj.utils.helpers import resolve_absolute_path
+from khoj.utils.rawconfig import ContentConfig, SearchConfig
 
 
 # Test
@@ -91,7 +91,7 @@ def test_image_search_query_truncated(content_config: ContentConfig, search_conf
 
     # Act
     try:
-        with caplog.at_level(logging.INFO, logger="src.search_type.image_search"):
+        with caplog.at_level(logging.INFO, logger="khoj.search_type.image_search"):
             image_search.query(
                 query,
                 count = 1,
@@ -114,7 +114,7 @@ def test_image_search_by_filepath(content_config: ContentConfig, search_config: 
     expected_image_path = f"{image_directory.joinpath('kitten_park.jpg')}"
 
     # Act
-    with caplog.at_level(logging.INFO, logger="src.search_type.image_search"):
+    with caplog.at_level(logging.INFO, logger="khoj.search_type.image_search"):
         hits = image_search.query(
             query,
             count = 1,

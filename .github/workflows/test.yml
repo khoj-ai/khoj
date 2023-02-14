@@ -5,7 +5,7 @@ on:
     branches:
       - 'master'
     paths:
-      - src/**
+      - src/khoj/**
       - tests/**
       - config/**
       - setup.py
@@ -14,7 +14,7 @@ on:
     branches:
       - 'master'
     paths:
-      - src/**
+      - src/khoj/**
       - tests/**
       - config/**
       - setup.py

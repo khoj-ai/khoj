@@ -59,7 +59,7 @@
 - **Incremental**: Incremental search for a fast, search-as-you-type experience
 - **Pluggable**: Modular architecture makes it easy to plug in new data sources, frontends and ML models
 - **Multiple Sources**: Search your Org-mode and Markdown notes, Beancount transactions and Photos
-- **Multiple Interfaces**: Search using a [Web Browser](./src/interface/web/index.html), [Emacs](./src/interface/emacs/khoj.el) or the [API](http://localhost:8000/docs)
+- **Multiple Interfaces**: Search from your [Web Browser](./src/khoj/interface/web/index.html), [Emacs](./src/interface/emacs/khoj.el) or [Obsidian](./src/interface/obsidian/)
 
 ## Demos
 ### Khoj in Obsidian
@@ -238,7 +238,7 @@ pip install --upgrade khoj-assistant
       asymmetric:
    -    encoder: "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"
    +    encoder: text-embedding-ada-002
-   +    encoder-type: src.utils.models.OpenAI
+   +    encoder-type: src.khoj.utils.models.OpenAI
         cross-encoder: "cross-encoder/ms-marco-MiniLM-L-6-v2"
    -    encoder-type: sentence_transformers.SentenceTransformer
    -    model_directory: "~/.khoj/search/asymmetric/"
@@ -408,7 +408,7 @@ python3 -m pip install pyqt6  # As conda does not support pyqt6 yet
 
 ##### 4. Run
 ```shell
-python3 -m src.main -vv
+python3 -m src.khoj.main -vv
 ```
   Load ML model, generate embeddings and expose API to query notes, images, transactions etc specified in config YAML
 

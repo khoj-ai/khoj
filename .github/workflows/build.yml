@@ -5,7 +5,7 @@ on:
     branches:
       - master
     paths:
-      - src/**
+      - src/khoj/**
       - config/**
       - setup.py
       - Dockerfile

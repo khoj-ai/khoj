@@ -66,7 +66,7 @@ jobs:
           # Create disk image with the app
           create-dmg \
             --volname "Khoj" \
-            --volicon "src/interface/web/assets/icons/favicon.icns" \
+            --volicon "src/khoj/interface/web/assets/icons/favicon.icns" \
             --window-pos 200 120 \
             --window-size 600 300 \
             --icon-size 100 \
@@ -92,7 +92,7 @@ jobs:
           # Copy app files into expected output directory structure
           mkdir -p package/opt package/usr/share/applications package/usr/share/icons/hicolor/128x128/apps
           cp -r dist/Khoj package/opt/Khoj
-          cp src/interface/web/assets/icons/favicon-128x128.png package/usr/share/icons/hicolor/128x128/apps/Khoj.png
+          cp src/khoj/interface/web/assets/icons/favicon-128x128.png package/usr/share/icons/hicolor/128x128/apps/Khoj.png
           cp Khoj.desktop package/usr/share/applications
 
           # Fix permissions to be usable by non-root users

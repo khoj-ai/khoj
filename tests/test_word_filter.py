@@ -1,6 +1,6 @@
 # Application Packages
-from src.search_filter.word_filter import WordFilter
-from src.utils.rawconfig import Entry
+from khoj.search_filter.word_filter import WordFilter
+from khoj.utils.rawconfig import Entry
 
 
 def test_no_word_filter():

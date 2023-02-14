@@ -1,6 +1,6 @@
 # Application Packages
-from src.search_filter.file_filter import FileFilter
-from src.utils.rawconfig import Entry
+from khoj.search_filter.file_filter import FileFilter
+from khoj.utils.rawconfig import Entry
 
 
 def test_no_file_filter():

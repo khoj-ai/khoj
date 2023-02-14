@@ -4,13 +4,13 @@ from pathlib import Path
 import pytest
 
 # Internal Packages
-from src.search_type import image_search, text_search
-from src.utils.helpers import resolve_absolute_path
-from src.utils.rawconfig import ContentConfig, TextContentConfig, ImageContentConfig, SearchConfig, TextSearchConfig, ImageSearchConfig
-from src.processor.org_mode.org_to_jsonl import OrgToJsonl
-from src.search_filter.date_filter import DateFilter
-from src.search_filter.word_filter import WordFilter
-from src.search_filter.file_filter import FileFilter
+from khoj.search_type import image_search, text_search
+from khoj.utils.helpers import resolve_absolute_path
+from khoj.utils.rawconfig import ContentConfig, TextContentConfig, ImageContentConfig, SearchConfig, TextSearchConfig, ImageSearchConfig
+from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
+from khoj.search_filter.date_filter import DateFilter
+from khoj.search_filter.word_filter import WordFilter
+from khoj.search_filter.file_filter import FileFilter
 
 
 @pytest.fixture(scope='session')

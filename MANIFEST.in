@@ -1,5 +1,5 @@
 include README.md
-graft src/interface/*
-prune src/interface/web/images*
+graft src/khoj/interface/*
+prune src/khoj/interface/web/images*
 prune docs*
 global-exclude .DS_Store *.py[cod]

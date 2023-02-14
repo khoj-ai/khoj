@@ -5,7 +5,7 @@ from PyInstaller.utils.hooks import copy_metadata
 import sysconfig
 
 datas = [
-    ('src/interface/web', 'src/interface/web'),
+    ('src/khoj/interface/web', 'src/khoj/interface/web'),
     (f'{sysconfig.get_paths()["purelib"]}/transformers', 'transformers')
 ]
 datas += copy_metadata('tqdm')
@@ -19,7 +19,7 @@ datas += copy_metadata('tokenizers')
 block_cipher = None
 
 a = Analysis(
-    ['src/main.py'],
+    ['src/khoj/main.py'],
     pathex=[],
     binaries=[],
     datas=datas,
@@ -50,7 +50,7 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 if system() != 'Darwin':
     # Add Splash screen to show on app launch
     splash = Splash(
-        'src/interface/web/assets/icons/favicon-144x144.png',
+        'src/khoj/interface/web/assets/icons/favicon-144x144.png',
         binaries=a.binaries,
         datas=a.datas,
         text_pos=(10, 160),
@@ -82,7 +82,7 @@ if system() != 'Darwin':
         target_arch='x86_64',
         codesign_identity=None,
         entitlements_file=None,
-        icon='src/interface/web/assets/icons/favicon-144x144.ico',
+        icon='src/khoj/interface/web/assets/icons/favicon-144x144.ico',
     )
 else:
     exe = EXE(
@@ -105,11 +105,11 @@ else:
         target_arch='x86_64',
         codesign_identity=None,
         entitlements_file=None,
-        icon='src/interface/web/assets/icons/favicon.icns',
+        icon='src/khoj/interface/web/assets/icons/favicon.icns',
     )
     app = BUNDLE(
         exe,
         name='Khoj.app',
-        icon='src/interface/web/assets/icons/favicon.icns',
+        icon='src/khoj/interface/web/assets/icons/favicon.icns',
         bundle_identifier=None,
     )
