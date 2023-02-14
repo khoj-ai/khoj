@@ -33,7 +33,7 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install build twine
+          pip install build twine check-wheel-contents
 
       - name: Install Application
         run: |
@@ -49,10 +49,15 @@ jobs:
           export PYTHONHASHSEED=42
           export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
 
-          # Build and Upload PyPi Package
+          # Build PyPi Package
           rm -rf dist
           python -m build
+
+          # Validate PyPi Package
+          check-wheel-contents dist/*.whl
           twine check dist/*
+
+          # Upload PyPi Package
           twine upload --verbose dist/*
 
       - name: Publish Master to PyPI
@@ -68,10 +73,15 @@ jobs:
           export PYTHONHASHSEED=42
           export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
 
-          # Build and Upload PyPi Package
+          # Build PyPi Package
           rm -rf dist
           python -m build
+
+          # Validate PyPi Package
+          check-wheel-contents dist/*.whl
           twine check dist/*
+
+          # Upload PyPi Package
           twine upload --verbose dist/*
 
       - name: Publish Repo PR to Test PyPI
@@ -88,8 +98,13 @@ jobs:
           export PYTHONHASHSEED=42
           export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
 
-          # Build and Upload PyPi Package
+          # Build PyPi Package
           rm -rf dist
           python -m build
+
+          # Validate PyPi Package
+          check-wheel-contents dist/*.whl
           twine check dist/*
+
+          # Upload PyPi Package
           twine upload -r testpypi --verbose dist/*
