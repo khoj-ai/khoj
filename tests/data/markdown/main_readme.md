@@ -1,5 +1,5 @@
 ![](https://github.com/debanjum/khoj/actions/workflows/test.yml/badge.svg)
-![](https://github.com/debanjum/khoj/actions/workflows/build.yml/badge.svg)
+![](https://github.com/debanjum/khoj/actions/workflows/dockerize.yml/badge.svg)
 
 # Khoj
 

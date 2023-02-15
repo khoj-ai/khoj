@@ -1,0 +1,90 @@
+name: pypi
+
+on:
+  push:
+    tags:
+      - "*"
+    branches:
+      - 'master'
+    paths:
+      - src/khoj/**
+      - setup.py
+      - .github/workflows/pypi.yml
+  pull_request:
+    branches:
+      - 'master'
+    paths:
+      - src/khoj/**
+      - setup.py
+      - .github/workflows/pypi.yml
+
+jobs:
+  publish:
+    name: Publish Python Package to PyPI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine check-wheel-contents
+
+      - name: Install Application
+        run: |
+          pip install --upgrade .
+
+      - name: 📝 Set Pre-Release Version for Master
+        if: github.ref == 'refs/heads/master'
+        run: |
+          # Set Pre-Release Version
+          sed -E -i "s/version=(.*)',/version=\1a$(date +%s)',/g" setup.py
+
+      - name: 📝 Set Development Version for PR
+        if: github.event_name == 'pull_request'
+        env:
+          PULL_REQUEST_NUMBER: ${{ github.event.number }}
+        run: |
+          # Set Development Release Version
+          sed -E -i "s/version=(.*)',/version=\1.dev$PULL_REQUEST_NUMBER$(date +%s)',/g" setup.py
+
+      - name: ⚙️ Build Python Package
+        run: |
+          # Setup Environment for Reproducible Builds
+          export PYTHONHASHSEED=42
+          export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
+
+          # Build PyPi Package
+          rm -rf dist
+          python -m build
+
+      - name: 👀 Validate Python Package
+        run: |
+          # Validate PyPi Package
+          check-wheel-contents dist/*.whl
+          twine check dist/*
+
+      - name: ⏫ Upload Python Package Artifacts
+      - uses: actions/upload-artifact@v3
+        with:
+          path: dist/*
+
+      - name: 📦 Publish Python Package from Master or Release to PyPI
+        if: startsWith(github.ref, 'refs/tags') || github.ref == 'refs/heads/master'
+        uses: pypa/gh-action-pypi-publish@release/v1.6.4
+        with:
+          password: ${{ secrets.PYPI_API_KEY }}
+
+      - name: 📦 Publish Python Package from Repo PR to Test PyPI
+        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: pypa/gh-action-pypi-publish@release/v1.6.4
+        with:
+          password: ${{ secrets.PYPI_API_KEY }}
+          repository_url: https://test.pypi.org/legacy/
