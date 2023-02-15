@@ -37,6 +37,7 @@ setup(
         "pyqt6 == 6.3.1",
         "defusedxml == 0.7.1",
         'schedule == 1.1.0',
+        "rich >= 13.3.1",
     ],
     include_package_data=True,
     entry_points={"console_scripts": ["khoj = khoj.main:run"]},

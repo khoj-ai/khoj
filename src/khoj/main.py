@@ -17,6 +17,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import QThread, QTimer
+from rich.logging import RichHandler
 import schedule
 
 # Internal Packages
@@ -26,7 +27,6 @@ from khoj.routers.api_beta import api_beta
 from khoj.routers.web_client import web_client
 from khoj.utils import constants, state
 from khoj.utils.cli import cli
-from khoj.utils.helpers import CustomFormatter
 from khoj.interface.desktop.main_window import MainWindow
 from khoj.interface.desktop.system_tray import create_system_tray
 
@@ -38,8 +38,12 @@ app.include_router(api, prefix="/api")
 app.include_router(api_beta, prefix="/api/beta")
 app.include_router(web_client)
 
-logger = logging.getLogger('khoj')
+# Setup Logger
+rich_handler = RichHandler(rich_tracebacks=True)
+rich_handler.setFormatter(fmt=logging.Formatter(fmt="%(message)s", datefmt="[%X]"))
+logging.basicConfig(handlers=[rich_handler])
 
+logger = logging.getLogger('khoj')
 
 def run():
     # Turn Tokenizers Parallelism Off. App does not support it.
@@ -53,18 +57,13 @@ def run():
     # Create app directory, if it doesn't exist
     state.config_file.parent.mkdir(parents=True, exist_ok=True)
 
-    # Setup Logger
+    # Set Logging Level
     if args.verbose == 0:
         logger.setLevel(logging.WARN)
     elif args.verbose == 1:
         logger.setLevel(logging.INFO)
     elif args.verbose >= 2:
         logger.setLevel(logging.DEBUG)
-
-    # Set Log Format
-    ch = logging.StreamHandler()
-    ch.setFormatter(CustomFormatter())
-    logger.addHandler(ch)
 
     # Set Log File
     fh = logging.FileHandler(state.config_file.parent / 'khoj.log')
@@ -141,9 +140,9 @@ def set_state(args):
 
 def start_server(app, host=None, port=None, socket=None):
     if socket:
-        uvicorn.run(app, proxy_headers=True, uds=socket)
+        uvicorn.run(app, proxy_headers=True, uds=socket, log_level="debug", use_colors=True, log_config=None)
     else:
-        uvicorn.run(app, host=host, port=port)
+        uvicorn.run(app, host=host, port=port, log_level="debug", use_colors=True, log_config=None)
 
 
 def poll_task_scheduler():
