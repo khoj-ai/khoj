@@ -1,7 +1,9 @@
-name: build
+name: dockerize
 
 on:
   push:
+    tags:
+      - "*"
     branches:
       - master
     paths:
@@ -10,7 +12,7 @@ on:
       - setup.py
       - Dockerfile
       - docker-compose.yml
-      - .github/workflows/build.yml
+      - .github/workflows/dockerize.yml
   workflow_dispatch:
 
 env:
