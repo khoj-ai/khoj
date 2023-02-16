@@ -10,8 +10,7 @@ readme = "README.md"
 license = "GPL-3.0-or-later"
 requires-python = ">=3.8, <3.11"
 authors = [
-    { name = "Debanjum Singh Solanky", email = "debanjum+pypi@gmail.com" },
-    { name = "Saba Imran", email = "narmiabas@gmail.com" },
+    { name = "Debanjum Singh Solanky, Saba Imran" },
 ]
 keywords = [
     "search",
@@ -55,7 +54,7 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/debanjum/khoj"
+Homepage = "https://github.com/debanjum/khoj#readme"
 Issues = "https://github.com/debanjum/khoj/issues"
 Discussions = "https://github.com/debanjum/khoj/discussions"
 Releases = "https://github.com/debanjum/khoj/releases"

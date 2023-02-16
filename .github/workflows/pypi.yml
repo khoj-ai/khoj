@@ -8,14 +8,14 @@ on:
       - 'master'
     paths:
       - src/khoj/**
-      - setup.py
+      - pyproject.toml
       - .github/workflows/pypi.yml
   pull_request:
     branches:
       - 'master'
     paths:
       - src/khoj/**
-      - setup.py
+      - pyproject.toml
       - .github/workflows/pypi.yml
 
 jobs:
