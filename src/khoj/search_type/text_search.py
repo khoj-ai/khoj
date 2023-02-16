@@ -216,7 +216,7 @@ def deduplicate_results(entries: List[Entry], hits: List[dict]) -> List[dict]:
     with timer("Deduplication Time", logger, state.device):
         seen, original_hits_count = set(), len(hits)
         hits = [hit for hit in hits
-                if entries[hit['corpus_id']].raw not in seen and not seen.add(entries[hit['corpus_id']].raw)]
+                if entries[hit['corpus_id']].raw not in seen and not seen.add(entries[hit['corpus_id']].raw)]  # type: ignore[func-returns-value]
         duplicate_hits = original_hits_count - len(hits)
 
     logger.debug(f"Removed {duplicate_hits} duplicates")

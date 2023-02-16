@@ -73,3 +73,18 @@ include = ["src/khoj"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/khoj"]
+
+[tool.mypy]
+files = "src/khoj"
+pretty = true
+strict_optional = false
+ignore_missing_imports = true
+install_types = true
+non_interactive = true
+show_error_codes = true
+warn_unused_ignores = true
+exclude = [
+    "src/khoj/interface/desktop/main_window.py",
+    "src/khoj/interface/desktop/file_browser.py",
+    "src/khoj/interface/desktop/system_tray.py",
+]
