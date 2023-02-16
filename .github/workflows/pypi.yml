@@ -37,13 +37,13 @@ jobs:
 
       - name: 📝 Set Pre-Release Version for Master
         if: github.ref == 'refs/heads/master'
-        run: sed -E -i "s/version=(.*)',/version=\1a$(date +%s)',/g" setup.py
+        run: sed -E -i "s/version = (.*)\"/version = \1a$(date +%s)\"/g" pyproject.toml
 
       - name: 📝 Set Development Version for PR
         if: github.event_name == 'pull_request'
         env:
           PULL_REQUEST_NUMBER: ${{ github.event.number }}
-        run: sed -E -i "s/version=(.*)',/version=\1.dev$PULL_REQUEST_NUMBER$(date +%s)',/g" setup.py
+        run: sed -E -i "s/version = (.*)\"/version = \1.dev$PULL_REQUEST_NUMBER$(date +%s)\"/g" pyproject.toml
 
       - name: ⚙️ Build Python Package
         run: |
