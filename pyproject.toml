@@ -1,10 +1,9 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
 name = "khoj-assistant"
-version = "0.3.0"
 description = "A natural language search engine for your personal notes, transactions and images"
 readme = "README.md"
 license = "GPL-3.0-or-later"
@@ -52,6 +51,7 @@ dependencies = [
     "torch == 1.13.1",
     "uvicorn == 0.17.6",
 ]
+dynamic = ["version"]
 
 [project.urls]
 Homepage = "https://github.com/debanjum/khoj#readme"
@@ -72,6 +72,10 @@ dev = [
     "black >= 23.1.0",
     "pre-commit >= 3.0.4",
 ]
+
+[tool.hatch.version]
+source = "vcs"
+raw-options.local_scheme = "no-local-version"  # PEP440 compliant version for PyPi
 
 [tool.hatch.build.targets.sdist]
 include = ["src/khoj"]
