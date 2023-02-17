@@ -43,11 +43,10 @@ jobs:
         run: |
           sudo apt update && sudo apt install -y libegl1
           python -m pip install --upgrade pip
-          pip install pytest
 
       - name: Install Application
         run: |
-          pip install --upgrade .
+          pip install --upgrade .[dev]
 
       - name: Test Application
         run: |
