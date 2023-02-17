@@ -5,7 +5,7 @@ repos:
   - id: black
 
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.3.0
+  rev: v4.4.0
   hooks:
   - id: end-of-file-fixer
   - id: trailing-whitespace
@@ -14,3 +14,12 @@ repos:
   - id: check-json
   - id: check-toml
   - id: check-yaml
+
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.0.0
+  hooks:
+    - id: mypy
+      stages: [push, manual]
+      pass_filenames: false
+      args:
+      - --config-file=pyproject.toml

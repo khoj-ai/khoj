@@ -414,13 +414,13 @@ conda activate khoj
 
 ### Validate
 #### Before Make Changes
-1. Install Pre-Commit Validation Hook
+1. Install Git Hooks for Validation
    ```shell
-   pre-commit install
+   pre-commit install -t pre-push -t pre-commit
    ```
-   - This ensures standard code formatting fixes and other checks run automatically on every commit
+   - This ensures standard code formatting fixes and other checks run automatically on every commit and push
    - Note 1: If [pre-commit](https://pre-commit.com/#intro) didn't already get installed, [install it](https://pre-commit.com/#install) via `pip install pre-commit`
-   - Note 2: To run the pre-commit changes manually, use `pre-commit run --all` before creating PR
+   - Note 2: To run the pre-commit changes manually, use `pre-commit run --hook-stage manual --all` before creating PR
 
 #### Before Creating PR
 

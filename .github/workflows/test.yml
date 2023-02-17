@@ -50,7 +50,7 @@ jobs:
         run: pip install --upgrade .[dev]
 
       - name: Validate Application
-        run: pre-commit
+        run: pre-commit run --hook-stage manual --all
 
       - name: Test Application
         run: pytest
