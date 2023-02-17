@@ -163,7 +163,7 @@ Body Line 1"""
     assert entries[0].heading == "Heading[1]"
     # ensure SOURCE link has square brackets in filename, heading escaped in rendered entries
     escaped_orgfile = f"{orgfile}".replace("[1]", "\\[1\\]")
-    assert f":SOURCE: [[file:{escaped_orgfile}::*Heading\[1\]" in f"{entries[0]}"
+    assert f":SOURCE: [[file:{escaped_orgfile}::*Heading\\[1\\]" in f"{entries[0]}"
 
 
 # ----------------------------------------------------------------------------------------------------
