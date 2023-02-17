@@ -220,7 +220,7 @@ Body 2
 def test_parse_entry_with_empty_title(tmp_path):
     "Test parsing of entry with minimal fields"
     # Arrange
-    entry = f"""#+TITLE: 
+    entry = f"""#+TITLE:
 Body Line 1"""
     orgfile = create_file(tmp_path, entry)
 
@@ -266,7 +266,7 @@ Body Line 1"""
 def test_parse_entry_with_multiple_titles_and_no_headings(tmp_path):
     "Test parsing of entry with minimal fields"
     # Arrange
-    entry = f"""#+TITLE: title1 
+    entry = f"""#+TITLE: title1
 Body Line 1
 #+TITLE:  title2  """
     orgfile = create_file(tmp_path, entry)

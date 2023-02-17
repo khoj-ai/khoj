@@ -56,10 +56,10 @@ regenerateButton.addEventListener("click", (event) => {
 })
 
 /**
- * Adds config elements to the DOM representing the sub-components 
+ * Adds config elements to the DOM representing the sub-components
  * of one of the fields in the raw config file.
- * @param {the parent element} element 
- * @param {the data to be rendered for this element and its children} data 
+ * @param {the parent element} element
+ * @param {the data to be rendered for this element and its children} data
  */
 function processChildren(element, data) {
     for (let key in data) {
@@ -78,11 +78,11 @@ function processChildren(element, data) {
 }
 
 /**
- * Takes an element, and replaces it with an editable 
+ * Takes an element, and replaces it with an editable
  * element with the same data in place.
- * @param {the original element to be replaced} original 
- * @param {the source data to be rendered for the new element} data 
- * @param {the key for this input in the source data} key 
+ * @param {the original element to be replaced} original
+ * @param {the source data to be rendered for the new element} data
+ * @param {the key for this input in the source data} key
  */
 function makeElementEditable(original, data, key) {
     original.addEventListener("click", () => {
@@ -98,8 +98,8 @@ function makeElementEditable(original, data, key) {
 
 /**
  * Creates a node corresponding to the value of a config element.
- * @param {the source data} data 
- * @param {the key corresponding to this node's data} key 
+ * @param {the source data} data
+ * @param {the key corresponding to this node's data} key
  * @returns A new element which corresponds to the value in some field.
  */
 function createValueNode(data, key) {
@@ -111,11 +111,11 @@ function createValueNode(data, key) {
 }
 
 /**
- * Replaces an existing input element with an element with the same data, which is not an input. 
+ * Replaces an existing input element with an element with the same data, which is not an input.
  * If the input data for this element was changed, update the corresponding data in the raw config.
- * @param {the original element to be replaced} original 
- * @param {the source data} data 
- * @param {the key corresponding to this node's data} key 
+ * @param {the original element to be replaced} original
+ * @param {the source data} data
+ * @param {the key corresponding to this node's data} key
  */
 function fixInputOnFocusOut(original, data, key) {
     original.addEventListener("blur", () => {

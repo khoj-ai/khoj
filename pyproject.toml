@@ -64,10 +64,14 @@ khoj = "khoj.main:run"
 
 [project.optional-dependencies]
 test = [
-  "pytest >= 7.1.2",
-  "black >= 23.1.0",
+    "pytest >= 7.1.2",
 ]
-dev = ["khoj-assistant[test]"]
+dev = [
+    "khoj-assistant[test]",
+    "mypy >= 1.0.1",
+    "black >= 23.1.0",
+    "pre-commit >= 3.0.4",
+]
 
 [tool.hatch.build.targets.sdist]
 include = ["src/khoj"]
@@ -79,8 +83,8 @@ packages = ["src/khoj"]
 files = "src/khoj"
 pretty = true
 strict_optional = false
-ignore_missing_imports = true
 install_types = true
+ignore_missing_imports = true
 non_interactive = true
 show_error_codes = true
 warn_unused_ignores = true

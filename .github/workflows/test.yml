@@ -9,6 +9,7 @@ on:
       - tests/**
       - config/**
       - pyproject.toml
+      - .pre-commit-config.yml
       - .github/workflows/test.yml
   push:
     branches:
@@ -18,6 +19,7 @@ on:
       - tests/**
       - config/**
       - pyproject.toml
+      - .pre-commit-config.yml
       - .github/workflows/test.yml
 
 jobs:
@@ -45,9 +47,10 @@ jobs:
           python -m pip install --upgrade pip
 
       - name: Install Application
-        run: |
-          pip install --upgrade .[dev]
+        run: pip install --upgrade .[dev]
+
+      - name: Validate Application
+        run: pre-commit
 
       - name: Test Application
-        run: |
-          pytest 
+        run: pytest
