@@ -48,8 +48,8 @@
   - [Setup](#Setup)
     - [Using Pip](#Using-Pip)
     - [Using Docker](#Using-Docker)
-    - [Using Conda](#Test)
-  - [Test](#Test)
+    - [Using Conda](#Using-Conda)
+  - [Validate](#Validate)
 - [Credits](#Credits)
 
 ## Features
@@ -166,6 +166,12 @@ Use structured query syntax to filter the natural language search results
 ```shell
 pip install --upgrade khoj-assistant
 ```
+
+- Note: To upgrade to the latest pre-release version of the khoj server run below command
+  ```shell
+  # Maps to the latest commit on the master branch
+  pip install --upgrade --pre khoj-assistant
+  ```
 
 ### Upgrade Khoj on Emacs
 - Use your Emacs Package Manager to Upgrade
@@ -328,39 +334,24 @@ Add your OpenAI API to Khoj by using either of the two options below:
 ```shell
 git clone https://github.com/debanjum/khoj && cd khoj
 python3 -m venv .venv && source .venv/bin/activate
-pip install -e .
+pip install -e .[dev]
 ```
 
-##### 2. Configure
+##### 2. Run
+1. Start Khoj
+   ```shell
+   khoj -vv
+   ```
+2. Configure Khoj
+   - **Via GUI**: Add files, directories to index in the GUI window that pops up on starting Khoj, then Click Configure
+   - **Manually**:
+     - Copy the `config/khoj_sample.yml` to `~/.khoj/khoj.yml`
+     - Set `input-files` or `input-filter` in each relevant `content-type` section of `~/.khoj/khoj.yml`
+       - Set `input-directories` field in `image` `content-type` section
+     - Delete `content-type` and `processor` sub-section(s) irrelevant for your use-case
+     - Restart khoj
 
-- Copy the `config/khoj_sample.yml` to `~/.khoj/khoj.yml`
-- Set `input-files` or `input-filter` in each relevant `content-type` section of `~/.khoj/khoj.yml`
-  - Set `input-directories` field in `image` `content-type` section
-- Delete `content-type` and `processor` sub-section(s) irrelevant for your use-case
-
-##### 3. Run
-
-```shell
-khoj -vv
-```
-Load ML model, generate embeddings and expose API to query notes, images, transactions etc specified in config YAML
-
-##### 4. Upgrade
-
-```shell
-# To Upgrade To Latest Stable Release
-# Maps to the latest tagged version of khoj on master branch
-pip install --upgrade khoj-assistant
-
-# To Upgrade To Latest Pre-Release
-# Maps to the latest commit on the master branch
-pip install --upgrade --pre khoj-assistant
-
-# To Upgrade To Specific Development Release.
-# Useful to test, review a PR.
-# Note: khoj-assistant is published to test PyPi on creating a PR
-pip install -i https://test.pypi.org/simple/ khoj-assistant==0.1.5.dev57166025766
-```
+  Note: Wait after configuration for khoj to Load ML model, generate embeddings and expose API to query notes, images, transactions etc specified in config YAML
 
 #### Using Docker
 ##### 1. Clone
@@ -421,10 +412,38 @@ conda env update -f config/environment.yml
 conda activate khoj
 ```
 
-### Test
-```shell
-pytest
-```
+### Validate
+#### Before Make Changes
+1. Install Pre-Commit Validation Hook
+   ```shell
+   pre-commit install
+   ```
+   - This ensures standard code formatting fixes and other checks run automatically on every commit
+   - Note 1: If [pre-commit](https://pre-commit.com/#intro) didn't already get installed, [install it](https://pre-commit.com/#install) via `pip install pre-commit`
+   - Note 2: To run the pre-commit changes manually, use `pre-commit run --all` before creating PR
+
+#### Before Creating PR
+
+1. Run Tests
+   ```shell
+   pytest
+   ```
+
+2. Run MyPy to check types
+   ```shell
+   mypy --config-file pyproject.toml
+   ```
+
+#### After Creating PR
+- Automated [validation workflows](.github/workflows) run for every PR.
+
+  Ensure any issues seen by them our fixed
+
+- Test the python packge created for a PR
+  1. Download and extract the zipped `.whl` artifact generated from the pypi workflow run for the PR.
+  2. Install (in your virtualenv) with `pip install /path/to/download*.whl>`
+  3. Start and use the application to see if it works fine
+
 
 ## Credits
 
