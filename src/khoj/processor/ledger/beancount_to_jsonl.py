@@ -19,7 +19,11 @@ class BeancountToJsonl(TextToJsonl):
     # Define Functions
     def process(self, previous_entries=None):
         # Extract required fields from config
-        beancount_files, beancount_file_filter, output_file = self.config.input_files, self.config.input_filter,self.config.compressed_jsonl
+        beancount_files, beancount_file_filter, output_file = (
+            self.config.input_files,
+            self.config.input_filter,
+            self.config.compressed_jsonl,
+        )
 
         # Input Validation
         if is_none_or_empty(beancount_files) and is_none_or_empty(beancount_file_filter):
@@ -31,7 +35,9 @@ class BeancountToJsonl(TextToJsonl):
 
         # Extract Entries from specified Beancount files
         with timer("Parse transactions from Beancount files into dictionaries", logger):
-            current_entries = BeancountToJsonl.convert_transactions_to_maps(*BeancountToJsonl.extract_beancount_transactions(beancount_files))
+            current_entries = BeancountToJsonl.convert_transactions_to_maps(
+                *BeancountToJsonl.extract_beancount_transactions(beancount_files)
+            )
 
         # Split entries by max tokens supported by model
         with timer("Split entries by max token size supported by model", logger):
@@ -42,7 +48,9 @@ class BeancountToJsonl(TextToJsonl):
             if not previous_entries:
                 entries_with_ids = list(enumerate(current_entries))
             else:
-                entries_with_ids = self.mark_entries_for_update(current_entries, previous_entries, key='compiled', logger=logger)
+                entries_with_ids = self.mark_entries_for_update(
+                    current_entries, previous_entries, key="compiled", logger=logger
+                )
 
         with timer("Write transactions to JSONL file", logger):
             # Process Each Entry from All Notes Files
@@ -62,9 +70,7 @@ class BeancountToJsonl(TextToJsonl):
         "Get Beancount files to process"
         absolute_beancount_files, filtered_beancount_files = set(), set()
         if beancount_files:
-            absolute_beancount_files = {get_absolute_path(beancount_file)
-                                for beancount_file
-                                in beancount_files}
+            absolute_beancount_files = {get_absolute_path(beancount_file) for beancount_file in beancount_files}
         if beancount_file_filters:
             filtered_beancount_files = {
                 filtered_file
@@ -76,14 +82,13 @@ class BeancountToJsonl(TextToJsonl):
 
         files_with_non_beancount_extensions = {
             beancount_file
-            for beancount_file
-            in all_beancount_files
+            for beancount_file in all_beancount_files
             if not beancount_file.endswith(".bean") and not beancount_file.endswith(".beancount")
         }
         if any(files_with_non_beancount_extensions):
             print(f"[Warning] There maybe non beancount files in the input set: {files_with_non_beancount_extensions}")
 
-        logger.info(f'Processing files: {all_beancount_files}')
+        logger.info(f"Processing files: {all_beancount_files}")
 
         return all_beancount_files
 
@@ -92,19 +97,20 @@ class BeancountToJsonl(TextToJsonl):
         "Extract entries from specified Beancount files"
 
         # Initialize Regex for extracting Beancount Entries
-        transaction_regex = r'^\n?\d{4}-\d{2}-\d{2} [\*|\!] '
-        empty_newline = f'^[\n\r\t\ ]*$'
+        transaction_regex = r"^\n?\d{4}-\d{2}-\d{2} [\*|\!] "
+        empty_newline = f"^[\n\r\t\ ]*$"
 
         entries = []
         transaction_to_file_map = []
         for beancount_file in beancount_files:
             with open(beancount_file) as f:
                 ledger_content = f.read()
-                transactions_per_file = [entry.strip(empty_escape_sequences)
-                for entry
-                in re.split(empty_newline, ledger_content, flags=re.MULTILINE)
-                if re.match(transaction_regex, entry)]
-                transaction_to_file_map += zip(transactions_per_file, [beancount_file]*len(transactions_per_file))
+                transactions_per_file = [
+                    entry.strip(empty_escape_sequences)
+                    for entry in re.split(empty_newline, ledger_content, flags=re.MULTILINE)
+                    if re.match(transaction_regex, entry)
+                ]
+                transaction_to_file_map += zip(transactions_per_file, [beancount_file] * len(transactions_per_file))
                 entries.extend(transactions_per_file)
         return entries, dict(transaction_to_file_map)
 
@@ -113,7 +119,9 @@ class BeancountToJsonl(TextToJsonl):
         "Convert each parsed Beancount transaction into a Entry"
         entries = []
         for parsed_entry in parsed_entries:
-            entries.append(Entry(compiled=parsed_entry, raw=parsed_entry, file=f'{transaction_to_file_map[parsed_entry]}'))
+            entries.append(
+                Entry(compiled=parsed_entry, raw=parsed_entry, file=f"{transaction_to_file_map[parsed_entry]}")
+            )
 
         logger.info(f"Converted {len(parsed_entries)} transactions to dictionaries")
 
@@ -122,4 +130,4 @@ class BeancountToJsonl(TextToJsonl):
     @staticmethod
     def convert_transaction_maps_to_jsonl(entries: List[Entry]) -> str:
         "Convert each Beancount transaction entry to JSON and collate as JSONL"
-        return ''.join([f'{entry.to_json()}\n' for entry in entries])
+        return "".join([f"{entry.to_json()}\n" for entry in entries])

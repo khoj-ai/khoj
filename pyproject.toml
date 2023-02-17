@@ -64,7 +64,8 @@ khoj = "khoj.main:run"
 
 [project.optional-dependencies]
 test = [
-  "pytest == 7.1.2",
+  "pytest >= 7.1.2",
+  "black >= 23.1.0",
 ]
 dev = ["khoj-assistant[test]"]
 
@@ -88,3 +89,6 @@ exclude = [
     "src/khoj/interface/desktop/file_browser.py",
     "src/khoj/interface/desktop/system_tray.py",
 ]
+
+[tool.black]
+line-length = 120

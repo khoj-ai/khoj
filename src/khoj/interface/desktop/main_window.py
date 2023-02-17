@@ -31,9 +31,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.config_file = config_file
         # Set regenerate flag to regenerate embeddings everytime user clicks configure
         if state.cli_args:
-            state.cli_args += ['--regenerate']
+            state.cli_args += ["--regenerate"]
         else:
-            state.cli_args = ['--regenerate']
+            state.cli_args = ["--regenerate"]
 
         # Load config from existing config, if exists, else load from default config
         if resolve_absolute_path(self.config_file).exists():
@@ -49,8 +49,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setFixedWidth(600)
 
         # Set Window Icon
-        icon_path = constants.web_directory / 'assets/icons/favicon-144x144.png'
-        self.setWindowIcon(QtGui.QIcon(f'{icon_path.absolute()}'))
+        icon_path = constants.web_directory / "assets/icons/favicon-144x144.png"
+        self.setWindowIcon(QtGui.QIcon(f"{icon_path.absolute()}"))
 
         # Initialize Configure Window Layout
         self.layout = QtWidgets.QVBoxLayout()
@@ -58,13 +58,13 @@ class MainWindow(QtWidgets.QMainWindow):
         # Add Settings Panels for each Search Type to Configure Window Layout
         self.search_settings_panels = []
         for search_type in SearchType:
-            current_content_config = self.current_config['content-type'].get(search_type, {})
+            current_content_config = self.current_config["content-type"].get(search_type, {})
             self.search_settings_panels += [self.add_settings_panel(current_content_config, search_type)]
 
         # Add Conversation Processor Panel to Configure Screen
         self.processor_settings_panels = []
         conversation_type = ProcessorType.Conversation
-        current_conversation_config = self.current_config['processor'].get(conversation_type, {})
+        current_conversation_config = self.current_config["processor"].get(conversation_type, {})
         self.processor_settings_panels += [self.add_processor_panel(current_conversation_config, conversation_type)]
 
         # Add Action Buttons Panel
@@ -81,11 +81,11 @@ class MainWindow(QtWidgets.QMainWindow):
         "Add Settings Panel for specified Search Type. Toggle Editable Search Types"
         # Get current files from config for given search type
         if search_type == SearchType.Image:
-            current_content_files = current_content_config.get('input-directories', [])
-            file_input_text = f'{search_type.name} Folders'
+            current_content_files = current_content_config.get("input-directories", [])
+            file_input_text = f"{search_type.name} Folders"
         else:
-            current_content_files = current_content_config.get('input-files', [])
-            file_input_text = f'{search_type.name} Files'
+            current_content_files = current_content_config.get("input-files", [])
+            file_input_text = f"{search_type.name} Files"
 
         # Create widgets to display settings for given search type
         search_type_settings = QtWidgets.QWidget()
@@ -109,7 +109,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def add_processor_panel(self, current_conversation_config: dict, processor_type: ProcessorType):
         "Add Conversation Processor Panel"
         # Get current settings from config for given processor type
-        current_openai_api_key = current_conversation_config.get('openai-api-key', None)
+        current_openai_api_key = current_conversation_config.get("openai-api-key", None)
 
         # Create widgets to display settings for given processor type
         processor_type_settings = QtWidgets.QWidget()
@@ -137,20 +137,22 @@ class MainWindow(QtWidgets.QMainWindow):
         action_bar_layout = QtWidgets.QHBoxLayout(action_bar)
 
         self.configure_button = QtWidgets.QPushButton("Configure", clicked=self.configure_app)
-        self.search_button = QtWidgets.QPushButton("Search", clicked=lambda: webbrowser.open(f'http://{state.host}:{state.port}/'))
+        self.search_button = QtWidgets.QPushButton(
+            "Search", clicked=lambda: webbrowser.open(f"http://{state.host}:{state.port}/")
+        )
         self.search_button.setEnabled(not self.first_run)
 
         action_bar_layout.addWidget(self.configure_button)
         action_bar_layout.addWidget(self.search_button)
         self.layout.addWidget(action_bar)
 
-    def get_default_config(self, search_type:SearchType=None, processor_type:ProcessorType=None):
+    def get_default_config(self, search_type: SearchType = None, processor_type: ProcessorType = None):
         "Get default config"
         config = constants.default_config
         if search_type:
-            return config['content-type'][search_type]
+            return config["content-type"][search_type]
         elif processor_type:
-            return config['processor'][processor_type]
+            return config["processor"][processor_type]
         else:
             return config
 
@@ -160,7 +162,9 @@ class MainWindow(QtWidgets.QMainWindow):
         for message_prefix in ErrorType:
             for i in reversed(range(self.layout.count())):
                 current_widget = self.layout.itemAt(i).widget()
-                if isinstance(current_widget, QtWidgets.QLabel) and current_widget.text().startswith(message_prefix.value):
+                if isinstance(current_widget, QtWidgets.QLabel) and current_widget.text().startswith(
+                    message_prefix.value
+                ):
                     self.layout.removeWidget(current_widget)
                     current_widget.deleteLater()
 
@@ -180,18 +184,24 @@ class MainWindow(QtWidgets.QMainWindow):
                     continue
                 if isinstance(child, SearchCheckBox):
                     # Search Type Disabled
-                    if not child.isChecked() and child.search_type in self.new_config['content-type']:
-                        del self.new_config['content-type'][child.search_type]
+                    if not child.isChecked() and child.search_type in self.new_config["content-type"]:
+                        del self.new_config["content-type"][child.search_type]
                     # Search Type (re)-Enabled
                     if child.isChecked():
-                        current_search_config = self.current_config['content-type'].get(child.search_type, {})
-                        default_search_config = self.get_default_config(search_type = child.search_type)
-                        self.new_config['content-type'][child.search_type.value] = merge_dicts(current_search_config, default_search_config)
-                elif isinstance(child, FileBrowser) and child.search_type in self.new_config['content-type']:
+                        current_search_config = self.current_config["content-type"].get(child.search_type, {})
+                        default_search_config = self.get_default_config(search_type=child.search_type)
+                        self.new_config["content-type"][child.search_type.value] = merge_dicts(
+                            current_search_config, default_search_config
+                        )
+                elif isinstance(child, FileBrowser) and child.search_type in self.new_config["content-type"]:
                     if child.search_type.value == SearchType.Image:
-                        self.new_config['content-type'][child.search_type.value]['input-directories'] = child.getPaths() if child.getPaths() != [] else None
+                        self.new_config["content-type"][child.search_type.value]["input-directories"] = (
+                            child.getPaths() if child.getPaths() != [] else None
+                        )
                     else:
-                        self.new_config['content-type'][child.search_type.value]['input-files'] = child.getPaths() if child.getPaths() != [] else None
+                        self.new_config["content-type"][child.search_type.value]["input-files"] = (
+                            child.getPaths() if child.getPaths() != [] else None
+                        )
 
     def update_processor_settings(self):
         "Update config with conversation settings from UI"
@@ -201,16 +211,20 @@ class MainWindow(QtWidgets.QMainWindow):
                     continue
                 if isinstance(child, ProcessorCheckBox):
                     # Processor Type Disabled
-                    if not child.isChecked() and child.processor_type in self.new_config['processor']:
-                        del self.new_config['processor'][child.processor_type]
+                    if not child.isChecked() and child.processor_type in self.new_config["processor"]:
+                        del self.new_config["processor"][child.processor_type]
                     # Processor Type (re)-Enabled
                     if child.isChecked():
-                        current_processor_config = self.current_config['processor'].get(child.processor_type, {})
-                        default_processor_config = self.get_default_config(processor_type = child.processor_type)
-                        self.new_config['processor'][child.processor_type.value] = merge_dicts(current_processor_config, default_processor_config)
-                elif isinstance(child, LabelledTextField) and child.processor_type in self.new_config['processor']:
+                        current_processor_config = self.current_config["processor"].get(child.processor_type, {})
+                        default_processor_config = self.get_default_config(processor_type=child.processor_type)
+                        self.new_config["processor"][child.processor_type.value] = merge_dicts(
+                            current_processor_config, default_processor_config
+                        )
+                elif isinstance(child, LabelledTextField) and child.processor_type in self.new_config["processor"]:
                     if child.processor_type == ProcessorType.Conversation:
-                        self.new_config['processor'][child.processor_type.value]['openai-api-key'] = child.input_field.toPlainText() if child.input_field.toPlainText() != '' else None
+                        self.new_config["processor"][child.processor_type.value]["openai-api-key"] = (
+                            child.input_field.toPlainText() if child.input_field.toPlainText() != "" else None
+                        )
 
     def save_settings_to_file(self) -> bool:
         "Save validated settings to file"
@@ -278,7 +292,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.show()
         self.setWindowState(Qt.WindowState.WindowActive)
         self.activateWindow()  # For Bringing to Top on Windows
-        self.raise_()          # For Bringing to Top from Minimized State on OSX
+        self.raise_()  # For Bringing to Top from Minimized State on OSX
 
 
 class SettingsLoader(QObject):
@@ -311,6 +325,7 @@ class ProcessorCheckBox(QtWidgets.QCheckBox):
     def __init__(self, text, processor_type: ProcessorType, parent=None):
         self.processor_type = processor_type
         super(ProcessorCheckBox, self).__init__(text, parent=parent)
+
 
 class ErrorType(Enum):
     "Error Types"

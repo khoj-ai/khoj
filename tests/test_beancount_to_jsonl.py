@@ -8,10 +8,10 @@ from khoj.processor.ledger.beancount_to_jsonl import BeancountToJsonl
 def test_no_transactions_in_file(tmp_path):
     "Handle file with no transactions."
     # Arrange
-    entry = f'''
+    entry = f"""
     - Bullet point 1
     - Bullet point 2
-    '''
+    """
     beancount_file = create_file(tmp_path, entry)
 
     # Act
@@ -20,7 +20,8 @@ def test_no_transactions_in_file(tmp_path):
 
     # Process Each Entry from All Beancount Files
     jsonl_string = BeancountToJsonl.convert_transaction_maps_to_jsonl(
-        BeancountToJsonl.convert_transactions_to_maps(entry_nodes, file_to_entries))
+        BeancountToJsonl.convert_transactions_to_maps(entry_nodes, file_to_entries)
+    )
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
@@ -30,11 +31,11 @@ def test_no_transactions_in_file(tmp_path):
 def test_single_beancount_transaction_to_jsonl(tmp_path):
     "Convert transaction from single file to jsonl."
     # Arrange
-    entry = f'''
+    entry = f"""
 1984-04-01 * "Payee" "Narration"
 Expenses:Test:Test  1.00 KES
 Assets:Test:Test  -1.00 KES
-    '''
+    """
     beancount_file = create_file(tmp_path, entry)
 
     # Act
@@ -43,7 +44,8 @@ Assets:Test:Test  -1.00 KES
 
     # Process Each Entry from All Beancount Files
     jsonl_string = BeancountToJsonl.convert_transaction_maps_to_jsonl(
-        BeancountToJsonl.convert_transactions_to_maps(entries, entry_to_file_map))
+        BeancountToJsonl.convert_transactions_to_maps(entries, entry_to_file_map)
+    )
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
@@ -53,7 +55,7 @@ Assets:Test:Test  -1.00 KES
 def test_multiple_transactions_to_jsonl(tmp_path):
     "Convert multiple transactions from single file to jsonl."
     # Arrange
-    entry = f'''
+    entry = f"""
 1984-04-01 * "Payee" "Narration"
 Expenses:Test:Test  1.00 KES
 Assets:Test:Test  -1.00 KES
@@ -61,7 +63,7 @@ Assets:Test:Test  -1.00 KES
 1984-04-01 * "Payee" "Narration"
 Expenses:Test:Test  1.00 KES
 Assets:Test:Test  -1.00 KES
-'''
+"""
 
     beancount_file = create_file(tmp_path, entry)
 
@@ -71,7 +73,8 @@ Assets:Test:Test  -1.00 KES
 
     # Process Each Entry from All Beancount Files
     jsonl_string = BeancountToJsonl.convert_transaction_maps_to_jsonl(
-        BeancountToJsonl.convert_transactions_to_maps(entries, entry_to_file_map))
+        BeancountToJsonl.convert_transactions_to_maps(entries, entry_to_file_map)
+    )
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
@@ -95,8 +98,8 @@ def test_get_beancount_files(tmp_path):
     expected_files = sorted(map(str, [group1_file1, group1_file2, group2_file1, group2_file2, file1]))
 
     # Setup input-files, input-filters
-    input_files = [tmp_path / 'ledger.bean']
-    input_filter = [tmp_path / 'group1*.bean', tmp_path / 'group2*.beancount']
+    input_files = [tmp_path / "ledger.bean"]
+    input_filter = [tmp_path / "group1*.bean", tmp_path / "group2*.beancount"]
 
     # Act
     extracted_org_files = BeancountToJsonl.get_beancount_files(input_files, input_filter)

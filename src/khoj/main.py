@@ -8,8 +8,8 @@ import warnings
 from platform import system
 
 # Ignore non-actionable warnings
-warnings.filterwarnings("ignore", message=r'snapshot_download.py has been made private', category=FutureWarning)
-warnings.filterwarnings("ignore", message=r'legacy way to download files from the HF hub,', category=FutureWarning)
+warnings.filterwarnings("ignore", message=r"snapshot_download.py has been made private", category=FutureWarning)
+warnings.filterwarnings("ignore", message=r"legacy way to download files from the HF hub,", category=FutureWarning)
 
 # External Packages
 import uvicorn
@@ -43,11 +43,12 @@ rich_handler = RichHandler(rich_tracebacks=True)
 rich_handler.setFormatter(fmt=logging.Formatter(fmt="%(message)s", datefmt="[%X]"))
 logging.basicConfig(handlers=[rich_handler])
 
-logger = logging.getLogger('khoj')
+logger = logging.getLogger("khoj")
+
 
 def run():
     # Turn Tokenizers Parallelism Off. App does not support it.
-    os.environ["TOKENIZERS_PARALLELISM"] = 'false'
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
     # Load config from CLI
     state.cli_args = sys.argv[1:]
@@ -66,7 +67,7 @@ def run():
         logger.setLevel(logging.DEBUG)
 
     # Set Log File
-    fh = logging.FileHandler(state.config_file.parent / 'khoj.log')
+    fh = logging.FileHandler(state.config_file.parent / "khoj.log")
     fh.setLevel(logging.DEBUG)
     logger.addHandler(fh)
 
@@ -87,7 +88,7 @@ def run():
         # On Linux (Gnome) the System tray is not supported.
         # Since only the Main Window is available
         # Quitting it should quit the application
-        if system() in ['Windows', 'Darwin']:
+        if system() in ["Windows", "Darwin"]:
             gui.setQuitOnLastWindowClosed(False)
             tray = create_system_tray(gui, main_window)
             tray.show()
@@ -97,7 +98,7 @@ def run():
         server = ServerThread(app, args.host, args.port, args.socket)
 
         # Show Main Window on First Run Experience or if on Linux
-        if args.config is None or system() not in ['Windows', 'Darwin']:
+        if args.config is None or system() not in ["Windows", "Darwin"]:
             main_window.show()
 
         # Setup Signal Handlers
@@ -112,9 +113,10 @@ def run():
         gui.aboutToQuit.connect(server.terminate)
 
         # Close Splash Screen if still open
-        if system() != 'Darwin':
+        if system() != "Darwin":
             try:
                 import pyi_splash
+
                 # Update the text on the splash screen
                 pyi_splash.update_text("Khoj setup complete")
                 # Close Splash Screen
@@ -167,5 +169,5 @@ class ServerThread(QThread):
         start_server(self.app, self.host, self.port, self.socket)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()

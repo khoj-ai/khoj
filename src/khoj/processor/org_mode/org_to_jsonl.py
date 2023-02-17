@@ -18,9 +18,13 @@ logger = logging.getLogger(__name__)
 
 class OrgToJsonl(TextToJsonl):
     # Define Functions
-    def process(self, previous_entries: List[Entry]=None):
+    def process(self, previous_entries: List[Entry] = None):
         # Extract required fields from config
-        org_files, org_file_filter, output_file = self.config.input_files, self.config.input_filter, self.config.compressed_jsonl
+        org_files, org_file_filter, output_file = (
+            self.config.input_files,
+            self.config.input_filter,
+            self.config.compressed_jsonl,
+        )
         index_heading_entries = self.config.index_heading_entries
 
         # Input Validation
@@ -46,7 +50,9 @@ class OrgToJsonl(TextToJsonl):
         if not previous_entries:
             entries_with_ids = list(enumerate(current_entries))
         else:
-            entries_with_ids = self.mark_entries_for_update(current_entries, previous_entries, key='compiled', logger=logger)
+            entries_with_ids = self.mark_entries_for_update(
+                current_entries, previous_entries, key="compiled", logger=logger
+            )
 
         # Process Each Entry from All Notes Files
         with timer("Write org entries to JSONL file", logger):
@@ -66,11 +72,7 @@ class OrgToJsonl(TextToJsonl):
         "Get Org files to process"
         absolute_org_files, filtered_org_files = set(), set()
         if org_files:
-            absolute_org_files = {
-                get_absolute_path(org_file)
-                for org_file
-                in org_files
-            }
+            absolute_org_files = {get_absolute_path(org_file) for org_file in org_files}
         if org_file_filters:
             filtered_org_files = {
                 filtered_file
@@ -84,7 +86,7 @@ class OrgToJsonl(TextToJsonl):
         if any(files_with_non_org_extensions):
             logger.warn(f"There maybe non org-mode files in the input set: {files_with_non_org_extensions}")
 
-        logger.info(f'Processing files: {all_org_files}')
+        logger.info(f"Processing files: {all_org_files}")
 
         return all_org_files
 
@@ -95,13 +97,15 @@ class OrgToJsonl(TextToJsonl):
         entry_to_file_map = []
         for org_file in org_files:
             org_file_entries = orgnode.makelist(str(org_file))
-            entry_to_file_map += zip(org_file_entries, [org_file]*len(org_file_entries))
+            entry_to_file_map += zip(org_file_entries, [org_file] * len(org_file_entries))
             entries.extend(org_file_entries)
 
         return entries, dict(entry_to_file_map)
 
     @staticmethod
-    def convert_org_nodes_to_entries(parsed_entries: List[orgnode.Orgnode], entry_to_file_map, index_heading_entries=False) -> List[Entry]:
+    def convert_org_nodes_to_entries(
+        parsed_entries: List[orgnode.Orgnode], entry_to_file_map, index_heading_entries=False
+    ) -> List[Entry]:
         "Convert Org-Mode nodes into list of Entry objects"
         entries: List[Entry] = []
         for parsed_entry in parsed_entries:
@@ -109,13 +113,13 @@ class OrgToJsonl(TextToJsonl):
                 # Ignore title notes i.e notes with just headings and empty body
                 continue
 
-            compiled = f'{parsed_entry.heading}.'
+            compiled = f"{parsed_entry.heading}."
             if state.verbose > 2:
                 logger.debug(f"Title: {parsed_entry.heading}")
 
             if parsed_entry.tags:
                 tags_str = " ".join(parsed_entry.tags)
-                compiled += f'\t {tags_str}.'
+                compiled += f"\t {tags_str}."
                 if state.verbose > 2:
                     logger.debug(f"Tags: {tags_str}")
 
@@ -130,19 +134,16 @@ class OrgToJsonl(TextToJsonl):
                     logger.debug(f'Scheduled: {parsed_entry.scheduled.strftime("%Y-%m-%d")}')
 
             if parsed_entry.hasBody:
-                compiled += f'\n {parsed_entry.body}'
+                compiled += f"\n {parsed_entry.body}"
                 if state.verbose > 2:
                     logger.debug(f"Body: {parsed_entry.body}")
 
             if compiled:
-                entries += [Entry(
-                    compiled=compiled,
-                    raw=f'{parsed_entry}',
-                    file=f'{entry_to_file_map[parsed_entry]}')]
+                entries += [Entry(compiled=compiled, raw=f"{parsed_entry}", file=f"{entry_to_file_map[parsed_entry]}")]
 
         return entries
 
     @staticmethod
     def convert_org_entries_to_jsonl(entries: Iterable[Entry]) -> str:
         "Convert each Org-Mode entry to JSON and collate as JSONL"
-        return ''.join([f'{entry_dict.to_json()}\n' for entry_dict in entries])
+        return "".join([f"{entry_dict.to_json()}\n" for entry_dict in entries])

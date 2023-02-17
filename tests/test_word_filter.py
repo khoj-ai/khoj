@@ -7,7 +7,7 @@ def test_no_word_filter():
     # Arrange
     word_filter = WordFilter()
     entries = arrange_content()
-    q_with_no_filter = 'head tail'
+    q_with_no_filter = "head tail"
 
     # Act
     can_filter = word_filter.can_filter(q_with_no_filter)
@@ -15,7 +15,7 @@ def test_no_word_filter():
 
     # Assert
     assert can_filter == False
-    assert ret_query == 'head tail'
+    assert ret_query == "head tail"
     assert entry_indices == {0, 1, 2, 3}
 
 
@@ -31,7 +31,7 @@ def test_word_exclude_filter():
 
     # Assert
     assert can_filter == True
-    assert ret_query == 'head tail'
+    assert ret_query == "head tail"
     assert entry_indices == {0, 2}
 
 
@@ -47,7 +47,7 @@ def test_word_include_filter():
 
     # Assert
     assert can_filter == True
-    assert ret_query == 'head tail'
+    assert ret_query == "head tail"
     assert entry_indices == {2, 3}
 
 
@@ -63,16 +63,16 @@ def test_word_include_and_exclude_filter():
 
     # Assert
     assert can_filter == True
-    assert ret_query == 'head tail'
+    assert ret_query == "head tail"
     assert entry_indices == {2}
 
 
 def arrange_content():
     entries = [
-        Entry(compiled='', raw='Minimal Entry'),
-        Entry(compiled='', raw='Entry with exclude_word'),
-        Entry(compiled='', raw='Entry with include_word'),
-        Entry(compiled='', raw='Entry with include_word and exclude_word')
+        Entry(compiled="", raw="Minimal Entry"),
+        Entry(compiled="", raw="Entry with exclude_word"),
+        Entry(compiled="", raw="Entry with include_word"),
+        Entry(compiled="", raw="Entry with include_word and exclude_word"),
     ]
 
     return entries

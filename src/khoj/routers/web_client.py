@@ -18,9 +18,11 @@ templates = Jinja2Templates(directory=constants.web_directory)
 def index():
     return FileResponse(constants.web_directory / "index.html")
 
-@web_client.get('/config', response_class=HTMLResponse)
+
+@web_client.get("/config", response_class=HTMLResponse)
 def config_page(request: Request):
-    return templates.TemplateResponse("config.html", context={'request': request})
+    return templates.TemplateResponse("config.html", context={"request": request})
+
 
 @web_client.get("/chat", response_class=FileResponse)
 def chat_page():

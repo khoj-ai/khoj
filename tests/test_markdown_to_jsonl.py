@@ -8,10 +8,10 @@ from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 def test_markdown_file_with_no_headings_to_jsonl(tmp_path):
     "Convert files with no heading to jsonl."
     # Arrange
-    entry = f'''
+    entry = f"""
     - Bullet point 1
     - Bullet point 2
-    '''
+    """
     markdownfile = create_file(tmp_path, entry)
 
     # Act
@@ -20,7 +20,8 @@ def test_markdown_file_with_no_headings_to_jsonl(tmp_path):
 
     # Process Each Entry from All Notes Files
     jsonl_string = MarkdownToJsonl.convert_markdown_maps_to_jsonl(
-        MarkdownToJsonl.convert_markdown_entries_to_maps(entry_nodes, file_to_entries))
+        MarkdownToJsonl.convert_markdown_entries_to_maps(entry_nodes, file_to_entries)
+    )
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
@@ -30,10 +31,10 @@ def test_markdown_file_with_no_headings_to_jsonl(tmp_path):
 def test_single_markdown_entry_to_jsonl(tmp_path):
     "Convert markdown entry from single file to jsonl."
     # Arrange
-    entry = f'''### Heading
+    entry = f"""### Heading
     \t\r
     Body Line 1
-    '''
+    """
     markdownfile = create_file(tmp_path, entry)
 
     # Act
@@ -42,7 +43,8 @@ def test_single_markdown_entry_to_jsonl(tmp_path):
 
     # Process Each Entry from All Notes Files
     jsonl_string = MarkdownToJsonl.convert_markdown_maps_to_jsonl(
-        MarkdownToJsonl.convert_markdown_entries_to_maps(entries, entry_to_file_map))
+        MarkdownToJsonl.convert_markdown_entries_to_maps(entries, entry_to_file_map)
+    )
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
@@ -52,14 +54,14 @@ def test_single_markdown_entry_to_jsonl(tmp_path):
 def test_multiple_markdown_entries_to_jsonl(tmp_path):
     "Convert multiple markdown entries from single file to jsonl."
     # Arrange
-    entry = f'''
+    entry = f"""
 ### Heading 1
     \t\r
     Heading 1 Body Line 1
 ### Heading 2
     \t\r
     Heading 2 Body Line 2
-    '''
+    """
     markdownfile = create_file(tmp_path, entry)
 
     # Act
@@ -68,7 +70,8 @@ def test_multiple_markdown_entries_to_jsonl(tmp_path):
 
     # Process Each Entry from All Notes Files
     jsonl_string = MarkdownToJsonl.convert_markdown_maps_to_jsonl(
-        MarkdownToJsonl.convert_markdown_entries_to_maps(entries, entry_to_file_map))
+        MarkdownToJsonl.convert_markdown_entries_to_maps(entries, entry_to_file_map)
+    )
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
@@ -92,8 +95,8 @@ def test_get_markdown_files(tmp_path):
     expected_files = sorted(map(str, [group1_file1, group1_file2, group2_file1, group2_file2, file1]))
 
     # Setup input-files, input-filters
-    input_files = [tmp_path / 'notes.md']
-    input_filter = [tmp_path / 'group1*.md', tmp_path / 'group2*.markdown']
+    input_files = [tmp_path / "notes.md"]
+    input_filter = [tmp_path / "group1*.md", tmp_path / "group2*.markdown"]
 
     # Act
     extracted_org_files = MarkdownToJsonl.get_markdown_files(input_files, input_filter)
@@ -106,10 +109,10 @@ def test_get_markdown_files(tmp_path):
 def test_extract_entries_with_different_level_headings(tmp_path):
     "Extract markdown entries with different level headings."
     # Arrange
-    entry = f'''
+    entry = f"""
 # Heading 1
 ## Heading 2
-'''
+"""
     markdownfile = create_file(tmp_path, entry)
 
     # Act

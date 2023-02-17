@@ -7,7 +7,7 @@ def test_no_file_filter():
     # Arrange
     file_filter = FileFilter()
     entries = arrange_content()
-    q_with_no_filter = 'head tail'
+    q_with_no_filter = "head tail"
 
     # Act
     can_filter = file_filter.can_filter(q_with_no_filter)
@@ -15,7 +15,7 @@ def test_no_file_filter():
 
     # Assert
     assert can_filter == False
-    assert ret_query == 'head tail'
+    assert ret_query == "head tail"
     assert entry_indices == {0, 1, 2, 3}
 
 
@@ -31,7 +31,7 @@ def test_file_filter_with_non_existent_file():
 
     # Assert
     assert can_filter == True
-    assert ret_query == 'head tail'
+    assert ret_query == "head tail"
     assert entry_indices == {}
 
 
@@ -47,7 +47,7 @@ def test_single_file_filter():
 
     # Assert
     assert can_filter == True
-    assert ret_query == 'head tail'
+    assert ret_query == "head tail"
     assert entry_indices == {0, 2}
 
 
@@ -63,7 +63,7 @@ def test_file_filter_with_partial_match():
 
     # Assert
     assert can_filter == True
-    assert ret_query == 'head tail'
+    assert ret_query == "head tail"
     assert entry_indices == {0, 2}
 
 
@@ -79,7 +79,7 @@ def test_file_filter_with_regex_match():
 
     # Assert
     assert can_filter == True
-    assert ret_query == 'head tail'
+    assert ret_query == "head tail"
     assert entry_indices == {0, 1, 2, 3}
 
 
@@ -95,16 +95,16 @@ def test_multiple_file_filter():
 
     # Assert
     assert can_filter == True
-    assert ret_query == 'head tail'
+    assert ret_query == "head tail"
     assert entry_indices == {0, 1, 2, 3}
 
 
 def arrange_content():
     entries = [
-        Entry(compiled='', raw='First Entry', file= 'file 1.org'),
-        Entry(compiled='', raw='Second Entry', file= 'file2.org'),
-        Entry(compiled='', raw='Third Entry', file= 'file 1.org'),
-        Entry(compiled='', raw='Fourth Entry', file= 'file2.org')
+        Entry(compiled="", raw="First Entry", file="file 1.org"),
+        Entry(compiled="", raw="Second Entry", file="file2.org"),
+        Entry(compiled="", raw="Third Entry", file="file 1.org"),
+        Entry(compiled="", raw="Fourth Entry", file="file2.org"),
     ]
 
     return entries

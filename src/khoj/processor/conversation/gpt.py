@@ -19,31 +19,27 @@ def summarize(text, summary_type, model, user_query=None, api_key=None, temperat
 
     # Setup Prompt based on Summary Type
     if summary_type == "chat":
-        prompt = f'''
+        prompt = f"""
 You are an AI. Summarize the conversation below from your perspective:
 
 {text}
 
-Summarize the conversation from the AI's first-person perspective:'''
+Summarize the conversation from the AI's first-person perspective:"""
     elif summary_type == "notes":
-        prompt = f'''
+        prompt = f"""
 Summarize the below notes about {user_query}:
 
 {text}
 
-Summarize the notes in second person perspective:'''
+Summarize the notes in second person perspective:"""
 
     # Get Response from GPT
     response = openai.Completion.create(
-        prompt=prompt,
-        model=model,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        frequency_penalty=0.2,
-        stop="\"\"\"")
+        prompt=prompt, model=model, temperature=temperature, max_tokens=max_tokens, frequency_penalty=0.2, stop='"""'
+    )
 
     # Extract, Clean Message from GPT's Response
-    story = response['choices'][0]['text']
+    story = response["choices"][0]["text"]
     return str(story).replace("\n\n", "")
 
 
@@ -53,7 +49,7 @@ def extract_search_type(text, model, api_key=None, temperature=0.5, max_tokens=1
     """
     # Initialize Variables
     openai.api_key = api_key or os.getenv("OPENAI_API_KEY")
-    understand_primer = '''
+    understand_primer = """
 Objective: Extract search type from user query and return information as JSON
 
 Allowed search types are listed below:
@@ -73,7 +69,7 @@ A:{ "search-type": "notes" }
 Q: When did I buy Groceries last?
 A:{ "search-type": "ledger" }
 Q:When did I go surfing last?
-A:{ "search-type": "notes" }'''
+A:{ "search-type": "notes" }"""
 
     # Setup Prompt with Understand Primer
     prompt = message_to_prompt(text, understand_primer, start_sequence="\nA:", restart_sequence="\nQ:")
@@ -82,15 +78,11 @@ A:{ "search-type": "notes" }'''
 
     # Get Response from GPT
     response = openai.Completion.create(
-        prompt=prompt,
-        model=model,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        frequency_penalty=0.2,
-        stop=["\n"])
+        prompt=prompt, model=model, temperature=temperature, max_tokens=max_tokens, frequency_penalty=0.2, stop=["\n"]
+    )
 
     # Extract, Clean Message from GPT's Response
-    story = str(response['choices'][0]['text'])
+    story = str(response["choices"][0]["text"])
     return json.loads(story.strip(empty_escape_sequences))
 
 
@@ -100,7 +92,7 @@ def understand(text, model, api_key=None, temperature=0.5, max_tokens=100, verbo
     """
     # Initialize Variables
     openai.api_key = api_key or os.getenv("OPENAI_API_KEY")
-    understand_primer = '''
+    understand_primer = """
 Objective: Extract intent and trigger emotion information as JSON from each chat message
 
 Potential intent types and valid argument values are listed below:
@@ -142,7 +134,7 @@ A: { "intent": {"type": "remember", "memory-type": "notes", "query": "recommend 
 Q: When did I go surfing last?
 A: { "intent": {"type": "remember", "memory-type": "notes", "query": "When did I go surfing last"}, "trigger-emotion": "calm" }
 Q: Can you dance for me?
-A: { "intent": {"type": "generate", "activity": "chat", "query": "Can you dance for me?"}, "trigger-emotion": "sad" }'''
+A: { "intent": {"type": "generate", "activity": "chat", "query": "Can you dance for me?"}, "trigger-emotion": "sad" }"""
 
     # Setup Prompt with Understand Primer
     prompt = message_to_prompt(text, understand_primer, start_sequence="\nA:", restart_sequence="\nQ:")
@@ -151,15 +143,11 @@ A: { "intent": {"type": "generate", "activity": "chat", "query": "Can you dance 
 
     # Get Response from GPT
     response = openai.Completion.create(
-        prompt=prompt,
-        model=model,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        frequency_penalty=0.2,
-        stop=["\n"])
+        prompt=prompt, model=model, temperature=temperature, max_tokens=max_tokens, frequency_penalty=0.2, stop=["\n"]
+    )
 
     # Extract, Clean Message from GPT's Response
-    story = str(response['choices'][0]['text'])
+    story = str(response["choices"][0]["text"])
     return json.loads(story.strip(empty_escape_sequences))
 
 
@@ -171,15 +159,15 @@ def converse(text, model, conversation_history=None, api_key=None, temperature=0
     max_words = 500
     openai.api_key = api_key or os.getenv("OPENAI_API_KEY")
 
-    conversation_primer = f'''
+    conversation_primer = f"""
 The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and a very friendly companion.
 
 Human: Hello, who are you?
-AI: Hi, I am an AI conversational companion created by OpenAI. How can I help you today?'''
+AI: Hi, I am an AI conversational companion created by OpenAI. How can I help you today?"""
 
     # Setup Prompt with Primer or Conversation History
     prompt = message_to_prompt(text, conversation_history or conversation_primer)
-    prompt = ' '.join(prompt.split()[:max_words])
+    prompt = " ".join(prompt.split()[:max_words])
 
     # Get Response from GPT
     response = openai.Completion.create(
@@ -188,14 +176,17 @@ AI: Hi, I am an AI conversational companion created by OpenAI. How can I help yo
         temperature=temperature,
         max_tokens=max_tokens,
         presence_penalty=0.6,
-        stop=["\n", "Human:", "AI:"])
+        stop=["\n", "Human:", "AI:"],
+    )
 
     # Extract, Clean Message from GPT's Response
-    story = str(response['choices'][0]['text'])
+    story = str(response["choices"][0]["text"])
     return story.strip(empty_escape_sequences)
 
 
-def message_to_prompt(user_message, conversation_history="", gpt_message=None, start_sequence="\nAI:", restart_sequence="\nHuman:"):
+def message_to_prompt(
+    user_message, conversation_history="", gpt_message=None, start_sequence="\nAI:", restart_sequence="\nHuman:"
+):
     """Create prompt for GPT from messages and conversation history"""
     gpt_message = f" {gpt_message}" if gpt_message else ""
 
@@ -205,12 +196,8 @@ def message_to_prompt(user_message, conversation_history="", gpt_message=None, s
 def message_to_log(user_message, gpt_message, user_message_metadata={}, conversation_log=[]):
     """Create json logs from messages, metadata for conversation log"""
     default_user_message_metadata = {
-        "intent": {
-            "type": "remember",
-            "memory-type": "notes",
-            "query": user_message
-        },
-        "trigger-emotion": "calm"
+        "intent": {"type": "remember", "memory-type": "notes", "query": user_message},
+        "trigger-emotion": "calm",
     }
     current_dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -229,5 +216,4 @@ def message_to_log(user_message, gpt_message, user_message_metadata={}, conversa
 
 def extract_summaries(metadata):
     """Extract summaries from metadata"""
-    return ''.join(
-        [f'\n{session["summary"]}' for session in metadata])
+    return "".join([f'\n{session["summary"]}' for session in metadata])

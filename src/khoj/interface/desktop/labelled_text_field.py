@@ -6,7 +6,7 @@ from khoj.utils.config import ProcessorType
 
 
 class LabelledTextField(QtWidgets.QWidget):
-    def __init__(self, title, processor_type: ProcessorType=None, default_value: str=None):
+    def __init__(self, title, processor_type: ProcessorType = None, default_value: str = None):
         QtWidgets.QWidget.__init__(self)
         layout = QtWidgets.QHBoxLayout()
         self.setLayout(layout)

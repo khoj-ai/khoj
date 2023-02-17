@@ -20,7 +20,11 @@ class MarkdownToJsonl(TextToJsonl):
     # Define Functions
     def process(self, previous_entries=None):
         # Extract required fields from config
-        markdown_files, markdown_file_filter, output_file = self.config.input_files, self.config.input_filter, self.config.compressed_jsonl
+        markdown_files, markdown_file_filter, output_file = (
+            self.config.input_files,
+            self.config.input_filter,
+            self.config.compressed_jsonl,
+        )
 
         # Input Validation
         if is_none_or_empty(markdown_files) and is_none_or_empty(markdown_file_filter):
@@ -32,7 +36,9 @@ class MarkdownToJsonl(TextToJsonl):
 
         # Extract Entries from specified Markdown files
         with timer("Parse entries from Markdown files into dictionaries", logger):
-            current_entries = MarkdownToJsonl.convert_markdown_entries_to_maps(*MarkdownToJsonl.extract_markdown_entries(markdown_files))
+            current_entries = MarkdownToJsonl.convert_markdown_entries_to_maps(
+                *MarkdownToJsonl.extract_markdown_entries(markdown_files)
+            )
 
         # Split entries by max tokens supported by model
         with timer("Split entries by max token size supported by model", logger):
@@ -43,7 +49,9 @@ class MarkdownToJsonl(TextToJsonl):
             if not previous_entries:
                 entries_with_ids = list(enumerate(current_entries))
             else:
-                entries_with_ids = self.mark_entries_for_update(current_entries, previous_entries, key='compiled', logger=logger)
+                entries_with_ids = self.mark_entries_for_update(
+                    current_entries, previous_entries, key="compiled", logger=logger
+                )
 
         with timer("Write markdown entries to JSONL file", logger):
             # Process Each Entry from All Notes Files
@@ -75,15 +83,16 @@ class MarkdownToJsonl(TextToJsonl):
 
         files_with_non_markdown_extensions = {
             md_file
-            for md_file
-            in all_markdown_files
-            if not md_file.endswith(".md") and not md_file.endswith('.markdown')
+            for md_file in all_markdown_files
+            if not md_file.endswith(".md") and not md_file.endswith(".markdown")
         }
 
         if any(files_with_non_markdown_extensions):
-            logger.warn(f"[Warning] There maybe non markdown-mode files in the input set: {files_with_non_markdown_extensions}")
+            logger.warn(
+                f"[Warning] There maybe non markdown-mode files in the input set: {files_with_non_markdown_extensions}"
+            )
 
-        logger.info(f'Processing files: {all_markdown_files}')
+        logger.info(f"Processing files: {all_markdown_files}")
 
         return all_markdown_files
 
@@ -92,20 +101,20 @@ class MarkdownToJsonl(TextToJsonl):
         "Extract entries by heading from specified Markdown files"
 
         # Regex to extract Markdown Entries by Heading
-        markdown_heading_regex = r'^#'
+        markdown_heading_regex = r"^#"
 
         entries = []
         entry_to_file_map = []
         for markdown_file in markdown_files:
-            with open(markdown_file, 'r', encoding='utf8') as f:
+            with open(markdown_file, "r", encoding="utf8") as f:
                 markdown_content = f.read()
                 markdown_entries_per_file = []
                 for entry in re.split(markdown_heading_regex, markdown_content, flags=re.MULTILINE):
-                    prefix = '#' if entry.startswith('#') else '# '
-                    if entry.strip(empty_escape_sequences) != '':
-                        markdown_entries_per_file.append(f'{prefix}{entry.strip(empty_escape_sequences)}')
+                    prefix = "#" if entry.startswith("#") else "# "
+                    if entry.strip(empty_escape_sequences) != "":
+                        markdown_entries_per_file.append(f"{prefix}{entry.strip(empty_escape_sequences)}")
 
-                entry_to_file_map += zip(markdown_entries_per_file, [markdown_file]*len(markdown_entries_per_file))
+                entry_to_file_map += zip(markdown_entries_per_file, [markdown_file] * len(markdown_entries_per_file))
                 entries.extend(markdown_entries_per_file)
 
         return entries, dict(entry_to_file_map)
@@ -115,7 +124,7 @@ class MarkdownToJsonl(TextToJsonl):
         "Convert each Markdown entries into a dictionary"
         entries = []
         for parsed_entry in parsed_entries:
-            entries.append(Entry(compiled=parsed_entry, raw=parsed_entry, file=f'{entry_to_file_map[parsed_entry]}'))
+            entries.append(Entry(compiled=parsed_entry, raw=parsed_entry, file=f"{entry_to_file_map[parsed_entry]}"))
 
         logger.info(f"Converted {len(parsed_entries)} markdown entries to dictionaries")
 
@@ -124,4 +133,4 @@ class MarkdownToJsonl(TextToJsonl):
     @staticmethod
     def convert_markdown_maps_to_jsonl(entries: List[Entry]):
         "Convert each Markdown entry to JSON and collate as JSONL"
-        return ''.join([f'{entry.to_json()}\n' for entry in entries])
+        return "".join([f"{entry.to_json()}\n" for entry in entries])

@@ -26,10 +26,12 @@ logger = logging.getLogger(__name__)
 def configure_server(args, required=False):
     if args.config is None:
         if required:
-            logger.error(f'Exiting as Khoj is not configured.\nConfigure it via GUI or by editing {state.config_file}.')
+            logger.error(f"Exiting as Khoj is not configured.\nConfigure it via GUI or by editing {state.config_file}.")
             sys.exit(1)
         else:
-            logger.warn(f'Khoj is not configured.\nConfigure it via khoj GUI, plugins or by editing {state.config_file}.')
+            logger.warn(
+                f"Khoj is not configured.\nConfigure it via khoj GUI, plugins or by editing {state.config_file}."
+            )
             return
     else:
         state.config = args.config
@@ -60,7 +62,8 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
             config.content_type.org,
             search_config=config.search_type.asymmetric,
             regenerate=regenerate,
-            filters=[DateFilter(), WordFilter(), FileFilter()])
+            filters=[DateFilter(), WordFilter(), FileFilter()],
+        )
 
     # Initialize Org Music Search
     if (t == SearchType.Music or t == None) and config.content_type.music:
@@ -70,7 +73,8 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
             config.content_type.music,
             search_config=config.search_type.asymmetric,
             regenerate=regenerate,
-            filters=[DateFilter(), WordFilter()])
+            filters=[DateFilter(), WordFilter()],
+        )
 
     # Initialize Markdown Search
     if (t == SearchType.Markdown or t == None) and config.content_type.markdown:
@@ -80,7 +84,8 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
             config.content_type.markdown,
             search_config=config.search_type.asymmetric,
             regenerate=regenerate,
-            filters=[DateFilter(), WordFilter(), FileFilter()])
+            filters=[DateFilter(), WordFilter(), FileFilter()],
+        )
 
     # Initialize Ledger Search
     if (t == SearchType.Ledger or t == None) and config.content_type.ledger:
@@ -90,15 +95,15 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
             config.content_type.ledger,
             search_config=config.search_type.symmetric,
             regenerate=regenerate,
-            filters=[DateFilter(), WordFilter(), FileFilter()])
+            filters=[DateFilter(), WordFilter(), FileFilter()],
+        )
 
     # Initialize Image Search
     if (t == SearchType.Image or t == None) and config.content_type.image:
         # Extract Entries, Generate Image Embeddings
         model.image_search = image_search.setup(
-            config.content_type.image,
-            search_config=config.search_type.image,
-            regenerate=regenerate)
+            config.content_type.image, search_config=config.search_type.image, regenerate=regenerate
+        )
 
     # Invalidate Query Cache
     state.query_cache = LRU()
@@ -125,9 +130,9 @@ def configure_conversation_processor(conversation_processor_config):
 
     if conversation_logfile.is_file():
         # Load Metadata Logs from Conversation Logfile
-        with conversation_logfile.open('r') as f:
+        with conversation_logfile.open("r") as f:
             conversation_processor.meta_log = json.load(f)
-        logger.info('Conversation logs loaded from disk.')
+        logger.info("Conversation logs loaded from disk.")
     else:
         # Initialize Conversation Logs
         conversation_processor.meta_log = {}

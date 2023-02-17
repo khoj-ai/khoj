@@ -22,27 +22,30 @@ logger = logging.getLogger(__name__)
 
 
 # Create Routes
-@api.get('/config/data/default')
+@api.get("/config/data/default")
 def get_default_config_data():
     return constants.default_config
 
-@api.get('/config/data', response_model=FullConfig)
+
+@api.get("/config/data", response_model=FullConfig)
 def get_config_data():
     return state.config
 
-@api.post('/config/data')
+
+@api.post("/config/data")
 async def set_config_data(updated_config: FullConfig):
     state.config = updated_config
-    with open(state.config_file, 'w') as outfile:
+    with open(state.config_file, "w") as outfile:
         yaml.dump(yaml.safe_load(state.config.json(by_alias=True)), outfile)
         outfile.close()
     return state.config
 
-@api.get('/search', response_model=List[SearchResponse])
+
+@api.get("/search", response_model=List[SearchResponse])
 def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Optional[bool] = False):
     results: List[SearchResponse] = []
-    if q is None or q == '':
-        logger.info(f'No query param (q) passed in API call to initiate search')
+    if q is None or q == "":
+        logger.info(f"No query param (q) passed in API call to initiate search")
         return results
 
     # initialize variables
@@ -50,9 +53,9 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
     results_count = n
 
     # return cached results, if available
-    query_cache_key = f'{user_query}-{n}-{t}-{r}'
+    query_cache_key = f"{user_query}-{n}-{t}-{r}"
     if query_cache_key in state.query_cache:
-        logger.info(f'Return response from query cache')
+        logger.info(f"Return response from query cache")
         return state.query_cache[query_cache_key]
 
     if (t == SearchType.Org or t == None) and state.model.orgmode_search:
@@ -95,7 +98,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
         # query images
         with timer("Query took", logger):
             hits = image_search.query(user_query, results_count, state.model.image_search)
-            output_directory = constants.web_directory / 'images'
+            output_directory = constants.web_directory / "images"
 
         # collate and return results
         with timer("Collating results took", logger):
@@ -103,8 +106,9 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
                 hits,
                 image_names=state.model.image_search.image_names,
                 output_directory=output_directory,
-                image_files_url='/static/images',
-                count=results_count)
+                image_files_url="/static/images",
+                count=results_count,
+            )
 
     # Cache results
     state.query_cache[query_cache_key] = results
@@ -112,7 +116,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
     return results
 
 
-@api.get('/update')
+@api.get("/update")
 def update(t: Optional[SearchType] = None, force: Optional[bool] = False):
     try:
         state.search_index_lock.acquire()
@@ -132,4 +136,4 @@ def update(t: Optional[SearchType] = None, force: Optional[bool] = False):
     else:
         logger.info("Processor reconfigured via API call")
 
-    return {'status': 'ok', 'message': 'khoj reloaded'}
+    return {"status": "ok", "message": "khoj reloaded"}

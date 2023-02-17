@@ -30,7 +30,8 @@ def test_image_metadata(content_config: ContentConfig):
     expected_metadata_image_name_pairs = [
         (["Billi Ka Bacha.", "Cat", "Grass"], "kitten_park.jpg"),
         (["Pasture.", "Horse", "Dog"], "horse_dog.jpg"),
-        (["Guinea Pig Eating Celery.", "Rodent", "Whiskers"], "guineapig_grass.jpg")]
+        (["Guinea Pig Eating Celery.", "Rodent", "Whiskers"], "guineapig_grass.jpg"),
+    ]
 
     test_image_paths = [
         Path(content_config.image.input_directories[0] / image_name[1])
@@ -51,23 +52,23 @@ def test_image_search(content_config: ContentConfig, search_config: SearchConfig
     # Arrange
     output_directory = resolve_absolute_path(web_directory)
     model.image_search = image_search.setup(content_config.image, search_config.image, regenerate=False)
-    query_expected_image_pairs = [("kitten", "kitten_park.jpg"),
-                                  ("horse and dog in a farm", "horse_dog.jpg"),
-                                  ("A guinea pig eating grass", "guineapig_grass.jpg")]
+    query_expected_image_pairs = [
+        ("kitten", "kitten_park.jpg"),
+        ("horse and dog in a farm", "horse_dog.jpg"),
+        ("A guinea pig eating grass", "guineapig_grass.jpg"),
+    ]
 
     # Act
     for query, expected_image_name in query_expected_image_pairs:
-        hits = image_search.query(
-            query,
-            count = 1,
-            model = model.image_search)
+        hits = image_search.query(query, count=1, model=model.image_search)
 
         results = image_search.collate_results(
             hits,
             model.image_search.image_names,
             output_directory=output_directory,
-            image_files_url='/static/images',
-            count=1)
+            image_files_url="/static/images",
+            count=1,
+        )
 
         actual_image_path = output_directory.joinpath(Path(results[0].entry).name)
         actual_image = Image.open(actual_image_path)
@@ -86,16 +87,13 @@ def test_image_search_query_truncated(content_config: ContentConfig, search_conf
     # Arrange
     model.image_search = image_search.setup(content_config.image, search_config.image, regenerate=False)
     max_words_supported = 10
-    query = " ".join(["hello"]*100)
-    truncated_query = " ".join(["hello"]*max_words_supported)
+    query = " ".join(["hello"] * 100)
+    truncated_query = " ".join(["hello"] * max_words_supported)
 
     # Act
     try:
         with caplog.at_level(logging.INFO, logger="khoj.search_type.image_search"):
-            image_search.query(
-                query,
-                count = 1,
-                model = model.image_search)
+            image_search.query(query, count=1, model=model.image_search)
     # Assert
     except RuntimeError as e:
         if "The size of tensor a (102) must match the size of tensor b (77)" in str(e):
@@ -115,17 +113,15 @@ def test_image_search_by_filepath(content_config: ContentConfig, search_config: 
 
     # Act
     with caplog.at_level(logging.INFO, logger="khoj.search_type.image_search"):
-        hits = image_search.query(
-            query,
-            count = 1,
-            model = model.image_search)
+        hits = image_search.query(query, count=1, model=model.image_search)
 
         results = image_search.collate_results(
             hits,
             model.image_search.image_names,
             output_directory=output_directory,
-            image_files_url='/static/images',
-            count=1)
+            image_files_url="/static/images",
+            count=1,
+        )
 
     actual_image_path = output_directory.joinpath(Path(results[0].entry).name)
     actual_image = Image.open(actual_image_path)
@@ -133,7 +129,9 @@ def test_image_search_by_filepath(content_config: ContentConfig, search_config: 
 
     # Assert
     # Ensure file search triggered instead of query with file path as string
-    assert f"Find Images by Image: {resolve_absolute_path(expected_image_path)}" in caplog.text, "File search not triggered"
+    assert (
+        f"Find Images by Image: {resolve_absolute_path(expected_image_path)}" in caplog.text
+    ), "File search not triggered"
     # Ensure the correct image is returned
     assert expected_image == actual_image, "Incorrect image returned by file search"
 

@@ -9,23 +9,25 @@ from khoj.utils.rawconfig import Entry
 
 
 def test_configure_heading_entry_to_jsonl(tmp_path):
-    '''Ensure entries with empty body are ignored, unless explicitly configured to index heading entries.
-    Property drawers not considered Body. Ignore control characters for evaluating if Body empty.'''
+    """Ensure entries with empty body are ignored, unless explicitly configured to index heading entries.
+    Property drawers not considered Body. Ignore control characters for evaluating if Body empty."""
     # Arrange
-    entry = f'''*** Heading
+    entry = f"""*** Heading
     :PROPERTIES:
     :ID:       42-42-42
     :END:
     \t \r
-    '''
+    """
     orgfile = create_file(tmp_path, entry)
 
     for index_heading_entries in [True, False]:
         # Act
         # Extract entries into jsonl from specified Org files
-        jsonl_string = OrgToJsonl.convert_org_entries_to_jsonl(OrgToJsonl.convert_org_nodes_to_entries(
-            *OrgToJsonl.extract_org_entries(org_files=[orgfile]),
-            index_heading_entries=index_heading_entries))
+        jsonl_string = OrgToJsonl.convert_org_entries_to_jsonl(
+            OrgToJsonl.convert_org_nodes_to_entries(
+                *OrgToJsonl.extract_org_entries(org_files=[orgfile]), index_heading_entries=index_heading_entries
+            )
+        )
         jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
         # Assert
@@ -40,10 +42,10 @@ def test_configure_heading_entry_to_jsonl(tmp_path):
 def test_entry_split_when_exceeds_max_words(tmp_path):
     "Ensure entries with compiled words exceeding max_words are split."
     # Arrange
-    entry = f'''*** Heading
+    entry = f"""*** Heading
     \t\r
     Body Line 1
-    '''
+    """
     orgfile = create_file(tmp_path, entry)
 
     # Act
@@ -53,9 +55,9 @@ def test_entry_split_when_exceeds_max_words(tmp_path):
     # Split each entry from specified Org files by max words
     jsonl_string = OrgToJsonl.convert_org_entries_to_jsonl(
         TextToJsonl.split_entries_by_max_tokens(
-            OrgToJsonl.convert_org_nodes_to_entries(entries, entry_to_file_map),
-            max_tokens = 2)
+            OrgToJsonl.convert_org_nodes_to_entries(entries, entry_to_file_map), max_tokens=2
         )
+    )
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
@@ -65,15 +67,15 @@ def test_entry_split_when_exceeds_max_words(tmp_path):
 def test_entry_split_drops_large_words(tmp_path):
     "Ensure entries drops words larger than specified max word length from compiled version."
     # Arrange
-    entry_text = f'''*** Heading
+    entry_text = f"""*** Heading
     \t\r
     Body Line 1
-    '''
+    """
     entry = Entry(raw=entry_text, compiled=entry_text)
 
     # Act
     # Split entry by max words and drop words larger than max word length
-    processed_entry = TextToJsonl.split_entries_by_max_tokens([entry], max_word_length = 5)[0]
+    processed_entry = TextToJsonl.split_entries_by_max_tokens([entry], max_word_length=5)[0]
 
     # Assert
     # "Heading" dropped from compiled version because its over the set max word limit
@@ -83,13 +85,13 @@ def test_entry_split_drops_large_words(tmp_path):
 def test_entry_with_body_to_jsonl(tmp_path):
     "Ensure entries with valid body text are loaded."
     # Arrange
-    entry = f'''*** Heading
+    entry = f"""*** Heading
     :PROPERTIES:
     :ID:       42-42-42
     :END:
     \t\r
     Body Line 1
-    '''
+    """
     orgfile = create_file(tmp_path, entry)
 
     # Act
@@ -97,7 +99,9 @@ def test_entry_with_body_to_jsonl(tmp_path):
     entries, entry_to_file_map = OrgToJsonl.extract_org_entries(org_files=[orgfile])
 
     # Process Each Entry from All Notes Files
-    jsonl_string = OrgToJsonl.convert_org_entries_to_jsonl(OrgToJsonl.convert_org_nodes_to_entries(entries, entry_to_file_map))
+    jsonl_string = OrgToJsonl.convert_org_entries_to_jsonl(
+        OrgToJsonl.convert_org_nodes_to_entries(entries, entry_to_file_map)
+    )
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
@@ -107,10 +111,10 @@ def test_entry_with_body_to_jsonl(tmp_path):
 def test_file_with_no_headings_to_jsonl(tmp_path):
     "Ensure files with no heading, only body text are loaded."
     # Arrange
-    entry = f'''
+    entry = f"""
     - Bullet point 1
     - Bullet point 2
-    '''
+    """
     orgfile = create_file(tmp_path, entry)
 
     # Act
@@ -120,7 +124,7 @@ def test_file_with_no_headings_to_jsonl(tmp_path):
     # Process Each Entry from All Notes Files
     entries = OrgToJsonl.convert_org_nodes_to_entries(entry_nodes, file_to_entries)
     jsonl_string = OrgToJsonl.convert_org_entries_to_jsonl(entries)
-    jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()] 
+    jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
     assert len(jsonl_data) == 1
@@ -143,8 +147,8 @@ def test_get_org_files(tmp_path):
     expected_files = sorted(map(str, [group1_file1, group1_file2, group2_file1, group2_file2, orgfile1]))
 
     # Setup input-files, input-filters
-    input_files = [tmp_path / 'orgfile1.org']
-    input_filter = [tmp_path / 'group1*.org', tmp_path / 'group2*.org']
+    input_files = [tmp_path / "orgfile1.org"]
+    input_filter = [tmp_path / "group1*.org", tmp_path / "group2*.org"]
 
     # Act
     extracted_org_files = OrgToJsonl.get_org_files(input_files, input_filter)
@@ -157,10 +161,10 @@ def test_get_org_files(tmp_path):
 def test_extract_entries_with_different_level_headings(tmp_path):
     "Extract org entries with different level headings."
     # Arrange
-    entry = f'''
+    entry = f"""
 * Heading 1
 ** Heading 2
-'''
+"""
     orgfile = create_file(tmp_path, entry)
 
     # Act
@@ -169,8 +173,8 @@ def test_extract_entries_with_different_level_headings(tmp_path):
 
     # Assert
     assert len(entries) == 2
-    assert f'{entries[0]}'.startswith("* Heading 1")
-    assert f'{entries[1]}'.startswith("** Heading 2")
+    assert f"{entries[0]}".startswith("* Heading 1")
+    assert f"{entries[1]}".startswith("** Heading 2")
 
 
 # Helper Functions

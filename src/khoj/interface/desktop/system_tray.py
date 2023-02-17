@@ -17,17 +17,17 @@ def create_system_tray(gui: QtWidgets.QApplication, main_window: MainWindow):
     """
 
     # Create the system tray with icon
-    icon_path = constants.web_directory / 'assets/icons/favicon-144x144.png'
-    icon = QtGui.QIcon(f'{icon_path.absolute()}')
+    icon_path = constants.web_directory / "assets/icons/favicon-144x144.png"
+    icon = QtGui.QIcon(f"{icon_path.absolute()}")
     tray = QtWidgets.QSystemTrayIcon(icon)
     tray.setVisible(True)
 
     # Create the menu and menu actions
     menu = QtWidgets.QMenu()
     menu_actions = [
-        ('Search', lambda: webbrowser.open(f'http://{state.host}:{state.port}/')),
-        ('Configure', main_window.show_on_top),
-        ('Quit', gui.quit),
+        ("Search", lambda: webbrowser.open(f"http://{state.host}:{state.port}/")),
+        ("Configure", main_window.show_on_top),
+        ("Quit", gui.quit),
     ]
 
     # Add the menu actions to the menu
