@@ -27,11 +27,11 @@ class FileBrowser(QtWidgets.QWidget):
         self.lineEdit.setFixedWidth(330)
         self.setFiles(default_files)
         self.lineEdit.setFixedHeight(min(7 + 20 * len(self.lineEdit.toPlainText().split("\n")), 90))
-        self.lineEdit.textChanged.connect(self.updateFieldHeight)
+        self.lineEdit.textChanged.connect(self.updateFieldHeight)  # type: ignore[attr-defined]
         layout.addWidget(self.lineEdit)
 
         self.button = QtWidgets.QPushButton("Add")
-        self.button.clicked.connect(self.storeFilesSelectedInFileDialog)
+        self.button.clicked.connect(self.storeFilesSelectedInFileDialog)  # type: ignore[attr-defined]
         layout.addWidget(self.button)
         layout.addStretch()
 

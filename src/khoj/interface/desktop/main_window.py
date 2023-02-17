@@ -53,7 +53,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowIcon(QtGui.QIcon(f"{icon_path.absolute()}"))
 
         # Initialize Configure Window Layout
-        self.layout = QtWidgets.QVBoxLayout()
+        self.wlayout = QtWidgets.QVBoxLayout()
 
         # Add Settings Panels for each Search Type to Configure Window Layout
         self.search_settings_panels = []
@@ -73,7 +73,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Set the central widget of the Window. Widget will expand
         # to take up all the space in the window by default.
         self.config_window = QtWidgets.QWidget()
-        self.config_window.setLayout(self.layout)
+        self.config_window.setLayout(self.wlayout)
         self.setCentralWidget(self.config_window)
         self.position_window()
 
@@ -97,12 +97,12 @@ class MainWindow(QtWidgets.QMainWindow):
         # Set enabled/disabled based on checkbox state
         enable_search_type.setChecked(current_content_files is not None and len(current_content_files) > 0)
         input_files.setEnabled(enable_search_type.isChecked())
-        enable_search_type.stateChanged.connect(lambda _: input_files.setEnabled(enable_search_type.isChecked()))
+        enable_search_type.stateChanged.connect(lambda _: input_files.setEnabled(enable_search_type.isChecked()))  # type: ignore[attr-defined]
 
         # Add setting widgets for given search type to panel
         search_type_layout.addWidget(enable_search_type)
         search_type_layout.addWidget(input_files)
-        self.layout.addWidget(search_type_settings)
+        self.wlayout.addWidget(search_type_settings)
 
         return search_type_settings
 
@@ -121,12 +121,12 @@ class MainWindow(QtWidgets.QMainWindow):
         # Set enabled/disabled based on checkbox state
         enable_conversation.setChecked(current_openai_api_key is not None)
         input_field.setEnabled(enable_conversation.isChecked())
-        enable_conversation.stateChanged.connect(lambda _: input_field.setEnabled(enable_conversation.isChecked()))
+        enable_conversation.stateChanged.connect(lambda _: input_field.setEnabled(enable_conversation.isChecked()))  # type: ignore[attr-defined]
 
         # Add setting widgets for given processor type to panel
         processor_type_layout.addWidget(enable_conversation)
         processor_type_layout.addWidget(input_field)
-        self.layout.addWidget(processor_type_settings)
+        self.wlayout.addWidget(processor_type_settings)
 
         return processor_type_settings
 
@@ -144,15 +144,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
         action_bar_layout.addWidget(self.configure_button)
         action_bar_layout.addWidget(self.search_button)
-        self.layout.addWidget(action_bar)
+        self.wlayout.addWidget(action_bar)
 
     def get_default_config(self, search_type: SearchType = None, processor_type: ProcessorType = None):
         "Get default config"
         config = constants.default_config
         if search_type:
-            return config["content-type"][search_type]
+            return config["content-type"][search_type]  # type: ignore
         elif processor_type:
-            return config["processor"][processor_type]
+            return config["processor"][processor_type]  # type: ignore
         else:
             return config
 
@@ -160,12 +160,12 @@ class MainWindow(QtWidgets.QMainWindow):
         "Add Error Message to Configure Screen"
         # Remove any existing error messages
         for message_prefix in ErrorType:
-            for i in reversed(range(self.layout.count())):
-                current_widget = self.layout.itemAt(i).widget()
+            for i in reversed(range(self.wlayout.count())):
+                current_widget = self.wlayout.itemAt(i).widget()
                 if isinstance(current_widget, QtWidgets.QLabel) and current_widget.text().startswith(
                     message_prefix.value
                 ):
-                    self.layout.removeWidget(current_widget)
+                    self.wlayout.removeWidget(current_widget)
                     current_widget.deleteLater()
 
         # Add new error message
@@ -174,7 +174,7 @@ class MainWindow(QtWidgets.QMainWindow):
             error_message.setWordWrap(True)
             error_message.setText(message)
             error_message.setStyleSheet("color: red")
-            self.layout.addWidget(error_message)
+            self.wlayout.addWidget(error_message)
 
     def update_search_settings(self):
         "Update config with search settings from UI"

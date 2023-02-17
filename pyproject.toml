@@ -87,12 +87,7 @@ install_types = true
 ignore_missing_imports = true
 non_interactive = true
 show_error_codes = true
-warn_unused_ignores = true
-exclude = [
-    "src/khoj/interface/desktop/main_window.py",
-    "src/khoj/interface/desktop/file_browser.py",
-    "src/khoj/interface/desktop/system_tray.py",
-]
+warn_unused_ignores = false
 
 [tool.black]
 line-length = 120

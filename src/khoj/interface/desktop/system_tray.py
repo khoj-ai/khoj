@@ -33,7 +33,7 @@ def create_system_tray(gui: QtWidgets.QApplication, main_window: MainWindow):
     # Add the menu actions to the menu
     for action_text, action_function in menu_actions:
         menu_action = QtGui.QAction(action_text, menu)
-        menu_action.triggered.connect(action_function)
+        menu_action.triggered.connect(action_function)  # type: ignore[attr-defined]
         menu.addAction(menu_action)
 
     # Add the menu to the system tray
