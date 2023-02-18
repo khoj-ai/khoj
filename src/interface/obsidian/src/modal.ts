@@ -94,6 +94,7 @@ export class KhojModal extends SuggestModal<SearchResult> {
         let entry_words = result.entry.split(' ')
         let entry_snipped_indicator = entry_words.length > words_to_render ? ' **...**' : '';
         let snipped_entry = entry_words.slice(0, words_to_render).join(' ');
+        // @ts-ignore
         MarkdownRenderer.renderMarkdown(snipped_entry + entry_snipped_indicator, el, null, null);
     }
 
@@ -111,7 +112,7 @@ export class KhojModal extends SuggestModal<SearchResult> {
             .find(file => result.file.endsWith(file.path))
 
         // Open vault file at heading of chosen search result
-        if (file_match){
+        if (file_match) {
             let resultHeading = result.entry.split('\n', 1)[0];
             let linkToEntry = `${file_match.path}${resultHeading}`
             this.app.workspace.openLinkText(linkToEntry, '');

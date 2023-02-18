@@ -10,7 +10,7 @@
     },
     "keywords": ["search"],
     "author": "Debanjum Singh Solanky",
-    "license": "GPLv3",
+    "license": "GPL-3.0-or-later",
     "devDependencies": {
         "@types/node": "^16.11.6",
         "@typescript-eslint/eslint-plugin": "5.29.0",
