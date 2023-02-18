@@ -11,8 +11,7 @@ COPY . /app
 WORKDIR /app
 
 # Install Python Dependencies
-RUN pip install --upgrade pip && \
-    pip install --upgrade .
+RUN pip install --upgrade pip && pip install --upgrade ".[dev]"
 
 # Run the Application
 # There are more arguments required for the application to run,
