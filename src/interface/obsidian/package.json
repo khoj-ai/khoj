@@ -1,6 +1,6 @@
 {
     "name": "Khoj",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "description": "Natural, Incremental Search for your Second Brain 🦅",
     "main": "src/main.js",
     "scripts": {
