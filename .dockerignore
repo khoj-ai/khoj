@@ -6,4 +6,5 @@ docs/
 tests/
 build/
 dist/
+scripts/
 *.egg-info/

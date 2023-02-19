@@ -1,17 +1,14 @@
 # syntax=docker/dockerfile:1
-FROM python:3.10-slim-bullseye
+FROM ubuntu:kinetic
 LABEL org.opencontainers.image.source https://github.com/debanjum/khoj
 
 # Install System Dependencies
-RUN apt-get update -y && \
-    apt-get -y install python3-pyqt5
-
-# Copy Application to Container
-COPY . /app
-WORKDIR /app
+RUN apt update -y && \
+    apt -y install python3-pip python3-pyqt6
 
 # Install Python Dependencies
-RUN pip install --upgrade pip && pip install --upgrade ".[dev]"
+RUN pip install --upgrade pip && \
+    pip install --upgrade --pre khoj-assistant
 
 # Run the Application
 # There are more arguments required for the application to run,
