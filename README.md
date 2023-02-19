@@ -20,8 +20,8 @@
 - [Architecture](#Architecture)
 - [Setup](#Setup)
   - [Install](#1-Install)
-  - [Configure](#2-Configure)
-  - [Run](#3-Run)
+  - [Run](#2-Run)
+  - [Configure](#3-Configure)
 - [Use](#Use)
   - [Interfaces](#Interfaces-1)
   - [Query Filters](#Query-filters)
@@ -29,7 +29,7 @@
   - [Khoj Server](#upgrade-khoj-server)
   - [Khoj.el](#upgrade-khoj-on-emacs)
   - [Khoj Obsidian](#upgrade-khoj-on-obsidian)
-- [Uninstall Khoj](#uninstall-khoj)
+- [Uninstall](#uninstall)
 - [Troubleshoot](#Troubleshoot)
 - [Advanced Usage](#advanced-usage)
   - [Access Khoj on Mobile](#access-khoj-on-mobile)
@@ -117,11 +117,13 @@ These are the general setup instructions for Khoj.
 pip install khoj-assistant
 ```
 
-### 2. Start App
+### 2. Run
 
 ```shell
 khoj
 ```
+
+Note: To start Khoj automatically in the background use [Task scheduler](https://www.windowscentral.com/how-create-automated-task-using-task-scheduler-windows-10) on Windows or [Cron](https://en.wikipedia.org/wiki/Cron) on Mac, Linux (e.g with `@reboot khoj`)
 
 ### 3. Configure
 
@@ -167,11 +169,11 @@ Use structured query syntax to filter the natural language search results
 pip install --upgrade khoj-assistant
 ```
 
-- Note: To upgrade to the latest pre-release version of the khoj server run below command
-  ```shell
-  # Maps to the latest commit on the master branch
-  pip install --upgrade --pre khoj-assistant
-  ```
+*Note: To upgrade to the latest pre-release version of the khoj server run below command*
+```shell
+# Maps to the latest commit on the master branch
+pip install --upgrade --pre khoj-assistant
+```
 
 ### Upgrade Khoj on Emacs
 - Use your Emacs Package Manager to Upgrade
@@ -181,7 +183,7 @@ pip install --upgrade khoj-assistant
 - Upgrade via the Community plugins tab on the settings pane in the Obsidian app
 - See the [khoj plugin readme](https://github.com/debanjum/khoj/tree/master/src/interface/obsidian#2-Setup-Plugin) for details
 
-## Uninstall Khoj
+## Uninstall
 1. (Optional) Hit `Ctrl-C` in the terminal running the khoj server to stop it
 2. Delete the khoj directory in your home folder (i.e `~/.khoj` on Linux, Mac or `C:\Users\<your-username>\.khoj` on Windows)
 3. Uninstall the khoj server with `pip uninstall khoj-assistant`
@@ -332,8 +334,13 @@ Add your OpenAI API to Khoj by using either of the two options below:
 ##### 1. Install
 
 ```shell
+# Get Khoj Code
 git clone https://github.com/debanjum/khoj && cd khoj
+
+# Create, Activate Virtual Environment
 python3 -m venv .venv && source .venv/bin/activate
+
+# Install Khoj for Development
 pip install -e .[dev]
 ```
 
