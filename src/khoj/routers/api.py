@@ -109,6 +109,20 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
                 count=results_count,
             )
 
+    elif (t in SearchType or t == None) and state.model.plugin_search:
+        # query specified plugin type
+        with timer("Query took", logger):
+            hits, entries = text_search.query(
+                user_query,
+                # Get plugin search model for specified search type, or the first one if none specified
+                state.model.plugin_search.get(t.value) or next(iter(state.model.plugin_search.values())),
+                rank_results=r,
+            )
+
+        # collate and return results
+        with timer("Collating results took", logger):
+            results = text_search.collate_results(hits, entries, results_count)
+
     # Cache results
     state.query_cache[query_cache_key] = results
 
