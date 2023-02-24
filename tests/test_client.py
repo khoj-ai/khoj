@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 # Internal Packages
 from khoj.main import app
+from khoj.configure import configure_routes
 from khoj.utils.state import model, config
 from khoj.search_type import text_search, image_search
 from khoj.utils.rawconfig import ContentConfig, SearchConfig
@@ -19,6 +20,7 @@ from khoj.search_filter.file_filter import FileFilter
 
 # Arrange
 # ----------------------------------------------------------------------------------------------------
+configure_routes(app)
 client = TestClient(app)
 
 
