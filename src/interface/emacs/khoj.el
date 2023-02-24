@@ -262,19 +262,15 @@ Use `which-key` if available, else display simple message in echo area"
 
 (defun khoj--get-enabled-content-types ()
   "Get content types enabled for search from API."
-  (let ((config-url (format "%s/api/config/data" khoj-server-url))
+  (let ((config-url (format "%s/api/config/types" khoj-server-url))
         (url-request-method "GET"))
     (with-temp-buffer
       (erase-buffer)
       (url-insert-file-contents config-url)
-      (let* ((json-response (json-parse-buffer :object-type 'alist))
-            (content-type (cdr (assoc 'content-type json-response))))
-        ;; return content-type items with configuration
-        (mapcar
-         #'car
-         (cl-remove-if-not
-          (lambda (a) (not (eq (cdr a) :null)))
-          content-type))))))
+      (thread-last
+        (json-parse-buffer :object-type 'alist)
+        (mapcar 'downcase)
+        (mapcar 'intern)))))
 
 (defun khoj--construct-api-query (query content-type &optional rerank)
   "Construct API Query from QUERY, CONTENT-TYPE and (optional) RERANK params."
