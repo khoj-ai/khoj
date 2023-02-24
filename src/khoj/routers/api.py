@@ -26,6 +26,17 @@ def get_default_config_data():
     return constants.default_config
 
 
+@api.get("/config/types", response_model=List[str])
+def get_config_types():
+    """Get configured content types"""
+    return [
+        search_type.name
+        for search_type in SearchType
+        if any(search_type.value == configured_content_type[0] for configured_content_type in state.config.content_type)
+        or search_type.value in state.config.content_type.plugins.keys()
+    ]
+
+
 @api.get("/config/data", response_model=FullConfig)
 def get_config_data():
     return state.config
