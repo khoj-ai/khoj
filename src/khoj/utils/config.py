@@ -3,7 +3,7 @@ from __future__ import annotations  # to avoid quoting type hints
 from enum import Enum
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Dict, List
 
 # External Packages
 import torch
@@ -62,6 +62,7 @@ class SearchModels:
     music_search: TextSearchModel = None
     markdown_search: TextSearchModel = None
     image_search: ImageSearchModel = None
+    plugin_search: Dict[str, TextSearchModel] = None
 
 
 class ConversationProcessorConfigModel:

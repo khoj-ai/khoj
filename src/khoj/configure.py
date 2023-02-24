@@ -8,6 +8,7 @@ import schedule
 
 # Internal Packages
 from khoj.processor.ledger.beancount_to_jsonl import BeancountToJsonl
+from khoj.processor.jsonl.jsonl_to_jsonl import JsonlToJsonl
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.search_type import image_search, text_search
@@ -104,6 +105,18 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
         model.image_search = image_search.setup(
             config.content_type.image, search_config=config.search_type.image, regenerate=regenerate
         )
+
+    # Initialize External Plugin Search
+    if (t == None or t in state.SearchType) and config.content_type.plugins:
+        model.plugin_search = {}
+        for plugin_type, plugin_config in config.content_type.plugins.items():
+            model.plugin_search[plugin_type] = text_search.setup(
+                JsonlToJsonl,
+                plugin_config,
+                search_config=config.search_type.asymmetric,
+                regenerate=regenerate,
+                filters=[DateFilter(), WordFilter(), FileFilter()],
+            )
 
     # Invalidate Query Cache
     state.query_cache = LRU()
