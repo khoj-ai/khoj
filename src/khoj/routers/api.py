@@ -12,9 +12,8 @@ from khoj.configure import configure_processor, configure_search
 from khoj.search_type import image_search, text_search
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import FullConfig, SearchResponse
-from khoj.utils.config import SearchType
+from khoj.utils.state import SearchType
 from khoj.utils import state, constants
-
 
 # Initialize Router
 api = APIRouter()
