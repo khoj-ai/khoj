@@ -77,6 +77,16 @@ def test_regenerate_with_valid_content_type(client):
 
 
 # ----------------------------------------------------------------------------------------------------
+def test_get_configured_types_via_api(client):
+    # Act
+    response = client.get(f"/api/config/types")
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == ["org", "image", "plugin1"]
+
+
+# ----------------------------------------------------------------------------------------------------
 def test_image_search(client, content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     model.image_search = image_search.setup(content_config.image, search_config.image, regenerate=False)

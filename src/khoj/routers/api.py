@@ -32,7 +32,7 @@ def get_config_types():
     return [
         search_type.value
         for search_type in SearchType
-        if any(search_type.value == configured_content_type[0] for configured_content_type in state.config.content_type)
+        if any(search_type.value == ctype[0] and ctype[1] for ctype in state.config.content_type)
         or search_type.name in state.config.content_type.plugins.keys()
     ]
 
