@@ -17,7 +17,7 @@ from khoj.processor.conversation.gpt import (
     understand,
     summarize,
 )
-from khoj.utils.config import SearchType
+from khoj.utils.state import SearchType
 from khoj.utils.helpers import get_from_dict, resolve_absolute_path
 from khoj.utils import state
 

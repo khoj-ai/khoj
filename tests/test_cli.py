@@ -43,8 +43,21 @@ def test_cli_config_from_file():
     assert actual_args.no_gui == True
     assert actual_args.regenerate == True
     assert actual_args.config is not None
+    assert actual_args.verbose == 3
+
+    # Ensure content config is loaded from file
     assert actual_args.config.content_type.org.input_files == [
         Path("~/first_from_config.org"),
         Path("~/second_from_config.org"),
     ]
-    assert actual_args.verbose == 3
+    assert len(actual_args.config.content_type.plugins.keys()) == 2
+    assert actual_args.config.content_type.plugins["content_plugin_1"].input_files == [
+        Path("content_plugin_1_new.jsonl.gz")
+    ]
+    assert actual_args.config.content_type.plugins["content_plugin_2"].input_filter == ["*2_new.jsonl.gz"]
+    assert actual_args.config.content_type.plugins["content_plugin_1"].compressed_jsonl == Path(
+        "content_plugin_1.jsonl.gz"
+    )
+    assert actual_args.config.content_type.plugins["content_plugin_2"].embeddings_file == Path(
+        "content_plugin_2_embeddings.pt"
+    )

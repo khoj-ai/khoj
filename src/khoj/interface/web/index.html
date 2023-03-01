@@ -56,7 +56,9 @@
             } else if (type === "ledger") {
                 return render_ledger(query, data);
             } else {
-                return `<pre id="json">${JSON.stringify(data, null, 2)}</pre>`;
+                return `<div id="results-plugin">`
+                    + data.map((item) => `<p>${item.entry}</p>`).join("\n")
+                    + `</div>`;
             }
         }
 
@@ -116,21 +118,21 @@
         }
 
         function populate_type_dropdown() {
-            // Populate type dropdown field with enabled search types only
-            var possible_search_types = ["org", "markdown", "ledger", "music", "image"];
-            fetch("/api/config/data")
+            // Populate type dropdown field with enabled content types only
+            fetch("/api/config/types")
                 .then(response => response.json())
-                .then(data => {
+                .then(enabled_types => {
                     document.getElementById("type").innerHTML =
-                    possible_search_types
-                    .filter(type => data["content-type"].hasOwnProperty(type) && data["content-type"][type])
+                    enabled_types
                     .map(type => `<option value="${type}">${type.slice(0,1).toUpperCase() + type.slice(1)}</option>`)
                     .join('');
+
+                    return enabled_types;
                 })
-                .then(() => {
-                    // Set type field to search type passed in URL query parameter, if valid
+                .then(enabled_types => {
+                    // Set type field to content type passed in URL query parameter, if valid
                     var type_via_url = new URLSearchParams(window.location.search).get("t");
-                    if (type_via_url && possible_search_types.includes(type_via_url))
+                    if (type_via_url && enabled_types.includes(type_via_url))
                         document.getElementById("type").value = type_via_url;
                 });
         }
@@ -154,7 +156,7 @@
         }
 
         window.onload = function () {
-            // Dynamically populate type dropdown based on enabled search types and type passed as URL query parameter
+            // Dynamically populate type dropdown based on enabled content types and type passed as URL query parameter
             populate_type_dropdown();
 
             // Set results count field with value passed in URL query parameters, if any.
@@ -277,9 +279,10 @@
         #json {
             white-space: pre-wrap;
         }
+        #results-plugin,
         #results-ledger {
-            white-space: pre-line;
             text-align: left;
+            white-space: pre-line;
         }
          #results-markdown {
             text-align: left;

@@ -8,6 +8,7 @@ import torch
 from pathlib import Path
 
 # Internal Packages
+from khoj.utils import config as utils_config
 from khoj.utils.config import SearchModels, ProcessorConfigModel
 from khoj.utils.helpers import LRU
 from khoj.utils.rawconfig import FullConfig
@@ -23,6 +24,7 @@ port: int = None
 cli_args: List[str] = None
 query_cache = LRU()
 search_index_lock = threading.Lock()
+SearchType = utils_config.SearchType
 
 if torch.cuda.is_available():
     # Use CUDA GPU

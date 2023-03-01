@@ -12,9 +12,8 @@ from khoj.configure import configure_processor, configure_search
 from khoj.search_type import image_search, text_search
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import FullConfig, SearchResponse
-from khoj.utils.config import SearchType
+from khoj.utils.state import SearchType
 from khoj.utils import state, constants
-
 
 # Initialize Router
 api = APIRouter()
@@ -25,6 +24,17 @@ logger = logging.getLogger(__name__)
 @api.get("/config/data/default")
 def get_default_config_data():
     return constants.default_config
+
+
+@api.get("/config/types", response_model=List[str])
+def get_config_types():
+    """Get configured content types"""
+    return [
+        search_type.value
+        for search_type in SearchType
+        if any(search_type.value == ctype[0] and ctype[1] for ctype in state.config.content_type)
+        or search_type.name in state.config.content_type.plugins.keys()
+    ]
 
 
 @api.get("/config/data", response_model=FullConfig)
@@ -109,6 +119,20 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
                 image_files_url="/static/images",
                 count=results_count,
             )
+
+    elif (t in SearchType or t == None) and state.model.plugin_search:
+        # query specified plugin type
+        with timer("Query took", logger):
+            hits, entries = text_search.query(
+                user_query,
+                # Get plugin search model for specified search type, or the first one if none specified
+                state.model.plugin_search.get(t.value) or next(iter(state.model.plugin_search.values())),
+                rank_results=r,
+            )
+
+        # collate and return results
+        with timer("Collating results took", logger):
+            results = text_search.collate_results(hits, entries, results_count)
 
     # Cache results
     state.query_cache[query_cache_key] = results

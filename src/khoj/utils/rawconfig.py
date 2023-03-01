@@ -1,7 +1,7 @@
 # System Packages
 import json
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Dict, Optional
 
 # External Packages
 from pydantic import BaseModel, validator
@@ -56,6 +56,7 @@ class ContentConfig(ConfigBase):
     image: Optional[ImageContentConfig]
     music: Optional[TextContentConfig]
     markdown: Optional[TextContentConfig]
+    plugins: Optional[Dict[str, TextContentConfig]]
 
 
 class TextSearchConfig(ConfigBase):

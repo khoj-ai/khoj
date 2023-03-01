@@ -6,6 +6,17 @@ content-type:
     embeddings-file: ".note_embeddings.pt"
     index-header-entries: true
 
+  plugins:
+    content_plugin_1:
+      input-files: [ "content_plugin_1_new.jsonl.gz" ]
+      compressed-jsonl: "content_plugin_1.jsonl.gz"
+      embeddings-file: "content_plugin_1_embeddings.pt"
+
+    content_plugin_2:
+      input-filter: [ "*2_new.jsonl.gz" ]
+      compressed-jsonl: "content_plugin_2.jsonl.gz"
+      embeddings-file: "content_plugin_2_embeddings.pt"
+
 search-type:
   asymmetric:
     encoder: "sentence-transformers/msmarco-MiniLM-L-6-v3"

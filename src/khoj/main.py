@@ -14,18 +14,14 @@ warnings.filterwarnings("ignore", message=r"legacy way to download files from th
 # External Packages
 import uvicorn
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import QThread, QTimer
 from rich.logging import RichHandler
 import schedule
 
 # Internal Packages
-from khoj.configure import configure_server
-from khoj.routers.api import api
-from khoj.routers.api_beta import api_beta
-from khoj.routers.web_client import web_client
-from khoj.utils import constants, state
+from khoj.configure import configure_routes, configure_server
+from khoj.utils import state
 from khoj.utils.cli import cli
 from khoj.interface.desktop.main_window import MainWindow
 from khoj.interface.desktop.system_tray import create_system_tray
@@ -33,10 +29,6 @@ from khoj.interface.desktop.system_tray import create_system_tray
 
 # Initialize the Application Server
 app = FastAPI()
-app.mount("/static", StaticFiles(directory=constants.web_directory), name="static")
-app.include_router(api, prefix="/api")
-app.include_router(api_beta, prefix="/api/beta")
-app.include_router(web_client)
 
 # Setup Logger
 rich_handler = RichHandler(rich_tracebacks=True)
@@ -78,6 +70,7 @@ def run():
         poll_task_scheduler()
         # Start Server
         configure_server(args, required=False)
+        configure_routes(app)
         start_server(app, host=args.host, port=args.port, socket=args.socket)
     else:
         # Setup GUI
@@ -95,6 +88,7 @@ def run():
 
         # Setup Server
         configure_server(args, required=False)
+        configure_routes(app)
         server = ServerThread(app, args.host, args.port, args.socket)
 
         # Show Main Window on First Run Experience or if on Linux

@@ -2,18 +2,21 @@
 import sys
 import logging
 import json
+from enum import Enum
 
 # External Packages
 import schedule
+from fastapi.staticfiles import StaticFiles
 
 # Internal Packages
 from khoj.processor.ledger.beancount_to_jsonl import BeancountToJsonl
+from khoj.processor.jsonl.jsonl_to_jsonl import JsonlToJsonl
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.search_type import image_search, text_search
+from khoj.utils import constants, state
 from khoj.utils.config import SearchType, SearchModels, ProcessorConfigModel, ConversationProcessorConfigModel
-from khoj.utils import state
-from khoj.utils.helpers import LRU, resolve_absolute_path
+from khoj.utils.helpers import LRU, resolve_absolute_path, merge_dicts
 from khoj.utils.rawconfig import FullConfig, ProcessorConfig
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.word_filter import WordFilter
@@ -39,10 +42,23 @@ def configure_server(args, required=False):
     # Initialize Processor from Config
     state.processor_config = configure_processor(args.config.processor)
 
-    # Initialize the search model from Config
+    # Initialize the search type and model from Config
     state.search_index_lock.acquire()
+    state.SearchType = configure_search_types(state.config)
     state.model = configure_search(state.model, state.config, args.regenerate)
     state.search_index_lock.release()
+
+
+def configure_routes(app):
+    # Import APIs here to setup search types before while configuring server
+    from khoj.routers.api import api
+    from khoj.routers.api_beta import api_beta
+    from khoj.routers.web_client import web_client
+
+    app.mount("/static", StaticFiles(directory=constants.web_directory), name="static")
+    app.include_router(api, prefix="/api")
+    app.include_router(api_beta, prefix="/api/beta")
+    app.include_router(web_client)
 
 
 @schedule.repeat(schedule.every(1).hour)
@@ -53,9 +69,19 @@ def update_search_index():
     logger.info("Search Index updated via Scheduler")
 
 
-def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, t: SearchType = None):
+def configure_search_types(config: FullConfig):
+    # Extract core search types
+    core_search_types = {e.name: e.value for e in SearchType}
+    # Extract configured plugin search types
+    plugin_search_types = {plugin_type: plugin_type for plugin_type in config.content_type.plugins.keys()}
+
+    # Dynamically generate search type enum by merging core search types with configured plugin search types
+    return Enum("SearchType", merge_dicts(core_search_types, plugin_search_types))
+
+
+def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, t: state.SearchType = None):
     # Initialize Org Notes Search
-    if (t == SearchType.Org or t == None) and config.content_type.org:
+    if (t == state.SearchType.Org or t == None) and config.content_type.org:
         # Extract Entries, Generate Notes Embeddings
         model.orgmode_search = text_search.setup(
             OrgToJsonl,
@@ -66,7 +92,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
         )
 
     # Initialize Org Music Search
-    if (t == SearchType.Music or t == None) and config.content_type.music:
+    if (t == state.SearchType.Music or t == None) and config.content_type.music:
         # Extract Entries, Generate Music Embeddings
         model.music_search = text_search.setup(
             OrgToJsonl,
@@ -77,7 +103,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
         )
 
     # Initialize Markdown Search
-    if (t == SearchType.Markdown or t == None) and config.content_type.markdown:
+    if (t == state.SearchType.Markdown or t == None) and config.content_type.markdown:
         # Extract Entries, Generate Markdown Embeddings
         model.markdown_search = text_search.setup(
             MarkdownToJsonl,
@@ -88,7 +114,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
         )
 
     # Initialize Ledger Search
-    if (t == SearchType.Ledger or t == None) and config.content_type.ledger:
+    if (t == state.SearchType.Ledger or t == None) and config.content_type.ledger:
         # Extract Entries, Generate Ledger Embeddings
         model.ledger_search = text_search.setup(
             BeancountToJsonl,
@@ -99,11 +125,23 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
         )
 
     # Initialize Image Search
-    if (t == SearchType.Image or t == None) and config.content_type.image:
+    if (t == state.SearchType.Image or t == None) and config.content_type.image:
         # Extract Entries, Generate Image Embeddings
         model.image_search = image_search.setup(
             config.content_type.image, search_config=config.search_type.image, regenerate=regenerate
         )
+
+    # Initialize External Plugin Search
+    if (t == None or t in state.SearchType) and config.content_type.plugins:
+        model.plugin_search = {}
+        for plugin_type, plugin_config in config.content_type.plugins.items():
+            model.plugin_search[plugin_type] = text_search.setup(
+                JsonlToJsonl,
+                plugin_config,
+                search_config=config.search_type.asymmetric,
+                regenerate=regenerate,
+                filters=[DateFilter(), WordFilter(), FileFilter()],
+            )
 
     # Invalidate Query Cache
     state.query_cache = LRU()
