@@ -9,8 +9,9 @@ from fastapi.testclient import TestClient
 
 # Internal Packages
 from khoj.main import app
-from khoj.configure import configure_routes
-from khoj.utils.state import model
+from khoj.configure import configure_routes, configure_search_types
+from khoj.utils import state
+from khoj.utils.state import model, config
 from khoj.search_type import text_search, image_search
 from khoj.utils.rawconfig import ContentConfig, SearchConfig
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
@@ -84,6 +85,59 @@ def test_get_configured_types_via_api(client):
     # Assert
     assert response.status_code == 200
     assert response.json() == ["org", "image", "plugin1"]
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_get_configured_types_with_only_plugin_content_config(content_config):
+    # Arrange
+    config.content_type = ContentConfig()
+    config.content_type.plugins = content_config.plugins
+    state.SearchType = configure_search_types(config)
+
+    configure_routes(app)
+    client = TestClient(app)
+
+    # Act
+    response = client.get(f"/api/config/types")
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == ["plugin1"]
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_get_configured_types_with_no_plugin_content_config(content_config):
+    # Arrange
+    config.content_type = content_config
+    config.content_type.plugins = None
+    state.SearchType = configure_search_types(config)
+
+    configure_routes(app)
+    client = TestClient(app)
+
+    # Act
+    response = client.get(f"/api/config/types")
+
+    # Assert
+    assert response.status_code == 200
+    assert "plugin1" not in response.json()
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_get_configured_types_with_no_content_config():
+    # Arrange
+    config.content_type = ContentConfig()
+    state.SearchType = configure_search_types(config)
+
+    configure_routes(app)
+    client = TestClient(app)
+
+    # Act
+    response = client.get(f"/api/config/types")
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == []
 
 
 # ----------------------------------------------------------------------------------------------------

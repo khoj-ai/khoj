@@ -29,11 +29,12 @@ def get_default_config_data():
 @api.get("/config/types", response_model=List[str])
 def get_config_types():
     """Get configured content types"""
+    configured_content_types = state.config.content_type.dict(exclude_none=True)
     return [
         search_type.value
         for search_type in SearchType
-        if any(search_type.value == ctype[0] and ctype[1] for ctype in state.config.content_type)
-        or search_type.name in state.config.content_type.plugins.keys()
+        if search_type.value in configured_content_types
+        or ("plugins" in configured_content_types and search_type.name in configured_content_types["plugins"])
     ]
 
 

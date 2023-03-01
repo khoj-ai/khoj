@@ -73,7 +73,9 @@ def configure_search_types(config: FullConfig):
     # Extract core search types
     core_search_types = {e.name: e.value for e in SearchType}
     # Extract configured plugin search types
-    plugin_search_types = {plugin_type: plugin_type for plugin_type in config.content_type.plugins.keys()}
+    plugin_search_types = {}
+    if config.content_type.plugins:
+        plugin_search_types = {plugin_type: plugin_type for plugin_type in config.content_type.plugins.keys()}
 
     # Dynamically generate search type enum by merging core search types with configured plugin search types
     return Enum("SearchType", merge_dicts(core_search_types, plugin_search_types))
