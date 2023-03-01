@@ -41,16 +41,16 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
 
-      - name: Install Dependencies
+      - name: ⏬️ Install Dependencies
         run: |
           sudo apt update && sudo apt install -y libegl1
           python -m pip install --upgrade pip
 
-      - name: Install Application
+      - name: ⬇️ Install Application
         run: pip install --upgrade .[dev]
 
-      - name: Validate Application
+      - name: 🌡️ Validate Application
         run: pre-commit run --hook-stage manual --all
 
-      - name: Test Application
+      - name: 🧪 Test Application
         run: pytest

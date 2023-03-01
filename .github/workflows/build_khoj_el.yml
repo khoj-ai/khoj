@@ -24,13 +24,13 @@ jobs:
     - name: Set up Python 3.9
       uses: actions/setup-python@v1
       with: { python-version: 3.9 }
-    - name: Install
+    - name: ⏬️ Install Dependencies
       run: |
         python -m pip install --upgrade pip
         sudo apt-get install emacs && emacs --version
         git clone https://github.com/riscy/melpazoid.git ~/melpazoid
         pip install ~/melpazoid
-    - name: Run
+    - name: 🌡️ Validate Khoj.el
       env:
         # Khoj recipe from https://github.com/melpa/melpa/pull/8321/files
         RECIPE: (khoj :fetcher github :repo "debanjum/khoj" :files ("src/interface/emacs/*.el"))

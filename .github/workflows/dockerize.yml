@@ -36,7 +36,7 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.PAT }}
 
-      - name: Build and Push Docker Image
+      - name: 📦 Build and Push Docker Image
         uses: docker/build-push-action@v2
         with:
           context: .

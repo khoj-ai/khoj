@@ -13,7 +13,7 @@ on:
 
 jobs:
   publish_obsidian_plugin:
-    name: Publish Obsidian Plugin
+    name: 💎 Publish Obsidian Plugin
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -27,26 +27,26 @@ jobs:
         with:
           node-version: "lts/*"
 
-      - name: Build Obsidian Plugin
+      - name: ⚙️ Build Obsidian Plugin
         run: |
           yarn
           yarn run build --if-present
 
-      - name: Upload Obsidian Plugin main.js
+      - name: ⏫ Upload Obsidian Plugin main.js
         uses: actions/upload-artifact@v3
         with:
           if-no-files-found: error
           name: main.js
           path: src/interface/obsidian/main.js
 
-      - name: Upload Obsidian Plugin manifest.json
+      - name: ⏫ Upload Obsidian Plugin manifest.json
         uses: actions/upload-artifact@v3
         with:
           if-no-files-found: error
           name: manifest.json
           path: src/interface/obsidian/manifest.json
 
-      - name: Create Release
+      - name: 🌈 Create Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
@@ -56,7 +56,7 @@ jobs:
             src/interface/obsidian/manifest.json
 
   publish_desktop_apps:
-    name: Publish Desktop Apps
+    name: 🖥️ Publish Desktop Apps
     strategy:
       matrix:
         include:
@@ -75,7 +75,7 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: Install Dependencies
+      - name: ⏬️ Install Dependencies
         shell: bash
         run: |
           if [ "$RUNNER_OS" == "Linux" ]; then
@@ -84,11 +84,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyinstaller
 
-      - name: Install Khoj App
+      - name: ⬇️ Install Khoj App
         run: |
           pip install --upgrade .
 
-      - name: Package Khoj App
+      - name: 📦 Package Khoj App
         shell: bash
         run: |
           # Setup Environment for Reproducible Builds
@@ -100,7 +100,7 @@ jobs:
             mv dist/Khoj.exe dist/khoj_"$GITHUB_REF_NAME"_amd64.exe
           fi
 
-      - name: Create Mac App DMG
+      - name: 💻 Create Mac App DMG
         if: matrix.os == 'macos-latest'
         run: |
          # Install Mac DMG Creator
@@ -124,7 +124,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         with:
           ruby-version: '3.0'
-      - name: Create Debian Package
+      - name: 🐧 Create Debian Package
         if: matrix.os == 'ubuntu-latest'
         shell: bash
         env:
@@ -154,7 +154,7 @@ jobs:
           name: khoj_${{github.ref_name}}_amd64.${{matrix.extension}}
           path: dist/khoj_${{github.ref_name}}_amd64.${{matrix.extension}}
 
-      - name: Release
+      - name: 🌈 Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:

@@ -33,7 +33,7 @@ jobs:
         with:
           version: ${{ matrix.emacs_version }}
       - uses: actions/checkout@v3
-      - name: Test Khoj.el
+      - name: 🧪 Test Khoj.el
         run: |
            # Run ERT tests on khoj.el
            emacs -batch \
