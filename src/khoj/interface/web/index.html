@@ -65,7 +65,7 @@
         function search(rerank=false) {
             // Extract required fields for search from form
             query = document.getElementById("query").value.trim();
-            type = document.getElementById("type").value.toLowerCase();
+            type = document.getElementById("type").value;
             results_count = document.getElementById("results-count").value || 6;
             console.log(`Query: ${query}, Type: ${type}`);
 

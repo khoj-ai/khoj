@@ -281,7 +281,6 @@ Use `which-key` if available, else display simple message in echo area"
       (url-insert-file-contents config-url)
       (thread-last
         (json-parse-buffer :object-type 'alist)
-        (mapcar 'downcase)
         (mapcar 'intern)))))
 
 (defun khoj--construct-api-query (query content-type &optional rerank)

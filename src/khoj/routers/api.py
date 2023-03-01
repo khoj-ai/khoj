@@ -30,10 +30,10 @@ def get_default_config_data():
 def get_config_types():
     """Get configured content types"""
     return [
-        search_type.name
+        search_type.value
         for search_type in SearchType
         if any(search_type.value == configured_content_type[0] for configured_content_type in state.config.content_type)
-        or search_type.value in state.config.content_type.plugins.keys()
+        or search_type.name in state.config.content_type.plugins.keys()
     ]
 
 
