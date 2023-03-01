@@ -56,7 +56,7 @@ async def set_config_data(updated_config: FullConfig):
 def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Optional[bool] = False):
     results: List[SearchResponse] = []
     if q is None or q == "":
-        logger.info(f"No query param (q) passed in API call to initiate search")
+        logger.warn(f"No query param (q) passed in API call to initiate search")
         return results
 
     # initialize variables
@@ -66,7 +66,7 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
     # return cached results, if available
     query_cache_key = f"{user_query}-{n}-{t}-{r}"
     if query_cache_key in state.query_cache:
-        logger.info(f"Return response from query cache")
+        logger.debug(f"Return response from query cache")
         return state.query_cache[query_cache_key]
 
     if (t == SearchType.Org or t == None) and state.model.orgmode_search:
@@ -151,7 +151,7 @@ def update(t: Optional[SearchType] = None, force: Optional[bool] = False):
         logger.error(e)
         raise HTTPException(status_code=500, detail=str(e))
     else:
-        logger.info("Search Index updated via API call")
+        logger.info("📬 Search index updated via API")
 
     try:
         state.processor_config = configure_processor(state.config.processor)
@@ -159,6 +159,6 @@ def update(t: Optional[SearchType] = None, force: Optional[bool] = False):
         logger.error(e)
         raise HTTPException(status_code=500, detail=str(e))
     else:
-        logger.info("Processor reconfigured via API call")
+        logger.info("📬 Processor reconfigured via API")
 
     return {"status": "ok", "message": "khoj reloaded"}

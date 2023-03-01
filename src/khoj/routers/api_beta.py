@@ -152,7 +152,6 @@ def save_chat_session():
         conversation_log["session"].append(session)
     else:
         conversation_log["session"] = [session]
-    logger.info("Added new chat session to conversation logs")
 
     # Save Conversation Metadata Logs to Disk
     conversation_logfile = resolve_absolute_path(state.processor_config.conversation.conversation_logfile)
@@ -161,4 +160,4 @@ def save_chat_session():
         json.dump(conversation_log, logfile)
 
     state.processor_config.conversation.chat_session = None
-    logger.info("Saved updated conversation logs to disk.")
+    logger.info("📩 Saved current chat session to conversation logs")

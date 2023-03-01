@@ -3,7 +3,6 @@ import glob
 import pathlib
 import copy
 import shutil
-import time
 import logging
 from typing import List
 
@@ -50,9 +49,9 @@ def extract_entries(image_directories):
         image_names.extend(list(image_directory.glob("*.jpg")))
         image_names.extend(list(image_directory.glob("*.jpeg")))
 
-    if logger.level >= logging.INFO:
+    if logger.level >= logging.DEBUG:
         image_directory_names = ", ".join([str(image_directory) for image_directory in image_directories])
-        logger.info(f"Found {len(image_names)} images in {image_directory_names}")
+        logger.debug(f"Found {len(image_names)} images in {image_directory_names}")
     return sorted(image_names)
 
 
@@ -71,7 +70,7 @@ def compute_image_embeddings(image_names, encoder, embeddings_file, batch_size=5
     # Load pre-computed image embeddings from file if exists
     if resolve_absolute_path(embeddings_file).exists() and not regenerate:
         image_embeddings = torch.load(embeddings_file)
-        logger.info(f"Loaded {len(image_embeddings)} image embeddings from {embeddings_file}")
+        logger.debug(f"Loaded {len(image_embeddings)} image embeddings from {embeddings_file}")
     # Else compute the image embeddings from scratch, which can take a while
     else:
         image_embeddings = []
@@ -89,7 +88,7 @@ def compute_image_embeddings(image_names, encoder, embeddings_file, batch_size=5
 
         # Save computed image embeddings to file
         torch.save(image_embeddings, embeddings_file)
-        logger.info(f"Saved computed embeddings to {embeddings_file}")
+        logger.info(f"📩 Saved computed image embeddings to {embeddings_file}")
 
     return image_embeddings
 
@@ -102,7 +101,7 @@ def compute_metadata_embeddings(
     # Load pre-computed image metadata embedding file if exists
     if use_xmp_metadata and resolve_absolute_path(f"{embeddings_file}_metadata").exists() and not regenerate:
         image_metadata_embeddings = torch.load(f"{embeddings_file}_metadata")
-        logger.info(f"Loaded pre-computed embeddings from {embeddings_file}_metadata")
+        logger.debug(f"Loaded image metadata embeddings from {embeddings_file}_metadata")
 
     # Else compute the image metadata embeddings from scratch, which can take a while
     if use_xmp_metadata and image_metadata_embeddings is None:
@@ -121,7 +120,7 @@ def compute_metadata_embeddings(
                 )
                 continue
         torch.save(image_metadata_embeddings, f"{embeddings_file}_metadata")
-        logger.info(f"Saved computed metadata embeddings to {embeddings_file}_metadata")
+        logger.info(f"📩 Saved computed image metadata embeddings to {embeddings_file}_metadata")
 
     return image_metadata_embeddings
 
@@ -149,12 +148,12 @@ def query(raw_query, count, model: ImageSearchModel):
         query_imagepath = resolve_absolute_path(pathlib.Path(raw_query[5:]), strict=True)
         query = copy.deepcopy(Image.open(query_imagepath))
         query.thumbnail((640, query.height))  # scale down image for faster processing
-        logger.info(f"Find Images by Image: {query_imagepath}")
+        logger.info(f"🔎 Find Images by Image: {query_imagepath}")
     else:
         # Truncate words in query to stay below max_tokens supported by ML model
         max_words = 20
         query = " ".join(raw_query.split()[:max_words])
-        logger.info(f"Find Images by Text: {query}")
+        logger.info(f"🔎 Find Images by Text: {query}")
 
     # Now we encode the query (which can either be an image or a text string)
     with timer("Query Encode Time", logger):

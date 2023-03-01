@@ -58,7 +58,7 @@ class WordFilter(BaseFilter):
         # Return item from cache if exists
         cache_key = tuple(sorted(required_words)), tuple(sorted(blocked_words))
         if cache_key in self.cache:
-            logger.info(f"Return word filter results from cache")
+            logger.debug(f"Return word filter results from cache")
             included_entry_indices = self.cache[cache_key]
             return query, included_entry_indices
 

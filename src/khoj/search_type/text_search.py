@@ -1,7 +1,6 @@
 # Standard Packages
 import logging
 from pathlib import Path
-import time
 from typing import List, Tuple, Type
 
 # External Packages
@@ -68,7 +67,7 @@ def compute_embeddings(
     # Load pre-computed embeddings from file if exists and update them if required
     if embeddings_file.exists() and not regenerate:
         corpus_embeddings = torch.load(get_absolute_path(embeddings_file), map_location=state.device)
-        logger.info(f"Loaded embeddings from {embeddings_file}")
+        logger.debug(f"Loaded {len(corpus_embeddings)} text embeddings from {embeddings_file}")
 
         # Encode any new entries in the corpus and update corpus embeddings
         new_entries = [entry.compiled for id, entry in entries_with_ids if id == -1]
@@ -95,7 +94,7 @@ def compute_embeddings(
     if new_entries:
         corpus_embeddings = util.normalize_embeddings(corpus_embeddings)
         torch.save(corpus_embeddings, embeddings_file)
-        logger.info(f"Computed embeddings and saved them to {embeddings_file}")
+        logger.info(f"📩 Saved computed text embeddings to {embeddings_file}")
 
     return corpus_embeddings
 

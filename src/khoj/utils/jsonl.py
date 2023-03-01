@@ -31,7 +31,7 @@ def load_jsonl(input_path):
     jsonl_file.close()
 
     # Log JSONL entries loaded
-    logger.info(f"Loaded {len(data)} records from {input_path}")
+    logger.debug(f"Loaded {len(data)} records from {input_path}")
 
     return data
 
@@ -44,7 +44,7 @@ def dump_jsonl(jsonl_data, output_path):
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(jsonl_data)
 
-    logger.info(f"Wrote jsonl data to {output_path}")
+    logger.debug(f"Wrote jsonl data to {output_path}")
 
 
 def compress_jsonl_data(jsonl_data, output_path):
@@ -54,4 +54,4 @@ def compress_jsonl_data(jsonl_data, output_path):
     with gzip.open(output_path, "wt", encoding="utf-8") as gzip_file:
         gzip_file.write(jsonl_data)
 
-    logger.info(f"Wrote jsonl data to gzip compressed jsonl at {output_path}")
+    logger.debug(f"Wrote jsonl data to gzip compressed jsonl at {output_path}")

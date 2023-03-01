@@ -66,7 +66,7 @@ def update_search_index():
     state.search_index_lock.acquire()
     state.model = configure_search(state.model, state.config, regenerate=False)
     state.search_index_lock.release()
-    logger.info("Search Index updated via Scheduler")
+    logger.info("📬 Search index updated via Scheduler")
 
 
 def configure_search_types(config: FullConfig):
@@ -84,6 +84,7 @@ def configure_search_types(config: FullConfig):
 def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, t: state.SearchType = None):
     # Initialize Org Notes Search
     if (t == state.SearchType.Org or t == None) and config.content_type.org:
+        logger.info("🦄 Setting up search for orgmode notes")
         # Extract Entries, Generate Notes Embeddings
         model.orgmode_search = text_search.setup(
             OrgToJsonl,
@@ -95,6 +96,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
 
     # Initialize Org Music Search
     if (t == state.SearchType.Music or t == None) and config.content_type.music:
+        logger.info("🎺 Setting up search for org-music")
         # Extract Entries, Generate Music Embeddings
         model.music_search = text_search.setup(
             OrgToJsonl,
@@ -106,6 +108,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
 
     # Initialize Markdown Search
     if (t == state.SearchType.Markdown or t == None) and config.content_type.markdown:
+        logger.info("💎 Setting up search for markdown notes")
         # Extract Entries, Generate Markdown Embeddings
         model.markdown_search = text_search.setup(
             MarkdownToJsonl,
@@ -117,6 +120,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
 
     # Initialize Ledger Search
     if (t == state.SearchType.Ledger or t == None) and config.content_type.ledger:
+        logger.info("💸 Setting up search for ledger")
         # Extract Entries, Generate Ledger Embeddings
         model.ledger_search = text_search.setup(
             BeancountToJsonl,
@@ -128,6 +132,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
 
     # Initialize Image Search
     if (t == state.SearchType.Image or t == None) and config.content_type.image:
+        logger.info("🌄 Setting up search for images")
         # Extract Entries, Generate Image Embeddings
         model.image_search = image_search.setup(
             config.content_type.image, search_config=config.search_type.image, regenerate=regenerate
@@ -135,6 +140,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
 
     # Initialize External Plugin Search
     if (t == None or t in state.SearchType) and config.content_type.plugins:
+        logger.info("🔌 Setting up search for plugins")
         model.plugin_search = {}
         for plugin_type, plugin_config in config.content_type.plugins.items():
             model.plugin_search[plugin_type] = text_search.setup(
@@ -159,6 +165,7 @@ def configure_processor(processor_config: ProcessorConfig):
 
     # Initialize Conversation Processor
     if processor_config.conversation:
+        logger.info("💬 Setting up conversation processor")
         processor.conversation = configure_conversation_processor(processor_config.conversation)
 
     return processor
@@ -172,7 +179,7 @@ def configure_conversation_processor(conversation_processor_config):
         # Load Metadata Logs from Conversation Logfile
         with conversation_logfile.open("r") as f:
             conversation_processor.meta_log = json.load(f)
-        logger.info("Conversation logs loaded from disk.")
+        logger.debug(f"Loaded conversation logs from {conversation_logfile}")
     else:
         # Initialize Conversation Logs
         conversation_processor.meta_log = {}

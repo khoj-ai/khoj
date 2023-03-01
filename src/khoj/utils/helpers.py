@@ -58,16 +58,20 @@ def merge_dicts(priority_dict: dict, default_dict: dict):
 def load_model(model_name: str, model_type, model_dir=None, device: str = None) -> Union[BaseEncoder, CrossEncoder]:
     "Load model from disk or huggingface"
     # Construct model path
+    logger = logging.getLogger(__name__)
     model_path = join(model_dir, model_name.replace("/", "_")) if model_dir is not None else None
 
     # Load model from model_path if it exists there
     model_type_class = get_class_by_name(model_type) if isinstance(model_type, str) else model_type
     if model_path is not None and resolve_absolute_path(model_path).exists():
+        logger.debug(f"Loading {model_name} model from disk")
         model = model_type_class(get_absolute_path(model_path), device=device)
     # Else load the model from the model_name
     else:
+        logger.info(f"🤖 Downloading {model_name} model from web")
         model = model_type_class(model_name, device=device)
         if model_path is not None:
+            logger.info(f"📩 Saved {model_name} model to disk")
             model.save(model_path)
 
     return model

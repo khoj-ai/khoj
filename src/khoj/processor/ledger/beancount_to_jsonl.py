@@ -88,7 +88,7 @@ class BeancountToJsonl(TextToJsonl):
         if any(files_with_non_beancount_extensions):
             print(f"[Warning] There maybe non beancount files in the input set: {files_with_non_beancount_extensions}")
 
-        logger.info(f"Processing files: {all_beancount_files}")
+        logger.debug(f"Processing files: {all_beancount_files}")
 
         return all_beancount_files
 
@@ -123,7 +123,7 @@ class BeancountToJsonl(TextToJsonl):
                 Entry(compiled=parsed_entry, raw=parsed_entry, file=f"{transaction_to_file_map[parsed_entry]}")
             )
 
-        logger.info(f"Converted {len(parsed_entries)} transactions to dictionaries")
+        logger.debug(f"Converted {len(parsed_entries)} transactions to dictionaries")
 
         return entries
 

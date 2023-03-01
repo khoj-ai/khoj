@@ -82,7 +82,7 @@ class JsonlToJsonl(TextToJsonl):
         if any(files_with_non_jsonl_extensions):
             print(f"[Warning] There maybe non jsonl files in the input set: {files_with_non_jsonl_extensions}")
 
-        logger.info(f"Processing files: {all_jsonl_files}")
+        logger.debug(f"Processing files: {all_jsonl_files}")
 
         return all_jsonl_files
 

@@ -92,7 +92,7 @@ class MarkdownToJsonl(TextToJsonl):
                 f"[Warning] There maybe non markdown-mode files in the input set: {files_with_non_markdown_extensions}"
             )
 
-        logger.info(f"Processing files: {all_markdown_files}")
+        logger.debug(f"Processing files: {all_markdown_files}")
 
         return all_markdown_files
 
@@ -126,7 +126,7 @@ class MarkdownToJsonl(TextToJsonl):
         for parsed_entry in parsed_entries:
             entries.append(Entry(compiled=parsed_entry, raw=parsed_entry, file=f"{entry_to_file_map[parsed_entry]}"))
 
-        logger.info(f"Converted {len(parsed_entries)} markdown entries to dictionaries")
+        logger.debug(f"Converted {len(parsed_entries)} markdown entries to dictionaries")
 
         return entries
 

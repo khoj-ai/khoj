@@ -86,7 +86,7 @@ class OrgToJsonl(TextToJsonl):
         if any(files_with_non_org_extensions):
             logger.warn(f"There maybe non org-mode files in the input set: {files_with_non_org_extensions}")
 
-        logger.info(f"Processing files: {all_org_files}")
+        logger.debug(f"Processing files: {all_org_files}")
 
         return all_org_files
 

@@ -49,7 +49,7 @@ class FileFilter(BaseFilter):
         query = re.sub(self.file_filter_regex, "", query).strip()
         cache_key = tuple(files_to_search)
         if cache_key in self.cache:
-            logger.info(f"Return file filter results from cache")
+            logger.debug(f"Return file filter results from cache")
             included_entry_indices = self.cache[cache_key]
             return query, included_entry_indices
 
