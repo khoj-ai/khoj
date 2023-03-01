@@ -108,6 +108,30 @@ def test_entry_with_body_to_jsonl(tmp_path):
     assert len(jsonl_data) == 1
 
 
+def test_file_with_entry_after_intro_text_to_jsonl(tmp_path):
+    "Ensure intro text before any headings is indexed."
+    # Arrange
+    entry = f"""
+Intro text
+
+* Entry Heading
+  entry body
+"""
+    orgfile = create_file(tmp_path, entry)
+
+    # Act
+    # Extract Entries from specified Org files
+    entry_nodes, file_to_entries = OrgToJsonl.extract_org_entries(org_files=[orgfile])
+
+    # Process Each Entry from All Notes Files
+    entries = OrgToJsonl.convert_org_nodes_to_entries(entry_nodes, file_to_entries)
+    jsonl_string = OrgToJsonl.convert_org_entries_to_jsonl(entries)
+    jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
+
+    # Assert
+    assert len(jsonl_data) == 2
+
+
 def test_file_with_no_headings_to_jsonl(tmp_path):
     "Ensure files with no heading, only body text are loaded."
     # Arrange

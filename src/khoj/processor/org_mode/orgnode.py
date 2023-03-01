@@ -73,6 +73,7 @@ def makelist(filename):
     level = ""
     heading = ""
     bodytext = ""
+    introtext = ""
     tags = list()  # set of all tags in headline
     closed_date = ""
     sched_date = ""
@@ -133,7 +134,7 @@ def makelist(filename):
                     file_title += f" {title_text}"
                 continue
 
-            # Ignore Properties Drawers Completely
+            # Ignore Properties Drawer Start, End Lines
             if re.search(":PROPERTIES:", line):
                 in_properties_drawer = True
                 continue
@@ -190,20 +191,33 @@ def makelist(filename):
                 and not clocked_re
                 and line[:1] != "#"
             ):
-                bodytext = bodytext + line
+                # if we are in a heading
+                if heading:
+                    # add the line to the bodytext
+                    bodytext += line
+                # else we are in the pre heading portion of the file
+                elif line.strip():
+                    # so add the line to the introtext
+                    introtext += line
 
-    # write out last node
-    thisNode = Orgnode(level, heading or file_title, bodytext, tags)
-    thisNode.properties = property_map
-    if sched_date:
-        thisNode.scheduled = sched_date
-    if deadline_date:
-        thisNode.deadline = deadline_date
-    if closed_date:
-        thisNode.closed = closed_date
-    if logbook:
-        thisNode.logbook = logbook
-    nodelist.append(thisNode)
+    # write out intro node before headings
+    # this is done at the end to allow collating all title lines
+    if introtext:
+        thisNode = Orgnode(level, file_title, introtext, tags)
+        nodelist = [thisNode] + nodelist
+    # write out last heading node
+    if heading:
+        thisNode = Orgnode(level, heading, bodytext, tags)
+        thisNode.properties = property_map
+        if sched_date:
+            thisNode.scheduled = sched_date
+        if deadline_date:
+            thisNode.deadline = deadline_date
+        if closed_date:
+            thisNode.closed = closed_date
+        if logbook:
+            thisNode.logbook = logbook
+        nodelist.append(thisNode)
 
     # using the list of TODO keywords found in the file
     # process the headings searching for TODO keywords

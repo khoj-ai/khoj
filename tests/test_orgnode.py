@@ -268,7 +268,7 @@ def test_parse_entry_with_multiple_titles_and_no_headings(tmp_path):
     # Arrange
     entry = f"""#+TITLE: title1
 Body Line 1
-#+TITLE:  title2  """
+#+TITLE:  title2 """
     orgfile = create_file(tmp_path, entry)
 
     # Act
@@ -284,6 +284,50 @@ Body Line 1
     assert entries[0].closed == ""
     assert entries[0].scheduled == ""
     assert entries[0].deadline == ""
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_parse_org_with_intro_text_before_heading(tmp_path):
+    "Test parsing of org file with intro text before heading"
+    # Arrange
+    body = f"""#+TITLE: Title
+intro body
+* Entry Heading
+entry body
+"""
+    orgfile = create_file(tmp_path, body)
+
+    # Act
+    entries = orgnode.makelist(orgfile)
+
+    # Assert
+    assert len(entries) == 2
+    assert entries[0].heading == "Title"
+    assert entries[0].body == "intro body\n"
+    assert entries[1].heading == "Entry Heading"
+    assert entries[1].body == "entry body\n"
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_parse_org_with_intro_text_multiple_titles_and_heading(tmp_path):
+    "Test parsing of org file with intro text, multiple titles and heading entry"
+    # Arrange
+    body = f"""#+TITLE: Title1
+intro body
+* Entry Heading
+entry body
+#+TITLE: Title2 """
+    orgfile = create_file(tmp_path, body)
+
+    # Act
+    entries = orgnode.makelist(orgfile)
+
+    # Assert
+    assert len(entries) == 2
+    assert entries[0].heading == "Title1 Title2"
+    assert entries[0].body == "intro body\n"
+    assert entries[1].heading == "Entry Heading"
+    assert entries[1].body == "entry body\n"
 
 
 # Helper Functions
