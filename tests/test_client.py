@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 # Internal Packages
 from khoj.main import app
 from khoj.configure import configure_routes
-from khoj.utils.state import model, config
+from khoj.utils.state import model
 from khoj.search_type import text_search, image_search
 from khoj.utils.rawconfig import ContentConfig, SearchConfig
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
@@ -18,15 +18,9 @@ from khoj.search_filter.word_filter import WordFilter
 from khoj.search_filter.file_filter import FileFilter
 
 
-# Arrange
-# ----------------------------------------------------------------------------------------------------
-configure_routes(app)
-client = TestClient(app)
-
-
 # Test
 # ----------------------------------------------------------------------------------------------------
-def test_search_with_invalid_content_type():
+def test_search_with_invalid_content_type(client):
     # Arrange
     user_query = quote("How to call Khoj from Emacs?")
 
@@ -38,13 +32,8 @@ def test_search_with_invalid_content_type():
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_search_with_valid_content_type(content_config: ContentConfig, search_config: SearchConfig):
-    # Arrange
-    config.content_type = content_config
-    config.search_type = search_config
-
-    # config.content_type.image = search_config.image
-    for content_type in ["org", "markdown", "ledger", "music"]:
+def test_search_with_valid_content_type(client):
+    for content_type in ["org", "markdown", "ledger", "music", "plugin1"]:
         # Act
         response = client.get(f"/api/search?q=random&t={content_type}")
         # Assert
@@ -52,7 +41,7 @@ def test_search_with_valid_content_type(content_config: ContentConfig, search_co
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_update_with_invalid_content_type():
+def test_update_with_invalid_content_type(client):
     # Act
     response = client.get(f"/api/update?t=invalid_content_type")
 
@@ -61,12 +50,8 @@ def test_update_with_invalid_content_type():
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_update_with_valid_content_type(content_config: ContentConfig, search_config: SearchConfig):
-    # Arrange
-    config.content_type = content_config
-    config.search_type = search_config
-
-    for content_type in ["org", "markdown", "ledger", "music"]:
+def test_update_with_valid_content_type(client):
+    for content_type in ["org", "markdown", "ledger", "music", "plugin1"]:
         # Act
         response = client.get(f"/api/update?t={content_type}")
         # Assert
@@ -74,7 +59,7 @@ def test_update_with_valid_content_type(content_config: ContentConfig, search_co
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_regenerate_with_invalid_content_type():
+def test_regenerate_with_invalid_content_type(client):
     # Act
     response = client.get(f"/api/update?force=true&t=invalid_content_type")
 
@@ -83,12 +68,8 @@ def test_regenerate_with_invalid_content_type():
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_regenerate_with_valid_content_type(content_config: ContentConfig, search_config: SearchConfig):
-    # Arrange
-    config.content_type = content_config
-    config.search_type = search_config
-
-    for content_type in ["org", "markdown", "ledger", "music", "image"]:
+def test_regenerate_with_valid_content_type(client):
+    for content_type in ["org", "markdown", "ledger", "music", "image", "plugin1"]:
         # Act
         response = client.get(f"/api/update?force=true&t={content_type}")
         # Assert
@@ -96,10 +77,8 @@ def test_regenerate_with_valid_content_type(content_config: ContentConfig, searc
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_image_search(content_config: ContentConfig, search_config: SearchConfig):
+def test_image_search(client, content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    config.content_type = content_config
-    config.search_type = search_config
     model.image_search = image_search.setup(content_config.image, search_config.image, regenerate=False)
     query_expected_image_pairs = [
         ("kitten", "kitten_park.jpg"),
@@ -121,7 +100,7 @@ def test_image_search(content_config: ContentConfig, search_config: SearchConfig
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_notes_search(content_config: ContentConfig, search_config: SearchConfig):
+def test_notes_search(client, content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     model.orgmode_search = text_search.setup(OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=False)
     user_query = quote("How to git install application?")
@@ -137,7 +116,7 @@ def test_notes_search(content_config: ContentConfig, search_config: SearchConfig
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_notes_search_with_only_filters(content_config: ContentConfig, search_config: SearchConfig):
+def test_notes_search_with_only_filters(client, content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     filters = [WordFilter(), FileFilter()]
     model.orgmode_search = text_search.setup(
@@ -156,7 +135,7 @@ def test_notes_search_with_only_filters(content_config: ContentConfig, search_co
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_notes_search_with_include_filter(content_config: ContentConfig, search_config: SearchConfig):
+def test_notes_search_with_include_filter(client, content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     filters = [WordFilter()]
     model.orgmode_search = text_search.setup(
@@ -175,7 +154,7 @@ def test_notes_search_with_include_filter(content_config: ContentConfig, search_
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_notes_search_with_exclude_filter(content_config: ContentConfig, search_config: SearchConfig):
+def test_notes_search_with_exclude_filter(client, content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     filters = [WordFilter()]
     model.orgmode_search = text_search.setup(
