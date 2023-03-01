@@ -1,9 +1,12 @@
 # External Packages
 from copy import deepcopy
+from fastapi.testclient import TestClient
 from pathlib import Path
 import pytest
 
 # Internal Packages
+from khoj.main import app
+from khoj.configure import configure_routes, configure_search_types
 from khoj.search_type import image_search, text_search
 from khoj.utils.helpers import resolve_absolute_path
 from khoj.utils.rawconfig import (
@@ -14,6 +17,7 @@ from khoj.utils.rawconfig import (
     TextSearchConfig,
     ImageSearchConfig,
 )
+from khoj.utils import state
 from khoj.processor.jsonl.jsonl_to_jsonl import JsonlToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.search_filter.date_filter import DateFilter
@@ -87,6 +91,16 @@ def content_config(tmp_path_factory, search_config: SearchConfig):
     )
 
     return content_config
+
+
+@pytest.fixture(scope="session")
+def client(content_config: ContentConfig, search_config: SearchConfig):
+    state.config.content_type = content_config
+    state.config.search_type = search_config
+    state.SearchType = configure_search_types(state.config)
+
+    configure_routes(app)
+    return TestClient(app)
 
 
 @pytest.fixture(scope="function")
