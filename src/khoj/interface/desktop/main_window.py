@@ -58,9 +58,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # Add Settings Panels for each Search Type to Configure Window Layout
         self.search_settings_panels = []
         for search_type in SearchType:
-            current_content_config = self.current_config["content-type"][search_type] or self.get_default_config(
-                search_type=search_type
-            )
+            current_content_config = self.current_config["content-type"].get(
+                search_type, None
+            ) or self.get_default_config(search_type=search_type)
             self.search_settings_panels += [self.add_settings_panel(current_content_config, search_type)]
 
         # Add Conversation Processor Panel to Configure Screen
