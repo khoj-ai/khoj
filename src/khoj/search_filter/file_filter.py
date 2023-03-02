@@ -1,7 +1,6 @@
 # Standard Packages
 import re
 import fnmatch
-import time
 import logging
 from collections import defaultdict
 

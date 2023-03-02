@@ -1,6 +1,5 @@
 # Standard Packages
 import re
-import time
 import logging
 from collections import defaultdict
 from datetime import timedelta, datetime
@@ -67,7 +66,7 @@ class DateFilter(BaseFilter):
         # return results from cache if exists
         cache_key = tuple(query_daterange)
         if cache_key in self.cache:
-            logger.info(f"Return date filter results from cache")
+            logger.debug(f"Return date filter results from cache")
             entries_to_include = self.cache[cache_key]
             return query, entries_to_include
 
