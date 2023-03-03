@@ -10,6 +10,34 @@ import openai
 from khoj.utils.constants import empty_escape_sequences
 
 
+def answer(text, user_query, model, api_key=None, temperature=0.3, max_tokens=200):
+    """
+    Answer user query using provided text as reference with OpenAI's GPT
+    """
+    # Initialize Variables
+    openai.api_key = api_key or os.getenv("OPENAI_API_KEY")
+
+    # Setup Prompt based on Summary Type
+    prompt = f"""
+You are a friendly, helpful personal assistant.
+Using the users notes below, answer their following question. If the answer is not contained within the notes, say "I don't know."
+
+Notes:
+{text}
+
+Question: {user_query}
+
+Answer (in second person):"""
+    # Get Response from GPT
+    response = openai.Completion.create(
+        prompt=prompt, model=model, temperature=temperature, max_tokens=max_tokens, stop='"""'
+    )
+
+    # Extract, Clean Message from GPT's Response
+    story = response["choices"][0]["text"]
+    return str(story).replace("\n\n", "")
+
+
 def summarize(text, summary_type, model, user_query=None, api_key=None, temperature=0.5, max_tokens=200):
     """
     Summarize user input using OpenAI's GPT

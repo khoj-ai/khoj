@@ -10,6 +10,7 @@ from fastapi import APIRouter
 # Internal Packages
 from khoj.routers.api import search
 from khoj.processor.conversation.gpt import (
+    answer,
     converse,
     extract_search_type,
     message_to_log,
@@ -48,8 +49,8 @@ def search_beta(q: str, n: Optional[int] = 1):
     return {"status": "ok", "result": search_results, "type": search_type}
 
 
-@api_beta.get("/summarize")
-def summarize_beta(q: str):
+@api_beta.get("/answer")
+def answer_beta(q: str):
     # Initialize Variables
     model = state.processor_config.conversation.model
     api_key = state.processor_config.conversation.openai_api_key
@@ -61,9 +62,9 @@ def summarize_beta(q: str):
     # Converse with OpenAI GPT
     result_list = search(q, n=1, r=True)
     collated_result = "\n".join([item.entry for item in result_list])
-    logger.debug(f"Semantically Similar Notes:\n{collated_result}")
+    logger.debug(f"Reference Notes:\n{collated_result}")
     try:
-        gpt_response = summarize(collated_result, summary_type="notes", user_query=q, model=model, api_key=api_key)
+        gpt_response = answer(collated_result, user_query=q, model=model, api_key=api_key)
         status = "ok"
     except Exception as e:
         gpt_response = str(e)

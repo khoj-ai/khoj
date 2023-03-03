@@ -50,9 +50,7 @@
             document.getElementById("chat-input").value = "";
 
             // Generate backend API URL to execute query
-            url = type_ === "chat"
-                ? `/api/beta/chat?q=${encodeURIComponent(query)}`
-                : `/api/beta/summarize?q=${encodeURIComponent(query)}`;
+            url = `/api/beta/${type_}?q=${encodeURIComponent(query)}`;
 
             // Call specified Khoj API
             fetch(url)
@@ -112,8 +110,8 @@
 
             <!--Select Chat Type from: Chat, Summarize -->
             <select id="chat-type" class="option" onchange="setTypeFieldInUrl(this)">
+                <option value="answer">Answer</option>
                 <option value="chat">Chat</option>
-                <option value="summarize">Summarize</option>
             </select>
         </div>
     </body>
