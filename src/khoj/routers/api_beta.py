@@ -59,10 +59,12 @@ def answer_beta(q: str):
     chat_session = state.processor_config.conversation.chat_session
     meta_log = state.processor_config.conversation.meta_log
 
-    # Converse with OpenAI GPT
-    result_list = search(q, n=1, r=True)
-    collated_result = "\n".join([item.entry for item in result_list])
-    logger.debug(f"Reference Notes:\n{collated_result}")
+    # Collate context for GPT
+    result_list = search(q, n=2, r=True)
+    collated_result = "\n\n".join([f"# {item.additional['compiled']}" for item in result_list])
+    logger.debug(f"Reference Context:\n{collated_result}")
+
+    # Make GPT respond to user query using provided context
     try:
         gpt_response = answer(collated_result, user_query=q, model=model, api_key=api_key)
         status = "ok"

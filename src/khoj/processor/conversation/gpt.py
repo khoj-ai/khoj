@@ -10,7 +10,7 @@ import openai
 from khoj.utils.constants import empty_escape_sequences
 
 
-def answer(text, user_query, model, api_key=None, temperature=0.3, max_tokens=200):
+def answer(text, user_query, model, api_key=None, temperature=0.5, max_tokens=500):
     """
     Answer user query using provided text as reference with OpenAI's GPT
     """
