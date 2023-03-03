@@ -27,6 +27,8 @@
   [[/docs/khoj_on_emacs.png]]
 
 ** Setup
+/Make sure [[https://realpython.com/installing-python/][python]] and [[https://pip.pypa.io/en/stable/installation/][pip]] are installed on your machine/
+
 *** 1. Setup Backend
   #+begin_src shell
     pip install khoj-assistant && khoj
