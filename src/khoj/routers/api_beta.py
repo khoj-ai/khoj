@@ -15,7 +15,6 @@ from khoj.processor.conversation.gpt import (
     extract_search_type,
     message_to_log,
     message_to_prompt,
-    understand,
     summarize,
 )
 from khoj.utils.state import SearchType
@@ -84,12 +83,12 @@ def answer_beta(q: str):
 @api_beta.get("/chat")
 def chat(q: Optional[str] = None):
     # Initialize Variables
-    model = state.processor_config.conversation.model
     api_key = state.processor_config.conversation.openai_api_key
 
     # Load Conversation History
     chat_session = state.processor_config.conversation.chat_session
     meta_log = state.processor_config.conversation.meta_log
+    active_session_length = len(chat_session.split("\nAI:")) - 1 if chat_session else 0
 
     # If user query is empty, return chat history
     if not q:
@@ -98,33 +97,22 @@ def chat(q: Optional[str] = None):
         else:
             return {"status": "ok", "response": []}
 
-    # Converse with OpenAI GPT
-    metadata = understand(q, model=model, api_key=api_key, verbose=state.verbose)
-    logger.debug(f'Understood: {get_from_dict(metadata, "intent")}')
+    # Collate context for GPT
+    result_list = search(q, n=2, r=True)
+    collated_result = "\n\n".join([f"# {item.additional['compiled']}" for item in result_list])
+    logger.debug(f"Reference Context:\n{collated_result}")
 
-    if get_from_dict(metadata, "intent", "memory-type") == "notes":
-        query = get_from_dict(metadata, "intent", "query")
-        result_list = search(query, n=1, t=SearchType.Org, r=True)
-        collated_result = "\n".join([item.entry for item in result_list])
-        logger.debug(f"Semantically Similar Notes:\n{collated_result}")
-        try:
-            gpt_response = summarize(collated_result, summary_type="notes", user_query=q, model=model, api_key=api_key)
-            status = "ok"
-        except Exception as e:
-            gpt_response = str(e)
-            status = "error"
-    else:
-        try:
-            gpt_response = converse(q, model, chat_session, api_key=api_key)
-            status = "ok"
-        except Exception as e:
-            gpt_response = str(e)
-            status = "error"
+    try:
+        gpt_response = converse(collated_result, q, active_session_length, meta_log, api_key=api_key)
+        status = "ok"
+    except Exception as e:
+        gpt_response = str(e)
+        status = "error"
 
     # Update Conversation History
     state.processor_config.conversation.chat_session = message_to_prompt(q, chat_session, gpt_message=gpt_response)
     state.processor_config.conversation.meta_log["chat"] = message_to_log(
-        q, gpt_response, metadata, meta_log.get("chat", [])
+        q, gpt_response, conversation_log=meta_log.get("chat", [])
     )
 
     return {"status": status, "response": gpt_response}
