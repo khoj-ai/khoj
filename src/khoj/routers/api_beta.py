@@ -54,10 +54,6 @@ def answer_beta(q: str):
     model = state.processor_config.conversation.model
     api_key = state.processor_config.conversation.openai_api_key
 
-    # Load Conversation History
-    chat_session = state.processor_config.conversation.chat_session
-    meta_log = state.processor_config.conversation.meta_log
-
     # Collate context for GPT
     result_list = search(q, n=2, r=True)
     collated_result = "\n\n".join([f"# {item.additional['compiled']}" for item in result_list])
@@ -70,12 +66,6 @@ def answer_beta(q: str):
     except Exception as e:
         gpt_response = str(e)
         status = "error"
-
-    # Update Conversation History
-    state.processor_config.conversation.chat_session = message_to_prompt(q, chat_session, gpt_message=gpt_response)
-    state.processor_config.conversation.meta_log["chat"] = message_to_log(
-        q, gpt_response, conversation_log=meta_log.get("chat", [])
-    )
 
     return {"status": status, "response": gpt_response}
 

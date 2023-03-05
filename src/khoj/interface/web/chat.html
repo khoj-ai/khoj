@@ -9,12 +9,6 @@
         <link rel="manifest" href="/static/khoj.webmanifest">
     </head>
     <script>
-        function setTypeFieldInUrl(type) {
-            let url = new URL(window.location.href);
-            url.searchParams.set("t", type.value);
-            window.history.pushState({}, "", url.href);
-        }
-
         function formatDate(date) {
             // Format date in HH:MM, DD MMM YYYY format
             let time_string = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -31,15 +25,14 @@
                     <div class="chat-message-text ${by}">${message}</div>
                 </div>
             `;
-            // Scroll to bottom of input-body element
+            // Scroll to bottom of chat-body element
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
         }
 
         function chat() {
             // Extract required fields for search from form
             query = document.getElementById("chat-input").value.trim();
-            type_ = document.getElementById("chat-type").value;
-            console.log(`Query: ${query}, Type: ${type_}`);
+            console.log(`Query: ${query}`);
 
             // Short circuit on empty query
             if (query.length === 0)
@@ -50,7 +43,7 @@
             document.getElementById("chat-input").value = "";
 
             // Generate backend API URL to execute query
-            url = `/api/beta/${type_}?q=${encodeURIComponent(query)}`;
+            url = `/api/beta/chat?q=${encodeURIComponent(query)}`;
 
             // Call specified Khoj API
             fetch(url)
@@ -71,11 +64,6 @@
         }
 
         window.onload = function () {
-            // Fill type field with value passed in URL query parameters, if any.
-            var type_via_url = new URLSearchParams(window.location.search).get("t");
-            if (type_via_url)
-                document.getElementById("chat-type").value = type_via_url;
-
             fetch('/api/beta/chat')
                 .then(response => response.json())
                 .then(data => data.response)
@@ -107,12 +95,6 @@
         <!-- Chat Footer -->
         <div id="chat-footer">
             <input type="text" id="chat-input" class="option" onkeyup=incrementalChat(event) autofocus="autofocus" placeholder="What is the meaning of life?">
-
-            <!--Select Chat Type from: Chat, Summarize -->
-            <select id="chat-type" class="option" onchange="setTypeFieldInUrl(this)">
-                <option value="answer">Answer</option>
-                <option value="chat">Chat</option>
-            </select>
         </div>
     </body>
 
@@ -215,7 +197,7 @@
         #chat-footer {
             padding: 0;
             display: grid;
-            grid-template-columns: minmax(70px, 85%) auto;
+            grid-template-columns: minmax(70px, 100%);
             grid-column-gap: 10px;
             grid-row-gap: 10px;
         }
