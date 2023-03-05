@@ -125,7 +125,9 @@ def converse(text, user_query, conversation_log=None, api_key=None, temperature=
 
     personality_primer = "You are a friendly, helpful personal assistant."
     conversation_primer = f"""
-Using my notes below, answer the following question. If the answer is not contained within the notes, say "I don't know."
+Using our chats and notes as context, answer the following question.
+If the answer is not contained within the provided context, say "I don't know." and provide reason.
+Current Date: {datetime.now().strftime("%Y-%m-%d")}
 
 Notes:
 {text}
@@ -154,7 +156,7 @@ Question: {user_query}"""
 def generate_chatml_messages_with_context(user_message, system_message, conversation_log=None):
     """Generate messages for ChatGPT with context from previous conversation"""
     # Extract Chat History for Context
-    chat_logs = [chat["message"] for chat in conversation_log.get("chat", [])]
+    chat_logs = [f'{chat["message"]}\n\nNotes:\n{chat.get("context","")}' for chat in conversation_log.get("chat", [])]
     last_backnforth = reciprocal_conversation_to_chatml(chat_logs[-2:])
     rest_backnforth = reciprocal_conversation_to_chatml(chat_logs[-4:-2])
 

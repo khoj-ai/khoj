@@ -97,7 +97,7 @@ def chat(q: Optional[str] = None):
             return {"status": "ok", "response": []}
 
     # Collate context for GPT
-    result_list = search(q, n=2, r=True)
+    result_list = search(q, n=2, r=True, score_threshold=0)
     collated_result = "\n\n".join([f"# {item.additional['compiled']}" for item in result_list])
     logger.debug(f"Reference Context:\n{collated_result}")
 
