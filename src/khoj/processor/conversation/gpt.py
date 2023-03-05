@@ -114,7 +114,7 @@ A:{ "search-type": "notes" }"""
     return json.loads(story.strip(empty_escape_sequences))
 
 
-def converse(text, user_query, active_session_length=0, conversation_log=None, api_key=None, temperature=0):
+def converse(text, user_query, conversation_log=None, api_key=None, temperature=0):
     """
     Converse with user using OpenAI's ChatGPT
     """
@@ -135,7 +135,6 @@ Question: {user_query}"""
     messages = generate_chatml_messages_with_context(
         conversation_primer,
         personality_primer,
-        active_session_length,
         conversation_log,
     )
 
@@ -151,20 +150,12 @@ Question: {user_query}"""
     return story.strip(empty_escape_sequences)
 
 
-def generate_chatml_messages_with_context(user_message, system_message, active_session_length=0, conversation_log=None):
+def generate_chatml_messages_with_context(user_message, system_message, conversation_log=None):
     """Generate messages for ChatGPT with context from previous conversation"""
     # Extract Chat History for Context
     chat_logs = [chat["message"] for chat in conversation_log.get("chat", [])]
-    session_summaries = [session["summary"] for session in conversation_log.get("session", {})]
-    if active_session_length == 0:
-        last_backnforth = list(map(message_to_chatml, session_summaries[-1:]))
-        rest_backnforth = list(map(message_to_chatml, session_summaries[-2:-1]))
-    elif active_session_length == 1:
-        last_backnforth = reciprocal_conversation_to_chatml(chat_logs[-2:])
-        rest_backnforth = list(map(message_to_chatml, session_summaries[-1:]))
-    else:
-        last_backnforth = reciprocal_conversation_to_chatml(chat_logs[-2:])
-        rest_backnforth = reciprocal_conversation_to_chatml(chat_logs[-4:-2])
+    last_backnforth = reciprocal_conversation_to_chatml(chat_logs[-2:])
+    rest_backnforth = reciprocal_conversation_to_chatml(chat_logs[-4:-2])
 
     # Format user and system messages to chatml format
     system_chatml_message = [message_to_chatml(system_message, "system")]

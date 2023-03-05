@@ -88,7 +88,6 @@ def chat(q: Optional[str] = None):
     # Load Conversation History
     chat_session = state.processor_config.conversation.chat_session
     meta_log = state.processor_config.conversation.meta_log
-    active_session_length = len(chat_session.split("\nAI:")) - 1 if chat_session else 0
 
     # If user query is empty, return chat history
     if not q:
@@ -103,7 +102,7 @@ def chat(q: Optional[str] = None):
     logger.debug(f"Reference Context:\n{collated_result}")
 
     try:
-        gpt_response = converse(collated_result, q, active_session_length, meta_log, api_key=api_key)
+        gpt_response = converse(collated_result, q, meta_log, api_key=api_key)
         status = "ok"
     except Exception as e:
         gpt_response = str(e)
