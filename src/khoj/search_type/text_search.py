@@ -1,5 +1,6 @@
 # Standard Packages
 import logging
+import math
 from pathlib import Path
 from typing import List, Tuple, Type
 
@@ -99,7 +100,9 @@ def compute_embeddings(
     return corpus_embeddings
 
 
-def query(raw_query: str, model: TextSearchModel, rank_results: bool = False) -> Tuple[List[dict], List[Entry]]:
+def query(
+    raw_query: str, model: TextSearchModel, rank_results: bool = False, score_threshold: float = -math.inf
+) -> Tuple[List[dict], List[Entry]]:
     "Search for entries that answer the query"
     query, entries, corpus_embeddings = raw_query, model.entries, model.corpus_embeddings
 
@@ -129,6 +132,9 @@ def query(raw_query: str, model: TextSearchModel, rank_results: bool = False) ->
     if rank_results:
         hits = cross_encoder_score(model.cross_encoder, query, entries, hits)
 
+    # Filter results by score threshold
+    hits = [hit for hit in hits if hit.get("cross-score", hit.get("score")) >= score_threshold]
+
     # Order results by cross-encoder score followed by bi-encoder score
     hits = sort_results(rank_results, hits)
 
@@ -143,7 +149,7 @@ def collate_results(hits, entries: List[Entry], count=5) -> List[SearchResponse]
         SearchResponse.parse_obj(
             {
                 "entry": entries[hit["corpus_id"]].raw,
-                "score": f"{hit['cross-score'] if 'cross-score' in hit else hit['score']:.3f}",
+                "score": f"{hit.get('cross-score', 'score')}:.3f",
                 "additional": {"file": entries[hit["corpus_id"]].file, "compiled": entries[hit["corpus_id"]].compiled},
             }
         )

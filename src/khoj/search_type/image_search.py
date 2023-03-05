@@ -1,5 +1,6 @@
 # Standard Packages
 import glob
+import math
 import pathlib
 import copy
 import shutil
@@ -142,7 +143,7 @@ def extract_metadata(image_name):
     return image_processed_metadata
 
 
-def query(raw_query, count, model: ImageSearchModel):
+def query(raw_query, count, model: ImageSearchModel, score_threshold: float = -math.inf):
     # Set query to image content if query is of form file:/path/to/file.png
     if raw_query.startswith("file:") and pathlib.Path(raw_query[5:]).is_file():
         query_imagepath = resolve_absolute_path(pathlib.Path(raw_query[5:]), strict=True)
@@ -197,6 +198,9 @@ def query(raw_query, count, model: ImageSearchModel):
         }
         for corpus_id, scores in image_hits.items()
     ]
+
+    # Filter results by score threshold
+    hits = [hit for hit in hits if hit["image_score"] >= score_threshold]
 
     # Sort the images based on their combined metadata, image scores
     return sorted(hits, key=lambda hit: hit["score"], reverse=True)
