@@ -111,7 +111,7 @@ def chat(q: Optional[str] = None):
     # Update Conversation History
     state.processor_config.conversation.chat_session = message_to_prompt(q, chat_session, gpt_message=gpt_response)
     state.processor_config.conversation.meta_log["chat"] = message_to_log(
-        q, gpt_response, conversation_log=meta_log.get("chat", [])
+        q, gpt_response, user_message_metadata={"context": collated_result}, conversation_log=meta_log.get("chat", [])
     )
 
     return {"status": status, "response": gpt_response}

@@ -8,6 +8,7 @@ import openai
 
 # Internal Packages
 from khoj.utils.constants import empty_escape_sequences
+from khoj.utils.helpers import merge_dicts
 
 
 def answer(text, user_query, model, api_key=None, temperature=0.5, max_tokens=500):
@@ -192,7 +193,7 @@ def message_to_log(user_message, gpt_message, user_message_metadata={}, conversa
     current_dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # Create json log from Human's message
-    human_log = user_message_metadata or default_user_message_metadata
+    human_log = merge_dicts(user_message_metadata, default_user_message_metadata)
     human_log["message"] = user_message
     human_log["by"] = "you"
     human_log["created"] = current_dt
