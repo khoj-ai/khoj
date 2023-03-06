@@ -109,7 +109,7 @@ export class KhojModal extends SuggestModal<SearchResult> {
             .sort((a, b) => b.path.length - a.path.length)
             // The first match is the best file match across OS
             // e.g Khoj server on Linux, Obsidian vault on Android
-            .find(file => result.file.endsWith(file.path))
+            .find(file => result.file.replace(/\\/g, "/").endsWith(file.path))
 
         // Open vault file at heading of chosen search result
         if (file_match) {
