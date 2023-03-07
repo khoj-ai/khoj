@@ -55,7 +55,7 @@ def answer_beta(q: str):
     api_key = state.processor_config.conversation.openai_api_key
 
     # Collate context for GPT
-    result_list = search(q, n=2, r=True)
+    result_list = search(q, n=2, r=True, score_threshold=0, dedupe=False)
     collated_result = "\n\n".join([f"# {item.additional['compiled']}" for item in result_list])
     logger.debug(f"Reference Context:\n{collated_result}")
 
@@ -87,7 +87,7 @@ def chat(q: Optional[str] = None):
             return {"status": "ok", "response": []}
 
     # Collate context for GPT
-    result_list = search(q, n=2, r=True, score_threshold=0)
+    result_list = search(q, n=2, r=True, score_threshold=0, dedupe=False)
     collated_result = "\n\n".join([f"# {item.additional['compiled']}" for item in result_list])
     logger.debug(f"Reference Context:\n{collated_result}")
 
