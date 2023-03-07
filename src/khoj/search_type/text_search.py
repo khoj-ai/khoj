@@ -101,7 +101,11 @@ def compute_embeddings(
 
 
 def query(
-    raw_query: str, model: TextSearchModel, rank_results: bool = False, score_threshold: float = -math.inf
+    raw_query: str,
+    model: TextSearchModel,
+    rank_results: bool = False,
+    score_threshold: float = -math.inf,
+    dedupe: bool = True,
 ) -> Tuple[List[dict], List[Entry]]:
     "Search for entries that answer the query"
     query, entries, corpus_embeddings = raw_query, model.entries, model.corpus_embeddings
@@ -139,7 +143,8 @@ def query(
     hits = sort_results(rank_results, hits)
 
     # Deduplicate entries by raw entry text before showing to users
-    hits = deduplicate_results(entries, hits)
+    if dedupe:
+        hits = deduplicate_results(entries, hits)
 
     return hits, entries
 

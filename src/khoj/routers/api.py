@@ -60,6 +60,7 @@ def search(
     t: Optional[SearchType] = None,
     r: Optional[bool] = False,
     score_threshold: Optional[float | None] = None,
+    dedupe: Optional[bool] = True,
 ):
     results: List[SearchResponse] = []
     if q is None or q == "":
@@ -72,7 +73,7 @@ def search(
     score_threshold = score_threshold if score_threshold is not None else -math.inf
 
     # return cached results, if available
-    query_cache_key = f"{user_query}-{n}-{t}-{r}-{score_threshold}"
+    query_cache_key = f"{user_query}-{n}-{t}-{r}-{score_threshold}-{dedupe}"
     if query_cache_key in state.query_cache:
         logger.debug(f"Return response from query cache")
         return state.query_cache[query_cache_key]
@@ -81,7 +82,7 @@ def search(
         # query org-mode notes
         with timer("Query took", logger):
             hits, entries = text_search.query(
-                user_query, state.model.orgmode_search, rank_results=r, score_threshold=score_threshold
+                user_query, state.model.orgmode_search, rank_results=r, score_threshold=score_threshold, dedupe=dedupe
             )
 
         # collate and return results
@@ -92,7 +93,7 @@ def search(
         # query markdown files
         with timer("Query took", logger):
             hits, entries = text_search.query(
-                user_query, state.model.markdown_search, rank_results=r, score_threshold=score_threshold
+                user_query, state.model.markdown_search, rank_results=r, score_threshold=score_threshold, dedupe=dedupe
             )
 
         # collate and return results
@@ -103,7 +104,7 @@ def search(
         # query transactions
         with timer("Query took", logger):
             hits, entries = text_search.query(
-                user_query, state.model.ledger_search, rank_results=r, score_threshold=score_threshold
+                user_query, state.model.ledger_search, rank_results=r, score_threshold=score_threshold, dedupe=dedupe
             )
 
         # collate and return results
@@ -114,7 +115,7 @@ def search(
         # query music library
         with timer("Query took", logger):
             hits, entries = text_search.query(
-                user_query, state.model.music_search, rank_results=r, score_threshold=score_threshold
+                user_query, state.model.music_search, rank_results=r, score_threshold=score_threshold, dedupe=dedupe
             )
 
         # collate and return results
@@ -148,6 +149,7 @@ def search(
                 state.model.plugin_search.get(t.value) or next(iter(state.model.plugin_search.values())),
                 rank_results=r,
                 score_threshold=score_threshold,
+                dedupe=dedupe,
             )
 
         # collate and return results
