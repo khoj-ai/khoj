@@ -1,6 +1,7 @@
 # Standard Packages
 import os
 import json
+import logging
 from datetime import datetime
 
 # External Packages
@@ -9,6 +10,8 @@ import openai
 # Internal Packages
 from khoj.utils.constants import empty_escape_sequences
 from khoj.utils.helpers import merge_dicts
+
+logger = logging.getLogger(__name__)
 
 
 def answer(text, user_query, model, api_key=None, temperature=0.5, max_tokens=500):
@@ -30,6 +33,7 @@ Question: {user_query}
 
 Answer (in second person):"""
     # Get Response from GPT
+    logger.debug(f"Prompt for GPT: {prompt}")
     response = openai.Completion.create(
         prompt=prompt, model=model, temperature=temperature, max_tokens=max_tokens, stop='"""'
     )
@@ -63,6 +67,7 @@ Summarize the below notes about {user_query}:
 Summarize the notes in second person perspective:"""
 
     # Get Response from GPT
+    logger.debug(f"Prompt for GPT: {prompt}")
     response = openai.Completion.create(
         prompt=prompt, model=model, temperature=temperature, max_tokens=max_tokens, frequency_penalty=0.2, stop='"""'
     )
@@ -106,6 +111,7 @@ A:{ "search-type": "notes" }"""
         print(f"Message -> Prompt: {text} -> {prompt}")
 
     # Get Response from GPT
+    logger.debug(f"Prompt for GPT: {prompt}")
     response = openai.Completion.create(
         prompt=prompt, model=model, temperature=temperature, max_tokens=max_tokens, frequency_penalty=0.2, stop=["\n"]
     )
@@ -142,6 +148,7 @@ Question: {user_query}"""
     )
 
     # Get Response from GPT
+    logger.debug(f"Conversation Context for GPT: {messages}")
     response = openai.ChatCompletion.create(
         messages=messages,
         model=model,
