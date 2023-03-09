@@ -131,8 +131,7 @@ def converse(text, user_query, conversation_log=None, api_key=None, temperature=
 
     personality_primer = "You are a friendly, helpful personal assistant."
     conversation_primer = f"""
-Using our chats and notes as context, answer the following question.
-If the answer is not contained within the provided context, say "I don't know." and provide reason.
+Using the notes and our chats as context, answer the following question.
 Current Date: {datetime.now().strftime("%Y-%m-%d")}
 
 Notes:
