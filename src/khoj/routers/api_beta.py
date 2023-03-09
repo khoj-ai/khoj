@@ -104,7 +104,7 @@ def chat(q: Optional[str] = None):
         q, gpt_response, user_message_metadata={"context": collated_result}, conversation_log=meta_log.get("chat", [])
     )
 
-    return {"status": status, "response": gpt_response}
+    return {"status": status, "response": gpt_response, "context": collated_result}
 
 
 @schedule.repeat(schedule.every(5).minutes)

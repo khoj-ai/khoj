@@ -16,6 +16,11 @@
             return `${time_string}, ${date_string}`;
         }
 
+        function generateReference(reference, index) {
+            // Generate HTML for Chat Reference
+            return `<sup><a title="${reference}">${index}</a></sup>`;
+        }
+
         function renderMessage(message, by, dt=null) {
             let message_time = formatDate(dt ?? new Date());
             let by_name =  by == "khoj" ? "🦅 Khoj" : "🤔 You";
@@ -31,7 +36,7 @@
 
         function chat() {
             // Extract required fields for search from form
-            query = document.getElementById("chat-input").value.trim();
+            let query = document.getElementById("chat-input").value.trim();
             console.log(`Query: ${query}`);
 
             // Short circuit on empty query
@@ -43,16 +48,25 @@
             document.getElementById("chat-input").value = "";
 
             // Generate backend API URL to execute query
-            url = `/api/beta/chat?q=${encodeURIComponent(query)}`;
+            let url = `/api/beta/chat?q=${encodeURIComponent(query)}`;
 
             // Call specified Khoj API
             fetch(url)
                 .then(response => response.json())
-                .then(data => data.response)
-                .then(response => {
+                .then(data => {
                     // Render message by Khoj to chat body
-                    console.log(response);
-                    renderMessage(response, "khoj");
+                    console.log(data.response);
+                    let references = ''
+                    if (data.context) {
+                        references = data
+                            .context
+                            .split("\n\n# ")
+                            .map((reference, index) => {
+                                return generateReference(reference, index);
+                            })
+                            .join("<sup>,</sup>");
+                    }
+                    renderMessage(data.response+references, "khoj");
                 });
         }
 
@@ -70,7 +84,17 @@
                 .then(chat_logs => {
                     // Render conversation history, if any
                     chat_logs.forEach(chat_log => {
-                        renderMessage(chat_log.message, chat_log.by, new Date(chat_log.created));
+                        let references = '';
+                        if (chat_log.context) {
+                            references = chat_log
+                                .context
+                                .split("\n\n# ")
+                                .map((reference, index) => {
+                                    return generateReference(reference, index)
+                                })
+                                .join("<sup>,</sup>");
+                        }
+                        renderMessage(chat_log.message+references, chat_log.by, new Date(chat_log.created));
                     });
                 });
 
