@@ -48,7 +48,7 @@
             document.getElementById("chat-input").value = "";
 
             // Generate backend API URL to execute query
-            let url = `/api/beta/chat?q=${encodeURIComponent(query)}`;
+            let url = `/api/chat?q=${encodeURIComponent(query)}`;
 
             // Call specified Khoj API
             fetch(url)
@@ -78,7 +78,7 @@
         }
 
         window.onload = function () {
-            fetch('/api/beta/chat')
+            fetch('/api/chat')
                 .then(response => response.json())
                 .then(data => data.response)
                 .then(chat_logs => {

@@ -9,6 +9,7 @@ import schedule
 from fastapi.staticfiles import StaticFiles
 
 # Internal Packages
+from khoj.processor.conversation.gpt import summarize
 from khoj.processor.ledger.beancount_to_jsonl import BeancountToJsonl
 from khoj.processor.jsonl.jsonl_to_jsonl import JsonlToJsonl
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
@@ -186,3 +187,39 @@ def configure_conversation_processor(conversation_processor_config):
         conversation_processor.chat_session = ""
 
     return conversation_processor
+
+
+@schedule.repeat(schedule.every(15).minutes)
+def save_chat_session():
+    # No need to create empty log file
+    if not (
+        state.processor_config
+        and state.processor_config.conversation
+        and state.processor_config.conversation.meta_log
+        and state.processor_config.conversation.chat_session
+    ):
+        return
+
+    # Summarize Conversation Logs for this Session
+    chat_session = state.processor_config.conversation.chat_session
+    openai_api_key = state.processor_config.conversation.openai_api_key
+    conversation_log = state.processor_config.conversation.meta_log
+    model = state.processor_config.conversation.model
+    session = {
+        "summary": summarize(chat_session, summary_type="chat", model=model, api_key=openai_api_key),
+        "session-start": conversation_log.get("session", [{"session-end": 0}])[-1]["session-end"],
+        "session-end": len(conversation_log["chat"]),
+    }
+    if "session" in conversation_log:
+        conversation_log["session"].append(session)
+    else:
+        conversation_log["session"] = [session]
+
+    # Save Conversation Metadata Logs to Disk
+    conversation_logfile = resolve_absolute_path(state.processor_config.conversation.conversation_logfile)
+    conversation_logfile.parent.mkdir(parents=True, exist_ok=True)  # create conversation directory if doesn't exist
+    with open(conversation_logfile, "w+", encoding="utf-8") as logfile:
+        json.dump(conversation_log, logfile)
+
+    state.processor_config.conversation.chat_session = None
+    logger.info("📩 Saved current chat session to conversation logs")
