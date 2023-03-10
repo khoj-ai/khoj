@@ -22,9 +22,10 @@
   - [Install](#1-Install)
   - [Run](#2-Run)
   - [Configure](#3-Configure)
+  - [Install Plugins](#4-install-interface-plugins)
 - [Use](#Use)
-  - [Interfaces](#Interfaces-1)
-  - [Query Filters](#Query-filters)
+  - [Khoj Search](#Khoj-search)
+  - [Khoj Chat](#Khoj-chat)
 - [Upgrade](#Upgrade)
   - [Khoj Server](#upgrade-khoj-server)
   - [Khoj.el](#upgrade-khoj-on-emacs)
@@ -33,12 +34,11 @@
 - [Troubleshoot](#Troubleshoot)
 - [Advanced Usage](#advanced-usage)
   - [Access Khoj on Mobile](#access-khoj-on-mobile)
-  - [Chat with Notes](#chat-with-notes)
   - [Use OpenAI Models for Search](#use-openai-models-for-search)
   - [Search across Different Languages](#search-across-different-languages)
 - [Miscellaneous](#Miscellaneous)
   - [Setup OpenAI API key in Khoj](#set-your-openai-api-key-in-khoj)
-  - [Beta API](#beta-api)
+  - [GPT API](#gpt-api)
 - [Performance](#Performance)
   - [Query Performance](#Query-performance)
   - [Indexing Performance](#Indexing-performance)
@@ -131,21 +131,29 @@ Note: To start Khoj automatically in the background use [Task scheduler](https:/
 1. Enable content types and point to files to search in the First Run Screen that pops up on app start
 2. Click `Configure` and wait. The app will download ML models and index the content for search
 
-## Use
-### Interfaces
+### 4. Install Interface Plugins
+Khoj exposes a web interface by default.<br />
+The optional steps below allow using Khoj from within an existing application like Obsidian or Emacs.
 
+- **Khoj Obsidian**:<br />
+[Install](https://github.com/debanjum/khoj/tree/master/src/interface/obsidian#2-Setup-Plugin) the Khoj Obsidian plugin
+
+- **Khoj Emacs**:<br />
+[Install](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#2-Install-Khojel) khoj.el
+
+## Use
+### Khoj Search
 - **Khoj via Obsidian**
-  - [Install](https://github.com/debanjum/khoj/tree/master/src/interface/obsidian#2-Setup-Plugin) the Khoj Obsidian plugin
   - Click the *Khoj search* icon 🔎 on the [Ribbon](https://help.obsidian.md/User+interface/Workspace/Ribbon) or Search for *Khoj: Search* in the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
 - **Khoj via Emacs**
-  - [Install](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#installation) [khoj.el](./src/interface/emacs/khoj.el)
   - Run `M-x khoj <user-query>`
 - **Khoj via Web**
   - Open <http://localhost:8000/> via desktop interface or directly
 - **Khoj via API**
   - See the Khoj FastAPI [Swagger Docs](http://localhost:8000/docs), [ReDocs](http://localhost:8000/redocs)
 
-### Query Filters
+<details><summary>Query Filters</summary>
+
 Use structured query syntax to filter the natural language search results
 - **Word Filter**: Get entries that include/exclude a specified term
   - Entries that contain term_to_include: `+"term_to_include"`
@@ -163,6 +171,30 @@ Use structured query syntax to filter the natural language search results
     - containing dates from the year *1984*
     - excluding words *"big"* and *"brother"*
     - that best match the natural language query *"what is the meaning of life?"*
+
+</details>
+
+### Khoj Chat
+#### Overview
+- Creates a personal assistant for you to inquire and engage with your notes
+- Uses [ChatGPT](https://openai.com/blog/chatgpt) and [Khoj search](#khoj-search)
+- Supports multi-turn conversations with the relevant notes for context
+- Shows reference notes used to generate a response
+- **Note**: *Your query and top notes from khoj search will be sent to OpenAI for processing*
+
+#### Setup
+- [Setup your OpenAI API key in Khoj](#set-your-openai-api-key-in-khoj)
+
+#### Use
+1. Open [/chat](http://localhost:8000/chat)[^2]
+2. Type your queries and see response by Khoj from your notes
+
+#### Demo
+![](https://github.com/debanjum/khoj/blob/master/docs/khoj_chat_web_interface.png?)
+
+### Details
+1. Your query is used to retrieve the most relevant notes, if any, using Khoj search
+2. These notes, the last few messages and associated metadata is passed to ChatGPT along with your query for a response
 
 ## Upgrade
 ### Upgrade Khoj Server
@@ -223,23 +255,6 @@ pip install --upgrade --pre khoj-assistant
 
 ![](https://github.com/debanjum/khoj/blob/master/docs/khoj_pwa_android.png?)
 
-### Chat with Notes
-#### Overview
-- Provides a chat interface to inquire and engage with your notes
-- Chat Types:
-  - **Summarize**: Pulls the most relevant note from your notes and summarizes it
-  - **Chat**: Also does general chat. It guesses whether to give a general response or search, summarizes from your note. <br />
-    E.g *"how was your day?"* will give a general response. But *When did I go surfing?* should give a response from your notes
-- **Note**: *Your query and top note from search result will be sent to OpenAI for processing*
-
-#### Use
-1. [Setup your OpenAI API key in Khoj](#set-your-openai-api-key-in-khoj)
-2. Open [/chat?t=summarize](http://localhost:8000/chat?t=summarize)[^2]
-3. Type your queries, see summarized response by Khoj from your notes
-
-#### Demo
-![](https://github.com/debanjum/khoj/blob/master/docs/khoj_chat_web_interface.png?)
-
 ### Use OpenAI Models for Search
 #### Setup
 1. Set `encoder-type`, `encoder` and `model-directory` under `asymmetric` and/or `symmetric` `search-type` in your `khoj.yml`[^1]:
@@ -282,7 +297,7 @@ pip install --upgrade --pre khoj-assistant
 If you want, Khoj can be configured to use OpenAI for search and chat.<br />
 Add your OpenAI API to Khoj by using either of the two options below:
  - Open the Khoj desktop GUI, add your [OpenAI API key](https://beta.openai.com/account/api-keys) and click *Configure*
-   Ensure khoj is started without the `--no-gui` flag. Check your system tray to see if Khoj 🦅 is minimized there.
+   Ensure khoj is started **without** the `--no-gui` flag. Check your system tray to see if Khoj 🦅 is minimized there.
  - Set `openai-api-key` field under `processor.conversation` section in your `khoj.yml`[^1] to your [OpenAI API key](https://beta.openai.com/account/api-keys) and restart khoj:
     ```diff
     processor:
@@ -293,10 +308,10 @@ Add your OpenAI API to Khoj by using either of the two options below:
         conversation-logfile: "~/.khoj/processor/conversation/conversation_logs.json"
     ```
 
-**Warning**: *This will enable khoj to send your query and note(s) to OpenAI for processing*
+**Warning**: *This will enable Khoj to send your query and note(s) to OpenAI for processing*
 
-### Beta API
-- The beta [chat](http://localhost:8000/api/beta/chat), [summarize](http://localhost:8000/api/beta/summarize) and [search](http://localhost:8000/api/beta/search) API endpoints use [OpenAI API](https://openai.com/api/)
+### GPT API
+- The [chat](http://localhost:8000/api/chat), [answer](http://localhost:8000/api/beta/answer) and [search](http://localhost:8000/api/beta/search) API endpoints use [OpenAI API](https://openai.com/api/)
 - They are disabled by default
 - To use them:
   1. [Setup your OpenAI API key in Khoj](#set-your-openai-api-key-in-khoj)
