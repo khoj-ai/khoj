@@ -34,6 +34,18 @@
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
         }
 
+        function renderMessageWithReference(message, by, context=null, dt=null) {
+            let references = '';
+            if (context) {
+                references = context
+                    .split("\n\n# ")
+                    .map((reference, index) => generateReference(reference, index))
+                    .join("<sup>,</sup>");
+            }
+
+            renderMessage(message+references, by, dt);
+        }
+
         function chat() {
             // Extract required fields for search from form
             let query = document.getElementById("chat-input").value.trim();
@@ -56,17 +68,7 @@
                 .then(data => {
                     // Render message by Khoj to chat body
                     console.log(data.response);
-                    let references = ''
-                    if (data.context) {
-                        references = data
-                            .context
-                            .split("\n\n# ")
-                            .map((reference, index) => {
-                                return generateReference(reference, index);
-                            })
-                            .join("<sup>,</sup>");
-                    }
-                    renderMessage(data.response+references, "khoj");
+                    renderMessageWithReference(data.response, "khoj", data.context);
                 });
         }
 
@@ -84,17 +86,7 @@
                 .then(chat_logs => {
                     // Render conversation history, if any
                     chat_logs.forEach(chat_log => {
-                        let references = '';
-                        if (chat_log.context) {
-                            references = chat_log
-                                .context
-                                .split("\n\n# ")
-                                .map((reference, index) => {
-                                    return generateReference(reference, index)
-                                })
-                                .join("<sup>,</sup>");
-                        }
-                        renderMessage(chat_log.message+references, chat_log.by, new Date(chat_log.created));
+                        renderMessageWithReference(chat_log.message, chat_log.by, chat_log.context, new Date(chat_log.created));
                     });
                 });
 
