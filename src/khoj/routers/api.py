@@ -2,7 +2,7 @@
 import math
 import yaml
 import logging
-from typing import List, Optional
+from typing import List, Optional, Union
 
 # External Packages
 from fastapi import APIRouter
@@ -60,7 +60,7 @@ def search(
     n: Optional[int] = 5,
     t: Optional[SearchType] = None,
     r: Optional[bool] = False,
-    score_threshold: Optional[float | None] = None,
+    score_threshold: Optional[Union[float, None]] = None,
     dedupe: Optional[bool] = True,
 ):
     results: List[SearchResponse] = []
