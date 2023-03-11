@@ -6,20 +6,19 @@
 
         <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 144 144%22><text y=%22.86em%22 font-size=%22144%22>🦅</text></svg>">
         <link rel="icon" type="image/png" sizes="144x144" href="/static/assets/icons/favicon-144x144.png">
-        <link rel="manifest" href="/static/khoj.webmanifest">
+        <link rel="manifest" href="/static/khoj_chat.webmanifest">
     </head>
     <script>
-        function setTypeFieldInUrl(type) {
-            let url = new URL(window.location.href);
-            url.searchParams.set("t", type.value);
-            window.history.pushState({}, "", url.href);
-        }
-
         function formatDate(date) {
             // Format date in HH:MM, DD MMM YYYY format
             let time_string = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
             let date_string = date.toLocaleString('en-IN', { year: 'numeric', month: 'short', day: '2-digit'}).replaceAll('-', ' ');
             return `${time_string}, ${date_string}`;
+        }
+
+        function generateReference(reference, index) {
+            // Generate HTML for Chat Reference
+            return `<sup><abbr title="${reference}" tabindex="0">${index}</abbr></sup>`;
         }
 
         function renderMessage(message, by, dt=null) {
@@ -31,15 +30,26 @@
                     <div class="chat-message-text ${by}">${message}</div>
                 </div>
             `;
-            // Scroll to bottom of input-body element
+            // Scroll to bottom of chat-body element
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+        }
+
+        function renderMessageWithReference(message, by, context=null, dt=null) {
+            let references = '';
+            if (context) {
+                references = context
+                    .split("\n\n# ")
+                    .map((reference, index) => generateReference(reference, index))
+                    .join("<sup>,</sup>");
+            }
+
+            renderMessage(message+references, by, dt);
         }
 
         function chat() {
             // Extract required fields for search from form
-            query = document.getElementById("chat-input").value.trim();
-            type_ = document.getElementById("chat-type").value;
-            console.log(`Query: ${query}, Type: ${type_}`);
+            let query = document.getElementById("chat-input").value.trim();
+            console.log(`Query: ${query}`);
 
             // Short circuit on empty query
             if (query.length === 0)
@@ -50,18 +60,15 @@
             document.getElementById("chat-input").value = "";
 
             // Generate backend API URL to execute query
-            url = type_ === "chat"
-                ? `/api/beta/chat?q=${encodeURIComponent(query)}`
-                : `/api/beta/summarize?q=${encodeURIComponent(query)}`;
+            let url = `/api/chat?q=${encodeURIComponent(query)}`;
 
             // Call specified Khoj API
             fetch(url)
                 .then(response => response.json())
-                .then(data => data.response)
-                .then(response => {
+                .then(data => {
                     // Render message by Khoj to chat body
-                    console.log(response);
-                    renderMessage(response, "khoj");
+                    console.log(data.response);
+                    renderMessageWithReference(data.response, "khoj", data.context);
                 });
         }
 
@@ -73,18 +80,13 @@
         }
 
         window.onload = function () {
-            // Fill type field with value passed in URL query parameters, if any.
-            var type_via_url = new URLSearchParams(window.location.search).get("t");
-            if (type_via_url)
-                document.getElementById("chat-type").value = type_via_url;
-
-            fetch('/api/beta/chat')
+            fetch('/api/chat')
                 .then(response => response.json())
                 .then(data => data.response)
                 .then(chat_logs => {
                     // Render conversation history, if any
                     chat_logs.forEach(chat_log => {
-                        renderMessage(chat_log.message, chat_log.by, new Date(chat_log.created));
+                        renderMessageWithReference(chat_log.message, chat_log.by, chat_log.context, new Date(chat_log.created));
                     });
                 });
 
@@ -109,12 +111,6 @@
         <!-- Chat Footer -->
         <div id="chat-footer">
             <input type="text" id="chat-input" class="option" onkeyup=incrementalChat(event) autofocus="autofocus" placeholder="What is the meaning of life?">
-
-            <!--Select Chat Type from: Chat, Summarize -->
-            <select id="chat-type" class="option" onchange="setTypeFieldInUrl(this)">
-                <option value="chat">Chat</option>
-                <option value="summarize">Summarize</option>
-            </select>
         </div>
     </body>
 
@@ -217,7 +213,7 @@
         #chat-footer {
             padding: 0;
             display: grid;
-            grid-template-columns: minmax(70px, 85%) auto;
+            grid-template-columns: minmax(70px, 100%);
             grid-column-gap: 10px;
             grid-row-gap: 10px;
         }
@@ -234,6 +230,29 @@
             font-size: medium;
         }
 
+        @media (pointer: coarse), (hover: none) {
+            abbr[title] {
+                position: relative;
+                padding-left: 4px;  /* space references out to ease tapping */
+            }
+            abbr[title]:focus:after {
+                content: attr(title);
+
+                /* position tooltip */
+                position: absolute;
+                left: 16px;  /* open tooltip to right of ref link, instead of on top of it */
+                width: auto;
+                z-index: 1;  /* show tooltip above chat messages */
+
+                /* style tooltip */
+                background-color: #aaa;
+                color: #f8fafc;
+                border-radius: 2px;
+                box-shadow: 1px 1px 4px 0 rgba(0, 0, 0, 0.4);
+                font-size: 14px;
+                padding: 2px 4px;
+            }
+        }
         @media only screen and (max-width: 600px) {
             body {
                 grid-template-columns: 1fr;

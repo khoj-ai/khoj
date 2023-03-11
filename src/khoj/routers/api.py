@@ -1,7 +1,8 @@
 # Standard Packages
+import math
 import yaml
 import logging
-from typing import List, Optional
+from typing import List, Optional, Union
 
 # External Packages
 from fastapi import APIRouter
@@ -9,6 +10,7 @@ from fastapi import HTTPException
 
 # Internal Packages
 from khoj.configure import configure_processor, configure_search
+from khoj.processor.conversation.gpt import converse, message_to_log, message_to_prompt
 from khoj.search_type import image_search, text_search
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import FullConfig, SearchResponse
@@ -53,7 +55,14 @@ async def set_config_data(updated_config: FullConfig):
 
 
 @api.get("/search", response_model=List[SearchResponse])
-def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Optional[bool] = False):
+def search(
+    q: str,
+    n: Optional[int] = 5,
+    t: Optional[SearchType] = None,
+    r: Optional[bool] = False,
+    score_threshold: Optional[Union[float, None]] = None,
+    dedupe: Optional[bool] = True,
+):
     results: List[SearchResponse] = []
     if q is None or q == "":
         logger.warn(f"No query param (q) passed in API call to initiate search")
@@ -62,9 +71,10 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
     # initialize variables
     user_query = q.strip()
     results_count = n
+    score_threshold = score_threshold if score_threshold is not None else -math.inf
 
     # return cached results, if available
-    query_cache_key = f"{user_query}-{n}-{t}-{r}"
+    query_cache_key = f"{user_query}-{n}-{t}-{r}-{score_threshold}-{dedupe}"
     if query_cache_key in state.query_cache:
         logger.debug(f"Return response from query cache")
         return state.query_cache[query_cache_key]
@@ -72,7 +82,9 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
     if (t == SearchType.Org or t == None) and state.model.orgmode_search:
         # query org-mode notes
         with timer("Query took", logger):
-            hits, entries = text_search.query(user_query, state.model.orgmode_search, rank_results=r)
+            hits, entries = text_search.query(
+                user_query, state.model.orgmode_search, rank_results=r, score_threshold=score_threshold, dedupe=dedupe
+            )
 
         # collate and return results
         with timer("Collating results took", logger):
@@ -81,7 +93,9 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
     elif (t == SearchType.Markdown or t == None) and state.model.markdown_search:
         # query markdown files
         with timer("Query took", logger):
-            hits, entries = text_search.query(user_query, state.model.markdown_search, rank_results=r)
+            hits, entries = text_search.query(
+                user_query, state.model.markdown_search, rank_results=r, score_threshold=score_threshold, dedupe=dedupe
+            )
 
         # collate and return results
         with timer("Collating results took", logger):
@@ -90,7 +104,9 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
     elif (t == SearchType.Ledger or t == None) and state.model.ledger_search:
         # query transactions
         with timer("Query took", logger):
-            hits, entries = text_search.query(user_query, state.model.ledger_search, rank_results=r)
+            hits, entries = text_search.query(
+                user_query, state.model.ledger_search, rank_results=r, score_threshold=score_threshold, dedupe=dedupe
+            )
 
         # collate and return results
         with timer("Collating results took", logger):
@@ -99,7 +115,9 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
     elif (t == SearchType.Music or t == None) and state.model.music_search:
         # query music library
         with timer("Query took", logger):
-            hits, entries = text_search.query(user_query, state.model.music_search, rank_results=r)
+            hits, entries = text_search.query(
+                user_query, state.model.music_search, rank_results=r, score_threshold=score_threshold, dedupe=dedupe
+            )
 
         # collate and return results
         with timer("Collating results took", logger):
@@ -108,7 +126,9 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
     elif (t == SearchType.Image or t == None) and state.model.image_search:
         # query images
         with timer("Query took", logger):
-            hits = image_search.query(user_query, results_count, state.model.image_search)
+            hits = image_search.query(
+                user_query, results_count, state.model.image_search, score_threshold=score_threshold
+            )
             output_directory = constants.web_directory / "images"
 
         # collate and return results
@@ -129,6 +149,8 @@ def search(q: str, n: Optional[int] = 5, t: Optional[SearchType] = None, r: Opti
                 # Get plugin search model for specified search type, or the first one if none specified
                 state.model.plugin_search.get(t.value) or next(iter(state.model.plugin_search.values())),
                 rank_results=r,
+                score_threshold=score_threshold,
+                dedupe=dedupe,
             )
 
         # collate and return results
@@ -162,3 +184,40 @@ def update(t: Optional[SearchType] = None, force: Optional[bool] = False):
         logger.info("📬 Processor reconfigured via API")
 
     return {"status": "ok", "message": "khoj reloaded"}
+
+
+@api.get("/chat")
+def chat(q: Optional[str] = None):
+    # Initialize Variables
+    api_key = state.processor_config.conversation.openai_api_key
+
+    # Load Conversation History
+    chat_session = state.processor_config.conversation.chat_session
+    meta_log = state.processor_config.conversation.meta_log
+
+    # If user query is empty, return chat history
+    if not q:
+        if meta_log.get("chat"):
+            return {"status": "ok", "response": meta_log["chat"]}
+        else:
+            return {"status": "ok", "response": []}
+
+    # Collate context for GPT
+    result_list = search(q, n=2, r=True, score_threshold=0, dedupe=False)
+    collated_result = "\n\n".join([f"# {item.additional['compiled']}" for item in result_list])
+    logger.debug(f"Reference Context:\n{collated_result}")
+
+    try:
+        gpt_response = converse(collated_result, q, meta_log, api_key=api_key)
+        status = "ok"
+    except Exception as e:
+        gpt_response = str(e)
+        status = "error"
+
+    # Update Conversation History
+    state.processor_config.conversation.chat_session = message_to_prompt(q, chat_session, gpt_message=gpt_response)
+    state.processor_config.conversation.meta_log["chat"] = message_to_log(
+        q, gpt_response, khoj_message_metadata={"context": collated_result}, conversation_log=meta_log.get("chat", [])
+    )
+
+    return {"status": status, "response": gpt_response, "context": collated_result}

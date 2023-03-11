@@ -1,6 +1,7 @@
 # Standard Packages
 import os
 import json
+import logging
 from datetime import datetime
 
 # External Packages
@@ -8,6 +9,38 @@ import openai
 
 # Internal Packages
 from khoj.utils.constants import empty_escape_sequences
+from khoj.utils.helpers import merge_dicts
+
+logger = logging.getLogger(__name__)
+
+
+def answer(text, user_query, model, api_key=None, temperature=0.5, max_tokens=500):
+    """
+    Answer user query using provided text as reference with OpenAI's GPT
+    """
+    # Initialize Variables
+    openai.api_key = api_key or os.getenv("OPENAI_API_KEY")
+
+    # Setup Prompt based on Summary Type
+    prompt = f"""
+You are a friendly, helpful personal assistant.
+Using the users notes below, answer their following question. If the answer is not contained within the notes, say "I don't know."
+
+Notes:
+{text}
+
+Question: {user_query}
+
+Answer (in second person):"""
+    # Get Response from GPT
+    logger.debug(f"Prompt for GPT: {prompt}")
+    response = openai.Completion.create(
+        prompt=prompt, model=model, temperature=temperature, max_tokens=max_tokens, stop='"""'
+    )
+
+    # Extract, Clean Message from GPT's Response
+    story = response["choices"][0]["text"]
+    return str(story).replace("\n\n", "")
 
 
 def summarize(text, summary_type, model, user_query=None, api_key=None, temperature=0.5, max_tokens=200):
@@ -34,6 +67,7 @@ Summarize the below notes about {user_query}:
 Summarize the notes in second person perspective:"""
 
     # Get Response from GPT
+    logger.debug(f"Prompt for GPT: {prompt}")
     response = openai.Completion.create(
         prompt=prompt, model=model, temperature=temperature, max_tokens=max_tokens, frequency_penalty=0.2, stop='"""'
     )
@@ -77,6 +111,7 @@ A:{ "search-type": "notes" }"""
         print(f"Message -> Prompt: {text} -> {prompt}")
 
     # Get Response from GPT
+    logger.debug(f"Prompt for GPT: {prompt}")
     response = openai.Completion.create(
         prompt=prompt, model=model, temperature=temperature, max_tokens=max_tokens, frequency_penalty=0.2, stop=["\n"]
     )
@@ -86,102 +121,66 @@ A:{ "search-type": "notes" }"""
     return json.loads(story.strip(empty_escape_sequences))
 
 
-def understand(text, model, api_key=None, temperature=0.5, max_tokens=100, verbose=0):
+def converse(text, user_query, conversation_log=None, api_key=None, temperature=0):
     """
-    Understand user input using OpenAI's GPT
-    """
-    # Initialize Variables
-    openai.api_key = api_key or os.getenv("OPENAI_API_KEY")
-    understand_primer = """
-Objective: Extract intent and trigger emotion information as JSON from each chat message
-
-Potential intent types and valid argument values are listed below:
-- intent
-  - remember(memory-type, query);
-     - memory-type=["companion","notes","ledger","image","music"]
-  - search(search-type, query);
-     - search-type=["google"]
-  - generate(activity, query);
-     - activity=["paint","write","chat"]
-- trigger-emotion(emotion)
-   - emotion=["happy","confidence","fear","surprise","sadness","disgust","anger","shy","curiosity","calm"]
-
-Some examples are given below for reference:
-Q: How are you doing?
-A: { "intent": {"type": "generate", "activity": "chat", "query": "How are you doing?"}, "trigger-emotion": "happy" }
-Q: Do you remember what I told you about my brother Antoine when we were at the beach?
-A: { "intent": {"type": "remember", "memory-type": "companion", "query": "Brother Antoine when we were at the beach"}, "trigger-emotion": "curiosity" }
-Q: what was that fantasy story you told me last time?
-A: { "intent": {"type": "remember", "memory-type": "companion", "query": "fantasy story told last time"}, "trigger-emotion": "curiosity" }
-Q: Let's make some drawings about the stars on a clear full moon night!
-A: { "intent": {"type": "generate", "activity": "paint", "query": "stars on a clear full moon night"}, "trigger-emotion: "happy" }
-Q: Do you know anything about Lebanon cuisine in the 18th century?
-A: { "intent": {"type": "search", "search-type": "google", "query": "lebanon cusine in the 18th century"}, "trigger-emotion; "confidence" }
-Q: Tell me a scary story
-A: { "intent": {"type": "generate", "activity": "write", "query": "A scary story"}, "trigger-emotion": "fear" }
-Q: What fiction book was I reading last week about AI starship?
-A: { "intent": {"type": "remember", "memory-type": "notes", "query": "fiction book about AI starship last week"}, "trigger-emotion": "curiosity" }
-Q: How much did I spend at Subway for dinner last time?
-A: { "intent": {"type": "remember", "memory-type": "ledger", "query": "last Subway dinner"}, "trigger-emotion": "calm" }
-Q: I'm feeling sleepy
-A: { "intent": {"type": "generate", "activity": "chat", "query": "I'm feeling sleepy"}, "trigger-emotion": "calm" }
-Q: What was that popular Sri lankan song that Alex had mentioned?
-A: { "intent": {"type": "remember", "memory-type": "music", "query": "popular Sri lankan song mentioned by Alex"}, "trigger-emotion": "curiosity" }
-Q: You're pretty funny!
-A: { "intent": {"type": "generate", "activity": "chat", "query": "You're pretty funny!"}, "trigger-emotion": "shy" }
-Q: Can you recommend a movie to watch from my notes?
-A: { "intent": {"type": "remember", "memory-type": "notes", "query": "recommend movie to watch"}, "trigger-emotion": "curiosity" }
-Q: When did I go surfing last?
-A: { "intent": {"type": "remember", "memory-type": "notes", "query": "When did I go surfing last"}, "trigger-emotion": "calm" }
-Q: Can you dance for me?
-A: { "intent": {"type": "generate", "activity": "chat", "query": "Can you dance for me?"}, "trigger-emotion": "sad" }"""
-
-    # Setup Prompt with Understand Primer
-    prompt = message_to_prompt(text, understand_primer, start_sequence="\nA:", restart_sequence="\nQ:")
-    if verbose > 1:
-        print(f"Message -> Prompt: {text} -> {prompt}")
-
-    # Get Response from GPT
-    response = openai.Completion.create(
-        prompt=prompt, model=model, temperature=temperature, max_tokens=max_tokens, frequency_penalty=0.2, stop=["\n"]
-    )
-
-    # Extract, Clean Message from GPT's Response
-    story = str(response["choices"][0]["text"])
-    return json.loads(story.strip(empty_escape_sequences))
-
-
-def converse(text, model, conversation_history=None, api_key=None, temperature=0.9, max_tokens=150):
-    """
-    Converse with user using OpenAI's GPT
+    Converse with user using OpenAI's ChatGPT
     """
     # Initialize Variables
-    max_words = 500
+    model = "gpt-3.5-turbo"
     openai.api_key = api_key or os.getenv("OPENAI_API_KEY")
 
+    personality_primer = "You are a friendly, helpful personal assistant."
     conversation_primer = f"""
-The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and a very friendly companion.
+Using the notes and our chats as context, answer the following question.
+Current Date: {datetime.now().strftime("%Y-%m-%d")}
 
-Human: Hello, who are you?
-AI: Hi, I am an AI conversational companion created by OpenAI. How can I help you today?"""
+Notes:
+{text}
+
+Question: {user_query}"""
 
     # Setup Prompt with Primer or Conversation History
-    prompt = message_to_prompt(text, conversation_history or conversation_primer)
-    prompt = " ".join(prompt.split()[:max_words])
+    messages = generate_chatml_messages_with_context(
+        conversation_primer,
+        personality_primer,
+        conversation_log,
+    )
 
     # Get Response from GPT
-    response = openai.Completion.create(
-        prompt=prompt,
+    logger.debug(f"Conversation Context for GPT: {messages}")
+    response = openai.ChatCompletion.create(
+        messages=messages,
         model=model,
         temperature=temperature,
-        max_tokens=max_tokens,
-        presence_penalty=0.6,
-        stop=["\n", "Human:", "AI:"],
     )
 
     # Extract, Clean Message from GPT's Response
-    story = str(response["choices"][0]["text"])
+    story = str(response["choices"][0]["message"]["content"])
     return story.strip(empty_escape_sequences)
+
+
+def generate_chatml_messages_with_context(user_message, system_message, conversation_log=None):
+    """Generate messages for ChatGPT with context from previous conversation"""
+    # Extract Chat History for Context
+    chat_logs = [f'{chat["message"]}\n\nNotes:\n{chat.get("context","")}' for chat in conversation_log.get("chat", [])]
+    last_backnforth = reciprocal_conversation_to_chatml(chat_logs[-2:])
+    rest_backnforth = reciprocal_conversation_to_chatml(chat_logs[-4:-2])
+
+    # Format user and system messages to chatml format
+    system_chatml_message = [message_to_chatml(system_message, "system")]
+    user_chatml_message = [message_to_chatml(user_message, "user")]
+
+    return rest_backnforth + system_chatml_message + last_backnforth + user_chatml_message
+
+
+def reciprocal_conversation_to_chatml(message_pair):
+    """Convert a single back and forth between user and assistant to chatml format"""
+    return [message_to_chatml(message, role) for message, role in zip(message_pair, ["user", "assistant"])]
+
+
+def message_to_chatml(message, role="assistant"):
+    """Create chatml message from message and role"""
+    return {"role": role, "content": message}
 
 
 def message_to_prompt(
@@ -193,22 +192,20 @@ def message_to_prompt(
     return f"{conversation_history}{restart_sequence} {user_message}{start_sequence}{gpt_message}"
 
 
-def message_to_log(user_message, gpt_message, user_message_metadata={}, conversation_log=[]):
+def message_to_log(user_message, gpt_message, khoj_message_metadata={}, conversation_log=[]):
     """Create json logs from messages, metadata for conversation log"""
-    default_user_message_metadata = {
+    default_khoj_message_metadata = {
         "intent": {"type": "remember", "memory-type": "notes", "query": user_message},
         "trigger-emotion": "calm",
     }
     current_dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # Create json log from Human's message
-    human_log = user_message_metadata or default_user_message_metadata
-    human_log["message"] = user_message
-    human_log["by"] = "you"
-    human_log["created"] = current_dt
+    human_log = {"message": user_message, "by": "you", "created": current_dt}
 
     # Create json log from GPT's response
-    khoj_log = {"message": gpt_message, "by": "khoj", "created": current_dt}
+    khoj_log = merge_dicts(khoj_message_metadata, default_khoj_message_metadata)
+    khoj_log = merge_dicts({"message": gpt_message, "by": "khoj", "created": current_dt}, khoj_log)
 
     conversation_log.extend([human_log, khoj_log])
     return conversation_log
