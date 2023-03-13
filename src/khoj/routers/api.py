@@ -10,7 +10,7 @@ from fastapi import HTTPException
 
 # Internal Packages
 from khoj.configure import configure_processor, configure_search
-from khoj.processor.conversation.gpt import converse
+from khoj.processor.conversation.gpt import converse, extract_questions
 from khoj.processor.conversation.utils import message_to_log, message_to_prompt
 from khoj.search_type import image_search, text_search
 from khoj.utils.helpers import timer
@@ -191,6 +191,7 @@ def update(t: Optional[SearchType] = None, force: Optional[bool] = False):
 def chat(q: Optional[str] = None):
     # Initialize Variables
     api_key = state.processor_config.conversation.openai_api_key
+    model = state.processor_config.conversation.model
 
     # Load Conversation History
     chat_session = state.processor_config.conversation.chat_session
@@ -203,9 +204,14 @@ def chat(q: Optional[str] = None):
         else:
             return {"status": "ok", "response": []}
 
-    # Collate context for GPT
-    result_list = search(q, n=2, r=True, score_threshold=0, dedupe=False)
-    collated_result = "\n\n".join([f"# {item.additional['compiled']}" for item in result_list])
+    # Extract search queries from user message
+    queries = extract_questions(q, model=model, api_key=api_key)
+
+    # Collate search results as context for GPT
+    result_list = []
+    for query in queries:
+        result_list.extend(search(query, n=2, r=True, score_threshold=0, dedupe=False))
+    collated_result = "\n\n".join({f"# {item.additional['compiled']}" for item in result_list})
     logger.debug(f"Reference Context:\n{collated_result}")
 
     try:
