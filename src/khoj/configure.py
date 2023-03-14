@@ -219,7 +219,7 @@ def save_chat_session():
     conversation_logfile = resolve_absolute_path(state.processor_config.conversation.conversation_logfile)
     conversation_logfile.parent.mkdir(parents=True, exist_ok=True)  # create conversation directory if doesn't exist
     with open(conversation_logfile, "w+", encoding="utf-8") as logfile:
-        json.dump(conversation_log, logfile)
+        json.dump(conversation_log, logfile, indent=2)
 
     state.processor_config.conversation.chat_session = None
     logger.info("📩 Saved current chat session to conversation logs")

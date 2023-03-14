@@ -18,7 +18,8 @@
 
         function generateReference(reference, index) {
             // Generate HTML for Chat Reference
-            return `<sup><abbr title="${reference}" tabindex="0">${index}</abbr></sup>`;
+            let escaped_ref = reference.replaceAll("\"", "\\\"")
+            return `<sup><abbr title="${escaped_ref}" tabindex="0">${index}</abbr></sup>`;
         }
 
         function renderMessage(message, by, dt=null) {
@@ -179,6 +180,7 @@
             color: #f8fafc;
             background: #017eff;
             margin-left: auto;
+            white-space: pre-line;
         }
         /* add left protrusion to khoj chat bubble */
         .chat-message-text.khoj:after {
