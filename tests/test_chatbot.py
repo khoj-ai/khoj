@@ -2,7 +2,7 @@
 import pytest
 
 # Internal Packages
-from khoj.processor.conversation.gpt import converse, message_to_prompt
+from khoj.processor.conversation.gpt import converse, message_to_log, message_to_prompt
 
 
 # Initialize variables for tests
@@ -32,50 +32,39 @@ def test_message_to_understand_prompt():
 )
 def test_minimal_chat_with_gpt():
     # Act
-    response = converse("What will happen when the stars go out?", model=model, api_key=api_key)
+    response = converse(
+        text="",  # Assume no context retrieved from notes for the user_query
+        user_query="Hello, my name is Testatron. Who are you?",
+        api_key=api_key,
+    )
 
     # Assert
+    expected_responses = ["Khoj", "khoj"]
     assert len(response) > 0
+    assert any([expected_response in response for expected_response in expected_responses]), (
+        "Expected assistants name, [K|k]hoj, in response but got" + response
+    )
 
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.skipif(
     api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
 )
-def test_chat_with_history():
-    # Arrange
-    ai_prompt = "AI:"
-    human_prompt = "Human:"
-
-    conversation_primer = f"""
-The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly companion.
-
-{human_prompt} Hello, I am Testatron. Who are you?
-{ai_prompt} Hi, I am Khoj, an AI conversational companion created by OpenAI. How can I help you today?"""
+def test_multi_turn_chat_with_minimal_history_no_context():
+    conversation_log = {}
+    conversation_log["chat"] = message_to_log(
+        user_message="Hello, my name is Testatron. Who are you?",
+        gpt_message="Hi, I am Khoj, an AI conversational companion. How can I help you today?",
+    )
 
     # Act
     response = converse(
-        "Hi Khoj, What is my name?",
-        model=model,
-        conversation_history=conversation_primer,
+        text="",  # Assume no context retrieved from notes for the user_query
+        user_query="Hi Khoj, what is my name?",
+        conversation_log=conversation_log,
         api_key=api_key,
-        temperature=0,
-        max_tokens=50,
     )
 
     # Assert
     assert len(response) > 0
     assert "Testatron" in response or "testatron" in response
-
-
-# ----------------------------------------------------------------------------------------------------
-@pytest.mark.skipif(
-    api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
-)
-def test_understand_message_using_gpt():
-    # Act
-    response = understand("When did I last dine at Subway?", model=model, api_key=api_key)
-
-    # Assert
-    assert len(response) > 0
-    assert response["intent"]["memory-type"] == "ledger"
