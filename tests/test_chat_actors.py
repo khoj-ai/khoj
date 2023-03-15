@@ -89,7 +89,7 @@ def test_answer_from_chat_history_and_no_content():
     api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
 )
 def test_answer_from_chat_history_and_previously_retrieved_content():
-    "Chatbot needs to use context in previous notes and chat history to answer question"
+    "Chat actor needs to use context in previous notes and chat history to answer question"
     # Arrange
     conversation_log = {"chat": []}
     message_list = [
@@ -120,7 +120,7 @@ def test_answer_from_chat_history_and_previously_retrieved_content():
     api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
 )
 def test_answer_from_chat_history_and_currently_retrieved_content():
-    "Chatbot needs to use context across currently retrieved notes and chat history to answer question"
+    "Chat actor needs to use context across currently retrieved notes and chat history to answer question"
     # Arrange
     conversation_log = {"chat": []}
     message_list = [
@@ -150,7 +150,7 @@ def test_answer_from_chat_history_and_currently_retrieved_content():
     api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
 )
 def test_no_answer_in_chat_history_or_retrieved_content():
-    "Chatbot should say don't know as not enough contexts in chat history or retrieved to answer question"
+    "Chat actor should say don't know as not enough contexts in chat history or retrieved to answer question"
     # Arrange
     conversation_log = {"chat": []}
     message_list = [
@@ -172,7 +172,9 @@ def test_no_answer_in_chat_history_or_retrieved_content():
     # Assert
     expected_responses = ["don't know", "do not know", "no information", "do not have", "don't have"]
     assert len(response) > 0
-    assert any([expected_response in response for expected_response in expected_responses])
+    assert any([expected_response in response for expected_response in expected_responses]), (
+        "Expected chat actor to say they don't know in response, but got: " + response
+    )
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -181,7 +183,7 @@ def test_no_answer_in_chat_history_or_retrieved_content():
     api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
 )
 def test_answer_requires_current_date_awareness():
-    "Chatbot should be able to answer questions relative to current date using provided notes"
+    "Chat actor should be able to answer questions relative to current date using provided notes"
     # Arrange
     context = f"""
     # {datetime.now().strftime("%Y-%m-%d")} "Naco Taco" "Tacos for Dinner"
@@ -218,7 +220,7 @@ def test_answer_requires_current_date_awareness():
     api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
 )
 def test_answer_requires_date_aware_aggregation_across_provided_notes():
-    "Chatbot should be able to answer questions that require date aware aggregation across multiple notes"
+    "Chat actor should be able to answer questions that require date aware aggregation across multiple notes"
     # Arrange
     context = f"""
     # {datetime.now().strftime("%Y-%m-%d")} "Naco Taco" "Tacos for Dinner"
@@ -252,7 +254,7 @@ def test_answer_requires_date_aware_aggregation_across_provided_notes():
     api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
 )
 def test_answer_general_question_not_in_chat_history_or_retrieved_content():
-    "Chatbot should be able to answer general questions not requiring looking at chat history or notes"
+    "Chat actor should be able to answer general questions not requiring looking at chat history or notes"
     # Arrange
     conversation_log = {"chat": []}
     message_list = [
@@ -281,13 +283,13 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content():
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.xfail(reason="Chatbot not consistently capable of asking for clarification yet.")
+@pytest.mark.xfail(reason="Chat actor not consistently capable of asking for clarification yet.")
 @pytest.mark.chatquality
 @pytest.mark.skipif(
     api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
 )
 def test_ask_for_clarification_if_not_enough_context_in_question():
-    "Chatbot should ask for clarification if question cannot be answered unambiguously with the provided context"
+    "Chat actor should ask for clarification if question cannot be answered unambiguously with the provided context"
     # Arrange
     context = f"""
     # Ramya
@@ -310,5 +312,5 @@ def test_ask_for_clarification_if_not_enough_context_in_question():
     # Assert
     expected_responses = ["which sister", "Which sister", "which of your sister", "Which of your sister"]
     assert any([expected_response in response for expected_response in expected_responses]), (
-        "Expected chatbot to ask for clarification in response, but got: " + response
+        "Expected chat actor to ask for clarification in response, but got: " + response
     )
