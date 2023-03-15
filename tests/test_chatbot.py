@@ -6,7 +6,8 @@ from datetime import datetime
 import pytest
 
 # Internal Packages
-from khoj.processor.conversation.gpt import converse, message_to_log, message_to_prompt
+from khoj.processor.conversation.gpt import converse
+from khoj.processor.conversation.utils import message_to_log, message_to_prompt
 
 
 # Initialize variables for tests

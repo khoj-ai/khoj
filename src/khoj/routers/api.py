@@ -10,7 +10,8 @@ from fastapi import HTTPException
 
 # Internal Packages
 from khoj.configure import configure_processor, configure_search
-from khoj.processor.conversation.gpt import converse, message_to_log, message_to_prompt
+from khoj.processor.conversation.gpt import converse
+from khoj.processor.conversation.utils import message_to_log, message_to_prompt
 from khoj.search_type import image_search, text_search
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import FullConfig, SearchResponse
