@@ -30,6 +30,7 @@ def test_message_to_understand_prompt():
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
 @pytest.mark.skipif(
     api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
 )
@@ -50,6 +51,7 @@ def test_chat_with_no_chat_history_or_retrieved_content():
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
 @pytest.mark.skipif(
     api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
 )
@@ -81,6 +83,7 @@ def test_answer_from_chat_history_and_no_content():
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
 @pytest.mark.skipif(
     api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
 )
@@ -111,6 +114,7 @@ def test_answer_from_chat_history_and_previously_retrieved_content():
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
 @pytest.mark.skipif(
     api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
 )
@@ -140,6 +144,7 @@ def test_answer_from_chat_history_and_currently_retrieved_content():
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
 @pytest.mark.skipif(
     api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
 )
@@ -170,6 +175,7 @@ def test_no_answer_in_chat_history_or_retrieved_content():
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
 @pytest.mark.skipif(
     api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
 )
@@ -206,6 +212,7 @@ def test_answer_requires_current_date_awareness():
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
 @pytest.mark.skipif(
     api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
 )
@@ -239,6 +246,7 @@ def test_answer_requires_date_aware_aggregation_across_provided_notes():
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
 @pytest.mark.skipif(
     api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
 )
@@ -273,6 +281,7 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content():
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.xfail(reason="Chatbot not consistently capable of asking for clarification yet.")
+@pytest.mark.chatquality
 @pytest.mark.skipif(
     api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
 )
