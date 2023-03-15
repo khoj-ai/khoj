@@ -121,7 +121,7 @@ A:{ "search-type": "notes" }"""
     return json.loads(story.strip(empty_escape_sequences))
 
 
-def converse(text, user_query, conversation_log=None, api_key=None, temperature=0):
+def converse(text, user_query, conversation_log={}, api_key=None, temperature=0.2):
     """
     Converse with user using OpenAI's ChatGPT
     """
@@ -129,9 +129,9 @@ def converse(text, user_query, conversation_log=None, api_key=None, temperature=
     model = "gpt-3.5-turbo"
     openai.api_key = api_key or os.getenv("OPENAI_API_KEY")
 
-    personality_primer = "You are a friendly, helpful personal assistant."
+    personality_primer = "You are Khoj, a friendly, smart and helpful personal assistant."
     conversation_primer = f"""
-Using the notes and our chats as context, answer the following question.
+Using the notes and our past conversations as context, answer the following question.
 Current Date: {datetime.now().strftime("%Y-%m-%d")}
 
 Notes:
@@ -159,7 +159,7 @@ Question: {user_query}"""
     return story.strip(empty_escape_sequences)
 
 
-def generate_chatml_messages_with_context(user_message, system_message, conversation_log=None):
+def generate_chatml_messages_with_context(user_message, system_message, conversation_log={}):
     """Generate messages for ChatGPT with context from previous conversation"""
     # Extract Chat History for Context
     chat_logs = [f'{chat["message"]}\n\nNotes:\n{chat.get("context","")}' for chat in conversation_log.get("chat", [])]
