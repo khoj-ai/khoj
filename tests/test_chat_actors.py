@@ -4,9 +4,10 @@ from datetime import datetime
 
 # External Packages
 import pytest
+from freezegun import freeze_time
 
 # Internal Packages
-from khoj.processor.conversation.gpt import converse
+from khoj.processor.conversation.gpt import converse, extract_questions
 from khoj.processor.conversation.utils import message_to_log
 
 
@@ -20,6 +21,91 @@ if api_key is None:
 
 
 # Test
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
+@freeze_time("1984-04-02")
+def test_extract_question_with_date_filter_from_relative_day():
+    # Act
+    response = extract_questions("Where did I go for dinner yesterday?")
+
+    # Assert
+    expected_responses = [
+        ('dt="1984-04-01"', ""),
+        ('dt>="1984-04-01"', 'dt<"1984-04-02"'),
+        ('dt>"1984-03-31"', 'dt<"1984-04-02"'),
+    ]
+    assert len(response) == 1
+    assert any([start in response[0] and end in response[0] for start, end in expected_responses]), (
+        "Expected date filter to limit to 1st April 1984 in response but got" + response[0]
+    )
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
+@freeze_time("1984-04-02")
+def test_extract_question_with_date_filter_from_relative_month():
+    # Act
+    response = extract_questions("Which countries did I visit last month?")
+
+    # Assert
+    expected_responses = [('dt>="1984-03-01"', 'dt<"1984-04-01"'), ('dt>="1984-03-01"', 'dt<="1984-03-31"')]
+    assert len(response) == 1
+    assert any([start in response[0] and end in response[0] for start, end in expected_responses]), (
+        "Expected date filter to limit to March 1984 in response but got" + response[0]
+    )
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
+@freeze_time("1984-04-02")
+def test_extract_question_with_date_filter_from_relative_year():
+    # Act
+    response = extract_questions("Where countries have I visited this year?")
+
+    # Assert
+    expected_responses = [
+        ('dt>="1984-01-01"', ""),
+        ('dt>="1984-01-01"', 'dt<"1985-01-01"'),
+        ('dt>="1984-01-01"', 'dt<="1984-12-31"'),
+    ]
+    assert len(response) == 1
+    assert any([start in response[0] and end in response[0] for start, end in expected_responses]), (
+        "Expected date filter to limit to 1984 in response but got" + response[0]
+    )
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
+def test_extract_multiple_explicit_questions_from_message():
+    # Act
+    response = extract_questions("What is the Sun? What is the Moon?")
+
+    # Assert
+    expected_responses = [
+        ("sun", "moon"),
+    ]
+    assert len(response) == 2
+    assert any([start in response[0].lower() and end in response[1].lower() for start, end in expected_responses]), (
+        "Expected two search queries in response but got" + response[0]
+    )
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
+def test_extract_multiple_implicit_questions_from_message():
+    # Act
+    response = extract_questions("Is Morpheus taller than Neo?")
+
+    # Assert
+    expected_responses = [
+        ("morpheus", "neo"),
+    ]
+    assert len(response) == 2
+    assert any([start in response[0].lower() and end in response[1].lower() for start, end in expected_responses]), (
+        "Expected two search queries in response but got" + response[0]
+    )
+
+
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
 def test_chat_with_no_chat_history_or_retrieved_content():
@@ -42,20 +128,16 @@ def test_chat_with_no_chat_history_or_retrieved_content():
 @pytest.mark.chatquality
 def test_answer_from_chat_history_and_no_content():
     # Arrange
-    conversation_log = {"chat": []}
     message_list = [
         ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", ""),
         ("When was I born?", "You were born on 1st April 1984.", ""),
     ]
-    # Generate conversation logs
-    for user_message, gpt_message, _ in message_list:
-        conversation_log["chat"] += message_to_log(user_message, gpt_message)
 
     # Act
     response = converse(
         text="",  # Assume no context retrieved from notes for the user_query
         user_query="What is my name?",
-        conversation_log=conversation_log,
+        conversation_log=populate_chat_history(message_list),
         api_key=api_key,
     )
 
@@ -72,20 +154,16 @@ def test_answer_from_chat_history_and_no_content():
 def test_answer_from_chat_history_and_previously_retrieved_content():
     "Chat actor needs to use context in previous notes and chat history to answer question"
     # Arrange
-    conversation_log = {"chat": []}
     message_list = [
         ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", ""),
         ("When was I born?", "You were born on 1st April 1984.", "Testatron was born on 1st April 1984 in Testville."),
     ]
-    # Generate conversation logs
-    for user_message, gpt_message, context in message_list:
-        conversation_log["chat"] += message_to_log(user_message, gpt_message, {"context": context})
 
     # Act
     response = converse(
         text="",  # Assume no context retrieved from notes for the user_query
         user_query="Where was I born?",
-        conversation_log=conversation_log,
+        conversation_log=populate_chat_history(message_list),
         api_key=api_key,
     )
 
@@ -100,20 +178,16 @@ def test_answer_from_chat_history_and_previously_retrieved_content():
 def test_answer_from_chat_history_and_currently_retrieved_content():
     "Chat actor needs to use context across currently retrieved notes and chat history to answer question"
     # Arrange
-    conversation_log = {"chat": []}
     message_list = [
         ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", ""),
         ("When was I born?", "You were born on 1st April 1984.", ""),
     ]
-    # Generate conversation logs
-    for user_message, gpt_message, context in message_list:
-        conversation_log["chat"] += message_to_log(user_message, gpt_message, {"context": context})
 
     # Act
     response = converse(
         text="Testatron was born on 1st April 1984 in Testville.",  # Assume context retrieved from notes for the user_query
         user_query="Where was I born?",
-        conversation_log=conversation_log,
+        conversation_log=populate_chat_history(message_list),
         api_key=api_key,
     )
 
@@ -127,20 +201,16 @@ def test_answer_from_chat_history_and_currently_retrieved_content():
 def test_no_answer_in_chat_history_or_retrieved_content():
     "Chat actor should say don't know as not enough contexts in chat history or retrieved to answer question"
     # Arrange
-    conversation_log = {"chat": []}
     message_list = [
         ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", ""),
         ("When was I born?", "You were born on 1st April 1984.", ""),
     ]
-    # Generate conversation logs
-    for user_message, gpt_message, context in message_list:
-        conversation_log["chat"] += message_to_log(user_message, gpt_message, {"context": context})
 
     # Act
     response = converse(
         text="",  # Assume no context retrieved from notes for the user_query
         user_query="Where was I born?",
-        conversation_log=conversation_log,
+        conversation_log=populate_chat_history(message_list),
         api_key=api_key,
     )
 
@@ -222,21 +292,17 @@ def test_answer_requires_date_aware_aggregation_across_provided_notes():
 def test_answer_general_question_not_in_chat_history_or_retrieved_content():
     "Chat actor should be able to answer general questions not requiring looking at chat history or notes"
     # Arrange
-    conversation_log = {"chat": []}
     message_list = [
         ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", ""),
         ("When was I born?", "You were born on 1st April 1984.", ""),
         ("Where was I born?", "You were born Testville.", ""),
     ]
-    # Generate conversation logs
-    for user_message, gpt_message, context in message_list:
-        conversation_log["chat"] += message_to_log(user_message, gpt_message, {"context": context})
 
     # Act
     response = converse(
         text="",  # Assume no context retrieved from notes for the user_query
         user_query="Write a haiku about unit testing",
-        conversation_log=conversation_log,
+        conversation_log=populate_chat_history(message_list),
         api_key=api_key,
     )
 
@@ -277,3 +343,17 @@ def test_ask_for_clarification_if_not_enough_context_in_question():
     assert any([expected_response in response for expected_response in expected_responses]), (
         "Expected chat actor to ask for clarification in response, but got: " + response
     )
+
+
+# Helpers
+# ----------------------------------------------------------------------------------------------------
+def populate_chat_history(message_list):
+    # Generate conversation logs
+    conversation_log = {"chat": []}
+    for user_message, gpt_message, context in message_list:
+        conversation_log["chat"] += message_to_log(
+            user_message,
+            gpt_message,
+            {"context": context, "intent": {"query": user_message, "inferred-queries": f'["{user_message}"]'}},
+        )
+    return conversation_log
