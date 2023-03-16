@@ -11,7 +11,12 @@ from khoj.utils import state
 
 
 # Initialize variables for tests
-api_key = os.getenv("OPENAI_API_KEY")  # Set your OPENAI_API_KEY as environment variable to run the tests below
+api_key = os.getenv("OPENAI_API_KEY")
+if api_key is None:
+    pytest.skip(
+        reason="Set OPENAI_API_KEY environment variable to run tests below. Get OpenAI API key from https://platform.openai.com/account/api-keys",
+        allow_module_level=True,
+    )
 
 
 # Helpers
@@ -29,10 +34,6 @@ def populate_chat_history(message_list):
 # Tests
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-@pytest.mark.skipif(
-    api_key is None,
-    reason="Set api_key variable to your OpenAI API key from https://platform.openai.com/account/api-keys",
-)
 def test_chat_with_no_chat_history_or_retrieved_content(chat_client):
     # Act
     response = chat_client.get(f'/api/chat?q="Hello, my name is Testatron. Who are you?"')
@@ -48,10 +49,6 @@ def test_chat_with_no_chat_history_or_retrieved_content(chat_client):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-@pytest.mark.skipif(
-    api_key is None,
-    reason="Set api_key variable to your OpenAI API key from https://platform.openai.com/account/api-keys",
-)
 def test_answer_from_chat_history(chat_client):
     # Arrange
     message_list = [
@@ -74,10 +71,6 @@ def test_answer_from_chat_history(chat_client):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-@pytest.mark.skipif(
-    api_key is None,
-    reason="Set api_key variable to your OpenAI API key from https://platform.openai.com/account/api-keys",
-)
 def test_answer_from_currently_retrieved_content(chat_client):
     # Arrange
     message_list = [
@@ -97,10 +90,6 @@ def test_answer_from_currently_retrieved_content(chat_client):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-@pytest.mark.skipif(
-    api_key is None,
-    reason="Set api_key variable to your OpenAI API key from https://platform.openai.com/account/api-keys",
-)
 def test_answer_from_chat_history_and_previously_retrieved_content(chat_client):
     # Arrange
     message_list = [
@@ -123,10 +112,6 @@ def test_answer_from_chat_history_and_previously_retrieved_content(chat_client):
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
-@pytest.mark.skipif(
-    api_key is None,
-    reason="Set api_key variable to your OpenAI API key from https://platform.openai.com/account/api-keys",
-)
 def test_answer_from_chat_history_and_currently_retrieved_content(chat_client):
     # Arrange
     message_list = [
@@ -150,10 +135,6 @@ def test_answer_from_chat_history_and_currently_retrieved_content(chat_client):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-@pytest.mark.skipif(
-    api_key is None,
-    reason="Set api_key variable to your OpenAI API key from https://platform.openai.com/account/api-keys",
-)
 def test_no_answer_in_chat_history_or_retrieved_content(chat_client):
     "Chat director should say don't know as not enough contexts in chat history or retrieved to answer question"
     # Arrange
@@ -178,10 +159,6 @@ def test_no_answer_in_chat_history_or_retrieved_content(chat_client):
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering time aware questions yet")
 @pytest.mark.chatquality
-@pytest.mark.skipif(
-    api_key is None,
-    reason="Set api_key variable to your OpenAI API key from https://platform.openai.com/account/api-keys",
-)
 @freeze_time("2023-04-01")
 def test_answer_requires_current_date_awareness(chat_client):
     "Chat actor should be able to answer questions relative to current date using provided notes"
@@ -200,10 +177,6 @@ def test_answer_requires_current_date_awareness(chat_client):
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering time aware questions yet")
 @pytest.mark.chatquality
-@pytest.mark.skipif(
-    api_key is None,
-    reason="Set api_key variable to your OpenAI API key from https://platform.openai.com/account/api-keys",
-)
 @freeze_time("2023-04-01")
 def test_answer_requires_date_aware_aggregation_across_provided_notes(chat_client):
     "Chat director should be able to answer questions that require date aware aggregation across multiple notes"
@@ -218,10 +191,6 @@ def test_answer_requires_date_aware_aggregation_across_provided_notes(chat_clien
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-@pytest.mark.skipif(
-    api_key is None,
-    reason="Set api_key variable to your OpenAI API key from https://platform.openai.com/account/api-keys",
-)
 def test_answer_general_question_not_in_chat_history_or_retrieved_content(chat_client):
     # Arrange
     message_list = [
@@ -247,10 +216,6 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content(chat_c
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.xfail(reason="Chat director not consistently capable of asking for clarification yet.")
 @pytest.mark.chatquality
-@pytest.mark.skipif(
-    api_key is None,
-    reason="Set api_key variable to your OpenAI API key from https://platform.openai.com/account/api-keys",
-)
 def test_ask_for_clarification_if_not_enough_context_in_question(chat_client):
     # Act
     response = chat_client.get(f'/api/chat?q="What is the name of Namitas older son"')
@@ -272,10 +237,6 @@ def test_ask_for_clarification_if_not_enough_context_in_question(chat_client):
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.xfail(reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
-@pytest.mark.skipif(
-    api_key is None,
-    reason="Set api_key variable to your OpenAI API key from https://platform.openai.com/account/api-keys",
-)
 def test_answer_in_chat_history_beyond_lookback_window(chat_client):
     # Arrange
     message_list = [
@@ -300,10 +261,6 @@ def test_answer_in_chat_history_beyond_lookback_window(chat_client):
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.xfail(reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
-@pytest.mark.skipif(
-    api_key is None,
-    reason="Set api_key variable to your OpenAI API key from https://platform.openai.com/account/api-keys",
-)
 def test_answer_requires_multiple_independent_searches(chat_client):
     "Chat director should be able to answer by doing multiple independent searches for required information"
     # Act

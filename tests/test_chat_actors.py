@@ -7,34 +7,21 @@ import pytest
 
 # Internal Packages
 from khoj.processor.conversation.gpt import converse
-from khoj.processor.conversation.utils import message_to_log, message_to_prompt
+from khoj.processor.conversation.utils import message_to_log
 
 
 # Initialize variables for tests
-api_key = os.getenv("OPENAI_API_KEY")  # Set your OPENAI_API_KEY as environment variable to run the tests below
+api_key = os.getenv("OPENAI_API_KEY")
+if api_key is None:
+    pytest.skip(
+        reason="Set OPENAI_API_KEY environment variable to run tests below. Get OpenAI API key from https://platform.openai.com/account/api-keys",
+        allow_module_level=True,
+    )
 
 
 # Test
 # ----------------------------------------------------------------------------------------------------
-def test_message_to_understand_prompt():
-    # Arrange
-    understand_primer = 'Extract information from each chat message\n\nremember(memory-type, data);\nmemory-type=["companion", "notes", "ledger", "image", "music"]\nsearch(search-type, data);\nsearch-type=["google", "youtube"]\ngenerate(activity);\nactivity=["paint","write", "chat"]\ntrigger-emotion(emotion);\nemotion=["happy","confidence","fear","surprise","sadness","disgust","anger", "curiosity", "calm"]\n\nQ: How are you doing?\nA: activity("chat"); trigger-emotion("surprise")\nQ: Do you remember what I told you about my brother Antoine when we were at the beach?\nA: remember("notes", "Brother Antoine when we were at the beach"); trigger-emotion("curiosity");\nQ: what did we talk about last time?\nA: remember("notes", "talk last time"); trigger-emotion("curiosity");\nQ: Let\'s make some drawings!\nA: generate("paint"); trigger-emotion("happy");\nQ: Do you know anything about Lebanon?\nA: search("google", "lebanon");  trigger-emotion("confidence");\nQ: Find a video about a panda rolling in the grass\nA: search("youtube","panda rolling in the grass");  trigger-emotion("happy"); \nQ: Tell me a scary story\nA: generate("write" "A story about some adventure"); trigger-emotion("fear");\nQ: What fiction book was I reading last week about AI starship?\nA: remember("notes", "read fiction book about AI starship last week"); trigger-emotion("curiosity");\nQ: How much did I spend at Subway for dinner last time?\nA: remember("ledger", "last Subway dinner"); trigger-emotion("curiosity");\nQ: I\'m feeling sleepy\nA: activity("chat"); trigger-emotion("calm")\nQ: What was that popular Sri lankan song that Alex showed me recently?\nA: remember("music", "popular Sri lankan song that Alex showed recently");  trigger-emotion("curiosity"); \nQ: You\'re pretty funny!\nA: activity("chat"); trigger-emotion("pride")'
-    expected_response = 'Extract information from each chat message\n\nremember(memory-type, data);\nmemory-type=["companion", "notes", "ledger", "image", "music"]\nsearch(search-type, data);\nsearch-type=["google", "youtube"]\ngenerate(activity);\nactivity=["paint","write", "chat"]\ntrigger-emotion(emotion);\nemotion=["happy","confidence","fear","surprise","sadness","disgust","anger", "curiosity", "calm"]\n\nQ: How are you doing?\nA: activity("chat"); trigger-emotion("surprise")\nQ: Do you remember what I told you about my brother Antoine when we were at the beach?\nA: remember("notes", "Brother Antoine when we were at the beach"); trigger-emotion("curiosity");\nQ: what did we talk about last time?\nA: remember("notes", "talk last time"); trigger-emotion("curiosity");\nQ: Let\'s make some drawings!\nA: generate("paint"); trigger-emotion("happy");\nQ: Do you know anything about Lebanon?\nA: search("google", "lebanon");  trigger-emotion("confidence");\nQ: Find a video about a panda rolling in the grass\nA: search("youtube","panda rolling in the grass");  trigger-emotion("happy"); \nQ: Tell me a scary story\nA: generate("write" "A story about some adventure"); trigger-emotion("fear");\nQ: What fiction book was I reading last week about AI starship?\nA: remember("notes", "read fiction book about AI starship last week"); trigger-emotion("curiosity");\nQ: How much did I spend at Subway for dinner last time?\nA: remember("ledger", "last Subway dinner"); trigger-emotion("curiosity");\nQ: I\'m feeling sleepy\nA: activity("chat"); trigger-emotion("calm")\nQ: What was that popular Sri lankan song that Alex showed me recently?\nA: remember("music", "popular Sri lankan song that Alex showed recently");  trigger-emotion("curiosity"); \nQ: You\'re pretty funny!\nA: activity("chat"); trigger-emotion("pride")\nQ: When did I last dine at Burger King?\nA:'
-
-    # Act
-    actual_response = message_to_prompt(
-        "When did I last dine at Burger King?", understand_primer, start_sequence="\nA:", restart_sequence="\nQ:"
-    )
-
-    # Assert
-    assert actual_response == expected_response
-
-
-# ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-@pytest.mark.skipif(
-    api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
-)
 def test_chat_with_no_chat_history_or_retrieved_content():
     # Act
     response = converse(
@@ -53,9 +40,6 @@ def test_chat_with_no_chat_history_or_retrieved_content():
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-@pytest.mark.skipif(
-    api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
-)
 def test_answer_from_chat_history_and_no_content():
     # Arrange
     conversation_log = {"chat": []}
@@ -85,9 +69,6 @@ def test_answer_from_chat_history_and_no_content():
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-@pytest.mark.skipif(
-    api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
-)
 def test_answer_from_chat_history_and_previously_retrieved_content():
     "Chat actor needs to use context in previous notes and chat history to answer question"
     # Arrange
@@ -116,9 +97,6 @@ def test_answer_from_chat_history_and_previously_retrieved_content():
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-@pytest.mark.skipif(
-    api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
-)
 def test_answer_from_chat_history_and_currently_retrieved_content():
     "Chat actor needs to use context across currently retrieved notes and chat history to answer question"
     # Arrange
@@ -146,9 +124,6 @@ def test_answer_from_chat_history_and_currently_retrieved_content():
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-@pytest.mark.skipif(
-    api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
-)
 def test_no_answer_in_chat_history_or_retrieved_content():
     "Chat actor should say don't know as not enough contexts in chat history or retrieved to answer question"
     # Arrange
@@ -179,9 +154,6 @@ def test_no_answer_in_chat_history_or_retrieved_content():
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-@pytest.mark.skipif(
-    api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
-)
 def test_answer_requires_current_date_awareness():
     "Chat actor should be able to answer questions relative to current date using provided notes"
     # Arrange
@@ -216,9 +188,6 @@ def test_answer_requires_current_date_awareness():
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-@pytest.mark.skipif(
-    api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
-)
 def test_answer_requires_date_aware_aggregation_across_provided_notes():
     "Chat actor should be able to answer questions that require date aware aggregation across multiple notes"
     # Arrange
@@ -250,9 +219,6 @@ def test_answer_requires_date_aware_aggregation_across_provided_notes():
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-@pytest.mark.skipif(
-    api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
-)
 def test_answer_general_question_not_in_chat_history_or_retrieved_content():
     "Chat actor should be able to answer general questions not requiring looking at chat history or notes"
     # Arrange
@@ -285,9 +251,6 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content():
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.xfail(reason="Chat actor not consistently capable of asking for clarification yet.")
 @pytest.mark.chatquality
-@pytest.mark.skipif(
-    api_key is None, reason="Set api_key variable to your OpenAI API key from https://beta.openai.com/account/api-keys"
-)
 def test_ask_for_clarification_if_not_enough_context_in_question():
     "Chat actor should ask for clarification if question cannot be answered unambiguously with the provided context"
     # Arrange
