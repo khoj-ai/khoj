@@ -78,12 +78,23 @@ Summarize the notes in second person perspective:"""
     return str(story).replace("\n\n", "")
 
 
-def extract_questions(text, model="text-davinci-003", api_key=None, temperature=0, max_tokens=100):
+def extract_questions(
+    text, model="text-davinci-003", conversation_log={}, api_key=None, temperature=0, max_tokens=100
+):
     """
     Infer search queries to retrieve relevant notes to answer user query
     """
     # Initialize Variables
     openai.api_key = api_key or os.getenv("OPENAI_API_KEY")
+
+    # Extract Past User Message and Inferred Questions from Conversation Log
+    chat_history = "".join(
+        [
+            f'Q: {chat["intent"]["query"]}\n\n{chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}\n\n'
+            for chat in conversation_log.get("chat", [])[-4:]
+            if chat["by"] == "khoj"
+        ]
+    )
 
     # Get dates relative to today for prompt creation
     today = datetime.today()
@@ -91,27 +102,39 @@ def extract_questions(text, model="text-davinci-003", api_key=None, temperature=
     last_new_year = current_new_year.replace(year=today.year - 1)
 
     prompt = f"""
-You are Khoj, a chat assistant with the ability to search the users notes
-What searches, if any, will you need to perform to answer the users question below? Provide search queries as a JSON list of  strings
+You are Khoj, a chat assistant with the ability to search the users notes and continue the existing conversation.
+What searches, if any, will you need to perform to answer the users question below?
+Provide search queries as a JSON list of strings
 Current Date: {today.strftime("%HH:%MM %A, %Y-%m-%d")}
 
 Q: How was my trip to Cambodia?
 
-["My Cambodia trip experience"]
+["How was my trip to Cambodia?"]
 
-Q: How are you feeling?
+Q: When did i go there?
 
-[]
+["When did I go to Cambodia?"]
 
 Q: What national parks did I go to last year?
 
 ["National park I visited in {last_new_year.strftime("%Y")} dt>=\\"{last_new_year.strftime("%Y-%m-%d")}\\" dt<\\"{current_new_year.strftime("%Y-%m-%d")}\\""]
 
+Q: How are you feeling today?
+
+[]
+
 Q: Is Bob older than Tom?
 
 ["When was Bob born?", "What is Tom's age?"]
 
-Q: {text}"""
+Q: What is their age difference?
+
+["What is Bob's age?", "What is Tom's age?"]
+
+{chat_history}
+Q: {text}
+
+"""
 
     # Get Response from GPT
     response = openai.Completion.create(prompt=prompt, model=model, temperature=temperature, max_tokens=max_tokens)

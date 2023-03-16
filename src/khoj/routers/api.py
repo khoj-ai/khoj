@@ -204,15 +204,14 @@ def chat(q: Optional[str] = None):
         else:
             return {"status": "ok", "response": []}
 
-    # Extract search queries from user message
-    queries = extract_questions(q, model=model, api_key=api_key)
+    # Infer search queries from user message
+    inferred_queries = extract_questions(q, model=model, api_key=api_key, conversation_log=meta_log)
 
     # Collate search results as context for GPT
     result_list = []
-    for query in queries:
+    for query in inferred_queries:
         result_list.extend(search(query, n=2, r=True, score_threshold=0, dedupe=False))
     collated_result = "\n\n".join({f"# {item.additional['compiled']}" for item in result_list})
-    logger.debug(f"Reference Context:\n{collated_result}")
 
     try:
         gpt_response = converse(collated_result, q, meta_log, api_key=api_key)
@@ -224,7 +223,10 @@ def chat(q: Optional[str] = None):
     # Update Conversation History
     state.processor_config.conversation.chat_session = message_to_prompt(q, chat_session, gpt_message=gpt_response)
     state.processor_config.conversation.meta_log["chat"] = message_to_log(
-        q, gpt_response, khoj_message_metadata={"context": collated_result}, conversation_log=meta_log.get("chat", [])
+        q,
+        gpt_response,
+        khoj_message_metadata={"context": collated_result, "intent": {"inferred-queries": inferred_queries}},
+        conversation_log=meta_log.get("chat", []),
     )
 
     return {"status": status, "response": gpt_response, "context": collated_result}
