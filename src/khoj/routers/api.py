@@ -210,7 +210,7 @@ def chat(q: Optional[str] = None):
     # Collate search results as context for GPT
     result_list = []
     for query in inferred_queries:
-        result_list.extend(search(query, n=2, r=True, score_threshold=0, dedupe=False))
+        result_list.extend(search(query, n=2, r=True, score_threshold=-5.0, dedupe=False))
     collated_result = "\n\n".join({f"# {item.additional['compiled']}" for item in result_list})
 
     try:
