@@ -10,6 +10,8 @@ __pycache__
 .emacs.desktop*
 *.py[cod]
 .vscode
+.env
+.venv/*
 
 # Build artifacts
 /src/khoj/interface/web/images

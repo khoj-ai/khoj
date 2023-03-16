@@ -1,4 +1,5 @@
 # External Packages
+import os
 from copy import deepcopy
 from fastapi.testclient import TestClient
 from pathlib import Path
@@ -6,11 +7,14 @@ import pytest
 
 # Internal Packages
 from khoj.main import app
-from khoj.configure import configure_routes, configure_search_types
+from khoj.configure import configure_processor, configure_routes, configure_search_types
+from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.search_type import image_search, text_search
 from khoj.utils.helpers import resolve_absolute_path
 from khoj.utils.rawconfig import (
     ContentConfig,
+    ConversationProcessorConfig,
+    ProcessorConfig,
     TextContentConfig,
     ImageContentConfig,
     SearchConfig,
@@ -94,7 +98,63 @@ def content_config(tmp_path_factory, search_config: SearchConfig):
 
 
 @pytest.fixture(scope="session")
-def client(content_config: ContentConfig, search_config: SearchConfig):
+def md_content_config(tmp_path_factory):
+    content_dir = tmp_path_factory.mktemp("content")
+
+    # Generate Embeddings for Markdown Content
+    content_config = ContentConfig()
+    content_config.markdown = TextContentConfig(
+        input_files=None,
+        input_filter=["tests/data/markdown/*.md"],
+        compressed_jsonl=content_dir.joinpath("markdown.jsonl"),
+        embeddings_file=content_dir.joinpath("markdown_embeddings.pt"),
+    )
+
+    return content_config
+
+
+@pytest.fixture(scope="session")
+def processor_config(tmp_path_factory):
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    processor_dir = tmp_path_factory.mktemp("processor")
+
+    # The conversation processor is the only configured processor
+    # It needs an OpenAI API key to work.
+    if not openai_api_key:
+        return
+
+    # Setup conversation processor, if OpenAI API key is set
+    processor_config = ProcessorConfig()
+    processor_config.conversation = ConversationProcessorConfig(
+        openai_api_key=openai_api_key,
+        conversation_logfile=processor_dir.joinpath("conversation_logs.json"),
+    )
+
+    return processor_config
+
+
+@pytest.fixture(scope="session")
+def chat_client(md_content_config: ContentConfig, search_config: SearchConfig, processor_config: ProcessorConfig):
+    # Initialize app state
+    state.config.content_type = md_content_config
+    state.config.search_type = search_config
+    state.SearchType = configure_search_types(state.config)
+
+    # Index Markdown Content for Search
+    filters = [DateFilter(), WordFilter(), FileFilter()]
+    state.model.markdown_search = text_search.setup(
+        MarkdownToJsonl, md_content_config.markdown, search_config.asymmetric, regenerate=False, filters=filters
+    )
+
+    # Initialize Processor from Config
+    state.processor_config = configure_processor(processor_config)
+
+    configure_routes(app)
+    return TestClient(app)
+
+
+@pytest.fixture(scope="function")
+def client(content_config: ContentConfig, search_config: SearchConfig, processor_config: ProcessorConfig):
     state.config.content_type = content_config
     state.config.search_type = search_config
     state.SearchType = configure_search_types(state.config)

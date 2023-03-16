@@ -3,11 +3,15 @@ import re
 from datetime import datetime
 from math import inf
 
-# Application Packages
+# External Packages
+import pytest
+
+# Internal Packages
 from khoj.search_filter.date_filter import DateFilter
 from khoj.utils.rawconfig import Entry
 
 
+@pytest.mark.filterwarnings("ignore:The localize method is no longer necessary.")
 def test_date_filter():
     entries = [
         Entry(compiled="", raw="Entry with no date"),
@@ -46,6 +50,7 @@ def test_date_filter():
     assert entry_indices == {1, 2}
 
 
+@pytest.mark.filterwarnings("ignore:The localize method is no longer necessary.")
 def test_extract_date_range():
     assert DateFilter().extract_date_range('head dt>"1984-01-04" dt<"1984-01-07" tail') == [
         datetime(1984, 1, 5, 0, 0, 0).timestamp(),
@@ -68,6 +73,7 @@ def test_extract_date_range():
     assert DateFilter().extract_date_range('head dt>"1984-01-01" dt<"1984-01-01" tail') == None
 
 
+@pytest.mark.filterwarnings("ignore:The localize method is no longer necessary.")
 def test_parse():
     test_now = datetime(1984, 4, 1, 21, 21, 21)
 

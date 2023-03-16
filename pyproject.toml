@@ -71,6 +71,7 @@ dev = [
     "mypy >= 1.0.1",
     "black >= 23.1.0",
     "pre-commit >= 3.0.4",
+    "freezegun >= 1.2.0",
 ]
 
 [tool.hatch.version]
@@ -95,3 +96,9 @@ warn_unused_ignores = false
 
 [tool.black]
 line-length = 120
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers"
+markers = [
+    "chatquality: Evaluate chatbot capabilities and quality",
+]
