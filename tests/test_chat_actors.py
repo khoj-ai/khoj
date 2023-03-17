@@ -36,7 +36,7 @@ def test_extract_question_with_date_filter_from_relative_day():
     ]
     assert len(response) == 1
     assert any([start in response[0] and end in response[0] for start, end in expected_responses]), (
-        "Expected date filter to limit to 1st April 1984 in response but got" + response[0]
+        "Expected date filter to limit to 1st April 1984 in response but got: " + response[0]
     )
 
 
@@ -51,7 +51,7 @@ def test_extract_question_with_date_filter_from_relative_month():
     expected_responses = [('dt>="1984-03-01"', 'dt<"1984-04-01"'), ('dt>="1984-03-01"', 'dt<="1984-03-31"')]
     assert len(response) == 1
     assert any([start in response[0] and end in response[0] for start, end in expected_responses]), (
-        "Expected date filter to limit to March 1984 in response but got" + response[0]
+        "Expected date filter to limit to March 1984 in response but got: " + response[0]
     )
 
 
@@ -70,7 +70,7 @@ def test_extract_question_with_date_filter_from_relative_year():
     ]
     assert len(response) == 1
     assert any([start in response[0] and end in response[0] for start, end in expected_responses]), (
-        "Expected date filter to limit to 1984 in response but got" + response[0]
+        "Expected date filter to limit to 1984 in response but got: " + response[0]
     )
 
 
@@ -86,7 +86,7 @@ def test_extract_multiple_explicit_questions_from_message():
     ]
     assert len(response) == 2
     assert any([start in response[0].lower() and end in response[1].lower() for start, end in expected_responses]), (
-        "Expected two search queries in response but got" + response[0]
+        "Expected two search queries in response but got: " + response[0]
     )
 
 
@@ -102,7 +102,83 @@ def test_extract_multiple_implicit_questions_from_message():
     ]
     assert len(response) == 2
     assert any([start in response[0].lower() and end in response[1].lower() for start, end in expected_responses]), (
-        "Expected two search queries in response but got" + response[0]
+        "Expected two search queries in response but got: " + response[0]
+    )
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
+def test_generate_search_query_using_question_from_chat_history():
+    # Arrange
+    message_list = [
+        ("What is the name of Mr. Vaders daughter?", "Princess Leia", ""),
+    ]
+
+    # Act
+    response = extract_questions("Does he have any sons?", conversation_log=populate_chat_history(message_list))
+
+    # Assert
+    assert len(response) == 1
+    assert "Vader" in response[0]
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.xfail(reason="Search actor cannot extract question from answer yet.")
+@pytest.mark.chatquality
+def test_generate_search_query_using_answer_from_chat_history():
+    # Arrange
+    message_list = [
+        ("What is the name of Mr. Vaders daughter?", "Princess Leia", ""),
+    ]
+
+    # Act
+    response = extract_questions("Is she a Jedi?", conversation_log=populate_chat_history(message_list))
+
+    # Assert
+    assert len(response) == 1
+    assert "Leia" in response[0]
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.xfail(reason="Search actor cannot extract question from answer yet.")
+@pytest.mark.chatquality
+def test_generate_search_query_using_question_and_answer_from_chat_history():
+    # Arrange
+    message_list = [
+        ("Does Luke Skywalker have any Siblings?", "Yes, Princess Leia", ""),
+    ]
+
+    # Act
+    response = extract_questions("Who is their father?", conversation_log=populate_chat_history(message_list))
+
+    # Assert
+    assert len(response) == 1
+    assert "Leia" in response[0] and "Luke" in response[0]
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.xfail(reason="Search actor cannot extract question from answer yet.")
+@pytest.mark.chatquality
+def test_generate_search_query_with_date_and_context_from_chat_history():
+    # Arrange
+    message_list = [
+        ("When did I visit Masai Mara?", "You visited Masai Mara in April 2000", ""),
+    ]
+
+    # Act
+    response = extract_questions(
+        "What was the Pizza place we ate at over there?", conversation_log=populate_chat_history(message_list)
+    )
+
+    # Assert
+    expected_responses = [
+        ('dt>="2000-04-01"', 'dt<"2000-05-01"'),
+        ('dt>="2000-04-01"', 'dt<="2000-04-31"'),
+    ]
+    assert len(response) == 1
+    assert "Masai Mara" in response[0]
+    assert any([start in response[0] and end in response[0] for start, end in expected_responses]), (
+        "Expected date filter to limit to April 2000 in response but got: " + response[0]
     )
 
 
@@ -120,7 +196,7 @@ def test_chat_with_no_chat_history_or_retrieved_content():
     expected_responses = ["Khoj", "khoj"]
     assert len(response) > 0
     assert any([expected_response in response for expected_response in expected_responses]), (
-        "Expected assistants name, [K|k]hoj, in response but got" + response
+        "Expected assistants name, [K|k]hoj, in response but got: " + response
     )
 
 
@@ -145,7 +221,7 @@ def test_answer_from_chat_history_and_no_content():
     expected_responses = ["Testatron", "testatron"]
     assert len(response) > 0
     assert any([expected_response in response for expected_response in expected_responses]), (
-        "Expected [T|t]estatron in response but got" + response
+        "Expected [T|t]estatron in response but got: " + response
     )
 
 
