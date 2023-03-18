@@ -191,7 +191,6 @@ def update(t: Optional[SearchType] = None, force: Optional[bool] = False):
 def chat(q: Optional[str] = None):
     # Initialize Variables
     api_key = state.processor_config.conversation.openai_api_key
-    model = state.processor_config.conversation.model
 
     # Load Conversation History
     chat_session = state.processor_config.conversation.chat_session
@@ -205,7 +204,7 @@ def chat(q: Optional[str] = None):
             return {"status": "ok", "response": []}
 
     # Infer search queries from user message
-    inferred_queries = extract_questions(q, model=model, api_key=api_key, conversation_log=meta_log)
+    inferred_queries = extract_questions(q, api_key=api_key, conversation_log=meta_log)
 
     # Collate search results as context for GPT
     result_list = []

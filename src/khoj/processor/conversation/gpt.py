@@ -9,7 +9,11 @@ import openai
 
 # Internal Packages
 from khoj.utils.constants import empty_escape_sequences
-from khoj.processor.conversation.utils import message_to_prompt, generate_chatml_messages_with_context
+from khoj.processor.conversation.utils import (
+    message_to_prompt,
+    message_to_chatml,
+    generate_chatml_messages_with_context,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -78,94 +82,104 @@ Summarize the notes in second person perspective:"""
     return str(story).replace("\n\n", "")
 
 
-def extract_questions(
-    text, model="text-davinci-003", conversation_log={}, api_key=None, temperature=0, max_tokens=100
-):
+def extract_questions(message, model="gpt-3.5-turbo", conversation_log={}, api_key=None, temperature=0):
     """
-    Infer search queries to retrieve relevant notes to answer user query
+    Infer search queries to retrieve relevant notes to respond to user's message
     """
     # Initialize Variables
     openai.api_key = api_key or os.getenv("OPENAI_API_KEY")
-
-    # Extract Past User Message and Inferred Questions from Conversation Log
-    chat_history = "".join(
-        [
-            f'Q: {chat["intent"]["query"]}\n\n{chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}\n\n{chat["message"]}\n\n'
-            for chat in conversation_log.get("chat", [])[-4:]
-            if chat["by"] == "khoj"
-        ]
-    )
 
     # Get dates relative to today for prompt creation
     today = datetime.today()
     current_new_year = today.replace(month=1, day=1)
     last_new_year = current_new_year.replace(year=today.year - 1)
 
-    prompt = f"""
+    personality_primer = f"""
 You are Khoj, an extremely smart and helpful search assistant with the ability to retrieve information from the users notes.
-- The user will provide their questions and answers to you for context.
+The user will provide their questions and answers to you for context.
+You can:
 - Add as much context from the previous questions and answers as required into your search queries.
 - Break messages into multiple search queries when required to retrieve the relevant information.
 - Add date filters to your search queries from questions and answers when required to retrieve the relevant information.
 
 What searches, if any, will you need to perform to answer the users question?
 Provide search queries as a JSON list of strings
-Current Date: {today.strftime("%A, %Y-%m-%d")}
+Current Date: {today.strftime("%H:%M %A %Y-%m-%d")}"""
 
-Q: How was my trip to Cambodia?
+    # Extract Past User Message and Inferred Questions from Conversation Log
+    # fmt: off
+    messages = [
+        # Add system message to prime GPT for the task
+        message_to_chatml(personality_primer, role="system"),
 
-["How was my trip to Cambodia?"]
+        # Add example user message, inferred question and answer triplets to explain the task
+        message_to_chatml("Q: How was my trip to Cambodia?", role="user"),
+        message_to_chatml('["How was my trip to Cambodia?"]', role="assistant"),
+        message_to_chatml("A: The trip was amazing. I went to the Angkor Wat temple in August 2017 and it was beautiful.", role="user"),
 
-A: The trip was amazing. I went to the Angkor Wat temple and it was beautiful.
+        message_to_chatml("Q: Who did I visit that temple with?", role="user"),
+        message_to_chatml('["Who did I visit the Angkor Wat Temple in Cambodia with? dt>=\\"2017-08-01\\" dt<\\"2017-09-01\\""]', role="assistant"),
+        message_to_chatml("A: You visited the Angkor Wat Temple in Cambodia with Pablo, Namita and Xi.", role="user"),
 
-Q: Who did i visit that temple with?
+        message_to_chatml("Q: What national parks did I go to last year?", role="user"),
+        message_to_chatml(
+            f'["National park I visited in {last_new_year.strftime("%Y")} dt>=\\"{last_new_year.strftime("%Y-%m-%d")}\\" dt<\\"{current_new_year.strftime("%Y-%m-%d")}\\""]',
+            role="assistant",
+        ),
+        message_to_chatml(
+            f'A: You visited the Grand Canyon and Yellowstone National Park in {last_new_year.strftime("%Y")}.',
+            role="user",
+        ),
 
-["Who did I visit the Angkor Wat Temple in Cambodia with?"]
+        message_to_chatml("Q: How are you feeling?", role="user"),
+        message_to_chatml("[]", role="assistant"),
+        message_to_chatml("A: I'm feeling a little bored. Helping you will hopefully make me feel better!", role="user"),
 
-A: You visited the Angkor Wat Temple in Cambodia with Pablo, Namita and Xi.
+        message_to_chatml("Q: How many tennis balls fit in the back of a 2002 Honda Civic?", role="user"),
+        message_to_chatml('["What is the size of a tennis ball?", "What is the trunk size of a 2002 Honda Civic?"]', role="assistant"),
+        message_to_chatml("A: 1085 tennis balls will fit in the trunk of a Honda Civic", role="user"),
 
-Q: What national parks did I go to last year?
+        message_to_chatml("Q: Is Bob older than Tom?", role="user"),
+        message_to_chatml('["When was Bob born?", "What is Tom\'s age?"]', role="assistant"),
+        message_to_chatml("A: Yes, Bob is older than Tom. As Bob was born on 1984-01-01 and Tom is 30 years old.", role="user"),
 
-["National park I visited in {last_new_year.strftime("%Y")} dt>=\\"{last_new_year.strftime("%Y-%m-%d")}\\" dt<\\"{current_new_year.strftime("%Y-%m-%d")}\\""]
+        message_to_chatml("Q: What is their age difference?", role="user"),
+        message_to_chatml('["What is Bob\'s age?", "What is Tom\'s age?"]', role="assistant"),
+        message_to_chatml(
+            f"A: Bob is {current_new_year.year - 1984 - 30} years older than Tom. As Bob is {current_new_year.year - 1984} years old and Tom is 30 years old.",
+            role="user",
+        ),
+    ]
+    # fmt: on
 
-A: You visited the Grand Canyon and Yellowstone National Park in {last_new_year.strftime("%Y")}.
+    # Add last few user messages, inferred queries and answer triplets from actual conversation for context
+    for chat in conversation_log.get("chat", [])[-4:]:
+        if chat["by"] == "khoj":
+            queries = (
+                chat["intent"]["inferred-queries"]
+                if chat["intent"].get("inferred-queries", "[]") != "[]"
+                else [chat["intent"]["query"]]
+            )
+            messages.extend(
+                [
+                    message_to_chatml(f'Q: {chat["intent"]["query"]}', role="user"),
+                    message_to_chatml(f"{queries}", role="assistant"),
+                    message_to_chatml(f'{chat["message"]}', role="user"),
+                ]
+            )
 
-Q: How are you feeling today?
-
-[]
-
-A: I'm feeling a little bored. Helping you will hopefully make me feel better!
-
-Q: How many tennis balls fit in the back of a 2002 Honda Civic?
-
-["What is the size of a tennis ball?", "What is the trunk size of a 2002 Honda Civic?"]
-
-A: 1085 tennis balls will fit in the trunk of a Honda Civic
-
-Q: Is Bob older than Tom?
-
-["When was Bob born?", "What is Tom's age?"]
-
-A: Yes, Bob is older than Tom. As Bob was born on 1984-01-01 and Tom is 30 years old.
-
-Q: What is their age difference?
-
-["What is Bob's age?", "What is Tom's age?"]
-
-A: Bob is {current_new_year.year - 1984 - 30} years older than Tom. As Bob is {current_new_year.year - 1984} years old and Tom is 30 years old.
-
-{chat_history}
-Q: {text}
-
-"""
+    # Finally add current user message for which to infer search queries to ChatML message list
+    messages.append(message_to_chatml(f"Q: {message}", role="user"))
 
     # Get Response from GPT
-    response = openai.Completion.create(
-        prompt=prompt, model=model, temperature=temperature, max_tokens=max_tokens, stop=["A: ", "\n"]
+    response = openai.ChatCompletion.create(
+        messages=messages,
+        model=model,
+        temperature=temperature,
     )
 
     # Extract, Clean Message from GPT's Response
-    response_text = response["choices"][0]["text"]
+    response_text = response["choices"][0]["message"]["content"]
     try:
         questions = json.loads(
             # Clean response to increase likelihood of valid JSON. E.g replace ' with " to enclose strings
