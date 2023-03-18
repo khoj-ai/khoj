@@ -165,7 +165,12 @@ Q: {text}
     )
 
     # Extract, Clean Message from GPT's Response
-    questions = json.loads(response["choices"][0]["text"].strip(empty_escape_sequences))
+    response_text = response["choices"][0]["text"]
+    try:
+        questions = json.loads(response_text.strip(empty_escape_sequences))
+    except json.decoder.JSONDecodeError:
+        logger.warn(f"GPT returned invalid JSON. Set question to empty list.\n{response_text}")
+        questions = [text]
     logger.debug(f"Extracted Questions by GPT: {questions}")
     return questions
 
