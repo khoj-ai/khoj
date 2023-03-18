@@ -60,7 +60,7 @@ def test_extract_question_with_date_filter_from_relative_month():
 @freeze_time("1984-04-02")
 def test_extract_question_with_date_filter_from_relative_year():
     # Act
-    response = extract_questions("Where countries have I visited this year?")
+    response = extract_questions("Which countries have I visited this year?")
 
     # Assert
     expected_responses = [
@@ -123,7 +123,6 @@ def test_generate_search_query_using_question_from_chat_history():
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.xfail(reason="Search actor cannot extract question from answer yet.")
 @pytest.mark.chatquality
 def test_generate_search_query_using_answer_from_chat_history():
     # Arrange
@@ -140,7 +139,6 @@ def test_generate_search_query_using_answer_from_chat_history():
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.xfail(reason="Search actor cannot extract question from answer yet.")
 @pytest.mark.chatquality
 def test_generate_search_query_using_question_and_answer_from_chat_history():
     # Arrange
@@ -157,7 +155,6 @@ def test_generate_search_query_using_question_and_answer_from_chat_history():
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.xfail(reason="Search actor cannot extract question from answer yet.")
 @pytest.mark.chatquality
 def test_generate_search_query_with_date_and_context_from_chat_history():
     # Arrange
@@ -377,7 +374,7 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content():
     # Act
     response = converse(
         text="",  # Assume no context retrieved from notes for the user_query
-        user_query="Write a haiku about unit testing",
+        user_query="Write a haiku about unit testing in 3 lines",
         conversation_log=populate_chat_history(message_list),
         api_key=api_key,
     )
