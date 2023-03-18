@@ -167,7 +167,13 @@ Q: {text}
     # Extract, Clean Message from GPT's Response
     response_text = response["choices"][0]["text"]
     try:
-        questions = json.loads(response_text.strip(empty_escape_sequences))
+        questions = json.loads(
+            # Clean response to increase likelihood of valid JSON. E.g replace ' with " to enclose strings
+            response_text.strip(empty_escape_sequences)
+            .replace("['", '["')
+            .replace("']", '"]')
+            .replace("', '", '", "')
+        )
     except json.decoder.JSONDecodeError:
         logger.warn(f"GPT returned invalid JSON. Set question to empty list.\n{response_text}")
         questions = [text]
