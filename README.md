@@ -281,11 +281,11 @@ pip install --upgrade --pre khoj-assistant
 ### Search across Different Languages
   To search for notes in multiple, different languages, you can use a [multi-lingual model](https://www.sbert.net/docs/pretrained_models.html#multi-lingual-models).<br />
   For example, the [paraphrase-multilingual-MiniLM-L12-v2](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2) supports [50+ languages](https://www.sbert.net/docs/pretrained_models.html#:~:text=we%20used%20the%20following%2050%2B%20languages), has good search quality and speed. To use it:
-  1. Manually update `search-type > asymmetric > encoder` to `sentence-transformer/paraphrase-multilingual-MiniLM-L12-v2` in your `~/.khoj/khoj.yml` file for now. See diff of `khoj.yml` below for illustration:
+  1. Manually update `search-type > asymmetric > encoder` to `paraphrase-multilingual-MiniLM-L12-v2` in your `~/.khoj/khoj.yml` file for now. See diff of `khoj.yml` below for illustration:
   ```diff
    asymmetric:
 - encoder: "sentence-transformers/multi-qa-MiniLM-L6-cos-vi"
-+ encoder: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
++ encoder: "paraphrase-multilingual-MiniLM-L12-v2"
      cross-encoder: "cross-encoder/ms-marco-MiniLM-L-6-v2"
      model_directory: "~/.khoj/search/asymmetric/"
   ```
