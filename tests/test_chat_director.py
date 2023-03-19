@@ -25,7 +25,11 @@ def populate_chat_history(message_list):
     # Generate conversation logs
     conversation_log = {"chat": []}
     for user_message, gpt_message, context in message_list:
-        conversation_log["chat"] += message_to_log(user_message, gpt_message, {"context": context})
+        conversation_log["chat"] += message_to_log(
+            user_message,
+            gpt_message,
+            {"context": context, "intent": {"query": user_message, "inferred-queries": f'["{user_message}"]'}},
+        )
 
     # Update Conversation Metadata Logs in Application State
     state.processor_config.conversation.meta_log = conversation_log
@@ -175,7 +179,6 @@ def test_answer_requires_current_date_awareness(chat_client):
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering time aware questions yet")
 @pytest.mark.chatquality
 @freeze_time("2023-04-01")
 def test_answer_requires_date_aware_aggregation_across_provided_notes(chat_client):
@@ -259,7 +262,6 @@ def test_answer_in_chat_history_beyond_lookback_window(chat_client):
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.xfail(reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
 def test_answer_requires_multiple_independent_searches(chat_client):
     "Chat director should be able to answer by doing multiple independent searches for required information"

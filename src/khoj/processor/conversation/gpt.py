@@ -78,6 +78,107 @@ Summarize the notes in second person perspective:"""
     return str(story).replace("\n\n", "")
 
 
+def extract_questions(text, model="text-davinci-003", conversation_log={}, api_key=None, temperature=0, max_tokens=100):
+    """
+    Infer search queries to retrieve relevant notes to answer user query
+    """
+    # Initialize Variables
+    openai.api_key = api_key or os.getenv("OPENAI_API_KEY")
+
+    # Extract Past User Message and Inferred Questions from Conversation Log
+    chat_history = "".join(
+        [
+            f'Q: {chat["intent"]["query"]}\n\n{chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}\n\n{chat["message"]}\n\n'
+            for chat in conversation_log.get("chat", [])[-4:]
+            if chat["by"] == "khoj"
+        ]
+    )
+
+    # Get dates relative to today for prompt creation
+    today = datetime.today()
+    current_new_year = today.replace(month=1, day=1)
+    last_new_year = current_new_year.replace(year=today.year - 1)
+
+    prompt = f"""
+You are Khoj, an extremely smart and helpful search assistant with the ability to retrieve information from the users notes.
+- The user will provide their questions and answers to you for context.
+- Add as much context from the previous questions and answers as required into your search queries.
+- Break messages into multiple search queries when required to retrieve the relevant information.
+- Add date filters to your search queries from questions and answers when required to retrieve the relevant information.
+
+What searches, if any, will you need to perform to answer the users question?
+Provide search queries as a JSON list of strings
+Current Date: {today.strftime("%A, %Y-%m-%d")}
+
+Q: How was my trip to Cambodia?
+
+["How was my trip to Cambodia?"]
+
+A: The trip was amazing. I went to the Angkor Wat temple and it was beautiful.
+
+Q: Who did i visit that temple with?
+
+["Who did I visit the Angkor Wat Temple in Cambodia with?"]
+
+A: You visited the Angkor Wat Temple in Cambodia with Pablo, Namita and Xi.
+
+Q: What national parks did I go to last year?
+
+["National park I visited in {last_new_year.strftime("%Y")} dt>=\\"{last_new_year.strftime("%Y-%m-%d")}\\" dt<\\"{current_new_year.strftime("%Y-%m-%d")}\\""]
+
+A: You visited the Grand Canyon and Yellowstone National Park in {last_new_year.strftime("%Y")}.
+
+Q: How are you feeling today?
+
+[]
+
+A: I'm feeling a little bored. Helping you will hopefully make me feel better!
+
+Q: How many tennis balls fit in the back of a 2002 Honda Civic?
+
+["What is the size of a tennis ball?", "What is the trunk size of a 2002 Honda Civic?"]
+
+A: 1085 tennis balls will fit in the trunk of a Honda Civic
+
+Q: Is Bob older than Tom?
+
+["When was Bob born?", "What is Tom's age?"]
+
+A: Yes, Bob is older than Tom. As Bob was born on 1984-01-01 and Tom is 30 years old.
+
+Q: What is their age difference?
+
+["What is Bob's age?", "What is Tom's age?"]
+
+A: Bob is {current_new_year.year - 1984 - 30} years older than Tom. As Bob is {current_new_year.year - 1984} years old and Tom is 30 years old.
+
+{chat_history}
+Q: {text}
+
+"""
+
+    # Get Response from GPT
+    response = openai.Completion.create(
+        prompt=prompt, model=model, temperature=temperature, max_tokens=max_tokens, stop=["A: ", "\n"]
+    )
+
+    # Extract, Clean Message from GPT's Response
+    response_text = response["choices"][0]["text"]
+    try:
+        questions = json.loads(
+            # Clean response to increase likelihood of valid JSON. E.g replace ' with " to enclose strings
+            response_text.strip(empty_escape_sequences)
+            .replace("['", '["')
+            .replace("']", '"]')
+            .replace("', '", '", "')
+        )
+    except json.decoder.JSONDecodeError:
+        logger.warn(f"GPT returned invalid JSON. Falling back to using user message as search query.\n{response_text}")
+        questions = [text]
+    logger.debug(f"Extracted Questions by GPT: {questions}")
+    return questions
+
+
 def extract_search_type(text, model, api_key=None, temperature=0.5, max_tokens=100, verbose=0):
     """
     Extract search type from user query using OpenAI's GPT
