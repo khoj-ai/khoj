@@ -44,7 +44,7 @@ https://user-images.githubusercontent.com/6413477/210486007-36ee3407-e6aa-4185-8
 ![](https://github.com/debanjum/khoj/blob/master/src/interface/obsidian/docs/khoj_on_obsidian_0.2.5.png?)
 
 ## Setup
-- *Make sure [python](https://realpython.com/installing-python/) and [pip](https://pip.pypa.io/en/stable/installation/) are installed on your machine*
+- *Make sure [python](https://realpython.com/installing-python/) (version 3.10 or lower) and [pip](https://pip.pypa.io/en/stable/installation/) are installed on your machine*
 - *Ensure you follow the ordering of the setup steps. Install the plugin after starting the khoj backend. This allows the plugin to configure the khoj backend*
 
 ### 1. Setup Backend
