@@ -284,7 +284,7 @@ pip install --upgrade --pre khoj-assistant
   1. Manually update `search-type > asymmetric > encoder` to `paraphrase-multilingual-MiniLM-L12-v2` in your `~/.khoj/khoj.yml` file for now. See diff of `khoj.yml` below for illustration:
   ```diff
    asymmetric:
-- encoder: "sentence-transformers/multi-qa-MiniLM-L6-cos-vi"
+- encoder: "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"
 + encoder: "paraphrase-multilingual-MiniLM-L12-v2"
      cross-encoder: "cross-encoder/ms-marco-MiniLM-L-6-v2"
      model_directory: "~/.khoj/search/asymmetric/"
