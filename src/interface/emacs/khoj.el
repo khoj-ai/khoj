@@ -339,19 +339,35 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
     (khoj--query-chat-api-and-render-messages query khoj--chat-buffer-name)
     (switch-to-buffer khoj--chat-buffer-name)))
 
+(defun khoj--load-chat-history (buffer-name)
+  (let ((json-response (cdr (assoc 'response (khoj--query-chat-api "")))))
+    (with-current-buffer (get-buffer-create buffer-name)
+      (erase-buffer)
+      (thread-last
+        json-response
+        ;; generate chat messages from Khoj Chat API response
+        (mapcar #'khoj--render-chat-response)
+        ;; insert chat messages into Khoj Chat Buffer
+        (mapcar #'insert))
+      (progn (org-mode)
+             (visual-line-mode)
+             (read-only-mode t)))))
+
 (defun khoj--query-chat-api-and-render-messages (query buffer-name)
   "Send QUERY to Khoj Chat. Render the chat messages from exchange in BUFFER-NAME."
   ;; render json response into formatted chat messages
-  (with-current-buffer (get-buffer-create buffer-name)
-    (let ((inhibit-read-only t)
-          (json-response (khoj--query-chat-api query)))
-      (goto-char (point-max))
-      (insert
-       (khoj--render-chat-message query "you")
-       (khoj--render-chat-response json-response)))
-    (progn (org-mode)
-           (visual-line-mode))
-    (read-only-mode t)))
+  (if (not (get-buffer buffer-name))
+      (khoj--load-chat-history buffer-name)
+    (with-current-buffer (get-buffer buffer-name)
+      (let ((inhibit-read-only t)
+            (json-response (khoj--query-chat-api query)))
+        (goto-char (point-max))
+        (insert
+         (khoj--render-chat-message query "you")
+         (khoj--render-chat-response json-response)))
+        (progn (org-mode)
+               (visual-line-mode))
+    (read-only-mode t))))
 
 (defun khoj--query-chat-api (query)
   "Send QUERY to Khoj Chat API."
@@ -383,16 +399,19 @@ RECEIVE-DATE is the message receive date."
 
 (defun khoj--render-chat-response (json-response)
   "Render chat message using JSON-RESPONSE from Khoj Chat API."
-  (let* ((context (or (cdr (assoc 'context json-response)) ""))
+  (let* ((message (cdr (or (assoc 'response json-response) (assoc 'message json-response))))
+         (sender (cdr (assoc 'by json-response)))
+         (receive-date (cdr (assoc 'created json-response)))
+         (context (or (cdr (assoc 'context json-response)) ""))
          (reference-texts (split-string context "\n\n# " t))
          (reference-links (-map-indexed #'khoj--generate-reference reference-texts)))
     (thread-first
       ;; extract khoj message from API response and make it bold
-      (format "*%s*" (cdr (assoc 'response json-response)))
+      (format "*%s*" message)
       ;; append references to khoj message
       (concat " " (string-join reference-links " "))
-      ;; Set query as heading in rendered results buffer
-      (khoj--render-chat-message "khoj"))))
+      ;; Render chat message using data obtained from API
+      (khoj--render-chat-message sender receive-date))))
 
 
 ;; ------------------
