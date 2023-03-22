@@ -6,7 +6,7 @@
 ;; Description: Natural, Incremental Search for your Second Brain
 ;; Keywords: search, org-mode, outlines, markdown, beancount, ledger, image
 ;; Version: 0.4.1
-;; Package-Requires: ((emacs "27.1") (transient "0.3.0"))
+;; Package-Requires: ((emacs "27.1") (transient "0.3.0") (dash "2.19.1")
 ;; URL: https://github.com/debanjum/khoj/tree/master/src/interface/emacs
 
 ;; This file is NOT part of GNU Emacs.
@@ -50,6 +50,7 @@
 (require 'json)
 (require 'transient)
 (require 'outline)
+(require 'dash)
 (eval-when-compile (require 'subr-x)) ;; for string-trim before Emacs 28.2
 
 
@@ -99,6 +100,9 @@
 
 (defconst khoj--search-buffer-name "*🦅Khoj Search*"
   "Name of buffer to show search results from Khoj.")
+
+(defconst khoj--chat-buffer-name "*🦅Khoj Chat*"
+  "Name of chat buffer for Khoj.")
 
 (defvar khoj--content-type "org"
   "The type of content to perform search on.")
@@ -284,13 +288,15 @@ Use `which-key` if available, else display simple message in echo area"
         (mapcar 'intern)))))
 
 (defun khoj--construct-search-api-query (query content-type &optional rerank)
-  "Construct Search API Query from QUERY, CONTENT-TYPE and (optional) RERANK params."
+  "Construct Search API Query.
+Use QUERY, CONTENT-TYPE and (optional) RERANK as query params"
   (let ((rerank (or rerank "false"))
         (encoded-query (url-hexify-string query)))
     (format "%s/api/search?q=%s&t=%s&r=%s&n=%s" khoj-server-url encoded-query content-type rerank khoj-results-count)))
 
 (defun khoj--query-search-api-and-render-results (query-url content-type query buffer-name)
-  "Query Khoj Search with QUERY-URL. Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
+  "Query Khoj Search with QUERY-URL.
+Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
   ;; get json response from api
   (with-current-buffer buffer-name
     (let ((inhibit-read-only t)
@@ -319,6 +325,67 @@ Use `which-key` if available, else display simple message in echo area"
                                                 (goto-char (point-min))))
             (t (fundamental-mode))))
     (read-only-mode t)))
+
+
+;; ----------------
+;; Khoj Chat
+;; ----------------
+
+(defun khoj--chat ()
+  "Chat with Khoj."
+  (let ((query (read-string "Query: ")))
+    (khoj--query-chat-api-and-render-messages query khoj--chat-buffer-name)
+    (switch-to-buffer khoj--chat-buffer-name)))
+
+(defun khoj--query-chat-api-and-render-messages (query buffer-name)
+  "Send QUERY to Khoj Chat. Render the chat messages from exchange in BUFFER-NAME."
+  ;; render json response into formatted chat messages
+  (with-current-buffer (get-buffer-create buffer-name)
+    (let ((inhibit-read-only t)
+          (json-response (khoj--query-chat-api query)))
+      (goto-char (point-max))
+      (insert
+       (khoj--render-chat-message query "you")
+       (khoj--render-chat-response json-response)))
+    (progn (org-mode)
+           (visual-line-mode))
+    (read-only-mode t)))
+
+(defun khoj--query-chat-api (query)
+  "Send QUERY to Khoj Chat API."
+  (let* ((url-request-method "GET")
+         (encoded-query (url-hexify-string query))
+         (query-url (format "%s/api/chat?q=%s" khoj-server-url encoded-query)))
+    (with-temp-buffer
+      (erase-buffer)
+      (url-insert-file-contents query-url)
+      (json-parse-buffer :object-type 'alist))))
+
+(defun khoj--render-chat-message (message sender &optional receive-date)
+  "Render chat messages as `org-mode' list item.
+MESSAGE is the text of the chat message.
+SENDER is the message sender.
+RECEIVE-DATE is the message receive date."
+  (let ((emojified-by (if (equal sender "you") "🤔 You" "🦅 Khoj"))
+        (received (or receive-date (format-time-string "%H:%M %d-%m-%Y"))))
+    (format "- %s: %s\n  /%s/\n\n" emojified-by message received)))
+
+(defun khoj--generate-reference (index reference)
+  "Create `org-mode' links with REFERENCE as link and INDEX as link description."
+  (format "[[[%s][%s]]]" (format "%s" reference) (format "%s" index)))
+
+(defun khoj--render-chat-response (json-response)
+  "Render chat message using JSON-RESPONSE from Khoj Chat API."
+  (let* ((context (or (cdr (assoc 'context json-response)) ""))
+         (reference-texts (split-string context "\n\n# " t))
+         (reference-links (-map-indexed #'khoj--generate-reference reference-texts)))
+    (thread-first
+      ;; extract khoj message from API response and make it bold
+      (format "*%s*" (cdr (assoc 'response json-response)))
+      ;; append references to khoj message
+      (concat " " (string-join reference-links " "))
+      ;; Set query as heading in rendered results buffer
+      (khoj--render-chat-message "khoj"))))
 
 
 ;; ------------------
@@ -503,15 +570,20 @@ Paragraph only starts at first text after blank line."
       (setq khoj--content-type content-type)
       (url-retrieve update-url (lambda (_) (message "Khoj %s index %supdated!" content-type (if (member "--force-update" args) "force " "")))))))
 
+(transient-define-suffix khoj--chat-command (&optional args)
+  "Command to Chat with Khoj."
+  (interactive (list (transient-args transient-current-command)))
+  (khoj--chat))
+
 (transient-define-prefix khoj-menu ()
   "Create Khoj Menu to Configure and Execute Commands."
-  [["Configure General"
+  [["Configure Search"
+    ("n" "Results Count" "--results-count=" :init-value (lambda (obj) (oset obj value (format "%s" khoj-results-count))))
     ("t" "Content Type" khoj--content-type-switch)]
-   ["Configure Search"
-    ("n" "Results Count" "--results-count=" :init-value (lambda (obj) (oset obj value (format "%s" khoj-results-count))))]
    ["Configure Update"
     ("-f" "Force Update" "--force-update")]]
   [["Act"
+    ("c" "Chat" khoj--chat-command)
     ("s" "Search" khoj--search-command)
     ("f" "Find Similar" khoj--find-similar-command)
     ("u" "Update" khoj--update-command)
