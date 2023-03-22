@@ -97,8 +97,8 @@
 (defconst khoj--query-prompt "🦅Khoj: "
   "Query prompt shown in the minibuffer.")
 
-(defconst khoj--buffer-name "*🦅Khoj*"
-  "Name of buffer to show results from Khoj.")
+(defconst khoj--search-buffer-name "*🦅Khoj Search*"
+  "Name of buffer to show search results from Khoj.")
 
 (defvar khoj--content-type "org"
   "The type of content to perform search on.")
@@ -283,14 +283,14 @@ Use `which-key` if available, else display simple message in echo area"
         (json-parse-buffer :object-type 'alist)
         (mapcar 'intern)))))
 
-(defun khoj--construct-api-query (query content-type &optional rerank)
-  "Construct API Query from QUERY, CONTENT-TYPE and (optional) RERANK params."
+(defun khoj--construct-search-api-query (query content-type &optional rerank)
+  "Construct Search API Query from QUERY, CONTENT-TYPE and (optional) RERANK params."
   (let ((rerank (or rerank "false"))
         (encoded-query (url-hexify-string query)))
     (format "%s/api/search?q=%s&t=%s&r=%s&n=%s" khoj-server-url encoded-query content-type rerank khoj-results-count)))
 
-(defun khoj--query-api-and-render-results (query-url content-type query buffer-name)
-  "Query Khoj QUERY-URL. Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
+(defun khoj--query-search-api-and-render-results (query-url content-type query buffer-name)
+  "Query Khoj Search with QUERY-URL. Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
   ;; get json response from api
   (with-current-buffer buffer-name
     (let ((inhibit-read-only t)
@@ -328,9 +328,9 @@ Use `which-key` if available, else display simple message in echo area"
 (defun khoj--incremental-search (&optional rerank)
   "Perform Incremental Search on Khoj. Allow optional RERANK of results."
   (let* ((rerank-str (cond (rerank "true") (t "false")))
-         (khoj-buffer-name (get-buffer-create khoj--buffer-name))
+         (khoj-buffer-name (get-buffer-create khoj--search-buffer-name))
          (query (minibuffer-contents-no-properties))
-         (query-url (khoj--construct-api-query query khoj--content-type rerank-str)))
+         (query-url (khoj--construct-search-api-query query khoj--content-type rerank-str)))
     ;; Query khoj API only when user in khoj minibuffer and non-empty query
     ;; Prevents querying if
     ;;   1. user hasn't started typing query
@@ -349,7 +349,7 @@ Use `which-key` if available, else display simple message in echo area"
         (when rerank
           (setq khoj--rerank t)
           (message "Khoj: Rerank Results"))
-        (khoj--query-api-and-render-results
+        (khoj--query-search-api-and-render-results
          query-url
          khoj--content-type
          query
@@ -377,7 +377,7 @@ Use `which-key` if available, else display simple message in echo area"
 (defun khoj-incremental ()
   "Natural, Incremental Search for your personal notes, transactions and music."
   (interactive)
-  (let* ((khoj-buffer-name (get-buffer-create khoj--buffer-name)))
+  (let* ((khoj-buffer-name (get-buffer-create khoj--search-buffer-name)))
     ;; switch to khoj results buffer
     (switch-to-buffer khoj-buffer-name)
     ;; open and setup minibuffer for incremental search
@@ -442,14 +442,14 @@ Paragraph only starts at first text after blank line."
                  ;; get paragraph, if in text mode
                  (t
                   (khoj--get-current-paragraph-text))))
-         (query-url (khoj--construct-api-query query content-type rerank))
+         (query-url (khoj--construct-search-api-query query content-type rerank))
          ;; extract heading to show in result buffer from query
          (query-title
           (format "Similar to: %s"
                   (replace-regexp-in-string "^[#\\*]* " "" (car (split-string query "\n")))))
-         (buffer-name (get-buffer-create khoj--buffer-name)))
+         (buffer-name (get-buffer-create khoj--search-buffer-name)))
     (progn
-      (khoj--query-api-and-render-results
+      (khoj--query-search-api-and-render-results
        query-url
        content-type
        query-title
