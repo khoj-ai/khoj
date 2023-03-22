@@ -6,7 +6,7 @@
 ;; Description: Natural, Incremental Search for your Second Brain
 ;; Keywords: search, org-mode, outlines, markdown, beancount, ledger, image
 ;; Version: 0.4.1
-;; Package-Requires: ((emacs "27.1") (transient "0.3.0") (dash "2.19.1")
+;; Package-Requires: ((emacs "27.1") (transient "0.3.0") (dash "2.19.1") (org "9.0.0"))
 ;; URL: https://github.com/debanjum/khoj/tree/master/src/interface/emacs
 
 ;; This file is NOT part of GNU Emacs.
@@ -51,6 +51,8 @@
 (require 'transient)
 (require 'outline)
 (require 'dash)
+(require 'org)
+
 (eval-when-compile (require 'subr-x)) ;; for string-trim before Emacs 28.2
 
 
@@ -372,7 +374,12 @@ RECEIVE-DATE is the message receive date."
 
 (defun khoj--generate-reference (index reference)
   "Create `org-mode' links with REFERENCE as link and INDEX as link description."
-  (format "[[[%s][%s]]]" (format "%s" reference) (format "%s" index)))
+  (with-temp-buffer
+    (org-insert-link
+     nil
+     (format "%s" (replace-regexp-in-string "\n" " " reference))
+     (format "%s" index))
+    (format "[%s]" (buffer-substring-no-properties (point-min) (point-max)))))
 
 (defun khoj--render-chat-response (json-response)
   "Render chat message using JSON-RESPONSE from Khoj Chat API."
