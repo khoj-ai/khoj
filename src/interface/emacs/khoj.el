@@ -343,6 +343,7 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
   (let ((json-response (cdr (assoc 'response (khoj--query-chat-api "")))))
     (with-current-buffer (get-buffer-create buffer-name)
       (erase-buffer)
+      (insert "#+STARTUP: showall hidestars\n")
       (thread-last
         json-response
         ;; generate chat messages from Khoj Chat API response
@@ -384,9 +385,17 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
 MESSAGE is the text of the chat message.
 SENDER is the message sender.
 RECEIVE-DATE is the message receive date."
-  (let ((emojified-by (if (equal sender "you") "🤔 You" "🦅 Khoj"))
-        (received (or receive-date (format-time-string "%H:%M %d-%m-%Y"))))
-    (format "- %s: %s\n  /%s/\n\n" emojified-by message received)))
+  (let ((first-message-line (car (split-string message "\n" t)))
+        (rest-message-lines (string-join (cdr (split-string message "\n" t)) "\n   "))
+        (heading-level (if (equal sender "you") "**" "***"))
+        (emojified-by (if (equal sender "you") "🤔 *You*" "🦅 *Khoj*"))
+        (received (or receive-date (format-time-string "%Y-%m-%d %H:%M:%S"))))
+    (format "%s %s: %s\n   :PROPERTIES:\n   :RECEIVED: [%s]\n   :END:\n   %s\n"
+            heading-level
+            emojified-by
+            first-message-line
+            received
+            rest-message-lines)))
 
 (defun khoj--generate-reference (index reference)
   "Create `org-mode' links with REFERENCE as link and INDEX as link description."
@@ -407,7 +416,7 @@ RECEIVE-DATE is the message receive date."
          (reference-links (-map-indexed #'khoj--generate-reference reference-texts)))
     (thread-first
       ;; extract khoj message from API response and make it bold
-      (format "*%s*" message)
+      (format "%s" message)
       ;; append references to khoj message
       (concat " " (string-join reference-links " "))
       ;; Render chat message using data obtained from API
