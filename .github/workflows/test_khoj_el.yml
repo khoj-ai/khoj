@@ -42,7 +42,10 @@ jobs:
                     (push '(\"melpa\" . \"https://melpa.org/packages/\") package-archives) \
                     (package-initialize) \
                     (unless package-archive-contents (package-refresh-contents)) \
-                    (unless (package-installed-p 'transient) (package-install 'transient)))" \
+                    (unless (package-installed-p 'transient) (package-install 'transient)) \
+                    (unless (package-installed-p 'dash) (package-install 'dash)) \
+                    (unless (package-installed-p 'org) (package-install 'org)) \
+                   )" \
            -l ert \
            -l ./src/interface/emacs/khoj.el \
            -l ./src/interface/emacs/tests/khoj-tests.el \
