@@ -6,7 +6,7 @@
 ;; Description: Natural, Incremental Search for your Second Brain
 ;; Keywords: search, org-mode, outlines, markdown, beancount, ledger, image
 ;; Version: 0.4.1
-;; Package-Requires: ((emacs "27.1") (transient "0.3.0") (dash "2.19.1") (org "9.0.0"))
+;; Package-Requires: ((emacs "27.1") (transient "0.3.0") (dash "2.19.1"))
 ;; URL: https://github.com/debanjum/khoj/tree/master/src/interface/emacs
 
 ;; This file is NOT part of GNU Emacs.
@@ -287,7 +287,7 @@ Use `which-key` if available, else display simple message in echo area"
       (url-insert-file-contents config-url)
       (thread-last
         (json-parse-buffer :object-type 'alist)
-        (mapcar 'intern)))))
+        (mapcar #'intern)))))
 
 (defun khoj--construct-search-api-query (query content-type &optional rerank)
   "Construct Search API Query.
@@ -349,7 +349,7 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
         ;; generate chat messages from Khoj Chat API response
         (mapcar #'khoj--render-chat-response)
         ;; insert chat messages into Khoj Chat Buffer
-        (mapcar #'insert))
+        (mapc #'insert))
       (progn (org-mode)
              (visual-line-mode)
              (read-only-mode t)))))
@@ -389,7 +389,7 @@ RECEIVE-DATE is the message receive date."
         (rest-message-lines (string-join (cdr (split-string message "\n" t)) "\n   "))
         (heading-level (if (equal sender "you") "**" "***"))
         (emojified-by (if (equal sender "you") "🤔 *You*" "🦅 *Khoj*"))
-        (received (or receive-date (format-time-string "%Y-%m-%d %H:%M:%S"))))
+        (received (or receive-date (format-time-string "%F %T"))))
     (format "%s %s: %s\n   :PROPERTIES:\n   :RECEIVED: [%s]\n   :END:\n   %s\n"
             heading-level
             emojified-by
@@ -605,7 +605,7 @@ Paragraph only starts at first text after blank line."
       (setq khoj--content-type content-type)
       (url-retrieve update-url (lambda (_) (message "Khoj %s index %supdated!" content-type (if (member "--force-update" args) "force " "")))))))
 
-(transient-define-suffix khoj--chat-command (&optional args)
+(transient-define-suffix khoj--chat-command (&optional _)
   "Command to Chat with Khoj."
   (interactive (list (transient-args transient-current-command)))
   (khoj--chat))
