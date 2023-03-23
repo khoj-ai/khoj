@@ -1,6 +1,7 @@
 import { Notice, Plugin } from 'obsidian';
 import { KhojSetting, KhojSettingTab, DEFAULT_SETTINGS } from 'src/settings'
 import { KhojSearchModal } from 'src/search_modal'
+import { KhojChatModal } from 'src/chat_modal'
 import { configureKhojBackend } from './utils';
 
 
@@ -28,6 +29,17 @@ export default class Khoj extends Plugin {
             editorCheckCallback: (checking) => {
                 if (!checking && this.settings.connectedToBackend)
                     new KhojSearchModal(this.app, this.settings, true).open();
+                return this.settings.connectedToBackend;
+            }
+        });
+
+        // Add chat command. It can be triggered from anywhere
+        this.addCommand({
+            id: 'chat',
+            name: 'Chat',
+            checkCallback: (checking) => {
+                if (!checking && this.settings.connectedToBackend)
+                    new KhojChatModal(this.app, this.settings).open();
                 return this.settings.connectedToBackend;
             }
         });
