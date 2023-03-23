@@ -1,6 +1,6 @@
 import { Notice, Plugin } from 'obsidian';
 import { KhojSetting, KhojSettingTab, DEFAULT_SETTINGS } from 'src/settings'
-import { KhojModal } from 'src/modal'
+import { KhojSearchModal } from 'src/search_modal'
 import { configureKhojBackend } from './utils';
 
 
@@ -16,7 +16,7 @@ export default class Khoj extends Plugin {
             name: 'Search',
             checkCallback: (checking) => {
                 if (!checking && this.settings.connectedToBackend)
-                    new KhojModal(this.app, this.settings).open();
+                    new KhojSearchModal(this.app, this.settings).open();
                 return this.settings.connectedToBackend;
             }
         });
@@ -27,7 +27,7 @@ export default class Khoj extends Plugin {
             name: 'Find similar notes',
             editorCheckCallback: (checking) => {
                 if (!checking && this.settings.connectedToBackend)
-                    new KhojModal(this.app, this.settings, true).open();
+                    new KhojSearchModal(this.app, this.settings, true).open();
                 return this.settings.connectedToBackend;
             }
         });
@@ -36,7 +36,7 @@ export default class Khoj extends Plugin {
         this.addRibbonIcon('search', 'Khoj', (_: MouseEvent) => {
             // Called when the user clicks the icon.
             this.settings.connectedToBackend
-                ? new KhojModal(this.app, this.settings).open()
+                ? new KhojSearchModal(this.app, this.settings).open()
                 : new Notice(`❗️Ensure Khoj backend is running and Khoj URL is pointing to it in the plugin settings`);
         });
 
@@ -59,5 +59,5 @@ export default class Khoj extends Plugin {
             await configureKhojBackend(this.app.vault, this.settings, false);
         }
         this.saveData(this.settings);
-   }
+    }
 }

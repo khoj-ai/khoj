@@ -6,7 +6,7 @@ export interface SearchResult {
     file: string;
 }
 
-export class KhojModal extends SuggestModal<SearchResult> {
+export class KhojSearchModal extends SuggestModal<SearchResult> {
     setting: KhojSetting;
     rerank: boolean = false;
     find_similar_notes: boolean;
