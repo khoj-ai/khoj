@@ -207,16 +207,19 @@ def chat(q: Optional[str] = None):
             return {"status": "ok", "response": []}
 
     # Infer search queries from user message
-    inferred_queries = extract_questions(q, model=model, api_key=api_key, conversation_log=meta_log)
+    with timer("Extracting search queries took", logger):
+        inferred_queries = extract_questions(q, model=model, api_key=api_key, conversation_log=meta_log)
 
     # Collate search results as context for GPT
-    result_list = []
-    for query in inferred_queries:
-        result_list.extend(search(query, n=5, r=True, score_threshold=-5.0, dedupe=False))
-    collated_result = "\n\n".join({f"# {item.additional['compiled']}" for item in result_list})
+    with timer("Searching knowledge base took", logger):
+        result_list = []
+        for query in inferred_queries:
+            result_list.extend(search(query, n=5, r=True, score_threshold=-5.0, dedupe=False))
+        collated_result = "\n\n".join({f"# {item.additional['compiled']}" for item in result_list})
 
     try:
-        gpt_response = converse(collated_result, q, meta_log, api_key=api_key)
+        with timer("Generating chat response took", logger):
+            gpt_response = converse(collated_result, q, meta_log, api_key=api_key)
         status = "ok"
     except Exception as e:
         gpt_response = str(e)
