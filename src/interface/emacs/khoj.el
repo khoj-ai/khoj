@@ -134,6 +134,7 @@ NO-PAGING FILTER))
        "C-x M  | music\n"))))
 
 (defvar khoj--rerank nil "Track when re-rank of results triggered.")
+(defvar khoj--reference-count 0 "Track number of references current inserted into chat bufffer.")
 (defun khoj--search-markdown () "Set content-type to `markdown'." (interactive) (setq khoj--content-type "markdown"))
 (defun khoj--search-org () "Set content-type to `org-mode'." (interactive) (setq khoj--content-type "org"))
 (defun khoj--search-ledger () "Set content-type to `ledger'." (interactive) (setq khoj--content-type "ledger"))
@@ -387,25 +388,26 @@ MESSAGE is the text of the chat message.
 SENDER is the message sender.
 RECEIVE-DATE is the message receive date."
   (let ((first-message-line (car (split-string message "\n" t)))
-        (rest-message-lines (string-join (cdr (split-string message "\n" t)) "\n   "))
+        (rest-message-lines (string-join (cdr (split-string message "\n" t)) "\n"))
         (heading-level (if (equal sender "you") "**" "***"))
         (emojified-by (if (equal sender "you") "🤔 *You*" "🦅 *Khoj*"))
         (received (or receive-date (format-time-string "%F %T"))))
-    (format "%s %s: %s\n   :PROPERTIES:\n   :RECEIVED: [%s]\n   :END:\n   %s\n"
+    (format "%s %s: %s\n   :PROPERTIES:\n   :RECEIVED: [%s]\n   :END:\n%s\n"
             heading-level
             emojified-by
             first-message-line
             received
             rest-message-lines)))
 
-(defun khoj--generate-reference (index reference)
-  "Create `org-mode' links with REFERENCE as link and INDEX as link description."
-  (with-temp-buffer
-    (org-insert-link
-     nil
-     (format "%s" (replace-regexp-in-string "\n" " " reference))
-     (format "%s" index))
-    (format "[%s]" (buffer-substring-no-properties (point-min) (point-max)))))
+(defun khoj--generate-reference (reference)
+  "Create `org-mode' footnotes with REFERENCE."
+  (setq khoj--reference-count (1+ khoj--reference-count))
+  (cons
+   (format "[fn:%x]" khoj--reference-count)
+   (thread-last
+     reference
+     (replace-regexp-in-string "\n\n" "\n")
+     (format "\n[fn:%x] %s" khoj--reference-count))))
 
 (defun khoj--render-chat-response (json-response)
   "Render chat message using JSON-RESPONSE from Khoj Chat API."
@@ -413,13 +415,18 @@ RECEIVE-DATE is the message receive date."
          (sender (cdr (assoc 'by json-response)))
          (receive-date (cdr (assoc 'created json-response)))
          (context (or (cdr (assoc 'context json-response)) ""))
-         (reference-texts (split-string context "\n\n# " t))
-         (reference-links (-map-indexed #'khoj--generate-reference reference-texts)))
+         (reference-source-texts (split-string context "\n\n# " t))
+         (footnotes (mapcar #'khoj--generate-reference reference-source-texts))
+         (footnote-links (mapcar #'car footnotes))
+         (footnote-defs (mapcar #'cdr footnotes)))
     (thread-first
       ;; extract khoj message from API response and make it bold
       (format "%s" message)
-      ;; append references to khoj message
-      (concat " " (string-join reference-links " "))
+      ;; append reference links to khoj message
+      (concat " " (string-join footnote-links " "))
+      ;; append reference sub-section to khoj message
+      (concat (if footnote-defs "\n**** References\n:PROPERTIES:\n:VISIBILITY: folded\n:END:" ""))
+      (concat (string-join footnote-defs " "))
       ;; Render chat message using data obtained from API
       (khoj--render-chat-message sender receive-date))))
 
