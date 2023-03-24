@@ -109,6 +109,8 @@
 (defvar khoj--content-type "org"
   "The type of content to perform search on.")
 
+(declare-function org-element-property "org-mode" (PROPERTY ELEMENT))
+(declare-function org-element-type "org-mode" (ELEMENT))
 (declare-function beancount-mode "beancount" ())
 (declare-function markdown-mode "markdown-mode" ())
 (declare-function org-music-mode "org-music" ())
@@ -345,6 +347,7 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
       (khoj--query-chat-api-and-render-messages query khoj--chat-buffer-name))))
 
 (defun khoj--load-chat-history (buffer-name)
+  "Load Khoj Chat conversation history into BUFFER-NAME."
   (let ((json-response (cdr (assoc 'response (khoj--query-chat-api "")))))
     (with-current-buffer (get-buffer-create buffer-name)
       (erase-buffer)
@@ -366,7 +369,7 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
              (read-only-mode t)))))
 
 (defun khoj--add-hover-text-to-footnote-refs (start-pos)
-  "Show footnote definition on mouse hover over all footnote references from START-POS."
+  "Show footnote defs on mouse hover on footnote refs from START-POS."
   (org-with-wide-buffer
    (goto-char start-pos)
    (while (re-search-forward org-footnote-re nil t)
@@ -382,8 +385,11 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
                    '(footnote-reference))
          (-->
           footnote-def
+          ;; truncate footnote definition if required
           (substring it 0 footnote-width)
+          ;; append continuation suffix if truncated
           (concat it (if footnote-width "..." ""))
+          ;; show definition on hover on footnote reference
           (overlay-put overlay 'help-echo it)))))))
 
 (defun khoj--query-chat-api-and-render-messages (query buffer-name)
@@ -399,9 +405,10 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
        (khoj--render-chat-message query "you" query-time)
        (khoj--render-chat-response json-response))
       (khoj--add-hover-text-to-footnote-refs new-content-start-pos))
-    (progn (org-mode)
-           (visual-line-mode))
-    (read-only-mode t)))
+    (progn
+      (org-set-startup-visibility)
+      (visual-line-mode)
+      (re-search-backward "^\*+ 🦅" nil t))))
 
 (defun khoj--query-chat-api (query)
   "Send QUERY to Khoj Chat API."
@@ -454,12 +461,12 @@ RECEIVE-DATE is the message receive date."
     (thread-first
       ;; concatenate khoj message and references from API
       (concat
-       ;; extract khoj message from API response and make it bold
        message
        ;; append reference links to khoj message
        (string-join footnote-links "")
        ;; append reference sub-section to khoj message and fold it
        (if footnote-defs "\n**** References\n:PROPERTIES:\n:VISIBILITY: folded\n:END:" "")
+       ;; append reference definitions to references subsection
        (string-join footnote-defs " "))
       ;; Render chat message using data obtained from API
       (khoj--render-chat-message sender receive-date))))
