@@ -56,8 +56,8 @@ def test_chat_with_no_chat_history_or_retrieved_content(chat_client):
 def test_answer_from_chat_history(chat_client):
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", ""),
-        ("When was I born?", "You were born on 1st April 1984.", ""),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("When was I born?", "You were born on 1st April 1984.", []),
     ]
     populate_chat_history(message_list)
 
@@ -78,8 +78,12 @@ def test_answer_from_chat_history(chat_client):
 def test_answer_from_currently_retrieved_content(chat_client):
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", ""),
-        ("When was I born?", "You were born on 1st April 1984.", "Testatron was born on 1st April 1984 in Testville."),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        (
+            "When was I born?",
+            "You were born on 1st April 1984.",
+            ["Testatron was born on 1st April 1984 in Testville."],
+        ),
     ]
     populate_chat_history(message_list)
 
@@ -97,8 +101,12 @@ def test_answer_from_currently_retrieved_content(chat_client):
 def test_answer_from_chat_history_and_previously_retrieved_content(chat_client):
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", ""),
-        ("When was I born?", "You were born on 1st April 1984.", "Testatron was born on 1st April 1984 in Testville."),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        (
+            "When was I born?",
+            "You were born on 1st April 1984.",
+            ["Testatron was born on 1st April 1984 in Testville."],
+        ),
     ]
     populate_chat_history(message_list)
 
@@ -119,8 +127,8 @@ def test_answer_from_chat_history_and_previously_retrieved_content(chat_client):
 def test_answer_from_chat_history_and_currently_retrieved_content(chat_client):
     # Arrange
     message_list = [
-        ("Hello, my name is Xi Li. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", ""),
-        ("When was I born?", "You were born on 1st April 1984.", ""),
+        ("Hello, my name is Xi Li. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("When was I born?", "You were born on 1st April 1984.", []),
     ]
     populate_chat_history(message_list)
 
@@ -143,8 +151,8 @@ def test_no_answer_in_chat_history_or_retrieved_content(chat_client):
     "Chat director should say don't know as not enough contexts in chat history or retrieved to answer question"
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", ""),
-        ("When was I born?", "You were born on 1st April 1984.", ""),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("When was I born?", "You were born on 1st April 1984.", []),
     ]
     populate_chat_history(message_list)
 
@@ -197,9 +205,9 @@ def test_answer_requires_date_aware_aggregation_across_provided_notes(chat_clien
 def test_answer_general_question_not_in_chat_history_or_retrieved_content(chat_client):
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", ""),
-        ("When was I born?", "You were born on 1st April 1984.", ""),
-        ("Where was I born?", "You were born Testville.", ""),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("When was I born?", "You were born on 1st April 1984.", []),
+        ("Where was I born?", "You were born Testville.", []),
     ]
     populate_chat_history(message_list)
 
@@ -243,9 +251,9 @@ def test_ask_for_clarification_if_not_enough_context_in_question(chat_client):
 def test_answer_in_chat_history_beyond_lookback_window(chat_client):
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", ""),
-        ("When was I born?", "You were born on 1st April 1984.", ""),
-        ("Where was I born?", "You were born Testville.", ""),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("When was I born?", "You were born on 1st April 1984.", []),
+        ("Where was I born?", "You were born Testville.", []),
     ]
     populate_chat_history(message_list)
 

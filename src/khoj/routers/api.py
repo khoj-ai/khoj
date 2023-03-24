@@ -215,11 +215,11 @@ def chat(q: Optional[str] = None):
         result_list = []
         for query in inferred_queries:
             result_list.extend(search(query, n=5, r=True, score_threshold=-5.0, dedupe=False))
-        collated_result = "\n\n".join({f"# {item.additional['compiled']}" for item in result_list})
+        compiled_references = [item.additional["compiled"] for item in result_list]
 
     try:
         with timer("Generating chat response took", logger):
-            gpt_response = converse(collated_result, q, meta_log, api_key=api_key)
+            gpt_response = converse(compiled_references, q, meta_log, api_key=api_key)
         status = "ok"
     except Exception as e:
         gpt_response = str(e)
@@ -231,8 +231,8 @@ def chat(q: Optional[str] = None):
         q,
         gpt_response,
         user_message_metadata={"created": user_message_time},
-        khoj_message_metadata={"context": collated_result, "intent": {"inferred-queries": inferred_queries}},
+        khoj_message_metadata={"context": compiled_references, "intent": {"inferred-queries": inferred_queries}},
         conversation_log=meta_log.get("chat", []),
     )
 
-    return {"status": status, "response": gpt_response, "context": collated_result}
+    return {"status": status, "response": gpt_response, "context": compiled_references}

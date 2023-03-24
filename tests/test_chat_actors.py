@@ -111,7 +111,7 @@ def test_extract_multiple_implicit_questions_from_message():
 def test_generate_search_query_using_question_from_chat_history():
     # Arrange
     message_list = [
-        ("What is the name of Mr. Vaders daughter?", "Princess Leia", ""),
+        ("What is the name of Mr. Vader's daughter?", "Princess Leia", []),
     ]
 
     # Act
@@ -127,7 +127,7 @@ def test_generate_search_query_using_question_from_chat_history():
 def test_generate_search_query_using_answer_from_chat_history():
     # Arrange
     message_list = [
-        ("What is the name of Mr. Vaders daughter?", "Princess Leia", ""),
+        ("What is the name of Mr. Vader's daughter?", "Princess Leia", []),
     ]
 
     # Act
@@ -143,7 +143,7 @@ def test_generate_search_query_using_answer_from_chat_history():
 def test_generate_search_query_using_question_and_answer_from_chat_history():
     # Arrange
     message_list = [
-        ("Does Luke Skywalker have any Siblings?", "Yes, Princess Leia", ""),
+        ("Does Luke Skywalker have any Siblings?", "Yes, Princess Leia", []),
     ]
 
     # Act
@@ -159,7 +159,7 @@ def test_generate_search_query_using_question_and_answer_from_chat_history():
 def test_generate_search_query_with_date_and_context_from_chat_history():
     # Arrange
     message_list = [
-        ("When did I visit Masai Mara?", "You visited Masai Mara in April 2000", ""),
+        ("When did I visit Masai Mara?", "You visited Masai Mara in April 2000", []),
     ]
 
     # Act
@@ -184,7 +184,7 @@ def test_generate_search_query_with_date_and_context_from_chat_history():
 def test_chat_with_no_chat_history_or_retrieved_content():
     # Act
     response = converse(
-        text="",  # Assume no context retrieved from notes for the user_query
+        references=[],  # Assume no context retrieved from notes for the user_query
         user_query="Hello, my name is Testatron. Who are you?",
         api_key=api_key,
     )
@@ -202,13 +202,13 @@ def test_chat_with_no_chat_history_or_retrieved_content():
 def test_answer_from_chat_history_and_no_content():
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", ""),
-        ("When was I born?", "You were born on 1st April 1984.", ""),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("When was I born?", "You were born on 1st April 1984.", []),
     ]
 
     # Act
     response = converse(
-        text="",  # Assume no context retrieved from notes for the user_query
+        references=[],  # Assume no context retrieved from notes for the user_query
         user_query="What is my name?",
         conversation_log=populate_chat_history(message_list),
         api_key=api_key,
@@ -228,13 +228,17 @@ def test_answer_from_chat_history_and_previously_retrieved_content():
     "Chat actor needs to use context in previous notes and chat history to answer question"
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", ""),
-        ("When was I born?", "You were born on 1st April 1984.", "Testatron was born on 1st April 1984 in Testville."),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        (
+            "When was I born?",
+            "You were born on 1st April 1984.",
+            ["Testatron was born on 1st April 1984 in Testville."],
+        ),
     ]
 
     # Act
     response = converse(
-        text="",  # Assume no context retrieved from notes for the user_query
+        references=[],  # Assume no context retrieved from notes for the user_query
         user_query="Where was I born?",
         conversation_log=populate_chat_history(message_list),
         api_key=api_key,
@@ -252,13 +256,15 @@ def test_answer_from_chat_history_and_currently_retrieved_content():
     "Chat actor needs to use context across currently retrieved notes and chat history to answer question"
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", ""),
-        ("When was I born?", "You were born on 1st April 1984.", ""),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("When was I born?", "You were born on 1st April 1984.", []),
     ]
 
     # Act
     response = converse(
-        text="Testatron was born on 1st April 1984 in Testville.",  # Assume context retrieved from notes for the user_query
+        references=[
+            "Testatron was born on 1st April 1984 in Testville."
+        ],  # Assume context retrieved from notes for the user_query
         user_query="Where was I born?",
         conversation_log=populate_chat_history(message_list),
         api_key=api_key,
@@ -275,13 +281,13 @@ def test_no_answer_in_chat_history_or_retrieved_content():
     "Chat actor should say don't know as not enough contexts in chat history or retrieved to answer question"
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", ""),
-        ("When was I born?", "You were born on 1st April 1984.", ""),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("When was I born?", "You were born on 1st April 1984.", []),
     ]
 
     # Act
     response = converse(
-        text="",  # Assume no context retrieved from notes for the user_query
+        references=[],  # Assume no context retrieved from notes for the user_query
         user_query="Where was I born?",
         conversation_log=populate_chat_history(message_list),
         api_key=api_key,
@@ -300,23 +306,20 @@ def test_no_answer_in_chat_history_or_retrieved_content():
 def test_answer_requires_current_date_awareness():
     "Chat actor should be able to answer questions relative to current date using provided notes"
     # Arrange
-    context = f"""
-    # {datetime.now().strftime("%Y-%m-%d")} "Naco Taco" "Tacos for Dinner"
-      Expenses:Food:Dining  10.00 USD
-
-    # {datetime.now().strftime("%Y-%m-%d")} "Sagar Ratna" "Dosa for Lunch"
-      Expenses:Food:Dining  10.00 USD
-
-    # 2020-04-01 "SuperMercado" "Bananas"
-      Expenses:Food:Groceries  10.00 USD
-
-    # 2020-01-01 "Naco Taco" "Burittos for Dinner"
-      Expenses:Food:Dining  10.00 USD
-    """
+    context = [
+        f"""{datetime.now().strftime("%Y-%m-%d")} "Naco Taco" "Tacos for Dinner"
+Expenses:Food:Dining  10.00 USD""",
+        f"""{datetime.now().strftime("%Y-%m-%d")} "Sagar Ratna" "Dosa for Lunch"
+Expenses:Food:Dining  10.00 USD""",
+        f"""2020-04-01 "SuperMercado" "Bananas"
+Expenses:Food:Groceries  10.00 USD""",
+        f"""2020-01-01 "Naco Taco" "Burittos for Dinner"
+Expenses:Food:Dining  10.00 USD""",
+    ]
 
     # Act
     response = converse(
-        text=context,  # Assume context retrieved from notes for the user_query
+        references=context,  # Assume context retrieved from notes for the user_query
         user_query="What did I have for Dinner today?",
         api_key=api_key,
     )
@@ -334,23 +337,20 @@ def test_answer_requires_current_date_awareness():
 def test_answer_requires_date_aware_aggregation_across_provided_notes():
     "Chat actor should be able to answer questions that require date aware aggregation across multiple notes"
     # Arrange
-    context = f"""
-    # {datetime.now().strftime("%Y-%m-%d")} "Naco Taco" "Tacos for Dinner"
-      Expenses:Food:Dining  10.00 USD
-
-    # {datetime.now().strftime("%Y-%m-%d")} "Sagar Ratna" "Dosa for Lunch"
-      Expenses:Food:Dining  10.00 USD
-
-    # 2020-04-01 "SuperMercado" "Bananas"
-      Expenses:Food:Groceries  10.00 USD
-
-    # 2020-01-01 "Naco Taco" "Burittos for Dinner"
-      Expenses:Food:Dining  10.00 USD
-    """
+    context = [
+        f"""# {datetime.now().strftime("%Y-%m-%d")} "Naco Taco" "Tacos for Dinner"
+Expenses:Food:Dining  10.00 USD""",
+        f"""{datetime.now().strftime("%Y-%m-%d")} "Sagar Ratna" "Dosa for Lunch"
+Expenses:Food:Dining  10.00 USD""",
+        f"""2020-04-01 "SuperMercado" "Bananas"
+Expenses:Food:Groceries  10.00 USD""",
+        f"""2020-01-01 "Naco Taco" "Burittos for Dinner"
+Expenses:Food:Dining  10.00 USD""",
+    ]
 
     # Act
     response = converse(
-        text=context,  # Assume context retrieved from notes for the user_query
+        references=context,  # Assume context retrieved from notes for the user_query
         user_query="How much did I spend on dining this year?",
         api_key=api_key,
     )
@@ -366,14 +366,14 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content():
     "Chat actor should be able to answer general questions not requiring looking at chat history or notes"
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", ""),
-        ("When was I born?", "You were born on 1st April 1984.", ""),
-        ("Where was I born?", "You were born Testville.", ""),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("When was I born?", "You were born on 1st April 1984.", []),
+        ("Where was I born?", "You were born Testville.", []),
     ]
 
     # Act
     response = converse(
-        text="",  # Assume no context retrieved from notes for the user_query
+        references=[],  # Assume no context retrieved from notes for the user_query
         user_query="Write a haiku about unit testing in 3 lines",
         conversation_log=populate_chat_history(message_list),
         api_key=api_key,
@@ -393,20 +393,18 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content():
 def test_ask_for_clarification_if_not_enough_context_in_question():
     "Chat actor should ask for clarification if question cannot be answered unambiguously with the provided context"
     # Arrange
-    context = f"""
-    # Ramya
-    My sister, Ramya, is married to Kali Devi. They have 2 kids, Ravi and Rani.
-
-    # Fang
-    My sister, Fang Liu is married to Xi Li. They have 1 kid, Xiao Li.
-
-    # Aiyla
-    My sister, Aiyla is married to Tolga. They have 3 kids, Yildiz, Ali and Ahmet.
-     """
+    context = [
+        f"""# Ramya
+My sister, Ramya, is married to Kali Devi. They have 2 kids, Ravi and Rani.""",
+        f"""# Fang
+My sister, Fang Liu is married to Xi Li. They have 1 kid, Xiao Li.""",
+        f"""# Aiyla
+My sister, Aiyla is married to Tolga. They have 3 kids, Yildiz, Ali and Ahmet.""",
+    ]
 
     # Act
     response = converse(
-        text=context,  # Assume context retrieved from notes for the user_query
+        references=context,  # Assume context retrieved from notes for the user_query
         user_query="How many kids does my older sister have?",
         api_key=api_key,
     )

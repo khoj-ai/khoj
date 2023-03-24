@@ -443,9 +443,8 @@ RECEIVE-DATE is the message receive date."
   (let* ((message (cdr (or (assoc 'response json-response) (assoc 'message json-response))))
          (sender (cdr (assoc 'by json-response)))
          (receive-date (cdr (assoc 'created json-response)))
-         (context (or (cdr (assoc 'context json-response)) ""))
-         (reference-source-texts (split-string context "\n\n# " t))
-         (footnotes (mapcar #'khoj--generate-reference reference-source-texts))
+         (references (or (cdr (assoc 'context json-response)) '()))
+         (footnotes (mapcar #'khoj--generate-reference references))
          (footnote-links (mapcar #'car footnotes))
          (footnote-defs (mapcar #'cdr footnotes)))
     (thread-first

@@ -39,7 +39,6 @@
             let references = '';
             if (context) {
                 references = context
-                    .split("\n\n# ")
                     .map((reference, index) => generateReference(reference, index))
                     .join("<sup>,</sup>");
             }
