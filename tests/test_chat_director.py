@@ -47,7 +47,7 @@ def test_chat_with_no_chat_history_or_retrieved_content(chat_client):
     expected_responses = ["Khoj", "khoj"]
     assert response.status_code == 200
     assert any([expected_response in response_message for expected_response in expected_responses]), (
-        "Expected assistants name, [K|k]hoj, in response but got" + response_message
+        "Expected assistants name, [K|k]hoj, in response but got: " + response_message
     )
 
 
@@ -69,7 +69,7 @@ def test_answer_from_chat_history(chat_client):
     expected_responses = ["Testatron", "testatron"]
     assert response.status_code == 200
     assert any([expected_response in response_message for expected_response in expected_responses]), (
-        "Expected [T|t]estatron in response but got" + response_message
+        "Expected [T|t]estatron in response but got: " + response_message
     )
 
 

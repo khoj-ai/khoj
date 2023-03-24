@@ -247,6 +247,7 @@ Question: {user_query}"""
         conversation_primer,
         personality_primer,
         conversation_log,
+        model,
     )
 
     # Get Response from GPT

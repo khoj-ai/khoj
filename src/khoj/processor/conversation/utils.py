@@ -1,22 +1,44 @@
 # Standard Packages
 from datetime import datetime
 
+# External Packages
+import tiktoken
+
 # Internal Packages
 from khoj.utils.helpers import merge_dicts
 
 
-def generate_chatml_messages_with_context(user_message, system_message, conversation_log={}):
+max_prompt_size = {"gpt-3.5-turbo": 4096, "gpt-4": 8192}
+
+
+def generate_chatml_messages_with_context(
+    user_message, system_message, conversation_log={}, model_name="gpt-3.5-turbo", lookback_turns=2
+):
     """Generate messages for ChatGPT with context from previous conversation"""
     # Extract Chat History for Context
     chat_logs = [f'{chat["message"]}\n\nNotes:\n{chat.get("context","")}' for chat in conversation_log.get("chat", [])]
-    last_backnforth = reciprocal_conversation_to_chatml(chat_logs[-2:])
-    rest_backnforth = reciprocal_conversation_to_chatml(chat_logs[-4:-2])
+    rest_backnforths = []
+    # Extract in reverse chronological order
+    for user_msg, assistant_msg in zip(chat_logs[-2::-2], chat_logs[::-2]):
+        if len(rest_backnforths) >= 2 * lookback_turns:
+            break
+        rest_backnforths += reciprocal_conversation_to_chatml([user_msg, assistant_msg])[::-1]
 
     # Format user and system messages to chatml format
     system_chatml_message = [message_to_chatml(system_message, "system")]
     user_chatml_message = [message_to_chatml(user_message, "user")]
 
-    return rest_backnforth + system_chatml_message + last_backnforth + user_chatml_message
+    messages = user_chatml_message + rest_backnforths[:2] + system_chatml_message + rest_backnforths[2:]
+
+    # Truncate oldest messages from conversation history until under max supported prompt size by model
+    encoder = tiktoken.encoding_for_model(model_name)
+    tokens = sum([len(encoder.encode(value)) for message in messages for value in message.values()])
+    while tokens > max_prompt_size[model_name]:
+        messages.pop()
+        tokens = sum([len(encoder.encode(value)) for message in messages for value in message.values()])
+
+    # Return message in chronological order
+    return messages[::-1]
 
 
 def reciprocal_conversation_to_chatml(message_pair):
