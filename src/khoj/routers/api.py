@@ -2,6 +2,7 @@
 import math
 import yaml
 import logging
+from datetime import datetime
 from typing import List, Optional, Union
 
 # External Packages
@@ -192,6 +193,7 @@ def chat(q: Optional[str] = None):
     # Initialize Variables
     api_key = state.processor_config.conversation.openai_api_key
     model = state.processor_config.conversation.model
+    user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # Load Conversation History
     chat_session = state.processor_config.conversation.chat_session
@@ -225,6 +227,7 @@ def chat(q: Optional[str] = None):
     state.processor_config.conversation.meta_log["chat"] = message_to_log(
         q,
         gpt_response,
+        user_message_metadata={"created": user_message_time},
         khoj_message_metadata={"context": collated_result, "intent": {"inferred-queries": inferred_queries}},
         conversation_log=meta_log.get("chat", []),
     )

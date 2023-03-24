@@ -363,10 +363,11 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
   ;; render json response into formatted chat messages
   (with-current-buffer (get-buffer buffer-name)
     (let ((inhibit-read-only t)
+          (query-time (format-time-string "%F %T"))
           (json-response (khoj--query-chat-api query)))
       (goto-char (point-max))
       (insert
-       (khoj--render-chat-message query "you")
+       (khoj--render-chat-message query "you" query-time)
        (khoj--render-chat-response json-response)))
     (progn (org-mode)
            (visual-line-mode))

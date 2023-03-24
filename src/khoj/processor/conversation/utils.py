@@ -38,20 +38,20 @@ def message_to_prompt(
     return f"{conversation_history}{restart_sequence} {user_message}{start_sequence}{gpt_message}"
 
 
-def message_to_log(user_message, gpt_message, khoj_message_metadata={}, conversation_log=[]):
+def message_to_log(user_message, gpt_message, user_message_metadata={}, khoj_message_metadata={}, conversation_log=[]):
     """Create json logs from messages, metadata for conversation log"""
     default_khoj_message_metadata = {
         "intent": {"type": "remember", "memory-type": "notes", "query": user_message},
         "trigger-emotion": "calm",
     }
-    current_dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    khoj_response_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # Create json log from Human's message
-    human_log = {"message": user_message, "by": "you", "created": current_dt}
+    human_log = merge_dicts({"message": user_message, "by": "you"}, user_message_metadata)
 
     # Create json log from GPT's response
     khoj_log = merge_dicts(khoj_message_metadata, default_khoj_message_metadata)
-    khoj_log = merge_dicts({"message": gpt_message, "by": "khoj", "created": current_dt}, khoj_log)
+    khoj_log = merge_dicts({"message": gpt_message, "by": "khoj", "created": khoj_response_time}, khoj_log)
 
     conversation_log.extend([human_log, khoj_log])
     return conversation_log
