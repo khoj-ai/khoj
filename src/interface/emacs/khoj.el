@@ -134,7 +134,7 @@ NO-PAGING FILTER))
        "C-x M  | music\n"))))
 
 (defvar khoj--rerank nil "Track when re-rank of results triggered.")
-(defvar khoj--reference-count 0 "Track number of references current inserted into chat bufffer.")
+(defvar khoj--reference-count 0 "Track number of references currently in chat bufffer.")
 (defun khoj--search-markdown () "Set content-type to `markdown'." (interactive) (setq khoj--content-type "markdown"))
 (defun khoj--search-org () "Set content-type to `org-mode'." (interactive) (setq khoj--content-type "org"))
 (defun khoj--search-ledger () "Set content-type to `ledger'." (interactive) (setq khoj--content-type "ledger"))
@@ -336,6 +336,7 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
 
 (defun khoj--chat ()
   "Chat with Khoj."
+  (interactive)
   (when (not (get-buffer khoj--chat-buffer-name))
       (khoj--load-chat-history khoj--chat-buffer-name))
   (switch-to-buffer khoj--chat-buffer-name)
@@ -359,6 +360,9 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
       (progn (org-mode)
              (visual-line-mode)
              (khoj--add-hover-text-to-footnote-refs (point-min))
+             (use-local-map (copy-keymap org-mode-map))
+             (local-set-key (kbd "m") #'khoj--chat)
+             (local-set-key (kbd "C-x m") #'khoj--chat)
              (read-only-mode t)))))
 
 (defun khoj--add-hover-text-to-footnote-refs (start-pos)
