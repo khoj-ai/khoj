@@ -2,6 +2,7 @@
 import math
 import yaml
 import logging
+from datetime import datetime
 from typing import List, Optional, Union
 
 # External Packages
@@ -192,6 +193,7 @@ def chat(q: Optional[str] = None):
     # Initialize Variables
     api_key = state.processor_config.conversation.openai_api_key
     model = state.processor_config.conversation.model
+    user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # Load Conversation History
     chat_session = state.processor_config.conversation.chat_session
@@ -205,16 +207,19 @@ def chat(q: Optional[str] = None):
             return {"status": "ok", "response": []}
 
     # Infer search queries from user message
-    inferred_queries = extract_questions(q, model=model, api_key=api_key, conversation_log=meta_log)
+    with timer("Extracting search queries took", logger):
+        inferred_queries = extract_questions(q, model=model, api_key=api_key, conversation_log=meta_log)
 
     # Collate search results as context for GPT
-    result_list = []
-    for query in inferred_queries:
-        result_list.extend(search(query, n=5, r=True, score_threshold=-5.0, dedupe=False))
-    collated_result = "\n\n".join({f"# {item.additional['compiled']}" for item in result_list})
+    with timer("Searching knowledge base took", logger):
+        result_list = []
+        for query in inferred_queries:
+            result_list.extend(search(query, n=5, r=True, score_threshold=-5.0, dedupe=False))
+        compiled_references = [item.additional["compiled"] for item in result_list]
 
     try:
-        gpt_response = converse(collated_result, q, meta_log, api_key=api_key)
+        with timer("Generating chat response took", logger):
+            gpt_response = converse(compiled_references, q, meta_log, api_key=api_key)
         status = "ok"
     except Exception as e:
         gpt_response = str(e)
@@ -225,8 +230,9 @@ def chat(q: Optional[str] = None):
     state.processor_config.conversation.meta_log["chat"] = message_to_log(
         q,
         gpt_response,
-        khoj_message_metadata={"context": collated_result, "intent": {"inferred-queries": inferred_queries}},
+        user_message_metadata={"created": user_message_time},
+        khoj_message_metadata={"context": compiled_references, "intent": {"inferred-queries": inferred_queries}},
         conversation_log=meta_log.get("chat", []),
     )
 
-    return {"status": status, "response": gpt_response, "context": collated_result}
+    return {"status": status, "response": gpt_response, "context": compiled_references}

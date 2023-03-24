@@ -109,6 +109,8 @@
 (defvar khoj--content-type "org"
   "The type of content to perform search on.")
 
+(declare-function org-element-property "org-mode" (PROPERTY ELEMENT))
+(declare-function org-element-type "org-mode" (ELEMENT))
 (declare-function beancount-mode "beancount" ())
 (declare-function markdown-mode "markdown-mode" ())
 (declare-function org-music-mode "org-music" ())
@@ -134,6 +136,7 @@ NO-PAGING FILTER))
        "C-x M  | music\n"))))
 
 (defvar khoj--rerank nil "Track when re-rank of results triggered.")
+(defvar khoj--reference-count 0 "Track number of references currently in chat bufffer.")
 (defun khoj--search-markdown () "Set content-type to `markdown'." (interactive) (setq khoj--content-type "markdown"))
 (defun khoj--search-org () "Set content-type to `org-mode'." (interactive) (setq khoj--content-type "org"))
 (defun khoj--search-ledger () "Set content-type to `ledger'." (interactive) (setq khoj--content-type "ledger"))
@@ -335,15 +338,22 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
 
 (defun khoj--chat ()
   "Chat with Khoj."
+  (interactive)
+  (when (not (get-buffer khoj--chat-buffer-name))
+      (khoj--load-chat-history khoj--chat-buffer-name))
+  (switch-to-buffer khoj--chat-buffer-name)
   (let ((query (read-string "Query: ")))
-    (khoj--query-chat-api-and-render-messages query khoj--chat-buffer-name)
-    (switch-to-buffer khoj--chat-buffer-name)))
+    (when (not (string-empty-p query))
+      (khoj--query-chat-api-and-render-messages query khoj--chat-buffer-name))))
 
 (defun khoj--load-chat-history (buffer-name)
+  "Load Khoj Chat conversation history into BUFFER-NAME."
   (let ((json-response (cdr (assoc 'response (khoj--query-chat-api "")))))
     (with-current-buffer (get-buffer-create buffer-name)
       (erase-buffer)
       (insert "#+STARTUP: showall hidestars\n")
+      ;; allow sub, superscript text within {} for footnotes
+      (insert "#+OPTIONS: ^:{}\n")
       (thread-last
         json-response
         ;; generate chat messages from Khoj Chat API response
@@ -352,23 +362,53 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
         (mapc #'insert))
       (progn (org-mode)
              (visual-line-mode)
+             (khoj--add-hover-text-to-footnote-refs (point-min))
+             (use-local-map (copy-keymap org-mode-map))
+             (local-set-key (kbd "m") #'khoj--chat)
+             (local-set-key (kbd "C-x m") #'khoj--chat)
              (read-only-mode t)))))
+
+(defun khoj--add-hover-text-to-footnote-refs (start-pos)
+  "Show footnote defs on mouse hover on footnote refs from START-POS."
+  (org-with-wide-buffer
+   (goto-char start-pos)
+   (while (re-search-forward org-footnote-re nil t)
+     (backward-char)
+     (let* ((context (org-element-context))
+            (label (org-element-property :label context))
+            (footnote-def (nth 3 (org-footnote-get-definition label)))
+            (footnote-width (if (< (length footnote-def) 70) nil 70))
+            (begin-pos (org-element-property :begin context))
+            (end-pos (org-element-property :end context))
+            (overlay (make-overlay begin-pos end-pos)))
+       (when (memq (org-element-type context)
+                   '(footnote-reference))
+         (-->
+          footnote-def
+          ;; truncate footnote definition if required
+          (substring it 0 footnote-width)
+          ;; append continuation suffix if truncated
+          (concat it (if footnote-width "..." ""))
+          ;; show definition on hover on footnote reference
+          (overlay-put overlay 'help-echo it)))))))
 
 (defun khoj--query-chat-api-and-render-messages (query buffer-name)
   "Send QUERY to Khoj Chat. Render the chat messages from exchange in BUFFER-NAME."
   ;; render json response into formatted chat messages
-  (if (not (get-buffer buffer-name))
-      (khoj--load-chat-history buffer-name)
-    (with-current-buffer (get-buffer buffer-name)
-      (let ((inhibit-read-only t)
-            (json-response (khoj--query-chat-api query)))
-        (goto-char (point-max))
-        (insert
-         (khoj--render-chat-message query "you")
-         (khoj--render-chat-response json-response)))
-        (progn (org-mode)
-               (visual-line-mode))
-    (read-only-mode t))))
+  (with-current-buffer (get-buffer buffer-name)
+    (let ((inhibit-read-only t)
+          (new-content-start-pos (point-max))
+          (query-time (format-time-string "%F %T"))
+          (json-response (khoj--query-chat-api query)))
+      (goto-char new-content-start-pos)
+      (insert
+       (khoj--render-chat-message query "you" query-time)
+       (khoj--render-chat-response json-response))
+      (khoj--add-hover-text-to-footnote-refs new-content-start-pos))
+    (progn
+      (org-set-startup-visibility)
+      (visual-line-mode)
+      (re-search-backward "^\*+ 🦅" nil t))))
 
 (defun khoj--query-chat-api (query)
   "Send QUERY to Khoj Chat API."
@@ -386,39 +426,48 @@ MESSAGE is the text of the chat message.
 SENDER is the message sender.
 RECEIVE-DATE is the message receive date."
   (let ((first-message-line (car (split-string message "\n" t)))
-        (rest-message-lines (string-join (cdr (split-string message "\n" t)) "\n   "))
+        (rest-message-lines (string-join (cdr (split-string message "\n" t)) "\n"))
         (heading-level (if (equal sender "you") "**" "***"))
-        (emojified-by (if (equal sender "you") "🤔 *You*" "🦅 *Khoj*"))
+        (emojified-sender (if (equal sender "you") "🤔 *You*" "🦅 *Khoj*"))
+        (suffix-newlines (if (equal sender "khoj") "\n\n" ""))
         (received (or receive-date (format-time-string "%F %T"))))
-    (format "%s %s: %s\n   :PROPERTIES:\n   :RECEIVED: [%s]\n   :END:\n   %s\n"
+    (format "%s %s: %s\n   :PROPERTIES:\n   :RECEIVED: [%s]\n   :END:\n%s\n%s"
             heading-level
-            emojified-by
+            emojified-sender
             first-message-line
             received
-            rest-message-lines)))
+            rest-message-lines
+            suffix-newlines)))
 
-(defun khoj--generate-reference (index reference)
-  "Create `org-mode' links with REFERENCE as link and INDEX as link description."
-  (with-temp-buffer
-    (org-insert-link
-     nil
-     (format "%s" (replace-regexp-in-string "\n" " " reference))
-     (format "%s" index))
-    (format "[%s]" (buffer-substring-no-properties (point-min) (point-max)))))
+(defun khoj--generate-reference (reference)
+  "Create `org-mode' footnotes with REFERENCE."
+  (setq khoj--reference-count (1+ khoj--reference-count))
+  (cons
+   (propertize (format "^{ [fn:%x]}" khoj--reference-count) 'help-echo reference)
+   (thread-last
+     reference
+     (replace-regexp-in-string "\n\n" "\n")
+     (format "\n[fn:%x] %s" khoj--reference-count))))
 
 (defun khoj--render-chat-response (json-response)
   "Render chat message using JSON-RESPONSE from Khoj Chat API."
   (let* ((message (cdr (or (assoc 'response json-response) (assoc 'message json-response))))
          (sender (cdr (assoc 'by json-response)))
          (receive-date (cdr (assoc 'created json-response)))
-         (context (or (cdr (assoc 'context json-response)) ""))
-         (reference-texts (split-string context "\n\n# " t))
-         (reference-links (-map-indexed #'khoj--generate-reference reference-texts)))
+         (references (or (cdr (assoc 'context json-response)) '()))
+         (footnotes (mapcar #'khoj--generate-reference references))
+         (footnote-links (mapcar #'car footnotes))
+         (footnote-defs (mapcar #'cdr footnotes)))
     (thread-first
-      ;; extract khoj message from API response and make it bold
-      (format "%s" message)
-      ;; append references to khoj message
-      (concat " " (string-join reference-links " "))
+      ;; concatenate khoj message and references from API
+      (concat
+       message
+       ;; append reference links to khoj message
+       (string-join footnote-links "")
+       ;; append reference sub-section to khoj message and fold it
+       (if footnote-defs "\n**** References\n:PROPERTIES:\n:VISIBILITY: folded\n:END:" "")
+       ;; append reference definitions to references subsection
+       (string-join footnote-defs " "))
       ;; Render chat message using data obtained from API
       (khoj--render-chat-message sender receive-date))))
 

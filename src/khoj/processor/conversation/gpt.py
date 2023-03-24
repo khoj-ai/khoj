@@ -223,13 +223,14 @@ A:{ "search-type": "notes" }"""
     return json.loads(story.strip(empty_escape_sequences))
 
 
-def converse(text, user_query, conversation_log={}, api_key=None, temperature=0.2):
+def converse(references, user_query, conversation_log={}, api_key=None, temperature=0.2):
     """
     Converse with user using OpenAI's ChatGPT
     """
     # Initialize Variables
     model = "gpt-3.5-turbo"
     openai.api_key = api_key or os.getenv("OPENAI_API_KEY")
+    compiled_references = "\n\n".join({f"# {item}" for item in references})
 
     personality_primer = "You are Khoj, a friendly, smart and helpful personal assistant."
     conversation_primer = f"""
@@ -237,7 +238,7 @@ Using the notes and our past conversations as context, answer the following ques
 Current Date: {datetime.now().strftime("%Y-%m-%d")}
 
 Notes:
-{text}
+{compiled_references}
 
 Question: {user_query}"""
 
@@ -246,6 +247,7 @@ Question: {user_query}"""
         conversation_primer,
         personality_primer,
         conversation_log,
+        model,
     )
 
     # Get Response from GPT
