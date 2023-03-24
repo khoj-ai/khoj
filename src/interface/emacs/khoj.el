@@ -348,6 +348,8 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
     (with-current-buffer (get-buffer-create buffer-name)
       (erase-buffer)
       (insert "#+STARTUP: showall hidestars\n")
+      ;; allow sub, superscript text within {} for footnotes
+      (insert "#+OPTIONS: ^:{}\n")
       (thread-last
         json-response
         ;; generate chat messages from Khoj Chat API response
@@ -356,19 +358,43 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
         (mapc #'insert))
       (progn (org-mode)
              (visual-line-mode)
+             (khoj--add-hover-text-to-footnote-refs (point-min))
              (read-only-mode t)))))
+
+(defun khoj--add-hover-text-to-footnote-refs (start-pos)
+  "Show footnote definition on mouse hover over all footnote references from START-POS."
+  (org-with-wide-buffer
+   (goto-char start-pos)
+   (while (re-search-forward org-footnote-re nil t)
+     (backward-char)
+     (let* ((context (org-element-context))
+            (label (org-element-property :label context))
+            (footnote-def (nth 3 (org-footnote-get-definition label)))
+            (footnote-width (if (< (length footnote-def) 70) nil 70))
+            (begin-pos (org-element-property :begin context))
+            (end-pos (org-element-property :end context))
+            (overlay (make-overlay begin-pos end-pos)))
+       (when (memq (org-element-type context)
+                   '(footnote-reference))
+         (-->
+          footnote-def
+          (substring it 0 footnote-width)
+          (concat it (if footnote-width "..." ""))
+          (overlay-put overlay 'help-echo it)))))))
 
 (defun khoj--query-chat-api-and-render-messages (query buffer-name)
   "Send QUERY to Khoj Chat. Render the chat messages from exchange in BUFFER-NAME."
   ;; render json response into formatted chat messages
   (with-current-buffer (get-buffer buffer-name)
     (let ((inhibit-read-only t)
+          (new-content-start-pos (point-max))
           (query-time (format-time-string "%F %T"))
           (json-response (khoj--query-chat-api query)))
-      (goto-char (point-max))
+      (goto-char new-content-start-pos)
       (insert
        (khoj--render-chat-message query "you" query-time)
-       (khoj--render-chat-response json-response)))
+       (khoj--render-chat-response json-response))
+      (khoj--add-hover-text-to-footnote-refs new-content-start-pos))
     (progn (org-mode)
            (visual-line-mode))
     (read-only-mode t)))
@@ -404,7 +430,7 @@ RECEIVE-DATE is the message receive date."
   "Create `org-mode' footnotes with REFERENCE."
   (setq khoj--reference-count (1+ khoj--reference-count))
   (cons
-   (format "[fn:%x]" khoj--reference-count)
+   (propertize (format "^{ [fn:%x]}" khoj--reference-count) 'help-echo reference)
    (thread-last
      reference
      (replace-regexp-in-string "\n\n" "\n")
@@ -424,7 +450,7 @@ RECEIVE-DATE is the message receive date."
       ;; extract khoj message from API response and make it bold
       (format "%s" message)
       ;; append reference links to khoj message
-      (concat " " (string-join footnote-links " "))
+      (concat (string-join footnote-links ""))
       ;; append reference sub-section to khoj message
       (concat (if footnote-defs "\n**** References\n:PROPERTIES:\n:VISIBILITY: folded\n:END:" ""))
       (concat (string-join footnote-defs " "))
