@@ -335,9 +335,12 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
 
 (defun khoj--chat ()
   "Chat with Khoj."
+  (when (not (get-buffer khoj--chat-buffer-name))
+      (khoj--load-chat-history khoj--chat-buffer-name))
+  (switch-to-buffer khoj--chat-buffer-name)
   (let ((query (read-string "Query: ")))
-    (khoj--query-chat-api-and-render-messages query khoj--chat-buffer-name)
-    (switch-to-buffer khoj--chat-buffer-name)))
+    (when (not (string-empty-p query))
+      (khoj--query-chat-api-and-render-messages query khoj--chat-buffer-name))))
 
 (defun khoj--load-chat-history (buffer-name)
   (let ((json-response (cdr (assoc 'response (khoj--query-chat-api "")))))
@@ -357,18 +360,16 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
 (defun khoj--query-chat-api-and-render-messages (query buffer-name)
   "Send QUERY to Khoj Chat. Render the chat messages from exchange in BUFFER-NAME."
   ;; render json response into formatted chat messages
-  (if (not (get-buffer buffer-name))
-      (khoj--load-chat-history buffer-name)
-    (with-current-buffer (get-buffer buffer-name)
-      (let ((inhibit-read-only t)
-            (json-response (khoj--query-chat-api query)))
-        (goto-char (point-max))
-        (insert
-         (khoj--render-chat-message query "you")
-         (khoj--render-chat-response json-response)))
-        (progn (org-mode)
-               (visual-line-mode))
-    (read-only-mode t))))
+  (with-current-buffer (get-buffer buffer-name)
+    (let ((inhibit-read-only t)
+          (json-response (khoj--query-chat-api query)))
+      (goto-char (point-max))
+      (insert
+       (khoj--render-chat-message query "you")
+       (khoj--render-chat-response json-response)))
+    (progn (org-mode)
+           (visual-line-mode))
+    (read-only-mode t)))
 
 (defun khoj--query-chat-api (query)
   "Send QUERY to Khoj Chat API."
