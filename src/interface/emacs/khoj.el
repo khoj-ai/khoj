@@ -196,22 +196,21 @@ Use `which-key` if available, else display simple message in echo area"
 
 (defun khoj--extract-entries-as-org (json-response query)
   "Convert JSON-RESPONSE, QUERY from API to `org-mode' entries."
-  (let ((org-results-buffer-format-str "* %s\n%s\n#+STARTUP: showall hidestars inlineimages"))
-    (thread-last
-      json-response
-      ;; Extract and render each org-mode entry from response
-      (mapcar (lambda (json-response-item)
-                (thread-last
-                  ;; Extract org entry from each item in json response
-                  (cdr (assoc 'entry json-response-item))
-                  ;; Format org entry as a string
-                  (format "%s")
-                  ;; Standardize results to 2nd level heading for consistent rendering
-                  (replace-regexp-in-string "^\*+" "**"))))
-      ;; Render entries into org formatted string with query set as as top level heading
-      (format org-results-buffer-format-str query)
-      ;; remove leading (, ) or SPC from extracted entries string
-      (replace-regexp-in-string "^[\(\) ]" ""))))
+  (thread-last
+    json-response
+    ;; Extract and render each org-mode entry from response
+    (mapcar (lambda (json-response-item)
+              (thread-last
+                ;; Extract org entry from each item in json response
+                (cdr (assoc 'entry json-response-item))
+                ;; Format org entry as a string
+                (format "%s")
+                ;; Standardize results to 2nd level heading for consistent rendering
+                (replace-regexp-in-string "^\*+" "**"))))
+    ;; Render entries into org formatted string with query set as as top level heading
+    (format "* %s\n%s\n" query)
+    ;; remove leading (, ) or SPC from extracted entries string
+    (replace-regexp-in-string "^[\(\) ]" "")))
 
 (defun khoj--extract-entries-as-ledger (json-response query)
   "Convert JSON-RESPONSE, QUERY from API to ledger entries."
@@ -319,8 +318,13 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
              ((equal content-type "ledger") (khoj--extract-entries-as-ledger json-response query))
              ((equal content-type "image") (khoj--extract-entries-as-images json-response query))
              (t (khoj--extract-entries json-response query))))
-      (cond ((equal content-type "org") (progn (org-mode)
-                                               (visual-line-mode)))
+      (cond ((equal content-type "org") (progn (visual-line-mode)
+                                               (org-mode)
+                                               (setq-local
+                                                org-startup-folded "showall"
+                                                org-hide-leading-stars t
+                                                org-startup-with-inline-images t)
+                                               (org-set-startup-visibility)))
             ((equal content-type "markdown") (progn (markdown-mode)
                                                     (visual-line-mode)))
             ((equal content-type "ledger") (beancount-mode))
