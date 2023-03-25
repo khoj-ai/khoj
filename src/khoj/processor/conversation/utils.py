@@ -1,14 +1,62 @@
 # Standard Packages
+import os
+import logging
 from datetime import datetime
 
 # External Packages
+import openai
 import tiktoken
+from tenacity import (
+    before_sleep_log,
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+    wait_random_exponential,
+)
 
 # Internal Packages
 from khoj.utils.helpers import merge_dicts
 
 
+logger = logging.getLogger(__name__)
 max_prompt_size = {"gpt-3.5-turbo": 4096, "gpt-4": 8192}
+
+
+@retry(
+    retry=(
+        retry_if_exception_type(openai.error.Timeout)
+        | retry_if_exception_type(openai.error.APIError)
+        | retry_if_exception_type(openai.error.APIConnectionError)
+        | retry_if_exception_type(openai.error.RateLimitError)
+        | retry_if_exception_type(openai.error.ServiceUnavailableError)
+    ),
+    wait=wait_random_exponential(min=1, max=30),
+    stop=stop_after_attempt(6),
+    before_sleep=before_sleep_log(logger, logging.DEBUG),
+    reraise=True,
+)
+def completion_with_backoff(**kwargs):
+    openai.api_key = kwargs["api_key"] if kwargs.get("api_key") else os.getenv("OPENAI_API_KEY")
+    return openai.Completion.create(**kwargs, request_timeout=60)
+
+
+@retry(
+    retry=(
+        retry_if_exception_type(openai.error.Timeout)
+        | retry_if_exception_type(openai.error.APIError)
+        | retry_if_exception_type(openai.error.APIConnectionError)
+        | retry_if_exception_type(openai.error.RateLimitError)
+        | retry_if_exception_type(openai.error.ServiceUnavailableError)
+    ),
+    wait=wait_exponential(multiplier=1, min=4, max=10),
+    stop=stop_after_attempt(6),
+    before_sleep=before_sleep_log(logger, logging.DEBUG),
+    reraise=True,
+)
+def chat_completion_with_backoff(**kwargs):
+    openai.api_key = kwargs["api_key"] if kwargs.get("api_key") else os.getenv("OPENAI_API_KEY")
+    return openai.ChatCompletion.create(**kwargs, request_timeout=60)
 
 
 def generate_chatml_messages_with_context(
