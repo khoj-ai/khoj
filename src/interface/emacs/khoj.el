@@ -351,9 +351,7 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
   (let ((json-response (cdr (assoc 'response (khoj--query-chat-api "")))))
     (with-current-buffer (get-buffer-create buffer-name)
       (erase-buffer)
-      (insert "#+STARTUP: showall hidestars\n")
-      ;; allow sub, superscript text within {} for footnotes
-      (insert "#+OPTIONS: ^:{}\n")
+      (insert "* Khoj Chat\n")
       (thread-last
         json-response
         ;; generate chat messages from Khoj Chat API response
@@ -361,21 +359,24 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
         ;; insert chat messages into Khoj Chat Buffer
         (mapc #'insert))
       (progn
+        (org-mode)
         (khoj--add-hover-text-to-footnote-refs (point-min))
 
         ;; render reference footnotes as superscript
         (setq-local
+         org-startup-folded "showall"
+         org-hide-leading-stars t
          org-use-sub-superscripts '{}
          org-pretty-entities-include-sub-superscripts t
          org-pretty-entities t)
+        (org-set-startup-visibility)
 
         ;; create khoj chat shortcut keybindings
         (use-local-map (copy-keymap org-mode-map))
         (local-set-key (kbd "m") #'khoj--chat)
         (local-set-key (kbd "C-x m") #'khoj--chat)
 
-        ;; enable appropriate khoj chat major, minor modes
-        (org-mode)
+        ;; enable minor modes for khoj chat
         (visual-line-mode)
         (read-only-mode t)))))
 
