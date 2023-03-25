@@ -360,13 +360,24 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
         (mapcar #'khoj--render-chat-response)
         ;; insert chat messages into Khoj Chat Buffer
         (mapc #'insert))
-      (progn (org-mode)
-             (visual-line-mode)
-             (khoj--add-hover-text-to-footnote-refs (point-min))
-             (use-local-map (copy-keymap org-mode-map))
-             (local-set-key (kbd "m") #'khoj--chat)
-             (local-set-key (kbd "C-x m") #'khoj--chat)
-             (read-only-mode t)))))
+      (progn
+        (khoj--add-hover-text-to-footnote-refs (point-min))
+
+        ;; render reference footnotes as superscript
+        (setq-local
+         org-use-sub-superscripts '{}
+         org-pretty-entities-include-sub-superscripts t
+         org-pretty-entities t)
+
+        ;; create khoj chat shortcut keybindings
+        (use-local-map (copy-keymap org-mode-map))
+        (local-set-key (kbd "m") #'khoj--chat)
+        (local-set-key (kbd "C-x m") #'khoj--chat)
+
+        ;; enable appropriate khoj chat major, minor modes
+        (org-mode)
+        (visual-line-mode)
+        (read-only-mode t)))))
 
 (defun khoj--add-hover-text-to-footnote-refs (start-pos)
   "Show footnote defs on mouse hover on footnote refs from START-POS."
