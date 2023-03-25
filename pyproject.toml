@@ -52,6 +52,7 @@ dependencies = [
     "sentence-transformers == 2.2.2",
     "torch == 1.13.1",
     "uvicorn == 0.17.6",
+    "aiohttp == 3.8.4",
 ]
 dynamic = ["version"]
 
