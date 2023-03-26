@@ -65,6 +65,11 @@
   :group 'khoj
   :type 'string)
 
+(defcustom is-khoj-server-local t
+  "Is Khoj server on local machine?."
+  :group 'khoj
+  :type 'boolean)
+
 (defcustom khoj-image-width 156
   "Width of rendered images returned by Khoj."
   :group 'khoj
@@ -253,6 +258,39 @@ for example), set this to the full interpreter path."
     (if (not khoj--server-process)
         (message "khoj.el: Failed to start Khoj server. Please start it manually by running `khoj' on terminal.\n%s" (buffer-string))
       (message "khoj.el: Khoj server running at: %s" khoj-server-url))))
+
+(defun khoj--server-running? ()
+  "Check if the khoj server is running."
+  (or
+   ;; check for when server process handled from within emacs
+   (and khoj--server-process
+        (not (null (process-live-p khoj--server-process))))
+   ;; else general check via ping to khoj-server-url
+   (ignore-errors
+     (not (null (khoj--get-enabled-content-types) t)))))
+
+(defun khoj--server-stop ()
+  "Stop the khoj server."
+  (when (khoj--server-running?)
+    (message "khoj.el: Stopping server...")
+    (kill-process khoj--server-process)
+    (message "khoj.el: Stopped server.")))
+
+(defun khoj--server-restart ()
+  "Restart the khoj server."
+  (khoj--server-stop)
+  (khoj--server-start))
+
+(defun khoj--server-setup ()
+  "Install and start the khoj server, if required."
+  ;; Install khoj server, if not available but expected on local machine
+  (when (and is-khoj-server-local
+             (or (not (executable-find khoj-server-command))
+                 (not (khoj--server-get-version))))
+      (khoj--server-install-upgrade))
+  ;; Start khoj server if not running at expected URL
+  (when (not (khoj--server-running?))
+    (khoj--server-start)))
 
 
 ;; -----------------------------------------------
@@ -781,6 +819,10 @@ Paragraph only starts at first text after blank line."
 (defun khoj ()
   "Natural, Incremental Search for your personal notes, transactions and images."
   (interactive)
+  ;; Setup khoj server if not running before executing user commands
+  (when (and (not (khoj--server-running?))
+             (y-or-n-p "Could not connect to Khoj server. Should I install and start it?"))
+    (khoj--server-setup))
   (khoj-menu))
 
 (provide 'khoj)
