@@ -218,7 +218,8 @@ for example), set this to the full interpreter path."
   :group 'khoj)
 
 (defvar khoj--server-process nil "Track Khoj server process.")
-(defvar khoj--server-name "khoj-server" "Track Khoj server buffer.")
+(defvar khoj--server-name "*khoj-server*" "Track Khoj server buffer.")
+(defvar khoj--server-ready? nil "Track if khoj server is ready to receive API calls.")
 
 (defun khoj--server-get-version ()
   "Return the khoj server version."
@@ -250,14 +251,25 @@ for example), set this to the full interpreter path."
                                     (format "--port=%s" server-port)))))
     (message "khoj.el: Starting server at %s %s..." server-host server-port)
     (setq khoj--server-process
-          (apply 'start-process
-                 khoj--server-name
-                 khoj--server-name
-                 khoj-server-command
-                 server-args))
-    (if (not khoj--server-process)
-        (message "khoj.el: Failed to start Khoj server. Please start it manually by running `khoj' on terminal.\n%s" (buffer-string))
-      (message "khoj.el: Khoj server running at: %s" khoj-server-url))))
+          (make-process
+           :name khoj--server-name
+           :buffer khoj--server-name
+           :command (append (list khoj-server-command) server-args)
+           :sentinel (lambda (process event)
+                       (message "khoj.el: khoj server stopped with: %s" event)
+                       (setq khoj--server-ready? nil))
+           :filter (lambda (process msg)
+                     (cond ((string-match (format "Uvicorn running on %s" khoj-server-url) msg)
+                            (setq khoj--server-ready? t))
+                           ((not khoj--server-ready?)
+                            (dolist (line (split-string msg "\n"))
+                              (message "khoj.el: %s" (nth 1 (split-string msg "  " t " *"))))))
+                     ;; call default process filter to write output to process buffer
+                     (internal-default-process-filter process msg))
+           ))
+    (set-process-query-on-exit-flag khoj--server-process nil)
+    (when (not khoj--server-process)
+        (message "khoj.el: Failed to start Khoj server. Please start it manually by running `khoj' on terminal.\n%s" (buffer-string)))))
 
 (defun khoj--server-running? ()
   "Check if the khoj server is running."
@@ -823,6 +835,8 @@ Paragraph only starts at first text after blank line."
   (when (and (not (khoj--server-running?))
              (y-or-n-p "Could not connect to Khoj server. Should I install and start it?"))
     (khoj--server-setup))
+  (while (not khoj--server-ready?)
+    (sleep-for 0.5))
   (khoj-menu))
 
 (provide 'khoj)
