@@ -217,6 +217,11 @@ for example), set this to the full interpreter path."
           (member val '("python" "python3" "pythonw" "py")))
   :group 'khoj)
 
+(defcustom khoj-org-files-index (org-agenda-files t t)
+  "List of org-files to index on khoj server"
+  :group 'khoj
+  :type '(repeat string))
+
 (defvar khoj--server-process nil "Track Khoj server process.")
 (defvar khoj--server-name "*khoj-server*" "Track Khoj server buffer.")
 (defvar khoj--server-ready? nil "Track if khoj server is ready to receive API calls.")
@@ -303,6 +308,72 @@ for example), set this to the full interpreter path."
   ;; Start khoj server if not running at expected URL
   (when (not (khoj--server-running?))
     (khoj--server-start)))
+
+(defun khoj--get-content-index-dir (config type)
+  "Extract directory containing index files of specified content TYPE from CONFIG.
+CONFIG is json obtained from Khoj config API."
+  (--> config
+       (cdr (assoc 'content-type it))
+       (cdr (assoc type it))
+       (cdr (assoc 'embeddings-file it))
+       (split-string it "/")
+       (butlast it)
+       (string-join it "/")))
+
+(defun khoj--server-configure ()
+  "Configure the khoj server to index specified files."
+  (interactive)
+  (let* ((current-config
+          (with-temp-buffer
+            (url-insert-file-contents (format "%s/api/config/data" khoj-server-url))
+            (ignore-error json-end-of-file (json-parse-buffer :object-type 'alist :array-type 'list :null-object json-null :false-object json-false))))
+         (default-config
+           (with-temp-buffer
+             (url-insert-file-contents (format "%s/api/config/data/default" khoj-server-url))
+             (ignore-error json-end-of-file (json-parse-buffer :object-type 'alist :array-type 'list :null-object json-null :false-object json-false))))
+         (default-index-dir (khoj--get-content-index-dir default-config 'org))
+         (config (or current-config default-config)))
+    (cond
+     ;; If khoj backend is not configured yet
+     ((not current-config)
+      (setq config (delq (assoc 'content-type config) config))
+      (setq config (delq (assoc 'processor config) config))
+      (add-to-list 'config `(content-type . ((org . ((input-files . ,khoj-org-files-index)
+                                                     (input-filter . ,json-null)
+                                                     (compressed-jsonl . ,(format "%s/org.jsonl.gz" default-index-dir))
+                                                     (embeddings-file . ,(format "%s/org.pt" default-index-dir))
+                                                     (index-heading-entries . ,json-false))))))
+      (khoj--post-new-config config)
+      (message "khoj.el: ⚙️ Generated new khoj server configuration."))
+
+     ;; Else if khoj config has no org content config
+     ((not (alist-get 'org (alist-get 'content-type config)))
+      (let ((new-content-type (alist-get 'content-type config)))
+        (setq new-content-type (delq (assoc 'org new-content-type) new-content-type))
+        (add-to-list 'new-content-type `(org . ((input-files . ,khoj-org-files-index)
+                                                (input-filter . ,json-null)
+                                                (compressed-jsonl . ,(format "%s/org.jsonl.gz" default-index-dir))
+                                                (embeddings-file . ,(format "%s/org.pt" default-index-dir))
+                                                (index-heading-entries . ,json-false))))
+        (setq config (delq (assoc 'content-type config) config))
+        (add-to-list 'config `(content-type . ,new-content-type)))
+      (khoj--post-new-config config)
+      (message "Khoj: ⚙️ Added org content to index on khoj server."))
+
+     ;; Else if khoj is not configured to index org files
+     ((not (equal (alist-get 'input-files (alist-get 'org (alist-get 'content-type config))) khoj-org-files-index))
+      (let* ((index-directory (khoj--get-content-index-dir config 'org))
+             (new-content-type (alist-get 'content-type config)))
+        (setq new-content-type (delq (assoc 'org new-content-type) new-content-type))
+        (add-to-list 'new-content-type `(org . ((input-files . ,khoj-org-files-index)
+                                                (input-filter . ,json-null)
+                                                (compressed-jsonl . ,(format "%s/org.jsonl.gz" index-directory))
+                                                (embeddings-file . ,(format "%s/org.pt" index-directory))
+                                                (index-heading-entries . ,json-false))))
+        (setq config (delq (assoc 'content-type config) config))
+        (add-to-list 'config `(content-type . ,new-content-type)))
+      (khoj--post-new-config config)
+      (message "Khoj: ⚙️ Updated org content in index on khoj server")))))
 
 
 ;; -----------------------------------------------
@@ -412,6 +483,19 @@ for example), set this to the full interpreter path."
 ;; --------------
 ;; Query Khoj API
 ;; --------------
+
+(defun khoj--post-new-config (config)
+  "Configure khoj server with provided CONFIG."
+  ;; POST provided config to khoj server
+  (let ((url-request-method "POST")
+        (url-request-extra-headers '(("Content-Type" . "application/json")))
+        (url-request-data (json-encode-alist config))
+        (config-url (format "%s/api/config/data" khoj-server-url)))
+    (with-current-buffer (url-retrieve-synchronously config-url)
+      (buffer-string)))
+  ;; Update index on khoj server after configuration update
+  (let ((khoj--server-ready? nil))
+    (url-retrieve (format "%s/api/update?t=org" khoj-server-url) #'identity)))
 
 (defun khoj--get-enabled-content-types ()
   "Get content types enabled for search from API."
