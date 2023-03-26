@@ -230,6 +230,8 @@ for example), set this to the full interpreter path."
 (defvar khoj--server-process nil "Track Khoj server process.")
 (defvar khoj--server-name "*khoj-server*" "Track Khoj server buffer.")
 (defvar khoj--server-ready? nil "Track if khoj server is ready to receive API calls.")
+(defvar khoj--server-configured? t "Track if khoj server is configured to receive API calls.")
+(defvar khoj--progressbar '(🌑 🌘 🌗 🌖 🌕 🌔 🌓 🌒) "Track progress via moon phase animations.")
 
 (defun khoj--server-get-version ()
   "Return the khoj server version."
@@ -274,6 +276,15 @@ for example), set this to the full interpreter path."
                             (progn
                               (setq khoj--server-ready? t)
                               (khoj--server-configure)))
+                           ((string-match "Batches:  " msg)
+                            (when (string-match "\\([0-9]+\\.[0-9]+\\|\\([0-9]+\\)\\)%?" msg)
+                              (message "khoj.el: %s updating index %s"
+                                       (nth (% (string-to-number (match-string 1 msg)) (length khoj--progressbar)) khoj--progressbar)
+                                       (match-string 0 msg)))
+                            (setq khoj--server-configured? nil))
+                           ((and (not khoj--server-configured?)
+                                 (string-match "Processor reconfigured via API" msg))
+                            (setq khoj--server-configured? t))
                            ((and (not khoj--server-ready?)
                                  (or (string-match "configure.py" msg)
                                      (string-match "main.py" msg)
@@ -976,7 +987,7 @@ Paragraph only starts at first text after blank line."
              (y-or-n-p "Could not connect to Khoj server. Should I install and start it?"))
     (khoj--server-setup))
   (while (not khoj--server-ready?)
-    (sleep-for 0.5))
+    (sit-for 0.5))
   (khoj--server-configure)
   (khoj--menu))
 
