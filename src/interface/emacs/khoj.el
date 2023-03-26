@@ -183,6 +183,11 @@ Use `which-key` if available, else display simple message in echo area"
   :group 'khoj
   :type 'string)
 
+(defcustom khoj-server-args '("--no-gui")
+  "Arguments to pass to Khoj server on startup."
+  :group 'khoj
+  :type '(repeat string))
+
 (defcustom khoj-server-python-command
   (if (equal system-type 'windows-nt)
       (or (executable-find "py")
@@ -207,6 +212,9 @@ for example), set this to the full interpreter path."
           (member val '("python" "python3" "pythonw" "py")))
   :group 'khoj)
 
+(defvar khoj--server-process nil "Track Khoj server process.")
+(defvar khoj--server-name "khoj-server" "Track Khoj server buffer.")
+
 (defun khoj--server-get-version ()
   "Return the khoj server version."
   (with-temp-buffer
@@ -226,6 +234,25 @@ for example), set this to the full interpreter path."
             0)
         (message "khoj.el: Failed to install Khoj server. Please install it manually using pip install `khoj-assistant'.\n%s" (buffer-string))
       (message "khoj.el: Installed and upgraded Khoj server version: %s" (khoj--server-get-version)))))
+
+(defun khoj--server-start ()
+  "Start the khoj server."
+  (let* ((url-parts (split-string (cadr (split-string khoj-server-url "://")) ":"))
+         (server-host (nth 0 url-parts))
+         (server-port (or (nth 1 url-parts) "80"))
+         (server-args (append khoj-server-args
+                              (list (format "--host=%s" server-host)
+                                    (format "--port=%s" server-port)))))
+    (message "khoj.el: Starting server at %s %s..." server-host server-port)
+    (setq khoj--server-process
+          (apply 'start-process
+                 khoj--server-name
+                 khoj--server-name
+                 khoj-server-command
+                 server-args))
+    (if (not khoj--server-process)
+        (message "khoj.el: Failed to start Khoj server. Please start it manually by running `khoj' on terminal.\n%s" (buffer-string))
+      (message "khoj.el: Khoj server running at: %s" khoj-server-url))))
 
 
 ;; -----------------------------------------------
