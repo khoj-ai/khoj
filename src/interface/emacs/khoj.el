@@ -274,12 +274,14 @@ for example), set this to the full interpreter path."
                             (progn
                               (setq khoj--server-ready? t)
                               (khoj--server-configure)))
-                           ((not khoj--server-ready?)
+                           ((and (not khoj--server-ready?)
+                                 (or (string-match "configure.py" msg)
+                                     (string-match "main.py" msg)
+                                     (string-match "api.py" msg)))
                             (dolist (line (split-string msg "\n"))
                               (message "khoj.el: %s" (nth 1 (split-string msg "  " t " *"))))))
                      ;; call default process filter to write output to process buffer
-                     (internal-default-process-filter process msg))
-           ))
+                     (internal-default-process-filter process msg))))
     (set-process-query-on-exit-flag khoj--server-process nil)
     (when (not khoj--server-process)
         (message "khoj.el: Failed to start Khoj server. Please start it manually by running `khoj' on terminal.\n%s" (buffer-string)))))
