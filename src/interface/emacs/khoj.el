@@ -281,13 +281,14 @@ for example), set this to the full interpreter path."
 
 (defun khoj--server-running? ()
   "Check if the khoj server is running."
-  (or
-   ;; check for when server process handled from within emacs
-   (and khoj--server-process
-        (not (null (process-live-p khoj--server-process))))
-   ;; else general check via ping to khoj-server-url
-   (ignore-errors
-     (not (null (khoj--get-enabled-content-types) t)))))
+  (when (or
+       ;; check for when server process handled from within emacs
+       (and khoj--server-process
+            (not (null (process-live-p khoj--server-process))))
+       ;; else general check via ping to khoj-server-url
+       (ignore-errors
+         (not (null (url-retrieve-synchronously (format "%s/api/config/data/default" khoj-server-url))))))
+      (setq khoj--server-ready? t)))
 
 (defun khoj--server-stop ()
   "Stop the khoj server."
