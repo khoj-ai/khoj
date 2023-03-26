@@ -316,16 +316,16 @@ for example), set this to the full interpreter path."
   (when (not (khoj--server-running?))
     (khoj--server-start)))
 
-(defun khoj--get-content-index-dir (config type)
-  "Extract directory containing index files of specified content TYPE from CONFIG.
+(defun khoj--get-directory-from-config (config keys &optional level)
+  "Extract directory under specified KEYS in CONFIG and trim it to LEVEL.
 CONFIG is json obtained from Khoj config API."
-  (--> config
-       (cdr (assoc 'content-type it))
-       (cdr (assoc type it))
-       (cdr (assoc 'embeddings-file it))
-       (split-string it "/")
-       (butlast it)
-       (string-join it "/")))
+  (let ((item config))
+    (dolist (key keys)
+      (setq item (cdr (assoc key item))))
+      (-> item
+          (split-string "/")
+          (butlast (or level nil))
+          (string-join "/"))))
 
 (defun khoj--server-configure ()
   "Configure the khoj server to index specified files."
@@ -338,7 +338,7 @@ CONFIG is json obtained from Khoj config API."
            (with-temp-buffer
              (url-insert-file-contents (format "%s/api/config/data/default" khoj-server-url))
              (ignore-error json-end-of-file (json-parse-buffer :object-type 'alist :array-type 'list :null-object json-null :false-object json-false))))
-         (default-index-dir (khoj--get-content-index-dir default-config 'org))
+         (default-index-dir (khoj--get-directory-from-config default-config '(content-type org embeddings-file)))
          (config (or current-config default-config)))
     (cond
      ;; If khoj backend is not configured yet
@@ -369,7 +369,7 @@ CONFIG is json obtained from Khoj config API."
 
      ;; Else if khoj is not configured to index org files
      ((not (equal (alist-get 'input-files (alist-get 'org (alist-get 'content-type config))) khoj-org-files-index))
-      (let* ((index-directory (khoj--get-content-index-dir config 'org))
+      (let* ((index-directory (khoj--get-directory-from-config config '(content-type org embeddings-file)))
              (new-content-type (alist-get 'content-type config)))
         (setq new-content-type (delq (assoc 'org new-content-type) new-content-type))
         (add-to-list 'new-content-type `(org . ((input-files . ,khoj-org-files-index)
