@@ -655,8 +655,14 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
          (encoded-query (url-hexify-string query))
          (query-url (format "%s/api/chat?q=%s" khoj-server-url encoded-query)))
     (with-temp-buffer
-      (url-insert-file-contents query-url)
-      (json-parse-buffer :object-type 'alist))))
+      (condition-case ex
+          (progn
+            (url-insert-file-contents query-url)
+            (json-parse-buffer :object-type 'alist))
+        ('file-error (cond ((string-match "Internal server error" (nth 2 ex))
+                      (message "Chat processor not configured. Configure OpenAI API key and restart it. Exception: [%s]" ex))
+                     (t (message "Chat exception: [%s]" ex))))))))
+
 
 (defun khoj--render-chat-message (message sender &optional receive-date)
   "Render chat messages as `org-mode' list item.

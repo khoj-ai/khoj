@@ -33,6 +33,12 @@ def get_default_config_data():
 @api.get("/config/types", response_model=List[str])
 def get_config_types():
     """Get configured content types"""
+    if state.config is None or state.config.content_type is None:
+        raise HTTPException(
+            status_code=500,
+            detail="Content types not configured. Configure at least one content type on server and restart it.",
+        )
+
     configured_content_types = state.config.content_type.dict(exclude_none=True)
     return [
         search_type.value
@@ -190,6 +196,15 @@ def update(t: Optional[SearchType] = None, force: Optional[bool] = False):
 
 @api.get("/chat")
 def chat(q: Optional[str] = None):
+    if (
+        state.processor_config is None
+        or state.processor_config.conversation is None
+        or state.processor_config.conversation.openai_api_key is None
+    ):
+        raise HTTPException(
+            status_code=500, detail="Chat processor not configured. Configure OpenAI API key on server and restart it."
+        )
+
     # Initialize Variables
     api_key = state.processor_config.conversation.openai_api_key
     model = state.processor_config.conversation.model
