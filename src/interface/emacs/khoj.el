@@ -248,6 +248,7 @@ for example), set this to the full interpreter path."
 
 (defun khoj--server-start ()
   "Start the khoj server."
+  (interactive)
   (let* ((url-parts (split-string (cadr (split-string khoj-server-url "://")) ":"))
          (server-host (nth 0 url-parts))
          (server-port (or (nth 1 url-parts) "80"))
@@ -288,6 +289,7 @@ for example), set this to the full interpreter path."
 
 (defun khoj--server-stop ()
   "Stop the khoj server."
+  (interactive)
   (when (khoj--server-running?)
     (message "khoj.el: Stopping server...")
     (kill-process khoj--server-process)
@@ -295,11 +297,13 @@ for example), set this to the full interpreter path."
 
 (defun khoj--server-restart ()
   "Restart the khoj server."
+  (interactive)
   (khoj--server-stop)
   (khoj--server-start))
 
 (defun khoj--server-setup ()
   "Install and start the khoj server, if required."
+  (interactive)
   ;; Install khoj server, if not available but expected on local machine
   (when (and is-khoj-server-local
              (or (not (executable-find khoj-server-command))
@@ -502,7 +506,6 @@ CONFIG is json obtained from Khoj config API."
   (let ((config-url (format "%s/api/config/types" khoj-server-url))
         (url-request-method "GET"))
     (with-temp-buffer
-      (erase-buffer)
       (url-insert-file-contents config-url)
       (thread-last
         (json-parse-buffer :object-type 'alist)
@@ -649,7 +652,6 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
          (encoded-query (url-hexify-string query))
          (query-url (format "%s/api/chat?q=%s" khoj-server-url encoded-query)))
     (with-temp-buffer
-      (erase-buffer)
       (url-insert-file-contents query-url)
       (json-parse-buffer :object-type 'alist))))
 
@@ -892,7 +894,7 @@ Paragraph only starts at first text after blank line."
   (interactive (list (transient-args transient-current-command)))
   (khoj--chat))
 
-(transient-define-prefix khoj-menu ()
+(transient-define-prefix khoj--menu ()
   "Create Khoj Menu to Configure and Execute Commands."
   [["Configure Search"
     ("n" "Results Count" "--results-count=" :init-value (lambda (obj) (oset obj value (format "%s" khoj-results-count))))
@@ -921,7 +923,7 @@ Paragraph only starts at first text after blank line."
     (khoj--server-setup))
   (while (not khoj--server-ready?)
     (sleep-for 0.5))
-  (khoj-menu))
+  (khoj--menu))
 
 (provide 'khoj)
 
