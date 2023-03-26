@@ -266,7 +266,9 @@ for example), set this to the full interpreter path."
                        (setq khoj--server-ready? nil))
            :filter (lambda (process msg)
                      (cond ((string-match (format "Uvicorn running on %s" khoj-server-url) msg)
-                            (setq khoj--server-ready? t))
+                            (progn
+                              (setq khoj--server-ready? t)
+                              (khoj--server-configure)))
                            ((not khoj--server-ready?)
                             (dolist (line (split-string msg "\n"))
                               (message "khoj.el: %s" (nth 1 (split-string msg "  " t " *"))))))
@@ -923,6 +925,7 @@ Paragraph only starts at first text after blank line."
     (khoj--server-setup))
   (while (not khoj--server-ready?)
     (sleep-for 0.5))
+  (khoj--server-configure)
   (khoj--menu))
 
 (provide 'khoj)
