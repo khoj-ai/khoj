@@ -172,6 +172,62 @@ Use `which-key` if available, else display simple message in echo area"
     (message "%s" (khoj--keybindings-info-message))))
 
 
+;; ----------------
+;; Khoj Setup
+;; ----------------
+(defcustom khoj-server-command
+  (or (executable-find "khoj")
+      (executable-find "khoj.exe")
+      "khoj")
+  "Command to interact with Khoj server."
+  :group 'khoj
+  :type 'string)
+
+(defcustom khoj-server-python-command
+  (if (equal system-type 'windows-nt)
+      (or (executable-find "py")
+          (executable-find "pythonw")
+          "python")
+    (if (executable-find "python")
+        "python"
+      ;; Fallback on systems where python is not
+      ;; symlinked to python3.
+      "python3"))
+  "The Python interpreter used for the Khoj server.
+
+Khoj will try to use the system interpreter if it exists. If you wish
+to use a specific python interpreter (from a virtual environment
+for example), set this to the full interpreter path."
+  :type '(choice (const :tag "python" "python")
+                 (const :tag "python3" "python3")
+                 (const :tag "pythonw (Python on Windows)" "pythonw")
+                 (const :tag "py (other Python on Windows)" "py")
+                 (string :tag "Other"))
+  :safe (lambda (val)
+          (member val '("python" "python3" "pythonw" "py")))
+  :group 'khoj)
+
+(defun khoj--server-get-version ()
+  "Return the khoj server version."
+  (with-temp-buffer
+    (call-process khoj-server-command nil t nil "--version")
+    (goto-char (point-min))
+    (re-search-forward "\\([a-z0-9.]+\\)")
+    (match-string 1)))
+
+(defun khoj--server-install-upgrade ()
+  "Install or upgrade the khoj server."
+  (with-temp-buffer
+    (message "khoj.el: Installing server...")
+    (if (/= (apply 'call-process khoj-server-python-command
+                     nil t nil
+                     "-m" "pip" "install" "--upgrade"
+                     '("khoj-assistant"))
+            0)
+        (message "khoj.el: Failed to install Khoj server. Please install it manually using pip install `khoj-assistant'.\n%s" (buffer-string))
+      (message "khoj.el: Installed and upgraded Khoj server version: %s" (khoj--server-get-version)))))
+
+
 ;; -----------------------------------------------
 ;; Extract and Render Entries of each Content Type
 ;; -----------------------------------------------
