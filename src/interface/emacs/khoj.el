@@ -1,10 +1,10 @@
-;;; khoj.el --- Natural, Incremental Search for your Second Brain -*- lexical-binding: t -*-
+;;; khoj.el --- A search assistant for your second brain -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2021-2022 Debanjum Singh Solanky
 
 ;; Author: Debanjum Singh Solanky <debanjum@gmail.com>
-;; Description: Natural, Incremental Search for your Second Brain
-;; Keywords: search, org-mode, outlines, markdown, beancount, ledger, image
+;; Description: A search assistant for your second brain
+;; Keywords: search, chat, org-mode, outlines, markdown, beancount, image
 ;; Version: 0.4.1
 ;; Package-Requires: ((emacs "27.1") (transient "0.3.0") (dash "2.19.1"))
 ;; URL: https://github.com/debanjum/khoj/tree/master/src/interface/emacs
@@ -28,21 +28,24 @@
 
 ;;; Commentary:
 
-;; This package provides a natural, incremental search interface to your
-;; `org-mode' notes, `markdown' files, `beancount' transactions and images.
-;; It is a wrapper that interfaces with the Khoj server.
-;; The server exposes an API for advanced search using transformer ML models.
-;; The Khoj server needs to be running to use this package.
-;; See the repository docs for detailed setup of the Khoj server.
+;; Create a search assistant for your `org-mode', `markdown' notes,
+;; `beancount' transactions and images. This package exposes two
+;; assistance modes, search and chat:
+;;
+;; Chat provides faster answers, iterative discovery and assisted
+;; creativity. It requires your OpenAI API key to access GPT models
+;;
+;; Search allows natural language, incremental and local search.
+;; It relies on AI models that run locally on your machine.
 ;;
 ;; Quickstart
 ;; -------------
-;; 1. Install Khoj Server
-;;    pip install khoj-assistant
-;; 2. Start, Configure Khoj Server
-;;    khoj
-;; 3. Install khoj.el from MELPA Stable
+;; 1. Install khoj.el from MELPA Stable
 ;;    (use-package khoj :pin melpa-stable :bind ("C-c s" . 'khoj))
+;; 2. Start khoj from Emacs
+;;    C-c s or M-x khoj
+;;
+;; See the repository docs for detailed setup and configuration steps.
 
 ;;; Code:
 

@@ -1,16 +1,19 @@
 * Khoj Emacs 🦅
   [[https://stable.melpa.org/#/khoj][file:https://stable.melpa.org/packages/khoj-badge.svg]] [[https://melpa.org/#/khoj][file:https://melpa.org/packages/khoj-badge.svg]] [[https://github.com/debanjum/khoj/actions/workflows/build_khoj_el.yml][https://github.com/debanjum/khoj/actions/workflows/build_khoj_el.yml/badge.svg?]]  [[https://github.com/debanjum/khoj/actions/workflows/test_khoj_el.yml][https://github.com/debanjum/khoj/actions/workflows/test_khoj_el.yml/badge.svg?]]
 
-  /Natural, Incremental Search for your Second Brain/
+  /A search assistant for your second brain/
 
 ** Table of Contents
   - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#features][Features]]
   - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Interface][Interface]]
   - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Setup][Setup]]
-    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#1-Setup-Backend][Setup Backend]]
-    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#2-Install-Khojel][Install Khoj.el]]
+    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Direct-Install][Direct Install]]
+    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Minimal-Install][Minimal Install]]
+    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Standard-Install][Standard Install]]
+    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#With-Straight.el][With Straight.el]]
   - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Use][Use]]
     - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Search][Search]]
+    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Chat][Chat]]
     - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Find-similar-entries][Find Similar Entries]]
     - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Advanced-usage][Advanced Usage]]
     - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Khoj-menu][Khoj Menu]]
@@ -19,49 +22,74 @@
     - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Upgrade-Khojel][Upgrade Khoj.el]]
 
 ** Features
-  - *Natural*: Advanced natural language understanding using Transformer based ML Models
-  - *Local*: Your personal data stays local. All search, indexing is done on your machine*
-  - *Incremental*: Incremental search for a fast, search-as-you-type experience
+  - *Search*
+    - *Natural*: Advanced natural language understanding using Transformer based ML Models
+    - *Local*: Your personal data stays local. All search, indexing is done on your machine*
+    - *Incremental*: Incremental search for a fast, search-as-you-type experience
+  - *Chat*
+    - *Faster answers*: Find answers faster than search
+    - *Iterative discovery*: Iteratively explore and (re-)discover your notes
+    - *Assisted creativity*: Smoothly weave across answer retrieval and content generation
 
 ** Interface
   [[/docs/khoj_on_emacs.png]]
 
 ** Setup
-/Make sure [[https://realpython.com/installing-python/][python]] (version 3.10 or lower) and [[https://pip.pypa.io/en/stable/installation/][pip]] are installed on your machine/
+- /Make sure [[https://realpython.com/installing-python/][python]] (version 3.10 or lower) and [[https://pip.pypa.io/en/stable/installation/][pip]] are installed on your machine/
 
-*** 1. Setup Backend
-  #+begin_src shell
-    pip install khoj-assistant && khoj
-  #+end_src
+- /khoj.el attempts to automatically install, start and configure the khoj server./
+  If this fails, follow [[https://github.com/debanjum/khoj/tree/master/#Setup][these instructions]] to manually setup the khoj server.
 
-*** 2. Install Khoj.el
-**** Using MELPA
-  #+begin_src elisp
+*** Direct Install
+    #+begin_src elisp
     M-x package-install khoj
-  #+end_src elisp
+    #+end_src
 
-  Add below snippet to your Emacs config file
-  #+begin_src elisp
-    ;; Install Khoj Package from MELPA Stable
-    (use-package khoj
-      :ensure t
-      :pin melpa-stable
-      :bind ("C-c s" . 'khoj))
-  #+end_src
+*** Minimal Install
+    Add below snippet to your Emacs config file.
+    Indexes your org-agenda files, by default.
 
-  Note: Install ~khoj.el~ from MELPA (instead of MELPA Stable) if you installed the pre-release version of khoj
-  - That is, use ~:pin melpa~ to install khoj.el in above snippet if khoj was installed with ~pip install --pre khoj-assistant~
-  - Else use ~:pin melpa-stable~ to install khoj.el in above snippet if khoj was installed with ~pip install khoj-assistant~
-  - This ensures both khoj.el and khoj app are from the same version (tagged or latest)
+    #+begin_src elisp
+      ;; Install Khoj Package from MELPA Stable
+      (use-package khoj
+        :ensure t
+        :pin melpa-stable
+        :bind ("C-c s" . 'khoj)
+    #+end_src
 
-**** Using [[https://github.com/raxod502/straight.el][Straight.el]]
-  Add below snippet to your Emacs config file
+  - Note: Install ~khoj.el~ from MELPA (instead of MELPA Stable) if you installed the pre-release version of khoj
+    - That is, use ~:pin melpa~ to install khoj.el in above snippet if khoj server was installed with ~--pre~ flag, i.e ~pip install --pre khoj-assistant~
+    - Else use ~:pin melpa-stable~ to install khoj.el in above snippet if khoj was installed with ~pip install khoj-assistant~
+    - This ensures both khoj.el and khoj app are from the same version (git tagged or latest)
+
+*** Standard Install
+    Add below snippet to your Emacs config file.
+    Indexes the specified org files, directories. Sets up OpenAI API key for Khoj Chat
+
+    #+begin_src elisp
+      ;; Install Khoj Package from MELPA Stable
+      (use-package khoj
+        :ensure t
+        :pin melpa-stable
+        :bind ("C-c s" . 'khoj)
+        :config (setq khoj-org-directories '("~/docs/org-roam" "~/docs/notes")
+                      khoj-org-files '("~/docs/todo.org" "~/docs/work.org")
+                      khoj-openai-api-key "YOUR_OPENAI_API_KEY")) ; required to enable chat
+    #+end_src
+
+*** With [[https://github.com/raxod502/straight.el][Straight.el]]
+  Add below snippet to your Emacs config file.
+  Indexes the specified org files, directories. Sets up OpenAI API key for Khoj Chat
+
   #+begin_src elisp
     ;; Install Khoj Package using Straight.el
     (use-package khoj
       :after org
       :straight (khoj :type git :host github :repo "debanjum/khoj" :files (:defaults "src/interface/emacs/khoj.el"))
-      :bind ("C-c s" . 'khoj))
+      :bind ("C-c s" . 'khoj)
+      :config (setq khoj-org-directories '("~/docs/org-roam" "~/docs/notes")
+                    khoj-org-files '("~/docs/todo.org" "~/docs/work.org")
+                    khoj-openai-api-key "YOUR_OPENAI_API_KEY" ; required to enable chat)
   #+end_src
 
 ** Use
@@ -71,6 +99,15 @@
   2. Enter your query in natural language
 
     e.g "What is the meaning of life?", "My life goals for 2023"
+
+*** Chat
+  1. Hit ~C-c s c~ (or ~M-x khoj RET c~) to open khoj chat
+
+  2. Ask questions in a natural, conversational style
+
+     E.g "When did I file my taxes last year?"
+
+  See [[https://github.com/debanjum/khoj/tree/master/#Khoj-Chat][Khoj Chat]] for more details
 
 *** Find Similar Entries
   This feature finds entries similar to the one you are currently on.
