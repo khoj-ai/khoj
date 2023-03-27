@@ -56,6 +56,7 @@ default_config = {
     "processor": {
         "conversation": {
             "openai-api-key": None,
+            "model": "text-davinci-003",
             "conversation-logfile": "~/.khoj/processor/conversation/conversation_logs.json",
         }
     },
