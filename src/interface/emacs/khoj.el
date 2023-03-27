@@ -217,8 +217,13 @@ for example), set this to the full interpreter path."
           (member val '("python" "python3" "pythonw" "py")))
   :group 'khoj)
 
-(defcustom khoj-org-files-index (org-agenda-files t t)
+(defcustom khoj-org-files (org-agenda-files t t)
   "List of org-files to index on khoj server."
+  :type '(repeat string)
+  :group 'khoj)
+
+(defcustom khoj-org-directories nil
+  "List of directories with org-mode files to index on khoj server."
   :type '(repeat string)
   :group 'khoj)
 
@@ -357,7 +362,8 @@ CONFIG is json obtained from Khoj config API."
 (defun khoj--server-configure ()
   "Configure the the Khoj server for search and chat."
   (interactive)
-  (let* ((current-config
+  (let* ((org-directory-regexes (or (mapcar (lambda (dir) (format "%s/**/*.org" dir)) khoj-org-directories) json-null))
+         (current-config
           (with-temp-buffer
             (url-insert-file-contents (format "%s/api/config/data" khoj-server-url))
             (ignore-error json-end-of-file (json-parse-buffer :object-type 'alist :array-type 'list :null-object json-null :false-object json-false))))
@@ -376,8 +382,8 @@ CONFIG is json obtained from Khoj config API."
      ((not current-config)
       (setq config (delq (assoc 'content-type config) config))
       (add-to-list 'config
-                   `(content-type . ((org . ((input-files . ,khoj-org-files-index)
-                                             (input-filter . ,json-null)
+                   `(content-type . ((org . ((input-files . ,khoj-org-files)
+                                             (input-filter . ,org-directory-regexes)
                                              (compressed-jsonl . ,(format "%s/org.jsonl.gz" default-index-dir))
                                              (embeddings-file . ,(format "%s/org.pt" default-index-dir))
                                              (index-heading-entries . ,json-false)))))))
@@ -386,8 +392,8 @@ CONFIG is json obtained from Khoj config API."
      ((not (alist-get 'org (alist-get 'content-type config)))
       (let ((new-content-type (alist-get 'content-type config)))
         (setq new-content-type (delq (assoc 'org new-content-type) new-content-type))
-        (add-to-list 'new-content-type `(org . ((input-files . ,khoj-org-files-index)
-                                                (input-filter . ,json-null)
+        (add-to-list 'new-content-type `(org . ((input-files . ,khoj-org-files)
+                                                (input-filter . ,org-directory-regexes)
                                                 (compressed-jsonl . ,(format "%s/org.jsonl.gz" default-index-dir))
                                                 (embeddings-file . ,(format "%s/org.pt" default-index-dir))
                                                 (index-heading-entries . ,json-false))))
@@ -395,12 +401,13 @@ CONFIG is json obtained from Khoj config API."
         (add-to-list 'config `(content-type . ,new-content-type))))
 
      ;; Else if khoj is not configured to index specified org files
-     ((not (equal (alist-get 'input-files (alist-get 'org (alist-get 'content-type config))) khoj-org-files-index))
+     ((not (and (equal (alist-get 'input-files (alist-get 'org (alist-get 'content-type config))) khoj-org-files)
+                (equal (alist-get 'input-filter (alist-get 'org (alist-get 'content-type config))) org-directory-regexes)))
       (let* ((index-directory (khoj--get-directory-from-config config '(content-type org embeddings-file)))
              (new-content-type (alist-get 'content-type config)))
         (setq new-content-type (delq (assoc 'org new-content-type) new-content-type))
-        (add-to-list 'new-content-type `(org . ((input-files . ,khoj-org-files-index)
-                                                (input-filter . ,json-null)
+        (add-to-list 'new-content-type `(org . ((input-files . ,khoj-org-files)
+                                                (input-filter . ,org-directory-regexes)
                                                 (compressed-jsonl . ,(format "%s/org.jsonl.gz" index-directory))
                                                 (embeddings-file . ,(format "%s/org.pt" index-directory))
                                                 (index-heading-entries . ,json-false))))
