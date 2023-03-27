@@ -227,6 +227,12 @@ for example), set this to the full interpreter path."
   :type 'string
   :group 'khoj)
 
+(defcustom khoj-auto-setup t
+  "Automate install, configure and starting khoj server.
+Auto invokes setup steps on calling main entrypoint."
+  :type 'string
+  :group 'khoj)
+
 (defvar khoj--server-process nil "Track Khoj server process.")
 (defvar khoj--server-name "*khoj-server*" "Track Khoj server buffer.")
 (defvar khoj--server-ready? nil "Track if khoj server is ready to receive API calls.")
@@ -297,21 +303,24 @@ for example), set this to the full interpreter path."
     (when (not khoj--server-process)
         (message "khoj.el: Failed to start Khoj server. Please start it manually by running `khoj' on terminal.\n%s" (buffer-string)))))
 
-(defun khoj--server-running? ()
-  "Check if the khoj server is running."
-  (when (or
-       ;; check for when server process handled from within emacs
-       (and khoj--server-process
-            (not (null (process-live-p khoj--server-process))))
-       ;; else general check via ping to khoj-server-url
-       (ignore-errors
-         (not (null (url-retrieve-synchronously (format "%s/api/config/data/default" khoj-server-url))))))
-      (setq khoj--server-ready? t)))
+(defun khoj--server-started? ()
+  "Check if the khoj server has been started."
+  ;; check for when server process handled from within emacs
+  (if (and khoj--server-process
+           (not (null (process-live-p khoj--server-process))))
+      t
+    ;; else general check via ping to khoj-server-url
+    (if (ignore-errors
+          (not (null (url-retrieve-synchronously (format "%s/api/config/data/default" khoj-server-url)))))
+        ;; Successful ping to non-emacs khoj server indicates it is started and ready.
+        ;; So update ready state tracker variable (and implicitly return true for started)
+        (setq khoj--server-ready? t)
+      nil)))
 
 (defun khoj--server-stop ()
   "Stop the khoj server."
   (interactive)
-  (when (khoj--server-running?)
+  (when (khoj--server-started?)
     (message "khoj.el: Stopping server...")
     (kill-process khoj--server-process)
     (message "khoj.el: Stopped server.")))
@@ -330,8 +339,8 @@ for example), set this to the full interpreter path."
              (or (not (executable-find khoj-server-command))
                  (not (khoj--server-get-version))))
       (khoj--server-install-upgrade))
-  ;; Start khoj server if not running at expected URL
-  (when (not (khoj--server-running?))
+  ;; Start khoj server if not already started
+  (when (not (khoj--server-started?))
     (khoj--server-start)))
 
 (defun khoj--get-directory-from-config (config keys &optional level)
@@ -437,6 +446,27 @@ CONFIG is json obtained from Khoj config API."
             (message "khoj.el: ⚙️ Generated new khoj server configuration."))
            ((not (equal config current-config))
             (message "Khoj: ⚙️ Updated khoj server configuration")))))
+
+(defun khoj-setup (&optional interact)
+  "Install, start and configure Khoj server."
+  (interactive "p")
+  ;; Setup khoj server if not running
+  (let* ((not-started (not (khoj--server-started?)))
+         (permitted (if (and not-started interact)
+                        (y-or-n-p "Could not connect to Khoj server. Should I install, start and configure it for you?")
+                      t)))
+    ;; Install, start server if user permitted and server not ready
+    (when (and permitted not-started)
+      (khoj--server-setup))
+
+    ;; Server can be started but not ready (to use/configure)
+    ;; Wait until server is ready if setup was permitted
+    (while (and permitted (not khoj--server-ready?))
+      (sit-for 0.5))
+
+    ;; Configure server once server ready if user permitted
+    (when permitted
+      (khoj--server-configure))))
 
 
 ;; -----------------------------------------------
@@ -980,15 +1010,10 @@ Paragraph only starts at first text after blank line."
 
 ;;;###autoload
 (defun khoj ()
-  "Natural, Incremental Search for your personal notes, transactions and images."
+  "Provide natural, search assistance for your notes, transactions and images."
   (interactive)
-  ;; Setup khoj server if not running before executing user commands
-  (when (and (not (khoj--server-running?))
-             (y-or-n-p "Could not connect to Khoj server. Should I install and start it?"))
-    (khoj--server-setup))
-  (while (not khoj--server-ready?)
-    (sit-for 0.5))
-  (khoj--server-configure)
+  (when khoj-auto-setup
+    (khoj-setup t))
   (khoj--menu))
 
 (provide 'khoj)
