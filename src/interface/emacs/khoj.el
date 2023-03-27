@@ -233,13 +233,13 @@ for example), set this to the full interpreter path."
   :group 'khoj)
 
 (defcustom khoj-auto-setup t
-  "Automate install, configure and starting khoj server.
+  "Automate install, configure and start of khoj server.
 Auto invokes setup steps on calling main entrypoint."
   :type 'string
   :group 'khoj)
 
-(defvar khoj--server-process nil "Track Khoj server process.")
-(defvar khoj--server-name "*khoj-server*" "Track Khoj server buffer.")
+(defvar khoj--server-process nil "Track khoj server process.")
+(defvar khoj--server-name "*khoj-server*" "Track khoj server buffer.")
 (defvar khoj--server-ready? nil "Track if khoj server is ready to receive API calls.")
 (defvar khoj--server-configured? t "Track if khoj server is configured to receive API calls.")
 (defvar khoj--progressbar '(🌑 🌘 🌗 🌖 🌕 🌔 🌓 🌒) "Track progress via moon phase animations.")
@@ -322,6 +322,12 @@ Auto invokes setup steps on calling main entrypoint."
         (setq khoj--server-ready? t)
       nil)))
 
+(defun khoj--server-restart ()
+  "Restart the khoj server."
+  (interactive)
+  (khoj--server-stop)
+  (khoj--server-start))
+
 (defun khoj--server-stop ()
   "Stop the khoj server."
   (interactive)
@@ -329,12 +335,6 @@ Auto invokes setup steps on calling main entrypoint."
     (message "khoj.el: Stopping server...")
     (kill-process khoj--server-process)
     (message "khoj.el: Stopped server.")))
-
-(defun khoj--server-restart ()
-  "Restart the khoj server."
-  (interactive)
-  (khoj--server-stop)
-  (khoj--server-start))
 
 (defun khoj--server-setup ()
   "Install and start the khoj server, if required."
