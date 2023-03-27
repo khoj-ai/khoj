@@ -65,7 +65,7 @@
   :group 'khoj
   :type 'string)
 
-(defcustom is-khoj-server-local t
+(defcustom khoj-server-is-local t
   "Is Khoj server on local machine?."
   :group 'khoj
   :type 'boolean)
@@ -185,13 +185,13 @@ Use `which-key` if available, else display simple message in echo area"
       (executable-find "khoj.exe")
       "khoj")
   "Command to interact with Khoj server."
-  :group 'khoj
-  :type 'string)
+  :type 'string
+  :group 'khoj)
 
 (defcustom khoj-server-args '("--no-gui")
   "Arguments to pass to Khoj server on startup."
-  :group 'khoj
-  :type '(repeat string))
+  :type '(repeat string)
+  :group 'khoj)
 
 (defcustom khoj-server-python-command
   (if (equal system-type 'windows-nt)
@@ -219,13 +219,13 @@ for example), set this to the full interpreter path."
 
 (defcustom khoj-org-files-index (org-agenda-files t t)
   "List of org-files to index on khoj server."
-  :group 'khoj
-  :type '(repeat string))
+  :type '(repeat string)
+  :group 'khoj)
 
 (defcustom khoj-openai-api-key nil
   "OpenAI API key used to configure chat on khoj server."
-  :group 'khoj
-  :type 'string)
+  :type 'string
+  :group 'khoj)
 
 (defvar khoj--server-process nil "Track Khoj server process.")
 (defvar khoj--server-name "*khoj-server*" "Track Khoj server buffer.")
@@ -326,7 +326,7 @@ for example), set this to the full interpreter path."
   "Install and start the khoj server, if required."
   (interactive)
   ;; Install khoj server, if not available but expected on local machine
-  (when (and is-khoj-server-local
+  (when (and khoj-server-is-local
              (or (not (executable-find khoj-server-command))
                  (not (khoj--server-get-version))))
       (khoj--server-install-upgrade))

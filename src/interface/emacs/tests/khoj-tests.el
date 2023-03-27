@@ -109,8 +109,7 @@ Penance to Immortality\n\
 ** Act\n\
 \n\
 Rule everything\n\
-\n\
-#+STARTUP: showall hidestars inlineimages"))))
+\n"))))
 
 
 (ert-deftest khoj-tests--extract-entries-as-ledger ()
