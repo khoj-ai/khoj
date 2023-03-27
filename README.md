@@ -3,7 +3,7 @@
 [![dockerize](https://github.com/debanjum/khoj/actions/workflows/dockerize.yml/badge.svg)](https://github.com/debanjum/khoj/pkgs/container/khoj)
 [![pypi](https://github.com/debanjum/khoj/actions/workflows/pypi.yml/badge.svg)](https://pypi.org/project/khoj-assistant/)
 
-*A natural language search engine for your personal notes, transactions and images*
+*A search assistant for your second brain*
 
 **Supported Plugins**
 
@@ -53,13 +53,18 @@
 - [Credits](#Credits)
 
 ## Features
-
-- **Natural**: Advanced natural language understanding using Transformer based ML Models
-- **Local**: Your personal data stays local. All search, indexing is done on your machine[\*](https://github.com/debanjum/khoj#beta-api)
-- **Incremental**: Incremental search for a fast, search-as-you-type experience
-- **Pluggable**: Modular architecture makes it easy to plug in new data sources, frontends and ML models
-- **Multiple Sources**: Search your Org-mode and Markdown notes, Beancount transactions and Photos
-- **Multiple Interfaces**: Search from your [Web Browser](./src/khoj/interface/web/index.html), [Emacs](./src/interface/emacs/khoj.el) or [Obsidian](./src/interface/obsidian/)
+- **Search**
+  - **Local**: Your personal data stays local. All search and indexing is done on your machine. *Unlike chat which requires access to GPT.*
+  - **Incremental**: Incremental search for a fast, search-as-you-type experience
+- **Chat**
+  - **Faster answers**: Find answers faster, smoother than search. No need to manually scan through your notes to find answers.
+  - **Iterative discovery**: Iteratively explore and (re-)discover your notes
+  - **Assisted creativity**: Smoothly weave across answers retrieval and content generation
+- **General**
+  - **Natural**: Advanced natural language understanding using Transformer based ML Models
+  - **Pluggable**: Modular architecture makes it easy to plug in new data sources, frontends and ML models
+  - **Multiple Sources**: Index your Org-mode and Markdown notes, Beancount transactions and Photos
+  - **Multiple Interfaces**: Interact from your [Web Browser](./src/khoj/interface/web/index.html), [Emacs](./src/interface/emacs/khoj.el) or [Obsidian](./src/interface/obsidian/)
 
 ## Demos
 ### Khoj in Obsidian
@@ -108,9 +113,10 @@ https://user-images.githubusercontent.com/6413477/184735169-92c78bf1-d827-4663-9
 These are the general setup instructions for Khoj.
 
 - Make sure [python](https://realpython.com/installing-python/) (version 3.10 or lower) and [pip](https://pip.pypa.io/en/stable/installation/) are installed on your machine
-- Check the [Khoj.el Readme](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Setup) to setup Khoj with Emacs
+- Check the [Khoj.el Readme](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Setup) to setup Khoj with Emacs<br />
+  Its simpler as it can skip the server *install*, *run* and *configure* step below.
 - Check the [Khoj Obsidian Readme](https://github.com/debanjum/khoj/tree/master/src/interface/obsidian#Setup) to setup Khoj with Obsidian<br />
-  Its simpler as it can skip the configure step below.
+  Its simpler as it can skip the *configure* step below.
 
 ### 1. Install
 
