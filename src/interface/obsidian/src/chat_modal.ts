@@ -24,8 +24,8 @@ export class KhojChatModal extends Modal {
         let chatUrl = `${this.setting.khojUrl}/api/chat?`;
         let response = await request(chatUrl);
         let chatLogs = JSON.parse(response).response;
-        chatLogs.forEach( (chatLog: any) => {
-            this.renderMessage(chatLog.message, chatLog.by);
+        chatLogs.forEach((chatLog: any) => {
+            this.renderMessageWithReferences(chatLog.message, chatLog.by, chatLog.context, new Date(chatLog.created));
         });
 
         // Add chat input field
@@ -40,7 +40,26 @@ export class KhojChatModal extends Modal {
                 .onClick(async () => { await this.getChatResponse(this.result) }));
     }
 
-    renderMessage(message: string, sender: string) {
+    generateReference(messageEl: any, reference: string, index: number) {
+        // Generate HTML for Chat Reference
+        // `<sup><abbr title="${escaped_ref}" tabindex="0">${index}</abbr></sup>`;
+        let escaped_ref = reference.replace(/"/g, "\\\"")
+        return messageEl.createEl("sup").createEl("abbr", {
+            attr: {
+                title: escaped_ref,
+                tabindex: "0",
+            },
+            text: `[${index}] `,
+        });
+    }
+
+    renderMessageWithReferences(message: string, sender: string, context?: [string], dt?: Date) {
+        let messageEl = this.renderMessage(message, sender, dt);
+        if (context && !!messageEl) {
+            context.map((reference, index) => this.generateReference(messageEl, reference, index));
+        }
+    }
+    renderMessage(message: string, sender: string, dt?: Date): Element | null {
         let { contentEl } = this;
 
         // Append message to conversation history HTML element.
@@ -50,6 +69,8 @@ export class KhojChatModal extends Modal {
             let emojified_sender = sender == "khoj" ? "🦅 Khoj" : "🤔 You";
             chat_body_el.createDiv({ text: `${emojified_sender}: ${message}` })
         }
+
+        return chat_body_el
     }
 
     async getChatResponse(query: string): Promise<void> {
