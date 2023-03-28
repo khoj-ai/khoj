@@ -13,12 +13,13 @@ export class KhojChatModal extends Modal {
 
     async onOpen() {
         let { contentEl } = this;
+        contentEl.addClass("khoj-chat");
 
         // Add title to the Khoj Chat modal
-        contentEl.createEl("h1", { text: "Khoj Chat" });
+        contentEl.createEl("h1", ({ attr: { id: "chat-title" }, text: "Khoj Chat" }));
 
         // Create area for chat logs
-        contentEl.createDiv({ attr: { class: "chat-body" } });
+        contentEl.createDiv({ attr: { id: "chat-body", class: "chat-body" } });
 
         // Get conversation history from Khoj backend
         let chatUrl = `${this.setting.khojUrl}/api/chat?`;
@@ -59,21 +60,37 @@ export class KhojChatModal extends Modal {
             context.map((reference, index) => this.generateReference(messageEl, reference, index));
         }
     }
+
     renderMessage(message: string, sender: string, dt?: Date): Element | null {
-        let { contentEl } = this;
+        let message_time = this.formatDate(dt ?? new Date());
+        let emojified_sender = sender == "khoj" ? "🦅 Khoj" : "🤔 You";
 
         // Append message to conversation history HTML element.
         // The chat logs should display above the message input box to follow standard UI semantics
-        let chat_body_el = contentEl.getElementsByClassName("chat-body").item(0);
-        if (!!chat_body_el) {
-            let emojified_sender = sender == "khoj" ? "🦅 Khoj" : "🤔 You";
-            chat_body_el.createDiv({ text: `${emojified_sender}: ${message}` })
-        }
+        let chat_body_el = this.contentEl.getElementsByClassName("chat-body")[0];
+        let chat_message_el = chat_body_el.createDiv({
+            attr: {
+                "data-meta": `${emojified_sender} at ${message_time}`,
+                class: `chat-message ${sender}`
+            },
+        }).createDiv({
+            attr: {
+                class: `chat-message-text ${sender}`
+            },
+            text: `${message}`
+        })
 
-        return chat_body_el
+        return chat_message_el
     }
 
-    async getChatResponse(query: string): Promise<void> {
+    formatDate(date: Date): string {
+        // Format date in HH:MM, DD MMM YYYY format
+        let time_string = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
+        let date_string = date.toLocaleString('en-IN', { year: 'numeric', month: 'short', day: '2-digit' }).replace(/-/g, ' ');
+        return `${time_string}, ${date_string}`;
+    }
+
+    async getChatResponse(query: string | undefined | null): Promise<void> {
         // Exit if query is empty
         if (!query || query === "") return;
 

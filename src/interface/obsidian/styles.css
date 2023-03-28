@@ -6,3 +6,144 @@ available in the app when your plugin is enabled.
 If your plugin does not need CSS, delete this file.
 
 */
+
+:root {
+    --khoj-chat-blue: #017eff;
+    --khoj-chat-dark-grey: #475569;
+    --khoj-chat-light-grey: #aaa;
+    --khoj-chat-white: #f8fafc;
+}
+
+.khoj-chat {
+    display: grid;
+    color: var(--khoj-chat-dark-grey);
+    text-align: center;
+    font-family: roboto, karma, segoe ui, sans-serif;
+    font-size: 20px;
+    font-weight: 300;
+    line-height: 1.5em;
+}
+.khoj-chat > * {
+    padding: 10px;
+    margin: 10px;
+}
+
+#chat-title {
+    font-weight: 200;
+    color: var(--khoj-chat-blue);
+}
+
+#chat-body {
+    font-size: medium;
+    margin: 0px;
+    line-height: 20px;
+    overflow-y: scroll; /* Make chat body scroll to see history */
+}
+/* add chat metatdata to bottom of bubble */
+.chat-message::after {
+    content: attr(data-meta);
+    display: block;
+    font-size: x-small;
+    color: var(--khoj-chat-dark-grey);
+    margin: -12px 7px 0 -5px;
+}
+/* move message by khoj to left */
+.chat-message.khoj {
+    margin-left: auto;
+    text-align: left;
+}
+/* move message by you to right */
+.chat-message.you {
+    margin-right: auto;
+    text-align: right;
+}
+/* basic style chat message text */
+.chat-message-text {
+    margin: 10px;
+    border-radius: 10px;
+    padding: 10px;
+    position: relative;
+    display: inline-block;
+    max-width: 80%;
+    text-align: left;
+}
+/* color chat bubble by khoj blue */
+.chat-message-text.khoj {
+    color: var(--khoj-chat-white);
+    background: var(--khoj-chat-blue);
+    margin-left: auto;
+    white-space: pre-line;
+}
+/* add left protrusion to khoj chat bubble */
+.chat-message-text.khoj:after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: -7px;
+    border: 10px solid transparent;
+    border-top-color: var(--khoj-chat-blue);
+    border-bottom: 0;
+    transform: rotate(-60deg);
+}
+/* color chat bubble by you dark grey */
+.chat-message-text.you {
+    color: var(--khoj-chat-white);
+    background: var(--khoj-chat-dark-grey);
+    margin-right: auto;
+}
+/* add right protrusion to you chat bubble */
+.chat-message-text.you:after {
+    content: '';
+    position: absolute;
+    top: 91%;
+    right: -2px;
+    border: 10px solid transparent;
+    border-left-color: var(--khoj-chat-dark-grey);
+    border-right: 0;
+    margin-top: -10px;
+    transform: rotate(-60deg)
+}
+
+#chat-footer {
+    padding: 0;
+    display: grid;
+    grid-template-columns: minmax(70px, 100%);
+    grid-column-gap: 10px;
+    grid-row-gap: 10px;
+}
+#chat-footer > * {
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid var(--khoj-chat-dark-grey);
+    background: #f9fafc
+}
+#chat-input.option:hover {
+    box-shadow: 0 0 11px var(--khoj-chat-light-grey);
+}
+#chat-input {
+    font-size: medium;
+}
+
+@media (pointer: coarse), (hover: none) {
+    #chat-body.abbr[title] {
+        position: relative;
+        padding-left: 4px;  /* space references out to ease tapping */
+    }
+    #chat-body.abbr[title]:focus:after {
+        content: attr(title);
+
+        /* position tooltip */
+        position: absolute;
+        left: 16px;  /* open tooltip to right of ref link, instead of on top of it */
+        width: auto;
+        z-index: 1;  /* show tooltip above chat messages */
+
+        /* style tooltip */
+        background-color: #aaa;
+        color: var(--khoj-chat-white);
+        border-radius: 2px;
+        box-shadow: 1px 1px 4px 0 rgba(0, 0, 0, 0.4);
+        font-size: 14px;
+        padding: 2px 4px;
+    }
+}
