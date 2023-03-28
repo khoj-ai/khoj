@@ -16,10 +16,10 @@ export class KhojChatModal extends Modal {
         contentEl.addClass("khoj-chat");
 
         // Add title to the Khoj Chat modal
-        contentEl.createEl("h1", ({ attr: { id: "chat-title" }, text: "Khoj Chat" }));
+        contentEl.createEl("h1", ({ attr: { id: "khoj-chat-title" }, text: "Khoj Chat" }));
 
         // Create area for chat logs
-        contentEl.createDiv({ attr: { id: "chat-body", class: "chat-body" } });
+        contentEl.createDiv({ attr: { id: "khoj-chat-body", class: "khoj-chat-body" } });
 
         // Get conversation history from Khoj backend
         let chatUrl = `${this.setting.khojUrl}/api/chat?`;
@@ -37,6 +37,7 @@ export class KhojChatModal extends Modal {
             })
             .addButton((btn) => btn
                 .setButtonText("Send")
+                .setClass("khoj-chat-input-button")
                 .setCta()
                 .onClick(async () => { await this.getChatResponse(this.result) }));
     }
@@ -67,15 +68,15 @@ export class KhojChatModal extends Modal {
 
         // Append message to conversation history HTML element.
         // The chat logs should display above the message input box to follow standard UI semantics
-        let chat_body_el = this.contentEl.getElementsByClassName("chat-body")[0];
+        let chat_body_el = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
         let chat_message_el = chat_body_el.createDiv({
             attr: {
                 "data-meta": `${emojified_sender} at ${message_time}`,
-                class: `chat-message ${sender}`
+                class: `khoj-chat-message ${sender}`
             },
         }).createDiv({
             attr: {
-                class: `chat-message-text ${sender}`
+                class: `khoj-chat-message-text ${sender}`
             },
             text: `${message}`
         })
