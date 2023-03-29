@@ -103,7 +103,7 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
             else if (data["processor"]["conversation"]["openai-api-key"] !== setting.openaiApiKey) {
                 data["processor"]["conversation"] = {
                     "conversation-logfile": data["processor"]["conversation"]["conversation-logfile"],
-                    "model": data["procesor"]["conversation"]["model"],
+                    "model": data["processor"]["conversation"]["model"],
                     "openai-api-key": setting.openaiApiKey,
                 }
             }
