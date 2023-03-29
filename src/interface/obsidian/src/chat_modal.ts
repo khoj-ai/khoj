@@ -40,6 +40,9 @@ export class KhojChatModal extends Modal {
                 .setClass("khoj-chat-input-button")
                 .setCta()
                 .onClick(async () => { await this.getChatResponse(this.result) }));
+
+        // Scroll to bottom of modal, till the send message input box
+        this.modalEl.scrollTop = this.modalEl.scrollHeight;
     }
 
     generateReference(messageEl: any, reference: string, index: number) {
@@ -80,6 +83,9 @@ export class KhojChatModal extends Modal {
             },
             text: `${message}`
         })
+
+        // Scroll to bottom after inserting chat messages
+        this.modalEl.scrollTop = this.modalEl.scrollHeight;
 
         return chat_message_el
     }
