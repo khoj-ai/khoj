@@ -18,7 +18,7 @@ If your plugin does not need CSS, delete this file.
     color: var(--text-normal);
     text-align: center;
     font-family: roboto, karma, segoe ui, sans-serif;
-    font-size: 20px;
+    font-size: var(--font-ui-large);
     font-weight: 300;
     line-height: 1.5em;
 }
@@ -33,7 +33,7 @@ If your plugin does not need CSS, delete this file.
 }
 
 #khoj-chat-body {
-    font-size: medium;
+    font-size: var(--font-ui-medium);
     margin: 0px;
     line-height: 20px;
     overflow-y: scroll; /* Make chat body scroll to see history */
@@ -42,7 +42,7 @@ If your plugin does not need CSS, delete this file.
 .khoj-chat-message::after {
     content: attr(data-meta);
     display: block;
-    font-size: x-small;
+    font-size: var(--font-ui-smaller);
     color: var(--text-muted);
     margin: -12px 7px 0 -5px;
 }
@@ -112,16 +112,14 @@ If your plugin does not need CSS, delete this file.
 }
 #khoj-chat-footer > * {
     padding: 15px;
-    border-radius: 5px;
-    border: 1px solid var(--khoj-chat-dark-grey);
     background: #f9fafc
 }
 #khoj-chat-input.option:hover {
     box-shadow: 0 0 11px var(--background-modifier-box-shadow);
 }
 #khoj-chat-input {
-    font-size: medium;
-}
+    font-size: var(--font-ui-medium);
+    padding: 25px 20px;
 }
 
 @media (pointer: coarse), (hover: none) {
@@ -143,7 +141,7 @@ If your plugin does not need CSS, delete this file.
         color: var(--text-muted);
         border-radius: 2px;
         box-shadow: 1px 1px 4px 0 var(--background-modifier-box-shadow);
-        font-size: 14px;
+        font-size: var(--font-ui-small);
         padding: 2px 4px;
     }
 }

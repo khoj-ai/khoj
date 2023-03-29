@@ -49,7 +49,7 @@ export class KhojChatModal extends Modal {
                     type: "text",
                     id: "khoj-chat-input",
                     autofocus: "autofocus",
-                    placeholder: "What is the meaning of life? [Hit Enter to send message]",
+                    placeholder: "Chat with Khoj 🦅 [Hit Enter to send message]",
                     class: "khoj-chat-input option"
                 }
             })
@@ -75,7 +75,7 @@ export class KhojChatModal extends Modal {
     renderMessageWithReferences(message: string, sender: string, context?: [string], dt?: Date) {
         let messageEl = this.renderMessage(message, sender, dt);
         if (context && !!messageEl) {
-            context.map((reference, index) => this.generateReference(messageEl, reference, index));
+            context.map((reference, index) => this.generateReference(messageEl, reference, index+1));
         }
     }
 
