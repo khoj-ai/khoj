@@ -12,6 +12,7 @@
   - [Setup Plugin](#2-Setup-Plugin)
 - [Use](#Use)
   - [Search](#search)
+  - [Chat](#chat)
   - [Find Similar Notes](#find-similar-notes)
 - [Upgrade](#Upgrade)
   - [Upgrade Backend](#1-Upgrade-Backend)
@@ -21,9 +22,14 @@
 - [Implementation](#Implementation)
 
 ## Features
-- **Natural**: Advanced natural language understanding using Transformer based ML Models
-- **Local**: Your personal data stays local. All search, indexing is done on your machine[\*](https://github.com/debanjum/khoj#miscellaneous)
-- **Incremental**: Incremental search for a fast, search-as-you-type experience
+- **Search**
+  - **Natural**: Advanced natural language understanding using Transformer based ML Models
+  - **Local**: Your personal data stays local. All search and indexing is done on your machine. *Unlike chat which requires access to GPT.*
+  - **Incremental**: Incremental search for a fast, search-as-you-type experience
+- **Chat**
+  - **Faster answers**: Find answers faster and with less effort than search
+  - **Iterative discovery**: Iteratively explore and (re-)discover your notes
+  - **Assisted creativity**: Smoothly weave across answers retrieval and content generation
 
 ## Demo
 https://user-images.githubusercontent.com/6413477/210486007-36ee3407-e6aa-4185-8a26-b0bfc0a4344f.mp4
@@ -55,10 +61,21 @@ pip install khoj-assistant && khoj --no-gui
 ### 2. Setup Plugin
   1. Open [Khoj](https://obsidian.md/plugins?id=khoj) from the *Community plugins* tab in Obsidian settings panel
   2. Click *Install*, then *Enable* on the Khoj plugin page in Obsidian
+  3. [Optional] To enable Khoj Chat, set your [OpenAI API key](https://platform.openai.com/account/api-keys) in the Khoj plugin settings
 
 See [official Obsidian plugin docs](https://help.obsidian.md/Extending+Obsidian/Community+plugins) for details
 
 ## Use
+### Chat
+Run *Khoj: Chat* from the [Command Palette](https://help.obsidian.md/Plugins/Command+palette) and ask questions in a natural, conversational style.
+E.g "When did I file my taxes last year?"
+
+Notes:
+- *Using Khoj Chat will result in query relevant notes being shared with OpenAI for ChatGPT to respond.*
+- *To use Khoj Chat, ensure you've set your [OpenAI API key](https://platform.openai.com/account/api-keys) in the Khoj plugin settings.*
+
+See [[https://github.com/debanjum/khoj/tree/master/#Khoj-Chat][Khoj Chat]] for more details
+
 ### Search
 Click the *Khoj search* icon 🔎 on the [Ribbon](https://help.obsidian.md/User+interface/Workspace/Ribbon) or run *Khoj: Search* from the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
 
