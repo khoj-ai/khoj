@@ -67,14 +67,16 @@ See [official Obsidian plugin docs](https://help.obsidian.md/Extending+Obsidian/
 
 ## Use
 ### Chat
-Run *Khoj: Chat* from the [Command Palette](https://help.obsidian.md/Plugins/Command+palette) and ask questions in a natural, conversational style.
+Run *Khoj: Chat* from the [Command Palette](https://help.obsidian.md/Plugins/Command+palette) and ask questions in a natural, conversational style.<br />
 E.g "When did I file my taxes last year?"
 
 Notes:
 - *Using Khoj Chat will result in query relevant notes being shared with OpenAI for ChatGPT to respond.*
 - *To use Khoj Chat, ensure you've set your [OpenAI API key](https://platform.openai.com/account/api-keys) in the Khoj plugin settings.*
 
-See [[https://github.com/debanjum/khoj/tree/master/#Khoj-Chat][Khoj Chat]] for more details
+See [Khoj Chat](https://github.com/debanjum/khoj/tree/master/#Khoj-Chat) for more details
+
+![](https://github.com/debanjum/khoj/blob/master/src/interface/obsidian/docs/khoj_chat_on_obsidian_0.6.0.png?)
 
 ### Search
 Click the *Khoj search* icon 🔎 on the [Ribbon](https://help.obsidian.md/User+interface/Workspace/Ribbon) or run *Khoj: Search* from the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
