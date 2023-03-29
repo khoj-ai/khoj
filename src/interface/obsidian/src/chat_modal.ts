@@ -9,6 +9,19 @@ export class KhojChatModal extends Modal {
     constructor(app: App, setting: KhojSetting) {
         super(app);
         this.setting = setting;
+
+        // Register Modal Keybindings to send user message
+        this.scope.register([], 'Enter', async () => {
+            // Get text in chat input elmenet
+            let input_el = <HTMLInputElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+
+            // Clear text after extracting message to send
+            let user_message = input_el.value;
+            input_el.value = "";
+
+            // Get and render chat response to user message
+            await this.getChatResponse(user_message);
+        });
     }
 
     async onOpen() {
@@ -30,16 +43,17 @@ export class KhojChatModal extends Modal {
         });
 
         // Add chat input field
-        new Setting(contentEl)
-            .addText((text) => {
-                text.onChange((value) => { this.result = value });
-                text.setPlaceholder("What is the meaning of life?");
+        contentEl.createEl("input",
+            {
+                attr: {
+                    type: "text",
+                    id: "khoj-chat-input",
+                    autofocus: "autofocus",
+                    placeholder: "What is the meaning of life? [Hit Enter to send message]",
+                    class: "khoj-chat-input option"
+                }
             })
-            .addButton((btn) => btn
-                .setButtonText("Send")
-                .setClass("khoj-chat-input-button")
-                .setCta()
-                .onClick(async () => { await this.getChatResponse(this.result) }));
+            .addEventListener('change', (event) => { this.result = (<HTMLInputElement>event.target).value });
 
         // Scroll to bottom of modal, till the send message input box
         this.modalEl.scrollTop = this.modalEl.scrollHeight;
