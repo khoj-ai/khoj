@@ -2,6 +2,7 @@ import { App, Notice, PluginSettingTab, request, Setting } from 'obsidian';
 import Khoj from 'src/main';
 
 export interface KhojSetting {
+    openaiApiKey: string;
     resultsCount: number;
     khojUrl: string;
     connectedToBackend: boolean;
@@ -13,6 +14,7 @@ export const DEFAULT_SETTINGS: KhojSetting = {
     khojUrl: 'http://localhost:8000',
     connectedToBackend: false,
     autoConfigure: true,
+    openaiApiKey: '',
 }
 
 export class KhojSettingTab extends PluginSettingTab {
@@ -41,7 +43,16 @@ export class KhojSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                     containerEl.firstElementChild?.setText(this.getBackendStatusMessage());
                 }));
-         new Setting(containerEl)
+        new Setting(containerEl)
+            .setName('OpenAI API Key')
+            .setDesc('Your OpenAI API Key for Khoj Chat')
+            .addText(text => text
+                .setValue(`${this.plugin.settings.openaiApiKey}`)
+                .onChange(async (value) => {
+                    this.plugin.settings.openaiApiKey = value.trim();
+                    await this.plugin.saveSettings();
+                }));
+        new Setting(containerEl)
             .setName('Results Count')
             .setDesc('The number of search results to show')
             .addSlider(slider => slider
@@ -110,7 +121,7 @@ export class KhojSettingTab extends PluginSettingTab {
 
     getBackendStatusMessage() {
         return !this.plugin.settings.connectedToBackend
-        ? '❗Disconnected from Khoj backend. Ensure Khoj backend is running and Khoj URL is correctly set below.'
-        : '✅ Connected to Khoj backend.';
+            ? '❗Disconnected from Khoj backend. Ensure Khoj backend is running and Khoj URL is correctly set below.'
+            : '✅ Connected to Khoj backend.';
     }
 }

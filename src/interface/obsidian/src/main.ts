@@ -38,9 +38,9 @@ export default class Khoj extends Plugin {
             id: 'chat',
             name: 'Chat',
             checkCallback: (checking) => {
-                if (!checking && this.settings.connectedToBackend)
+                if (!checking && this.settings.connectedToBackend && !!this.settings.openaiApiKey)
                     new KhojChatModal(this.app, this.settings).open();
-                return this.settings.connectedToBackend;
+                return !!this.settings.openaiApiKey;
             }
         });
 
