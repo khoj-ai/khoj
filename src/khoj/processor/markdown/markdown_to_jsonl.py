@@ -1,8 +1,9 @@
 # Standard Packages
 import glob
-import re
 import logging
+import re
 import time
+from pathlib import Path
 from typing import List
 
 # Internal Packages
@@ -124,7 +125,10 @@ class MarkdownToJsonl(TextToJsonl):
         "Convert each Markdown entries into a dictionary"
         entries = []
         for parsed_entry in parsed_entries:
-            entries.append(Entry(compiled=parsed_entry, raw=parsed_entry, file=f"{entry_to_file_map[parsed_entry]}"))
+            entry_filename = Path(entry_to_file_map[parsed_entry])
+            # Append base filename to compiled entry for context to model
+            compiled_entry = f"{parsed_entry}\n{entry_filename.stem}"
+            entries.append(Entry(compiled=compiled_entry, raw=parsed_entry, file=f"{entry_filename}"))
 
         logger.debug(f"Converted {len(parsed_entries)} markdown entries to dictionaries")
 
