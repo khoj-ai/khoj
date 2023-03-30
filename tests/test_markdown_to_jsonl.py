@@ -1,5 +1,6 @@
 # Standard Packages
 import json
+from pathlib import Path
 
 # Internal Packages
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
@@ -66,16 +67,17 @@ def test_multiple_markdown_entries_to_jsonl(tmp_path):
 
     # Act
     # Extract Entries from specified Markdown files
-    entries, entry_to_file_map = MarkdownToJsonl.extract_markdown_entries(markdown_files=[markdownfile])
+    entry_strings, entry_to_file_map = MarkdownToJsonl.extract_markdown_entries(markdown_files=[markdownfile])
+    entries = MarkdownToJsonl.convert_markdown_entries_to_maps(entry_strings, entry_to_file_map)
 
     # Process Each Entry from All Notes Files
-    jsonl_string = MarkdownToJsonl.convert_markdown_maps_to_jsonl(
-        MarkdownToJsonl.convert_markdown_entries_to_maps(entries, entry_to_file_map)
-    )
+    jsonl_string = MarkdownToJsonl.convert_markdown_maps_to_jsonl(entries)
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
     assert len(jsonl_data) == 2
+    # Ensure entry compiled strings include the markdown files they originate from
+    assert all([markdownfile.stem in entry.compiled for entry in entries])
 
 
 def test_get_markdown_files(tmp_path):

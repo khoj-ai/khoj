@@ -1,4 +1,4 @@
-import { FileSystemAdapter, Notice, RequestUrlParam, request, Vault } from 'obsidian';
+import { FileSystemAdapter, Notice, RequestUrlParam, request, Vault, Modal } from 'obsidian';
 import { KhojSetting } from 'src/settings'
 
 export function getVaultAbsolutePath(vault: Vault): string {
@@ -138,4 +138,36 @@ export async function updateKhojBackend(khojUrl: string, khojConfig: Object) {
 
 function getIndexDirectoryFromBackendConfig(filepath: string) {
     return filepath.split("/").slice(0, -1).join("/");
+}
+
+export async function createNote(name: string, newLeaf = false): Promise<void> {
+    try {
+      let pathPrefix: string
+      switch (app.vault.getConfig('newFileLocation')) {
+        case 'current':
+          pathPrefix = (app.workspace.getActiveFile()?.parent.path ?? '') + '/'
+          break
+        case 'folder':
+          pathPrefix = this.app.vault.getConfig('newFileFolderPath') + '/'
+          break
+        default: // 'root'
+          pathPrefix = ''
+          break
+      }
+      await app.workspace.openLinkText(`${pathPrefix}${name}.md`, '', newLeaf)
+    } catch (e) {
+      console.error('Khoj: Could not create note.\n' + (e as any).message);
+      throw e
+    }
+  }
+
+export async function createNoteAndCloseModal(query: string, modal: Modal, opt?: { newLeaf: boolean }): Promise<void> {
+    try {
+        await createNote(query, opt?.newLeaf);
+    }
+    catch (e) {
+        new Notice((e as Error).message)
+        return
+    }
+    modal.close();
 }

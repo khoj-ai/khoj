@@ -1,5 +1,6 @@
 import { App, SuggestModal, request, MarkdownRenderer, Instruction, Platform } from 'obsidian';
 import { KhojSetting } from 'src/settings';
+import { createNoteAndCloseModal } from 'src/utils';
 
 export interface SearchResult {
     entry: string;
@@ -10,6 +11,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
     setting: KhojSetting;
     rerank: boolean = false;
     find_similar_notes: boolean;
+    query: string = "";
     app: App;
 
     constructor(app: App, setting: KhojSetting, find_similar_notes: boolean = false) {
@@ -29,6 +31,14 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
             this.inputEl.dispatchEvent(new Event('input'));
             // Rerank disabled by default to satisfy latency requirements for incremental search
             this.rerank = false
+        });
+
+        // Register Modal Keybindings to Create New Note with Query as Title
+        this.scope.register(['Shift'], 'Enter', async () => {
+            if (this.query != "") createNoteAndCloseModal(this.query, this);
+        });
+        this.scope.register(['Ctrl', 'Shift'], 'Enter', async () => {
+            if (this.query != "") createNoteAndCloseModal(this.query, this, { newLeaf: true });
         });
 
         // Add Hints to Modal for available Keybindings
@@ -86,16 +96,31 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
             .filter((result: any) => !this.find_similar_notes || !result.additional.file.endsWith(this.app.workspace.getActiveFile()?.path))
             .map((result: any) => { return { entry: result.entry, file: result.additional.file } as SearchResult; });
 
+        this.query = query;
         return results;
     }
 
     async renderSuggestion(result: SearchResult, el: HTMLElement) {
-        let words_to_render = 30;
-        let entry_words = result.entry.split(' ')
-        let entry_snipped_indicator = entry_words.length > words_to_render ? ' **...**' : '';
-        let snipped_entry = entry_words.slice(0, words_to_render).join(' ');
+        // Max number of lines to render
+        let lines_to_render = 8;
+
+        // Extract filename of result
+        let os_path_separator = result.file.includes('\\') ? '\\' : '/';
+        let filename = result.file.split(os_path_separator).pop();
+
+        // Remove YAML frontmatter when rendering string
+        result.entry = result.entry.replace(/---[\n\r][\s\S]*---[\n\r]/, '');
+
+        // Truncate search results to lines_to_render
+        let entry_snipped_indicator = result.entry.split('\n').length > lines_to_render ? ' **...**' : '';
+        let snipped_entry = result.entry.split('\n').slice(0, lines_to_render).join('\n');
+
+        // Show filename of each search result for context
+        el.createEl("div",{ cls: 'khoj-result-file' }).setText(filename ?? "");
+        let result_el = el.createEl("div", { cls: 'khoj-result-entry' })
+
         // @ts-ignore
-        MarkdownRenderer.renderMarkdown(snipped_entry + entry_snipped_indicator, el, null, null);
+        MarkdownRenderer.renderMarkdown(snipped_entry + entry_snipped_indicator, result_el, null, null);
     }
 
     async onChooseSuggestion(result: SearchResult, _: MouseEvent | KeyboardEvent) {
