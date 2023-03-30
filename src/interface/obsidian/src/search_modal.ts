@@ -1,5 +1,6 @@
 import { App, SuggestModal, request, MarkdownRenderer, Instruction, Platform } from 'obsidian';
 import { KhojSetting } from 'src/settings';
+import { createNoteAndCloseModal } from 'src/utils';
 
 export interface SearchResult {
     entry: string;
@@ -10,6 +11,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
     setting: KhojSetting;
     rerank: boolean = false;
     find_similar_notes: boolean;
+    query: string = "";
     app: App;
 
     constructor(app: App, setting: KhojSetting, find_similar_notes: boolean = false) {
@@ -29,6 +31,14 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
             this.inputEl.dispatchEvent(new Event('input'));
             // Rerank disabled by default to satisfy latency requirements for incremental search
             this.rerank = false
+        });
+
+        // Register Modal Keybindings to Create New Note with Query as Title
+        this.scope.register(['Shift'], 'Enter', async () => {
+            if (this.query != "") createNoteAndCloseModal(this.query, this);
+        });
+        this.scope.register(['Ctrl', 'Shift'], 'Enter', async () => {
+            if (this.query != "") createNoteAndCloseModal(this.query, this, { newLeaf: true });
         });
 
         // Add Hints to Modal for available Keybindings
@@ -86,6 +96,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
             .filter((result: any) => !this.find_similar_notes || !result.additional.file.endsWith(this.app.workspace.getActiveFile()?.path))
             .map((result: any) => { return { entry: result.entry, file: result.additional.file } as SearchResult; });
 
+        this.query = query;
         return results;
     }
 
