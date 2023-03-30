@@ -31,7 +31,7 @@ class TextToJsonl(ABC):
         "Split entries if compiled entry length exceeds the max tokens supported by the ML model."
         chunked_entries: List[Entry] = []
         for entry in entries:
-            compiled_entry_words = entry.compiled.split()
+            compiled_entry_words = [word for word in entry.compiled.split(" ") if word != ""]
             # Drop long words instead of having entry truncated to maintain quality of entry processed by models
             compiled_entry_words = [word for word in compiled_entry_words if len(word) <= max_word_length]
             for chunk_index in range(0, len(compiled_entry_words), max_tokens):

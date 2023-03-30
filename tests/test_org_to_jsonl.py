@@ -44,7 +44,7 @@ def test_entry_split_when_exceeds_max_words(tmp_path):
     # Arrange
     entry = f"""*** Heading
     \t\r
-    Body Line 1
+    Body Line
     """
     orgfile = create_file(tmp_path, entry)
 
