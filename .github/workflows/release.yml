@@ -46,6 +46,13 @@ jobs:
           name: manifest.json
           path: src/interface/obsidian/manifest.json
 
+      - name: ⏫ Upload Obsidian Plugin styles.css
+        uses: actions/upload-artifact@v3
+        with:
+          if-no-files-found: error
+          name: styles.css
+          path: src/interface/obsidian/styles.css
+
       - name: 🌈 Create Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
@@ -54,6 +61,7 @@ jobs:
           files: |
             src/interface/obsidian/main.js
             src/interface/obsidian/manifest.json
+            src/interface/obsidian/styles.css
 
   publish_desktop_apps:
     name: 🖥️ Publish Desktop Apps

@@ -143,6 +143,7 @@ function getIndexDirectoryFromBackendConfig(filepath: string) {
 export async function createNote(name: string, newLeaf = false): Promise<void> {
     try {
       let pathPrefix: string
+      // @ts-ignore
       switch (app.vault.getConfig('newFileLocation')) {
         case 'current':
           pathPrefix = (app.workspace.getActiveFile()?.parent.path ?? '') + '/'
