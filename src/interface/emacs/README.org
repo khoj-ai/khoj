@@ -32,7 +32,11 @@
     - *Assisted creativity*: Smoothly weave across answer retrieval and content generation
 
 ** Interface
+*** Search UI
   [[/docs/khoj_on_emacs.png]]
+
+*** Chat UI
+  [[/docs/khoj_chat_on_emacs_0.5.0.png]]
 
 ** Setup
 - /Make sure [[https://realpython.com/installing-python/][python]] (version 3.10 or lower) and [[https://pip.pypa.io/en/stable/installation/][pip]] are installed on your machine/

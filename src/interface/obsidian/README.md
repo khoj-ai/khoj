@@ -5,8 +5,10 @@
 
 - [Features](#Features)
 - [Demo](#Demo)
-  - [Description](#Description)
-  - [Interface](#Interface)
+  - [Search Demo](#Search-Demo)
+- [Interfaces](#Interfaces)
+  - [Search Modal](#Search-Modal)
+  - [Chat Modal](#Chat-Modal)
 - [Setup](#Setup)
   - [Setup Backend](#1-Setup-Backend)
   - [Setup Plugin](#2-Setup-Plugin)
@@ -32,6 +34,7 @@
   - **Assisted creativity**: Smoothly weave across answers retrieval and content generation
 
 ## Demo
+### Search Demo
 https://user-images.githubusercontent.com/6413477/210486007-36ee3407-e6aa-4185-8a26-b0bfc0a4344f.mp4
 
 <details><summary>Description</summary>
@@ -46,8 +49,12 @@ https://user-images.githubusercontent.com/6413477/210486007-36ee3407-e6aa-4185-8
 
 </details>
 
-### Interface
+## Interfaces
+### Search Modal
 ![](https://github.com/debanjum/khoj/blob/master/src/interface/obsidian/docs/khoj_on_obsidian_0.2.5.png?)
+
+### Chat Modal
+![](https://github.com/debanjum/khoj/blob/master/src/interface/obsidian/docs/khoj_chat_on_obsidian_0.6.0.png?)
 
 ## Setup
 - *Make sure [python](https://realpython.com/installing-python/) (version 3.10 or lower) and [pip](https://pip.pypa.io/en/stable/installation/) are installed on your machine*
