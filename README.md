@@ -119,10 +119,15 @@ These are the general setup instructions for Khoj.
   Its simpler as it can skip the *configure* step below.
 
 ### 1. Install
+- On Linux/MacOS
+  ```shell
+  python -m pip install khoj-assistant
+  ```
 
-```shell
-pip install khoj-assistant
-```
+- On Windows
+  ```shell
+  py -m pip install khoj-assistant
+  ```
 
 ### 2. Run
 
