@@ -154,7 +154,7 @@ def collate_results(hits, entries: List[Entry], count=5) -> List[SearchResponse]
         SearchResponse.parse_obj(
             {
                 "entry": entries[hit["corpus_id"]].raw,
-                "score": f"{hit.get('cross-score', 'score')}:.3f",
+                "score": f"{hit.get('cross-score') or hit.get('score')}",
                 "additional": {"file": entries[hit["corpus_id"]].file, "compiled": entries[hit["corpus_id"]].compiled},
             }
         )
