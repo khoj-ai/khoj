@@ -57,7 +57,7 @@ def run():
         logger.setLevel(logging.DEBUG)
 
     # Set Log File
-    fh = logging.FileHandler(state.config_file.parent / "khoj.log")
+    fh = logging.FileHandler(state.config_file.parent / "khoj.log", encoding="utf-8")
     fh.setLevel(logging.DEBUG)
     logger.addHandler(fh)
 
