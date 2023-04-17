@@ -10,7 +10,8 @@ export function getVaultAbsolutePath(vault: Vault): string {
 }
 
 export async function configureKhojBackend(vault: Vault, setting: KhojSetting, notify: boolean = true) {
-    let mdInVault = `${getVaultAbsolutePath(vault)}/**/*.md`;
+    let vaultPath = getVaultAbsolutePath(vault);
+    let mdInVault = `${vaultPath}/**/*.md`;
     let khojConfigUrl = `${setting.khojUrl}/api/config/data`;
 
     // Check if khoj backend is configured, note if cannot connect to backend
@@ -28,7 +29,7 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
     if (!setting.connectedToBackend) return;
 
     // Set index name from the path of the current vault
-    let indexName = getVaultAbsolutePath(vault).replace(/\//g, '_').replace(/ /g, '_');
+    let indexName = vaultPath.replace(/\//g, '_').replace(/\\/g, '_').replace(/ /g, '_').replace(/:/g, '_');
     // Get default config fields from khoj backend
     let defaultConfig = await request(`${khojConfigUrl}/default`).then(response => JSON.parse(response));
     let khojDefaultIndexDirectory = getIndexDirectoryFromBackendConfig(defaultConfig["content-type"]["markdown"]["embeddings-file"]);
