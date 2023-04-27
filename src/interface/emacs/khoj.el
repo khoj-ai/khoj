@@ -465,17 +465,19 @@ CONFIG is json obtained from Khoj config API."
          (permitted (if (and not-started interact)
                         (y-or-n-p "Could not connect to Khoj server. Should I install, start and configure it for you?")
                       t)))
-    ;; Install, start server if user permitted and server not ready
-    (when (and permitted not-started)
-      (khoj--server-setup))
-
-    ;; Server can be started but not ready (to use/configure)
-    ;; Wait until server is ready if setup was permitted
-    (while (and permitted (not khoj--server-ready?))
-      (sit-for 0.5))
-
-    ;; Configure server once server ready if user permitted
+    ;; If user permits setup of khoj server from khoj.el
     (when permitted
+      ; Install, start server if server not running
+      (when not-started
+        (khoj--server-setup))
+
+      ;; Wait until server is ready
+      ;; As server can be started but not ready to use/configure
+      (while (not khoj--server-ready?)
+        (message "Khoj: Waiting for server to start...")
+        (sit-for 0.5))
+
+      ;; Configure server once it's ready
       (khoj--server-configure))))
 
 
