@@ -62,7 +62,7 @@ export class KhojChatModal extends Modal {
     generateReference(messageEl: any, reference: string, index: number) {
         // Generate HTML for Chat Reference
         // `<sup><abbr title="${escaped_ref}" tabindex="0">${index}</abbr></sup>`;
-        let escaped_ref = reference.replace(/"/g, "\\\"")
+        let escaped_ref = reference.replace(/"/g, "&quot;")
         return messageEl.createEl("sup").createEl("abbr", {
             attr: {
                 title: escaped_ref,
@@ -75,7 +75,7 @@ export class KhojChatModal extends Modal {
     renderMessageWithReferences(message: string, sender: string, context?: [string], dt?: Date) {
         let messageEl = this.renderMessage(message, sender, dt);
         if (context && !!messageEl) {
-            context.map((reference, index) => this.generateReference(messageEl, reference, index+1));
+            context.map((reference, index) => this.generateReference(messageEl, reference, index + 1));
         }
     }
 

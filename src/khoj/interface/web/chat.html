@@ -17,8 +17,10 @@
         }
 
         function generateReference(reference, index) {
+            // Escape reference for HTML rendering
+            let escaped_ref = reference.replaceAll('"', '&quot;');
+
             // Generate HTML for Chat Reference
-            let escaped_ref = reference.replaceAll("\"", "\\\"")
             return `<sup><abbr title="${escaped_ref}" tabindex="0">${index}</abbr></sup>`;
         }
 
