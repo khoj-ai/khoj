@@ -226,7 +226,7 @@ for example), set this to the full interpreter path."
   :group 'khoj)
 
 (defcustom khoj-org-directories nil
-  "List of directories with org-mode files to index on khoj server."
+  "List of directories with `org-mode' files to index on khoj server."
   :type '(repeat string)
   :group 'khoj)
 
@@ -259,10 +259,10 @@ Auto invokes setup steps on calling main entrypoint."
   "Install or upgrade the khoj server."
   (with-temp-buffer
     (message "khoj.el: Installing server...")
-    (if (/= (apply 'call-process khoj-server-python-command
-                     nil t nil
-                     "-m" "pip" "install" "--upgrade"
-                     '("khoj-assistant"))
+    (if (/= (apply #'call-process khoj-server-python-command
+                   nil t nil
+                   "-m" "pip" "install" "--upgrade"
+                   '("khoj-assistant"))
             0)
         (message "khoj.el: Failed to install Khoj server. Please install it manually using pip install `khoj-assistant'.\n%s" (buffer-string))
       (message "khoj.el: Installed and upgraded Khoj server version: %s" (khoj--server-get-version)))))
@@ -316,11 +316,11 @@ Auto invokes setup steps on calling main entrypoint."
   "Check if the khoj server has been started."
   ;; check for when server process handled from within emacs
   (if (and khoj--server-process
-           (not (null (process-live-p khoj--server-process))))
+           (process-live-p khoj--server-process))
       t
     ;; else general check via ping to khoj-server-url
     (if (ignore-errors
-          (not (null (url-retrieve-synchronously (format "%s/api/config/data/default" khoj-server-url)))))
+          (url-retrieve-synchronously (format "%s/api/config/data/default" khoj-server-url)))
         ;; Successful ping to non-emacs khoj server indicates it is started and ready.
         ;; So update ready state tracker variable (and implicitly return true for started)
         (setq khoj--server-ready? t)
@@ -470,7 +470,7 @@ CONFIG is json obtained from Khoj config API."
             (message "khoj.el: ⚙️ Updated khoj server configuration.")))))
 
 (defun khoj-setup (&optional interact)
-  "Install, start and configure Khoj server."
+  "Install, start and configure Khoj server. Get permission if INTERACT is non-nil."
   (interactive "p")
   ;; Setup khoj server if not running
   (let* ((not-started (not (khoj--server-started?)))
