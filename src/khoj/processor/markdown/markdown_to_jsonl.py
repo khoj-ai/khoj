@@ -2,7 +2,6 @@
 import glob
 import logging
 import re
-import time
 from pathlib import Path
 from typing import List
 
@@ -110,10 +109,13 @@ class MarkdownToJsonl(TextToJsonl):
             with open(markdown_file, "r", encoding="utf8") as f:
                 markdown_content = f.read()
                 markdown_entries_per_file = []
+                any_headings = re.search(markdown_heading_regex, markdown_content, flags=re.MULTILINE)
                 for entry in re.split(markdown_heading_regex, markdown_content, flags=re.MULTILINE):
-                    prefix = "#" if entry.startswith("#") else "# "
-                    if entry.strip(empty_escape_sequences) != "":
-                        markdown_entries_per_file.append(f"{prefix}{entry.strip(empty_escape_sequences)}")
+                    # Add heading level as the regex split removed it from entries with headings
+                    prefix = "#" if entry.startswith("#") else "# " if any_headings else ""
+                    stripped_entry = entry.strip(empty_escape_sequences)
+                    if stripped_entry != "":
+                        markdown_entries_per_file.append(f"{prefix}{stripped_entry}")
 
                 entry_to_file_map += zip(markdown_entries_per_file, [markdown_file] * len(markdown_entries_per_file))
                 entries.extend(markdown_entries_per_file)
