@@ -1,6 +1,7 @@
 # Standard Packages
 import glob
 import logging
+from pathlib import Path
 from typing import Iterable, List
 
 # Internal Packages
@@ -112,7 +113,11 @@ class OrgToJsonl(TextToJsonl):
                 # Ignore title notes i.e notes with just headings and empty body
                 continue
 
-            compiled = f"{parsed_entry.heading}."
+            # Prepend filename as top heading to entry
+            filename = Path(entry_to_file_map[parsed_entry]).stem
+            heading = f"* {filename}\n** {parsed_entry.heading}." if parsed_entry.heading else f"* {filename}."
+
+            compiled = heading
             if state.verbose > 2:
                 logger.debug(f"Title: {parsed_entry.heading}")
 
@@ -142,7 +147,7 @@ class OrgToJsonl(TextToJsonl):
                     Entry(
                         compiled=compiled,
                         raw=f"{parsed_entry}",
-                        heading=f"{parsed_entry.heading}",
+                        heading=f"{heading}",
                         file=f"{entry_to_file_map[parsed_entry]}",
                     )
                 )
