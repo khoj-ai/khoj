@@ -44,7 +44,10 @@ class TextToJsonl(ABC):
 
                 # Prepend heading to all other chunks, the first chunk already has heading from original entry
                 if chunk_index > 0:
-                    compiled_entry_chunk = f"{entry.heading}.\n{compiled_entry_chunk}"
+                    # Snip heading to avoid crossing max_tokens limit
+                    # Keep last 100 characters of heading as entry heading more important than filename
+                    snipped_heading = entry.heading[-100:]
+                    compiled_entry_chunk = f"{snipped_heading}.\n{compiled_entry_chunk}"
 
                 chunked_entries.append(
                     Entry(
