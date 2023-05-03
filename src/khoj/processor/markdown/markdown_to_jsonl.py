@@ -128,10 +128,19 @@ class MarkdownToJsonl(TextToJsonl):
         entries = []
         for parsed_entry in parsed_entries:
             entry_filename = Path(entry_to_file_map[parsed_entry])
+            heading = parsed_entry.splitlines()[0] if re.search("^#+\s", parsed_entry) else ""
             # Append base filename to compiled entry for context to model
             # Increment heading level for heading entries and make filename as its top level heading
             prefix = f"# {entry_filename.stem}\n#" if heading else f"# {entry_filename.stem}\n"
             compiled_entry = f"{prefix}{parsed_entry}"
+            entries.append(
+                Entry(
+                    compiled=compiled_entry,
+                    raw=parsed_entry,
+                    heading=f"{prefix}{heading}",
+                    file=f"{entry_filename}",
+                )
+            )
 
         logger.debug(f"Converted {len(parsed_entries)} markdown entries to dictionaries")
 
