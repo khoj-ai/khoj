@@ -208,6 +208,7 @@ def chat(q: Optional[str] = None):
     # Initialize Variables
     api_key = state.processor_config.conversation.openai_api_key
     model = state.processor_config.conversation.model
+    chat_model = state.processor_config.conversation.chat_model
     user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # Load Conversation History
@@ -234,7 +235,7 @@ def chat(q: Optional[str] = None):
 
     try:
         with timer("Generating chat response took", logger):
-            gpt_response = converse(compiled_references, q, meta_log, api_key=api_key)
+            gpt_response = converse(compiled_references, q, meta_log, model=chat_model, api_key=api_key)
         status = "ok"
     except Exception as e:
         gpt_response = str(e)

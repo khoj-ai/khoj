@@ -236,12 +236,11 @@ A:{ "search-type": "notes" }"""
     return json.loads(story.strip(empty_escape_sequences))
 
 
-def converse(references, user_query, conversation_log={}, api_key=None, temperature=0.2):
+def converse(references, user_query, conversation_log={}, model="gpt-3.5-turbo", api_key=None, temperature=0.2):
     """
     Converse with user using OpenAI's ChatGPT
     """
     # Initialize Variables
-    model = "gpt-3.5-turbo"
     compiled_references = "\n\n".join({f"# {item}" for item in references})
 
     personality_primer = "You are Khoj, a friendly, smart and helpful personal assistant."

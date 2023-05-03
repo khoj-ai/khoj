@@ -82,6 +82,7 @@ class ConversationProcessorConfig(ConfigBase):
     openai_api_key: str
     conversation_logfile: Path
     model: Optional[str] = "text-davinci-003"
+    chat_model: Optional[str] = "gpt-3.5-turbo"
 
 
 class ProcessorConfig(ConfigBase):
