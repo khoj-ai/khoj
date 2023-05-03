@@ -31,14 +31,33 @@ class TextToJsonl(ABC):
         "Split entries if compiled entry length exceeds the max tokens supported by the ML model."
         chunked_entries: List[Entry] = []
         for entry in entries:
+            # Split entry into words
             compiled_entry_words = [word for word in entry.compiled.split(" ") if word != ""]
+
             # Drop long words instead of having entry truncated to maintain quality of entry processed by models
             compiled_entry_words = [word for word in compiled_entry_words if len(word) <= max_word_length]
+
+            # Split entry into chunks of max tokens
             for chunk_index in range(0, len(compiled_entry_words), max_tokens):
                 compiled_entry_words_chunk = compiled_entry_words[chunk_index : chunk_index + max_tokens]
                 compiled_entry_chunk = " ".join(compiled_entry_words_chunk)
-                entry_chunk = Entry(compiled=compiled_entry_chunk, raw=entry.raw, file=entry.file)
-                chunked_entries.append(entry_chunk)
+
+                # Prepend heading to all other chunks, the first chunk already has heading from original entry
+                if chunk_index > 0:
+                    # Snip heading to avoid crossing max_tokens limit
+                    # Keep last 100 characters of heading as entry heading more important than filename
+                    snipped_heading = entry.heading[-100:]
+                    compiled_entry_chunk = f"{snipped_heading}.\n{compiled_entry_chunk}"
+
+                chunked_entries.append(
+                    Entry(
+                        compiled=compiled_entry_chunk,
+                        raw=entry.raw,
+                        heading=entry.heading,
+                        file=entry.file,
+                    )
+                )
+
         return chunked_entries
 
     def mark_entries_for_update(

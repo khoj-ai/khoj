@@ -14,6 +14,7 @@ def test_markdown_file_with_no_headings_to_jsonl(tmp_path):
     - Bullet point 2
     """
     markdownfile = create_file(tmp_path, entry)
+    expected_heading = "# " + markdownfile.stem
 
     # Act
     # Extract Entries from specified Markdown files
@@ -27,6 +28,10 @@ def test_markdown_file_with_no_headings_to_jsonl(tmp_path):
 
     # Assert
     assert len(jsonl_data) == 1
+    # Ensure raw entry with no headings do not get heading prefix prepended
+    assert not jsonl_data[0]["raw"].startswith("#")
+    # Ensure compiled entry has filename prepended as top level heading
+    assert jsonl_data[0]["compiled"].startswith(expected_heading)
 
 
 def test_single_markdown_entry_to_jsonl(tmp_path):
@@ -128,7 +133,7 @@ def test_extract_entries_with_different_level_headings(tmp_path):
 
 
 # Helper Functions
-def create_file(tmp_path, entry=None, filename="test.md"):
+def create_file(tmp_path: Path, entry=None, filename="test.md"):
     markdown_file = tmp_path / filename
     markdown_file.touch()
     if entry:

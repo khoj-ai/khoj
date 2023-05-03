@@ -2,7 +2,6 @@
 import glob
 import logging
 import re
-import time
 from pathlib import Path
 from typing import List
 
@@ -110,10 +109,13 @@ class MarkdownToJsonl(TextToJsonl):
             with open(markdown_file, "r", encoding="utf8") as f:
                 markdown_content = f.read()
                 markdown_entries_per_file = []
+                any_headings = re.search(markdown_heading_regex, markdown_content, flags=re.MULTILINE)
                 for entry in re.split(markdown_heading_regex, markdown_content, flags=re.MULTILINE):
-                    prefix = "#" if entry.startswith("#") else "# "
-                    if entry.strip(empty_escape_sequences) != "":
-                        markdown_entries_per_file.append(f"{prefix}{entry.strip(empty_escape_sequences)}")
+                    # Add heading level as the regex split removed it from entries with headings
+                    prefix = "#" if entry.startswith("#") else "# " if any_headings else ""
+                    stripped_entry = entry.strip(empty_escape_sequences)
+                    if stripped_entry != "":
+                        markdown_entries_per_file.append(f"{prefix}{stripped_entry}")
 
                 entry_to_file_map += zip(markdown_entries_per_file, [markdown_file] * len(markdown_entries_per_file))
                 entries.extend(markdown_entries_per_file)
@@ -126,9 +128,19 @@ class MarkdownToJsonl(TextToJsonl):
         entries = []
         for parsed_entry in parsed_entries:
             entry_filename = Path(entry_to_file_map[parsed_entry])
+            heading = parsed_entry.splitlines()[0] if re.search("^#+\s", parsed_entry) else ""
             # Append base filename to compiled entry for context to model
-            compiled_entry = f"{parsed_entry}\n{entry_filename.stem}"
-            entries.append(Entry(compiled=compiled_entry, raw=parsed_entry, file=f"{entry_filename}"))
+            # Increment heading level for heading entries and make filename as its top level heading
+            prefix = f"# {entry_filename.stem}\n#" if heading else f"# {entry_filename.stem}\n"
+            compiled_entry = f"{prefix}{parsed_entry}"
+            entries.append(
+                Entry(
+                    compiled=compiled_entry,
+                    raw=parsed_entry,
+                    heading=f"{prefix}{heading}",
+                    file=f"{entry_filename}",
+                )
+            )
 
         logger.debug(f"Converted {len(parsed_entries)} markdown entries to dictionaries")
 

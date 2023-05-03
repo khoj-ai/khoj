@@ -103,11 +103,15 @@ class SearchResponse(ConfigBase):
 class Entry:
     raw: str
     compiled: str
+    heading: Optional[str]
     file: Optional[str]
 
-    def __init__(self, raw: str = None, compiled: str = None, file: Optional[str] = None):
+    def __init__(
+        self, raw: str = None, compiled: str = None, heading: Optional[str] = None, file: Optional[str] = None
+    ):
         self.raw = raw
         self.compiled = compiled
+        self.heading = heading
         self.file = file
 
     def to_json(self) -> str:

@@ -47,6 +47,7 @@ def test_entry_split_when_exceeds_max_words(tmp_path):
     Body Line
     """
     orgfile = create_file(tmp_path, entry)
+    expected_heading = f"* {orgfile.stem}\n** Heading"
 
     # Act
     # Extract Entries from specified Org files
@@ -55,16 +56,18 @@ def test_entry_split_when_exceeds_max_words(tmp_path):
     # Split each entry from specified Org files by max words
     jsonl_string = OrgToJsonl.convert_org_entries_to_jsonl(
         TextToJsonl.split_entries_by_max_tokens(
-            OrgToJsonl.convert_org_nodes_to_entries(entries, entry_to_file_map), max_tokens=2
+            OrgToJsonl.convert_org_nodes_to_entries(entries, entry_to_file_map), max_tokens=4
         )
     )
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
     assert len(jsonl_data) == 2
+    # Ensure compiled entries split by max_words start with entry heading (for search context)
+    assert all([entry["compiled"].startswith(expected_heading) for entry in jsonl_data])
 
 
-def test_entry_split_drops_large_words(tmp_path):
+def test_entry_split_drops_large_words():
     "Ensure entries drops words larger than specified max word length from compiled version."
     # Arrange
     entry_text = f"""*** Heading
