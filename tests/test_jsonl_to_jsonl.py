@@ -1,17 +1,13 @@
-# Standard Packages
-import json
-
 # Internal Packages
 from khoj.processor.jsonl.jsonl_to_jsonl import JsonlToJsonl
-from khoj.utils.jsonl import load_jsonl
 from khoj.utils.rawconfig import Entry
 
 
 def test_process_entries_from_single_input_jsonl(tmp_path):
     "Convert multiple jsonl entries from single file to entries."
     # Arrange
-    input_jsonl = """{"raw": "raw input data 1", "compiled": "compiled input data 1", "file": "source/file/path1"}
-{"raw": "raw input data 2", "compiled": "compiled input data 2", "file": "source/file/path2"}
+    input_jsonl = """{"raw": "raw input data 1", "compiled": "compiled input data 1", "heading": null, "file": "source/file/path1"}
+{"raw": "raw input data 2", "compiled": "compiled input data 2", "heading": null, "file": "source/file/path2"}
 """
     input_jsonl_file = create_file(tmp_path, input_jsonl)
 
@@ -29,8 +25,8 @@ def test_process_entries_from_single_input_jsonl(tmp_path):
 def test_process_entries_from_multiple_input_jsonls(tmp_path):
     "Convert multiple jsonl entries from single file to entries."
     # Arrange
-    input_jsonl_1 = """{"raw": "raw input data 1", "compiled": "compiled input data 1", "file": "source/file/path1"}"""
-    input_jsonl_2 = """{"raw": "raw input data 2", "compiled": "compiled input data 2", "file": "source/file/path2"}"""
+    input_jsonl_1 = """{"raw": "raw input data 1", "compiled": "compiled input data 1", "heading": null, "file": "source/file/path1"}"""
+    input_jsonl_2 = """{"raw": "raw input data 2", "compiled": "compiled input data 2", "heading": null, "file": "source/file/path2"}"""
     input_jsonl_file_1 = create_file(tmp_path, input_jsonl_1, filename="input1.jsonl")
     input_jsonl_file_2 = create_file(tmp_path, input_jsonl_2, filename="input2.jsonl")
 

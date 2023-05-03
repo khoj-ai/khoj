@@ -1,7 +1,6 @@
 # Standard Packages
 import glob
 import logging
-import time
 from typing import Iterable, List
 
 # Internal Packages
@@ -139,7 +138,14 @@ class OrgToJsonl(TextToJsonl):
                     logger.debug(f"Body: {parsed_entry.body}")
 
             if compiled:
-                entries += [Entry(compiled=compiled, raw=f"{parsed_entry}", file=f"{entry_to_file_map[parsed_entry]}")]
+                entries.append(
+                    Entry(
+                        compiled=compiled,
+                        raw=f"{parsed_entry}",
+                        heading=f"{parsed_entry.heading}",
+                        file=f"{entry_to_file_map[parsed_entry]}",
+                    )
+                )
 
         return entries
 

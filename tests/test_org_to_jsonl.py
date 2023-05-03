@@ -62,9 +62,11 @@ def test_entry_split_when_exceeds_max_words(tmp_path):
 
     # Assert
     assert len(jsonl_data) == 2
+    # Ensure compiled entries split by max_words start with entry heading (for search context)
+    assert all(entry["compiled"].startswith("Heading") for entry in jsonl_data)
 
 
-def test_entry_split_drops_large_words(tmp_path):
+def test_entry_split_drops_large_words():
     "Ensure entries drops words larger than specified max word length from compiled version."
     # Arrange
     entry_text = f"""*** Heading
