@@ -212,7 +212,7 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content(chat_c
     populate_chat_history(message_list)
 
     # Act
-    response = chat_client.get(f'/api/chat?q=""Write a haiku about unit testing"')
+    response = chat_client.get(f'/api/chat?q=""Write a haiku about unit testing. Do not say anything else."')
     response_message = response.json()["response"]
 
     # Assert

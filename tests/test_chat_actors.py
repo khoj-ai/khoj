@@ -277,8 +277,8 @@ def test_answer_from_chat_history_and_currently_retrieved_content():
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-def test_no_answer_in_chat_history_or_retrieved_content():
-    "Chat actor should say don't know as not enough contexts in chat history or retrieved to answer question"
+def test_refuse_answering_unanswerable_question():
+    "Chat actor should not try make up answers to unanswerable questions."
     # Arrange
     message_list = [
         ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
@@ -294,7 +294,15 @@ def test_no_answer_in_chat_history_or_retrieved_content():
     )
 
     # Assert
-    expected_responses = ["don't know", "do not know", "no information", "do not have", "don't have"]
+    expected_responses = [
+        "don't know",
+        "do not know",
+        "no information",
+        "do not have",
+        "don't have",
+        "cannot answer",
+        "I'm sorry",
+    ]
     assert len(response) > 0
     assert any([expected_response in response for expected_response in expected_responses]), (
         "Expected chat actor to say they don't know in response, but got: " + response

@@ -244,14 +244,28 @@ def converse(references, user_query, conversation_log={}, model="gpt-3.5-turbo",
     compiled_references = "\n\n".join({f"# {item}" for item in references})
 
     personality_primer = "You are Khoj, a friendly, smart and helpful personal assistant."
-    conversation_primer = f"""
+    conversation_primers = {
+        "general": f"""
+Using your general knowledge and our past conversations as context, answer the following question.
+Current Date: {datetime.now().strftime("%Y-%m-%d")}
+
+Question: {user_query}
+""".strip(),
+        "notes": f"""
 Using the notes and our past conversations as context, answer the following question.
 Current Date: {datetime.now().strftime("%Y-%m-%d")}
 
 Notes:
 {compiled_references}
 
-Question: {user_query}"""
+Question: {user_query}
+""".strip(),
+    }
+
+    # Get Conversation Primer appropriate to Conversation Type
+    conversation_type = "general" if user_query.startswith("@general") or compiled_references.strip() == "" else "notes"
+    logger.debug(f"Conversation Type: {conversation_type}")
+    conversation_primer = conversation_primers.get(conversation_type)
 
     # Setup Prompt with Primer or Conversation History
     messages = generate_chatml_messages_with_context(
