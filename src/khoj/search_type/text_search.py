@@ -73,6 +73,7 @@ def compute_embeddings(
         # Encode any new entries in the corpus and update corpus embeddings
         new_entries = [entry.compiled for id, entry in entries_with_ids if id == -1]
         if new_entries:
+            logger.info(f"📩 Indexing {len(new_entries)} text entries.")
             new_embeddings = bi_encoder.encode(
                 new_entries, convert_to_tensor=True, device=state.device, show_progress_bar=True
             )
@@ -87,6 +88,7 @@ def compute_embeddings(
     # Else compute the corpus embeddings from scratch
     else:
         new_entries = [entry.compiled for _, entry in entries_with_ids]
+        logger.info(f"📩 Indexing {len(new_entries)} text entries. Creating index from scratch.")
         corpus_embeddings = bi_encoder.encode(
             new_entries, convert_to_tensor=True, device=state.device, show_progress_bar=True
         )

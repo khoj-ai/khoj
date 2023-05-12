@@ -1,4 +1,5 @@
 # System Packages
+import logging
 from pathlib import Path
 
 # External Packages
@@ -46,6 +47,26 @@ def test_asymmetric_setup(content_config: ContentConfig, search_config: SearchCo
     # Assert
     assert len(notes_model.entries) == 10
     assert len(notes_model.corpus_embeddings) == 10
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_text_content_index_only_updates_on_changes(content_config: ContentConfig, search_config: SearchConfig, caplog):
+    # Arrange
+    caplog.set_level(logging.INFO, logger="khoj")
+
+    # Act
+    # Generate initial notes embeddings during asymmetric setup
+    text_search.setup(OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=True)
+    initial_logs = caplog.text
+    caplog.clear()  # Clear logs
+
+    # Run asymmetric setup again with no changes to data source. Ensure index is not updated
+    text_search.setup(OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=False)
+    final_logs = caplog.text
+
+    # Assert
+    assert "📩 Saved computed text embeddings to" in initial_logs
+    assert "📩 Saved computed text embeddings to" not in final_logs
 
 
 # ----------------------------------------------------------------------------------------------------
