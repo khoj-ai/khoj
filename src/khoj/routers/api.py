@@ -168,7 +168,10 @@ def search(
     # Cache results
     state.query_cache[query_cache_key] = results
 
-    state.telemetry += [log_telemetry(telemetry_type="api", api="search", app_config=state.config.app)]
+    # Only log telemetry if query is new and not a continuation of previous query
+    if state.previous_query is None or state.previous_query not in user_query:
+        state.telemetry += [log_telemetry(telemetry_type="api", api="search", app_config=state.config.app)]
+    state.previous_query = user_query
 
     return results
 

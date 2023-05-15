@@ -229,13 +229,14 @@ def save_chat_session():
 @schedule.repeat(schedule.every(1).minutes)
 def upload_telemetry():
     if not state.config.app.should_log_telemetry or not state.telemetry:
-        print("No telemetry to upload") if not state.telemetry else print("Telemetry logging disabled")
+        message = "📡 No telemetry to upload" if not state.telemetry else "📡 Telemetry logging disabled"
+        logger.debug(message)
         return
 
     try:
-        logger.debug(f"📡 Upload usage telemetry to {constants.telemetry_server}: {state.telemetry}")
+        logger.debug(f"📡 Upload usage telemetry to {constants.telemetry_server}:\n{state.telemetry}")
         requests.post(constants.telemetry_server, json=state.telemetry)
     except Exception as e:
-        logger.error(f"Error uploading telemetry: {e}")
+        logger.error(f"📡 Error uploading telemetry: {e}")
     else:
-        state.telemetry = None
+        state.telemetry = []
