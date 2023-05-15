@@ -1,14 +1,22 @@
 # Standard Packages
 from __future__ import annotations  # to avoid quoting type hints
-import logging
-import sys
-import torch
 from collections import OrderedDict
+import datetime
 from importlib import import_module
-from os.path import join
+import logging
+from os import path
 from pathlib import Path
+import platform
+import requests
+import sys
 from time import perf_counter
+import torch
 from typing import Optional, Union, TYPE_CHECKING
+import uuid
+
+# Internal Packages
+from khoj.utils import constants
+
 
 if TYPE_CHECKING:
     # External Packages
@@ -16,6 +24,7 @@ if TYPE_CHECKING:
 
     # Internal Packages
     from khoj.utils.models import BaseEncoder
+    from khoj.utils.rawconfig import AppConfig
 
 
 def is_none_or_empty(item):
@@ -59,7 +68,7 @@ def load_model(model_name: str, model_type, model_dir=None, device: str = None) 
     "Load model from disk or huggingface"
     # Construct model path
     logger = logging.getLogger(__name__)
-    model_path = join(model_dir, model_name.replace("/", "_")) if model_dir is not None else None
+    model_path = path.join(model_dir, model_name.replace("/", "_")) if model_dir is not None else None
 
     # Load model from model_path if it exists there
     model_type_class = get_class_by_name(model_type) if isinstance(model_type, str) else model_type
@@ -123,3 +132,66 @@ class LRU(OrderedDict):
         if len(self) > self.capacity:
             oldest = next(iter(self))
             del self[oldest]
+
+
+def get_server_id():
+    """Get, Generate Persistent, Random ID per server install.
+    Helps count distinct khoj servers deployed.
+    Maintains anonymity by using non-PII random id."""
+    # Expand path to the khoj env file. It contains persistent internal app data
+    app_env_filename = path.expanduser(constants.app_env_filepath)
+
+    # Check if the file exists
+    if path.exists(app_env_filename):
+        # Read the contents of the file
+        with open(app_env_filename, "r") as f:
+            contents = f.readlines()
+
+        # Extract the server_id from the contents
+        for line in contents:
+            key, value = line.strip().split("=")
+            if key.strip() == "server_id":
+                server_id = value.strip()
+                break
+        else:
+            # If server_id is not found, generate a new one
+            server_id = str(uuid.uuid4())
+
+    else:
+        # Generate a new server id
+        server_id = str(uuid.uuid4())
+
+        # Write the server_id to the file
+        with open(app_env_filename, "w") as f:
+            f.write("server_id=" + server_id + "\n")
+
+    return server_id
+
+
+def log_telemetry(telemetry_type: str, api: str = None, client: str = None, app_config: AppConfig = None):
+    """Log basic app usage telemetry like client, os, api called"""
+    # Do not log usage telemetry, if telemetry is disabled via app config
+    if not app_config or not app_config.should_log_telemetry:
+        return
+
+    # Populate telemetry data to log
+    request_body = {
+        "telemetry_type": telemetry_type,
+        "server_id": get_server_id(),
+        "os": platform.system(),
+        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    if api:
+        # API endpoint on server called by client
+        request_body["api"] = api
+    if client:
+        # Client from which the API was called. E.g Emacs, Obsidian
+        request_body["client"] = client
+
+    # Log telemetry data to telemetry endpoint
+    logger = logging.getLogger(__name__)
+    try:
+        logger.debug(f"Log usage telemetry to {constants.telemetry_server}: {request_body}")
+        requests.post(constants.telemetry_server, json=request_body)
+    except:
+        pass
