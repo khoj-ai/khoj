@@ -172,7 +172,7 @@ def log_telemetry(telemetry_type: str, api: str = None, client: str = None, app_
     """Log basic app usage telemetry like client, os, api called"""
     # Do not log usage telemetry, if telemetry is disabled via app config
     if not app_config or not app_config.should_log_telemetry:
-        return
+        return []
 
     # Populate telemetry data to log
     request_body = {
@@ -189,9 +189,4 @@ def log_telemetry(telemetry_type: str, api: str = None, client: str = None, app_
         request_body["client"] = client
 
     # Log telemetry data to telemetry endpoint
-    logger = logging.getLogger(__name__)
-    try:
-        logger.debug(f"Log usage telemetry to {constants.telemetry_server}: {request_body}")
-        requests.post(constants.telemetry_server, json=request_body)
-    except:
-        pass
+    return request_body

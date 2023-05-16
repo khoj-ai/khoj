@@ -168,7 +168,7 @@ def search(
     # Cache results
     state.query_cache[query_cache_key] = results
 
-    log_telemetry(telemetry_type="api", api="search", app_config=state.config.app)
+    state.telemetry += [log_telemetry(telemetry_type="api", api="search", app_config=state.config.app)]
 
     return results
 
@@ -193,7 +193,7 @@ def update(t: Optional[SearchType] = None, force: Optional[bool] = False):
     else:
         logger.info("📬 Processor reconfigured via API")
 
-    log_telemetry(telemetry_type="api", api="update", app_config=state.config.app)
+    state.telemetry += [log_telemetry(telemetry_type="api", api="update", app_config=state.config.app)]
 
     return {"status": "ok", "message": "khoj reloaded"}
 
@@ -255,6 +255,6 @@ def chat(q: Optional[str] = None):
         conversation_log=meta_log.get("chat", []),
     )
 
-    log_telemetry(telemetry_type="api", api="chat", app_config=state.config.app)
+    state.telemetry += [log_telemetry(telemetry_type="api", api="chat", app_config=state.config.app)]
 
     return {"status": status, "response": gpt_response, "context": compiled_references}
