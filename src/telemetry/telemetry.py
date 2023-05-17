@@ -12,7 +12,7 @@ import uvicorn
 
 # Initialize Global App Variables
 app = FastAPI()
-sqlfile = "khoj.sqlite"
+sqlfile = "data/khoj.sqlite"
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
@@ -26,7 +26,7 @@ def v1_telemetry(telemetry_data: List[Dict[str, str]]):
         raise HTTPException(status_code=500, detail=error_message)
 
     # Insert recieved telemetry data into SQLite db
-    logger.info(f"Insert row into telemetry table: {telemetry_data}")
+    logger.info(f"Insert row into telemetry table at {sqlfile}: {telemetry_data}")
     with sqlite3.connect(sqlfile) as conn:
         cur = conn.cursor()
 
