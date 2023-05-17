@@ -138,6 +138,8 @@ def get_server_id():
     """Get, Generate Persistent, Random ID per server install.
     Helps count distinct khoj servers deployed.
     Maintains anonymity by using non-PII random id."""
+    # Initialize server_id to None
+    server_id = None
     # Expand path to the khoj env file. It contains persistent internal app data
     app_env_filename = path.expanduser(constants.app_env_filepath)
 
@@ -153,15 +155,19 @@ def get_server_id():
             if key.strip() == "server_id":
                 server_id = value.strip()
                 break
-        else:
+
+        # If server_id is not found, generate and write to env file
+        if server_id is None:
             # If server_id is not found, generate a new one
             server_id = str(uuid.uuid4())
 
+            with open(app_env_filename, "a") as f:
+                f.write("server_id=" + server_id + "\n")
     else:
-        # Generate a new server id
+        # If server_id is not found, generate a new one
         server_id = str(uuid.uuid4())
 
-        # Write the server_id to the file
+        # Write the server_id to the env file
         with open(app_env_filename, "w") as f:
             f.write("server_id=" + server_id + "\n")
 
