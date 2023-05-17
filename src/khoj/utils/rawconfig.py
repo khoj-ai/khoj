@@ -89,10 +89,15 @@ class ProcessorConfig(ConfigBase):
     conversation: Optional[ConversationProcessorConfig]
 
 
+class AppConfig(ConfigBase):
+    should_log_telemetry: bool
+
+
 class FullConfig(ConfigBase):
     content_type: Optional[ContentConfig]
     search_type: Optional[SearchConfig]
     processor: Optional[ProcessorConfig]
+    app: Optional[AppConfig] = AppConfig(should_log_telemetry=True)
 
 
 class SearchResponse(ConfigBase):

@@ -1,6 +1,6 @@
 # Standard Packages
 import threading
-from typing import List
+from typing import List, Dict
 from packaging import version
 
 # External Packages
@@ -25,6 +25,8 @@ cli_args: List[str] = None
 query_cache = LRU()
 search_index_lock = threading.Lock()
 SearchType = utils_config.SearchType
+telemetry: List[Dict[str, str]] = []
+previous_query: str = None
 
 if torch.cuda.is_available():
     # Use CUDA GPU

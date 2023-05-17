@@ -3,6 +3,7 @@ import sys
 import logging
 import json
 from enum import Enum
+import requests
 
 # External Packages
 import schedule
@@ -62,7 +63,7 @@ def configure_routes(app):
     app.include_router(web_client)
 
 
-@schedule.repeat(schedule.every(1).hour)
+@schedule.repeat(schedule.every(61).minutes)
 def update_search_index():
     state.search_index_lock.acquire()
     state.model = configure_search(state.model, state.config, regenerate=False)
@@ -189,7 +190,7 @@ def configure_conversation_processor(conversation_processor_config):
     return conversation_processor
 
 
-@schedule.repeat(schedule.every(15).minutes)
+@schedule.repeat(schedule.every(17).minutes)
 def save_chat_session():
     # No need to create empty log file
     if not (
@@ -223,3 +224,19 @@ def save_chat_session():
 
     state.processor_config.conversation.chat_session = None
     logger.info("📩 Saved current chat session to conversation logs")
+
+
+@schedule.repeat(schedule.every(59).minutes)
+def upload_telemetry():
+    if not state.config.app.should_log_telemetry or not state.telemetry:
+        message = "📡 No telemetry to upload" if not state.telemetry else "📡 Telemetry logging disabled"
+        logger.debug(message)
+        return
+
+    try:
+        logger.debug(f"📡 Upload usage telemetry to {constants.telemetry_server}:\n{state.telemetry}")
+        requests.post(constants.telemetry_server, json=state.telemetry)
+    except Exception as e:
+        logger.error(f"📡 Error uploading telemetry: {e}")
+    else:
+        state.telemetry = []
