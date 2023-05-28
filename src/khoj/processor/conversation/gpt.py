@@ -184,5 +184,4 @@ def converse(references, user_query, conversation_log={}, model="gpt-3.5-turbo",
     )
 
     # Extract, Clean Message from GPT's Response
-    story = str(response["choices"][0]["message"]["content"])
-    return story.strip(empty_escape_sequences)
+    return response.strip(empty_escape_sequences)

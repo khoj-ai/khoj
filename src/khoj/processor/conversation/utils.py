@@ -4,6 +4,8 @@ import logging
 from datetime import datetime
 
 # External Packages
+from langchain.chat_models import ChatOpenAI
+from langchain.schema import ChatMessage
 import openai
 import tiktoken
 from tenacity import (
@@ -54,9 +56,15 @@ def completion_with_backoff(**kwargs):
     before_sleep=before_sleep_log(logger, logging.DEBUG),
     reraise=True,
 )
-def chat_completion_with_backoff(**kwargs):
-    openai.api_key = kwargs["api_key"] if kwargs.get("api_key") else os.getenv("OPENAI_API_KEY")
-    return openai.ChatCompletion.create(**kwargs, request_timeout=60)
+def chat_completion_with_backoff(messages, model, temperature, **kwargs):
+    openai_api_key = kwargs["api_key"] if kwargs.get("api_key") else os.getenv("OPENAI_API_KEY")
+    chat = ChatOpenAI(
+        model_name=model,
+        temperature=temperature,
+        openai_api_key=openai_api_key,
+        request_timeout=60,
+    )
+    return chat(messages).content
 
 
 def generate_chatml_messages_with_context(
@@ -73,17 +81,17 @@ def generate_chatml_messages_with_context(
         rest_backnforths += reciprocal_conversation_to_chatml([user_msg, assistant_msg])[::-1]
 
     # Format user and system messages to chatml format
-    system_chatml_message = [message_to_chatml(system_message, "system")]
-    user_chatml_message = [message_to_chatml(user_message, "user")]
+    system_chatml_message = [ChatMessage(content=system_message, role="system")]
+    user_chatml_message = [ChatMessage(content=user_message, role="user")]
 
-    messages = user_chatml_message + rest_backnforths[:2] + system_chatml_message + rest_backnforths[2:]
+    messages = user_chatml_message + rest_backnforths + system_chatml_message
 
     # Truncate oldest messages from conversation history until under max supported prompt size by model
     encoder = tiktoken.encoding_for_model(model_name)
-    tokens = sum([len(encoder.encode(value)) for message in messages for value in message.values()])
+    tokens = sum([len(encoder.encode(content)) for message in messages for content in message.content])
     while tokens > max_prompt_size[model_name]:
         messages.pop()
-        tokens = sum([len(encoder.encode(value)) for message in messages for value in message.values()])
+        tokens = sum([len(encoder.encode(content)) for message in messages for content in message.content])
 
     # Return message in chronological order
     return messages[::-1]
@@ -91,12 +99,7 @@ def generate_chatml_messages_with_context(
 
 def reciprocal_conversation_to_chatml(message_pair):
     """Convert a single back and forth between user and assistant to chatml format"""
-    return [message_to_chatml(message, role) for message, role in zip(message_pair, ["user", "assistant"])]
-
-
-def message_to_chatml(message, role="assistant"):
-    """Create chatml message from message and role"""
-    return {"role": role, "content": message}
+    return [ChatMessage(content=message, role=role) for message, role in zip(message_pair, ["user", "assistant"])]
 
 
 def message_to_prompt(
