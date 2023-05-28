@@ -72,7 +72,11 @@ def generate_chatml_messages_with_context(
 ):
     """Generate messages for ChatGPT with context from previous conversation"""
     # Extract Chat History for Context
-    chat_logs = [f'{chat["message"]}\n\nNotes:\n{chat.get("context","")}' for chat in conversation_log.get("chat", [])]
+    chat_logs = []
+    for chat in conversation_log.get("chat", []):
+        chat_notes = f'\n\n Notes:\n{chat.get("context")}' if chat.get("context") else "\n"
+        chat_logs += [chat["message"] + chat_notes]
+
     rest_backnforths = []
     # Extract in reverse chronological order
     for user_msg, assistant_msg in zip(chat_logs[-2::-2], chat_logs[::-2]):
