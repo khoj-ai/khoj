@@ -273,7 +273,7 @@ pip install --upgrade --pre khoj-assistant
       asymmetric:
    -    encoder: "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"
    +    encoder: text-embedding-ada-002
-   +    encoder-type: src.khoj.utils.models.OpenAI
+   +    encoder-type: khoj.utils.models.OpenAI
         cross-encoder: "cross-encoder/ms-marco-MiniLM-L-6-v2"
    -    encoder-type: sentence_transformers.SentenceTransformer
    -    model_directory: "~/.khoj/search/asymmetric/"
