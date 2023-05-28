@@ -53,6 +53,7 @@ dependencies = [
     "torch == 1.13.1",
     "uvicorn == 0.17.6",
     "aiohttp == 3.8.4",
+    "langchain >= 0.0.187",
 ]
 dynamic = ["version"]
 
