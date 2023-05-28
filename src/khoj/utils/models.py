@@ -8,7 +8,7 @@ import torch
 from tqdm import trange
 
 # Internal Packages
-from khoj.utils.state import processor_config, config_file
+from khoj.utils import state
 
 
 class BaseEncoder(ABC):
@@ -25,14 +25,14 @@ class OpenAI(BaseEncoder):
     def __init__(self, model_name, device=None):
         self.model_name = model_name
         if (
-            not processor_config
-            or not processor_config.conversation
-            or not processor_config.conversation.openai_api_key
+            not state.processor_config
+            or not state.processor_config.conversation
+            or not state.processor_config.conversation.openai_api_key
         ):
             raise Exception(
-                f"Set OpenAI API key under processor-config > conversation > openai-api-key in config file: {config_file}"
+                f"Set OpenAI API key under processor-config > conversation > openai-api-key in config file: {state.config_file}"
             )
-        openai.api_key = processor_config.conversation.openai_api_key
+        openai.api_key = state.processor_config.conversation.openai_api_key
         self.embedding_dimensions = None
 
     def encode(self, entries, device=None, **kwargs):
