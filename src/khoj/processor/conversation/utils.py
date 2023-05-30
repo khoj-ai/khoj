@@ -5,6 +5,7 @@ from datetime import datetime
 
 # External Packages
 from langchain.chat_models import ChatOpenAI
+from langchain.llms import OpenAI
 from langchain.schema import ChatMessage
 import openai
 import tiktoken
@@ -39,8 +40,10 @@ max_prompt_size = {"gpt-3.5-turbo": 4096, "gpt-4": 8192}
     reraise=True,
 )
 def completion_with_backoff(**kwargs):
-    openai.api_key = kwargs["api_key"] if kwargs.get("api_key") else os.getenv("OPENAI_API_KEY")
-    return openai.Completion.create(**kwargs, request_timeout=60)
+    prompt = kwargs.pop("prompt")
+    kwargs["openai_api_key"] = kwargs["api_key"] if kwargs.get("api_key") else os.getenv("OPENAI_API_KEY")
+    llm = OpenAI(**kwargs, request_timeout=60)
+    return llm(prompt)
 
 
 @retry(
