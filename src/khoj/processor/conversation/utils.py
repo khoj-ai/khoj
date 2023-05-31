@@ -34,15 +34,15 @@ max_prompt_size = {"gpt-3.5-turbo": 4096, "gpt-4": 8192}
         | retry_if_exception_type(openai.error.RateLimitError)
         | retry_if_exception_type(openai.error.ServiceUnavailableError)
     ),
-    wait=wait_random_exponential(min=1, max=30),
-    stop=stop_after_attempt(6),
+    wait=wait_random_exponential(min=1, max=10),
+    stop=stop_after_attempt(3),
     before_sleep=before_sleep_log(logger, logging.DEBUG),
     reraise=True,
 )
 def completion_with_backoff(**kwargs):
     prompt = kwargs.pop("prompt")
     kwargs["openai_api_key"] = kwargs["api_key"] if kwargs.get("api_key") else os.getenv("OPENAI_API_KEY")
-    llm = OpenAI(**kwargs, request_timeout=60)
+    llm = OpenAI(**kwargs, request_timeout=10, max_retries=1)
     return llm(prompt)
 
 
@@ -55,7 +55,7 @@ def completion_with_backoff(**kwargs):
         | retry_if_exception_type(openai.error.ServiceUnavailableError)
     ),
     wait=wait_exponential(multiplier=1, min=4, max=10),
-    stop=stop_after_attempt(6),
+    stop=stop_after_attempt(3),
     before_sleep=before_sleep_log(logger, logging.DEBUG),
     reraise=True,
 )
@@ -65,7 +65,8 @@ def chat_completion_with_backoff(messages, model, temperature, **kwargs):
         model_name=model,
         temperature=temperature,
         openai_api_key=openai_api_key,
-        request_timeout=60,
+        request_timeout=10,
+        max_retries=1,
     )
     return chat(messages).content
 
