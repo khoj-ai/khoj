@@ -41,7 +41,8 @@ max_prompt_size = {"gpt-3.5-turbo": 4096, "gpt-4": 8192}
 )
 def completion_with_backoff(**kwargs):
     prompt = kwargs.pop("prompt")
-    kwargs["openai_api_key"] = kwargs["api_key"] if kwargs.get("api_key") else os.getenv("OPENAI_API_KEY")
+    if "openai_api_key" not in kwargs:
+        kwargs["openai_api_key"] = os.getenv("OPENAI_API_KEY")
     llm = OpenAI(**kwargs, request_timeout=10, max_retries=1)
     return llm(prompt)
 
@@ -59,12 +60,11 @@ def completion_with_backoff(**kwargs):
     before_sleep=before_sleep_log(logger, logging.DEBUG),
     reraise=True,
 )
-def chat_completion_with_backoff(messages, model, temperature, **kwargs):
-    openai_api_key = kwargs["api_key"] if kwargs.get("api_key") else os.getenv("OPENAI_API_KEY")
+def chat_completion_with_backoff(messages, model_name, temperature, openai_api_key=None):
     chat = ChatOpenAI(
-        model_name=model,
+        model_name=model_name,
         temperature=temperature,
-        openai_api_key=openai_api_key,
+        openai_api_key=openai_api_key or os.getenv("OPENAI_API_KEY"),
         request_timeout=10,
         max_retries=1,
     )

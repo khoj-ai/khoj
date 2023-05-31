@@ -27,7 +27,7 @@ def answer(text, user_query, model, api_key=None, temperature=0.5, max_tokens=50
     logger.debug(f"Prompt for GPT: {prompt}")
     response = completion_with_backoff(
         prompt=prompt,
-        model=model,
+        model_name=model,
         temperature=temperature,
         max_tokens=max_tokens,
         stop='"""',
@@ -52,7 +52,7 @@ def summarize(text, summary_type, model, user_query=None, api_key=None, temperat
     logger.debug(f"Prompt for GPT: {prompt}")
     response = completion_with_backoff(
         prompt=prompt,
-        model=model,
+        model_name=model,
         temperature=temperature,
         max_tokens=max_tokens,
         frequency_penalty=0.2,
@@ -96,7 +96,7 @@ def extract_questions(text, model="text-davinci-003", conversation_log={}, api_k
     # Get Response from GPT
     response = completion_with_backoff(
         prompt=prompt,
-        model=model,
+        model_name=model,
         temperature=temperature,
         max_tokens=max_tokens,
         stop=["A: ", "\n"],
@@ -132,7 +132,7 @@ def extract_search_type(text, model, api_key=None, temperature=0.5, max_tokens=1
     logger.debug(f"Prompt for GPT: {prompt}")
     response = completion_with_backoff(
         prompt=prompt,
-        model=model,
+        model_name=model,
         temperature=temperature,
         max_tokens=max_tokens,
         frequency_penalty=0.2,
@@ -174,9 +174,9 @@ def converse(references, user_query, conversation_log={}, model="gpt-3.5-turbo",
     logger.debug(f"Conversation Context for GPT: {messages}")
     response = chat_completion_with_backoff(
         messages=messages,
-        model=model,
+        model_name=model,
         temperature=temperature,
-        api_key=api_key,
+        openai_api_key=api_key,
     )
 
     # Extract, Clean Message from GPT's Response
