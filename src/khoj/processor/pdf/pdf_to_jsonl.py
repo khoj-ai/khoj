@@ -1,14 +1,15 @@
 # Standard Packages
 import glob
 import logging
-import re
 from pathlib import Path
 from typing import List
+
+# External Packages
+from langchain.document_loaders import PyPDFLoader
 
 # Internal Packages
 from khoj.processor.text_to_jsonl import TextToJsonl
 from khoj.utils.helpers import get_absolute_path, is_none_or_empty, timer
-from khoj.utils.constants import empty_escape_sequences
 from khoj.utils.jsonl import dump_jsonl, compress_jsonl_data
 from khoj.utils.rawconfig import Entry
 
@@ -90,29 +91,17 @@ class PdfToJsonl(TextToJsonl):
 
     @staticmethod
     def extract_pdf_entries(pdf_files):
-        """Extract entries by heading from specified PDF files"""
-
-        # Regex to extract PDF Entries by Heading
-        pdf_heading_regex = r"^#"
+        """Extract entries by page from specified PDF files"""
 
         entries = []
-        entry_to_file_map = []
+        entry_to_location_map = []
         for pdf_file in pdf_files:
-            with open(pdf_file, "r", encoding="utf8") as f:
-                pdf_content = f.read()
-                pdf_entries_per_file = []
-                any_headings = re.search(pdf_heading_regex, pdf_content, flags=re.MULTILINE)
-                for entry in re.split(pdf_heading_regex, pdf_content, flags=re.MULTILINE):
-                    # Add heading level as the regex split removed it from entries with headings
-                    prefix = "#" if entry.startswith("#") else "# " if any_headings else ""
-                    stripped_entry = entry.strip(empty_escape_sequences)
-                    if stripped_entry != "":
-                        pdf_entries_per_file.append(f"{prefix}{stripped_entry}")
+            loader = PyPDFLoader(pdf_file)
+            pdf_entries_per_file = [page.page_content for page in loader.load()]
+            entry_to_location_map += zip(pdf_entries_per_file, [pdf_file] * len(pdf_entries_per_file))
+            entries.extend(pdf_entries_per_file)
 
-                entry_to_file_map += zip(pdf_entries_per_file, [pdf_file] * len(pdf_entries_per_file))
-                entries.extend(pdf_entries_per_file)
-
-        return entries, dict(entry_to_file_map)
+        return entries, dict(entry_to_location_map)
 
     @staticmethod
     def convert_pdf_entries_to_maps(parsed_entries: List[str], entry_to_file_map) -> List[Entry]:
@@ -120,21 +109,19 @@ class PdfToJsonl(TextToJsonl):
         entries = []
         for parsed_entry in parsed_entries:
             entry_filename = Path(entry_to_file_map[parsed_entry])
-            heading = parsed_entry.splitlines()[0] if re.search("^#+\s", parsed_entry) else ""
             # Append base filename to compiled entry for context to model
-            # Increment heading level for heading entries and make filename as its top level heading
-            prefix = f"# {entry_filename.stem}\n#" if heading else f"# {entry_filename.stem}\n"
-            compiled_entry = f"{prefix}{parsed_entry}"
+            heading = f"{entry_filename.stem}\n"
+            compiled_entry = f"{heading}{parsed_entry}"
             entries.append(
                 Entry(
                     compiled=compiled_entry,
                     raw=parsed_entry,
-                    heading=f"{prefix}{heading}",
+                    heading=heading,
                     file=f"{entry_filename}",
                 )
             )
 
-        logger.debug(f"Converted {len(parsed_entries)} pdf entries to dictionaries")
+        logger.debug(f"Converted {len(parsed_entries)} PDF entries to dictionaries")
 
         return entries
 

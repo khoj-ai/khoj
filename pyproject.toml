@@ -44,7 +44,7 @@ dependencies = [
     "tiktoken >= 0.3.0",
     "tenacity >= 8.2.2",
     "pillow == 9.3.0",
-    "pydantic == 1.9.1",
+    "pydantic >= 1.9.1",
     "pyqt6 == 6.3.1",
     "pyyaml == 6.0",
     "rich >= 13.3.1",
@@ -54,6 +54,7 @@ dependencies = [
     "uvicorn == 0.17.6",
     "aiohttp == 3.8.4",
     "langchain >= 0.0.187",
+    "pypdf >= 3.9.0",
 ]
 dynamic = ["version"]
 
