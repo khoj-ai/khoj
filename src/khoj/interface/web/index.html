@@ -44,6 +44,15 @@
             }).join("\n") + `</div>`;
         }
 
+        function render_pdf(query, data) {
+            return `<div id="results-pdf">` + data.map(function (item) {
+                let compiled_lines = item.additional.compiled.split("\n");
+                let filename = compiled_lines.shift();
+                let text_match = compiled_lines.join("\n")
+                return `<h2>${filename}</h2>\n<p>${text_match}</p>`
+            }).join("\n") + `</div>`;
+        }
+
         function render_json(data, query, type) {
             if (type === "markdown") {
                 return render_markdown(query, data);
@@ -55,6 +64,8 @@
                 return data.map(render_image).join('');
             } else if (type === "ledger") {
                 return render_ledger(query, data);
+            } else if (type === "pdf") {
+                return render_pdf(query, data);
             } else {
                 return `<div id="results-plugin">`
                     + data.map((item) => `<p>${item.entry}</p>`).join("\n")
@@ -279,6 +290,7 @@
         #json {
             white-space: pre-wrap;
         }
+        #results-pdf,
         #results-plugin,
         #results-ledger {
             text-align: left;
