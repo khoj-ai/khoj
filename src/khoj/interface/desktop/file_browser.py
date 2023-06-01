@@ -42,6 +42,8 @@ class FileBrowser(QtWidgets.QWidget):
             return "Beancount Files (*.bean *.beancount)"
         elif search_type == SearchType.Markdown:
             return "Markdown Files (*.md *.markdown)"
+        elif search_type == SearchType.Pdf:
+            return "Pdf Files (*.pdf)"
         elif search_type == SearchType.Music:
             return "Org-Music Files (*.org)"
         elif search_type == SearchType.Image:

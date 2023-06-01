@@ -56,6 +56,7 @@ class ContentConfig(ConfigBase):
     image: Optional[ImageContentConfig]
     music: Optional[TextContentConfig]
     markdown: Optional[TextContentConfig]
+    pdf: Optional[TextContentConfig]
     plugins: Optional[Dict[str, TextContentConfig]]
 
 

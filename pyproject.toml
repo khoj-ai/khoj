@@ -21,6 +21,7 @@ keywords = [
     "markdown",
     "beancount",
     "images",
+    "pdf",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
