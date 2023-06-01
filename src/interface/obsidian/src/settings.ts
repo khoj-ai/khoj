@@ -108,6 +108,7 @@ export class KhojSettingTab extends PluginSettingTab {
                     this.plugin.registerInterval(progress_indicator);
 
                     await request(`${this.plugin.settings.khojUrl}/api/update?t=markdown&force=true`);
+                    await request(`${this.plugin.settings.khojUrl}/api/update?t=pdf&force=true`);
                     new Notice('✅ Updated Khoj index.');
 
                     // Reset button once index is updated
