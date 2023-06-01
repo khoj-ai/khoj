@@ -4,7 +4,7 @@
 
 ;; Author: Debanjum Singh Solanky <debanjum@gmail.com>
 ;; Description: A search assistant for your second brain
-;; Keywords: search, chat, org-mode, outlines, markdown, beancount, image
+;; Keywords: search, chat, org-mode, outlines, markdown, pdf, beancount, image
 ;; Version: 0.6.2
 ;; Package-Requires: ((emacs "27.1") (transient "0.3.0") (dash "2.19.1"))
 ;; URL: https://github.com/debanjum/khoj/tree/master/src/interface/emacs
@@ -29,8 +29,8 @@
 ;;; Commentary:
 
 ;; Create a search assistant for your `org-mode', `markdown' notes,
-;; `beancount' transactions and images. This package exposes two
-;; assistance modes, search and chat:
+;; `beancount' transactions, PDFs and images. This package exposes
+;; two assistance modes, search and chat:
 ;;
 ;; Chat provides faster answers, iterative discovery and assisted
 ;; creativity. It requires your OpenAI API key to access GPT models
@@ -95,6 +95,7 @@
                  (const "markdown")
                  (const "ledger")
                  (const "image")
+                 (const "pdf")
                  (const "music")))
 
 
@@ -140,6 +141,8 @@ NO-PAGING FILTER))
        "C-x l  | ledger\n")
      (when (member 'image enabled-content-types)
        "C-x i  | image\n")
+     (when (member 'pdf enabled-content-types)
+       "C-x p  | pdf\n")
      (when (member 'music enabled-content-types)
        "C-x M  | music\n"))))
 
@@ -150,6 +153,7 @@ NO-PAGING FILTER))
 (defun khoj--search-ledger () "Set content-type to `ledger'." (interactive) (setq khoj--content-type "ledger"))
 (defun khoj--search-images () "Set content-type to image." (interactive) (setq khoj--content-type "image"))
 (defun khoj--search-music () "Set content-type to music." (interactive) (setq khoj--content-type "music"))
+(defun khoj--search-pdf () "Set content-type to pdf." (interactive) (setq khoj--content-type "pdf"))
 (defun khoj--improve-rank () "Use cross-encoder to rerank search results." (interactive) (khoj--incremental-search t))
 (defun khoj--make-search-keymap (&optional existing-keymap)
   "Setup keymap to configure Khoj search. Build of EXISTING-KEYMAP when passed."
@@ -164,6 +168,8 @@ NO-PAGING FILTER))
       (define-key kmap (kbd "C-x l") #'khoj--search-ledger))
     (when (member 'image enabled-content-types)
       (define-key kmap (kbd "C-x i") #'khoj--search-images))
+    (when (member 'pdf enabled-content-types)
+      (define-key kmap (kbd "C-x p") #'khoj--search-pdf))
     (when (member 'music enabled-content-types)
       (define-key kmap (kbd "C-x M") #'khoj--search-music))
     kmap))
@@ -544,6 +550,22 @@ CONFIG is json obtained from Khoj config API."
                ;; remove trailing (, ) or SPC from extracted entries string
                (replace-regexp-in-string "[\(\) ]$" "")))
 
+(defun khoj--extract-entries-as-pdf (json-response query)
+  "Convert QUERY, JSON-RESPONSE from API with PDF results to `org-mode' entries."
+  (thread-last
+    json-response
+    ;; Extract and render each pdf entry from response
+    (mapcar (lambda (json-response-item)
+              (thread-last
+                ;; Extract pdf entry from each item in json response
+                (cdr (assoc 'compiled (assoc 'additional json-response-item)))
+                ;; Format pdf entry as a org entry string
+                (format "** %s\n\n"))))
+    ;; Render entries into org formatted string with query set as as top level heading
+    (format "* %s\n%s\n" query)
+    ;; remove leading (, ) or SPC from extracted entries string
+    (replace-regexp-in-string "^[\(\) ]" "")))
+
 (defun khoj--extract-entries-as-images (json-response query)
   "Convert JSON-RESPONSE, QUERY from API to html with images."
   (let ((image-results-buffer-html-format-str "<html>\n<body>\n<h1>%s</h1>%s\n\n</body>\n</html>")
@@ -592,6 +614,7 @@ CONFIG is json obtained from Khoj config API."
      ((and (member 'music enabled-content-types) (equal buffer-name "Music.org")) "music")
      ((and (member 'ledger enabled-content-types) (or (equal file-extension "bean") (equal file-extension "beancount"))) "ledger")
      ((and (member 'org enabled-content-types) (equal file-extension "org")) "org")
+     ((and (member 'org enabled-content-types) (equal file-extension "pdf")) "pdf")
      ((and (member 'markdown enabled-content-types) (or (equal file-extension "markdown") (equal file-extension "md"))) "markdown")
      (t khoj-default-content-type))))
 
@@ -647,16 +670,19 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
       (insert
        (cond ((or (equal content-type "org") (equal content-type "music")) (khoj--extract-entries-as-org json-response query))
              ((equal content-type "markdown") (khoj--extract-entries-as-markdown json-response query))
+             ((equal content-type "pdf") (khoj--extract-entries-as-pdf json-response query))
              ((equal content-type "ledger") (khoj--extract-entries-as-ledger json-response query))
              ((equal content-type "image") (khoj--extract-entries-as-images json-response query))
              (t (khoj--extract-entries json-response query))))
-      (cond ((equal content-type "org") (progn (visual-line-mode)
-                                               (org-mode)
-                                               (setq-local
-                                                org-startup-folded "showall"
-                                                org-hide-leading-stars t
-                                                org-startup-with-inline-images t)
-                                               (org-set-startup-visibility)))
+      (cond ((or (equal content-type "pdf")
+                 (equal content-type "org"))
+             (progn (visual-line-mode)
+                    (org-mode)
+                   (setq-local
+                    org-startup-folded "showall"
+                    org-hide-leading-stars t
+                    org-startup-with-inline-images t)
+                   (org-set-startup-visibility)))
             ((equal content-type "markdown") (progn (markdown-mode)
                                                     (visual-line-mode)))
             ((equal content-type "ledger") (beancount-mode))
@@ -973,7 +999,7 @@ Paragraph only starts at first text after blank line."
   ;; set content type to: last used > based on current buffer > default type
   :init-value (lambda (obj) (oset obj value (format "--content-type=%s" (or khoj--content-type (khoj--buffer-name-to-content-type (buffer-name))))))
   ;; dynamically set choices to content types enabled on khoj backend
-  :choices (or (ignore-errors (mapcar #'symbol-name (khoj--get-enabled-content-types))) '("org" "markdown" "ledger" "music" "image")))
+  :choices (or (ignore-errors (mapcar #'symbol-name (khoj--get-enabled-content-types))) '("org" "markdown" "pdf" "ledger" "music" "image")))
 
 (transient-define-suffix khoj--search-command (&optional args)
   (interactive (list (transient-args transient-current-command)))
