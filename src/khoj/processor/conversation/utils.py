@@ -97,9 +97,18 @@ def generate_chatml_messages_with_context(
     # Truncate oldest messages from conversation history until under max supported prompt size by model
     encoder = tiktoken.encoding_for_model(model_name)
     tokens = sum([len(encoder.encode(content)) for message in messages for content in message.content])
-    while tokens > max_prompt_size[model_name]:
+    while tokens > max_prompt_size[model_name] and len(messages) > 1:
         messages.pop()
         tokens = sum([len(encoder.encode(content)) for message in messages for content in message.content])
+
+    # Truncate last message if still over max supported prompt size by model
+    if tokens > max_prompt_size[model_name]:
+        last_message = messages[-1]
+        truncated_message = encoder.decode(encoder.encode(last_message.content))
+        logger.debug(
+            f"Truncate last message to fit within max prompt size of {max_prompt_size[model_name]} supported by {model_name} model:\n {truncated_message}"
+        )
+        messages = [ChatMessage(content=[truncated_message], role=last_message.role)]
 
     # Return message in chronological order
     return messages[::-1]
