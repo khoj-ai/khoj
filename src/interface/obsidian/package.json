@@ -1,14 +1,14 @@
 {
     "name": "Khoj",
     "version": "0.6.2",
-    "description": "Natural, Incremental Search for your Second Brain 🦅",
+    "description": "An AI Personal Assistant for your Digital Brain 🦅",
     "main": "src/main.js",
     "scripts": {
         "dev": "node esbuild.config.mjs",
         "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
         "version": "node version-bump.mjs && git add manifest.json versions.json"
     },
-    "keywords": ["search"],
+    "keywords": ["search", "chat", "AI", "assistant"],
     "author": "Debanjum Singh Solanky",
     "license": "GPL-3.0-or-later",
     "devDependencies": {

@@ -1,7 +1,7 @@
 * Khoj Emacs 🦅
   [[https://stable.melpa.org/#/khoj][file:https://stable.melpa.org/packages/khoj-badge.svg]] [[https://melpa.org/#/khoj][file:https://melpa.org/packages/khoj-badge.svg]] [[https://github.com/debanjum/khoj/actions/workflows/build_khoj_el.yml][https://github.com/debanjum/khoj/actions/workflows/build_khoj_el.yml/badge.svg?]]  [[https://github.com/debanjum/khoj/actions/workflows/test_khoj_el.yml][https://github.com/debanjum/khoj/actions/workflows/test_khoj_el.yml/badge.svg?]]
 
-  /A search assistant for your second brain/
+  /An AI personal assistant for your digital brain/
 
 ** Table of Contents
   - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#features][Features]]

@@ -3,7 +3,7 @@
 [![dockerize](https://github.com/debanjum/khoj/actions/workflows/dockerize.yml/badge.svg)](https://github.com/debanjum/khoj/pkgs/container/khoj)
 [![pypi](https://github.com/debanjum/khoj/actions/workflows/pypi.yml/badge.svg)](https://pypi.org/project/khoj-assistant/)
 
-*A search assistant for your second brain*
+*An AI personal assistant for your digital brain*
 
 **Supported Plugins**
 

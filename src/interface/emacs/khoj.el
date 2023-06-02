@@ -1,9 +1,9 @@
-;;; khoj.el --- A search assistant for your second brain -*- lexical-binding: t -*-
+;;; khoj.el --- AI personal assistant for your digital brain -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2021-2022 Debanjum Singh Solanky
 
 ;; Author: Debanjum Singh Solanky <debanjum@gmail.com>
-;; Description: A search assistant for your second brain
+;; Description: An AI personal assistant for your digital brain
 ;; Keywords: search, chat, org-mode, outlines, markdown, pdf, beancount, image
 ;; Version: 0.6.2
 ;; Package-Requires: ((emacs "27.1") (transient "0.3.0") (dash "2.19.1"))
@@ -28,7 +28,7 @@
 
 ;;; Commentary:
 
-;; Create a search assistant for your `org-mode', `markdown' notes,
+;; Create an AI personal assistant for your `org-mode', `markdown' notes,
 ;; `beancount' transactions, PDFs and images. This package exposes
 ;; two assistance modes, search and chat:
 ;;
