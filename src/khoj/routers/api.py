@@ -228,6 +228,9 @@ def chat(q: Optional[str] = None):
     model = state.processor_config.conversation.model
     chat_model = state.processor_config.conversation.chat_model
     user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    conversation_type = "general" if q.startswith("@general") else "notes"
+    compiled_references = []
+    inferred_queries = []
 
     # Load Conversation History
     chat_session = state.processor_config.conversation.chat_session
@@ -240,16 +243,21 @@ def chat(q: Optional[str] = None):
         else:
             return {"status": "ok", "response": []}
 
-    # Infer search queries from user message
-    with timer("Extracting search queries took", logger):
-        inferred_queries = extract_questions(q, model=model, api_key=api_key, conversation_log=meta_log)
+    if conversation_type == "notes":
+        # Infer search queries from user message
+        with timer("Extracting search queries took", logger):
+            inferred_queries = extract_questions(q, model=model, api_key=api_key, conversation_log=meta_log)
 
-    # Collate search results as context for GPT
-    with timer("Searching knowledge base took", logger):
-        result_list = []
-        for query in inferred_queries:
-            result_list.extend(search(query, n=5, r=True, score_threshold=-5.0, dedupe=False))
-        compiled_references = [item.additional["compiled"] for item in result_list]
+        # Collate search results as context for GPT
+        with timer("Searching knowledge base took", logger):
+            result_list = []
+            for query in inferred_queries:
+                result_list.extend(search(query, n=5, r=True, score_threshold=-5.0, dedupe=False))
+            compiled_references = [item.additional["compiled"] for item in result_list]
+
+    # Switch to general conversation type if no relevant notes found for the given query
+    conversation_type = "notes" if compiled_references else "general"
+    logger.debug(f"Conversation Type: {conversation_type}")
 
     try:
         with timer("Generating chat response took", logger):

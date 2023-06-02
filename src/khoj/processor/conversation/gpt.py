@@ -153,9 +153,7 @@ def converse(references, user_query, conversation_log={}, model="gpt-3.5-turbo",
     compiled_references = "\n\n".join({f"# {item}" for item in references})
 
     # Get Conversation Primer appropriate to Conversation Type
-    conversation_type = "general" if user_query.startswith("@general") or compiled_references.strip() == "" else "notes"
-    logger.debug(f"Conversation Type: {conversation_type}")
-    if conversation_type == "general":
+    if compiled_references == []:
         conversation_primer = prompts.general_conversation.format(current_date=current_date, query=user_query)
     else:
         conversation_primer = prompts.notes_conversation.format(
