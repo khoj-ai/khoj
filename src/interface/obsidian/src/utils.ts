@@ -12,6 +12,7 @@ export function getVaultAbsolutePath(vault: Vault): string {
 export async function configureKhojBackend(vault: Vault, setting: KhojSetting, notify: boolean = true) {
     let vaultPath = getVaultAbsolutePath(vault);
     let mdInVault = `${vaultPath}/**/*.md`;
+    let pdfInVault = `${vaultPath}/**/*.pdf`;
     let khojConfigUrl = `${setting.khojUrl}/api/config/data`;
 
     // Check if khoj backend is configured, note if cannot connect to backend
@@ -32,7 +33,8 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
     let indexName = vaultPath.replace(/\//g, '_').replace(/\\/g, '_').replace(/ /g, '_').replace(/:/g, '_');
     // Get default config fields from khoj backend
     let defaultConfig = await request(`${khojConfigUrl}/default`).then(response => JSON.parse(response));
-    let khojDefaultIndexDirectory = getIndexDirectoryFromBackendConfig(defaultConfig["content-type"]["markdown"]["embeddings-file"]);
+    let khojDefaultMdIndexDirectory = getIndexDirectoryFromBackendConfig(defaultConfig["content-type"]["markdown"]["embeddings-file"]);
+    let khojDefaultPdfIndexDirectory = getIndexDirectoryFromBackendConfig(defaultConfig["content-type"]["pdf"]["embeddings-file"]);
     let khojDefaultChatDirectory = getIndexDirectoryFromBackendConfig(defaultConfig["processor"]["conversation"]["conversation-logfile"]);
     let khojDefaultChatModelName = defaultConfig["processor"]["conversation"]["model"];
 
@@ -47,8 +49,14 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
                     "markdown": {
                         "input-filter": [mdInVault],
                         "input-files": null,
-                        "embeddings-file": `${khojDefaultIndexDirectory}/${indexName}.pt`,
-                        "compressed-jsonl": `${khojDefaultIndexDirectory}/${indexName}.jsonl.gz`,
+                        "embeddings-file": `${khojDefaultMdIndexDirectory}/${indexName}.pt`,
+                        "compressed-jsonl": `${khojDefaultMdIndexDirectory}/${indexName}.jsonl.gz`,
+                    },
+                    "pdf": {
+                        "input-filter": [pdfInVault],
+                        "input-files": null,
+                        "embeddings-file": `${khojDefaultPdfIndexDirectory}/${indexName}.pt`,
+                        "compressed-jsonl": `${khojDefaultPdfIndexDirectory}/${indexName}.jsonl.gz`,
                     }
                 }
             }
@@ -59,8 +67,8 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
                 data["content-type"]["markdown"] = {
                     "input-filter": [mdInVault],
                     "input-files": null,
-                    "embeddings-file": `${khojDefaultIndexDirectory}/${indexName}.pt`,
-                    "compressed-jsonl": `${khojDefaultIndexDirectory}/${indexName}.jsonl.gz`,
+                    "embeddings-file": `${khojDefaultMdIndexDirectory}/${indexName}.pt`,
+                    "compressed-jsonl": `${khojDefaultMdIndexDirectory}/${indexName}.jsonl.gz`,
                 }
             }
             // Else if khoj is not configured to index markdown files in configured obsidian vault
@@ -68,12 +76,37 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
                 data["content-type"]["markdown"]["input-filter"][0] !== mdInVault) {
                 // Update markdown config in khoj content-type config
                 // Set markdown config to only index markdown files in configured obsidian vault
-                let khojIndexDirectory = getIndexDirectoryFromBackendConfig(data["content-type"]["markdown"]["embeddings-file"]);
+                let khojMdIndexDirectory = getIndexDirectoryFromBackendConfig(data["content-type"]["markdown"]["embeddings-file"]);
                 data["content-type"]["markdown"] = {
                     "input-filter": [mdInVault],
                     "input-files": null,
-                    "embeddings-file": `${khojIndexDirectory}/${indexName}.pt`,
-                    "compressed-jsonl": `${khojIndexDirectory}/${indexName}.jsonl.gz`,
+                    "embeddings-file": `${khojMdIndexDirectory}/${indexName}.pt`,
+                    "compressed-jsonl": `${khojMdIndexDirectory}/${indexName}.jsonl.gz`,
+                }
+            }
+
+            if (khoj_already_configured && !data["content-type"]["pdf"]) {
+                // Add pdf config to khoj content-type config
+                // Set pdf config to index pdf files in configured obsidian vault
+                data["content-type"]["pdf"] = {
+                    "input-filter": [pdfInVault],
+                    "input-files": null,
+                    "embeddings-file": `${khojDefaultPdfIndexDirectory}/${indexName}.pt`,
+                    "compressed-jsonl": `${khojDefaultPdfIndexDirectory}/${indexName}.jsonl.gz`,
+                }
+            }
+            // Else if khoj is not configured to index pdf files in configured obsidian vault
+            else if (khoj_already_configured &&
+                (data["content-type"]["pdf"]["input-filter"].length != 1 ||
+                data["content-type"]["pdf"]["input-filter"][0] !== pdfInVault)) {
+                // Update pdf config in khoj content-type config
+                // Set pdf config to only index pdf files in configured obsidian vault
+                let khojPdfIndexDirectory = getIndexDirectoryFromBackendConfig(data["content-type"]["pdf"]["embeddings-file"]);
+                data["content-type"]["pdf"] = {
+                    "input-filter": [pdfInVault],
+                    "input-files": null,
+                    "embeddings-file": `${khojPdfIndexDirectory}/${indexName}.pt`,
+                    "compressed-jsonl": `${khojPdfIndexDirectory}/${indexName}.jsonl.gz`,
                 }
             }
 

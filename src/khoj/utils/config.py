@@ -22,6 +22,7 @@ class SearchType(str, Enum):
     Music = "music"
     Markdown = "markdown"
     Image = "image"
+    Pdf = "pdf"
 
 
 class ProcessorType(str, Enum):
@@ -61,6 +62,7 @@ class SearchModels:
     ledger_search: TextSearchModel = None
     music_search: TextSearchModel = None
     markdown_search: TextSearchModel = None
+    pdf_search: TextSearchModel = None
     image_search: ImageSearchModel = None
     plugin_search: Dict[str, TextSearchModel] = None
 

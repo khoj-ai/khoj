@@ -89,12 +89,24 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
     async getSuggestions(query: string): Promise<SearchResult[]> {
         // Query Khoj backend for search results
         let encodedQuery = encodeURIComponent(query);
-        let searchUrl = `${this.setting.khojUrl}/api/search?q=${encodedQuery}&n=${this.setting.resultsCount}&r=${this.rerank}&t=markdown`;
-        let response = await request(searchUrl);
-        let data = JSON.parse(response);
-        let results = data
+        let searchUrl = `${this.setting.khojUrl}/api/search?q=${encodedQuery}&n=${this.setting.resultsCount}&r=${this.rerank}`;
+
+        // Get search results for markdown and pdf files
+        let mdResponse = await request(`${searchUrl}&t=markdown`);
+        let pdfResponse = await request(`${searchUrl}&t=pdf`);
+
+        // Parse search results
+        let mdData = JSON.parse(mdResponse)
             .filter((result: any) => !this.find_similar_notes || !result.additional.file.endsWith(this.app.workspace.getActiveFile()?.path))
-            .map((result: any) => { return { entry: result.entry, file: result.additional.file } as SearchResult; });
+            .map((result: any) => { return { entry: result.entry, score: result.score, file: result.additional.file }; });
+        let pdfData = JSON.parse(pdfResponse)
+            .filter((result: any) => !this.find_similar_notes || !result.additional.file.endsWith(this.app.workspace.getActiveFile()?.path))
+            .map((result: any) => { return { entry: `## ${result.additional.compiled}`, score: result.score, file: result.additional.file } as SearchResult; })
+
+        // Combine markdown and PDF results and sort them by score
+        let results = mdData.concat(pdfData)
+            .sort((a: any, b: any) => b.score - a.score)
+            .map((result: any) => { return { entry: result.entry, file: result.file } as SearchResult; })
 
         this.query = query;
         return results;
@@ -124,11 +136,12 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
     }
 
     async onChooseSuggestion(result: SearchResult, _: MouseEvent | KeyboardEvent) {
-        // Get all markdown files in vault
+        // Get all markdown and PDF files in vault
         const mdFiles = this.app.vault.getMarkdownFiles();
+        const pdfFiles = this.app.vault.getFiles().filter(file => file.extension === 'pdf');
 
         // Find the vault file matching file of chosen search result
-        let file_match = mdFiles
+        let file_match = mdFiles.concat(pdfFiles)
             // Sort by descending length of path
             // This finds longest path match when multiple files have same name
             .sort((a, b) => b.path.length - a.path.length)
@@ -138,7 +151,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
 
         // Open vault file at heading of chosen search result
         if (file_match) {
-            let resultHeading = result.entry.split('\n', 1)[0];
+            let resultHeading = file_match.extension !== 'pdf' ? result.entry.split('\n', 1)[0] : '';
             let linkToEntry = `${file_match.path}${resultHeading}`
             this.app.workspace.openLinkText(linkToEntry, '');
             console.log(`Link: ${linkToEntry}, File: ${file_match.path}, Heading: ${resultHeading}`);

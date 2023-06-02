@@ -109,6 +109,17 @@ def search(
         with timer("Collating results took", logger):
             results = text_search.collate_results(hits, entries, results_count)
 
+    elif (t == SearchType.Pdf or t == None) and state.model.pdf_search:
+        # query pdf files
+        with timer("Query took", logger):
+            hits, entries = text_search.query(
+                user_query, state.model.pdf_search, rank_results=r, score_threshold=score_threshold, dedupe=dedupe
+            )
+
+        # collate and return results
+        with timer("Collating results took", logger):
+            results = text_search.collate_results(hits, entries, results_count)
+
     elif (t == SearchType.Ledger or t == None) and state.model.ledger_search:
         # query transactions
         with timer("Query took", logger):

@@ -42,7 +42,7 @@ https://github.com/debanjum/khoj/assets/6413477/3e33d8ea-25bb-46c8-a3bf-c92f78d0
 1. Install Khoj via `pip` and start Khoj backend in non-gui mode
 2. Install Khoj plugin via Community Plugins settings pane on Obsidian app
 3. Check the new Khoj plugin settings
-4. Wait for Khoj backend to index markdown files in the current Vault
+4. Wait for Khoj backend to index markdown, PDF files in the current Vault
 5. Open Khoj plugin on Obsidian via Search button on Left Pane
 6. Search \"*Announce plugin to folks*\" in the [Obsidian Plugin docs](https://marcus.se.net/obsidian-plugin-docs/)
 7. Jump to the [search result](https://marcus.se.net/obsidian-plugin-docs/publishing/submit-your-plugin)
@@ -151,7 +151,7 @@ The plugin implements the following functionality to search your notes with Khoj
 - [X] Open the Khoj search modal via left ribbon icon or the *Khoj: Search* command
 - [X] Render results as Markdown preview to improve readability
 - [X] Configure Khoj via the plugin setting tab on the settings page
-  - Set Obsidian Vault to Index with Khoj. Defaults to all markdown files in current Vault
+  - Set Obsidian Vault to Index with Khoj. Defaults to all markdown, PDF files in current Vault
   - Set URL of Khoj backend
   - Set Number of Search Results to show in Search Modal
 - [X] Allow reranking of result to improve search quality

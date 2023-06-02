@@ -15,6 +15,7 @@ from khoj.processor.ledger.beancount_to_jsonl import BeancountToJsonl
 from khoj.processor.jsonl.jsonl_to_jsonl import JsonlToJsonl
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
+from khoj.processor.pdf.pdf_to_jsonl import PdfToJsonl
 from khoj.search_type import image_search, text_search
 from khoj.utils import constants, state
 from khoj.utils.config import SearchType, SearchModels, ProcessorConfigModel, ConversationProcessorConfigModel
@@ -128,6 +129,18 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
             BeancountToJsonl,
             config.content_type.ledger,
             search_config=config.search_type.symmetric,
+            regenerate=regenerate,
+            filters=[DateFilter(), WordFilter(), FileFilter()],
+        )
+
+    # Initialize PDF Search
+    if (t == state.SearchType.Pdf or t == None) and config.content_type.pdf:
+        logger.info("💸 Setting up search for pdf")
+        # Extract Entries, Generate PDF Embeddings
+        model.pdf_search = text_search.setup(
+            PdfToJsonl,
+            config.content_type.pdf,
+            search_config=config.search_type.asymmetric,
             regenerate=regenerate,
             filters=[DateFilter(), WordFilter(), FileFilter()],
         )
