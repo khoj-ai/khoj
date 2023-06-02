@@ -825,6 +825,10 @@ RECEIVE-DATE is the message receive date."
    (propertize (format "^{ [fn:%x]}" khoj--reference-count) 'help-echo reference)
    (thread-last
      reference
+     ;; remove filename top heading line from reference
+     ;; prevents actual reference heading in next line jumping out of references footnote section
+     (replace-regexp-in-string "^\* .*\n" "")
+     ;; remove multiple, consecutive empty lines from reference
      (replace-regexp-in-string "\n\n" "\n")
      (format "\n[fn:%x] %s" khoj--reference-count))))
 
