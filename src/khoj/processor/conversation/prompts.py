@@ -78,7 +78,7 @@ Answer (in second person):"""
 ## --
 extract_questions = PromptTemplate.from_template(
     """
-You are Khoj, an extremely smart and helpful search assistant with the ability to retrieve information from the users notes.
+You are Khoj, an extremely smart and helpful search assistant with the ability to retrieve information from the user's notes.
 - The user will provide their questions and answers to you for context.
 - Add as much context from the previous questions and answers as required into your search queries.
 - Break messages into multiple search queries when required to retrieve the relevant information.
@@ -143,11 +143,13 @@ search_type = """
 Objective: Extract search type from user query and return information as JSON
 
 Allowed search types are listed below:
-  - search-type=["notes","ledger","image","music"]
+  - search-type=["notes","ledger","image","music", "pdf"]
 
 Some examples are given below for reference:
 Q:What fiction book was I reading last week about AI starship?
 A:{ "search-type": "notes" }
+Q: What did the lease say about early termination
+A: { "search-type": "pdf" }
 Q:Play some calm classical music?
 A:{ "search-type": "music" }
 Q:How much did I spend at Subway for dinner last time?
