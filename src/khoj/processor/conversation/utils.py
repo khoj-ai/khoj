@@ -41,7 +41,9 @@ max_prompt_size = {"gpt-3.5-turbo": 4096, "gpt-4": 8192}
 )
 def completion_with_backoff(**kwargs):
     prompt = kwargs.pop("prompt")
-    if "openai_api_key" not in kwargs:
+    if "api_key" in kwargs:
+        kwargs["openai_api_key"] = kwargs.get("api_key")
+    else:
         kwargs["openai_api_key"] = os.getenv("OPENAI_API_KEY")
     llm = OpenAI(**kwargs, request_timeout=10, max_retries=1)
     return llm(prompt)
