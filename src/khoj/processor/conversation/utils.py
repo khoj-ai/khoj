@@ -43,7 +43,7 @@ def completion_with_backoff(**kwargs):
     prompt = kwargs.pop("prompt")
     if "api_key" in kwargs:
         kwargs["openai_api_key"] = kwargs.get("api_key")
-    elif "openai_api_key" not in kwargs:
+    else:
         kwargs["openai_api_key"] = os.getenv("OPENAI_API_KEY")
     llm = OpenAI(**kwargs, request_timeout=10, max_retries=1)
     return llm(prompt)
