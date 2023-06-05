@@ -89,7 +89,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
     async getSuggestions(query: string): Promise<SearchResult[]> {
         // Query Khoj backend for search results
         let encodedQuery = encodeURIComponent(query);
-        let searchUrl = `${this.setting.khojUrl}/api/search?q=${encodedQuery}&n=${this.setting.resultsCount}&r=${this.rerank}`;
+        let searchUrl = `${this.setting.khojUrl}/api/search?q=${encodedQuery}&n=${this.setting.resultsCount}&r=${this.rerank}&client=obsidian`;
 
         // Get search results for markdown and pdf files
         let mdResponse = await request(`${searchUrl}&t=markdown`);
