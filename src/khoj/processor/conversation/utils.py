@@ -110,7 +110,7 @@ def generate_chatml_messages_with_context(
         logger.debug(
             f"Truncate last message to fit within max prompt size of {max_prompt_size[model_name]} supported by {model_name} model:\n {truncated_message}"
         )
-        messages = [ChatMessage(content=[truncated_message], role=last_message.role)]
+        messages = [ChatMessage(content=truncated_message, role=last_message.role)]
 
     # Return message in chronological order
     return messages[::-1]
