@@ -98,10 +98,10 @@ def generate_chatml_messages_with_context(
 
     # Truncate oldest messages from conversation history until under max supported prompt size by model
     encoder = tiktoken.encoding_for_model(model_name)
-    tokens = sum([len(encoder.encode(content)) for message in messages for content in message.content])
+    tokens = sum([len(encoder.encode(message.content)) for message in messages])
     while tokens > max_prompt_size[model_name] and len(messages) > 1:
         messages.pop()
-        tokens = sum([len(encoder.encode(content)) for message in messages for content in message.content])
+        tokens = sum([len(encoder.encode(message.content)) for message in messages])
 
     # Truncate last message if still over max supported prompt size by model
     if tokens > max_prompt_size[model_name]:
