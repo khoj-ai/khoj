@@ -7,6 +7,7 @@ from typing import Dict, List
 from fastapi import FastAPI
 from fastapi import HTTPException
 import sqlite3
+import requests
 import uvicorn
 
 
@@ -24,6 +25,15 @@ def v1_telemetry(telemetry_data: List[Dict[str, str]]):
         error_message = "Post body is empty. It should contain some telemetry data"
         logger.error(error_message)
         raise HTTPException(status_code=500, detail=error_message)
+
+    # POST request to new khoj telemetry server
+    try:
+        requests.post("https://telemetry.khoj.dev/v1/telemetry", json=telemetry_data)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail="Could not POST equest to new khoj telemetry server. Contact developer to get this fixed.",
+        )
 
     # Insert recieved telemetry data into SQLite db
     logger.info(f"Insert row into telemetry table at {sqlfile}: {telemetry_data}")
