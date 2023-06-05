@@ -43,3 +43,5 @@ jobs:
           file: src/telemetry/Dockerfile
           push: true
           tags: ghcr.io/${{ github.repository }}-telemetry:${{ env.DOCKER_IMAGE_TAG }}
+          secrets: |
+            "POSTHOG_API_KEY=${{ secrets.POSTHOG_API_KEY }}"

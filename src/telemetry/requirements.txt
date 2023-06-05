@@ -1,3 +1,4 @@
 uvicorn
 fastapi
-requests
+posthog
+python-dotenv

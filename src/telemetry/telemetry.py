@@ -1,13 +1,15 @@
 # Standard Packages
 import argparse
 import logging
+import os
 from typing import Dict, List
 
 # External Packages
 from fastapi import FastAPI
 from fastapi import HTTPException
+from posthog import Posthog
+from dotenv import load_dotenv
 import sqlite3
-import requests
 import uvicorn
 
 
@@ -16,6 +18,8 @@ app = FastAPI()
 sqlfile = "data/khoj.sqlite"
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
+load_dotenv()
+posthog = Posthog(project_api_key=os.getenv("POSTHOG_API_KEY"), host="https://app.posthog.com")
 
 
 @app.post("/v1/telemetry")
@@ -26,9 +30,10 @@ def v1_telemetry(telemetry_data: List[Dict[str, str]]):
         logger.error(error_message)
         raise HTTPException(status_code=500, detail=error_message)
 
-    # POST request to new khoj telemetry server
+    # POST request to khoj posthog server
     try:
-        requests.post("https://telemetry.khoj.dev/v1/telemetry", json=telemetry_data)
+        for row in telemetry_data:
+            posthog.capture(row["server_id"], "api_request", row)
     except Exception as e:
         raise HTTPException(
             status_code=500,
