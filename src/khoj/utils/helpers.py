@@ -3,11 +3,11 @@ from __future__ import annotations  # to avoid quoting type hints
 from collections import OrderedDict
 import datetime
 from importlib import import_module
+from importlib.metadata import version
 import logging
 from os import path
 from pathlib import Path
 import platform
-import requests
 import sys
 from time import perf_counter
 import torch
@@ -184,6 +184,7 @@ def log_telemetry(telemetry_type: str, api: str = None, client: str = None, app_
     request_body = {
         "telemetry_type": telemetry_type,
         "server_id": get_server_id(),
+        "server_version": version("khoj-assistant"),
         "os": platform.system(),
         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
