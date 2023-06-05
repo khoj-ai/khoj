@@ -1,7 +1,7 @@
 {
     "name": "Khoj Chat",
     "short_name": "Khoj Chat",
-    "description": "A personal assistant for your notes",
+    "description": "An AI personal assistant for your digital brain",
     "icons": [
         {
             "src": "/static/assets/icons/favicon-144x144.png",
