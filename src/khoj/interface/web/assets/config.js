@@ -46,7 +46,7 @@ regenerateButton.addEventListener("click", (event) => {
     event.preventDefault();
     regenerateButton.style.cursor = "progress";
     regenerateButton.disabled = true;
-    fetch("/api/update?force=true")
+    fetch("/api/update?force=true&client=web")
         .then(response => response.json())
         .then(data => {
             regenerateButton.style.cursor = "pointer";

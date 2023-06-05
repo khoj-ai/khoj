@@ -90,8 +90,8 @@
 
             // Generate Backend API URL to execute Search
             url = type === "image"
-                ? `/api/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}`
-                : `/api/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}&r=${rerank}`;
+                ? `/api/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}&client=web`
+                : `/api/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}&r=${rerank}&client=web`;
 
             // Execute Search and Render Results
             fetch(url)
@@ -107,7 +107,7 @@
 
         function updateIndex() {
             type = document.getElementById("type").value;
-            fetch(`/api/update?t=${type}`)
+            fetch(`/api/update?t=${type}&client=web`)
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
