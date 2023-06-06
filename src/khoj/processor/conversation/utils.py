@@ -102,6 +102,7 @@ def generate_chatml_messages_with_context(
     # Return message in chronological order
     return messages[::-1]
 
+
 def truncate_message(messages, max_prompt_size, model_name):
     """Truncate messages to fit within max prompt size supported by model"""
     encoder = tiktoken.encoding_for_model(model_name)
@@ -112,8 +113,8 @@ def truncate_message(messages, max_prompt_size, model_name):
 
     # Truncate last message if still over max supported prompt size by model
     if tokens > max_prompt_size:
-        last_message = '\n'.join(messages[-1].content.split("\n")[:-1])
-        original_question = '\n'.join(messages[-1].content.split("\n")[-1:])
+        last_message = "\n".join(messages[-1].content.split("\n")[:-1])
+        original_question = "\n".join(messages[-1].content.split("\n")[-1:])
         original_question_tokens = len(encoder.encode(original_question))
         remaining_tokens = max_prompt_size - original_question_tokens
         truncated_message = encoder.decode(encoder.encode(last_message)[:remaining_tokens]).strip()
