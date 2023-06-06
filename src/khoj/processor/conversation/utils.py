@@ -106,7 +106,6 @@ def truncate_message(messages, max_prompt_size, model_name):
     """Truncate messages to fit within max prompt size supported by model"""
     encoder = tiktoken.encoding_for_model(model_name)
     tokens = sum([len(encoder.encode(message.content)) for message in messages])
-    logger.info(f"num tokens: {tokens}")
     while tokens > max_prompt_size and len(messages) > 1:
         messages.pop()
         tokens = sum([len(encoder.encode(message.content)) for message in messages])
