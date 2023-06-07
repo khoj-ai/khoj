@@ -97,13 +97,13 @@ def generate_chatml_messages_with_context(
     messages = user_chatml_message + rest_backnforths + system_chatml_message
 
     # Truncate oldest messages from conversation history until under max supported prompt size by model
-    messages = truncate_message(messages, max_prompt_size[model_name], model_name)
+    messages = truncate_messages(messages, max_prompt_size[model_name], model_name)
 
     # Return message in chronological order
     return messages[::-1]
 
 
-def truncate_message(messages, max_prompt_size, model_name):
+def truncate_messages(messages, max_prompt_size, model_name):
     """Truncate messages to fit within max prompt size supported by model"""
     encoder = tiktoken.encoding_for_model(model_name)
     tokens = sum([len(encoder.encode(message.content)) for message in messages])
