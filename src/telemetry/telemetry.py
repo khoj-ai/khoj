@@ -53,7 +53,7 @@ def v1_telemetry(telemetry_data: List[Dict[str, str]]):
         # Log telemetry data
         for item in telemetry_data:
             cur.execute(
-                "INSERT INTO usage (time, type, server_id, os, api, client) VALUES (?, ?, ?, ?, ?, ?)",
+                "INSERT INTO usage (time, type, server_id, os, api, client, server_version) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
                     item["timestamp"],
                     item["telemetry_type"],
@@ -61,6 +61,7 @@ def v1_telemetry(telemetry_data: List[Dict[str, str]]):
                     item["os"],
                     item.get("api"),
                     item.get("client"),
+                    item.get("server_version", None),
                 ),
             )
         # Commit the changes
