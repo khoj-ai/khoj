@@ -10,12 +10,16 @@ from typing import List, Optional, Union
 # External Packages
 from fastapi import APIRouter
 from fastapi import HTTPException
+from sentence_transformers import util
 
 # Internal Packages
 from khoj.configure import configure_processor, configure_search
 from khoj.processor.conversation.gpt import converse, extract_questions
 from khoj.processor.conversation.utils import message_to_log, message_to_prompt
 from khoj.search_type import image_search, text_search
+from khoj.search_filter.date_filter import DateFilter
+from khoj.search_filter.file_filter import FileFilter
+from khoj.search_filter.word_filter import WordFilter
 from khoj.utils.helpers import log_telemetry, timer
 from khoj.utils.rawconfig import (
     FullConfig,
@@ -131,6 +135,20 @@ def search(
         logger.debug(f"Return response from query cache")
         return state.query_cache[query_cache_key]
 
+    # Encode query with filter terms removed
+    for filter in [DateFilter(), WordFilter(), FileFilter()]:
+        defiltered_query = filter.defilter(user_query)
+
+    encoded_asymmetric_query = state.model.org_search.bi_encoder.encode(
+        [defiltered_query], convert_to_tensor=True, device=state.device
+    )
+    encoded_asymmetric_query = util.normalize_embeddings(encoded_asymmetric_query)
+
+    encoded_symmetric_query = state.model.org_search.bi_encoder.encode(
+        [defiltered_query], convert_to_tensor=True, device=state.device
+    )
+    encoded_symmetric_query = util.normalize_embeddings(encoded_symmetric_query)
+
     with concurrent.futures.ThreadPoolExecutor() as executor:
         if (t == SearchType.Org or t == None) and state.model.org_search:
             # query org-mode notes
@@ -139,6 +157,7 @@ def search(
                     text_search.query,
                     user_query,
                     state.model.org_search,
+                    question_embedding=encoded_asymmetric_query,
                     rank_results=r,
                     score_threshold=score_threshold,
                     dedupe=dedupe,
@@ -152,6 +171,7 @@ def search(
                     text_search.query,
                     user_query,
                     state.model.markdown_search,
+                    question_embedding=encoded_asymmetric_query,
                     rank_results=r,
                     score_threshold=score_threshold,
                     dedupe=dedupe,
@@ -165,6 +185,7 @@ def search(
                     text_search.query,
                     user_query,
                     state.model.pdf_search,
+                    question_embedding=encoded_asymmetric_query,
                     rank_results=r,
                     score_threshold=score_threshold,
                     dedupe=dedupe,
@@ -178,6 +199,7 @@ def search(
                     text_search.query,
                     user_query,
                     state.model.ledger_search,
+                    question_embedding=encoded_symmetric_query,
                     rank_results=r,
                     score_threshold=score_threshold,
                     dedupe=dedupe,
@@ -191,6 +213,7 @@ def search(
                     text_search.query,
                     user_query,
                     state.model.music_search,
+                    question_embedding=encoded_asymmetric_query,
                     rank_results=r,
                     score_threshold=score_threshold,
                     dedupe=dedupe,
@@ -217,6 +240,7 @@ def search(
                     user_query,
                     # Get plugin search model for specified search type, or the first one if none specified
                     state.model.plugin_search.get(t.value) or next(iter(state.model.plugin_search.values())),
+                    question_embedding=encoded_asymmetric_query,
                     rank_results=r,
                     score_threshold=score_threshold,
                     dedupe=dedupe,

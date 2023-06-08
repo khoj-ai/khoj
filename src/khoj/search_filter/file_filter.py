@@ -28,6 +28,9 @@ class FileFilter(BaseFilter):
     def can_filter(self, raw_query):
         return re.search(self.file_filter_regex, raw_query) is not None
 
+    def defilter(self, query: str) -> str:
+        return re.sub(self.file_filter_regex, "", query).strip()
+
     def apply(self, query, entries):
         # Extract file filters from raw query
         with timer("Extract files_to_search from query", logger):
@@ -44,8 +47,10 @@ class FileFilter(BaseFilter):
                 else:
                     files_to_search += [file]
 
+        # Remove filter terms from original query
+        query = self.defilter(query)
+
         # Return item from cache if exists
-        query = re.sub(self.file_filter_regex, "", query).strip()
         cache_key = tuple(files_to_search)
         if cache_key in self.cache:
             logger.debug(f"Return file filter results from cache")

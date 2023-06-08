@@ -105,6 +105,7 @@ def compute_embeddings(
 def query(
     raw_query: str,
     model: TextSearchModel,
+    question_embedding: torch.Tensor = None,
     rank_results: bool = False,
     score_threshold: float = -math.inf,
     dedupe: bool = True,
@@ -124,9 +125,10 @@ def query(
         return hits, entries
 
     # Encode the query using the bi-encoder
-    with timer("Query Encode Time", logger, state.device):
-        question_embedding = model.bi_encoder.encode([query], convert_to_tensor=True, device=state.device)
-        question_embedding = util.normalize_embeddings(question_embedding)
+    if question_embedding is None:
+        with timer("Query Encode Time", logger, state.device):
+            question_embedding = model.bi_encoder.encode([query], convert_to_tensor=True, device=state.device)
+            question_embedding = util.normalize_embeddings(question_embedding)
 
     # Find relevant entries for the query
     with timer("Search Time", logger, state.device):
