@@ -35,7 +35,7 @@ export class KhojChatModal extends Modal {
         contentEl.createDiv({ attr: { id: "khoj-chat-body", class: "khoj-chat-body" } });
 
         // Get conversation history from Khoj backend
-        let chatUrl = `${this.setting.khojUrl}/api/chat?`;
+        let chatUrl = `${this.setting.khojUrl}/api/chat?client=obsidian`;
         let response = await request(chatUrl);
         let chatLogs = JSON.parse(response).response;
         chatLogs.forEach((chatLog: any) => {
@@ -120,7 +120,7 @@ export class KhojChatModal extends Modal {
 
         // Get chat response from Khoj backend
         let encodedQuery = encodeURIComponent(query);
-        let chatUrl = `${this.setting.khojUrl}/api/chat?q=${encodedQuery}`;
+        let chatUrl = `${this.setting.khojUrl}/api/chat?q=${encodedQuery}&client=obsidian`;
         let response = await request(chatUrl);
         let data = JSON.parse(response);
 

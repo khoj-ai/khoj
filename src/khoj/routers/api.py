@@ -70,6 +70,7 @@ def search(
     r: Optional[bool] = False,
     score_threshold: Optional[Union[float, None]] = None,
     dedupe: Optional[bool] = True,
+    client: Optional[str] = None,
 ):
     results: List[SearchResponse] = []
     if q is None or q == "":
@@ -181,14 +182,16 @@ def search(
 
     # Only log telemetry if query is new and not a continuation of previous query
     if state.previous_query is None or state.previous_query not in user_query:
-        state.telemetry += [log_telemetry(telemetry_type="api", api="search", app_config=state.config.app)]
+        state.telemetry += [
+            log_telemetry(telemetry_type="api", api="search", client=client, app_config=state.config.app)
+        ]
     state.previous_query = user_query
 
     return results
 
 
 @api.get("/update")
-def update(t: Optional[SearchType] = None, force: Optional[bool] = False):
+def update(t: Optional[SearchType] = None, force: Optional[bool] = False, client: Optional[str] = None):
     try:
         state.search_index_lock.acquire()
         state.model = configure_search(state.model, state.config, regenerate=force, t=t)
@@ -207,13 +210,13 @@ def update(t: Optional[SearchType] = None, force: Optional[bool] = False):
     else:
         logger.info("📬 Processor reconfigured via API")
 
-    state.telemetry += [log_telemetry(telemetry_type="api", api="update", app_config=state.config.app)]
+    state.telemetry += [log_telemetry(telemetry_type="api", api="update", client=client, app_config=state.config.app)]
 
     return {"status": "ok", "message": "khoj reloaded"}
 
 
 @api.get("/chat")
-def chat(q: Optional[str] = None):
+def chat(q: Optional[str] = None, client: Optional[str] = None):
     if (
         state.processor_config is None
         or state.processor_config.conversation is None
@@ -277,6 +280,6 @@ def chat(q: Optional[str] = None):
         conversation_log=meta_log.get("chat", []),
     )
 
-    state.telemetry += [log_telemetry(telemetry_type="api", api="chat", app_config=state.config.app)]
+    state.telemetry += [log_telemetry(telemetry_type="api", api="chat", client=client, app_config=state.config.app)]
 
     return {"status": status, "response": gpt_response, "context": compiled_references}
