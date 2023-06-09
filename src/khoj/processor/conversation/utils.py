@@ -45,7 +45,7 @@ def completion_with_backoff(**kwargs):
         kwargs["openai_api_key"] = kwargs.get("api_key")
     else:
         kwargs["openai_api_key"] = os.getenv("OPENAI_API_KEY")
-    llm = OpenAI(**kwargs, request_timeout=10, max_retries=1)
+    llm = OpenAI(**kwargs, request_timeout=20, max_retries=1)
     return llm(prompt)
 
 
@@ -97,23 +97,33 @@ def generate_chatml_messages_with_context(
     messages = user_chatml_message + rest_backnforths + system_chatml_message
 
     # Truncate oldest messages from conversation history until under max supported prompt size by model
-    encoder = tiktoken.encoding_for_model(model_name)
-    tokens = sum([len(encoder.encode(content)) for message in messages for content in message.content])
-    while tokens > max_prompt_size[model_name] and len(messages) > 1:
-        messages.pop()
-        tokens = sum([len(encoder.encode(content)) for message in messages for content in message.content])
-
-    # Truncate last message if still over max supported prompt size by model
-    if tokens > max_prompt_size[model_name]:
-        last_message = messages[-1]
-        truncated_message = encoder.decode(encoder.encode(last_message.content))
-        logger.debug(
-            f"Truncate last message to fit within max prompt size of {max_prompt_size[model_name]} supported by {model_name} model:\n {truncated_message}"
-        )
-        messages = [ChatMessage(content=[truncated_message], role=last_message.role)]
+    messages = truncate_messages(messages, max_prompt_size[model_name], model_name)
 
     # Return message in chronological order
     return messages[::-1]
+
+
+def truncate_messages(messages, max_prompt_size, model_name):
+    """Truncate messages to fit within max prompt size supported by model"""
+    encoder = tiktoken.encoding_for_model(model_name)
+    tokens = sum([len(encoder.encode(message.content)) for message in messages])
+    while tokens > max_prompt_size and len(messages) > 1:
+        messages.pop()
+        tokens = sum([len(encoder.encode(message.content)) for message in messages])
+
+    # Truncate last message if still over max supported prompt size by model
+    if tokens > max_prompt_size:
+        last_message = "\n".join(messages[-1].content.split("\n")[:-1])
+        original_question = "\n".join(messages[-1].content.split("\n")[-1:])
+        original_question_tokens = len(encoder.encode(original_question))
+        remaining_tokens = max_prompt_size - original_question_tokens
+        truncated_message = encoder.decode(encoder.encode(last_message)[:remaining_tokens]).strip()
+        logger.debug(
+            f"Truncate last message to fit within max prompt size of {max_prompt_size} supported by {model_name} model:\n {truncated_message}"
+        )
+        messages = [ChatMessage(content=truncated_message + original_question, role=messages[-1].role)]
+
+    return messages
 
 
 def reciprocal_conversation_to_chatml(message_pair):

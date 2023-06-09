@@ -78,6 +78,8 @@ dev = [
     "black >= 23.1.0",
     "pre-commit >= 3.0.4",
     "freezegun >= 1.2.0",
+    "factory-boy==3.2.1",
+    "Faker==18.10.1",
 ]
 
 [tool.hatch.version]
