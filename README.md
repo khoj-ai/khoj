@@ -328,6 +328,11 @@ Add your OpenAI API to Khoj by using either of the two options below:
   1. [Setup your OpenAI API key in Khoj](#set-your-openai-api-key-in-khoj)
   2. Interact with them from the [Khoj Swagger docs](http://locahost:8000/docs)[^2]
 
+### Use a Github Repository as a source
+Note that this plugin is currently *only* indexing Markdown files. It will ignore all other files in the repository. This is because Khoj, as it stands, is a semantic search engine. Eventually, we hope to get to a state where you can search for any file in your repository and even explain code.
+
+1. Get a [pat token](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token) with `repo` and `read:org` scopes in the classic flow.
+2. Configure your settings to include the `owner` and `repo_name`. The `owner` will be the organization name if the repo is in an organization. The `repo_name` will be the name of the repository. Optionally, you can also supply a branch name. If no branch name is supplied, the `master` branch will be used.
 
 ## Performance
 
@@ -458,7 +463,7 @@ conda activate khoj
 
 #### Before Creating PR
 
-1. Run Tests
+1. Run Tests. If you get an error complaining about a missing `fast_tokenizer_file`, follow the solution [in this Github issue](https://github.com/UKPLab/sentence-transformers/issues/1659).
    ```shell
    pytest
    ```

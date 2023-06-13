@@ -16,6 +16,7 @@ from khoj.utils.rawconfig import (
     ConversationProcessorConfig,
     ProcessorConfig,
     TextContentConfig,
+    GithubContentConfig,
     ImageContentConfig,
     SearchConfig,
     TextSearchConfig,
@@ -88,6 +89,15 @@ def content_config(tmp_path_factory, search_config: SearchConfig):
             embeddings_file=content_dir.joinpath("plugin_embeddings.pt"),
         )
     }
+
+    content_config.github = GithubContentConfig(
+        pat_token=os.getenv("GITHUB_PAT_TOKEN"),
+        repo_name="lantern",
+        repo_owner="khoj-ai",
+        repo_branch="master",
+        compressed_jsonl=content_dir.joinpath("github.jsonl.gz"),
+        embeddings_file=content_dir.joinpath("github_embeddings.pt"),
+    )
 
     filters = [DateFilter(), WordFilter(), FileFilter()]
     text_search.setup(
