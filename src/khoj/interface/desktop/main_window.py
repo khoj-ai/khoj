@@ -163,7 +163,9 @@ class MainWindow(QtWidgets.QMainWindow):
         processor_type_layout = QtWidgets.QVBoxLayout(processor_type_settings)
         enable_conversation = ProcessorCheckBox(f"Conversation", processor_type)
         # Add file browser to set input files for given processor type
-        input_field = LabelledTextField("OpenAI API Key", processor_type, current_openai_api_key)
+        input_field = LabelledTextField(
+            "OpenAI API Key", processor_type=processor_type, default_value=current_openai_api_key
+        )
 
         # Set enabled/disabled based on checkbox state
         enable_conversation.setChecked(current_openai_api_key is not None)

@@ -49,6 +49,7 @@ def configure_server(args, required=False):
     # Initialize the search type and model from Config
     state.search_index_lock.acquire()
     state.SearchType = configure_search_types(state.config)
+    state.model = SearchModels()
     state.model = configure_search(state.model, state.config, args.regenerate)
     state.search_index_lock.release()
 

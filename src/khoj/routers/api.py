@@ -43,7 +43,10 @@ def get_config_types():
     return [
         search_type.value
         for search_type in SearchType
-        if search_type.value in configured_content_types
+        if (
+            search_type.value in configured_content_types
+            and getattr(state.model, f"{search_type.value}_search") is not None
+        )
         or ("plugins" in configured_content_types and search_type.name in configured_content_types["plugins"])
     ]
 

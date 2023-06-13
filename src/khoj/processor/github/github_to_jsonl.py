@@ -11,9 +11,9 @@ from khoj.utils import state
 logger = logging.getLogger(__name__)
 
 
-class GithubToJsonl:
+class GithubToJsonl(TextToJsonl):
     def __init__(self, config: GithubContentConfig):
-        self.config = config
+        super().__init__(config)
         download_loader("GithubRepositoryReader")
 
     def process(self, previous_entries=None):
