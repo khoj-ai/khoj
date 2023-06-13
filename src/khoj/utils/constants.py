@@ -47,6 +47,14 @@ default_config = {
             "compressed-jsonl": "~/.khoj/content/music/music.jsonl.gz",
             "embeddings-file": "~/.khoj/content/music/music_embeddings.pt",
         },
+        "github": {
+            "pat-token": None,
+            "repo-name": None,
+            "repo-owner": None,
+            "repo-branch": "master",
+            "compressed-jsonl": "~/.khoj/content/github/github.jsonl.gz",
+            "embeddings-file": "~/.khoj/content/github/github_embeddings.pt",
+        },
     },
     "search-type": {
         "symmetric": {

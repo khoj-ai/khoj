@@ -63,7 +63,7 @@
 - **General**
   - **Natural**: Advanced natural language understanding using Transformer based ML Models
   - **Pluggable**: Modular architecture makes it easy to plug in new data sources, frontends and ML models
-  - **Multiple Sources**: Index your Org-mode and Markdown notes, Beancount transactions, PDF files and Photos
+  - **Multiple Sources**: Index your Org-mode and Markdown notes, Beancount transactions, PDF files, Github repositories, and Photos
   - **Multiple Interfaces**: Interact from your [Web Browser](./src/khoj/interface/web/index.html), [Emacs](./src/interface/emacs/khoj.el) or [Obsidian](./src/interface/obsidian/)
 
 ## Demos
@@ -75,7 +75,7 @@ https://github.com/debanjum/khoj/assets/6413477/3e33d8ea-25bb-46c8-a3bf-c92f78d0
 - Install Khoj via `pip` and start Khoj backend in non-gui mode
 - Install Khoj plugin via Community Plugins settings pane on Obsidian app
 - Check the new Khoj plugin settings
-- Let Khoj backend index the markdown, pdf files in the current Vault
+- Let Khoj backend index the markdown, pdf, Github markdown files in the current Vault
 - Open Khoj plugin on Obsidian via Search button on Left Pane
 - Search \"*Announce plugin to folks*\" in the [Obsidian Plugin docs](https://marcus.se.net/obsidian-plugin-docs/)
 - Jump to the [search result](https://marcus.se.net/obsidian-plugin-docs/publishing/submit-your-plugin)
@@ -396,7 +396,7 @@ git clone https://github.com/debanjum/khoj && cd khoj
 
 ##### 2. Configure
 
-- **Required**: Update [docker-compose.yml](./docker-compose.yml) to mount your images, (org-mode or markdown) notes, pdf and beancount directories
+- **Required**: Update [docker-compose.yml](./docker-compose.yml) to mount your images, (org-mode or markdown) notes, pdf, Github repositories, and beancount directories
 - **Optional**: Edit application configuration in [khoj_docker.yml](./config/khoj_docker.yml)
 
 ##### 3. Run

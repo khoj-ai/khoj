@@ -49,7 +49,7 @@ class MarkdownToJsonl(TextToJsonl):
             if not previous_entries:
                 entries_with_ids = list(enumerate(current_entries))
             else:
-                entries_with_ids = self.mark_entries_for_update(
+                entries_with_ids = TextToJsonl.mark_entries_for_update(
                     current_entries, previous_entries, key="compiled", logger=logger
                 )
 
@@ -101,26 +101,36 @@ class MarkdownToJsonl(TextToJsonl):
         "Extract entries by heading from specified Markdown files"
 
         # Regex to extract Markdown Entries by Heading
-        markdown_heading_regex = r"^#"
 
         entries = []
         entry_to_file_map = []
         for markdown_file in markdown_files:
             with open(markdown_file, "r", encoding="utf8") as f:
                 markdown_content = f.read()
-                markdown_entries_per_file = []
-                any_headings = re.search(markdown_heading_regex, markdown_content, flags=re.MULTILINE)
-                for entry in re.split(markdown_heading_regex, markdown_content, flags=re.MULTILINE):
-                    # Add heading level as the regex split removed it from entries with headings
-                    prefix = "#" if entry.startswith("#") else "# " if any_headings else ""
-                    stripped_entry = entry.strip(empty_escape_sequences)
-                    if stripped_entry != "":
-                        markdown_entries_per_file.append(f"{prefix}{stripped_entry}")
-
-                entry_to_file_map += zip(markdown_entries_per_file, [markdown_file] * len(markdown_entries_per_file))
-                entries.extend(markdown_entries_per_file)
+                entries, entry_to_file_map = MarkdownToJsonl.process_single_markdown_file(
+                    markdown_content, markdown_file, entries, entry_to_file_map
+                )
 
         return entries, dict(entry_to_file_map)
+
+    @staticmethod
+    def process_single_markdown_file(
+        markdown_content: str, markdown_file: Path, entries: List, entry_to_file_map: List
+    ):
+        markdown_heading_regex = r"^#"
+
+        markdown_entries_per_file = []
+        any_headings = re.search(markdown_heading_regex, markdown_content, flags=re.MULTILINE)
+        for entry in re.split(markdown_heading_regex, markdown_content, flags=re.MULTILINE):
+            # Add heading level as the regex split removed it from entries with headings
+            prefix = "#" if entry.startswith("#") else "# " if any_headings else ""
+            stripped_entry = entry.strip(empty_escape_sequences)
+            if stripped_entry != "":
+                markdown_entries_per_file.append(f"{prefix}{stripped_entry}")
+
+        entry_to_file_map += zip(markdown_entries_per_file, [markdown_file] * len(markdown_entries_per_file))
+        entries.extend(markdown_entries_per_file)
+        return entries, entry_to_file_map
 
     @staticmethod
     def convert_markdown_entries_to_maps(parsed_entries: List[str], entry_to_file_map) -> List[Entry]:

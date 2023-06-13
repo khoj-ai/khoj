@@ -41,7 +41,7 @@ class JsonlToJsonl(TextToJsonl):
             if not previous_entries:
                 entries_with_ids = list(enumerate(current_entries))
             else:
-                entries_with_ids = self.mark_entries_for_update(
+                entries_with_ids = TextToJsonl.mark_entries_for_update(
                     current_entries,
                     previous_entries,
                     key="compiled",

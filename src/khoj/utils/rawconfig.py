@@ -32,6 +32,15 @@ class TextContentConfig(ConfigBase):
         return input_filter
 
 
+class GithubContentConfig(ConfigBase):
+    pat_token: str
+    repo_name: str
+    repo_owner: str
+    repo_branch: Optional[str] = "master"
+    compressed_jsonl: Path
+    embeddings_file: Path
+
+
 class ImageContentConfig(ConfigBase):
     input_directories: Optional[List[Path]]
     input_filter: Optional[List[str]]
@@ -57,6 +66,7 @@ class ContentConfig(ConfigBase):
     music: Optional[TextContentConfig]
     markdown: Optional[TextContentConfig]
     pdf: Optional[TextContentConfig]
+    github: Optional[GithubContentConfig]
     plugins: Optional[Dict[str, TextContentConfig]]
 
 

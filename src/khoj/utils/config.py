@@ -23,6 +23,7 @@ class SearchType(str, Enum):
     Markdown = "markdown"
     Image = "image"
     Pdf = "pdf"
+    Github = "github"
 
 
 class ProcessorType(str, Enum):
@@ -64,6 +65,7 @@ class SearchModels:
     markdown_search: TextSearchModel = None
     pdf_search: TextSearchModel = None
     image_search: ImageSearchModel = None
+    github_search: TextSearchModel = None
     plugin_search: Dict[str, TextSearchModel] = None
 
 

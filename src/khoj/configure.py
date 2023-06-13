@@ -16,6 +16,7 @@ from khoj.processor.jsonl.jsonl_to_jsonl import JsonlToJsonl
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.pdf.pdf_to_jsonl import PdfToJsonl
+from khoj.processor.github.github_to_jsonl import GithubToJsonl
 from khoj.search_type import image_search, text_search
 from khoj.utils import constants, state
 from khoj.utils.config import SearchType, SearchModels, ProcessorConfigModel, ConversationProcessorConfigModel
@@ -152,6 +153,20 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
         model.image_search = image_search.setup(
             config.content_type.image, search_config=config.search_type.image, regenerate=regenerate
         )
+
+    if (t == state.SearchType.Github or t == None) and config.content_type.github:
+        logger.info("🐙 Setting up search for github")
+        # Extract Entries, Generate Github Embeddings
+        try:
+            model.github_search = text_search.setup(
+                GithubToJsonl,
+                config.content_type.github,
+                search_config=config.search_type.asymmetric,
+                regenerate=regenerate,
+                filters=[DateFilter(), WordFilter(), FileFilter()],
+            )
+        except Exception as e:
+            logger.error(f"Failed to setup github search: {e}")
 
     # Initialize External Plugin Search
     if (t == None or t in state.SearchType) and config.content_type.plugins:
