@@ -91,7 +91,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
     if (t == state.SearchType.Org or t == None) and config.content_type.org:
         logger.info("🦄 Setting up search for orgmode notes")
         # Extract Entries, Generate Notes Embeddings
-        model.orgmode_search = text_search.setup(
+        model.org_search = text_search.setup(
             OrgToJsonl,
             config.content_type.org,
             search_config=config.search_type.asymmetric,

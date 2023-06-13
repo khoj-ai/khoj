@@ -59,7 +59,7 @@ class ImageSearchModel:
 
 @dataclass
 class SearchModels:
-    orgmode_search: TextSearchModel = None
+    org_search: TextSearchModel = None
     ledger_search: TextSearchModel = None
     music_search: TextSearchModel = None
     markdown_search: TextSearchModel = None

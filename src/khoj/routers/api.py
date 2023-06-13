@@ -91,11 +91,11 @@ def search(
         logger.debug(f"Return response from query cache")
         return state.query_cache[query_cache_key]
 
-    if (t == SearchType.Org or t == None) and state.model.orgmode_search:
+    if (t == SearchType.Org or t == None) and state.model.org_search:
         # query org-mode notes
         with timer("Query took", logger):
             hits, entries = text_search.query(
-                user_query, state.model.orgmode_search, rank_results=r, score_threshold=score_threshold, dedupe=dedupe
+                user_query, state.model.org_search, rank_results=r, score_threshold=score_threshold, dedupe=dedupe
             )
 
         # collate and return results
