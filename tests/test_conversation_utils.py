@@ -32,7 +32,7 @@ class TestTruncateMessage:
 
     def test_truncate_message_first_large(self):
         chat_messages = ChatMessageFactory.build_batch(25)
-        big_chat_message = ChatMessageFactory.build(content=factory.Faker("paragraph", nb_sentences=1000))
+        big_chat_message = ChatMessageFactory.build(content=factory.Faker("paragraph", nb_sentences=2000))
         big_chat_message.content = big_chat_message.content + "\n" + "Question?"
         copy_big_chat_message = big_chat_message.copy()
         chat_messages.insert(0, big_chat_message)

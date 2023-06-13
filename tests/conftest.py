@@ -159,6 +159,10 @@ def client(content_config: ContentConfig, search_config: SearchConfig, processor
     state.config.search_type = search_config
     state.SearchType = configure_search_types(state.config)
 
+    # These lines help us Mock the Search models for these search types
+    state.model.org_search = {}
+    state.model.image_search = {}
+
     configure_routes(app)
     return TestClient(app)
 
