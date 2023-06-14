@@ -91,7 +91,7 @@ def content_config(tmp_path_factory, search_config: SearchConfig):
     }
 
     content_config.github = GithubContentConfig(
-        pat_token=os.getenv("GITHUB_PAT_TOKEN"),
+        pat_token=os.getenv("GITHUB_PAT_TOKEN", ""),
         repo_name="lantern",
         repo_owner="khoj-ai",
         repo_branch="master",
