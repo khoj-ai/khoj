@@ -16,11 +16,14 @@ class ConfigBase(BaseModel):
         allow_population_by_field_name = True
 
 
-class TextContentConfig(ConfigBase):
-    input_files: Optional[List[Path]]
-    input_filter: Optional[List[str]]
+class TextConfigBase(ConfigBase):
     compressed_jsonl: Path
     embeddings_file: Path
+
+
+class TextContentConfig(TextConfigBase):
+    input_files: Optional[List[Path]]
+    input_filter: Optional[List[str]]
     index_heading_entries: Optional[bool] = False
 
     @validator("input_filter")
@@ -30,6 +33,13 @@ class TextContentConfig(ConfigBase):
                 "Either input_filter or input_files required in all content-type.<text_search> section of Khoj config file"
             )
         return input_filter
+
+
+class GithubContentConfig(TextConfigBase):
+    pat_token: str
+    repo_name: str
+    repo_owner: str
+    repo_branch: Optional[str] = "master"
 
 
 class ImageContentConfig(ConfigBase):
@@ -57,6 +67,7 @@ class ContentConfig(ConfigBase):
     music: Optional[TextContentConfig]
     markdown: Optional[TextContentConfig]
     pdf: Optional[TextContentConfig]
+    github: Optional[GithubContentConfig]
     plugins: Optional[Dict[str, TextContentConfig]]
 
 

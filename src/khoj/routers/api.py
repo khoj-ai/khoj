@@ -43,7 +43,10 @@ def get_config_types():
     return [
         search_type.value
         for search_type in SearchType
-        if search_type.value in configured_content_types
+        if (
+            search_type.value in configured_content_types
+            and getattr(state.model, f"{search_type.value}_search") is not None
+        )
         or ("plugins" in configured_content_types and search_type.name in configured_content_types["plugins"])
     ]
 
@@ -88,11 +91,11 @@ def search(
         logger.debug(f"Return response from query cache")
         return state.query_cache[query_cache_key]
 
-    if (t == SearchType.Org or t == None) and state.model.orgmode_search:
+    if (t == SearchType.Org or t == None) and state.model.org_search:
         # query org-mode notes
         with timer("Query took", logger):
             hits, entries = text_search.query(
-                user_query, state.model.orgmode_search, rank_results=r, score_threshold=score_threshold, dedupe=dedupe
+                user_query, state.model.org_search, rank_results=r, score_threshold=score_threshold, dedupe=dedupe
             )
 
         # collate and return results
@@ -115,6 +118,17 @@ def search(
         with timer("Query took", logger):
             hits, entries = text_search.query(
                 user_query, state.model.pdf_search, rank_results=r, score_threshold=score_threshold, dedupe=dedupe
+            )
+
+        # collate and return results
+        with timer("Collating results took", logger):
+            results = text_search.collate_results(hits, entries, results_count)
+
+    elif (t == SearchType.Github or t == None) and state.model.github_search:
+        # query github embeddings
+        with timer("Query took", logger):
+            hits, entries = text_search.query(
+                user_query, state.model.github_search, rank_results=r, score_threshold=score_threshold, dedupe=dedupe
             )
 
         # collate and return results

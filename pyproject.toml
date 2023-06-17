@@ -56,6 +56,7 @@ dependencies = [
     "aiohttp == 3.8.4",
     "langchain >= 0.0.187",
     "pypdf >= 3.9.0",
+    "llama-hub==0.0.3",
 ]
 dynamic = ["version"]
 

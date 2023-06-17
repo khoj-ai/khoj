@@ -6,14 +6,14 @@ from typing import Callable, List, Tuple
 from khoj.utils.helpers import timer
 
 # Internal Packages
-from khoj.utils.rawconfig import Entry, TextContentConfig
+from khoj.utils.rawconfig import Entry, TextConfigBase
 
 
 logger = logging.getLogger(__name__)
 
 
 class TextToJsonl(ABC):
-    def __init__(self, config: TextContentConfig):
+    def __init__(self, config: TextConfigBase):
         self.config = config
 
     @abstractmethod
@@ -60,8 +60,9 @@ class TextToJsonl(ABC):
 
         return chunked_entries
 
+    @staticmethod
     def mark_entries_for_update(
-        self, current_entries: List[Entry], previous_entries: List[Entry], key="compiled", logger=None
+        current_entries: List[Entry], previous_entries: List[Entry], key="compiled", logger=None
     ) -> List[Tuple[int, Entry]]:
         # Hash all current and previous entries to identify new entries
         with timer("Hash previous, current entries", logger):

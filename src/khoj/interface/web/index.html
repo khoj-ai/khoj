@@ -66,6 +66,8 @@
                 return render_ledger(query, data);
             } else if (type === "pdf") {
                 return render_pdf(query, data);
+            } else if (type == "github") {
+                return render_markdown(query, data);
             } else {
                 return `<div id="results-plugin">`
                     + data.map((item) => `<p>${item.entry}</p>`).join("\n")
@@ -296,7 +298,7 @@
             text-align: left;
             white-space: pre-line;
         }
-         #results-markdown {
+         #results-markdown, #results-github {
             text-align: left;
         }
         #results-music,
