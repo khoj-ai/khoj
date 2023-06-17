@@ -1,12 +1,16 @@
+# Standard Packages
 import logging
-from llama_index import download_loader
+
+# External Packages
+import requests
+
+# Internal Packages
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import GithubContentConfig
-from llama_hub.github_repo import GithubRepositoryReader, GithubClient
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.text_to_jsonl import TextToJsonl
 from khoj.utils.jsonl import dump_jsonl, compress_jsonl_data
-from khoj.utils import state
+
 
 logger = logging.getLogger(__name__)
 
@@ -14,18 +18,11 @@ logger = logging.getLogger(__name__)
 class GithubToJsonl(TextToJsonl):
     def __init__(self, config: GithubContentConfig):
         super().__init__(config)
-        download_loader("GithubRepositoryReader")
+        self.config = config
+        self.repo_url = f"https://api.github.com/repos/{self.config.repo_owner}/{self.config.repo_name}"
 
     def process(self, previous_entries=None):
-        try:
-            self.initialize()
-        except Exception as e:
-            logger.error(
-                f"Unable to initialize Github Repository Reader for {self.config.repo_owner}/{self.config.repo_name}"
-            )
-            raise e
-
-        with timer("Download github repo", logger):
+        with timer("Download markdown files from github repo", logger):
             try:
                 docs = self.get_markdown_files()
             except Exception as e:
@@ -64,19 +61,27 @@ class GithubToJsonl(TextToJsonl):
 
         return entries_with_ids
 
-    def initialize(self):
-        logger.info(f"Initializing Github Repository Reader for {self.config.repo_owner}/{self.config.repo_name}")
-        github_client = GithubClient(self.config.pat_token)
-        self.loader = GithubRepositoryReader(
-            github_client,
-            owner=self.config.repo_owner,
-            repo=self.config.repo_name,
-            filter_file_extensions=([".md"], GithubRepositoryReader.FilterType.INCLUDE),
-            verbose=state.verbose > 1,
-        )
-
     def get_markdown_files(self):
-        return self.loader.load_data(branch=self.config.repo_branch)
+        # set the url to get the contents of the repository
+        repo_content_url = f"{self.repo_url}/git/trees/{self.config.repo_branch}"
+        # set the headers to include the authentication token
+        headers = {"Authorization": f"{self.config.pat_token}"}
+
+        # get the contents of the repository
+        response = requests.get(repo_content_url, headers=headers)
+        contents = response.json()
+
+        markdown_files = []
+        for item in contents["tree"]:
+            # Find all markdown files in the repository
+            if item["type"] == "blob" and item["path"].endswith(".md"):
+                # Get text from each markdown file
+                file_content_url = f'{self.repo_url}/contents/{item["path"]}'
+                headers["Accept"] = "application/vnd.github.v3.raw"
+                markdown_file_contents = requests.get(file_content_url, headers=headers).content.decode("utf-8")
+                markdown_files += [{"content": markdown_file_contents, "path": item["path"]}]
+
+        return markdown_files
 
     @staticmethod
     def extract_markdown_entries(markdown_files):
@@ -84,6 +89,6 @@ class GithubToJsonl(TextToJsonl):
         entry_to_file_map = []
         for doc in markdown_files:
             entries, entry_to_file_map = MarkdownToJsonl.process_single_markdown_file(
-                doc.get_text(), doc.extra_info.get("file_path"), entries, entry_to_file_map
+                doc["content"], doc["path"], entries, entry_to_file_map
             )
         return entries, dict(entry_to_file_map)
