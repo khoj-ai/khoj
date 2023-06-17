@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+    <head>
+        <meta charset="utf-8">
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦅</text></svg>">
+        <title>Khoj - Configure App</title>
+    	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    </head>
+    <body class="khoj-configure">
+        <header>
+            <h1>Configure Khoj</h1>
+            <div>
+                <h2>Ready?</h2>
+                <div id="actions">
+                    <button onclick="window.location.href='/';" >
+                        Search
+                    </button>
+                    <button onclick="window.location.href='/chat';">
+                        Chat
+                    </button>
+                </div>
+            </div>
+        </header>
+        <div class=”content”>
+            {% block content %}
+            {% endblock %}
+        </div>
+    </body>
+    <style>
+        header {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-gap: 12px;
+        }
+    </style>
+</html>

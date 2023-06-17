@@ -194,6 +194,8 @@ class MainWindow(QtWidgets.QMainWindow):
                     # Search Type (re)-Enabled
                     if child.isChecked():
                         current_search_config = self.current_config["content-type"].get(child.search_type, {})
+                        if current_search_config == None:
+                            current_search_config = {}
                         default_search_config = self.get_default_config(search_type=child.search_type)
                         self.new_config["content-type"][child.search_type.value] = merge_dicts(
                             current_search_config, default_search_config

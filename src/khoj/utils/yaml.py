@@ -6,10 +6,18 @@ import yaml
 
 # Internal Packages
 from khoj.utils.rawconfig import FullConfig
+from khoj.utils import state
 
 
 # Do not emit tags when dumping to YAML
 yaml.emitter.Emitter.process_tag = lambda self, *args, **kwargs: None  # type: ignore[assignment]
+
+
+def save_config_to_file_updated_state():
+    with open(state.config_file, "w") as outfile:
+        yaml.dump(yaml.safe_load(state.config.json(by_alias=True)), outfile)
+        outfile.close()
+    return state.config
 
 
 def save_config_to_file(yaml_config: dict, yaml_config_file: Path):

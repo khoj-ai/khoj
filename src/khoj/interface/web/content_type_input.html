@@ -1,0 +1,151 @@
+{% extends "base_data_integration.html" %}
+{% block content %}
+<h2>{{ content_type }}</h2>
+<form id="config-form">
+    <table>
+        <tr>
+            <th>Field</th>
+            <th>Value</th>
+        </tr>
+        <tr>
+            <td>
+                <label for="input-files">Input Files</label>
+            </td>
+            <td id="input-files-cell">
+                {% if current_config['input_files'] is none %}
+                    <input type="text" id="input-files" name="input-files">
+                {% else %}
+                    {% for input_file in current_config['input_files'] %}
+                        <input type="text" id="input-files" name="input-files" value="{{ input_file }}">
+                    {% endfor %}
+                {% endif %}
+            </td>
+            <td>
+                <button type="button" id="input-files-button">Add</button>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label for="input-filter">Input Filter</label>
+            </td>
+            <td id="input-filter-cell">
+                {% if current_config['input_filter'] is none %}
+                    <input type="text" id="input-filter" name="input-filter">
+                {% else %}
+                    {% for input_filter in current_config['input_filter'] %}
+                        <input type="text" id="input-filter" name="input-filter" value="{{ input_filter }}">
+                    {% endfor %}
+                {% endif %}
+            </td>
+            <td>
+                <button type="button" id="input-filter-button">Add</button>
+            </td>
+        </tr>
+    </table>
+
+    <h4>You probably don't need to edit these.</h4>
+
+    <table>
+        <tr>
+            <th>Field</th>
+            <th>Value</th>
+        </tr>
+        <tr>
+            <td>
+                <label for="compressed-jsonl">Compressed JSONL (Output)</label>
+            </td>
+            <td>
+                <input type="text" id="compressed-jsonl" name="compressed-jsonl" value="{{ current_config['compressed_jsonl'] }}">
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label for="embeddings-file">Embeddings File (Output)</label>
+            </td>
+            <td>
+                <input type="text" id="embeddings-file" name="embeddings-file" value="{{ current_config['embeddings_file'] }}">
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label for="index-heading-entries">Index Heading Entries</label>
+            </td>
+            <td>
+                <input type="text" id="index-heading-entries" name="index-heading-entries" value="{{ current_config['index_heading_entries'] }}">
+            </td>
+        </tr>
+    </table>
+    <button id="submit" type="submit">Submit</button>
+</form>
+<script>
+    function addButtonEventListener(fieldName) {
+        var button = document.getElementById(fieldName + "-button");
+        button.addEventListener("click", function(event) {
+            var cell = document.getElementById(fieldName + "-cell");
+            var newInput = document.createElement("input");
+            newInput.setAttribute("type", "text");
+            newInput.setAttribute("name", fieldName);
+            cell.appendChild(newInput);
+        })
+    }
+
+    addButtonEventListener("input-files");
+    addButtonEventListener("input-filter");
+
+    function getValidInputNodes(nodes) {
+        var validNodes = [];
+        for (var i = 0; i < nodes.length; i++) {
+            const nodeValue = nodes[i].value;
+            if (nodeValue === "" || nodeValue === null || nodeValue === undefined || nodeValue === "None") {
+                continue;
+            }
+            validNodes.push(nodes[i]);
+        }
+        return validNodes;
+    }
+
+    submit.addEventListener("click", function(event) {
+        event.preventDefault();
+        var inputFileNodes = document.getElementsByName("input-files");
+        var input_files = getValidInputNodes(inputFileNodes).map(node => node.value);
+
+        var inputFilterNodes = document.getElementsByName("input-filter");
+        var input_filter = getValidInputNodes(inputFilterNodes).map(node => node.value);
+
+        if (input_files.length === 0 && input_filter.length === 0) {
+            alert("You must specify at least one input file or input filter.");
+            return;
+        }
+
+        if (input_files.length == 0) {
+            input_files = null;
+        }
+
+        if (input_filter.length == 0) {
+            input_filter = null;
+        }
+
+        var compressed_jsonl = document.getElementById("compressed-jsonl").value;
+        var embeddings_file = document.getElementById("embeddings-file").value;
+        var index_heading_entries = document.getElementById("index-heading-entries").value;
+
+        fetch('/api/config/data/content_type/{{ content_type }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                "input_files": input_files,
+                "input_filter": input_filter,
+                "compressed_jsonl": compressed_jsonl,
+                "embeddings_file": embeddings_file,
+                "index_heading_entries": index_heading_entries
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Success:', data);
+        })
+    });
+</script>
+{% endblock %}

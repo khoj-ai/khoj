@@ -1,0 +1,72 @@
+{% extends "base_processor_integration.html" %}
+{% block content %}
+<h2>Conversation</h2>
+<form id="config-form">
+    <table>
+        <tr>
+            <td>
+                <label for="openai-api-key">Open AI API key</label>
+            </td>
+            <td>
+                <input type="text" id="openai-api-key" name="openai-api-key" value="{{ current_config['openai_api_key'] }}">
+            </td>
+        </tr>
+    </table>
+
+    <h4>You probably don't need to edit these.</h4>
+
+    <table>
+        <tr>
+            <td>
+                <label for="conversation-logfile">Conversation Logfile</label>
+            </td>
+            <td>
+                <input type="text" id="conversation-logfile" name="conversation-logfile" value="{{ current_config['conversation_logfile'] }}">
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label for="model">Model</label>
+            </td>
+            <td>
+                <input type="text" id="model" name="model" value="{{ current_config['model'] }}">
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label for="chat-model">Chat Model</label>
+            </td>
+            <td>
+                <input type="text" id="chat-model" name="chat-model" value="{{ current_config['chat_model'] }}">
+            </td>
+        </tr>
+    </table>
+    <button id="submit" type="submit">Submit</button>
+</form>
+<script>
+    submit.addEventListener("click", function(event) {
+        event.preventDefault();
+        var openai_api_key = document.getElementById("openai-api-key").value;
+        var conversation_logfile = document.getElementById("conversation-logfile").value;
+        var model = document.getElementById("model").value;
+        var chat_model = document.getElementById("chat-model").value;
+
+        fetch('/api/config/data/processor/conversation', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                "openai_api_key": openai_api_key,
+                "conversation_logfile": conversation_logfile,
+                "model": model,
+                "chat_model": chat_model
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Success:', data);
+        })
+    });
+</script>
+{% endblock %}
