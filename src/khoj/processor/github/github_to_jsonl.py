@@ -1,5 +1,6 @@
 # Standard Packages
 import logging
+import time
 from typing import Dict, List
 
 # External Packages
@@ -75,6 +76,13 @@ class GithubToJsonl(TextToJsonl):
         response = requests.get(repo_content_url, headers=headers)
         contents = response.json()
 
+        # If the rate limit is reached, wait for the reset time
+        if response.status_code != 200 and response.headers.get("X-RateLimit-Remaining") == "0":
+            wait_time = int(response.headers.get("X-RateLimit-Reset")) - int(time.time())
+            logger.info(f"Github Rate limit reached. Waiting for {wait_time} seconds")
+            time.sleep(wait_time)
+            return self.get_markdown_files()
+
         markdown_files = []
         for item in contents["tree"]:
             # Find all markdown files in the repository
@@ -90,13 +98,28 @@ class GithubToJsonl(TextToJsonl):
     def get_commits(self) -> List[Dict]:
         # Get commit messages from the repository using the Github API
         headers = {"Authorization": f"{self.config.pat_token}"}
-        response = requests.get(f"{self.repo_url}/commits", headers=headers)
-        raw_commits = response.json()
-
-        # Extract commit messages from the response
+        commits_url = f"{self.repo_url}/commits"
         commits = []
-        for commit in raw_commits:
-            commits += [{"content": commit["commit"]["message"], "path": commit["html_url"]}]
+
+        while commits_url is not None:
+            # Get the next page of commits
+            response = requests.get(commits_url, headers=headers)
+
+            # If the rate limit is reached, wait for the reset time
+            if response.status_code != 200 and response.headers.get("X-RateLimit-Remaining") == "0":
+                wait_time = int(response.headers.get("X-RateLimit-Reset")) - int(time.time())
+                logger.info(f"Github Rate limit reached. Waiting for {wait_time} seconds")
+                time.sleep(wait_time)
+                continue
+
+            raw_commits = response.json()
+
+            # Extract commit messages from the response
+            for commit in raw_commits:
+                commits += [{"content": commit["commit"]["message"], "path": commit["html_url"]}]
+
+            # Get the URL for the next page of commits, if any
+            commits_url = response.links.get("next", {}).get("url")
 
         return commits
 
