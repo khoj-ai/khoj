@@ -7,7 +7,10 @@
     </head>
     <body class="khoj-configure">
         <header>
-            <h1>Configure Khoj</h1>
+            <div>
+                <h1>Configure Khoj</h1>
+                <p>Check out our <a href="https://github.com/debanjum/khoj">source code on Github</a></p>
+            </div>
             <div>
                 <h2>Ready?</h2>
                 <div id="actions">
@@ -30,6 +33,12 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-gap: 12px;
+        }
+
+        @media screen and (max-width: 600px) {
+            header {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </html>

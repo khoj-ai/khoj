@@ -18,7 +18,7 @@ logger = logging.getLogger("khoj")
 web_client = APIRouter()
 templates = Jinja2Templates(directory=constants.web_directory)
 
-VALID_CONTENT_TYPES = ["org", "ledger", "image", "music", "markdown", "pdf"]
+VALID_CONTENT_TYPES = ["org", "ledger", "music", "markdown", "pdf"]
 
 
 # Create Routes
