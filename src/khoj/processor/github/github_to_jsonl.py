@@ -1,12 +1,13 @@
 # Standard Packages
 import logging
+from typing import Dict, List
 
 # External Packages
 import requests
 
 # Internal Packages
 from khoj.utils.helpers import timer
-from khoj.utils.rawconfig import GithubContentConfig
+from khoj.utils.rawconfig import Entry, GithubContentConfig
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.text_to_jsonl import TextToJsonl
 from khoj.utils.jsonl import dump_jsonl, compress_jsonl_data
@@ -35,6 +36,9 @@ class GithubToJsonl(TextToJsonl):
             current_entries = MarkdownToJsonl.convert_markdown_entries_to_maps(
                 *GithubToJsonl.extract_markdown_entries(docs)
             )
+
+        with timer("Extract commit messages from github repo", logger):
+            current_entries += self.convert_commits_to_entries(self.get_commits())
 
         with timer("Split entries by max token size supported by model", logger):
             current_entries = TextToJsonl.split_entries_by_max_tokens(current_entries, max_tokens=256)
@@ -82,6 +86,34 @@ class GithubToJsonl(TextToJsonl):
                 markdown_files += [{"content": markdown_file_contents, "path": item["path"]}]
 
         return markdown_files
+
+    def get_commits(self) -> List[Dict]:
+        # Get commit messages from the repository using the Github API
+        headers = {"Authorization": f"{self.config.pat_token}"}
+        response = requests.get(f"{self.repo_url}/commits", headers=headers)
+        raw_commits = response.json()
+
+        # Extract commit messages from the response
+        commits = []
+        for commit in raw_commits:
+            commits += [{"content": commit["commit"]["message"], "path": commit["html_url"]}]
+
+        return commits
+
+    def convert_commits_to_entries(self, commits) -> List[Entry]:
+        entries: List[Entry] = []
+        for commit in commits:
+            compiled = f'Commit message from {self.config.repo_owner}/{self.config.repo_name}:\n{commit["content"]}'
+            entries.append(
+                Entry(
+                    compiled=compiled,
+                    raw=f'### {commit["content"]}',
+                    heading=commit["content"].split("\n")[0],
+                    file=commit["path"],
+                )
+            )
+
+        return entries
 
     @staticmethod
     def extract_markdown_entries(markdown_files):
