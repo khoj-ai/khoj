@@ -87,11 +87,16 @@ class GithubToJsonl(TextToJsonl):
         for item in contents["tree"]:
             # Find all markdown files in the repository
             if item["type"] == "blob" and item["path"].endswith(".md"):
+                # Create URL for each markdown file on Github
+                url_path = f'https://github.com/{self.config.repo_owner}/{self.config.repo_name}/blob/{self.config.repo_branch}/{item["path"]}'
+
                 # Get text from each markdown file
                 file_content_url = f'{self.repo_url}/contents/{item["path"]}'
                 headers["Accept"] = "application/vnd.github.v3.raw"
                 markdown_file_contents = requests.get(file_content_url, headers=headers).content.decode("utf-8")
-                markdown_files += [{"content": markdown_file_contents, "path": item["path"]}]
+
+                # Add markdown file contents and URL to list
+                markdown_files += [{"content": markdown_file_contents, "path": url_path}]
 
         return markdown_files
 
