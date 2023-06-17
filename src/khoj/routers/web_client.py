@@ -43,7 +43,7 @@ def content_config_page(request: Request, content_type: str):
         return templates.TemplateResponse("config.html", context={"request": request})
 
     default_copy = constants.default_config.copy()
-    default_content_type = default_copy["content-type"][content_type]
+    default_content_type = default_copy["content-type"][content_type]  # type: ignore
 
     default_config = TextContentConfig(
         compressed_jsonl=default_content_type["compressed-jsonl"],
@@ -69,7 +69,7 @@ def content_config_page(request: Request, content_type: str):
 @web_client.get("/config/processor/conversation", response_class=HTMLResponse)
 def conversation_processor_config_page(request: Request):
     default_copy = constants.default_config.copy()
-    default_processor_config = default_copy["processor"]["conversation"]
+    default_processor_config = default_copy["processor"]["conversation"]  # type: ignore
     default_processor_config = ConversationProcessorConfig(
         openai_api_key="",
         model=default_processor_config["model"],
