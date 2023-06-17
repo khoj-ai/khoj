@@ -119,28 +119,18 @@ class MainWindow(QtWidgets.QMainWindow):
         # Add labelled text input field
         input_fields = []
 
-        pat_token = current_content_config.get("pat-token", None)
-        input_field = LabelledTextField("pat-token", search_type=search_type, default_value=pat_token)
-        search_type_layout.addWidget(input_field)
-        input_fields += [input_field]
-
-        repo_name = current_content_config.get("repo-name", None)
-        input_field = LabelledTextField("repo-name", search_type=search_type, default_value=repo_name)
-        search_type_layout.addWidget(input_field)
-        input_fields += [input_field]
-
-        repo_owner = current_content_config.get("repo-owner", None)
-        input_field = LabelledTextField("repo-owner", search_type=search_type, default_value=repo_owner)
-        search_type_layout.addWidget(input_field)
-        input_fields += [input_field]
-
-        repo_branch = current_content_config.get("repo-branch", None)
-        input_field = LabelledTextField("repo-branch", search_type=search_type, default_value=repo_branch)
-        search_type_layout.addWidget(input_field)
-        input_fields += [input_field]
+        fields = ["pat-token", "repo-name", "repo-owner", "repo-branch"]
+        active = False
+        for field in fields:
+            field_value = current_content_config.get(field, None)
+            input_field = LabelledTextField(field, search_type=search_type, default_value=field_value)
+            search_type_layout.addWidget(input_field)
+            input_fields += [input_field]
+            if field_value:
+                active = True
 
         # Set enabled/disabled based on checkbox state
-        enable_search_type.setChecked(bool(repo_name or repo_owner or repo_branch or pat_token))
+        enable_search_type.setChecked(active)
         for input_field in input_fields:
             input_field.setEnabled(enable_search_type.isChecked())
         enable_search_type.stateChanged.connect(lambda _: [input_field.setEnabled(enable_search_type.isChecked()) for input_field in input_fields])  # type: ignore[attr-defined]

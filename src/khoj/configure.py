@@ -49,7 +49,6 @@ def configure_server(args, required=False):
     # Initialize the search type and model from Config
     state.search_index_lock.acquire()
     state.SearchType = configure_search_types(state.config)
-    state.model = SearchModels()
     state.model = configure_search(state.model, state.config, args.regenerate)
     state.search_index_lock.release()
 
@@ -158,16 +157,13 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
     if (t == state.SearchType.Github or t == None) and config.content_type.github:
         logger.info("🐙 Setting up search for github")
         # Extract Entries, Generate Github Embeddings
-        try:
-            model.github_search = text_search.setup(
-                GithubToJsonl,
-                config.content_type.github,
-                search_config=config.search_type.asymmetric,
-                regenerate=regenerate,
-                filters=[DateFilter(), WordFilter(), FileFilter()],
-            )
-        except Exception as e:
-            logger.error(f"Failed to setup github search: {e}")
+        model.github_search = text_search.setup(
+            GithubToJsonl,
+            config.content_type.github,
+            search_config=config.search_type.asymmetric,
+            regenerate=regenerate,
+            filters=[DateFilter(), WordFilter(), FileFilter()],
+        )
 
     # Initialize External Plugin Search
     if (t == None or t in state.SearchType) and config.content_type.plugins:
