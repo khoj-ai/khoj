@@ -4,7 +4,7 @@
     "description": "An AI search assistant for your digital brain",
     "icons": [
         {
-            "src": "/static/assets/icons/favicon-144x144.png",
+            "src": "/static/assets/icons/favicon-128x128.png",
             "sizes": "128x128",
             "type": "image/png"
         }

@@ -11,8 +11,6 @@ from khoj.utils import constants, state
 import logging
 import json
 
-logger = logging.getLogger("khoj")
-
 
 # Initialize Router
 web_client = APIRouter()
@@ -30,11 +28,6 @@ def index():
 @web_client.get("/config", response_class=HTMLResponse)
 def config_page(request: Request):
     return templates.TemplateResponse("config.html", context={"request": request})
-
-
-@web_client.get("/test-child", response_class=HTMLResponse)
-def test_child(request: Request):
-    return templates.TemplateResponse("child0.html", context={"request": request, "config": constants.default_config})
 
 
 @web_client.get("/config/content_type/{content_type}", response_class=HTMLResponse)

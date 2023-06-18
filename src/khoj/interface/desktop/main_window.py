@@ -49,7 +49,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setFixedWidth(600)
 
         # Set Window Icon
-        icon_path = constants.web_directory / "assets/icons/favicon-144x144.png"
+        icon_path = constants.web_directory / "assets/icons/favicon-128x128.png"
         self.setWindowIcon(QtGui.QIcon(f"{icon_path.absolute()}"))
 
         # Initialize Configure Window Layout
