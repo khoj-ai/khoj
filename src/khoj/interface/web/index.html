@@ -34,10 +34,11 @@
         function render_markdown(query, data) {
             var md = window.markdownit();
             return md.render(data.map(function (item) {
-                lines = item.entry.split("\n")
-                if (item.additional.file.startsWith("http"))
-                    return `${lines[0]}\t[*](${item.additional.file})\n${lines.slice(1).join("\n")}`
-                return `${item.entry}`
+                if (item.additional.file.startsWith("http")) {
+                    lines = item.entry.split("\n");
+                    return `${lines[0]}\t[*](${item.additional.file})\n${lines.slice(1).join("\n")}`;
+                }
+                return `${item.entry}`;
             }).join("\n"));
         }
 

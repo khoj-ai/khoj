@@ -136,7 +136,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
 
     # Initialize PDF Search
     if (t == state.SearchType.Pdf or t == None) and config.content_type.pdf:
-        logger.info("💸 Setting up search for pdf")
+        logger.info("🖨️ Setting up search for pdf")
         # Extract Entries, Generate PDF Embeddings
         model.pdf_search = text_search.setup(
             PdfToJsonl,

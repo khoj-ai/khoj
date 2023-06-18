@@ -178,7 +178,7 @@ def test_incremental_update(content_config: ContentConfig, search_config: Search
 @pytest.mark.skipif(os.getenv("GITHUB_PAT_TOKEN") is None, reason="GITHUB_PAT_TOKEN not set")
 def test_asymmetric_setup_github(content_config: ContentConfig, search_config: SearchConfig):
     # Act
-    # Regenerate notes embeddings during asymmetric setup
+    # Regenerate github embeddings to test asymmetric setup without caching
     github_model = text_search.setup(GithubToJsonl, content_config.github, search_config.asymmetric, regenerate=True)
 
     # Assert
