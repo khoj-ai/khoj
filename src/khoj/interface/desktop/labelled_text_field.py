@@ -3,14 +3,18 @@ from PyQt6 import QtWidgets
 
 # Internal Packages
 from khoj.utils.config import ProcessorType
+from khoj.utils.config import SearchType
 
 
 class LabelledTextField(QtWidgets.QWidget):
-    def __init__(self, title, processor_type: ProcessorType = None, default_value: str = None):
+    def __init__(
+        self, title, search_type: SearchType = None, processor_type: ProcessorType = None, default_value: str = None
+    ):
         QtWidgets.QWidget.__init__(self)
         layout = QtWidgets.QHBoxLayout()
         self.setLayout(layout)
         self.processor_type = processor_type
+        self.search_type = search_type
 
         self.label = QtWidgets.QLabel()
         self.label.setText(title)

@@ -16,6 +16,7 @@ from khoj.processor.jsonl.jsonl_to_jsonl import JsonlToJsonl
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.pdf.pdf_to_jsonl import PdfToJsonl
+from khoj.processor.github.github_to_jsonl import GithubToJsonl
 from khoj.search_type import image_search, text_search
 from khoj.utils import constants, state
 from khoj.utils.config import SearchType, SearchModels, ProcessorConfigModel, ConversationProcessorConfigModel
@@ -89,7 +90,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
     if (t == state.SearchType.Org or t == None) and config.content_type.org:
         logger.info("🦄 Setting up search for orgmode notes")
         # Extract Entries, Generate Notes Embeddings
-        model.orgmode_search = text_search.setup(
+        model.org_search = text_search.setup(
             OrgToJsonl,
             config.content_type.org,
             search_config=config.search_type.asymmetric,
@@ -135,7 +136,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
 
     # Initialize PDF Search
     if (t == state.SearchType.Pdf or t == None) and config.content_type.pdf:
-        logger.info("💸 Setting up search for pdf")
+        logger.info("🖨️ Setting up search for pdf")
         # Extract Entries, Generate PDF Embeddings
         model.pdf_search = text_search.setup(
             PdfToJsonl,
@@ -151,6 +152,17 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
         # Extract Entries, Generate Image Embeddings
         model.image_search = image_search.setup(
             config.content_type.image, search_config=config.search_type.image, regenerate=regenerate
+        )
+
+    if (t == state.SearchType.Github or t == None) and config.content_type.github:
+        logger.info("🐙 Setting up search for github")
+        # Extract Entries, Generate Github Embeddings
+        model.github_search = text_search.setup(
+            GithubToJsonl,
+            config.content_type.github,
+            search_config=config.search_type.asymmetric,
+            regenerate=regenerate,
+            filters=[DateFilter(), WordFilter(), FileFilter()],
         )
 
     # Initialize External Plugin Search

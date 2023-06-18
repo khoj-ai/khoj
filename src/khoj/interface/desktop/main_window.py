@@ -62,7 +62,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 search_type, None
             ) or self.get_default_config(search_type=search_type)
             self.search_settings_panels += [self.add_settings_panel(current_content_config, search_type)]
-
         # Add Conversation Processor Panel to Configure Screen
         self.processor_settings_panels = []
         conversation_type = ProcessorType.Conversation
@@ -88,6 +87,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if search_type == SearchType.Image:
             current_content_files = current_content_config.get("input-directories", [])
             file_input_text = f"{search_type.name} Folders"
+        elif search_type == SearchType.Github:
+            return self.add_github_settings_panel(current_content_config, SearchType.Github)
         else:
             current_content_files = current_content_config.get("input-files", [])
             file_input_text = f"{search_type.name} Files"
@@ -111,6 +112,37 @@ class MainWindow(QtWidgets.QMainWindow):
 
         return search_type_settings
 
+    def add_github_settings_panel(self, current_content_config: dict, search_type: SearchType):
+        search_type_settings = QtWidgets.QWidget()
+        search_type_layout = QtWidgets.QVBoxLayout(search_type_settings)
+        enable_search_type = SearchCheckBox(f"Search {search_type.name}", search_type)
+        # Add labelled text input field
+        input_fields = []
+
+        fields = ["pat-token", "repo-name", "repo-owner", "repo-branch"]
+        active = False
+        for field in fields:
+            field_value = current_content_config.get(field, None)
+            input_field = LabelledTextField(field, search_type=search_type, default_value=field_value)
+            search_type_layout.addWidget(input_field)
+            input_fields += [input_field]
+            if field_value:
+                active = True
+
+        # Set enabled/disabled based on checkbox state
+        enable_search_type.setChecked(active)
+        for input_field in input_fields:
+            input_field.setEnabled(enable_search_type.isChecked())
+        enable_search_type.stateChanged.connect(lambda _: [input_field.setEnabled(enable_search_type.isChecked()) for input_field in input_fields])  # type: ignore[attr-defined]
+
+        # Add setting widgets for given search type to panel
+        search_type_layout.addWidget(enable_search_type)
+        for input_field in input_fields:
+            search_type_layout.addWidget(input_field)
+        self.wlayout.addWidget(search_type_settings)
+
+        return search_type_settings
+
     def add_processor_panel(self, current_conversation_config: dict, processor_type: ProcessorType):
         "Add Conversation Processor Panel"
         # Get current settings from config for given processor type
@@ -121,7 +153,9 @@ class MainWindow(QtWidgets.QMainWindow):
         processor_type_layout = QtWidgets.QVBoxLayout(processor_type_settings)
         enable_conversation = ProcessorCheckBox(f"Conversation", processor_type)
         # Add file browser to set input files for given processor type
-        input_field = LabelledTextField("OpenAI API Key", processor_type, current_openai_api_key)
+        input_field = LabelledTextField(
+            "OpenAI API Key", processor_type=processor_type, default_value=current_openai_api_key
+        )
 
         # Set enabled/disabled based on checkbox state
         enable_conversation.setChecked(current_openai_api_key is not None)
@@ -185,7 +219,7 @@ class MainWindow(QtWidgets.QMainWindow):
         "Update config with search settings from UI"
         for settings_panel in self.search_settings_panels:
             for child in settings_panel.children():
-                if not isinstance(child, (SearchCheckBox, FileBrowser)):
+                if not isinstance(child, (SearchCheckBox, FileBrowser, LabelledTextField)):
                     continue
                 if isinstance(child, SearchCheckBox):
                     # Search Type Disabled
@@ -209,6 +243,10 @@ class MainWindow(QtWidgets.QMainWindow):
                         self.new_config["content-type"][child.search_type.value]["input-files"] = (
                             child.getPaths() if child.getPaths() != [] else None
                         )
+                elif isinstance(child, LabelledTextField):
+                    self.new_config["content-type"][child.search_type.value][
+                        child.label.text()
+                    ] = child.input_field.toPlainText()
 
     def update_processor_settings(self):
         "Update config with conversation settings from UI"

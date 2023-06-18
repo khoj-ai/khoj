@@ -16,6 +16,7 @@ from khoj.utils.rawconfig import (
     ConversationProcessorConfig,
     ProcessorConfig,
     TextContentConfig,
+    GithubContentConfig,
     ImageContentConfig,
     SearchConfig,
     TextSearchConfig,
@@ -89,6 +90,15 @@ def content_config(tmp_path_factory, search_config: SearchConfig):
         )
     }
 
+    content_config.github = GithubContentConfig(
+        pat_token=os.getenv("GITHUB_PAT_TOKEN", ""),
+        repo_name="lantern",
+        repo_owner="khoj-ai",
+        repo_branch="master",
+        compressed_jsonl=content_dir.joinpath("github.jsonl.gz"),
+        embeddings_file=content_dir.joinpath("github_embeddings.pt"),
+    )
+
     filters = [DateFilter(), WordFilter(), FileFilter()]
     text_search.setup(
         JsonlToJsonl, content_config.plugins["plugin1"], search_config.asymmetric, regenerate=False, filters=filters
@@ -158,6 +168,10 @@ def client(content_config: ContentConfig, search_config: SearchConfig, processor
     state.config.content_type = content_config
     state.config.search_type = search_config
     state.SearchType = configure_search_types(state.config)
+
+    # These lines help us Mock the Search models for these search types
+    state.model.org_search = {}
+    state.model.image_search = {}
 
     configure_routes(app)
     return TestClient(app)
