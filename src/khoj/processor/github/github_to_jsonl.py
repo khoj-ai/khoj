@@ -77,12 +77,9 @@ class GithubToJsonl(TextToJsonl):
         return entries_with_ids
 
     def get_markdown_files(self):
-        # set the url to get the contents of the repository
+        # Get the contents of the repository
         repo_content_url = f"{self.repo_url}/git/trees/{self.config.repo_branch}"
-        # set the headers to include the authentication token
-        headers = {"Authorization": f"{self.config.pat_token}"}
-
-        # get the contents of the repository
+        headers = {"Authorization": f"token {self.config.pat_token}"}
         response = requests.get(repo_content_url, headers=headers)
         contents = response.json()
 
@@ -91,6 +88,7 @@ class GithubToJsonl(TextToJsonl):
         if result is not None:
             return result
 
+        # Extract markdown files from the repository
         markdown_files = []
         for item in contents["tree"]:
             # Find all markdown files in the repository
@@ -105,7 +103,7 @@ class GithubToJsonl(TextToJsonl):
 
     def get_file_contents(self, file_url):
         # Get text from each markdown file
-        headers = {"Authorization": f"{self.config.pat_token}", "Accept": "application/vnd.github.v3.raw"}
+        headers = {"Authorization": f"token {self.config.pat_token}", "Accept": "application/vnd.github.v3.raw"}
         response = requests.get(file_url, headers=headers)
 
         # Wait for rate limit reset if needed
@@ -117,8 +115,8 @@ class GithubToJsonl(TextToJsonl):
 
     def get_commits(self) -> List[Dict]:
         # Get commit messages from the repository using the Github API
-        headers = {"Authorization": f"{self.config.pat_token}"}
         commits_url = f"{self.repo_url}/commits"
+        headers = {"Authorization": f"token {self.config.pat_token}"}
         commits = []
 
         while commits_url is not None:
