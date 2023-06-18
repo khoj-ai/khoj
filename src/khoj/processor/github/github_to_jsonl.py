@@ -38,10 +38,10 @@ class GithubToJsonl(TextToJsonl):
             try:
                 docs = self.get_markdown_files()
             except Exception as e:
-                logger.error(f"Unable to download github repo for {self.config.repo_owner}/{self.config.repo_name}")
+                logger.error(f"Unable to download github repo {self.config.repo_owner}/{self.config.repo_name}")
                 raise e
 
-        logger.info(f"Found {len(docs)} documents in {self.config.repo_owner}/{self.config.repo_name}")
+        logger.info(f"Found {len(docs)} documents in github repo {self.config.repo_owner}/{self.config.repo_name}")
 
         with timer("Extract markdown entries from github repo", logger):
             current_entries = MarkdownToJsonl.convert_markdown_entries_to_maps(
@@ -63,7 +63,7 @@ class GithubToJsonl(TextToJsonl):
                     current_entries, previous_entries, key="compiled", logger=logger
                 )
 
-        with timer("Write markdown entries to JSONL file", logger):
+        with timer("Write github entries to JSONL file", logger):
             # Process Each Entry from All Notes Files
             entries = list(map(lambda entry: entry[1], entries_with_ids))
             jsonl_data = MarkdownToJsonl.convert_markdown_maps_to_jsonl(entries)
@@ -80,7 +80,8 @@ class GithubToJsonl(TextToJsonl):
         # Get the contents of the repository
         repo_content_url = f"{self.repo_url}/git/trees/{self.config.repo_branch}"
         headers = {"Authorization": f"token {self.config.pat_token}"}
-        response = requests.get(repo_content_url, headers=headers)
+        params = {"recursive": "true"}
+        response = requests.get(repo_content_url, headers=headers, params=params)
         contents = response.json()
 
         # Wait for rate limit reset if needed
