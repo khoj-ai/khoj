@@ -98,15 +98,22 @@ class GithubToJsonl(TextToJsonl):
                 # Create URL for each markdown file on Github
                 url_path = f'https://github.com/{self.config.repo_owner}/{self.config.repo_name}/blob/{self.config.repo_branch}/{item["path"]}'
 
-                # Get text from each markdown file
-                file_content_url = f'{self.repo_url}/contents/{item["path"]}'
-                headers["Accept"] = "application/vnd.github.v3.raw"
-                markdown_file_contents = requests.get(file_content_url, headers=headers).content.decode("utf-8")
-
                 # Add markdown file contents and URL to list
-                markdown_files += [{"content": markdown_file_contents, "path": url_path}]
+                markdown_files += [{"content": self.get_file_contents(item["url"]), "path": url_path}]
 
         return markdown_files
+
+    def get_file_contents(self, file_url):
+        # Get text from each markdown file
+        headers = {"Authorization": f"{self.config.pat_token}", "Accept": "application/vnd.github.v3.raw"}
+        response = requests.get(file_url, headers=headers)
+
+        # Wait for rate limit reset if needed
+        result = self.wait_for_rate_limit_reset(response, self.get_file_contents, file_url)
+        if result is not None:
+            return result
+
+        return response.content.decode("utf-8")
 
     def get_commits(self) -> List[Dict]:
         # Get commit messages from the repository using the Github API
