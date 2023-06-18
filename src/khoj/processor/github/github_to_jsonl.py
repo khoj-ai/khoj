@@ -117,11 +117,12 @@ class GithubToJsonl(TextToJsonl):
         # Get commit messages from the repository using the Github API
         commits_url = f"{self.repo_url}/commits"
         headers = {"Authorization": f"token {self.config.pat_token}"}
+        params = {"per_page": 100}
         commits = []
 
         while commits_url is not None:
             # Get the next page of commits
-            response = requests.get(commits_url, headers=headers)
+            response = requests.get(commits_url, headers=headers, params=params)
             raw_commits = response.json()
 
             # Wait for rate limit reset if needed
