@@ -23,6 +23,16 @@ class GithubToJsonl(TextToJsonl):
         self.config = config
         self.repo_url = f"https://api.github.com/repos/{self.config.repo_owner}/{self.config.repo_name}"
 
+    @staticmethod
+    def wait_for_rate_limit_reset(response, func, *args, **kwargs):
+        if response.status_code != 200 and response.headers.get("X-RateLimit-Remaining") == "0":
+            wait_time = int(response.headers.get("X-RateLimit-Reset")) - int(time.time())
+            logger.info(f"Github Rate limit reached. Waiting for {wait_time} seconds")
+            time.sleep(wait_time)
+            return func(*args, **kwargs)
+        else:
+            return
+
     def process(self, previous_entries=None):
         with timer("Download markdown files from github repo", logger):
             try:
@@ -76,12 +86,10 @@ class GithubToJsonl(TextToJsonl):
         response = requests.get(repo_content_url, headers=headers)
         contents = response.json()
 
-        # If the rate limit is reached, wait for the reset time
-        if response.status_code != 200 and response.headers.get("X-RateLimit-Remaining") == "0":
-            wait_time = int(response.headers.get("X-RateLimit-Reset")) - int(time.time())
-            logger.info(f"Github Rate limit reached. Waiting for {wait_time} seconds")
-            time.sleep(wait_time)
-            return self.get_markdown_files()
+        # Wait for rate limit reset if needed
+        result = self.wait_for_rate_limit_reset(response, self.get_markdown_files)
+        if result is not None:
+            return result
 
         markdown_files = []
         for item in contents["tree"]:
@@ -109,15 +117,12 @@ class GithubToJsonl(TextToJsonl):
         while commits_url is not None:
             # Get the next page of commits
             response = requests.get(commits_url, headers=headers)
-
-            # If the rate limit is reached, wait for the reset time
-            if response.status_code != 200 and response.headers.get("X-RateLimit-Remaining") == "0":
-                wait_time = int(response.headers.get("X-RateLimit-Reset")) - int(time.time())
-                logger.info(f"Github Rate limit reached. Waiting for {wait_time} seconds")
-                time.sleep(wait_time)
-                continue
-
             raw_commits = response.json()
+
+            # Wait for rate limit reset if needed
+            result = self.wait_for_rate_limit_reset(response, self.get_commits)
+            if result is not None:
+                return result
 
             # Extract commit messages from the response
             for commit in raw_commits:
