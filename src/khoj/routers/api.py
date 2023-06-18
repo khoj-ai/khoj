@@ -15,7 +15,13 @@ from khoj.processor.conversation.gpt import converse, extract_questions
 from khoj.processor.conversation.utils import message_to_log, message_to_prompt
 from khoj.search_type import image_search, text_search
 from khoj.utils.helpers import log_telemetry, timer
-from khoj.utils.rawconfig import FullConfig, SearchResponse, TextContentConfig, ConversationProcessorConfig
+from khoj.utils.rawconfig import (
+    FullConfig,
+    SearchResponse,
+    TextContentConfig,
+    ConversationProcessorConfig,
+    GithubContentConfig,
+)
 from khoj.utils.state import SearchType
 from khoj.utils import state, constants
 from khoj.utils.yaml import save_config_to_file_updated_state
@@ -66,16 +72,34 @@ async def set_config_data(updated_config: FullConfig):
     return state.config
 
 
-@api.post("/config/data/content_type/{content_type}")
+@api.post("/config/data/content_type/github", status_code=200)
+async def set_content_config_github_data(updated_config: GithubContentConfig):
+    state.config.content_type.github = updated_config
+    try:
+        save_config_to_file_updated_state()
+        return {"status": "ok"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+@api.post("/config/data/content_type/{content_type}", status_code=200)
 async def set_content_config_data(content_type: str, updated_config: TextContentConfig):
     state.config.content_type[content_type] = updated_config
-    save_config_to_file_updated_state()
+    try:
+        save_config_to_file_updated_state()
+        return {"status": "ok"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
-@api.post("/config/data/processor/conversation")
+@api.post("/config/data/processor/conversation", status_code=200)
 async def set_processor_conversation_config_data(updated_config: ConversationProcessorConfig):
     state.config.processor.conversation = updated_config
-    save_config_to_file_updated_state()
+    try:
+        save_config_to_file_updated_state()
+        return {"status": "ok"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 @api.get("/search", response_model=List[SearchResponse])

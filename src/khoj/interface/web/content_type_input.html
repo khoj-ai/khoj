@@ -2,6 +2,7 @@
 {% block content %}
 <h2>{{ content_type }}</h2>
 <form id="config-form">
+    <div id="success" style="display: none;" ></div>
     <table>
         <tr>
             <td>
@@ -136,7 +137,13 @@
         })
         .then(response => response.json())
         .then(data => {
-            console.log('Success:', data);
+            if (data["status"] == "ok") {
+                document.getElementById("success").innerHTML = "✅ Successfully updated. Go to <a href='/config'>your settings</a> to regenerate your index.";
+                document.getElementById("success").style.display = "block";
+            } else {
+                document.getElementById("success").innerHTML = "⚠️ Failed to update settings.";
+                document.getElementById("success").style.display = "block";
+            }
         })
     });
 </script>

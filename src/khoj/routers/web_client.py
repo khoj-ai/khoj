@@ -30,6 +30,27 @@ def config_page(request: Request):
     return templates.TemplateResponse("config.html", context={"request": request})
 
 
+@web_client.get("/config/content_type/github", response_class=HTMLResponse)
+def github_config_page(request: Request):
+    default_copy = constants.default_config.copy()
+    default_github = default_copy["content-type"]["github"]  # type: ignore
+
+    default_config = TextContentConfig(
+        compressed_jsonl=default_github["compressed-jsonl"],
+        embeddings_file=default_github["embeddings-file"],
+    )
+
+    current_config = (
+        state.config.content_type.github if state.config.content_type.github is not None else default_config
+    )
+
+    current_config = json.loads(current_config.json())
+
+    return templates.TemplateResponse(
+        "content_type_github_input.html", context={"request": request, "current_config": current_config}
+    )
+
+
 @web_client.get("/config/content_type/{content_type}", response_class=HTMLResponse)
 def content_config_page(request: Request, content_type: str):
     if content_type not in VALID_CONTENT_TYPES:
