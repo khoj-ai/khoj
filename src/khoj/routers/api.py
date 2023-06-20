@@ -142,26 +142,16 @@ def search(
     for filter in [DateFilter(), WordFilter(), FileFilter()]:
         defiltered_query = filter.defilter(user_query)
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        with timer("Encoding query for asymmetric search took", logger=logger):
-            encode_asymmetric_futures = executor.submit(
-                state.model.org_search.bi_encoder.encode,
-                [defiltered_query],
-                convert_to_tensor=True,
-                device=state.device,
+    encoded_asymmetric_query = None
+    if t == None or (t != SearchType.Ledger and t != SearchType.Image):
+        with timer("Encoding query took", logger=logger):
+            encoded_asymmetric_query = util.normalize_embeddings(
+                state.model.org_search.bi_encoder.encode(
+                    [defiltered_query],
+                    convert_to_tensor=True,
+                    device=state.device,
+                )
             )
-
-        with timer("Encoding query for symmetric search took", logger=logger):
-            encode_symmetric_futures = executor.submit(
-                state.model.org_search.bi_encoder.encode,
-                [defiltered_query],
-                convert_to_tensor=True,
-                device=state.device,
-            )
-
-        with timer("Normalizing query embeddings took", logger=logger):
-            encoded_asymmetric_query = util.normalize_embeddings(encode_asymmetric_futures.result())
-            encoded_symmetric_query = util.normalize_embeddings(encode_symmetric_futures.result())
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         if (t == SearchType.Org or t == None) and state.model.org_search:
@@ -206,14 +196,13 @@ def search(
                 )
             ]
 
-        if (t == SearchType.Ledger or t == None) and state.model.ledger_search:
+        if (t == SearchType.Ledger) and state.model.ledger_search:
             # query transactions
             search_futures[t] += [
                 executor.submit(
                     text_search.query,
                     user_query,
                     state.model.ledger_search,
-                    question_embedding=encoded_symmetric_query,
                     rank_results=r,
                     score_threshold=score_threshold,
                     dedupe=dedupe,
@@ -294,7 +283,7 @@ def search(
     state.previous_query = user_query
 
     end_time = time.time()
-    logger.debug(f"🔍 Search took {end_time - start_time:.2f} seconds")
+    logger.debug(f"🔍 Search took: {end_time - start_time:.2f} seconds")
 
     return results
 
