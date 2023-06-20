@@ -277,15 +277,6 @@ def chat(q: Optional[str] = None, client: Optional[str] = None):
             status_code=500, detail="Chat processor not configured. Configure OpenAI API key on server and restart it."
         )
 
-    # Initialize Variables
-    api_key = state.processor_config.conversation.openai_api_key
-    model = state.processor_config.conversation.model
-    chat_model = state.processor_config.conversation.chat_model
-    user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    conversation_type = "general" if q.startswith("@general") else "notes"
-    compiled_references = []
-    inferred_queries = []
-
     # Load Conversation History
     chat_session = state.processor_config.conversation.chat_session
     meta_log = state.processor_config.conversation.meta_log
@@ -296,6 +287,15 @@ def chat(q: Optional[str] = None, client: Optional[str] = None):
             return {"status": "ok", "response": meta_log["chat"]}
         else:
             return {"status": "ok", "response": []}
+
+    # Initialize Variables
+    api_key = state.processor_config.conversation.openai_api_key
+    model = state.processor_config.conversation.model
+    chat_model = state.processor_config.conversation.chat_model
+    user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    conversation_type = "general" if q.startswith("@general") else "notes"
+    compiled_references = []
+    inferred_queries = []
 
     if conversation_type == "notes":
         # Infer search queries from user message
