@@ -283,10 +283,7 @@ def chat(q: Optional[str] = None, client: Optional[str] = None):
 
     # If user query is empty, return chat history
     if not q:
-        if meta_log.get("chat"):
-            return {"status": "ok", "response": meta_log["chat"]}
-        else:
-            return {"status": "ok", "response": []}
+        return {"status": "ok", "response": meta_log.get("chat", [])}
 
     # Initialize Variables
     api_key = state.processor_config.conversation.openai_api_key
