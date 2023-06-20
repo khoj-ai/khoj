@@ -2,7 +2,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
-        <title>Khoj</title>
+        <title>Khoj - Chat</title>
 
         <link rel="icon" type="image/png" sizes="128x128" href="/static/assets/icons/favicon-128x128.png">
         <link rel="manifest" href="/static/khoj_chat.webmanifest">
@@ -25,7 +25,7 @@
 
         function renderMessage(message, by, dt=null) {
             let message_time = formatDate(dt ?? new Date());
-            let by_name =  by == "khoj" ? "🦅 Khoj" : "🤔 You";
+            let by_name =  by == "khoj" ? "🏮 Khoj" : "🤔 You";
             // Generate HTML for Chat Message and Append to Chat Body
             document.getElementById("chat-body").innerHTML += `
                 <div data-meta="${by_name} at ${message_time}" class="chat-message ${by}">
@@ -118,6 +118,10 @@
     </body>
 
     <style>
+        :root {
+            --night-black: #282c34;
+            --evening-sun: #fbb912;
+        }
         html, body {
             height: 100%;
             width: 100%;
@@ -158,7 +162,7 @@
             display: block;
             font-size: x-small;
             color: #475569;
-            margin: -12px 7px 0 -5px;
+            margin: -8px 4px 0 -5px;
         }
         /* move message by khoj to left */
         .chat-message.khoj {
@@ -182,8 +186,8 @@
         }
         /* color chat bubble by khoj blue */
         .chat-message-text.khoj {
-            color: #f8fafc;
-            background: #017eff;
+            color: var(--night-black);
+            background: var(--evening-sun);
             margin-left: auto;
             white-space: pre-line;
         }
@@ -194,7 +198,7 @@
             bottom: -2px;
             left: -7px;
             border: 10px solid transparent;
-            border-top-color: #017eff;
+            border-top-color: var(--evening-sun);
             border-bottom: 0;
             transform: rotate(-60deg);
         }
