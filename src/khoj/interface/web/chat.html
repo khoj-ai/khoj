@@ -104,7 +104,9 @@
     </script>
     <body>
         <!-- Chat Header -->
-        <h1>Khoj</h1>
+        <h1>
+            <img class="khoj-logo" src="static/assets/icons/logotype.svg" alt="Khoj"></img>
+        </h1>
 
         <!-- Chat Body -->
         <div id="chat-body"></div>
@@ -137,8 +139,11 @@
             margin: 10px;
         }
         h1 {
-            font-weight: 200;
-            color: #017eff;
+            margin: 16px 0;
+            padding: 0;
+        }
+        img.khoj-logo {
+            width: min(60vw, 100px);
         }
 
         #chat-body {

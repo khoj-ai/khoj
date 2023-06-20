@@ -188,7 +188,9 @@
     </script>
 
     <body>
-        <h1>Khoj</h1>
+        <h1>
+            <img class="khoj-logo" src="static/assets/icons/logotype.svg" alt="Khoj"></img>
+        </h1>
 
         <!--Add Text Box To Enter Query, Trigger Incremental Search OnChange -->
         <input type="text" id="query" class="option" onkeyup=incrementalSearch(event) autofocus="autofocus" placeholder="What is the meaning of life?">
@@ -202,7 +204,7 @@
 
             <!--Add Results Count Input To Set Results Count -->
             <input type="number" id="results-count" min="1" max="100" value="6" placeholder="results count" onchange="setCountFieldInUrl(this)">
-         </div>
+        </div>
 
         <!-- Section to Render Results -->
         <div id="results"></div>
@@ -247,8 +249,11 @@
             margin: 10px;
         }
         h1 {
-            font-weight: 200;
-            color: #017eff;
+            margin: 16px 0 0 0;
+            padding: 0;
+        }
+        img.khoj-logo {
+            width: min(60vw, 100px);
         }
 
         #options {
@@ -301,7 +306,7 @@
             text-align: left;
             white-space: pre-line;
         }
-         #results-markdown, #results-github {
+        #results-markdown, #results-github {
             text-align: left;
         }
         #results-music,
