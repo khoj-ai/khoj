@@ -17,7 +17,7 @@ def create_system_tray(gui: QtWidgets.QApplication, main_window: MainWindow):
     """
 
     # Create the system tray with icon
-    icon_path = constants.web_directory / "assets/icons/favicon-144x144.png"
+    icon_path = constants.web_directory / "assets/icons/favicon-128x128.png"
     icon = QtGui.QIcon(f"{icon_path.absolute()}")
     tray = QtWidgets.QSystemTrayIcon(icon)
     tray.setVisible(True)

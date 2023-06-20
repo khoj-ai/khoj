@@ -1,14 +1,71 @@
-<!DOCTYPE html>
-    <head>
-        <meta charset="utf-8">
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦅</text></svg>">
-        <link rel="stylesheet" href="static/assets/config.css">
-        <title>Khoj - Configure App</title>
-    </head>
-    <body>
-        <form id="config-form">
-        </form>
-        <button id="config-regenerate">regenerate</button>
-    </body>
-    <script src="static/assets/config.js"></script>
-</html>
+{% extends "base_config.html" %}
+{% block content %}
+<h2>Content Types</h2>
+<div id="content-configuration">
+    <button onclick="window.location.href='/config/content_type/pdf';">
+        PDF
+    </button>
+    <button onclick="window.location.href='/config/content_type/markdown';">
+        Markdown
+    </button>
+    <button onclick="window.location.href='/config/content_type/org';">
+        Org
+    </button>
+    <button onclick="window.location.href='/config/content_type/ledger';">
+        Ledger
+    </button>
+    <button onclick="window.location.href='/config/content_type/github';">
+        GitHub
+    </button>
+</div>
+<h2>Processors</h2>
+<button onclick="window.location.href='/config/processor/conversation/';">
+    Conversation
+</button>
+<h1>Finalize</h1>
+<button id="regenerate" type="submit">Regenerate</button>
+<style>
+    body.khoj-configure {
+        padding: 0 10%
+    }
+    div#content-configuration, div#actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-gap: 12px;
+    }
+    button#regenerate {
+        background-color: #4CAF50;
+        border: none;
+        color: white;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+    }
+</style>
+<script>
+    var regenerate = document.getElementById("regenerate");
+    regenerate.addEventListener("click", function(event) {
+        event.preventDefault();
+        regenerate.disabled = true;
+        regenerate.innerHTML = "Regenerating...";
+        fetch('/api/update?force=true&client=web', {
+            method: 'GET',
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Success:', data);
+            alert("Regenerated!");
+            regenerate.disabled = false;
+            regenerate.innerHTML = "Regenerate";
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+            alert("Regeneration was not successful. Check debug logs.");
+            regenerate.disabled = false;
+            regenerate.innerHTML = "Regenerate";
+        });
+    });
+</script>
+{% endblock %}

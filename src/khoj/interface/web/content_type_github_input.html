@@ -1,0 +1,99 @@
+{% extends "base_data_integration.html" %}
+{% block content %}
+<h2>Github</h2>
+<form id="config-form">
+    <div id="success" style="display: none;"></div>
+    <table>
+        <tr>
+            <td>
+                <label for="pat-token">Personal Access Token</label>
+            </td>
+            <td>
+                <input type="text" id="pat-token" name="pat" value="{{ current_config['pat_token'] }}">
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label for="repo-owner">Repository Owner</label>
+            </td>
+            <td>
+                <input type="text" id="repo-owner" name="repo_owner" value="{{ current_config['repo_owner'] }}">
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label for="repo-name">Repository Name</label>
+            </td>
+            <td>
+                <input type="text" id="repo-name" name="repo_name" value="{{ current_config['repo_name'] }}">
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label for="repo-branch">Repository Branch</label>
+            </td>
+            <td>
+                <input type="text" id="repo-branch" name="repo_branch" value="{{ current_config['repo_branch'] }}">
+            </td>
+        </tr>
+    </table>
+    <h4>You probably don't need to edit these.</h4>
+
+    <table>
+        <tr>
+            <td>
+                <label for="compressed-jsonl">Compressed JSONL (Output)</label>
+            </td>
+            <td>
+                <input type="text" id="compressed-jsonl" name="compressed-jsonl" value="{{ current_config['compressed_jsonl'] }}">
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label for="embeddings-file">Embeddings File (Output)</label>
+            </td>
+            <td>
+                <input type="text" id="embeddings-file" name="embeddings-file" value="{{ current_config['embeddings_file'] }}">
+            </td>
+        </tr>
+    </table>
+    <button id="submit" type="submit">Submit</button>
+</form>
+<script>
+    submit.addEventListener("click", function(event) {
+        event.preventDefault();
+
+        var compressed_jsonl = document.getElementById("compressed-jsonl").value;
+        var embeddings_file = document.getElementById("embeddings-file").value;
+        var pat_token = document.getElementById("pat-token").value;
+        var repo_owner = document.getElementById("repo-owner").value;
+        var repo_name = document.getElementById("repo-name").value;
+        var repo_branch = document.getElementById("repo-branch").value;
+
+        fetch('/api/config/data/content_type/github', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                "pat_token": pat_token,
+                "repo_owner": repo_owner,
+                "repo_name": repo_name,
+                "repo_branch": repo_branch,
+                "compressed_jsonl": compressed_jsonl,
+                "embeddings_file": embeddings_file,
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data["status"] == "ok") {
+                document.getElementById("success").innerHTML = "✅ Successfully updated. Go to <a href='/config'>your settings</a> to regenerate your index.";
+                document.getElementById("success").style.display = "block";
+            } else {
+                document.getElementById("success").innerHTML = "⚠️ Failed to update settings.";
+                document.getElementById("success").style.display = "block";
+            }
+        })
+    });
+</script>
+{% endblock %}

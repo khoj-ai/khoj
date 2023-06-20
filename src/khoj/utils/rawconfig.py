@@ -15,6 +15,12 @@ class ConfigBase(BaseModel):
         alias_generator = to_snake_case_from_dash
         allow_population_by_field_name = True
 
+    def __getitem__(self, item):
+        return getattr(self, item)
+
+    def __setitem__(self, key, value):
+        return setattr(self, key, value)
+
 
 class TextConfigBase(ConfigBase):
     compressed_jsonl: Path

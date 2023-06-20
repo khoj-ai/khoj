@@ -14,7 +14,7 @@ default_config = {
             "input-filter": None,
             "compressed-jsonl": "~/.khoj/content/org/org.jsonl.gz",
             "embeddings-file": "~/.khoj/content/org/org_embeddings.pt",
-            "index_heading_entries": False,
+            "index-heading-entries": False,
         },
         "markdown": {
             "input-files": None,
@@ -74,6 +74,7 @@ default_config = {
             "openai-api-key": None,
             "model": "text-davinci-003",
             "conversation-logfile": "~/.khoj/processor/conversation/conversation_logs.json",
+            "chat-model": "gpt-3.5-turbo",
         }
     },
 }
