@@ -17,6 +17,8 @@ from tenacity import (
     wait_exponential,
     wait_random_exponential,
 )
+from reliablegpt import reliableGPT
+openai.ChatCompletion.create = reliableGPT(openai.ChatCompletion.create, user_email='khoj@ai.com')
 
 # Internal Packages
 from khoj.utils.helpers import merge_dicts
