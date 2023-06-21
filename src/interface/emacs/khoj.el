@@ -106,13 +106,13 @@
 (defvar khoj--minibuffer-window nil
   "Minibuffer window used to enter query.")
 
-(defconst khoj--query-prompt "🦅Khoj: "
+(defconst khoj--query-prompt "🏮 Khoj: "
   "Query prompt shown in the minibuffer.")
 
-(defconst khoj--search-buffer-name "*🦅Khoj Search*"
+(defconst khoj--search-buffer-name "*🏮 Khoj Search*"
   "Name of buffer to show search results from Khoj.")
 
-(defconst khoj--chat-buffer-name "*🦅Khoj Chat*"
+(defconst khoj--chat-buffer-name "*🏮 Khoj Chat*"
   "Name of chat buffer for Khoj.")
 
 (defvar khoj--content-type "org"
@@ -782,7 +782,7 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
     (progn
       (org-set-startup-visibility)
       (visual-line-mode)
-      (re-search-backward "^\*+ 🦅" nil t))))
+      (re-search-backward "^\*+ 🏮" nil t))))
 
 (defun khoj--query-chat-api (query)
   "Send QUERY to Khoj Chat API."
@@ -807,7 +807,7 @@ RECEIVE-DATE is the message receive date."
   (let ((first-message-line (car (split-string message "\n" t)))
         (rest-message-lines (string-join (cdr (split-string message "\n" t)) "\n"))
         (heading-level (if (equal sender "you") "**" "***"))
-        (emojified-sender (if (equal sender "you") "🤔 *You*" "🦅 *Khoj*"))
+        (emojified-sender (if (equal sender "you") "🤔 *You*" "🏮 *Khoj*"))
         (suffix-newlines (if (equal sender "khoj") "\n\n" ""))
         (received (or receive-date (format-time-string "%F %T"))))
     (format "%s %s: %s\n   :PROPERTIES:\n   :RECEIVED: [%s]\n   :END:\n%s\n%s"

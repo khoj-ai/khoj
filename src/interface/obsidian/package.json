@@ -1,7 +1,7 @@
 {
     "name": "Khoj",
     "version": "0.6.2",
-    "description": "An AI Personal Assistant for your Digital Brain 🦅",
+    "description": "An AI Personal Assistant for your Digital Brain",
     "main": "src/main.js",
     "scripts": {
         "dev": "node esbuild.config.mjs",

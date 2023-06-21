@@ -1,4 +1,5 @@
-# Khoj 🦅
+<h1><img src="src/khoj/interface/web/assets/icons/khoj-logo-sideways.svg" width="330" alt="Khoj Logo"></h1>
+
 [![test](https://github.com/khoj-ai/khoj/actions/workflows/test.yml/badge.svg)](https://github.com/khoj-ai/khoj/actions/workflows/test.yml)
 [![dockerize](https://github.com/khoj-ai/khoj/actions/workflows/dockerize.yml/badge.svg)](https://github.com/khoj-ai/khoj/pkgs/container/khoj)
 [![pypi](https://github.com/khoj-ai/khoj/actions/workflows/pypi.yml/badge.svg)](https://pypi.org/project/khoj-assistant/)
@@ -308,7 +309,7 @@ pip install --upgrade --pre khoj-assistant
 If you want, Khoj can be configured to use OpenAI for search and chat.<br />
 Add your OpenAI API to Khoj by using either of the two options below:
  - Open the Khoj desktop GUI, add your [OpenAI API key](https://beta.openai.com/account/api-keys) and click *Configure*
-   Ensure khoj is started **without** the `--no-gui` flag. Check your system tray to see if Khoj 🦅 is minimized there.
+   Ensure khoj is started **without** the `--no-gui` flag. Check your system tray to see if Khoj is minimized there.
  - Set `openai-api-key` field under `processor.conversation` section in your `khoj.yml`[^1] to your [OpenAI API key](https://beta.openai.com/account/api-keys) and restart khoj:
     ```diff
     processor:

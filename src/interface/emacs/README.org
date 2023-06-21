@@ -1,4 +1,6 @@
-* Khoj Emacs 🦅
+[[https://github.com/khoj-ai/khoj/edit/master/src/interface/emacs/README.org][file:/src/khoj/interface/web/assets/icons/khoj-logo-sideways-200.png]] Emacs
+
+
   [[https://stable.melpa.org/#/khoj][file:https://stable.melpa.org/packages/khoj-badge.svg]] [[https://melpa.org/#/khoj][file:https://melpa.org/packages/khoj-badge.svg]] [[https://github.com/khoj-ai/khoj/actions/workflows/build_khoj_el.yml][https://github.com/khoj-ai/khoj/actions/workflows/build_khoj_el.yml/badge.svg?]]  [[https://github.com/khoj-ai/khoj/actions/workflows/test_khoj_el.yml][https://github.com/khoj-ai/khoj/actions/workflows/test_khoj_el.yml/badge.svg?]]
 
   /An AI personal assistant for your digital brain/

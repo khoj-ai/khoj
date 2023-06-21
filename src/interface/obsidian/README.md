@@ -1,4 +1,5 @@
-# Khoj Obsidian 🦅
+<img src="/src/khoj/interface/web/assets/icons/khoj-logo-sideways.svg" width="200" alt="Khoj Logo">Obsidian
+
 > Natural language search for your Obsidian notes using [Khoj](https://github.com/khoj-ai/khoj)
 
 ## Table of Contents
