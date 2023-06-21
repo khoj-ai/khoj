@@ -102,7 +102,7 @@ def compute_embeddings(
     return corpus_embeddings
 
 
-def query(
+async def query(
     raw_query: str,
     model: TextSearchModel,
     question_embedding: torch.Tensor | None = None,

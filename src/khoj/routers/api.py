@@ -114,7 +114,7 @@ async def set_processor_conversation_config_data(updated_config: ConversationPro
 
 
 @api.get("/search", response_model=List[SearchResponse])
-def search(
+async def search(
     q: str,
     n: Optional[int] = 5,
     t: Optional[SearchType] = None,
@@ -257,9 +257,9 @@ def search(
 
         # Query across each requested content types in parallel
         with timer("Query took", logger):
-            for search_future in search_futures[t]:
+            for search_future in concurrent.futures.as_completed(search_futures[t]):
                 if t == SearchType.Image:
-                    hits = search_futures.result()
+                    hits = await search_future.result()
                     output_directory = constants.web_directory / "images"
                     # Collate results
                     results += image_search.collate_results(
@@ -270,7 +270,7 @@ def search(
                         count=results_count or 5,
                     )
                 else:
-                    hits, entries = search_future.result()
+                    hits, entries = await search_future.result()
                     # Collate results
                     results += text_search.collate_results(hits, entries, results_count or 5)
 
