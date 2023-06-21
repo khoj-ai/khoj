@@ -105,7 +105,7 @@ def compute_embeddings(
 def query(
     raw_query: str,
     model: TextSearchModel,
-    question_embedding: torch.Tensor = None,
+    question_embedding: torch.Tensor | None = None,
     rank_results: bool = False,
     score_threshold: float = -math.inf,
     dedupe: bool = True,
