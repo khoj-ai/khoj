@@ -94,9 +94,12 @@
                 setQueryFieldInUrl(query);
 
             // Generate Backend API URL to execute Search
-            url = type === "image"
-                ? `/api/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}&client=web`
-                : `/api/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}&r=${rerank}&client=web`;
+            if (type == 'all')
+                url = `/api/search?q=${encodeURIComponent(query)}&n=${results_count}&client=web`;
+            else if (type === "image")
+                url = `/api/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}&client=web`;
+            else
+                url = `/api/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}&r=${rerank}&client=web`;
 
             // Execute Search and Render Results
             fetch(url)
@@ -138,6 +141,7 @@
             fetch("/api/config/types")
                 .then(response => response.json())
                 .then(enabled_types => {
+                    enabled_types.push("all");
                     document.getElementById("type").innerHTML =
                     enabled_types
                     .map(type => `<option value="${type}">${type.slice(0,1).toUpperCase() + type.slice(1)}</option>`)
