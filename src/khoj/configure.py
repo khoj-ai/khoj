@@ -3,6 +3,7 @@ import sys
 import logging
 import json
 from enum import Enum
+from typing import Optional
 import requests
 
 # External Packages
@@ -78,16 +79,20 @@ def configure_search_types(config: FullConfig):
     core_search_types = {e.name: e.value for e in SearchType}
     # Extract configured plugin search types
     plugin_search_types = {}
-    if config.content_type.plugins:
+    if config.content_type and config.content_type.plugins:
         plugin_search_types = {plugin_type: plugin_type for plugin_type in config.content_type.plugins.keys()}
 
     # Dynamically generate search type enum by merging core search types with configured plugin search types
     return Enum("SearchType", merge_dicts(core_search_types, plugin_search_types))
 
 
-def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, t: state.SearchType = None):
+def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, t: Optional[state.SearchType] = None):
+    if config.content_type is None or config.search_type is None:
+        logger.error("🚨 Content Type or Search Type not configured.")
+        return
+
     # Initialize Org Notes Search
-    if (t == state.SearchType.Org or t == None) and config.content_type.org:
+    if (t == state.SearchType.Org or t == None) and config.content_type.org and config.search_type.asymmetric:
         logger.info("🦄 Setting up search for orgmode notes")
         # Extract Entries, Generate Notes Embeddings
         model.org_search = text_search.setup(
@@ -99,7 +104,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
         )
 
     # Initialize Org Music Search
-    if (t == state.SearchType.Music or t == None) and config.content_type.music:
+    if (t == state.SearchType.Music or t == None) and config.content_type.music and config.search_type.asymmetric:
         logger.info("🎺 Setting up search for org-music")
         # Extract Entries, Generate Music Embeddings
         model.music_search = text_search.setup(
@@ -111,7 +116,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
         )
 
     # Initialize Markdown Search
-    if (t == state.SearchType.Markdown or t == None) and config.content_type.markdown:
+    if (t == state.SearchType.Markdown or t == None) and config.content_type.markdown and config.search_type.asymmetric:
         logger.info("💎 Setting up search for markdown notes")
         # Extract Entries, Generate Markdown Embeddings
         model.markdown_search = text_search.setup(
@@ -123,7 +128,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
         )
 
     # Initialize Ledger Search
-    if (t == state.SearchType.Ledger or t == None) and config.content_type.ledger:
+    if (t == state.SearchType.Ledger or t == None) and config.content_type.ledger and config.search_type.symmetric:
         logger.info("💸 Setting up search for ledger")
         # Extract Entries, Generate Ledger Embeddings
         model.ledger_search = text_search.setup(
@@ -135,7 +140,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
         )
 
     # Initialize PDF Search
-    if (t == state.SearchType.Pdf or t == None) and config.content_type.pdf:
+    if (t == state.SearchType.Pdf or t == None) and config.content_type.pdf and config.search_type.asymmetric:
         logger.info("🖨️ Setting up search for pdf")
         # Extract Entries, Generate PDF Embeddings
         model.pdf_search = text_search.setup(
@@ -147,14 +152,14 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
         )
 
     # Initialize Image Search
-    if (t == state.SearchType.Image or t == None) and config.content_type.image:
+    if (t == state.SearchType.Image or t == None) and config.content_type.image and config.search_type.image:
         logger.info("🌄 Setting up search for images")
         # Extract Entries, Generate Image Embeddings
         model.image_search = image_search.setup(
             config.content_type.image, search_config=config.search_type.image, regenerate=regenerate
         )
 
-    if (t == state.SearchType.Github or t == None) and config.content_type.github:
+    if (t == state.SearchType.Github or t == None) and config.content_type.github and config.search_type.asymmetric:
         logger.info("🐙 Setting up search for github")
         # Extract Entries, Generate Github Embeddings
         model.github_search = text_search.setup(

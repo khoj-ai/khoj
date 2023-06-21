@@ -134,7 +134,7 @@ async def search(
     user_query = q.strip()
     results_count = n
     score_threshold = score_threshold if score_threshold is not None else -math.inf
-    search_futures = defaultdict(list)
+    search_futures: list[concurrent.futures.Future] = []
 
     # return cached results, if available
     query_cache_key = f"{user_query}-{n}-{t}-{r}-{score_threshold}-{dedupe}"
@@ -161,7 +161,7 @@ async def search(
     with concurrent.futures.ThreadPoolExecutor() as executor:
         if (t == SearchType.Org or t == None) and state.model.org_search:
             # query org-mode notes
-            search_futures[t] += [
+            search_futures += [
                 executor.submit(
                     text_search.query,
                     user_query,
@@ -175,7 +175,7 @@ async def search(
 
         if (t == SearchType.Markdown or t == None) and state.model.markdown_search:
             # query markdown notes
-            search_futures[t] += [
+            search_futures += [
                 executor.submit(
                     text_search.query,
                     user_query,
@@ -189,7 +189,7 @@ async def search(
 
         if (t == SearchType.Pdf or t == None) and state.model.pdf_search:
             # query pdf files
-            search_futures[t] += [
+            search_futures += [
                 executor.submit(
                     text_search.query,
                     user_query,
@@ -203,7 +203,7 @@ async def search(
 
         if (t == SearchType.Ledger) and state.model.ledger_search:
             # query transactions
-            search_futures[t] += [
+            search_futures += [
                 executor.submit(
                     text_search.query,
                     user_query,
@@ -216,7 +216,7 @@ async def search(
 
         if (t == SearchType.Music or t == None) and state.model.music_search:
             # query music library
-            search_futures[t] += [
+            search_futures += [
                 executor.submit(
                     text_search.query,
                     user_query,
@@ -230,7 +230,7 @@ async def search(
 
         if (t == SearchType.Image) and state.model.image_search:
             # query images
-            search_futures[t] += [
+            search_futures += [
                 executor.submit(
                     image_search.query,
                     user_query,
@@ -242,7 +242,7 @@ async def search(
 
         if (t is None or t in SearchType) and state.model.plugin_search:
             # query specified plugin type
-            search_futures[t] += [
+            search_futures += [
                 executor.submit(
                     text_search.query,
                     user_query,
@@ -257,7 +257,7 @@ async def search(
 
         # Query across each requested content types in parallel
         with timer("Query took", logger):
-            for search_future in concurrent.futures.as_completed(search_futures[t]):
+            for search_future in concurrent.futures.as_completed(search_futures):
                 if t == SearchType.Image:
                     hits = await search_future.result()
                     output_directory = constants.web_directory / "images"
@@ -288,7 +288,7 @@ async def search(
     state.previous_query = user_query
 
     end_time = time.time()
-    logger.debug(f"🔍 Search took: {end_time - start_time:.2f} seconds")
+    logger.debug(f"🔍 Search took: {end_time - start_time:.3f} seconds")
 
     return results
 
@@ -297,7 +297,7 @@ async def search(
 def update(t: Optional[SearchType] = None, force: Optional[bool] = False, client: Optional[str] = None):
     try:
         state.search_index_lock.acquire()
-        state.model = configure_search(state.model, state.config, regenerate=force, t=t)
+        state.model = configure_search(state.model, state.config, regenerate=force or False, t=t)
         state.search_index_lock.release()
     except ValueError as e:
         logger.error(e)

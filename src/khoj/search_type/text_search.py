@@ -181,7 +181,7 @@ def setup(
     previous_entries = (
         extract_entries(config.compressed_jsonl) if config.compressed_jsonl.exists() and not regenerate else None
     )
-    entries_with_indices = text_to_jsonl(config).process(previous_entries)
+    entries_with_indices = text_to_jsonl(config).process(previous_entries or [])
 
     # Extract Updated Entries
     entries = extract_entries(config.compressed_jsonl)
