@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 FROM ubuntu:kinetic
-LABEL org.opencontainers.image.source https://github.com/debanjum/khoj
+LABEL org.opencontainers.image.source https://github.com/khoj-ai/khoj
 
 # Install System Dependencies
 RUN apt update -y && \

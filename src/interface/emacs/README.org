@@ -1,25 +1,25 @@
 * Khoj Emacs 🦅
-  [[https://stable.melpa.org/#/khoj][file:https://stable.melpa.org/packages/khoj-badge.svg]] [[https://melpa.org/#/khoj][file:https://melpa.org/packages/khoj-badge.svg]] [[https://github.com/debanjum/khoj/actions/workflows/build_khoj_el.yml][https://github.com/debanjum/khoj/actions/workflows/build_khoj_el.yml/badge.svg?]]  [[https://github.com/debanjum/khoj/actions/workflows/test_khoj_el.yml][https://github.com/debanjum/khoj/actions/workflows/test_khoj_el.yml/badge.svg?]]
+  [[https://stable.melpa.org/#/khoj][file:https://stable.melpa.org/packages/khoj-badge.svg]] [[https://melpa.org/#/khoj][file:https://melpa.org/packages/khoj-badge.svg]] [[https://github.com/khoj-ai/khoj/actions/workflows/build_khoj_el.yml][https://github.com/khoj-ai/khoj/actions/workflows/build_khoj_el.yml/badge.svg?]]  [[https://github.com/khoj-ai/khoj/actions/workflows/test_khoj_el.yml][https://github.com/khoj-ai/khoj/actions/workflows/test_khoj_el.yml/badge.svg?]]
 
   /An AI personal assistant for your digital brain/
 
 ** Table of Contents
-  - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#features][Features]]
-  - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Interface][Interface]]
-  - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Setup][Setup]]
-    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Direct-Install][Direct Install]]
-    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Minimal-Install][Minimal Install]]
-    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Standard-Install][Standard Install]]
-    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#With-Straight.el][With Straight.el]]
-  - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Use][Use]]
-    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Search][Search]]
-    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Chat][Chat]]
-    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Find-similar-entries][Find Similar Entries]]
-    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Advanced-usage][Advanced Usage]]
-    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Khoj-menu][Khoj Menu]]
-  - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Upgrade][Upgrade]]
-    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Upgrade-Khoj-Backend][Upgrade Backend]]
-    - [[https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Upgrade-Khojel][Upgrade Khoj.el]]
+  - [[https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#features][Features]]
+  - [[https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#Interface][Interface]]
+  - [[https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#Setup][Setup]]
+    - [[https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#Direct-Install][Direct Install]]
+    - [[https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#Minimal-Install][Minimal Install]]
+    - [[https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#Standard-Install][Standard Install]]
+    - [[https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#With-Straight.el][With Straight.el]]
+  - [[https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#Use][Use]]
+    - [[https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#Search][Search]]
+    - [[https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#Chat][Chat]]
+    - [[https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#Find-similar-entries][Find Similar Entries]]
+    - [[https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#Advanced-usage][Advanced Usage]]
+    - [[https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#Khoj-menu][Khoj Menu]]
+  - [[https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#Upgrade][Upgrade]]
+    - [[https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#Upgrade-Khoj-Backend][Upgrade Backend]]
+    - [[https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#Upgrade-Khojel][Upgrade Khoj.el]]
 
 ** Features
   - *Search*
@@ -42,7 +42,7 @@
 - /Make sure [[https://realpython.com/installing-python/][python]] (version 3.10 or lower) and [[https://pip.pypa.io/en/stable/installation/][pip]] are installed on your machine/
 
 - /khoj.el attempts to automatically install, start and configure the khoj server./
-  If this fails, follow [[https://github.com/debanjum/khoj/tree/master/#Setup][these instructions]] to manually setup the khoj server.
+  If this fails, follow [[https://github.com/khoj-ai/khoj/tree/master/#Setup][these instructions]] to manually setup the khoj server.
 
 *** Direct Install
     #+begin_src elisp
@@ -89,7 +89,7 @@
     ;; Install Khoj Package using Straight.el
     (use-package khoj
       :after org
-      :straight (khoj :type git :host github :repo "debanjum/khoj" :files (:defaults "src/interface/emacs/khoj.el"))
+      :straight (khoj :type git :host github :repo "khoj-ai/khoj" :files (:defaults "src/interface/emacs/khoj.el"))
       :bind ("C-c s" . 'khoj)
       :config (setq khoj-org-directories '("~/docs/org-roam" "~/docs/notes")
                     khoj-org-files '("~/docs/todo.org" "~/docs/work.org")
@@ -111,7 +111,7 @@
 
      E.g "When did I file my taxes last year?"
 
-  See [[https://github.com/debanjum/khoj/tree/master/#Khoj-Chat][Khoj Chat]] for more details
+  See [[https://github.com/khoj-ai/khoj/tree/master/#Khoj-Chat][Khoj Chat]] for more details
 
 *** Find Similar Entries
   This feature finds entries similar to the one you are currently on.
@@ -119,7 +119,7 @@
   2. Hit ~C-c s f~ (or ~M-x khoj RET f~) to find similar entries
 
 *** Advanced Usage
-  - Add [[https://github.com/debanjum/khoj/#query-filters][query filters]] during search to narrow down results further
+  - Add [[https://github.com/khoj-ai/khoj/#query-filters][query filters]] during search to narrow down results further
 
     e.g `What is the meaning of life? -"god" +"none" dt>"last week"`
 

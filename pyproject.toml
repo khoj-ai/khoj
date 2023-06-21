@@ -61,10 +61,10 @@ dependencies = [
 dynamic = ["version"]
 
 [project.urls]
-Homepage = "https://github.com/debanjum/khoj#readme"
-Issues = "https://github.com/debanjum/khoj/issues"
-Discussions = "https://github.com/debanjum/khoj/discussions"
-Releases = "https://github.com/debanjum/khoj/releases"
+Homepage = "https://github.com/khoj-ai/khoj#readme"
+Issues = "https://github.com/khoj-ai/khoj/issues"
+Discussions = "https://github.com/khoj-ai/khoj/discussions"
+Releases = "https://github.com/khoj-ai/khoj/releases"
 
 [project.scripts]
 khoj = "khoj.main:run"
