@@ -57,6 +57,7 @@ dependencies = [
     "langchain >= 0.0.187",
     "pypdf >= 3.9.0",
     "requests >= 2.26.0",
+    "reliableGPT == 0.2.6",
 ]
 dynamic = ["version"]
 
