@@ -651,7 +651,9 @@ CONFIG is json obtained from Khoj config API."
 Use QUERY, CONTENT-TYPE and (optional) RERANK as query params"
   (let ((rerank (or rerank "false"))
         (encoded-query (url-hexify-string query)))
-    (format "%s/api/search?q=%s&t=%s&r=%s&n=%s&client=emacs" khoj-server-url encoded-query content-type rerank khoj-results-count)))
+    (if content-type
+      (format "%s/api/search?q=%s&r=%s&n=%s&client=emacs" khoj-server-url encoded-query rerank khoj-results-count)
+    (format "%s/api/search?q=%s&t=%s&r=%s&n=%s&client=emacs&t=%s" khoj-server-url content-type encoded-query rerank khoj-results-count))))
 
 (defun khoj--query-search-api-and-render-results (query-url content-type query buffer-name)
   "Query Khoj Search with QUERY-URL.
