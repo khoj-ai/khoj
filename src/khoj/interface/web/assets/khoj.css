@@ -64,6 +64,9 @@
 .khoj-nav a:hover {
     background-color: var(--primary-hover);
 }
+.khoj-nav-selected {
+    background-color: var(--primary);
+}
 img.khoj-logo {
     width: min(60vw, 150px);
     justify-self: center;
