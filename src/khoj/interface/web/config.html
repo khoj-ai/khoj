@@ -1,70 +1,190 @@
 {% extends "base_config.html" %}
 {% block content %}
-<h2>Content Types</h2>
-<div id="content-configuration">
-    <button onclick="window.location.href='/config/content_type/pdf';">
-        PDF
-    </button>
-    <button onclick="window.location.href='/config/content_type/markdown';">
-        Markdown
-    </button>
-    <button onclick="window.location.href='/config/content_type/org';">
-        Org
-    </button>
-    <button onclick="window.location.href='/config/content_type/ledger';">
-        Ledger
-    </button>
-    <button onclick="window.location.href='/config/content_type/github';">
-        GitHub
-    </button>
+<div class="page">
+    <div class="section">
+        <h2 class="section-title">Plugins</h2>
+        <div class="section-cards">
+            <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/github.svg" alt="Github">
+                    <h3 class="card-title">Github</h3>
+                </div>
+                <div class="card-description-row">
+                <p class="card-description">Set repositories for Khoj to index</p>
+                </div>
+                <div class="card-action-row">
+                <button class="card-button" onclick="window.location.href='/config/content_type/github';">Configure <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg></button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/markdown.svg" alt="markdown">
+                    <h3 class="card-title">Markdown</h3>
+                </div>
+                <div class="card-description-row">
+                <p class="card-description">Set markdown files for Khoj to index</p>
+                </div>
+                <div class="card-action-row">
+                <button class="card-button" onclick="window.location.href='/config/content_type/markdown';">Configure <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg></button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/orgmode.svg" alt="org-mode">
+                    <h3 class="card-title">Org-Mode</h3>
+                </div>
+                <div class="card-description-row">
+                <p class="card-description">Set org-mode files for Khoj to index</p>
+                </div>
+                <div class="card-action-row">
+                <button class="card-button" onclick="window.location.href='/config/content_type/org';">Configure <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg></button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/pdf.svg" alt="PDF">
+                    <h3 class="card-title">PDF</h3>
+                </div>
+                <div class="card-description-row">
+                <p class="card-description">Set PDF files for Khoj to index</p>
+                </div>
+                <div class="card-action-row">
+                <button class="card-button" onclick="window.location.href='/config/content_type/pdf';">Configure <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg></button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="section">
+        <h2 class="section-title">Features</h2>
+        <div class="section-cards">
+            <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/chat.svg" alt="Chat">
+                    <h3 class="card-title">Chat</h3>
+                </div>
+                <div class="card-description-row">
+                <p class="card-description">Setup Khoj Chat</p>
+                </div>
+                <div class="card-action-row">
+                <button class="card-button" onclick="window.location.href='/config/processor/conversation/';">Configure <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg></button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="section">
+        <button id="save" type="submit">Save</button>
+    </div>
 </div>
-<h2>Processors</h2>
-<button onclick="window.location.href='/config/processor/conversation/';">
-    Conversation
-</button>
-<h1>Finalize</h1>
-<button id="regenerate" type="submit">Regenerate</button>
 <style>
-    body.khoj-configure {
-        padding: 0 10%
-    }
-    div#content-configuration, div#actions {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-gap: 12px;
-    }
-    button#regenerate {
-        background-color: #4CAF50;
-        border: none;
-        color: white;
-        padding: 15px 32px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 16px;
-    }
+:root {
+    --night-black: #282c34;
+    --evening-sun: #fbb912;
+}
+.page {
+    display: grid;
+    grid-auto-flow: row;
+    gap: 32px;
+}
+.section {
+    justify-self: center;
+}
+.section-title {
+    margin: 0;
+    padding: 0 0 16px 0;
+    font-size: 32;
+    font-weight: normal;
+}
+.section-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    justify-items: start;
+}
+.card {
+    display: grid;
+    grid-template-rows: repeat(3, 1fr);
+    gap: 8px;
+    padding: 24px 16px;
+    width: 320px;
+    height: 160px;
+    background: white;
+    border: 1px solid rgb(229, 229, 229);
+    border-radius: 4px;
+    box-shadow: 0px 1px 3px 0px rgba(0,0,0,0.1),0px 1px 2px -1px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+.card-title-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    padding: 0;
+    gap: 12px;
+}
+.card-icon {
+    width: 40px;
+    height: 40px;
+}
+.card-title {
+    font-size: 20px;
+    font-weight: normal;
+    margin: 0;
+    padding: 0;
+    align-self: center;
+}
+.card-description {
+    margin: 0;
+    color: grey;
+    font-size: 16px;
+}
+.card-button-row {
+    display: grid;
+    grid-template-columns: auto;
+    text-align: right;
+}
+.card-button {
+    border: none;
+    font-weight: bold;
+    color: rgb(64,64,64);
+    background: transparent;
+    font-size: 16px;
+    cursor: pointer;
+    margin: 0;
+    padding: 0;
+    height: 32px;
+    text-align: right;
+}
+
+button#save {
+    background-color: var(--evening-sun);
+    border: none;
+    color: white;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+}
 </style>
 <script>
-    var regenerate = document.getElementById("regenerate");
+    var regenerate = document.getElementById("save");
     regenerate.addEventListener("click", function(event) {
         event.preventDefault();
         regenerate.disabled = true;
-        regenerate.innerHTML = "Regenerating...";
+        regenerate.innerHTML = "Saving...";
         fetch('/api/update?force=true&client=web', {
             method: 'GET',
         })
         .then(response => response.json())
         .then(data => {
             console.log('Success:', data);
-            alert("Regenerated!");
+            alert("Saved!");
             regenerate.disabled = false;
-            regenerate.innerHTML = "Regenerate";
+            regenerate.innerHTML = "Save";
         })
         .catch((error) => {
             console.error('Error:', error);
-            alert("Regeneration was not successful. Check debug logs.");
+            alert("Unable to save configuration. Check debug logs.");
             regenerate.disabled = false;
-            regenerate.innerHTML = "Regenerate";
+            regenerate.innerHTML = "Save";
         });
     });
 </script>

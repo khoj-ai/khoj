@@ -6,39 +6,53 @@
     	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
     </head>
     <body class="khoj-configure">
-        <header>
-            <div>
-                <h1>Khoj Settings</h1>
-                <p>Check out our <a href="https://github.com/khoj-ai/khoj">source code on Github</a></p>
-            </div>
-            <div>
-                <h2>Ready?</h2>
-                <div id="actions">
-                    <button onclick="window.location.href='/';" >
-                        Search
-                    </button>
-                    <button onclick="window.location.href='/chat';">
-                        Chat
-                    </button>
-                </div>
-            </div>
-        </header>
+        <div class="khoj-header">
+            <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways.svg" alt="Khoj"></img>
+            <nav class="khoj-nav">
+                <a href="/chat">Chat</a>
+                <a href="/">Search</a>
+                <a href="/config">Settings</a>
+            </nav>
+        </div>
         <div class=”content”>
             {% block content %}
             {% endblock %}
         </div>
     </body>
     <style>
-        header {
+        .khoj-configure {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-gap: 12px;
+            grid-template-columns: 1fr;
+            padding: 0 24px;
         }
-
-        @media screen and (max-width: 600px) {
-            header {
-                grid-template-columns: 1fr;
-            }
+        .khoj-header {
+            display: grid;
+            grid-auto-flow: row;
+            gap: 20px;
+            padding: 16px 0;
+            margin-bottom: 16px;
+        }
+        .khoj-nav {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-gap: 32px;
+            justify-self: center;
+        }
+        .khoj-nav a {
+            color: #333;
+            text-decoration: none;
+            font-size: 20px;
+            font-weight: normal;
+            padding: 8px;
+            border-radius: 4px;
+            justify-self: center;
+        }
+        .khoj-nav a:hover {
+            background-color: var(--evening-sun);
+        }
+        img.khoj-logo {
+            width: min(60vw, 150px);
+            justify-self: center;
         }
     </style>
 </html>
