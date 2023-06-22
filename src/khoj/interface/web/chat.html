@@ -6,6 +6,7 @@
 
         <link rel="icon" type="image/png" sizes="128x128" href="/static/assets/icons/favicon-128x128.png">
         <link rel="manifest" href="/static/khoj_chat.webmanifest">
+        <link rel="stylesheet" href="/static/assets/khoj.css">
     </head>
     <script>
         function formatDate(date) {
@@ -123,10 +124,6 @@
     </body>
 
     <style>
-        :root {
-            --night-black: #282c34;
-            --evening-sun: #fbb912;
-        }
         html, body {
             height: 100%;
             width: 100%;
@@ -147,36 +144,6 @@
             padding: 10px;
             margin: 10px;
         }
-        .khoj-header {
-            display: grid;
-            grid-auto-flow: row;
-            gap: 20px;
-            padding: 16px 0;
-            margin: 0;
-        }
-        .khoj-nav {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-gap: 32px;
-            justify-self: center;
-        }
-        .khoj-nav a {
-            color: #333;
-            text-decoration: none;
-            font-size: 20px;
-            font-weight: normal;
-            padding: 8px;
-            border-radius: 4px;
-            justify-self: center;
-        }
-        .khoj-nav a:hover {
-            background-color: var(--evening-sun);
-        }
-        img.khoj-logo {
-            width: min(60vw, 150px);
-            justify-self: center;
-        }
-
         #chat-body {
             font-size: medium;
             margin: 0px;
@@ -213,8 +180,8 @@
         }
         /* color chat bubble by khoj blue */
         .chat-message-text.khoj {
-            color: var(--night-black);
-            background: var(--evening-sun);
+            color: var(--primary-inverse);
+            background: var(--primary);
             margin-left: auto;
             white-space: pre-line;
         }
@@ -225,7 +192,7 @@
             bottom: -2px;
             left: -7px;
             border: 10px solid transparent;
-            border-top-color: var(--evening-sun);
+            border-top-color: var(--primary);
             border-bottom: 0;
             transform: rotate(-60deg);
         }

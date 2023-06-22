@@ -4,7 +4,8 @@
         <meta charset="utf-8">
         <link rel="icon" type="image/png" sizes="128x128" href="/static/assets/icons/favicon-128x128.png">
         <title>Khoj - Settings</title>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+        <link rel="stylesheet" href="/static/assets/pico.min.css">
+        <link rel="stylesheet" href="/static/assets/khoj.css">
     </head>
     <body class="khoj-configure">
         <div class="khoj-header">
@@ -21,82 +22,11 @@
         </div>
     </body>
     <style>
-        /* Amber Light scheme (Default) */
-        /* Can be forced with data-theme="light" */
-        [data-theme="light"],
-        :root:not([data-theme="dark"]) {
-            --primary: #ffb300;
-            --primary-hover: #ffa000;
-            --primary-focus: rgba(255, 179, 0, 0.125);
-            --primary-inverse: rgba(0, 0, 0, 0.75);
-        }
-
-        /* Amber Dark scheme (Auto) */
-        /* Automatically enabled if user has Dark mode enabled */
-        @media only screen and (prefers-color-scheme: dark) {
-            :root:not([data-theme]) {
-                --primary: #ffb300;
-                --primary-hover: #ffc107;
-                --primary-focus: rgba(255, 179, 0, 0.25);
-                --primary-inverse: rgba(0, 0, 0, 0.75);
-            }
-        }
-        /* Amber Dark scheme (Forced) */
-        /* Enabled if forced with data-theme="dark" */
-        [data-theme="dark"] {
-            --primary: #ffb300;
-            --primary-hover: #ffc107;
-            --primary-focus: rgba(255, 179, 0, 0.25);
-            --primary-inverse: rgba(0, 0, 0, 0.75);
-        }
-        /* Amber (Common styles) */
-        :root {
-            --form-element-active-border-color: var(--primary);
-            --form-element-focus-color: var(--primary-focus);
-            --switch-color: var(--primary-inverse);
-            --switch-checked-background-color: var(--primary);
-        }
-
         html, body {
             width: 100%;
             margin: 0;
             padding: 0;
         }
-        .khoj-configure {
-            display: grid;
-            grid-template-columns: 1fr;
-            padding: 0 24px;
-        }
-        .khoj-header {
-            display: grid;
-            grid-auto-flow: row;
-            gap: 20px;
-            padding: 16px 0;
-            margin-bottom: 16px;
-        }
-        .khoj-nav {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-gap: 32px;
-            justify-self: center;
-        }
-        .khoj-nav a {
-            color: #333;
-            text-decoration: none;
-            font-size: 20px;
-            font-weight: normal;
-            padding: 8px;
-            border-radius: 4px;
-            justify-self: center;
-        }
-        .khoj-nav a:hover {
-            background-color: var(--evening-sun);
-        }
-        img.khoj-logo {
-            width: min(60vw, 150px);
-            justify-self: center;
-        }
-
         .page {
             display: grid;
             grid-auto-flow: row;

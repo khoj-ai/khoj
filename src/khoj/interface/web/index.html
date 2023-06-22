@@ -6,9 +6,10 @@
 
         <link rel="icon" type="image/png" sizes="128x128" href="/static/assets/icons/favicon-128x128.png">
         <link rel="manifest" href="/static/khoj.webmanifest">
+        <link rel="stylesheet" href="/static/assets/khoj.css">
     </head>
-    <script type="text/javascript" src="static/assets/org.min.js"></script>
-    <script type="text/javascript" src="static/assets/markdown-it.min.js"></script>
+    <script type="text/javascript" src="/static/assets/org.min.js"></script>
+    <script type="text/javascript" src="/static/assets/markdown-it.min.js"></script>
 
     <script>
         function render_image(item) {
@@ -238,7 +239,6 @@
                 grid-column: 2;
             }
         }
-
         body {
             padding: 0px;
             margin: 0px;
@@ -254,36 +254,6 @@
             padding: 10px;
             margin: 10px;
         }
-        .khoj-header {
-            display: grid;
-            grid-auto-flow: row;
-            gap: 20px;
-            padding: 16px 0;
-            margin: 0;
-        }
-        .khoj-nav {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-gap: 32px;
-            justify-self: center;
-        }
-        .khoj-nav a {
-            color: #333;
-            text-decoration: none;
-            font-size: 20px;
-            font-weight: normal;
-            padding: 8px;
-            border-radius: 4px;
-            justify-self: center;
-        }
-        .khoj-nav a:hover {
-            background-color: var(--evening-sun);
-        }
-        img.khoj-logo {
-            width: min(60vw, 150px);
-            justify-self: center;
-        }
-
         #options {
             padding: 0;
             display: grid;
