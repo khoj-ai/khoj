@@ -1,64 +1,73 @@
-{% extends "base_data_integration.html" %}
+{% extends "base_config.html" %}
 {% block content %}
-<h2>Github</h2>
-<form id="config-form">
-    <div id="success" style="display: none;"></div>
-    <table>
-        <tr>
-            <td>
-                <label for="pat-token">Personal Access Token</label>
-            </td>
-            <td>
-                <input type="text" id="pat-token" name="pat" value="{{ current_config['pat_token'] }}">
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <label for="repo-owner">Repository Owner</label>
-            </td>
-            <td>
-                <input type="text" id="repo-owner" name="repo_owner" value="{{ current_config['repo_owner'] }}">
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <label for="repo-name">Repository Name</label>
-            </td>
-            <td>
-                <input type="text" id="repo-name" name="repo_name" value="{{ current_config['repo_name'] }}">
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <label for="repo-branch">Repository Branch</label>
-            </td>
-            <td>
-                <input type="text" id="repo-branch" name="repo_branch" value="{{ current_config['repo_branch'] }}">
-            </td>
-        </tr>
-    </table>
-    <h4>You probably don't need to edit these.</h4>
+<div class="page">
+    <div class="section">
+        <h2 class="section-title">
+            <img class="card-icon" src="/static/assets/icons/github.svg" alt="Github">
+            <span class="card-title-text">Github</span>
+        </h2>
+        <form>
+            <div id="success" style="display: none;"></div>
+            <table>
+                <tr>
+                    <td>
+                        <label for="pat-token">Personal Access Token</label>
+                    </td>
+                    <td>
+                        <input type="text" id="pat-token" name="pat" value="{{ current_config['pat_token'] }}">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <label for="repo-owner">Repository Owner</label>
+                    </td>
+                    <td>
+                        <input type="text" id="repo-owner" name="repo_owner" value="{{ current_config['repo_owner'] }}">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <label for="repo-name">Repository Name</label>
+                    </td>
+                    <td>
+                        <input type="text" id="repo-name" name="repo_name" value="{{ current_config['repo_name'] }}">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <label for="repo-branch">Repository Branch</label>
+                    </td>
+                    <td>
+                        <input type="text" id="repo-branch" name="repo_branch" value="{{ current_config['repo_branch'] }}">
+                    </td>
+                </tr>
+            </table>
+            <h4>You probably don't need to edit these.</h4>
 
-    <table>
-        <tr>
-            <td>
-                <label for="compressed-jsonl">Compressed JSONL (Output)</label>
-            </td>
-            <td>
-                <input type="text" id="compressed-jsonl" name="compressed-jsonl" value="{{ current_config['compressed_jsonl'] }}">
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <label for="embeddings-file">Embeddings File (Output)</label>
-            </td>
-            <td>
-                <input type="text" id="embeddings-file" name="embeddings-file" value="{{ current_config['embeddings_file'] }}">
-            </td>
-        </tr>
-    </table>
-    <button id="submit" type="submit">Submit</button>
-</form>
+            <table>
+                <tr>
+                    <td>
+                        <label for="compressed-jsonl">Compressed JSONL (Output)</label>
+                    </td>
+                    <td>
+                        <input type="text" id="compressed-jsonl" name="compressed-jsonl" value="{{ current_config['compressed_jsonl'] }}">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <label for="embeddings-file">Embeddings File (Output)</label>
+                    </td>
+                    <td>
+                        <input type="text" id="embeddings-file" name="embeddings-file" value="{{ current_config['embeddings_file'] }}">
+                    </td>
+                </tr>
+            </table>
+            <div class="section">
+                <button id="submit" type="submit">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
 <script>
     submit.addEventListener("click", function(event) {
         event.preventDefault();
