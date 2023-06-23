@@ -6,9 +6,10 @@
 
         <link rel="icon" type="image/png" sizes="128x128" href="/static/assets/icons/favicon-128x128.png">
         <link rel="manifest" href="/static/khoj.webmanifest">
+        <link rel="stylesheet" href="/static/assets/khoj.css">
     </head>
-    <script type="text/javascript" src="static/assets/org.min.js"></script>
-    <script type="text/javascript" src="static/assets/markdown-it.min.js"></script>
+    <script type="text/javascript" src="/static/assets/org.min.js"></script>
+    <script type="text/javascript" src="/static/assets/markdown-it.min.js"></script>
 
     <script>
         function render_image(item) {
@@ -188,9 +189,15 @@
     </script>
 
     <body>
-        <h1>
-            <img class="khoj-logo" src="static/assets/icons/khoj-logo-sideways.svg" alt="Khoj"></img>
-        </h1>
+        <!--Add Header Logo and Nav Pane-->
+        <div class="khoj-header">
+            <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways.svg" alt="Khoj"></img>
+            <nav class="khoj-nav">
+                <a href="/chat">Chat</a>
+                <a class="khoj-nav-selected" href="/">Search</a>
+                <a href="/config">Settings</a>
+            </nav>
+        </div>
 
         <!--Add Text Box To Enter Query, Trigger Incremental Search OnChange -->
         <input type="text" id="query" class="option" onkeyup=incrementalSearch(event) autofocus="autofocus" placeholder="What is the meaning of life?">
@@ -215,7 +222,7 @@
             body {
                 display: grid;
                 grid-template-columns: 1fr;
-                grid-template-rows: 1fr 1fr 1fr minmax(80px, 100%);
+                grid-template-rows: 1fr auto auto minmax(80px, 100%);
             }
             body > * {
                 grid-column: 1;
@@ -225,14 +232,13 @@
             body {
                 display: grid;
                 grid-template-columns: 1fr min(70vw, 100%) 1fr;
-                grid-template-rows: 1fr 1fr 1fr minmax(80px, 100%);
+                grid-template-rows: 1fr auto auto minmax(80px, 100%);
                 padding-top: 60vw;
             }
             body > * {
                 grid-column: 2;
             }
         }
-
         body {
             padding: 0px;
             margin: 0px;
@@ -248,14 +254,6 @@
             padding: 10px;
             margin: 10px;
         }
-        h1 {
-            margin: 8px 0;
-            padding: 0;
-        }
-        img.khoj-logo {
-            width: min(60vw, 150px);
-        }
-
         #options {
             padding: 0;
             display: grid;
