@@ -14,10 +14,10 @@
                 <p class="card-description">Set repositories for Khoj to index</p>
                 </div>
                 <div class="card-action-row">
-                    <button class="card-button" onclick="window.location.href='/config/content_type/github';">
+                    <a class="card-button" href="/config/content_type/github">
                         Setup
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
-                    </button>
+                    </a>
                 </div>
             </div>
             <div class="card">
@@ -29,10 +29,10 @@
                     <p class="card-description">Set markdown files for Khoj to index</p>
                 </div>
                 <div class="card-action-row">
-                    <button class="card-button" onclick="window.location.href='/config/content_type/markdown';">
+                    <a class="card-button" href="/config/content_type/markdown">
                         Setup
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
-                    </button>
+                    </a>
                 </div>
             </div>
             <div class="card">
@@ -44,10 +44,10 @@
                 <p class="card-description">Set org files for Khoj to index</p>
                 </div>
                 <div class="card-action-row">
-                    <button class="card-button" onclick="window.location.href='/config/content_type/org';">
+                    <a class="card-button" href="/config/content_type/org">
                         Setup
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
-                    </button>
+                    </a>
                 </div>
             </div>
             <div class="card">
@@ -59,10 +59,10 @@
                 <p class="card-description">Set PDF files for Khoj to index</p>
                 </div>
                 <div class="card-action-row">
-                    <button class="card-button" onclick="window.location.href='/config/content_type/pdf';">
+                    <a class="card-button" href="/config/content_type/pdf">
                         Setup
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
-                    </button>
+                    </a>
                 </div>
             </div>
         </div>
@@ -79,36 +79,42 @@
                 <p class="card-description">Setup Khoj Chat</p>
                 </div>
                 <div class="card-action-row">
-                <button class="card-button" onclick="window.location.href='/config/processor/conversation';">Setup <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg></button>
+                <a class="card-button" href="/config/processor/conversation">
+                    Setup
+                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                </a>
                 </div>
             </div>
         </div>
     </div>
     <div class="section">
-        <button id="save" type="submit">⚙️ Configure</button>
+        <div id="status" style="display: none;"></div>
+        <button id="configure" type="submit">⚙️ Configure</button>
     </div>
 </div>
 <script>
-    var regenerate = document.getElementById("save");
-    regenerate.addEventListener("click", function(event) {
+    var configure = document.getElementById("configure");
+    configure.addEventListener("click", function(event) {
         event.preventDefault();
-        regenerate.disabled = true;
-        regenerate.innerHTML = "Saving...";
+        configure.disabled = true;
+        configure.innerHTML = "Configuring...";
         fetch('/api/update?force=true&client=web', {
             method: 'GET',
         })
         .then(response => response.json())
         .then(data => {
             console.log('Success:', data);
-            alert("Saved!");
+            document.getElementById("status").innerHTML = "Configured successfully!";
+            document.getElementById("status").style.display = "block";
             regenerate.disabled = false;
-            regenerate.innerHTML = "Save";
+            regenerate.innerHTML = "Configured";
         })
         .catch((error) => {
             console.error('Error:', error);
-            alert("Unable to save configuration. Check debug logs.");
+            document.getElementById("status").innerHTML = "Unable to save configuration. Raise issue on Khoj Discord or Github.";
+            document.getElementById("status").style.display = "block";
             regenerate.disabled = false;
-            regenerate.innerHTML = "Save";
+            regenerate.innerHTML = "Configure";
         });
     });
 </script>
