@@ -106,15 +106,15 @@
             console.log('Success:', data);
             document.getElementById("status").innerHTML = "Configured successfully!";
             document.getElementById("status").style.display = "block";
-            regenerate.disabled = false;
-            regenerate.innerHTML = "Configured";
+            configure.disabled = false;
+            configure.innerHTML = "⚙️ Configured";
         })
         .catch((error) => {
             console.error('Error:', error);
             document.getElementById("status").innerHTML = "Unable to save configuration. Raise issue on Khoj Discord or Github.";
             document.getElementById("status").style.display = "block";
-            regenerate.disabled = false;
-            regenerate.innerHTML = "Configure";
+            configure.disabled = false;
+            configure.innerHTML = "⚙️ Configure";
         });
     });
 </script>
