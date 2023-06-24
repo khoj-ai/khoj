@@ -41,7 +41,7 @@ def github_config_page(request: Request):
     )
 
     current_config = (
-        state.config.content_type.github if state.config.content_type.github is not None else default_config
+        state.config.content_type.github if state.config and state.config.content_type.github else default_config
     )
 
     current_config = json.loads(current_config.json())
@@ -65,7 +65,7 @@ def content_config_page(request: Request, content_type: str):
     )
     current_config = (
         state.config.content_type[content_type]
-        if state.config.content_type[content_type] is not None
+        if state.config and content_type in state.config.content_type
         else default_config
     )
     current_config = json.loads(current_config.json())
@@ -93,7 +93,7 @@ def conversation_processor_config_page(request: Request):
 
     current_processor_conversation_config = (
         state.config.processor.conversation
-        if state.config.processor.conversation is not None
+        if state.config and state.config.processor.conversation
         else default_processor_config
     )
     current_processor_conversation_config = json.loads(current_processor_conversation_config.json())

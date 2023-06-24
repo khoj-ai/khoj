@@ -16,7 +16,10 @@ from khoj.processor.conversation.utils import message_to_log, message_to_prompt
 from khoj.search_type import image_search, text_search
 from khoj.utils.helpers import log_telemetry, timer
 from khoj.utils.rawconfig import (
+    ContentConfig,
     FullConfig,
+    ProcessorConfig,
+    SearchConfig,
     SearchResponse,
     TextContentConfig,
     ConversationProcessorConfig,
@@ -74,7 +77,10 @@ async def set_config_data(updated_config: FullConfig):
 
 @api.post("/config/data/content_type/github", status_code=200)
 async def set_content_config_github_data(updated_config: GithubContentConfig):
-    state.config.content_type.github = updated_config
+    if not state.config:
+        state.config = FullConfig()
+        state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
+    state.config.content_type = ContentConfig(github=updated_config)
     try:
         save_config_to_file_updated_state()
         return {"status": "ok"}
@@ -84,7 +90,10 @@ async def set_content_config_github_data(updated_config: GithubContentConfig):
 
 @api.post("/config/data/content_type/{content_type}", status_code=200)
 async def set_content_config_data(content_type: str, updated_config: TextContentConfig):
-    state.config.content_type[content_type] = updated_config
+    if not state.config:
+        state.config = FullConfig()
+        state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
+    state.config.content_type = ContentConfig(**{content_type: updated_config})
     try:
         save_config_to_file_updated_state()
         return {"status": "ok"}
@@ -94,7 +103,10 @@ async def set_content_config_data(content_type: str, updated_config: TextContent
 
 @api.post("/config/data/processor/conversation", status_code=200)
 async def set_processor_conversation_config_data(updated_config: ConversationProcessorConfig):
-    state.config.processor.conversation = updated_config
+    if not state.config:
+        state.config = FullConfig()
+        state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
+    state.config.processor = ProcessorConfig(conversation=updated_config)
     try:
         save_config_to_file_updated_state()
         return {"status": "ok"}
