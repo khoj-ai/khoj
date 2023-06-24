@@ -72,8 +72,10 @@
                     </td>
                 </tr>
             </table>
-            <div id="success" style="display: none;" ></div>
-            <button id="submit" type="submit">Save</button>
+            <div class="section">
+                <div id="success" style="display: none;" ></div>
+                <button id="submit" type="submit">Save</button>
+            </div>
         </form>
     </div>
 </div>
@@ -145,7 +147,7 @@
         .then(response => response.json())
         .then(data => {
             if (data["status"] == "ok") {
-                document.getElementById("success").innerHTML = "✅ Successfully updated. Go to <a href='/config'>your settings</a> to regenerate your index.";
+                document.getElementById("success").innerHTML = "✅ Successfully updated. Click Configure on your <a href='/config'>settings page</a> to complete your Khoj setup.";
                 document.getElementById("success").style.display = "block";
             } else {
                 document.getElementById("success").innerHTML = "⚠️ Failed to update settings.";
