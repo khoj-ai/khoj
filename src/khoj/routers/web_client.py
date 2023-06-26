@@ -65,9 +65,10 @@ def content_config_page(request: Request, content_type: str):
         compressed_jsonl=default_content_type["compressed-jsonl"],
         embeddings_file=default_content_type["embeddings-file"],
     )
+
     current_config = (
         state.config.content_type[content_type]
-        if state.config and state.config.content_type and content_type in state.config.content_type
+        if state.config and state.config.content_type and state.config.content_type[content_type]  # type: ignore
         else default_config
     )
     current_config = json.loads(current_config.json())

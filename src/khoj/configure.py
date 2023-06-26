@@ -253,7 +253,7 @@ def save_chat_session():
 
 @schedule.repeat(schedule.every(59).minutes)
 def upload_telemetry():
-    if not state.config.app.should_log_telemetry or not state.telemetry:
+    if not state.config or not state.config.app.should_log_telemetry or not state.telemetry:
         message = "📡 No telemetry to upload" if not state.telemetry else "📡 Telemetry logging disabled"
         logger.debug(message)
         return
