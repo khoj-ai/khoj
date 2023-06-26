@@ -61,10 +61,12 @@
         var model = document.getElementById("model").value;
         var chat_model = document.getElementById("chat-model").value;
 
+        const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
         fetch('/api/config/data/processor/conversation', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
             },
             body: JSON.stringify({
                 "openai_api_key": openai_api_key,

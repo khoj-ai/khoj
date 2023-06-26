@@ -98,8 +98,13 @@
         event.preventDefault();
         configure.disabled = true;
         configure.innerHTML = "Configuring...";
+        const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
         fetch('/api/update?force=true&client=web', {
             method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
         })
         .then(response => response.json())
         .then(data => {

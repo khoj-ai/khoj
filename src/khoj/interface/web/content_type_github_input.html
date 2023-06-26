@@ -79,10 +79,12 @@
         var repo_name = document.getElementById("repo-name").value;
         var repo_branch = document.getElementById("repo-branch").value;
 
+        const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
         fetch('/api/config/data/content_type/github', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
             },
             body: JSON.stringify({
                 "pat_token": pat_token,
