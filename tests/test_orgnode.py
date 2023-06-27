@@ -14,7 +14,7 @@ def test_parse_entry_with_no_headings(tmp_path):
     orgfile = create_file(tmp_path, entry)
 
     # Act
-    entries = orgnode.makelist(orgfile)
+    entries = orgnode.makelist_with_filepath(orgfile)
 
     # Assert
     assert len(entries) == 1
@@ -38,7 +38,7 @@ Body Line 1"""
     orgfile = create_file(tmp_path, entry)
 
     # Act
-    entries = orgnode.makelist(orgfile)
+    entries = orgnode.makelist_with_filepath(orgfile)
 
     # Assert
     assert len(entries) == 1
@@ -71,7 +71,7 @@ Body Line 2"""
     orgfile = create_file(tmp_path, entry)
 
     # Act
-    entries = orgnode.makelist(orgfile)
+    entries = orgnode.makelist_with_filepath(orgfile)
 
     # Assert
     assert len(entries) == 1
@@ -109,7 +109,7 @@ def test_render_entry_with_property_drawer_and_empty_body(tmp_path):
 """
 
     # Act
-    parsed_entries = orgnode.makelist(orgfile)
+    parsed_entries = orgnode.makelist_with_filepath(orgfile)
 
     # Assert
     assert f"{parsed_entries[0]}" == expected_entry
@@ -131,7 +131,7 @@ Body Line 2
     orgfile = create_file(tmp_path, entry)
 
     # Act
-    entries = orgnode.makelist(orgfile)
+    entries = orgnode.makelist_with_filepath(orgfile)
 
     # Assert
     # SOURCE link rendered with Heading
@@ -155,7 +155,7 @@ Body Line 1"""
     orgfile = create_file(tmp_path, entry, filename="test[1].org")
 
     # Act
-    entries = orgnode.makelist(orgfile)
+    entries = orgnode.makelist_with_filepath(orgfile)
 
     # Assert
     assert len(entries) == 1
@@ -197,7 +197,7 @@ Body 2
     orgfile = create_file(tmp_path, content)
 
     # Act
-    entries = orgnode.makelist(orgfile)
+    entries = orgnode.makelist_with_filepath(orgfile)
 
     # Assert
     assert len(entries) == 2
@@ -225,7 +225,7 @@ Body Line 1"""
     orgfile = create_file(tmp_path, entry)
 
     # Act
-    entries = orgnode.makelist(orgfile)
+    entries = orgnode.makelist_with_filepath(orgfile)
 
     # Assert
     assert len(entries) == 1
@@ -248,7 +248,7 @@ Body Line 1"""
     orgfile = create_file(tmp_path, entry)
 
     # Act
-    entries = orgnode.makelist(orgfile)
+    entries = orgnode.makelist_with_filepath(orgfile)
 
     # Assert
     assert len(entries) == 1
@@ -272,7 +272,7 @@ Body Line 1
     orgfile = create_file(tmp_path, entry)
 
     # Act
-    entries = orgnode.makelist(orgfile)
+    entries = orgnode.makelist_with_filepath(orgfile)
 
     # Assert
     assert len(entries) == 1
@@ -298,7 +298,7 @@ entry body
     orgfile = create_file(tmp_path, body)
 
     # Act
-    entries = orgnode.makelist(orgfile)
+    entries = orgnode.makelist_with_filepath(orgfile)
 
     # Assert
     assert len(entries) == 2
@@ -320,7 +320,7 @@ entry body
     orgfile = create_file(tmp_path, body)
 
     # Act
-    entries = orgnode.makelist(orgfile)
+    entries = orgnode.makelist_with_filepath(orgfile)
 
     # Assert
     assert len(entries) == 2

@@ -84,12 +84,21 @@
         window.onload = function () {
             fetch('/api/chat?client=web')
                 .then(response => response.json())
-                .then(data => data.response)
-                .then(chat_logs => {
+                .then(data => {
+                    if (data.detail) {
+                        // If the server returns a 500 error with detail, render it as a message.
+                        renderMessage(data.detail + " You can configure Khoj chat in your <a class='inline-chat-link' href='/config'>settings</a>.", "khoj");
+                    }
+                    return data.response;
+                })
+                .then(response => {
                     // Render conversation history, if any
-                    chat_logs.forEach(chat_log => {
+                    response.forEach(chat_log => {
                         renderMessageWithReference(chat_log.message, chat_log.by, chat_log.context, new Date(chat_log.created));
                     });
+                })
+                .catch(err => {
+                    return;
                 });
 
              // Set welcome message on load
@@ -233,6 +242,12 @@
         }
         #chat-input {
             font-size: medium;
+        }
+
+        a.inline-chat-link {
+            color: #475569;
+            text-decoration: none;
+            border-bottom: 1px dotted #475569;
         }
 
         @media (pointer: coarse), (hover: none) {

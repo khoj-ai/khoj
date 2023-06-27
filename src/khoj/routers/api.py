@@ -80,7 +80,12 @@ async def set_content_config_github_data(updated_config: GithubContentConfig):
     if not state.config:
         state.config = FullConfig()
         state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
-    state.config.content_type = ContentConfig(github=updated_config)
+
+    if not state.config.content_type:
+        state.config.content_type = ContentConfig(**{"github": updated_config})
+    else:
+        state.config.content_type.github = updated_config
+
     try:
         save_config_to_file_updated_state()
         return {"status": "ok"}
@@ -93,7 +98,12 @@ async def set_content_config_data(content_type: str, updated_config: TextContent
     if not state.config:
         state.config = FullConfig()
         state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
-    state.config.content_type = ContentConfig(**{content_type: updated_config})
+
+    if not state.config.content_type:
+        state.config.content_type = ContentConfig(**{content_type: updated_config})
+    else:
+        state.config.content_type[content_type] = updated_config
+
     try:
         save_config_to_file_updated_state()
         return {"status": "ok"}

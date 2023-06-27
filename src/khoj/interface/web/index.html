@@ -57,6 +57,27 @@
             }).join("\n") + `</div>`;
         }
 
+        function render_mutliple(query, data, type) {
+            let org_files = data.filter((item) => item.additional.file.endsWith(".org"));
+            let md_files = data.filter((item) => item.additional.file.endsWith(".md"));
+            let pdf_files = data.filter((item) => item.additional.file.endsWith(".pdf"));
+
+            let html = "";
+            if (org_files.length > 0) {
+                html += render_org(query, org_files, type);
+            }
+
+            if (md_files.length > 0) {
+                html += render_markdown(query, md_files);
+            }
+
+            if (pdf_files.length > 0) {
+                html += render_pdf(query, pdf_files);
+            }
+
+            return html;
+        }
+
         function render_json(data, query, type) {
             if (type === "markdown") {
                 return render_markdown(query, data);
@@ -71,7 +92,7 @@
             } else if (type === "pdf") {
                 return render_pdf(query, data);
             } else if (type == "github") {
-                return render_markdown(query, data);
+                return render_mutliple(query, data, type);
             } else {
                 return `<div id="results-plugin">`
                     + data.map((item) => `<p>${item.entry}</p>`).join("\n")
