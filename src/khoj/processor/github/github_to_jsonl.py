@@ -8,8 +8,9 @@ import requests
 
 # Internal Packages
 from khoj.utils.helpers import timer
-from khoj.utils.rawconfig import Entry, GithubContentConfig
+from khoj.utils.rawconfig import Entry, GithubContentConfig, GithubRepoConfig
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
+from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.text_to_jsonl import TextToJsonl
 from khoj.utils.jsonl import dump_jsonl, compress_jsonl_data
 
@@ -21,7 +22,6 @@ class GithubToJsonl(TextToJsonl):
     def __init__(self, config: GithubContentConfig):
         super().__init__(config)
         self.config = config
-        self.repo_url = f"https://api.github.com/repos/{self.config.repo_owner}/{self.config.repo_name}"
 
     @staticmethod
     def wait_for_rate_limit_reset(response, func, *args, **kwargs):
@@ -34,26 +34,42 @@ class GithubToJsonl(TextToJsonl):
             return
 
     def process(self, previous_entries=None):
+        current_entries = []
+        for repo in self.config.repos:
+            current_entries += self.process_repo(repo, previous_entries)
+
+        return self.update_entries_with_ids(current_entries, previous_entries)
+
+    def process_repo(self, repo: GithubRepoConfig, previous_entries=None):
+        repo_url = f"https://api.github.com/repos/{repo.owner}/{repo.name}"
+        logger.info(f"Processing github repo {repo.owner}/{repo.name}")
         with timer("Download markdown files from github repo", logger):
             try:
-                docs = self.get_markdown_files()
+                markdown_files, org_files = self.get_files(repo_url, repo)
             except Exception as e:
-                logger.error(f"Unable to download github repo {self.config.repo_owner}/{self.config.repo_name}")
+                logger.error(f"Unable to download github repo {repo.owner}/{repo.name}")
                 raise e
 
-        logger.info(f"Found {len(docs)} documents in github repo {self.config.repo_owner}/{self.config.repo_name}")
+        logger.info(f"Found {len(markdown_files)} markdown files in github repo {repo.owner}/{repo.name}")
+        logger.info(f"Found {len(org_files)} org files in github repo {repo.owner}/{repo.name}")
 
-        with timer("Extract markdown entries from github repo", logger):
+        with timer(f"Extract markdown entries from github repo {repo.owner}/{repo.name}", logger):
             current_entries = MarkdownToJsonl.convert_markdown_entries_to_maps(
-                *GithubToJsonl.extract_markdown_entries(docs)
+                *GithubToJsonl.extract_markdown_entries(markdown_files)
             )
 
-        with timer("Extract commit messages from github repo", logger):
-            current_entries += self.convert_commits_to_entries(self.get_commits())
+        with timer(f"Extract org entries from github repo {repo.owner}/{repo.name}", logger):
+            current_entries += OrgToJsonl.convert_org_nodes_to_entries(*GithubToJsonl.extract_org_entries(org_files))
 
-        with timer("Split entries by max token size supported by model", logger):
+        with timer(f"Extract commit messages from github repo {repo.owner}/{repo.name}", logger):
+            current_entries += self.convert_commits_to_entries(self.get_commits(repo_url), repo)
+
+        with timer(f"Split entries by max token size supported by model {repo.owner}/{repo.name}", logger):
             current_entries = TextToJsonl.split_entries_by_max_tokens(current_entries, max_tokens=256)
 
+        return current_entries
+
+    def update_entries_with_ids(self, current_entries, previous_entries):
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
             if not previous_entries:
@@ -76,31 +92,40 @@ class GithubToJsonl(TextToJsonl):
 
         return entries_with_ids
 
-    def get_markdown_files(self):
+    def get_files(self, repo_url: str, repo: GithubRepoConfig):
         # Get the contents of the repository
-        repo_content_url = f"{self.repo_url}/git/trees/{self.config.repo_branch}"
+        repo_content_url = f"{repo_url}/git/trees/{repo.branch}"
         headers = {"Authorization": f"token {self.config.pat_token}"}
         params = {"recursive": "true"}
         response = requests.get(repo_content_url, headers=headers, params=params)
         contents = response.json()
 
         # Wait for rate limit reset if needed
-        result = self.wait_for_rate_limit_reset(response, self.get_markdown_files)
+        result = self.wait_for_rate_limit_reset(response, self.get_files)
         if result is not None:
             return result
 
         # Extract markdown files from the repository
         markdown_files = []
+        org_files = []
         for item in contents["tree"]:
             # Find all markdown files in the repository
             if item["type"] == "blob" and item["path"].endswith(".md"):
                 # Create URL for each markdown file on Github
-                url_path = f'https://github.com/{self.config.repo_owner}/{self.config.repo_name}/blob/{self.config.repo_branch}/{item["path"]}'
+                url_path = f'https://github.com/{repo.owner}/{repo.name}/blob/{repo.branch}/{item["path"]}'
 
                 # Add markdown file contents and URL to list
                 markdown_files += [{"content": self.get_file_contents(item["url"]), "path": url_path}]
 
-        return markdown_files
+            # Find all org files in the repository
+            elif item["type"] == "blob" and item["path"].endswith(".org"):
+                # Create URL for each org file on Github
+                url_path = f'https://github.com/{repo.owner}/{repo.name}/blob/{repo.branch}/{item["path"]}'
+
+                # Add org file contents and URL to list
+                org_files += [{"content": self.get_file_contents(item["url"]), "path": url_path}]
+
+        return markdown_files, org_files
 
     def get_file_contents(self, file_url):
         # Get text from each markdown file
@@ -114,9 +139,9 @@ class GithubToJsonl(TextToJsonl):
 
         return response.content.decode("utf-8")
 
-    def get_commits(self) -> List[Dict]:
+    def get_commits(self, repo_url: str) -> List[Dict]:
         # Get commit messages from the repository using the Github API
-        commits_url = f"{self.repo_url}/commits"
+        commits_url = f"{repo_url}/commits"
         headers = {"Authorization": f"token {self.config.pat_token}"}
         params = {"per_page": 100}
         commits = []
@@ -140,10 +165,10 @@ class GithubToJsonl(TextToJsonl):
 
         return commits
 
-    def convert_commits_to_entries(self, commits) -> List[Entry]:
+    def convert_commits_to_entries(self, commits, repo: GithubRepoConfig) -> List[Entry]:
         entries: List[Entry] = []
         for commit in commits:
-            compiled = f'Commit message from {self.config.repo_owner}/{self.config.repo_name}:\n{commit["content"]}'
+            compiled = f'Commit message from {repo.owner}/{repo.name}:\n{commit["content"]}'
             entries.append(
                 Entry(
                     compiled=compiled,
@@ -161,6 +186,17 @@ class GithubToJsonl(TextToJsonl):
         entry_to_file_map = []
         for doc in markdown_files:
             entries, entry_to_file_map = MarkdownToJsonl.process_single_markdown_file(
+                doc["content"], doc["path"], entries, entry_to_file_map
+            )
+        return entries, dict(entry_to_file_map)
+
+    @staticmethod
+    def extract_org_entries(org_files):
+        entries = []
+        entry_to_file_map = []
+
+        for doc in org_files:
+            entries, entry_to_file_map = OrgToJsonl.process_single_org_file(
                 doc["content"], doc["path"], entries, entry_to_file_map
             )
         return entries, dict(entry_to_file_map)

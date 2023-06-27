@@ -49,9 +49,9 @@ default_config = {
         },
         "github": {
             "pat-token": None,
-            "repo-name": None,
-            "repo-owner": None,
-            "repo-branch": "master",
+            "repos": [
+                {"name": "khoj", "owner": "khoj-ai", "branch": "master"},
+            ],
             "compressed-jsonl": "~/.khoj/content/github/github.jsonl.gz",
             "embeddings-file": "~/.khoj/content/github/github_embeddings.pt",
         },
