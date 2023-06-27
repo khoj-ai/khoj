@@ -87,8 +87,8 @@ def configure_search_types(config: FullConfig):
 
 
 def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, t: Optional[state.SearchType] = None):
-    if config.content_type is None or config.search_type is None:
-        logger.error("🚨 Content Type or Search Type not configured.")
+    if config is None or config.content_type is None or config.search_type is None:
+        logger.warn("🚨 No Content or Search type is configured.")
         return
 
     # Initialize Org Notes Search
