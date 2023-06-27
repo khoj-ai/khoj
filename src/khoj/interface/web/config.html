@@ -1,70 +1,125 @@
 {% extends "base_config.html" %}
 {% block content %}
-<h2>Content Types</h2>
-<div id="content-configuration">
-    <button onclick="window.location.href='/config/content_type/pdf';">
-        PDF
-    </button>
-    <button onclick="window.location.href='/config/content_type/markdown';">
-        Markdown
-    </button>
-    <button onclick="window.location.href='/config/content_type/org';">
-        Org
-    </button>
-    <button onclick="window.location.href='/config/content_type/ledger';">
-        Ledger
-    </button>
-    <button onclick="window.location.href='/config/content_type/github';">
-        GitHub
-    </button>
+
+<div class="page">
+    <div class="section">
+        <h2 class="section-title">Plugins</h2>
+        <div class="section-cards">
+            <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/github.svg" alt="Github">
+                    <h3 class="card-title">Github</h3>
+                </div>
+                <div class="card-description-row">
+                <p class="card-description">Set repositories for Khoj to index</p>
+                </div>
+                <div class="card-action-row">
+                    <a class="card-button" href="/config/content_type/github">
+                        Setup
+                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                    </a>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/markdown.svg" alt="markdown">
+                    <h3 class="card-title">Markdown</h3>
+                </div>
+                <div class="card-description-row">
+                    <p class="card-description">Set markdown files for Khoj to index</p>
+                </div>
+                <div class="card-action-row">
+                    <a class="card-button" href="/config/content_type/markdown">
+                        Setup
+                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                    </a>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/org.svg" alt="org">
+                    <h3 class="card-title">Org</h3>
+                </div>
+                <div class="card-description-row">
+                <p class="card-description">Set org files for Khoj to index</p>
+                </div>
+                <div class="card-action-row">
+                    <a class="card-button" href="/config/content_type/org">
+                        Setup
+                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                    </a>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/pdf.svg" alt="PDF">
+                    <h3 class="card-title">PDF</h3>
+                </div>
+                <div class="card-description-row">
+                <p class="card-description">Set PDF files for Khoj to index</p>
+                </div>
+                <div class="card-action-row">
+                    <a class="card-button" href="/config/content_type/pdf">
+                        Setup
+                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="section">
+        <h2 class="section-title">Features</h2>
+        <div class="section-cards">
+            <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/chat.svg" alt="Chat">
+                    <h3 class="card-title">Chat</h3>
+                </div>
+                <div class="card-description-row">
+                <p class="card-description">Setup Khoj Chat</p>
+                </div>
+                <div class="card-action-row">
+                <a class="card-button" href="/config/processor/conversation">
+                    Setup
+                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="section">
+        <div id="status" style="display: none;"></div>
+        <button id="configure" type="submit">⚙️ Configure</button>
+    </div>
 </div>
-<h2>Processors</h2>
-<button onclick="window.location.href='/config/processor/conversation/';">
-    Conversation
-</button>
-<h1>Finalize</h1>
-<button id="regenerate" type="submit">Regenerate</button>
-<style>
-    body.khoj-configure {
-        padding: 0 10%
-    }
-    div#content-configuration, div#actions {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-gap: 12px;
-    }
-    button#regenerate {
-        background-color: #4CAF50;
-        border: none;
-        color: white;
-        padding: 15px 32px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 16px;
-    }
-</style>
 <script>
-    var regenerate = document.getElementById("regenerate");
-    regenerate.addEventListener("click", function(event) {
+    var configure = document.getElementById("configure");
+    configure.addEventListener("click", function(event) {
         event.preventDefault();
-        regenerate.disabled = true;
-        regenerate.innerHTML = "Regenerating...";
+        configure.disabled = true;
+        configure.innerHTML = "Configuring...";
+        const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
         fetch('/api/update?force=true&client=web', {
             method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
         })
         .then(response => response.json())
         .then(data => {
             console.log('Success:', data);
-            alert("Regenerated!");
-            regenerate.disabled = false;
-            regenerate.innerHTML = "Regenerate";
+            document.getElementById("status").innerHTML = "Configured successfully!";
+            document.getElementById("status").style.display = "block";
+            configure.disabled = false;
+            configure.innerHTML = "⚙️ Configured";
         })
         .catch((error) => {
             console.error('Error:', error);
-            alert("Regeneration was not successful. Check debug logs.");
-            regenerate.disabled = false;
-            regenerate.innerHTML = "Regenerate";
+            document.getElementById("status").innerHTML = "Unable to save configuration. Raise issue on Khoj Discord or Github.";
+            document.getElementById("status").style.display = "block";
+            configure.disabled = false;
+            configure.innerHTML = "⚙️ Configure";
         });
     });
 </script>

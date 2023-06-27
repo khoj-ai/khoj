@@ -41,11 +41,15 @@ class TextContentConfig(TextConfigBase):
         return input_filter
 
 
+class GithubRepoConfig(ConfigBase):
+    name: str
+    owner: str
+    branch: Optional[str] = "master"
+
+
 class GithubContentConfig(TextConfigBase):
     pat_token: str
-    repo_name: str
-    repo_owner: str
-    repo_branch: Optional[str] = "master"
+    repos: List[GithubRepoConfig]
 
 
 class ImageContentConfig(ConfigBase):

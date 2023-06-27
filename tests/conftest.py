@@ -17,6 +17,7 @@ from khoj.utils.rawconfig import (
     ProcessorConfig,
     TextContentConfig,
     GithubContentConfig,
+    GithubRepoConfig,
     ImageContentConfig,
     SearchConfig,
     TextSearchConfig,
@@ -92,9 +93,13 @@ def content_config(tmp_path_factory, search_config: SearchConfig):
 
     content_config.github = GithubContentConfig(
         pat_token=os.getenv("GITHUB_PAT_TOKEN", ""),
-        repo_name="lantern",
-        repo_owner="khoj-ai",
-        repo_branch="master",
+        repos=[
+            GithubRepoConfig(
+                owner="khoj-ai",
+                name="lantern",
+                branch="master",
+            )
+        ],
         compressed_jsonl=content_dir.joinpath("github.jsonl.gz"),
         embeddings_file=content_dir.joinpath("github_embeddings.pt"),
     )

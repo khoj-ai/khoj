@@ -49,7 +49,7 @@ export class KhojChatModal extends Modal {
                     type: "text",
                     id: "khoj-chat-input",
                     autofocus: "autofocus",
-                    placeholder: "Chat with Khoj 🦅 [Hit Enter to send message]",
+                    placeholder: "Chat with Khoj [Hit Enter to send message]",
                     class: "khoj-chat-input option"
                 }
             })
@@ -81,7 +81,7 @@ export class KhojChatModal extends Modal {
 
     renderMessage(message: string, sender: string, dt?: Date): Element | null {
         let message_time = this.formatDate(dt ?? new Date());
-        let emojified_sender = sender == "khoj" ? "🦅 Khoj" : "🤔 You";
+        let emojified_sender = sender == "khoj" ? "🏮 Khoj" : "🤔 You";
 
         // Append message to conversation history HTML element.
         // The chat logs should display above the message input box to follow standard UI semantics

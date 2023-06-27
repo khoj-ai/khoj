@@ -1,7 +1,7 @@
 version: "3.9"
 services:
   server:
-    image: ghcr.io/debanjum/khoj:latest
+    image: ghcr.io/khoj-ai/khoj:latest
     ports:
       # If changing the local port (left hand side), no other changes required.
       # If changing the remote port (right hand side),

@@ -33,7 +33,7 @@ jobs:
     - name: 🌡️ Validate Khoj.el
       env:
         # Khoj recipe from https://github.com/melpa/melpa/pull/8321/files
-        RECIPE: (khoj :fetcher github :repo "debanjum/khoj" :files ("src/interface/emacs/*.el"))
+        RECIPE: (khoj :fetcher github :repo "khoj-ai/khoj" :files ("src/interface/emacs/*.el"))
         EXIST_OK: true
         LOCAL_REPO: ${{ github.workspace }}
       run: echo $GITHUB_REF && make -C ~/melpazoid

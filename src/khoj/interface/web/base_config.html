@@ -1,42 +1,120 @@
 <!DOCTYPE html>
+<html data-theme="light">
     <head>
         <meta charset="utf-8">
         <link rel="icon" type="image/png" sizes="128x128" href="/static/assets/icons/favicon-128x128.png">
         <title>Khoj - Settings</title>
-    	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+        <link rel="stylesheet" href="/static/assets/pico.min.css">
+        <link rel="stylesheet" href="/static/assets/khoj.css">
     </head>
     <body class="khoj-configure">
-        <header>
-            <div>
-                <h1>Khoj Settings</h1>
-                <p>Check out our <a href="https://github.com/debanjum/khoj">source code on Github</a></p>
-            </div>
-            <div>
-                <h2>Ready?</h2>
-                <div id="actions">
-                    <button onclick="window.location.href='/';" >
-                        Search
-                    </button>
-                    <button onclick="window.location.href='/chat';">
-                        Chat
-                    </button>
-                </div>
-            </div>
-        </header>
+        <div class="khoj-header">
+            <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways.svg" alt="Khoj"></img>
+            <nav class="khoj-nav">
+                <a href="/chat">Chat</a>
+                <a href="/">Search</a>
+                <a class="khoj-nav-selected" href="/config">Settings</a>
+            </nav>
+        </div>
         <div class=”content”>
             {% block content %}
             {% endblock %}
         </div>
     </body>
     <style>
-        header {
+        html, body {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        .page {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-gap: 12px;
+            grid-auto-flow: row;
+            gap: 32px;
+        }
+        .section {
+            display: grid;
+            justify-self: center;
+        }
+        .section-title {
+            margin: 0;
+            padding: 0 0 16px 0;
+            font-size: 32;
+            font-weight: normal;
+        }
+        .section-cards {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            justify-items: start;
+        }
+        .card {
+            display: grid;
+            grid-template-rows: repeat(3, 1fr);
+            gap: 8px;
+            padding: 24px 16px;
+            width: 320px;
+            height: 160px;
+            background: white;
+            border: 1px solid rgb(229, 229, 229);
+            border-radius: 4px;
+            box-shadow: 0px 1px 3px 0px rgba(0,0,0,0.1),0px 1px 2px -1px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .card-title-row {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            padding: 0;
+            gap: 12px;
+        }
+        .card-icon {
+            width: 40px;
+            height: 40px;
+        }
+        .card-title {
+            font-size: 20px;
+            font-weight: normal;
+            margin: 0;
+            padding: 0;
+            align-self: center;
+        }
+        .card-title-text {
+            vertical-align: middle;
+        }
+        .card-description {
+            margin: 0;
+            color: grey;
+            font-size: 16px;
+        }
+        .card-button-row {
+            display: grid;
+            grid-template-columns: auto;
+            text-align: right;
+        }
+        .card-button {
+            border: none;
+            font-weight: bold;
+            color: rgb(64,64,64);
+            background: transparent;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 0;
+            padding: 0;
+            height: 32px;
+            text-align: right;
+        }
+        .primary-button {
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
         }
 
         @media screen and (max-width: 600px) {
-            header {
+            .section-cards {
                 grid-template-columns: 1fr;
             }
         }

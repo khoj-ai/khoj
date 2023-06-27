@@ -1,49 +1,58 @@
-{% extends "base_processor_integration.html" %}
+{% extends "base_config.html" %}
 {% block content %}
-<h2>Conversation</h2>
-<form id="config-form">
-    <div id="success" style="display: none;" ></div>
-    <table>
-        <tr>
-            <td>
-                <label for="openai-api-key">OpenAI API key</label>
-            </td>
-            <td>
-                <input type="text" id="openai-api-key" name="openai-api-key" value="{{ current_config['openai_api_key'] }}">
-            </td>
-        </tr>
-    </table>
+<div class="page">
+    <div class="section">
+        <h2 class="section-title">
+            <img class="card-icon" src="/static/assets/icons/chat.svg" alt="Chat">
+            <span class="card-title-text">Chat</span>
+        </h2>
+        <form id="config-form">
+            <table>
+                <tr>
+                    <td>
+                        <label for="openai-api-key">OpenAI API key</label>
+                    </td>
+                    <td>
+                        <input type="text" id="openai-api-key" name="openai-api-key" value="{{ current_config['openai_api_key'] }}">
+                    </td>
+                </tr>
+            </table>
 
-    <h4>You probably don't need to edit these.</h4>
+            <h4>You probably don't need to edit these.</h4>
 
-    <table>
-        <tr>
-            <td>
-                <label for="conversation-logfile">Conversation Logfile</label>
-            </td>
-            <td>
-                <input type="text" id="conversation-logfile" name="conversation-logfile" value="{{ current_config['conversation_logfile'] }}">
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <label for="model">Model</label>
-            </td>
-            <td>
-                <input type="text" id="model" name="model" value="{{ current_config['model'] }}">
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <label for="chat-model">Chat Model</label>
-            </td>
-            <td>
-                <input type="text" id="chat-model" name="chat-model" value="{{ current_config['chat_model'] }}">
-            </td>
-        </tr>
-    </table>
-    <button id="submit" type="submit">Submit</button>
-</form>
+            <table>
+                <tr>
+                    <td>
+                        <label for="conversation-logfile">Conversation Logfile</label>
+                    </td>
+                    <td>
+                        <input type="text" id="conversation-logfile" name="conversation-logfile" value="{{ current_config['conversation_logfile'] }}">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <label for="model">Model</label>
+                    </td>
+                    <td>
+                        <input type="text" id="model" name="model" value="{{ current_config['model'] }}">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <label for="chat-model">Chat Model</label>
+                    </td>
+                    <td>
+                        <input type="text" id="chat-model" name="chat-model" value="{{ current_config['chat_model'] }}">
+                    </td>
+                </tr>
+            </table>
+            <div class="section">
+                <div id="success" style="display: none;" ></div>
+                <button id="submit" type="submit">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
 <script>
     submit.addEventListener("click", function(event) {
         event.preventDefault();
@@ -52,10 +61,12 @@
         var model = document.getElementById("model").value;
         var chat_model = document.getElementById("chat-model").value;
 
+        const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
         fetch('/api/config/data/processor/conversation', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
             },
             body: JSON.stringify({
                 "openai_api_key": openai_api_key,
@@ -67,7 +78,7 @@
         .then(response => response.json())
         .then(data => {
             if (data["status"] == "ok") {
-                document.getElementById("success").innerHTML = "✅ Successfully updated. Go to <a href='/config'>your settings</a> to regenerate your index.";
+                document.getElementById("success").innerHTML = "✅ Successfully updated. Click Configure on your <a href='/config'>settings page</a> to complete your Khoj setup.";
                 document.getElementById("success").style.display = "block";
             } else {
                 document.getElementById("success").innerHTML = "⚠️ Failed to update settings.";

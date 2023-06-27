@@ -1,8 +1,8 @@
 * Emacs Khoj
-  /An Emacs interface for [[https://github.com/debanjum/khoj][khoj]]/
+  /An Emacs interface for [[https://github.com/khoj-ai/khoj][khoj]]/
 
 ** Requirements
-   - Install and Run [[https://github.com/debanjum/khoj][khoj]]
+   - Install and Run [[https://github.com/khoj-ai/khoj][khoj]]
 
 ** Installation
    - Direct Install
@@ -22,7 +22,7 @@
        #+begin_src elisp
          ;; Khoj Package
          (use-package khoj
-           :quelpa (khoj :fetcher url :url "https://raw.githubusercontent.com/debanjum/khoj/master/interface/emacs/khoj.el")
+           :quelpa (khoj :fetcher url :url "https://raw.githubusercontent.com/khoj-ai/khoj/master/interface/emacs/khoj.el")
            :bind ("C-c s" . 'khoj))
        #+end_src
 

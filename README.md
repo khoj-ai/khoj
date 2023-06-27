@@ -1,14 +1,15 @@
-# Khoj 🦅
-[![test](https://github.com/debanjum/khoj/actions/workflows/test.yml/badge.svg)](https://github.com/debanjum/khoj/actions/workflows/test.yml)
-[![dockerize](https://github.com/debanjum/khoj/actions/workflows/dockerize.yml/badge.svg)](https://github.com/debanjum/khoj/pkgs/container/khoj)
-[![pypi](https://github.com/debanjum/khoj/actions/workflows/pypi.yml/badge.svg)](https://pypi.org/project/khoj-assistant/)
+<h1><img src="src/khoj/interface/web/assets/icons/khoj-logo-sideways.svg" width="330" alt="Khoj Logo"></h1>
+
+[![test](https://github.com/khoj-ai/khoj/actions/workflows/test.yml/badge.svg)](https://github.com/khoj-ai/khoj/actions/workflows/test.yml)
+[![dockerize](https://github.com/khoj-ai/khoj/actions/workflows/dockerize.yml/badge.svg)](https://github.com/khoj-ai/khoj/pkgs/container/khoj)
+[![pypi](https://github.com/khoj-ai/khoj/actions/workflows/pypi.yml/badge.svg)](https://pypi.org/project/khoj-assistant/)
 
 *An AI personal assistant for your digital brain*
 
 **Supported Plugins**
 
-[![Khoj on Obsidian](https://img.shields.io/badge/Obsidian-%23483699.svg?style=for-the-badge&logo=obsidian&logoColor=white)](https://github.com/debanjum/khoj/tree/master/src/interface/obsidian#readme)
-[![Khoj on Emacs](https://img.shields.io/badge/Emacs-%237F5AB6.svg?&style=for-the-badge&logo=gnu-emacs&logoColor=white)](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#readme)
+[![Khoj on Obsidian](https://img.shields.io/badge/Obsidian-%23483699.svg?style=for-the-badge&logo=obsidian&logoColor=white)](https://github.com/khoj-ai/khoj/tree/master/src/interface/obsidian#readme)
+[![Khoj on Emacs](https://img.shields.io/badge/Emacs-%237F5AB6.svg?&style=for-the-badge&logo=gnu-emacs&logoColor=white)](https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#readme)
 
 ## Table of Contents
 
@@ -68,7 +69,7 @@
 
 ## Demos
 ### Khoj in Obsidian
-https://github.com/debanjum/khoj/assets/6413477/3e33d8ea-25bb-46c8-a3bf-c92f78d0f56b
+https://github.com/khoj-ai/khoj/assets/6413477/3e33d8ea-25bb-46c8-a3bf-c92f78d0f56b
 
 <details><summary>Description</summary>
 
@@ -88,9 +89,9 @@ https://user-images.githubusercontent.com/6413477/184735169-92c78bf1-d827-4663-9
 
 - Install Khoj via pip
 - Start Khoj app
-- Add this readme and [khoj.el readme](https://github.com/debanjum/khoj/tree/master/src/interface/emacs) as org-mode for Khoj to index
+- Add this readme and [khoj.el readme](https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs) as org-mode for Khoj to index
 - Search \"*Setup editor*\" on the Web and Emacs. Re-rank the results for better accuracy
-- Top result is what we are looking for, the [section to Install Khoj.el on Emacs](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#2-Install-Khojel)
+- Top result is what we are looking for, the [section to Install Khoj.el on Emacs](https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#2-Install-Khojel)
 </details>
 
 <details><summary>Analysis</summary>
@@ -103,19 +104,19 @@ https://user-images.githubusercontent.com/6413477/184735169-92c78bf1-d827-4663-9
 
 ### Interfaces
 
-![](https://github.com/debanjum/khoj/blob/master/docs/interfaces.png?)
+![](https://github.com/khoj-ai/khoj/blob/master/docs/interfaces.png?)
 
 ## Architecture
 
-![](https://github.com/debanjum/khoj/blob/master/docs/khoj_architecture.png?)
+![](https://github.com/khoj-ai/khoj/blob/master/docs/khoj_architecture.png?)
 
 ## Setup
 These are the general setup instructions for Khoj.
 
 - Make sure [python](https://realpython.com/installing-python/) (version 3.10 or lower) and [pip](https://pip.pypa.io/en/stable/installation/) are installed on your machine
-- Check the [Khoj.el Readme](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Setup) to setup Khoj with Emacs<br />
+- Check the [Khoj.el Readme](https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#Setup) to setup Khoj with Emacs<br />
   Its simpler as it can skip the server *install*, *run* and *configure* step below.
-- Check the [Khoj Obsidian Readme](https://github.com/debanjum/khoj/tree/master/src/interface/obsidian#Setup) to setup Khoj with Obsidian<br />
+- Check the [Khoj Obsidian Readme](https://github.com/khoj-ai/khoj/tree/master/src/interface/obsidian#Setup) to setup Khoj with Obsidian<br />
   Its simpler as it can skip the *configure* step below.
 
 ### 1. Install
@@ -147,10 +148,10 @@ Khoj exposes a web interface by default.<br />
 The optional steps below allow using Khoj from within an existing application like Obsidian or Emacs.
 
 - **Khoj Obsidian**:<br />
-[Install](https://github.com/debanjum/khoj/tree/master/src/interface/obsidian#2-Setup-Plugin) the Khoj Obsidian plugin
+[Install](https://github.com/khoj-ai/khoj/tree/master/src/interface/obsidian#2-Setup-Plugin) the Khoj Obsidian plugin
 
 - **Khoj Emacs**:<br />
-[Install](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#2-Install-Khojel) khoj.el
+[Install](https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#2-Install-Khojel) khoj.el
 
 ## Use
 ### Khoj Search
@@ -201,7 +202,7 @@ Use structured query syntax to filter the natural language search results
 2. Type your queries and see response by Khoj from your notes
 
 #### Demo
-![](https://github.com/debanjum/khoj/blob/master/docs/khoj_chat_web_interface.png?)
+![](https://github.com/khoj-ai/khoj/blob/master/docs/khoj_chat_web_interface.png?)
 
 ### Details
 1. Your query is used to retrieve the most relevant notes, if any, using Khoj search
@@ -221,11 +222,11 @@ pip install --upgrade --pre khoj-assistant
 
 ### Upgrade Khoj on Emacs
 - Use your Emacs Package Manager to Upgrade
-- See [khoj.el readme](https://github.com/debanjum/khoj/tree/master/src/interface/emacs#Upgrade) for details
+- See [khoj.el readme](https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#Upgrade) for details
 
 ### Upgrade Khoj on Obsidian
 - Upgrade via the Community plugins tab on the settings pane in the Obsidian app
-- See the [khoj plugin readme](https://github.com/debanjum/khoj/tree/master/src/interface/obsidian#2-Setup-Plugin) for details
+- See the [khoj plugin readme](https://github.com/khoj-ai/khoj/tree/master/src/interface/obsidian#2-Setup-Plugin) for details
 
 ## Uninstall
 1. (Optional) Hit `Ctrl-C` in the terminal running the khoj server to stop it
@@ -243,7 +244,7 @@ pip install --upgrade --pre khoj-assistant
     rustup-init
     source ~/.cargo/env
     ```
-- **Refer**: [Issue with Fix](https://github.com/debanjum/khoj/issues/82#issuecomment-1241890946) for more details
+- **Refer**: [Issue with Fix](https://github.com/khoj-ai/khoj/issues/82#issuecomment-1241890946) for more details
 
 #### Search starts giving wonky results
 - **Fix**: Open [/api/update?force=true](http://localhost:8000/api/update?force=true)[^2] in browser to regenerate index from scratch
@@ -264,7 +265,7 @@ pip install --upgrade --pre khoj-assistant
 4. Click the [Add to Homescreen](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Add_to_home_screen) button
 5. Enjoy exploring your notes, transactions and images from your phone!
 
-![](https://github.com/debanjum/khoj/blob/master/docs/khoj_pwa_android.png?)
+![](https://github.com/khoj-ai/khoj/blob/master/docs/khoj_pwa_android.png?)
 
 ### Use OpenAI Models for Search
 #### Setup
@@ -308,7 +309,7 @@ pip install --upgrade --pre khoj-assistant
 If you want, Khoj can be configured to use OpenAI for search and chat.<br />
 Add your OpenAI API to Khoj by using either of the two options below:
  - Open the Khoj desktop GUI, add your [OpenAI API key](https://beta.openai.com/account/api-keys) and click *Configure*
-   Ensure khoj is started **without** the `--no-gui` flag. Check your system tray to see if Khoj 🦅 is minimized there.
+   Ensure khoj is started **without** the `--no-gui` flag. Check your system tray to see if Khoj is minimized there.
  - Set `openai-api-key` field under `processor.conversation` section in your `khoj.yml`[^1] to your [OpenAI API key](https://beta.openai.com/account/api-keys) and restart khoj:
     ```diff
     processor:
@@ -359,7 +360,7 @@ Note that this plugin is currently *only* indexing Markdown files. It will ignor
 
 *[Interactive Visualization](https://mango-dune-07a8b7110.1.azurestaticapps.net/?repo=debanjum%2Fkhoj)*
 
-![](https://github.com/debanjum/khoj/blob/master/docs/khoj_codebase_visualization_0.2.1.png?)
+![](https://github.com/khoj-ai/khoj/blob/master/docs/khoj_codebase_visualization_0.2.1.png?)
 
 ### Setup
 #### Using Pip
@@ -367,7 +368,7 @@ Note that this plugin is currently *only* indexing Markdown files. It will ignor
 
 ```shell
 # Get Khoj Code
-git clone https://github.com/debanjum/khoj && cd khoj
+git clone https://github.com/khoj-ai/khoj && cd khoj
 
 # Create, Activate Virtual Environment
 python3 -m venv .venv && source .venv/bin/activate
@@ -396,7 +397,7 @@ pip install -e .[dev]
 ##### 1. Clone
 
 ```shell
-git clone https://github.com/debanjum/khoj && cd khoj
+git clone https://github.com/khoj-ai/khoj && cd khoj
 ```
 
 ##### 2. Configure
@@ -424,7 +425,7 @@ docker-compose build --pull
 
 ##### 2. Install Khoj
 ```shell
-git clone https://github.com/debanjum/khoj && cd khoj
+git clone https://github.com/khoj-ai/khoj && cd khoj
 conda env create -f config/environment.yml
 conda activate khoj
 python3 -m pip install pyqt6  # As conda does not support pyqt6 yet

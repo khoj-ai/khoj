@@ -1,14 +1,14 @@
 # syntax=docker/dockerfile:1
 FROM ubuntu:kinetic
-LABEL org.opencontainers.image.source https://github.com/debanjum/khoj
+LABEL org.opencontainers.image.source https://github.com/khoj-ai/khoj
 
 # Install System Dependencies
 RUN apt update -y && \
-    apt -y install python3-pip python3-pyqt6
+    apt -y install python3-pip python3-pyqt6 git
 
 # Install Python Dependencies
 RUN pip install --upgrade pip && \
-    pip install --upgrade --pre khoj-assistant
+    pip install git+https://github.com/khoj-ai/khoj.git
 
 # Run the Application
 # There are more arguments required for the application to run,

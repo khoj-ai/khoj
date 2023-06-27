@@ -53,14 +53,19 @@ def normalize_filename(filename):
     return escaped_filename
 
 
-def makelist(filename):
+def makelist_with_filepath(filename):
+    f = open(filename, "r")
+    return makelist(f, filename)
+
+
+def makelist(file, filename):
     """
     Read an org-mode file and return a list of Orgnode objects
     created from this file.
     """
     ctr = 0
 
-    f = open(filename, "r")
+    f = file
 
     todos = {
         "TODO": "",

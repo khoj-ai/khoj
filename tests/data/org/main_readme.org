@@ -9,7 +9,7 @@
 
 ** Install
    #+begin_src shell
-   git clone https://github.com/debanjum/khoj && cd khoj
+   git clone https://github.com/khoj-ai/khoj && cd khoj
    conda env create -f environment.yml
    conda activate khoj
    #+end_src
@@ -23,7 +23,7 @@
 
 ** Use
    - *Khoj via Emacs*
-     - [[https://github.com/debanjum/khoj/tree/master/interface/emacs#installation][Install]] [[./interface/emacs/khoj.el][khoj.el]]
+     - [[https://github.com/khoj-ai/khoj/tree/master/interface/emacs#installation][Install]] [[./interface/emacs/khoj.el][khoj.el]]
      - Run ~M-x khoj <user-query>~ or Call ~C-c C-s~
 
    - *Khoj via API*
