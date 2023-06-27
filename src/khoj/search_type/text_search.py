@@ -2,7 +2,7 @@
 import logging
 import math
 from pathlib import Path
-from typing import List, Tuple, Type
+from typing import List, Tuple, Type, Union
 
 # External Packages
 import torch
@@ -105,7 +105,7 @@ def compute_embeddings(
 async def query(
     raw_query: str,
     model: TextSearchModel,
-    question_embedding: torch.Tensor | None = None,
+    question_embedding: Union[torch.Tensor, None] = None,
     rank_results: bool = False,
     score_threshold: float = -math.inf,
     dedupe: bool = True,
