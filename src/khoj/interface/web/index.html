@@ -93,15 +93,8 @@
             if (rerank)
                 setQueryFieldInUrl(query);
 
-            // Generate Backend API URL to execute Search
-            if (type == 'all')
-                url = `/api/search?q=${encodeURIComponent(query)}&n=${results_count}&client=web`;
-            else if (type === "image")
-                url = `/api/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}&client=web`;
-            else
-                url = `/api/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}&r=${rerank}&client=web`;
-
             // Execute Search and Render Results
+            url = createRequestUrl(query, type, results_count, rerank);
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
@@ -155,6 +148,18 @@
                     if (type_via_url && enabled_types.includes(type_via_url))
                         document.getElementById("type").value = type_via_url;
                 });
+        }
+
+        function createRequestUrl(query, results_count, type, rerank) {
+            // Generate Backend API URL to execute Search
+            let url = `/api/search?q=${encodeURIComponent(query)}&n=${results_count}&client=web`;
+            // If type is not 'all', append type to URL
+            if (type !== 'all')
+                url += `&t=${type}`;
+            // Rerank is only supported by text types
+            if (type !== "image")
+                url += `&r=${rerank}`;
+            return url;
         }
 
         function setTypeFieldInUrl(type) {
