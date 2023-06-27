@@ -42,29 +42,30 @@ class GithubToJsonl(TextToJsonl):
 
     def process_repo(self, repo: GithubRepoConfig, previous_entries=None):
         repo_url = f"https://api.github.com/repos/{repo.owner}/{repo.name}"
-        logger.info(f"Processing github repo {repo.owner}/{repo.name}")
+        repo_shorthand = f"{repo.owner}/{repo.name}"
+        logger.info(f"Processing github repo {repo_shorthand}")
         with timer("Download markdown files from github repo", logger):
             try:
                 markdown_files, org_files = self.get_files(repo_url, repo)
             except Exception as e:
-                logger.error(f"Unable to download github repo {repo.owner}/{repo.name}")
+                logger.error(f"Unable to download github repo {repo_shorthand}")
                 raise e
 
-        logger.info(f"Found {len(markdown_files)} markdown files in github repo {repo.owner}/{repo.name}")
-        logger.info(f"Found {len(org_files)} org files in github repo {repo.owner}/{repo.name}")
+        logger.info(f"Found {len(markdown_files)} markdown files in github repo {repo_shorthand}")
+        logger.info(f"Found {len(org_files)} org files in github repo {repo_shorthand}")
 
-        with timer(f"Extract markdown entries from github repo {repo.owner}/{repo.name}", logger):
+        with timer(f"Extract markdown entries from github repo {repo_shorthand}", logger):
             current_entries = MarkdownToJsonl.convert_markdown_entries_to_maps(
                 *GithubToJsonl.extract_markdown_entries(markdown_files)
             )
 
-        with timer(f"Extract org entries from github repo {repo.owner}/{repo.name}", logger):
+        with timer(f"Extract org entries from github repo {repo_shorthand}", logger):
             current_entries += OrgToJsonl.convert_org_nodes_to_entries(*GithubToJsonl.extract_org_entries(org_files))
 
-        with timer(f"Extract commit messages from github repo {repo.owner}/{repo.name}", logger):
+        with timer(f"Extract commit messages from github repo {repo_shorthand}", logger):
             current_entries += self.convert_commits_to_entries(self.get_commits(repo_url), repo)
 
-        with timer(f"Split entries by max token size supported by model {repo.owner}/{repo.name}", logger):
+        with timer(f"Split entries by max token size supported by model {repo_shorthand}", logger):
             current_entries = TextToJsonl.split_entries_by_max_tokens(current_entries, max_tokens=256)
 
         return current_entries
