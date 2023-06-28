@@ -172,7 +172,7 @@
                 });
         }
 
-        function createRequestUrl(query, results_count, type, rerank) {
+        function createRequestUrl(query, type, results_count, rerank) {
             // Generate Backend API URL to execute Search
             let url = `/api/search?q=${encodeURIComponent(query)}&n=${results_count}&client=web`;
             // If type is not 'all', append type to URL
