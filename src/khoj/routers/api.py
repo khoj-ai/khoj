@@ -65,6 +65,7 @@ def get_config_types():
             and getattr(state.model, f"{search_type.value}_search") is not None
         )
         or ("plugins" in configured_content_types and search_type.name in configured_content_types["plugins"])
+        or search_type == SearchType.All
     ]
 
 
@@ -135,7 +136,7 @@ async def set_processor_conversation_config_data(updated_config: ConversationPro
 async def search(
     q: str,
     n: Optional[int] = 5,
-    t: Optional[SearchType] = None,
+    t: Optional[SearchType] = SearchType.All,
     r: Optional[bool] = False,
     score_threshold: Optional[Union[float, None]] = None,
     dedupe: Optional[bool] = True,
@@ -166,7 +167,7 @@ async def search(
         defiltered_query = filter.defilter(user_query)
 
     encoded_asymmetric_query = None
-    if t == None or (t != SearchType.Ledger and t != SearchType.Image):
+    if t == SearchType.All or (t != SearchType.Ledger and t != SearchType.Image):
         with timer("Encoding query took", logger=logger):
             encoded_asymmetric_query = util.normalize_embeddings(
                 state.model.org_search.bi_encoder.encode(
@@ -177,7 +178,7 @@ async def search(
             )
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        if (t == SearchType.Org or t == None) and state.model.org_search:
+        if (t == SearchType.Org or t == SearchType.All) and state.model.org_search:
             # query org-mode notes
             search_futures += [
                 executor.submit(
@@ -191,7 +192,7 @@ async def search(
                 )
             ]
 
-        if (t == SearchType.Markdown or t == None) and state.model.markdown_search:
+        if (t == SearchType.Markdown or t == SearchType.All) and state.model.markdown_search:
             # query markdown notes
             search_futures += [
                 executor.submit(
@@ -205,7 +206,7 @@ async def search(
                 )
             ]
 
-        if (t == SearchType.Pdf or t == None) and state.model.pdf_search:
+        if (t == SearchType.Pdf or t == SearchType.All) and state.model.pdf_search:
             # query pdf files
             search_futures += [
                 executor.submit(
@@ -232,7 +233,7 @@ async def search(
                 )
             ]
 
-        if (t == SearchType.Music or t == None) and state.model.music_search:
+        if (t == SearchType.Music or t == SearchType.All) and state.model.music_search:
             # query music library
             search_futures += [
                 executor.submit(
@@ -258,7 +259,7 @@ async def search(
                 )
             ]
 
-        if (t is None or t in SearchType) and state.model.plugin_search:
+        if (t == SearchType.All or t in SearchType) and state.model.plugin_search:
             # query specified plugin type
             search_futures += [
                 executor.submit(
