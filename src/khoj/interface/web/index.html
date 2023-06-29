@@ -61,6 +61,7 @@
             let org_files = data.filter((item) => item.additional.file.endsWith(".org"));
             let md_files = data.filter((item) => item.additional.file.endsWith(".md"));
             let pdf_files = data.filter((item) => item.additional.file.endsWith(".pdf"));
+            let issue_files = data.filter((item) => item.additional.file.includes("issues") && item.additional.file.includes("github.com"));
 
             let html = "";
             if (org_files.length > 0) {
@@ -69,6 +70,10 @@
 
             if (md_files.length > 0) {
                 html += render_markdown(query, md_files);
+            }
+
+            if (issue_files.length > 0) {
+                html += render_markdown(query, issue_files);
             }
 
             if (pdf_files.length > 0) {
@@ -368,6 +373,17 @@
 
         pre {
             max-width: 100;
+        }
+
+        a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+
+        img.md-level {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
         }
 
     </style>

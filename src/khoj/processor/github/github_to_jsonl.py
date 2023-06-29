@@ -13,6 +13,7 @@ from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.text_to_jsonl import TextToJsonl
 from khoj.utils.jsonl import dump_jsonl, compress_jsonl_data
+from khoj.utils.rawconfig import Entry
 
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,8 @@ class GithubToJsonl(TextToJsonl):
     def __init__(self, config: GithubContentConfig):
         super().__init__(config)
         self.config = config
+        self.session = requests.Session()
+        self.session.headers.update({"Authorization": f"token {self.config.pat_token}"})
 
     @staticmethod
     def wait_for_rate_limit_reset(response, func, *args, **kwargs):
@@ -53,6 +56,7 @@ class GithubToJsonl(TextToJsonl):
 
         logger.info(f"Found {len(markdown_files)} markdown files in github repo {repo_shorthand}")
         logger.info(f"Found {len(org_files)} org files in github repo {repo_shorthand}")
+        current_entries = []
 
         with timer(f"Extract markdown entries from github repo {repo_shorthand}", logger):
             current_entries = MarkdownToJsonl.convert_markdown_entries_to_maps(
@@ -64,6 +68,12 @@ class GithubToJsonl(TextToJsonl):
 
         with timer(f"Extract commit messages from github repo {repo_shorthand}", logger):
             current_entries += self.convert_commits_to_entries(self.get_commits(repo_url), repo)
+
+        with timer(f"Extract issues from github repo {repo_shorthand}", logger):
+            issue_entries = GithubToJsonl.convert_issue_entries_to_maps(
+                *GithubToJsonl.extract_github_issues(self.get_issues(repo_url))
+            )
+            current_entries += issue_entries
 
         with timer(f"Split entries by max token size supported by model {repo_shorthand}", logger):
             current_entries = TextToJsonl.split_entries_by_max_tokens(current_entries, max_tokens=256)
@@ -102,7 +112,7 @@ class GithubToJsonl(TextToJsonl):
         contents = response.json()
 
         # Wait for rate limit reset if needed
-        result = self.wait_for_rate_limit_reset(response, self.get_files)
+        result = self.wait_for_rate_limit_reset(response, self.get_files, repo_url, repo)
         if result is not None:
             return result
 
@@ -130,41 +140,117 @@ class GithubToJsonl(TextToJsonl):
 
     def get_file_contents(self, file_url):
         # Get text from each markdown file
-        headers = {"Authorization": f"token {self.config.pat_token}", "Accept": "application/vnd.github.v3.raw"}
-        response = requests.get(file_url, headers=headers)
+        headers = {"Accept": "application/vnd.github.v3.raw"}
+        response = self.session.get(file_url, headers=headers, stream=True)
 
         # Wait for rate limit reset if needed
         result = self.wait_for_rate_limit_reset(response, self.get_file_contents, file_url)
         if result is not None:
             return result
 
-        return response.content.decode("utf-8")
+        content = ""
+        for chunk in response.iter_content(chunk_size=2048):
+            if chunk:
+                content += chunk.decode("utf-8")
+
+        return content
 
     def get_commits(self, repo_url: str) -> List[Dict]:
+        return self._get_commits(f"{repo_url}/commits")
+
+    def _get_commits(self, commits_url: str | None) -> List[Dict]:
         # Get commit messages from the repository using the Github API
-        commits_url = f"{repo_url}/commits"
-        headers = {"Authorization": f"token {self.config.pat_token}"}
         params = {"per_page": 100}
         commits = []
 
         while commits_url is not None:
             # Get the next page of commits
-            response = requests.get(commits_url, headers=headers, params=params)
-            raw_commits = response.json()
+            response = self.session.get(commits_url, params=params, stream=True)
+
+            # Read the streamed response into a JSON object
+            content = response.json()
 
             # Wait for rate limit reset if needed
-            result = self.wait_for_rate_limit_reset(response, self.get_commits)
+            result = self.wait_for_rate_limit_reset(response, self._get_commits, commits_url)
             if result is not None:
                 return result
 
             # Extract commit messages from the response
-            for commit in raw_commits:
+            for commit in content:
                 commits += [{"content": commit["commit"]["message"], "path": commit["html_url"]}]
 
             # Get the URL for the next page of commits, if any
             commits_url = response.links.get("next", {}).get("url")
 
         return commits
+
+    def get_issues(self, repo_url: str) -> List[Dict]:
+        return self._get_issues(f"{repo_url}/issues")
+
+    def _get_issues(self, issues_url: str | None) -> List[Dict]:
+        issues = []
+        per_page = 30
+        params = {"per_page": per_page, "state": "all"}
+
+        while issues_url is not None:
+            # Get the next page of issues
+            response = self.session.get(issues_url, params=params, stream=True)
+            raw_issues = response.json()
+
+            # Wait for rate limit reset if needed
+            result = self.wait_for_rate_limit_reset(response, self._get_issues, issues_url)
+            if result is not None:
+                return result
+
+            for issue in raw_issues:
+                username = issue["user"]["login"]
+                user_url = f"[{username}]({issue['user']['html_url']})"
+                issue_content = {
+                    "content": f"## [Issue {issue['number']}]({issue['html_url']}) {issue['title']}\nby {user_url}\n\n{issue['body']}",
+                    "path": issue["html_url"],
+                }
+                issue_content["created_at"] = {issue["created_at"]}
+                if issue["comments"] > 0:
+                    issue_content["comments"] = self.get_comments(issue["comments_url"])
+                issues += [issue_content]
+
+            issues_url = response.links.get("next", {}).get("url")
+
+        return issues
+
+    def get_comments(self, comments_url: str | None) -> List[Dict]:
+        # By default, the number of results per page is 30. We'll keep it as-is for now.
+        comments = []
+        per_page = 30
+        params = {"per_page": per_page}
+
+        while comments_url is not None:
+            # Get the next page of comments
+            response = self.session.get(comments_url, params=params, stream=True)
+            raw_comments = response.json()
+
+            # Wait for rate limit reset if needed
+            result = self.wait_for_rate_limit_reset(response, self.get_comments, comments_url)
+            if result is not None:
+                return result
+
+            for comment in raw_comments:
+                created_at = comment["created_at"].split("T")[0]
+                commenter = comment["user"]["login"]
+                commenter_url = comment["user"]["html_url"]
+                comment_url = comment["html_url"]
+                comment_url_link = f"[{created_at}]({comment_url})"
+                avatar_url = comment["user"]["avatar_url"]
+                avatar = f"![{commenter}]({avatar_url})"
+                comments += [
+                    {
+                        "content": f"### {avatar} [{commenter}]({commenter_url}) - ({comment_url_link})\n\n{comment['body']}"
+                    }
+                ]
+
+            comments_url = response.links.get("next", {}).get("url")
+
+        return comments
 
     def convert_commits_to_entries(self, commits, repo: GithubRepoConfig) -> List[Entry]:
         entries: List[Entry] = []
@@ -201,3 +287,32 @@ class GithubToJsonl(TextToJsonl):
                 doc["content"], doc["path"], entries, entry_to_file_map
             )
         return entries, dict(entry_to_file_map)
+
+    @staticmethod
+    def extract_github_issues(issues):
+        entries = []
+        entry_to_file_map = {}
+        for issue in issues:
+            content = issue["content"]
+            if "comments" in issue:
+                for comment in issue["comments"]:
+                    content += "\n\n" + comment["content"]
+            entries.append(content)
+            entry_to_file_map[content] = {"path": issue["path"]}
+        return entries, entry_to_file_map
+
+    @staticmethod
+    def convert_issue_entries_to_maps(parsed_entries: List[str], entry_to_file_map: Dict[str, Dict]) -> List[Entry]:
+        entries = []
+        for entry in parsed_entries:
+            entry_file_name = entry_to_file_map[entry]["path"]
+            entries.append(
+                Entry(
+                    compiled=entry,
+                    raw=entry,
+                    heading=entry.split("\n")[0],
+                    file=entry_file_name,
+                )
+            )
+
+        return entries
