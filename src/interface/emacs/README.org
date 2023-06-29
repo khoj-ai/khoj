@@ -41,7 +41,7 @@
   [[/docs/khoj_chat_on_emacs_0.5.0.png]]
 
 ** Setup
-- /Make sure [[https://realpython.com/installing-python/][python]] (version 3.10 or lower) and [[https://pip.pypa.io/en/stable/installation/][pip]] are installed on your machine/
+- /Make sure [[https://realpython.com/installing-python/][python]] and [[https://pip.pypa.io/en/stable/installation/][pip]] are installed on your machine/
 
 - /khoj.el attempts to automatically install, start and configure the khoj server./
   If this fails, follow [[https://github.com/khoj-ai/khoj/tree/master/#Setup][these instructions]] to manually setup the khoj server.

@@ -113,7 +113,7 @@ https://user-images.githubusercontent.com/6413477/184735169-92c78bf1-d827-4663-9
 ## Setup
 These are the general setup instructions for Khoj.
 
-- Make sure [python](https://realpython.com/installing-python/) (version 3.10 or lower) and [pip](https://pip.pypa.io/en/stable/installation/) are installed on your machine
+- Make sure [python](https://realpython.com/installing-python/) and [pip](https://pip.pypa.io/en/stable/installation/) are installed on your machine
 - Check the [Khoj.el Readme](https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#Setup) to setup Khoj with Emacs<br />
   Its simpler as it can skip the server *install*, *run* and *configure* step below.
 - Check the [Khoj Obsidian Readme](https://github.com/khoj-ai/khoj/tree/master/src/interface/obsidian#Setup) to setup Khoj with Obsidian<br />

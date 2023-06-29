@@ -58,7 +58,7 @@ https://github.com/khoj-ai/khoj/assets/6413477/3e33d8ea-25bb-46c8-a3bf-c92f78d0f
 ![](https://github.com/khoj-ai/khoj/blob/master/src/interface/obsidian/docs/khoj_chat_on_obsidian_0.6.0.png?)
 
 ## Setup
-- *Make sure [python](https://realpython.com/installing-python/) (version 3.10 or lower) and [pip](https://pip.pypa.io/en/stable/installation/) are installed on your machine*
+- *Make sure [python](https://realpython.com/installing-python/) and [pip](https://pip.pypa.io/en/stable/installation/) are installed on your machine*
 - *Ensure you follow the ordering of the setup steps. Install the plugin after starting the khoj backend. This allows the plugin to configure the khoj backend*
 
 ### 1. Setup Backend

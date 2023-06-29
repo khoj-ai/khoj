@@ -7,7 +7,7 @@ name = "khoj-assistant"
 description = "A natural language search engine for your personal notes, transactions and images"
 readme = "README.md"
 license = "GPL-3.0-or-later"
-requires-python = ">=3.8, <3.11"
+requires-python = ">=3.8"
 authors = [
     { name = "Debanjum Singh Solanky, Saba Imran" },
 ]
@@ -31,6 +31,7 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Scientific/Engineering :: Human Machine Interfaces",
@@ -51,7 +52,7 @@ dependencies = [
     "rich >= 13.3.1",
     "schedule == 1.1.0",
     "sentence-transformers == 2.2.2",
-    "torch == 1.13.1",
+    "torch >= 2.0.1",
     "uvicorn == 0.17.6",
     "aiohttp == 3.8.4",
     "langchain >= 0.0.187",
