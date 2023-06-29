@@ -24,13 +24,12 @@
         }
 
         function render_org(query, data, classPrefix="") {
-            var orgCode = data.map(function (item) {
-                return `${item.entry}`
-            }).join("\n")
-            var orgParser = new Org.Parser();
-            var orgDocument = orgParser.parse(orgCode);
-            var orgHTMLDocument = orgDocument.convert(Org.ConverterHTML, { htmlClassPrefix: classPrefix });
-            return `<div class="results-org">` + orgHTMLDocument.toString() + `</div>`;
+            return data.map(function (item) {
+                var orgParser = new Org.Parser();
+                var orgDocument = orgParser.parse(item.entry);
+                var orgHTMLDocument = orgDocument.convert(Org.ConverterHTML, { htmlClassPrefix: classPrefix });
+                return `<div class="results-org">` + orgHTMLDocument.toString() + `</div>`;
+            }).join("\n");
         }
 
         function render_markdown(query, data) {
@@ -407,7 +406,12 @@
         div.results-markdown,
         div.results-org,
         div.results-pdf {
-            border: black 1px solid;
+            text-align: left;
+            box-shadow: 2px 2px 2px var(--primary-hover);
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid rgb(229, 229, 229);
         }
 
     </style>
