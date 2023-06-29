@@ -71,7 +71,7 @@ class GithubToJsonl(TextToJsonl):
             current_entries += self.convert_commits_to_entries(self.get_commits(repo_url), repo)
 
         with timer(f"Extract issues from github repo {repo_shorthand}", logger):
-            issue_entries = GithubToJsonl.convert_issue_entries_to_maps(
+            issue_entries = GithubToJsonl.convert_issues_to_entries(
                 *GithubToJsonl.extract_github_issues(self.get_issues(repo_url))
             )
             current_entries += issue_entries
@@ -303,10 +303,10 @@ class GithubToJsonl(TextToJsonl):
         return entries, entry_to_file_map
 
     @staticmethod
-    def convert_issue_entries_to_maps(parsed_entries: List[str], entry_to_file_map: Dict[str, Dict]) -> List[Entry]:
+    def convert_issues_to_entries(parsed_entries: List[str], entry_to_metadata_map: Dict[str, Dict]) -> List[Entry]:
         entries = []
         for entry in parsed_entries:
-            entry_file_name = entry_to_file_map[entry]["path"]
+            entry_file_name = entry_to_metadata_map[entry]["path"]
             entries.append(
                 Entry(
                     compiled=entry,
