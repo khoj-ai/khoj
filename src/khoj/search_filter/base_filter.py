@@ -18,3 +18,7 @@ class BaseFilter(ABC):
     @abstractmethod
     def apply(self, query: str, entries: List[Entry]) -> Tuple[str, Set[int]]:
         ...
+
+    @abstractmethod
+    def defilter(self, query: str) -> str:
+        ...

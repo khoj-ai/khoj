@@ -72,13 +72,14 @@ def test_text_content_index_only_updates_on_changes(content_config: ContentConfi
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_asymmetric_search(content_config: ContentConfig, search_config: SearchConfig):
+@pytest.mark.anyio
+async def test_asymmetric_search(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     model.notes_search = text_search.setup(OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=True)
     query = "How to git install application?"
 
     # Act
-    hits, entries = text_search.query(query, model=model.notes_search, rank_results=True)
+    hits, entries = await text_search.query(query, model=model.notes_search, rank_results=True)
 
     results = text_search.collate_results(hits, entries, count=1)
 

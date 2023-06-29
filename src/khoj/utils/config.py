@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
 
 class SearchType(str, Enum):
+    All = "all"
     Org = "org"
     Ledger = "ledger"
     Music = "music"

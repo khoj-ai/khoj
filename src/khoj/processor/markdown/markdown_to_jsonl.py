@@ -92,7 +92,7 @@ class MarkdownToJsonl(TextToJsonl):
         }
 
         if any(files_with_non_markdown_extensions):
-            logger.warn(
+            logger.warning(
                 f"[Warning] There maybe non markdown-mode files in the input set: {files_with_non_markdown_extensions}"
             )
 

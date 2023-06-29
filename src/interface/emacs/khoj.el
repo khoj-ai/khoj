@@ -598,9 +598,19 @@ CONFIG is json obtained from Khoj config API."
   "Convert JSON-RESPONSE, QUERY from API to text entries."
   (thread-last json-response
                ;; extract and render entries from API response
-               (mapcar (lambda (args) (format "%s\n\n" (cdr (assoc 'entry args)))))
+               (mapcar (lambda (json-response-item)
+                         (thread-last
+                           ;; Extract pdf entry from each item in json response
+                           (cdr (assoc 'entry json-response-item))
+                           (format "%s\n\n")
+                           ;; Standardize results to 2nd level heading for consistent rendering
+                           (replace-regexp-in-string "^\*+" "")
+                           ;; Standardize results to 2nd level heading for consistent rendering
+                           (replace-regexp-in-string "^\#+" "")
+                           ;; Format entries as org entry string
+                           (format "** %s"))))
                ;; Set query as heading in rendered results buffer
-               (format "# Query: %s\n\n%s\n" query)
+               (format "* %s\n%s\n" query)
                ;; remove leading (, ) or SPC from extracted entries string
                (replace-regexp-in-string "^[\(\) ]" "")
                ;; remove trailing (, ) or SPC from extracted entries string
@@ -674,7 +684,8 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
              ((equal content-type "ledger") (khoj--extract-entries-as-ledger json-response query))
              ((equal content-type "image") (khoj--extract-entries-as-images json-response query))
              (t (khoj--extract-entries json-response query))))
-      (cond ((or (equal content-type "pdf")
+      (cond ((or (equal content-type "all")
+                 (equal content-type "pdf")
                  (equal content-type "org"))
              (progn (visual-line-mode)
                     (org-mode)
@@ -1003,7 +1014,7 @@ Paragraph only starts at first text after blank line."
   ;; set content type to: last used > based on current buffer > default type
   :init-value (lambda (obj) (oset obj value (format "--content-type=%s" (or khoj--content-type (khoj--buffer-name-to-content-type (buffer-name))))))
   ;; dynamically set choices to content types enabled on khoj backend
-  :choices (or (ignore-errors (mapcar #'symbol-name (khoj--get-enabled-content-types))) '("org" "markdown" "pdf" "ledger" "music" "image")))
+  :choices (or (ignore-errors (mapcar #'symbol-name (khoj--get-enabled-content-types))) '("all" "org" "markdown" "pdf" "ledger" "music" "image")))
 
 (transient-define-suffix khoj--search-command (&optional args)
   (interactive (list (transient-args transient-current-command)))
