@@ -34,7 +34,7 @@ def test_search_with_invalid_content_type(client):
 
 # ----------------------------------------------------------------------------------------------------
 def test_search_with_valid_content_type(client):
-    for content_type in ["org", "markdown", "ledger", "image", "music", "pdf", "plugin1"]:
+    for content_type in ["all", "org", "markdown", "ledger", "image", "music", "pdf", "plugin1"]:
         # Act
         response = client.get(f"/api/search?q=random&t={content_type}")
         # Assert
@@ -84,7 +84,7 @@ def test_get_configured_types_via_api(client):
 
     # Assert
     assert response.status_code == 200
-    assert response.json() == ["org", "image", "plugin1"]
+    assert response.json() == ["all", "org", "image", "plugin1"]
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -102,7 +102,7 @@ def test_get_configured_types_with_only_plugin_content_config(content_config):
 
     # Assert
     assert response.status_code == 200
-    assert response.json() == ["plugin1"]
+    assert response.json() == ["all", "plugin1"]
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -137,7 +137,7 @@ def test_get_configured_types_with_no_content_config():
 
     # Assert
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json() == ["all"]
 
 
 # ----------------------------------------------------------------------------------------------------
