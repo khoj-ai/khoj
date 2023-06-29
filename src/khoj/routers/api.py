@@ -157,7 +157,7 @@ async def search(
     user_query = q.strip()
     results_count = n
     score_threshold = score_threshold if score_threshold is not None else -math.inf
-    search_futures: list[concurrent.futures.Future] = []
+    search_futures: List[concurrent.futures.Future] = []
 
     # return cached results, if available
     query_cache_key = f"{user_query}-{n}-{t}-{r}-{score_threshold}-{dedupe}"
