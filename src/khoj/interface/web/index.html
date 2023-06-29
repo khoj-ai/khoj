@@ -36,11 +36,15 @@
         function render_markdown(query, data) {
             var md = window.markdownit();
             return data.map(function (item) {
+                let rendered = "";
                 if (item.additional.file.startsWith("http")) {
                     lines = item.entry.split("\n");
-                    return md.render(`${lines[0]}\t[*](${item.additional.file})\n${lines.slice(1).join("\n")}`);
+                    rendered = md.render(`${lines[0]}\t[*](${item.additional.file})\n${lines.slice(1).join("\n")}`);
                 }
-                return `<div class="results-markdown">` + md.render(`${item.entry}`) + `</div>`;
+                else {
+                    rendered = md.render(`${item.entry}`);
+                }
+                return `<div class="results-markdown">` + rendered + `</div>`;
             }).join("\n");
         }
 
@@ -59,29 +63,22 @@
             }).join("\n");
         }
 
-        function render_mutliple(query, data, type) {
-            let org_files = data.filter((item) => item.additional.file.endsWith(".org"));
-            let md_files = data.filter((item) => item.additional.file.endsWith(".md"));
-            let pdf_files = data.filter((item) => item.additional.file.endsWith(".pdf"));
-            let issue_files = data.filter((item) => item.additional.file.includes("issues") && item.additional.file.includes("github.com"));
-
+        function render_multiple(query, data, type) {
             let html = "";
-            if (org_files.length > 0) {
-                html += render_org(query, org_files, type);
-            }
-
-            if (md_files.length > 0) {
-                html += render_markdown(query, md_files);
-            }
-
-            if (issue_files.length > 0) {
-                html += render_markdown(query, issue_files);
-            }
-
-            if (pdf_files.length > 0) {
-                html += render_pdf(query, pdf_files);
-            }
-
+            data.forEach(item => {
+                if (item.additional.file.endsWith(".org")) {
+                    html += render_org(query, [item], "org-");
+                } else if (
+                    item.additional.file.endsWith(".md") ||
+                    item.additional.file.endsWith(".markdown") ||
+                        (item.additional.file.includes("issues") && item.additional.file.includes("github.com"))
+                    )
+                {
+                    html += render_markdown(query, [item]);
+                } else if (item.additional.file.endsWith(".pdf")) {
+                    html += render_pdf(query, [item]);
+                }
+            });
             return html;
         }
 
@@ -100,11 +97,25 @@
             } else if (type === "pdf") {
                 results = render_pdf(query, data);
             } else if (type === "github" || type === "all") {
-                results = render_mutliple(query, data, type);
+                results = render_multiple(query, data, type);
             } else {
                 results = data.map((item) => `<div class="results-plugin">` + `<p>${item.entry}</p>` + `</div>`).join("\n")
             }
-            return `<div id="results-${type}">${results}</div>`;
+
+            // Any POST rendering goes here.
+
+            let renderedResults = document.createElement("div");
+            renderedResults.id = `results-${type}`;
+            renderedResults.innerHTML = results;
+
+            // For all elements that are of type img in the results html and have a src with 'avatar' in the URL, add the class 'avatar'
+            // This is used to make the avatar images round
+            let images = renderedResults.querySelectorAll("img[src*='avatar']");
+            for (let i = 0; i < images.length; i++) {
+                images[i].classList.add("avatar");
+            }
+
+            return renderedResults.outerHTML;
         }
 
         function search(rerank=false) {
@@ -277,7 +288,6 @@
             margin: 0px;
             background: #f8fafc;
             color: #475569;
-            text-align: center;
             font-family: roboto, karma, segoe ui, sans-serif;
             font-size: 20px;
             font-weight: 300;
@@ -388,10 +398,16 @@
             text-decoration: none;
         }
 
-        img.md-avatar {
+        img.avatar {
             width: 20px;
             height: 20px;
             border-radius: 50%;
+        }
+
+        div.results-markdown,
+        div.results-org,
+        div.results-pdf {
+            border: black 1px solid;
         }
 
     </style>

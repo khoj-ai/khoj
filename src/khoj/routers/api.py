@@ -216,6 +216,20 @@ async def search(
                 )
             ]
 
+        if (t == SearchType.Github or t == SearchType.All) and state.model.github_search:
+            # query github issues
+            search_futures += [
+                executor.submit(
+                    text_search.query,
+                    user_query,
+                    state.model.github_search,
+                    question_embedding=encoded_asymmetric_query,
+                    rank_results=r or False,
+                    score_threshold=score_threshold,
+                    dedupe=dedupe or True,
+                )
+            ]
+
         if (t == SearchType.Pdf or t == SearchType.All) and state.model.pdf_search:
             # query pdf files
             search_futures += [

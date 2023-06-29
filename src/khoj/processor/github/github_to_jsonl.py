@@ -1,6 +1,7 @@
 # Standard Packages
 import logging
 import time
+from datetime import datetime
 from typing import Dict, List, Union
 
 # External Packages
@@ -235,7 +236,7 @@ class GithubToJsonl(TextToJsonl):
                 return result
 
             for comment in raw_comments:
-                created_at = comment["created_at"].split("T")[0]
+                created_at = datetime.strptime(comment["created_at"], "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d %H:%M")
                 commenter = comment["user"]["login"]
                 commenter_url = comment["user"]["html_url"]
                 comment_url = comment["html_url"]
