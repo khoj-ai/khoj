@@ -99,7 +99,7 @@
         configure.disabled = true;
         configure.innerHTML = "Configuring...";
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
-        fetch('/api/update?force=true&client=web', {
+        fetch('/api/update?&client=web', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
