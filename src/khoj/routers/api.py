@@ -155,7 +155,7 @@ async def search(
 
     # initialize variables
     user_query = q.strip()
-    results_count = n
+    results_count = n or 5
     score_threshold = score_threshold if score_threshold is not None else -math.inf
     search_futures: List[concurrent.futures.Future] = []
 
@@ -296,15 +296,15 @@ async def search(
                         image_names=state.model.image_search.image_names,
                         output_directory=output_directory,
                         image_files_url="/static/images",
-                        count=results_count or 5,
+                        count=results_count,
                     )
                 else:
                     hits, entries = await search_future.result()
                     # Collate results
-                    results += text_search.collate_results(hits, entries, results_count or 5)
+                    results += text_search.collate_results(hits, entries, results_count)
 
-            # Sort results across all content types
-            results.sort(key=lambda x: float(x.score), reverse=True)
+            # Sort results across all content types and take top results
+            results = sorted(results, key=lambda x: float(x.score), reverse=True)[:results_count]
 
     # Cache results
     state.query_cache[query_cache_key] = results
