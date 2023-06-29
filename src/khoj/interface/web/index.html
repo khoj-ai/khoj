@@ -24,23 +24,26 @@
         }
 
         function render_org(query, data, classPrefix="") {
-            var orgCode = data.map(function (item) {
-                return `${item.entry}`
-            }).join("\n")
-            var orgParser = new Org.Parser();
-            var orgDocument = orgParser.parse(orgCode);
-            var orgHTMLDocument = orgDocument.convert(Org.ConverterHTML, { htmlClassPrefix: classPrefix });
-            return `<div class="results-org">` + orgHTMLDocument.toString() + `</div>`;
+            return data.map(function (item) {
+                var orgParser = new Org.Parser();
+                var orgDocument = orgParser.parse(item.entry);
+                var orgHTMLDocument = orgDocument.convert(Org.ConverterHTML, { htmlClassPrefix: classPrefix });
+                return `<div class="results-org">` + orgHTMLDocument.toString() + `</div>`;
+            }).join("\n");
         }
 
         function render_markdown(query, data) {
             var md = window.markdownit();
             return data.map(function (item) {
+                let rendered = "";
                 if (item.additional.file.startsWith("http")) {
                     lines = item.entry.split("\n");
-                    return md.render(`${lines[0]}\t[*](${item.additional.file})\n${lines.slice(1).join("\n")}`);
+                    rendered = md.render(`${lines[0]}\t[*](${item.additional.file})\n${lines.slice(1).join("\n")}`);
                 }
-                return `<div class="results-markdown">` + md.render(`${item.entry}`) + `</div>`;
+                else {
+                    rendered = md.render(`${item.entry}`);
+                }
+                return `<div class="results-markdown">` + rendered + `</div>`;
             }).join("\n");
         }
 
@@ -59,16 +62,21 @@
             }).join("\n");
         }
 
-        function render_mutliple(query, data, type) {
+        function render_multiple(query, data, type) {
             let html = "";
             data.forEach(item => {
-               if (item.additional.file.endsWith(".org")) {
-                html += render_org(query, [item], "org-");
-               } else if (item.additional.file.endsWith(".md")) {
-                html += render_markdown(query, [item]);
-               } else if (item.additional.file.endsWith(".pdf")) {
-                html += render_pdf(query, [item]);
-               }
+                if (item.additional.file.endsWith(".org")) {
+                    html += render_org(query, [item], "org-");
+                } else if (
+                    item.additional.file.endsWith(".md") ||
+                    item.additional.file.endsWith(".markdown") ||
+                        (item.additional.file.includes("issues") && item.additional.file.includes("github.com"))
+                    )
+                {
+                    html += render_markdown(query, [item]);
+                } else if (item.additional.file.endsWith(".pdf")) {
+                    html += render_pdf(query, [item]);
+                }
             });
             return html;
         }
@@ -88,11 +96,25 @@
             } else if (type === "pdf") {
                 results = render_pdf(query, data);
             } else if (type === "github" || type === "all") {
-                results = render_mutliple(query, data, type);
+                results = render_multiple(query, data, type);
             } else {
                 results = data.map((item) => `<div class="results-plugin">` + `<p>${item.entry}</p>` + `</div>`).join("\n")
             }
-            return `<div id="results-${type}">${results}</div>`;
+
+            // Any POST rendering goes here.
+
+            let renderedResults = document.createElement("div");
+            renderedResults.id = `results-${type}`;
+            renderedResults.innerHTML = results;
+
+            // For all elements that are of type img in the results html and have a src with 'avatar' in the URL, add the class 'avatar'
+            // This is used to make the avatar images round
+            let images = renderedResults.querySelectorAll("img[src*='avatar']");
+            for (let i = 0; i < images.length; i++) {
+                images[i].classList.add("avatar");
+            }
+
+            return renderedResults.outerHTML;
         }
 
         function search(rerank=false) {
@@ -265,7 +287,6 @@
             margin: 0px;
             background: #f8fafc;
             color: #475569;
-            text-align: center;
             font-family: roboto, karma, segoe ui, sans-serif;
             font-size: 20px;
             font-weight: 300;
@@ -369,6 +390,28 @@
 
         pre {
             max-width: 100;
+        }
+
+        a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+
+        img.avatar {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+
+        div.results-markdown,
+        div.results-org,
+        div.results-pdf {
+            text-align: left;
+            box-shadow: 2px 2px 2px var(--primary-hover);
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid rgb(229, 229, 229);
         }
 
     </style>

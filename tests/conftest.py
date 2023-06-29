@@ -120,7 +120,7 @@ def md_content_config(tmp_path_factory):
     content_config = ContentConfig()
     content_config.markdown = TextContentConfig(
         input_files=None,
-        input_filter=["tests/data/markdown/*.md"],
+        input_filter=["tests/data/markdown/*.markdown"],
         compressed_jsonl=content_dir.joinpath("markdown.jsonl"),
         embeddings_file=content_dir.joinpath("markdown_embeddings.pt"),
     )
