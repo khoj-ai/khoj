@@ -11,7 +11,7 @@ content-type:
 
   markdown:
     input-files: null
-    input-filter: ["/data/markdown/**/*.md"]
+    input-filter: ["/data/markdown/**/*.markdown"]
     compressed-jsonl: "/data/embeddings/markdown.jsonl.gz"
     embeddings-file: "/data/embeddings/markdown_embeddings.pt"
 
