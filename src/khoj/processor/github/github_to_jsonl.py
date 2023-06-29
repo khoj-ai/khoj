@@ -1,7 +1,7 @@
 # Standard Packages
 import logging
 import time
-from typing import Dict, List
+from typing import Dict, List, Union
 
 # External Packages
 import requests
@@ -158,7 +158,7 @@ class GithubToJsonl(TextToJsonl):
     def get_commits(self, repo_url: str) -> List[Dict]:
         return self._get_commits(f"{repo_url}/commits")
 
-    def _get_commits(self, commits_url: str | None) -> List[Dict]:
+    def _get_commits(self, commits_url: Union[str, None]) -> List[Dict]:
         # Get commit messages from the repository using the Github API
         params = {"per_page": 100}
         commits = []
@@ -187,14 +187,14 @@ class GithubToJsonl(TextToJsonl):
     def get_issues(self, repo_url: str) -> List[Dict]:
         return self._get_issues(f"{repo_url}/issues")
 
-    def _get_issues(self, issues_url: str | None) -> List[Dict]:
+    def _get_issues(self, issues_url: Union[str, None]) -> List[Dict]:
         issues = []
         per_page = 30
         params = {"per_page": per_page, "state": "all"}
 
         while issues_url is not None:
             # Get the next page of issues
-            response = self.session.get(issues_url, params=params, stream=True)
+            response = self.session.get(issues_url, params=params, stream=True)  # type: ignore
             raw_issues = response.json()
 
             # Wait for rate limit reset if needed
@@ -218,7 +218,7 @@ class GithubToJsonl(TextToJsonl):
 
         return issues
 
-    def get_comments(self, comments_url: str | None) -> List[Dict]:
+    def get_comments(self, comments_url: Union[str, None]) -> List[Dict]:
         # By default, the number of results per page is 30. We'll keep it as-is for now.
         comments = []
         per_page = 30
