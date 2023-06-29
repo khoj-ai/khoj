@@ -143,7 +143,7 @@ def extract_metadata(image_name):
     return image_processed_metadata
 
 
-def query(raw_query, count, model: ImageSearchModel, score_threshold: float = -math.inf):
+async def query(raw_query, count, model: ImageSearchModel, score_threshold: float = -math.inf):
     # Set query to image content if query is of form file:/path/to/file.png
     if raw_query.startswith("file:") and pathlib.Path(raw_query[5:]).is_file():
         query_imagepath = resolve_absolute_path(pathlib.Path(raw_query[5:]), strict=True)

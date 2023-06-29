@@ -49,6 +49,12 @@ class DateFilter(BaseFilter):
         "Check if query contains date filters"
         return self.extract_date_range(raw_query) is not None
 
+    def defilter(self, query):
+        # remove date range filter from query
+        query = re.sub(rf"\s+{self.date_regex}", " ", query)
+        query = re.sub(r"\s{2,}", " ", query).strip()  # remove multiple spaces
+        return query
+
     def apply(self, query, entries):
         "Find entries containing any dates that fall within date range specified in query"
         # extract date range specified in date filter of query
@@ -59,9 +65,7 @@ class DateFilter(BaseFilter):
         if query_daterange is None:
             return query, set(range(len(entries)))
 
-        # remove date range filter from query
-        query = re.sub(rf"\s+{self.date_regex}", " ", query)
-        query = re.sub(r"\s{2,}", " ", query).strip()  # remove multiple spaces
+        query = self.defilter(query)
 
         # return results from cache if exists
         cache_key = tuple(query_daterange)

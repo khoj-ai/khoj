@@ -43,13 +43,16 @@ class WordFilter(BaseFilter):
 
         return len(required_words) != 0 or len(blocked_words) != 0
 
+    def defilter(self, query: str) -> str:
+        return re.sub(self.blocked_regex, "", re.sub(self.required_regex, "", query)).strip()
+
     def apply(self, query, entries):
         "Find entries containing required and not blocked words specified in query"
         # Separate natural query from required, blocked words filters
         with timer("Extract required, blocked filters from query", logger):
             required_words = set([word.lower() for word in re.findall(self.required_regex, query)])
             blocked_words = set([word.lower() for word in re.findall(self.blocked_regex, query)])
-            query = re.sub(self.blocked_regex, "", re.sub(self.required_regex, "", query)).strip()
+            query = self.defilter(query)
 
         if len(required_words) == 0 and len(blocked_words) == 0:
             return query, set(range(len(entries)))

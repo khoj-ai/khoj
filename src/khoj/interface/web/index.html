@@ -14,11 +14,13 @@
     <script>
         function render_image(item) {
             return `
+            <div class="results-image">
             <a href="${item.entry}" class="image-link">
                 <img id=${item.score} src="${item.entry}?${Math.random()}"
                     title="Effective Score: ${item.score}, Meta: ${item.additional.metadata_score}, Image: ${item.additional.image_score}"
                     class="image">
-            </a>`
+            </a>
+            </div>`;
         }
 
         function render_org(query, data, classPrefix="") {
@@ -28,33 +30,33 @@
             var orgParser = new Org.Parser();
             var orgDocument = orgParser.parse(orgCode);
             var orgHTMLDocument = orgDocument.convert(Org.ConverterHTML, { htmlClassPrefix: classPrefix });
-            return orgHTMLDocument.toString();
+            return `<div class="results-org">` + orgHTMLDocument.toString() + `</div>`;
         }
 
         function render_markdown(query, data) {
             var md = window.markdownit();
-            return md.render(data.map(function (item) {
+            return data.map(function (item) {
                 if (item.additional.file.startsWith("http")) {
                     lines = item.entry.split("\n");
-                    return `${lines[0]}\t[*](${item.additional.file})\n${lines.slice(1).join("\n")}`;
+                    return md.render(`${lines[0]}\t[*](${item.additional.file})\n${lines.slice(1).join("\n")}`);
                 }
-                return `${item.entry}`;
-            }).join("\n"));
+                return `<div class="results-markdown">` + md.render(`${item.entry}`) + `</div>`;
+            }).join("\n");
         }
 
         function render_ledger(query, data) {
-            return `<div id="results-ledger">` + data.map(function (item) {
-                return `<p>${item.entry}</p>`
-            }).join("\n") + `</div>`;
+            return data.map(function (item) {
+                return `<div class="results-ledger">` + `<p>${item.entry}</p>` + `</div>`;
+            }).join("\n");
         }
 
         function render_pdf(query, data) {
-            return `<div id="results-pdf">` + data.map(function (item) {
+            return data.map(function (item) {
                 let compiled_lines = item.additional.compiled.split("\n");
                 let filename = compiled_lines.shift();
                 let text_match = compiled_lines.join("\n")
-                return `<h2>${filename}</h2>\n<p>${text_match}</p>`
-            }).join("\n") + `</div>`;
+                return `<div class="results-pdf">` + `<h2>${filename}</h2>\n<p>${text_match}</p>` + `</div>`;
+            }).join("\n");
         }
 
         function render_mutliple(query, data, type) {
@@ -83,26 +85,26 @@
             return html;
         }
 
-        function render_json(data, query, type) {
+        function render_results(data, query, type) {
+            let results = "";
             if (type === "markdown") {
-                return render_markdown(query, data);
+                results = render_markdown(query, data);
             } else if (type === "org") {
-                return render_org(query, data);
+                results = render_org(query, data, "org-");
             } else if (type === "music") {
-                return render_org(query, data, "music-");
+                results = render_org(query, data, "music-");
             } else if (type === "image") {
-                return data.map(render_image).join('');
+                results = data.map(render_image).join('');
             } else if (type === "ledger") {
-                return render_ledger(query, data);
+                results = render_ledger(query, data);
             } else if (type === "pdf") {
-                return render_pdf(query, data);
-            } else if (type == "github") {
-                return render_mutliple(query, data, type);
+                results = render_pdf(query, data);
+            } else if (type === "github" || type === "all") {
+                results = render_mutliple(query, data, type);
             } else {
-                return `<div id="results-plugin">`
-                    + data.map((item) => `<p>${item.entry}</p>`).join("\n")
-                    + `</div>`;
+                results = data.map((item) => `<div class="results-plugin">` + `<p>${item.entry}</p>` + `</div>`).join("\n")
             }
+            return `<div id="results-${type}">${results}</div>`;
         }
 
         function search(rerank=false) {
@@ -120,20 +122,13 @@
             if (rerank)
                 setQueryFieldInUrl(query);
 
-            // Generate Backend API URL to execute Search
-            url = type === "image"
-                ? `/api/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}&client=web`
-                : `/api/search?q=${encodeURIComponent(query)}&t=${type}&n=${results_count}&r=${rerank}&client=web`;
-
             // Execute Search and Render Results
+            url = createRequestUrl(query, type, results_count, rerank);
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
-                    document.getElementById("results").innerHTML =
-                        `<div id=results-${type}>`
-                        + render_json(data, query, type)
-                        + `</div>`;
+                    document.getElementById("results").innerHTML = render_results(data, query, type);
                 });
         }
 
@@ -144,7 +139,7 @@
                 .then(data => {
                     console.log(data);
                     document.getElementById("results").innerHTML =
-                        render_json(data);
+                        render_results(data);
                 });
         }
 
@@ -178,6 +173,18 @@
                     if (type_via_url && enabled_types.includes(type_via_url))
                         document.getElementById("type").value = type_via_url;
                 });
+        }
+
+        function createRequestUrl(query, type, results_count, rerank) {
+            // Generate Backend API URL to execute Search
+            let url = `/api/search?q=${encodeURIComponent(query)}&n=${results_count}&client=web`;
+            // If type is not 'all', append type to URL
+            if (type !== 'all')
+                url += `&t=${type}`;
+            // Rerank is only supported by text types
+            if (type !== "image")
+                url += `&r=${rerank}`;
+            return url;
         }
 
         function setTypeFieldInUrl(type) {
@@ -309,7 +316,7 @@
             margin: 0px;
             line-height: 20px;
         }
-        #results-image {
+        .results-image {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
         }
@@ -324,27 +331,28 @@
         #json {
             white-space: pre-wrap;
         }
-        #results-pdf,
-        #results-plugin,
-        #results-ledger {
+        .results-pdf,
+        .results-plugin,
+        .results-ledger {
             text-align: left;
             white-space: pre-line;
         }
-        #results-markdown, #results-github {
+        .results-markdown,
+        .results-github {
             text-align: left;
         }
-        #results-music,
-        #results-org {
+        .results-music,
+        .results-org {
             text-align: left;
             white-space: pre-line;
         }
-        #results-music h3,
-        #results-org h3 {
+        .results-music h3,
+        .results-org h3 {
             margin: 20px 0 0 0;
             font-size: larger;
         }
         span.music-task-status,
-        span.task-status {
+        span.org-task-status {
             color: white;
             padding: 3.5px 3.5px 0;
             margin-right: 5px;
@@ -353,15 +361,15 @@
             font-size: medium;
         }
         span.music-task-status.todo,
-        span.task-status.todo {
+        span.org-task-status.todo {
             background-color: #3b82f6
         }
         span.music-task-status.done,
-        span.task-status.done {
+        span.org-task-status.done {
             background-color: #22c55e;
         }
         span.music-task-tag,
-        span.task-tag {
+        span.org-task-tag {
             color: white;
             padding: 3.5px 3.5px 0;
             margin-right: 5px;

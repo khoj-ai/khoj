@@ -1,5 +1,7 @@
 # Standard Packages
+import concurrent.futures
 import math
+import time
 import yaml
 import logging
 from datetime import datetime
@@ -8,12 +10,17 @@ from typing import List, Optional, Union
 # External Packages
 from fastapi import APIRouter
 from fastapi import HTTPException
+from sentence_transformers import util
 
 # Internal Packages
 from khoj.configure import configure_processor, configure_search
 from khoj.processor.conversation.gpt import converse, extract_questions
 from khoj.processor.conversation.utils import message_to_log, message_to_prompt
 from khoj.search_type import image_search, text_search
+from khoj.search_filter.date_filter import DateFilter
+from khoj.search_filter.file_filter import FileFilter
+from khoj.search_filter.word_filter import WordFilter
+from khoj.utils.config import TextSearchModel
 from khoj.utils.helpers import log_telemetry, timer
 from khoj.utils.rawconfig import (
     ContentConfig,
@@ -58,6 +65,7 @@ def get_config_types():
             and getattr(state.model, f"{search_type.value}_search") is not None
         )
         or ("plugins" in configured_content_types and search_type.name in configured_content_types["plugins"])
+        or search_type == SearchType.All
     ]
 
 
@@ -125,24 +133,31 @@ async def set_processor_conversation_config_data(updated_config: ConversationPro
 
 
 @api.get("/search", response_model=List[SearchResponse])
-def search(
+async def search(
     q: str,
     n: Optional[int] = 5,
-    t: Optional[SearchType] = None,
+    t: Optional[SearchType] = SearchType.All,
     r: Optional[bool] = False,
     score_threshold: Optional[Union[float, None]] = None,
     dedupe: Optional[bool] = True,
     client: Optional[str] = None,
 ):
+    start_time = time.time()
+
+    # Run validation checks
     results: List[SearchResponse] = []
     if q is None or q == "":
-        logger.warn(f"No query param (q) passed in API call to initiate search")
+        logger.warning(f"No query param (q) passed in API call to initiate search")
+        return results
+    if not state.model or not any(state.model.__dict__.values()):
+        logger.warning(f"No search models loaded. Configure a search model before initiating search")
         return results
 
     # initialize variables
     user_query = q.strip()
     results_count = n
     score_threshold = score_threshold if score_threshold is not None else -math.inf
+    search_futures: List[concurrent.futures.Future] = []
 
     # return cached results, if available
     query_cache_key = f"{user_query}-{n}-{t}-{r}-{score_threshold}-{dedupe}"
@@ -150,105 +165,146 @@ def search(
         logger.debug(f"Return response from query cache")
         return state.query_cache[query_cache_key]
 
-    if (t == SearchType.Org or t == None) and state.model.org_search:
-        # query org-mode notes
+    # Encode query with filter terms removed
+    defiltered_query = user_query
+    for filter in [DateFilter(), WordFilter(), FileFilter()]:
+        defiltered_query = filter.defilter(user_query)
+
+    encoded_asymmetric_query = None
+    if t == SearchType.All or (t != SearchType.Ledger and t != SearchType.Image):
+        text_search_models: List[TextSearchModel] = [
+            model
+            for model_name, model in state.model.__dict__.items()
+            if isinstance(model, TextSearchModel) and model_name != "ledger_search"
+        ]
+        if text_search_models:
+            with timer("Encoding query took", logger=logger):
+                encoded_asymmetric_query = util.normalize_embeddings(
+                    text_search_models[0].bi_encoder.encode(
+                        [defiltered_query],
+                        convert_to_tensor=True,
+                        device=state.device,
+                    )
+                )
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        if (t == SearchType.Org or t == SearchType.All) and state.model.org_search:
+            # query org-mode notes
+            search_futures += [
+                executor.submit(
+                    text_search.query,
+                    user_query,
+                    state.model.org_search,
+                    question_embedding=encoded_asymmetric_query,
+                    rank_results=r or False,
+                    score_threshold=score_threshold,
+                    dedupe=dedupe or True,
+                )
+            ]
+
+        if (t == SearchType.Markdown or t == SearchType.All) and state.model.markdown_search:
+            # query markdown notes
+            search_futures += [
+                executor.submit(
+                    text_search.query,
+                    user_query,
+                    state.model.markdown_search,
+                    question_embedding=encoded_asymmetric_query,
+                    rank_results=r or False,
+                    score_threshold=score_threshold,
+                    dedupe=dedupe or True,
+                )
+            ]
+
+        if (t == SearchType.Pdf or t == SearchType.All) and state.model.pdf_search:
+            # query pdf files
+            search_futures += [
+                executor.submit(
+                    text_search.query,
+                    user_query,
+                    state.model.pdf_search,
+                    question_embedding=encoded_asymmetric_query,
+                    rank_results=r or False,
+                    score_threshold=score_threshold,
+                    dedupe=dedupe or True,
+                )
+            ]
+
+        if (t == SearchType.Ledger) and state.model.ledger_search:
+            # query transactions
+            search_futures += [
+                executor.submit(
+                    text_search.query,
+                    user_query,
+                    state.model.ledger_search,
+                    rank_results=r or False,
+                    score_threshold=score_threshold,
+                    dedupe=dedupe or True,
+                )
+            ]
+
+        if (t == SearchType.Music or t == SearchType.All) and state.model.music_search:
+            # query music library
+            search_futures += [
+                executor.submit(
+                    text_search.query,
+                    user_query,
+                    state.model.music_search,
+                    question_embedding=encoded_asymmetric_query,
+                    rank_results=r or False,
+                    score_threshold=score_threshold,
+                    dedupe=dedupe or True,
+                )
+            ]
+
+        if (t == SearchType.Image) and state.model.image_search:
+            # query images
+            search_futures += [
+                executor.submit(
+                    image_search.query,
+                    user_query,
+                    results_count,
+                    state.model.image_search,
+                    score_threshold=score_threshold,
+                )
+            ]
+
+        if (t == SearchType.All or t in SearchType) and state.model.plugin_search:
+            # query specified plugin type
+            search_futures += [
+                executor.submit(
+                    text_search.query,
+                    user_query,
+                    # Get plugin search model for specified search type, or the first one if none specified
+                    state.model.plugin_search.get(t.value) or next(iter(state.model.plugin_search.values())),
+                    question_embedding=encoded_asymmetric_query,
+                    rank_results=r or False,
+                    score_threshold=score_threshold,
+                    dedupe=dedupe or True,
+                )
+            ]
+
+        # Query across each requested content types in parallel
         with timer("Query took", logger):
-            hits, entries = text_search.query(
-                user_query, state.model.org_search, rank_results=r, score_threshold=score_threshold, dedupe=dedupe
-            )
+            for search_future in concurrent.futures.as_completed(search_futures):
+                if t == SearchType.Image:
+                    hits = await search_future.result()
+                    output_directory = constants.web_directory / "images"
+                    # Collate results
+                    results += image_search.collate_results(
+                        hits,
+                        image_names=state.model.image_search.image_names,
+                        output_directory=output_directory,
+                        image_files_url="/static/images",
+                        count=results_count or 5,
+                    )
+                else:
+                    hits, entries = await search_future.result()
+                    # Collate results
+                    results += text_search.collate_results(hits, entries, results_count or 5)
 
-        # collate and return results
-        with timer("Collating results took", logger):
-            results = text_search.collate_results(hits, entries, results_count)
-
-    elif (t == SearchType.Markdown or t == None) and state.model.markdown_search:
-        # query markdown files
-        with timer("Query took", logger):
-            hits, entries = text_search.query(
-                user_query, state.model.markdown_search, rank_results=r, score_threshold=score_threshold, dedupe=dedupe
-            )
-
-        # collate and return results
-        with timer("Collating results took", logger):
-            results = text_search.collate_results(hits, entries, results_count)
-
-    elif (t == SearchType.Pdf or t == None) and state.model.pdf_search:
-        # query pdf files
-        with timer("Query took", logger):
-            hits, entries = text_search.query(
-                user_query, state.model.pdf_search, rank_results=r, score_threshold=score_threshold, dedupe=dedupe
-            )
-
-        # collate and return results
-        with timer("Collating results took", logger):
-            results = text_search.collate_results(hits, entries, results_count)
-
-    elif (t == SearchType.Github or t == None) and state.model.github_search:
-        # query github embeddings
-        with timer("Query took", logger):
-            hits, entries = text_search.query(
-                user_query, state.model.github_search, rank_results=r, score_threshold=score_threshold, dedupe=dedupe
-            )
-
-        # collate and return results
-        with timer("Collating results took", logger):
-            results = text_search.collate_results(hits, entries, results_count)
-
-    elif (t == SearchType.Ledger or t == None) and state.model.ledger_search:
-        # query transactions
-        with timer("Query took", logger):
-            hits, entries = text_search.query(
-                user_query, state.model.ledger_search, rank_results=r, score_threshold=score_threshold, dedupe=dedupe
-            )
-
-        # collate and return results
-        with timer("Collating results took", logger):
-            results = text_search.collate_results(hits, entries, results_count)
-
-    elif (t == SearchType.Music or t == None) and state.model.music_search:
-        # query music library
-        with timer("Query took", logger):
-            hits, entries = text_search.query(
-                user_query, state.model.music_search, rank_results=r, score_threshold=score_threshold, dedupe=dedupe
-            )
-
-        # collate and return results
-        with timer("Collating results took", logger):
-            results = text_search.collate_results(hits, entries, results_count)
-
-    elif (t == SearchType.Image or t == None) and state.model.image_search:
-        # query images
-        with timer("Query took", logger):
-            hits = image_search.query(
-                user_query, results_count, state.model.image_search, score_threshold=score_threshold
-            )
-            output_directory = constants.web_directory / "images"
-
-        # collate and return results
-        with timer("Collating results took", logger):
-            results = image_search.collate_results(
-                hits,
-                image_names=state.model.image_search.image_names,
-                output_directory=output_directory,
-                image_files_url="/static/images",
-                count=results_count,
-            )
-
-    elif (t in SearchType or t == None) and state.model.plugin_search:
-        # query specified plugin type
-        with timer("Query took", logger):
-            hits, entries = text_search.query(
-                user_query,
-                # Get plugin search model for specified search type, or the first one if none specified
-                state.model.plugin_search.get(t.value) or next(iter(state.model.plugin_search.values())),
-                rank_results=r,
-                score_threshold=score_threshold,
-                dedupe=dedupe,
-            )
-
-        # collate and return results
-        with timer("Collating results took", logger):
-            results = text_search.collate_results(hits, entries, results_count)
+            # Sort results across all content types
+            results.sort(key=lambda x: float(x.score), reverse=True)
 
     # Cache results
     state.query_cache[query_cache_key] = results
@@ -260,6 +316,9 @@ def search(
         ]
     state.previous_query = user_query
 
+    end_time = time.time()
+    logger.debug(f"🔍 Search took: {end_time - start_time:.3f} seconds")
+
     return results
 
 
@@ -267,7 +326,7 @@ def search(
 def update(t: Optional[SearchType] = None, force: Optional[bool] = False, client: Optional[str] = None):
     try:
         state.search_index_lock.acquire()
-        state.model = configure_search(state.model, state.config, regenerate=force, t=t)
+        state.model = configure_search(state.model, state.config, regenerate=force or False, t=t)
         state.search_index_lock.release()
     except ValueError as e:
         logger.error(e)

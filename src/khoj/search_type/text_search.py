@@ -2,7 +2,7 @@
 import logging
 import math
 from pathlib import Path
-from typing import List, Tuple, Type
+from typing import List, Tuple, Type, Union
 
 # External Packages
 import torch
@@ -102,9 +102,10 @@ def compute_embeddings(
     return corpus_embeddings
 
 
-def query(
+async def query(
     raw_query: str,
     model: TextSearchModel,
+    question_embedding: Union[torch.Tensor, None] = None,
     rank_results: bool = False,
     score_threshold: float = -math.inf,
     dedupe: bool = True,
@@ -124,9 +125,10 @@ def query(
         return hits, entries
 
     # Encode the query using the bi-encoder
-    with timer("Query Encode Time", logger, state.device):
-        question_embedding = model.bi_encoder.encode([query], convert_to_tensor=True, device=state.device)
-        question_embedding = util.normalize_embeddings(question_embedding)
+    if question_embedding is None:
+        with timer("Query Encode Time", logger, state.device):
+            question_embedding = model.bi_encoder.encode([query], convert_to_tensor=True, device=state.device)
+            question_embedding = util.normalize_embeddings(question_embedding)
 
     # Find relevant entries for the query
     with timer("Search Time", logger, state.device):
@@ -179,7 +181,7 @@ def setup(
     previous_entries = (
         extract_entries(config.compressed_jsonl) if config.compressed_jsonl.exists() and not regenerate else None
     )
-    entries_with_indices = text_to_jsonl(config).process(previous_entries)
+    entries_with_indices = text_to_jsonl(config).process(previous_entries or [])
 
     # Extract Updated Entries
     entries = extract_entries(config.compressed_jsonl)

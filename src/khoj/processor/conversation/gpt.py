@@ -113,7 +113,7 @@ def extract_questions(text, model="text-davinci-003", conversation_log={}, api_k
             .replace("', '", '", "')
         )
     except json.decoder.JSONDecodeError:
-        logger.warn(f"GPT returned invalid JSON. Falling back to using user message as search query.\n{response}")
+        logger.warning(f"GPT returned invalid JSON. Falling back to using user message as search query.\n{response}")
         questions = [text]
     logger.debug(f"Extracted Questions by GPT: {questions}")
     return questions
