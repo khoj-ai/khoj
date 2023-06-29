@@ -37,7 +37,7 @@ def configure_server(args, required=False):
             logger.error(f"Exiting as Khoj is not configured.\nConfigure it via GUI or by editing {state.config_file}.")
             sys.exit(1)
         else:
-            logger.warn(
+            logger.warning(
                 f"Khoj is not configured.\nConfigure it via khoj GUI, plugins or by editing {state.config_file}."
             )
             return
@@ -88,7 +88,7 @@ def configure_search_types(config: FullConfig):
 
 def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, t: Optional[state.SearchType] = None):
     if config is None or config.content_type is None or config.search_type is None:
-        logger.warn("🚨 No Content or Search type is configured.")
+        logger.warning("🚨 No Content or Search type is configured.")
         return
 
     # Initialize Org Notes Search

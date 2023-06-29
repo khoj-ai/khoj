@@ -83,7 +83,9 @@ class PdfToJsonl(TextToJsonl):
         files_with_non_pdf_extensions = {pdf_file for pdf_file in all_pdf_files if not pdf_file.endswith(".pdf")}
 
         if any(files_with_non_pdf_extensions):
-            logger.warn(f"[Warning] There maybe non pdf-mode files in the input set: {files_with_non_pdf_extensions}")
+            logger.warning(
+                f"[Warning] There maybe non pdf-mode files in the input set: {files_with_non_pdf_extensions}"
+            )
 
         logger.debug(f"Processing files: {all_pdf_files}")
 

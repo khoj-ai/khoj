@@ -147,10 +147,10 @@ async def search(
     # Run validation checks
     results: List[SearchResponse] = []
     if q is None or q == "":
-        logger.warn(f"No query param (q) passed in API call to initiate search")
+        logger.warning(f"No query param (q) passed in API call to initiate search")
         return results
     if not state.model or not any(state.model.__dict__.values()):
-        logger.warn(f"No search models loaded. Configure a search model before initiating search")
+        logger.warning(f"No search models loaded. Configure a search model before initiating search")
         return results
 
     # initialize variables
