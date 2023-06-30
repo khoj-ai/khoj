@@ -362,7 +362,7 @@ def update(t: Optional[SearchType] = None, force: Optional[bool] = False, client
 
 
 @api.get("/chat")
-def chat(q: Optional[str] = None, client: Optional[str] = None):
+async def chat(q: Optional[str] = None, client: Optional[str] = None):
     if (
         state.processor_config is None
         or state.processor_config.conversation is None
@@ -398,7 +398,7 @@ def chat(q: Optional[str] = None, client: Optional[str] = None):
         with timer("Searching knowledge base took", logger):
             result_list = []
             for query in inferred_queries:
-                result_list.extend(search(query, n=5, r=True, score_threshold=-5.0, dedupe=False))
+                result_list.extend(await search(query, n=5, r=True, score_threshold=-5.0, dedupe=False))
             compiled_references = [item.additional["compiled"] for item in result_list]
 
     # Switch to general conversation type if no relevant notes found for the given query

@@ -152,7 +152,10 @@ class GithubToJsonl(TextToJsonl):
         content = ""
         for chunk in response.iter_content(chunk_size=2048):
             if chunk:
-                content += chunk.decode("utf-8")
+                try:
+                    content += chunk.decode("utf-8")
+                except Exception as e:
+                    logger.error(f"Unable to decode chunk from {file_url}")
 
         return content
 
