@@ -174,7 +174,9 @@ def get_server_id():
     return server_id
 
 
-def log_telemetry(telemetry_type: str, api: str = None, client: str = None, app_config: AppConfig = None):
+def log_telemetry(
+    telemetry_type: str, api: str = None, client: str = None, app_config: AppConfig = None, properties: dict = None
+):
     """Log basic app usage telemetry like client, os, api called"""
     # Do not log usage telemetry, if telemetry is disabled via app config
     if not app_config or not app_config.should_log_telemetry:
@@ -188,6 +190,7 @@ def log_telemetry(telemetry_type: str, api: str = None, client: str = None, app_
         "os": platform.system(),
         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
+    request_body.update(properties or {})
     if api:
         # API endpoint on server called by client
         request_body["api"] = api
