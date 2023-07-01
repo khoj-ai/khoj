@@ -232,22 +232,19 @@
     </script>
 
     <body>
-        {% if demo %}
-            <!-- Banner linking to https://khoj.dev -->
+        <!--Add Header Logo and Nav Pane-->
+        <div class="khoj-header">
+            {% if demo %}
+                <!-- Banner linking to https://khoj.dev -->
                 <div class="khoj-banner-container">
                     <a class="khoj-banner" href="https://khoj.dev" target="_blank">
                         <p id="khoj-banner" class="khoj-banner">
-                            Enroll in Khoj beta to get your own Github search engine
+                            Enroll in Khoj cloud to get your own Github assistant
                         </p>
                     </a>
                     <input type="text" id="khoj-banner-email" placeholder="email" class="khoj-banner-email"></input>
                     <button id="khoj-banner-submit" class="khoj-banner-button">Submit</button>
                 </div>
-        {% endif %}
-
-        <!--Add Header Logo and Nav Pane-->
-        <div class="khoj-header">
-            {% if demo %}
                 <a class="khoj-logo" href="https://khoj.dev" target="_blank">
                     <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways.svg" alt="Khoj"></img>
                 </a>
@@ -463,7 +460,6 @@
 
         a.khoj-banner {
             color: black;
-            display: block;
         }
 
         a.khoj-logo {
@@ -486,6 +482,16 @@
         button#khoj-banner-submit:hover,
         input#khoj-banner-email:hover {
             box-shadow: 0 0 11px #aaa;
+        }
+
+        p#khoj-banner {
+            display: inline;
+        }
+
+        @media only screen and (max-width: 600px) {
+            a.khoj-banner {
+                display: block;
+            }
         }
 
     </style>

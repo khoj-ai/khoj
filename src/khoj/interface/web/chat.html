@@ -119,8 +119,12 @@
                 <!-- Banner linking to https://khoj.dev -->
                 <div class="khoj-banner-container">
                     <a class="khoj-banner" href="https://khoj.dev" target="_blank">
-                        Check out what else we're building
+                        <p id="khoj-banner" class="khoj-banner">
+                            Enroll in Khoj cloud to get your own Github assistant
+                        </p>
                     </a>
+                    <input type="text" id="khoj-banner-email" placeholder="email" class="khoj-banner-email"></input>
+                    <button id="khoj-banner-submit" class="khoj-banner-button">Submit</button>
                 </div>
             {% endif %}
             {% if demo %}
@@ -304,6 +308,9 @@
                 margin: 4px;
                 grid-template-columns: auto;
             }
+            a.khoj-banner {
+                display: block;
+            }
         }
         @media only screen and (min-width: 600px) {
             body {
@@ -337,7 +344,67 @@
 
         a.khoj-banner {
             color: black;
+        }
+
+        a.khoj-logo {
+            text-align: center;
+        }
+
+        p.khoj-banner {
+            margin: 0;
+            padding: 10px;
+        }
+
+        button#khoj-banner-submit,
+        input#khoj-banner-email {
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #475569;
+            background: #f9fafc;
+        }
+
+        button#khoj-banner-submit:hover,
+        input#khoj-banner-email:hover {
+            box-shadow: 0 0 11px #aaa;
+        }
+
+        p#khoj-banner {
+            display: inline;
+        }
+
+        a.khoj-banner {
+            color: black;
             text-decoration: none;
         }
     </style>
+    <script>
+        var khojBannerSubmit = document.getElementById("khoj-banner-submit");
+
+        khojBannerSubmit.addEventListener("click", function(event) {
+            event.preventDefault();
+            var email = document.getElementById("khoj-banner-email").value;
+            fetch("https://lantern.khoj.dev/beta/users/", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        email: email
+                    }),
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                }).then(function(response) {
+                    return response.json();
+                }).then(function(data) {
+                    console.log(data);
+                    if (data.user != null) {
+                        document.getElementById("khoj-banner").innerHTML = "Thanks for signing up. We'll be in touch soon! 🚀";
+                        document.getElementById("khoj-banner-submit").remove();
+                    } else {
+                        document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
+                    }
+                }).catch(function(error) {
+                    console.log(error);
+                    document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
+                });
+            });
+    </script>
 </html>
