@@ -324,10 +324,10 @@ async def search(
     state.query_cache[query_cache_key] = results
 
     user_state = {
-        "client": request.client.host,
-        "user_agent": user_agent,
-        "referer": referer,
-        "host": host,
+        "client_host": request.client.host,
+        "user_agent": user_agent or "unknown",
+        "referer": referer or "unknown",
+        "host": host or "unknown",
     }
 
     # Only log telemetry if query is new and not a continuation of previous query
@@ -374,10 +374,10 @@ def update(
         logger.info("📬 Processor reconfigured via API")
 
     user_state = {
-        "client": request.client.host,
-        "user_agent": user_agent,
-        "referer": referer,
-        "host": host,
+        "client_host": request.client.host,
+        "user_agent": user_agent or "unknown",
+        "referer": referer or "unknown",
+        "host": host or "unknown",
     }
 
     state.telemetry += [
@@ -461,10 +461,10 @@ async def chat(
     )
 
     user_state = {
-        "client": request.client.host,
-        "user_agent": user_agent,
-        "referer": referer,
-        "host": host,
+        "client_host": request.client.host,
+        "user_agent": user_agent or "unknown",
+        "referer": referer or "unknown",
+        "host": host or "unknown",
     }
 
     state.telemetry += [
