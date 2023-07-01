@@ -141,7 +141,14 @@ class MarkdownToJsonl(TextToJsonl):
         "Convert each Markdown entries into a dictionary"
         entries = []
         for parsed_entry in parsed_entries:
-            entry_filename = Path(entry_to_file_map[parsed_entry])
+            raw_filename = entry_to_file_map[parsed_entry]
+
+            # Check if raw_filename is a URL. If so, save it as is. If not, convert it to a Path.
+            if re.search(r"^https?://", raw_filename):
+                entry_filename = raw_filename
+            else:
+                entry_filename = Path(raw_filename)
+
             heading = parsed_entry.splitlines()[0] if re.search("^#+\s", parsed_entry) else ""
             # Append base filename to compiled entry for context to model
             # Increment heading level for heading entries and make filename as its top level heading
