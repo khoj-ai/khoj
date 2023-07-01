@@ -129,6 +129,7 @@ def set_state(args):
     state.verbose = args.verbose
     state.host = args.host
     state.port = args.port
+    state.demo = args.demo
 
 
 def start_server(app, host=None, port=None, socket=None):

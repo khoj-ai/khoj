@@ -113,13 +113,31 @@
         }
     </script>
     <body>
-       <!--Add Header Logo and Nav Pane-->
+        <!--Add Header Logo and Nav Pane-->
         <div class="khoj-header">
-            <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways.svg" alt="Khoj"></img>
+            {% if demo %}
+                <!-- Banner linking to https://khoj.dev -->
+                <div class="khoj-banner-container">
+                    <a class="khoj-banner" href="https://khoj.dev" target="_blank">
+                        Check out what else we're building
+                    </a>
+                </div>
+            {% endif %}
+            {% if demo %}
+                <a href="https://khoj.dev" target="_blank">
+                    <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways.svg" alt="Khoj"></img>
+                </a>
+            {% else %}
+                <a href="https://lantern.khoj.dev" target="_blank">
+                    <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways.svg" alt="Khoj"></img>
+                </a>
+            {% endif %}
             <nav class="khoj-nav">
                 <a class="khoj-nav-selected" href="/chat">Chat</a>
                 <a href="/">Search</a>
-                <a href="/config">Settings</a>
+                {% if not demo %}
+                    <a href="/config">Settings</a>
+                {% endif %}
             </nav>
         </div>
 
@@ -295,6 +313,31 @@
             body > * {
                 grid-column: 2;
             }
+        }
+
+        div.khoj-banner-container {
+            background: linear-gradient(-45deg, #FFC107, #FF9800, #FF5722, #FF9800, #FFC107);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            text-align: center;
+            padding: 10px;
+        }
+
+        @keyframes gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        a.khoj-banner {
+            color: black;
+            text-decoration: none;
         }
     </style>
 </html>

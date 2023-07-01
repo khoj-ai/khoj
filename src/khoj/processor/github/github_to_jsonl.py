@@ -15,6 +15,7 @@ from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.text_to_jsonl import TextToJsonl
 from khoj.utils.jsonl import dump_jsonl, compress_jsonl_data
 from khoj.utils.rawconfig import Entry
+from khoj.utils import state
 
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,10 @@ class GithubToJsonl(TextToJsonl):
             return
 
     def process(self, previous_entries=None):
+        # If demo mode is enabled, don't re-process any of the repositories. This is resource intensive.
+        if state.demo and previous_entries is not None:
+            return self.update_entries_with_ids(previous_entries, previous_entries)
+
         current_entries = []
         for repo in self.config.repos:
             current_entries += self.process_repo(repo, previous_entries)
@@ -193,7 +198,7 @@ class GithubToJsonl(TextToJsonl):
 
     def _get_issues(self, issues_url: Union[str, None]) -> List[Dict]:
         issues = []
-        per_page = 30
+        per_page = 100
         params = {"per_page": per_page, "state": "all"}
 
         while issues_url is not None:
@@ -225,7 +230,7 @@ class GithubToJsonl(TextToJsonl):
     def get_comments(self, comments_url: Union[str, None]) -> List[Dict]:
         # By default, the number of results per page is 30. We'll keep it as-is for now.
         comments = []
-        per_page = 30
+        per_page = 100
         params = {"per_page": per_page}
 
         while comments_url is not None:

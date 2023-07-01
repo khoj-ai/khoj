@@ -232,13 +232,36 @@
     </script>
 
     <body>
+        {% if demo %}
+            <!-- Banner linking to https://khoj.dev -->
+                <div class="khoj-banner-container">
+                    <a class="khoj-banner" href="https://khoj.dev" target="_blank">
+                        <p id="khoj-banner" class="khoj-banner">
+                            Enroll in Khoj beta to get your own Github search engine
+                        </p>
+                    </a>
+                    <input type="text" id="khoj-banner-email" placeholder="email" class="khoj-banner-email"></input>
+                    <button id="khoj-banner-submit" class="khoj-banner-button">Submit</button>
+                </div>
+        {% endif %}
+
         <!--Add Header Logo and Nav Pane-->
         <div class="khoj-header">
-            <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways.svg" alt="Khoj"></img>
+            {% if demo %}
+                <a class="khoj-logo" href="https://khoj.dev" target="_blank">
+                    <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways.svg" alt="Khoj"></img>
+                </a>
+            {% else %}
+                <a class="khoj-logo" href="https://lantern.khoj.dev" target="_blank">
+                    <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways.svg" alt="Khoj"></img>
+                </a>
+            {% endif %}
             <nav class="khoj-nav">
                 <a href="/chat">Chat</a>
                 <a class="khoj-nav-selected" href="/">Search</a>
-                <a href="/config">Settings</a>
+                {% if not demo %}
+                    <a href="/config">Settings</a>
+                {% endif %}
             </nav>
         </div>
 
@@ -411,13 +434,90 @@
             border-radius: 5px;
             padding: 10px;
             margin: 10px 0;
-            border: 1px solid rgb(229, 229, 229);
+            border: 4px solid rgb(229, 229, 229);
         }
 
         img {
             max-width: 90%;
         }
 
+        div.khoj-banner-container {
+            background: linear-gradient(-45deg, #FFC107, #FF9800, #FF5722, #FF9800, #FFC107);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            text-align: center;
+            padding: 10px;
+        }
+
+        @keyframes gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        a.khoj-banner {
+            color: black;
+            display: block;
+        }
+
+        a.khoj-logo {
+            text-align: center;
+        }
+
+        p.khoj-banner {
+            margin: 0;
+            padding: 10px;
+        }
+
+        button#khoj-banner-submit,
+        input#khoj-banner-email {
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #475569;
+            background: #f9fafc;
+        }
+
+        button#khoj-banner-submit:hover,
+        input#khoj-banner-email:hover {
+            box-shadow: 0 0 11px #aaa;
+        }
+
     </style>
+    <script>
+        var khojBannerSubmit = document.getElementById("khoj-banner-submit");
+
+        khojBannerSubmit.addEventListener("click", function(event) {
+            event.preventDefault();
+            var email = document.getElementById("khoj-banner-email").value;
+            fetch("https://lantern.khoj.dev/beta/users/", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        email: email
+                    }),
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                }).then(function(response) {
+                    return response.json();
+                }).then(function(data) {
+                    console.log(data);
+                    if (data.user != null) {
+                        document.getElementById("khoj-banner").innerHTML = "Thanks for signing up. We'll be in touch soon! 🚀";
+                        document.getElementById("khoj-banner-submit").remove();
+                    } else {
+                        document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
+                    }
+                }).catch(function(error) {
+                    console.log(error);
+                    document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
+                });
+            });
+    </script>
 
 </html>
