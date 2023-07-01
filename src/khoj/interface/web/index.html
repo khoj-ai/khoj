@@ -70,7 +70,8 @@
                 } else if (
                     item.additional.file.endsWith(".md") ||
                     item.additional.file.endsWith(".markdown") ||
-                        (item.additional.file.includes("issues") && item.additional.file.includes("github.com"))
+                        (item.additional.file.includes("issues") && item.additional.file.includes("github.com")) ||
+                        (item.additional.file.includes("commit") && item.additional.file.includes("github.com"))
                     )
                 {
                     html += render_markdown(query, [item]);

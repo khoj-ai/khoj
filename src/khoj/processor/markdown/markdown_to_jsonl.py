@@ -147,12 +147,13 @@ class MarkdownToJsonl(TextToJsonl):
             if type(raw_filename) == str and re.search(r"^https?://", raw_filename):
                 entry_filename = raw_filename
             else:
-                entry_filename = Path(raw_filename)
+                entry_filename = str(Path(raw_filename))
+            stem = Path(raw_filename).stem
 
             heading = parsed_entry.splitlines()[0] if re.search("^#+\s", parsed_entry) else ""
             # Append base filename to compiled entry for context to model
             # Increment heading level for heading entries and make filename as its top level heading
-            prefix = f"# {entry_filename.stem}\n#" if heading else f"# {entry_filename.stem}\n"
+            prefix = f"# {stem}\n#" if heading else f"# {stem}\n"
             compiled_entry = f"{prefix}{parsed_entry}"
             entries.append(
                 Entry(
