@@ -144,7 +144,7 @@ class MarkdownToJsonl(TextToJsonl):
             raw_filename = entry_to_file_map[parsed_entry]
 
             # Check if raw_filename is a URL. If so, save it as is. If not, convert it to a Path.
-            if re.search(r"^https?://", raw_filename):
+            if type(raw_filename) == str and re.search(r"^https?://", raw_filename):
                 entry_filename = raw_filename
             else:
                 entry_filename = Path(raw_filename)
