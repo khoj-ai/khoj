@@ -39,6 +39,66 @@ from khoj.utils.yaml import save_config_to_file_updated_state
 api = APIRouter()
 logger = logging.getLogger(__name__)
 
+if not state.demo:
+
+    @api.get("/config/data", response_model=FullConfig)
+    def get_config_data():
+        return state.config
+
+    @api.post("/config/data")
+    async def set_config_data(updated_config: FullConfig):
+        state.config = updated_config
+        with open(state.config_file, "w") as outfile:
+            yaml.dump(yaml.safe_load(state.config.json(by_alias=True)), outfile)
+            outfile.close()
+        return state.config
+
+    @api.post("/config/data/content_type/github", status_code=200)
+    async def set_content_config_github_data(updated_config: GithubContentConfig):
+        if not state.config:
+            state.config = FullConfig()
+            state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
+
+        if not state.config.content_type:
+            state.config.content_type = ContentConfig(**{"github": updated_config})
+        else:
+            state.config.content_type.github = updated_config
+
+        try:
+            save_config_to_file_updated_state()
+            return {"status": "ok"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+    @api.post("/config/data/content_type/{content_type}", status_code=200)
+    async def set_content_config_data(content_type: str, updated_config: TextContentConfig):
+        if not state.config:
+            state.config = FullConfig()
+            state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
+
+        if not state.config.content_type:
+            state.config.content_type = ContentConfig(**{content_type: updated_config})
+        else:
+            state.config.content_type[content_type] = updated_config
+
+        try:
+            save_config_to_file_updated_state()
+            return {"status": "ok"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+    @api.post("/config/data/processor/conversation", status_code=200)
+    async def set_processor_conversation_config_data(updated_config: ConversationProcessorConfig):
+        if not state.config:
+            state.config = FullConfig()
+            state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
+        state.config.processor = ProcessorConfig(conversation=updated_config)
+        try:
+            save_config_to_file_updated_state()
+            return {"status": "ok"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
 
 # Create Routes
 @api.get("/config/data/default")
@@ -66,69 +126,6 @@ def get_config_types():
         or ("plugins" in configured_content_types and search_type.name in configured_content_types["plugins"])
         or search_type == SearchType.All
     ]
-
-
-@api.get("/config/data", response_model=FullConfig)
-def get_config_data():
-    return state.config
-
-
-@api.post("/config/data")
-async def set_config_data(updated_config: FullConfig):
-    state.config = updated_config
-    with open(state.config_file, "w") as outfile:
-        yaml.dump(yaml.safe_load(state.config.json(by_alias=True)), outfile)
-        outfile.close()
-    return state.config
-
-
-@api.post("/config/data/content_type/github", status_code=200)
-async def set_content_config_github_data(updated_config: GithubContentConfig):
-    if not state.config:
-        state.config = FullConfig()
-        state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
-
-    if not state.config.content_type:
-        state.config.content_type = ContentConfig(**{"github": updated_config})
-    else:
-        state.config.content_type.github = updated_config
-
-    try:
-        save_config_to_file_updated_state()
-        return {"status": "ok"}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
-
-
-@api.post("/config/data/content_type/{content_type}", status_code=200)
-async def set_content_config_data(content_type: str, updated_config: TextContentConfig):
-    if not state.config:
-        state.config = FullConfig()
-        state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
-
-    if not state.config.content_type:
-        state.config.content_type = ContentConfig(**{content_type: updated_config})
-    else:
-        state.config.content_type[content_type] = updated_config
-
-    try:
-        save_config_to_file_updated_state()
-        return {"status": "ok"}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
-
-
-@api.post("/config/data/processor/conversation", status_code=200)
-async def set_processor_conversation_config_data(updated_config: ConversationProcessorConfig):
-    if not state.config:
-        state.config = FullConfig()
-        state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
-    state.config.processor = ProcessorConfig(conversation=updated_config)
-    try:
-        save_config_to_file_updated_state()
-        return {"status": "ok"}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
 
 
 @api.get("/search", response_model=List[SearchResponse])
