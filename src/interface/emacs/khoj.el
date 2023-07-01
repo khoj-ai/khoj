@@ -5,7 +5,7 @@
 ;; Author: Debanjum Singh Solanky <debanjum@gmail.com>
 ;; Description: An AI personal assistant for your digital brain
 ;; Keywords: search, chat, org-mode, outlines, markdown, pdf, beancount, image
-;; Version: 0.6.2
+;; Version: 0.7.0
 ;; Package-Requires: ((emacs "27.1") (transient "0.3.0") (dash "2.19.1"))
 ;; URL: https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs
 
