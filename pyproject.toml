@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "khoj-assistant"
-description = "A natural language search engine for your personal notes, transactions and images"
+description = "An AI personal assistant for your Digital Brain"
 readme = "README.md"
 license = "GPL-3.0-or-later"
 requires-python = ">=3.8"
