@@ -2,6 +2,7 @@
 import glob
 import logging
 import re
+import urllib3
 from pathlib import Path
 from typing import List
 
@@ -145,7 +146,8 @@ class MarkdownToJsonl(TextToJsonl):
 
             # Check if raw_filename is a URL. If so, save it as is. If not, convert it to a Path.
             if type(raw_filename) == str and re.search(r"^https?://", raw_filename):
-                entry_filename = raw_filename
+                # Escape the URL to avoid issues with special characters
+                entry_filename = urllib3.util.parse_url(raw_filename).url
             else:
                 entry_filename = str(Path(raw_filename))
             stem = Path(raw_filename).stem
