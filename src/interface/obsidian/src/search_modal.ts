@@ -161,7 +161,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
         // Open vault file at heading of chosen search result
         if (file_match) {
             let resultHeading = file_match.extension !== 'pdf' ? result.entry.split('\n', 1)[0] : '';
-            let linkToEntry = `${file_match.path}${resultHeading}`
+            let linkToEntry = resultHeading.startsWith('#') ? `${file_match.path}${resultHeading}` : file_match.path;
             this.app.workspace.openLinkText(linkToEntry, '');
             console.log(`Link: ${linkToEntry}, File: ${file_match.path}, Heading: ${resultHeading}`);
         }
