@@ -197,7 +197,7 @@ Use `which-key` if available, else display simple message in echo area"
   :type 'string
   :group 'khoj)
 
-(defcustom khoj-server-args '("--no-gui")
+(defcustom khoj-server-args '()
   "Arguments to pass to Khoj server on startup."
   :type '(repeat string)
   :group 'khoj)

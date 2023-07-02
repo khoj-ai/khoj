@@ -6,6 +6,7 @@ import logging
 import threading
 import warnings
 from platform import system
+import webbrowser
 
 # Ignore non-actionable warnings
 warnings.filterwarnings("ignore", message=r"snapshot_download.py has been made private", category=FutureWarning)
@@ -63,17 +64,20 @@ def run():
 
     logger.info("🌘 Starting Khoj")
 
-    if args.no_gui:
-        # Setup task scheduler
-        poll_task_scheduler()
+    if not args.gui:
+        if not state.demo:
+            # Setup task scheduler
+            poll_task_scheduler()
+
         # Start Server
         configure_server(args, required=False)
         configure_routes(app)
         start_server(app, host=args.host, port=args.port, socket=args.socket)
     else:
+        logger.warning("🚧 GUI is being deprecated and may not work as expected. Starting...")
         # Setup GUI
         gui = QtWidgets.QApplication([])
-        main_window = MainWindow(args.config_file)
+        main_window = MainWindow(args.host, args.port)
 
         # System tray is only available on Windows, MacOS.
         # On Linux (Gnome) the System tray is not supported.
@@ -88,6 +92,13 @@ def run():
         configure_server(args, required=False)
         configure_routes(app)
         server = ServerThread(app, args.host, args.port, args.socket)
+
+        url = f"http://{args.host}:{args.port}"
+        logger.info(f"🌗 Khoj is running at {url}")
+        try:
+            webbrowser.open(url)
+        except:
+            logger.warning("🚧 Unable to open browser. Please open it manually to configure Khoj.")
 
         # Show Main Window on First Run Experience or if on Linux
         if args.config is None or system() not in ["Windows", "Darwin"]:

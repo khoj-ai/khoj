@@ -39,17 +39,13 @@ class GithubToJsonl(TextToJsonl):
             return
 
     def process(self, previous_entries=None):
-        # If demo mode is enabled, don't re-process any of the repositories. This is resource intensive.
-        if state.demo and previous_entries is not None:
-            return self.update_entries_with_ids(previous_entries, previous_entries)
-
         current_entries = []
         for repo in self.config.repos:
-            current_entries += self.process_repo(repo, previous_entries)
+            current_entries += self.process_repo(repo)
 
         return self.update_entries_with_ids(current_entries, previous_entries)
 
-    def process_repo(self, repo: GithubRepoConfig, previous_entries=None):
+    def process_repo(self, repo: GithubRepoConfig):
         repo_url = f"https://api.github.com/repos/{repo.owner}/{repo.name}"
         repo_shorthand = f"{repo.owner}/{repo.name}"
         logger.info(f"Processing github repo {repo_shorthand}")

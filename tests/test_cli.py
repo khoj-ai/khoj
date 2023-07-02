@@ -16,7 +16,7 @@ def test_cli_minimal_default():
     # Assert
     assert actual_args.config_file == resolve_absolute_path(Path("~/.khoj/khoj.yml"))
     assert actual_args.regenerate == False
-    assert actual_args.no_gui == False
+    assert actual_args.gui == False
     assert actual_args.verbose == 0
 
 
@@ -36,11 +36,11 @@ def test_cli_invalid_config_file_path():
 # ----------------------------------------------------------------------------------------------------
 def test_cli_config_from_file():
     # Act
-    actual_args = cli(["-c=tests/data/config.yml", "--regenerate", "--no-gui", "-vvv"])
+    actual_args = cli(["-c=tests/data/config.yml", "--regenerate", "--gui", "-vvv"])
 
     # Assert
     assert actual_args.config_file == resolve_absolute_path(Path("tests/data/config.yml"))
-    assert actual_args.no_gui == True
+    assert actual_args.gui == True
     assert actual_args.regenerate == True
     assert actual_args.config is not None
     assert actual_args.verbose == 3

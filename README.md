@@ -73,13 +73,17 @@ https://github.com/khoj-ai/khoj/assets/6413477/3e33d8ea-25bb-46c8-a3bf-c92f78d0f
 
 <details><summary>Description</summary>
 
-- Install Khoj via `pip` and start Khoj backend in non-gui mode
-- Install Khoj plugin via Community Plugins settings pane on Obsidian app
-- Check the new Khoj plugin settings
-- Let Khoj backend index the markdown, pdf, Github markdown files in the current Vault
-- Open Khoj plugin on Obsidian via Search button on Left Pane
-- Search \"*Announce plugin to folks*\" in the [Obsidian Plugin docs](https://marcus.se.net/obsidian-plugin-docs/)
-- Jump to the [search result](https://marcus.se.net/obsidian-plugin-docs/publishing/submit-your-plugin)
+1. Install Khoj via `pip` and start Khoj backend in a terminal (Run `khoj`)
+    ```
+    python -m pip install khoj-assistant
+    khoj
+    ```
+2. Install Khoj plugin via Community Plugins settings pane on Obsidian app
+    - Check the new Khoj plugin settings
+    - Let Khoj backend index the markdown, pdf, Github markdown files in the current Vault
+    - Open Khoj plugin on Obsidian via Search button on Left Pane
+    - Search \"*Announce plugin to folks*\" in the [Obsidian Plugin docs](https://marcus.se.net/obsidian-plugin-docs/)
+    - Jump to the [search result](https://marcus.se.net/obsidian-plugin-docs/publishing/submit-your-plugin)
 </details>
 
 ### Khoj in Emacs, Browser
@@ -160,7 +164,7 @@ The optional steps below allow using Khoj from within an existing application li
 - **Khoj via Emacs**
   - Run `M-x khoj <user-query>`
 - **Khoj via Web**
-  - Open <http://localhost:8000/> via desktop interface or directly
+  - Open <http://localhost:8000/> directly
 - **Khoj via API**
   - See the Khoj FastAPI [Swagger Docs](http://localhost:8000/docs), [ReDocs](http://localhost:8000/redocs)
 
@@ -308,8 +312,7 @@ pip install --upgrade --pre khoj-assistant
 ### Set your OpenAI API key in Khoj
 If you want, Khoj can be configured to use OpenAI for search and chat.<br />
 Add your OpenAI API to Khoj by using either of the two options below:
- - Open the Khoj desktop GUI, add your [OpenAI API key](https://beta.openai.com/account/api-keys) and click *Configure*
-   Ensure khoj is started **without** the `--no-gui` flag. Check your system tray to see if Khoj is minimized there.
+ - Open your [Khoj settings](http://localhost:8000/config/processor/conversation), add your OpenAI API key, and click *Save*. Then go to your [Khoj settings](http://localhost:8000/config) and click `Configure`. This will refresh Khoj with your OpenAI API key.
  - Set `openai-api-key` field under `processor.conversation` section in your `khoj.yml`[^1] to your [OpenAI API key](https://beta.openai.com/account/api-keys) and restart khoj:
     ```diff
     processor:
@@ -388,7 +391,7 @@ pip install -e .[dev]
    khoj -vv
    ```
 2. Configure Khoj
-   - **Via GUI**: Add files, directories to index in the GUI window that pops up on starting Khoj, then Click Configure
+   - **Via the Settings UI**: Add files, directories to index the [Khoj settings](http://localhost:8000/config) UI once Khoj has started up. Once you've saved all your settings, click `Configure`.
    - **Manually**:
      - Copy the `config/khoj_sample.yml` to `~/.khoj/khoj.yml`
      - Set `input-files` or `input-filter` in each relevant `content-type` section of `~/.khoj/khoj.yml`
