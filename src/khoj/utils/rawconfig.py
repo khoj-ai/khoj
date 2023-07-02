@@ -74,7 +74,6 @@ class ContentConfig(ConfigBase):
     org: Optional[TextContentConfig]
     ledger: Optional[TextContentConfig]
     image: Optional[ImageContentConfig]
-    music: Optional[TextContentConfig]
     markdown: Optional[TextContentConfig]
     pdf: Optional[TextContentConfig]
     github: Optional[GithubContentConfig]

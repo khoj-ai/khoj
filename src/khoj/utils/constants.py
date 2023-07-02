@@ -41,12 +41,6 @@ default_config = {
             "batch-size": 50,
             "use-xmp-metadata": False,
         },
-        "music": {
-            "input-files": None,
-            "input-filter": None,
-            "compressed-jsonl": "~/.khoj/content/music/music.jsonl.gz",
-            "embeddings-file": "~/.khoj/content/music/music_embeddings.pt",
-        },
         "github": {
             "pat-token": None,
             "repos": [],

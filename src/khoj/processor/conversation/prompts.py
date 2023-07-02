@@ -143,19 +143,15 @@ search_type = """
 Objective: Extract search type from user query and return information as JSON
 
 Allowed search types are listed below:
-  - search-type=["notes","ledger","image","music", "pdf"]
+  - search-type=["notes","ledger","image", "pdf"]
 
 Some examples are given below for reference:
 Q:What fiction book was I reading last week about AI starship?
 A:{ "search-type": "notes" }
 Q: What did the lease say about early termination
 A: { "search-type": "pdf" }
-Q:Play some calm classical music?
-A:{ "search-type": "music" }
 Q:How much did I spend at Subway for dinner last time?
 A:{ "search-type": "ledger" }
-Q:What was that popular Sri lankan song that Alex had mentioned?
-A:{ "search-type": "music" }
 Q:Can you recommend a movie to watch from my notes?
 A:{ "search-type": "notes" }
 Q:When did I buy Groceries last?

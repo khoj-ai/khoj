@@ -88,8 +88,6 @@
                 results = render_markdown(query, data);
             } else if (type === "org") {
                 results = render_org(query, data, "org-");
-            } else if (type === "music") {
-                results = render_org(query, data, "music-");
             } else if (type === "image") {
                 results = data.map(render_image).join('');
             } else if (type === "ledger") {
@@ -371,17 +369,14 @@
         .results-github {
             text-align: left;
         }
-        .results-music,
         .results-org {
             text-align: left;
             white-space: pre-line;
         }
-        .results-music h3,
         .results-org h3 {
             margin: 20px 0 0 0;
             font-size: larger;
         }
-        span.music-task-status,
         span.org-task-status {
             color: white;
             padding: 3.5px 3.5px 0;
@@ -390,15 +385,12 @@
             background-color: #eab308;
             font-size: medium;
         }
-        span.music-task-status.todo,
         span.org-task-status.todo {
             background-color: #3b82f6
         }
-        span.music-task-status.done,
         span.org-task-status.done {
             background-color: #22c55e;
         }
-        span.music-task-tag,
         span.org-task-tag {
             color: white;
             padding: 3.5px 3.5px 0;

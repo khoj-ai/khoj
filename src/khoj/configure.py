@@ -106,18 +106,6 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
                 filters=[DateFilter(), WordFilter(), FileFilter()],
             )
 
-        # Initialize Org Music Search
-        if (t == state.SearchType.Music or t == None) and config.content_type.music and config.search_type.asymmetric:
-            logger.info("🎺 Setting up search for org-music")
-            # Extract Entries, Generate Music Embeddings
-            model.music_search = text_search.setup(
-                OrgToJsonl,
-                config.content_type.music,
-                search_config=config.search_type.asymmetric,
-                regenerate=regenerate,
-                filters=[DateFilter(), WordFilter()],
-            )
-
         # Initialize Markdown Search
         if (
             (t == state.SearchType.Markdown or t == None)

@@ -257,20 +257,6 @@ async def search(
                 )
             ]
 
-        if (t == SearchType.Music or t == SearchType.All) and state.model.music_search:
-            # query music library
-            search_futures += [
-                executor.submit(
-                    text_search.query,
-                    user_query,
-                    state.model.music_search,
-                    question_embedding=encoded_asymmetric_query,
-                    rank_results=r or False,
-                    score_threshold=score_threshold,
-                    dedupe=dedupe or True,
-                )
-            ]
-
         if (t == SearchType.Image) and state.model.image_search:
             # query images
             search_futures += [
