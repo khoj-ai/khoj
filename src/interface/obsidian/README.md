@@ -40,13 +40,16 @@ https://github.com/khoj-ai/khoj/assets/6413477/3e33d8ea-25bb-46c8-a3bf-c92f78d0f
 
 <details><summary>Description</summary>
 
-1. Install Khoj via `pip` and start Khoj backend in non-gui mode
+1. Install Khoj via `pip` and start Khoj backend
+    ```shell
+    python -m pip install khoj-assistant && khoj
+    ```
 2. Install Khoj plugin via Community Plugins settings pane on Obsidian app
-3. Check the new Khoj plugin settings
-4. Wait for Khoj backend to index markdown, PDF files in the current Vault
-5. Open Khoj plugin on Obsidian via Search button on Left Pane
-6. Search \"*Announce plugin to folks*\" in the [Obsidian Plugin docs](https://marcus.se.net/obsidian-plugin-docs/)
-7. Jump to the [search result](https://marcus.se.net/obsidian-plugin-docs/publishing/submit-your-plugin)
+    - Check the new Khoj plugin settings
+    - Wait for Khoj backend to index markdown, PDF files in the current Vault
+    - Open Khoj plugin on Obsidian via Search button on Left Pane
+    - Search \"*Announce plugin to folks*\" in the [Obsidian Plugin docs](https://marcus.se.net/obsidian-plugin-docs/)
+    - Jump to the [search result](https://marcus.se.net/obsidian-plugin-docs/publishing/submit-your-plugin)
 
 </details>
 
@@ -65,12 +68,12 @@ https://github.com/khoj-ai/khoj/assets/6413477/3e33d8ea-25bb-46c8-a3bf-c92f78d0f
 Open terminal/cmd and run below command to install and start the khoj backend
 - On Linux/MacOS
   ```shell
-  python -m pip install khoj-assistant && khoj --no-gui
+  python -m pip install khoj-assistant && khoj
   ```
 
 - On Windows
   ```shell
-  py -m pip install khoj-assistant && khoj --no-gui
+  py -m pip install khoj-assistant && khoj
   ```
 
 ### 2. Setup Plugin
@@ -96,7 +99,7 @@ See [Khoj Chat](https://github.com/khoj-ai/khoj/tree/master/#Khoj-Chat) for more
 ### Search
 Click the *Khoj search* icon 🔎 on the [Ribbon](https://help.obsidian.md/User+interface/Workspace/Ribbon) or run *Khoj: Search* from the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
 
-*Note: Ensure the khoj server is running in the background before searching. Execute `khoj --no-gui` in your terminal if it is not already running*
+*Note: Ensure the khoj server is running in the background before searching. Execute `khoj` in your terminal if it is not already running*
 
 https://user-images.githubusercontent.com/6413477/218801155-cd67e8b4-a770-404a-8179-d6b61caa0f93.mp4
 

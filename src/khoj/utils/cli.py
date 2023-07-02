@@ -16,9 +16,7 @@ def cli(args=None):
     parser.add_argument(
         "--config-file", "-c", default="~/.khoj/khoj.yml", type=pathlib.Path, help="YAML file to configure Khoj"
     )
-    parser.add_argument(
-        "--no-gui", action="store_true", default=False, help="Do not show native desktop GUI. Default: false"
-    )
+    parser.add_argument("--gui", action="store_true", default=False, help="Show native desktop GUI. Default: false")
     parser.add_argument(
         "--regenerate",
         action="store_true",
