@@ -34,7 +34,8 @@ if not state.demo:
 
     @web_client.get("/config", response_class=HTMLResponse)
     def config_page(request: Request):
-        return templates.TemplateResponse("config.html", context={"request": request})
+        current_config = state.config if state.config else constants.default_config
+        return templates.TemplateResponse("config.html", context={"request": request, "current_config": current_config})
 
     @web_client.get("/config/content_type/github", response_class=HTMLResponse)
     def github_config_page(request: Request):

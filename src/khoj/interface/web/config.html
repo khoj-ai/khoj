@@ -8,62 +8,127 @@
             <div class="card">
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/github.svg" alt="Github">
-                    <h3 class="card-title">Github</h3>
+                    <h3 class="card-title">
+                        Github
+                        {% if current_config.content_type.github %}
+                            <img id="configured-icon-github" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                        {% endif %}
+                    </h3>
+
                 </div>
                 <div class="card-description-row">
                 <p class="card-description">Set repositories for Khoj to index</p>
                 </div>
                 <div class="card-action-row">
                     <a class="card-button" href="/config/content_type/github">
-                        Setup
+                        {% if current_config.content_type.github %}
+                            Update
+                        {% else %}
+                            Setup
+                        {% endif %}
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
                     </a>
                 </div>
+                {% if current_config.content_type.github %}
+                    <div id="clear-github" class="card-action-row">
+                        <button class="card-button" onclick="clearContentType('github')">
+                            Disable
+                        </button>
+                    </div>
+                {% endif %}
             </div>
             <div class="card">
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/markdown.svg" alt="markdown">
-                    <h3 class="card-title">Markdown</h3>
+                    <h3 class="card-title">
+                        Markdown
+                        {% if current_config.content_type.markdown %}
+                            <img id="configured-icon-markdown" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                        {% endif %}
+                    </h3>
                 </div>
                 <div class="card-description-row">
                     <p class="card-description">Set markdown files for Khoj to index</p>
                 </div>
                 <div class="card-action-row">
                     <a class="card-button" href="/config/content_type/markdown">
-                        Setup
+                        {% if current_config.content_type.markdown %}
+                            Update
+                        {% else %}
+                            Setup
+                        {% endif %}
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
                     </a>
                 </div>
+                {% if current_config.content_type.markdown %}
+                    <div id="clear-markdown" class="card-action-row">
+                        <button class="card-button" onclick="clearContentType('markdown')">
+                            Disable
+                        </button>
+                    </div>
+                {% endif %}
             </div>
             <div class="card">
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/org.svg" alt="org">
-                    <h3 class="card-title">Org</h3>
+                    <h3 class="card-title">
+                        Org
+                        {% if current_config.content_type.org %}
+                            <img id="configured-icon-org" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                        {% endif %}
+                    </h3>
                 </div>
                 <div class="card-description-row">
                 <p class="card-description">Set org files for Khoj to index</p>
                 </div>
                 <div class="card-action-row">
                     <a class="card-button" href="/config/content_type/org">
-                        Setup
+                        {% if current_config.content_type.org %}
+                            Update
+                        {% else %}
+                            Setup
+                        {% endif %}
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
                     </a>
                 </div>
+                {% if current_config.content_type.org %}
+                    <div id="clear-org" class="card-action-row">
+                        <button class="card-button" onclick="clearContentType('org')">
+                            Disable
+                        </button>
+                    </div>
+                {% endif %}
             </div>
             <div class="card">
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/pdf.svg" alt="PDF">
-                    <h3 class="card-title">PDF</h3>
+                    <h3 class="card-title">
+                        PDF
+                        {% if current_config.content_type.pdf %}
+                            <img id="configured-icon-pdf" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                        {% endif %}
+                    </h3>
                 </div>
                 <div class="card-description-row">
                 <p class="card-description">Set PDF files for Khoj to index</p>
                 </div>
                 <div class="card-action-row">
                     <a class="card-button" href="/config/content_type/pdf">
-                        Setup
+                        {% if current_config.content_type.pdf %}
+                            Update
+                        {% else %}
+                            Setup
+                        {% endif %}
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
                     </a>
                 </div>
+                {% if current_config.content_type.pdf %}
+                    <div id="clear-pdf" class="card-action-row">
+                        <button class="card-button" onclick="clearContentType('pdf')">
+                            Disable
+                        </button>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -73,26 +138,85 @@
             <div class="card">
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/chat.svg" alt="Chat">
-                    <h3 class="card-title">Chat</h3>
+                    <h3 class="card-title">
+                        Chat
+                        {% if current_config.processor and current_config.processor.conversation %}
+                            <img id="configured-icon-conversation-processor" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                         {% endif %}
+                    </h3>
                 </div>
                 <div class="card-description-row">
-                <p class="card-description">Setup Khoj Chat</p>
+                <p class="card-description">Setup Khoj Chat with OpenAI</p>
                 </div>
                 <div class="card-action-row">
-                <a class="card-button" href="/config/processor/conversation">
-                    Setup
-                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
-                </a>
+                    <a class="card-button" href="/config/processor/conversation">
+                        {% if current_config.processor and current_config.processor.conversation %}
+                            Update
+                        {% else %}
+                            Setup
+                        {% endif %}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                    </a>
                 </div>
+                {% if current_config.processor and current_config.processor.conversation %}
+                    <div id="clear-conversation" class="card-action-row">
+                        <button class="card-button" onclick="clearConversationProcessor()">
+                            Disable
+                        </button>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
     <div class="section">
         <div id="status" style="display: none;"></div>
         <button id="configure" type="submit">⚙️ Configure</button>
+        <button id="reinitialize" type="submit">🔄 Reinitialize</button>
     </div>
 </div>
 <script>
+    function clearContentType(content_type) {
+        const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
+        fetch('/api/delete/config/data/content_type/' + content_type, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status == "ok") {
+                var contentTypeClearButton = document.getElementById("clear-" + content_type);
+                contentTypeClearButton.style.display = "none";
+
+                var configuredIcon = document.getElementById("configured-icon-" + content_type);
+                configuredIcon.style.display = "none";
+            }
+        })
+    };
+
+    function clearConversationProcessor() {
+        const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
+        fetch('/api/delete/config/data/processor/conversation', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status == "ok") {
+                var conversationClearButton = document.getElementById("clear-conversation");
+                conversationClearButton.style.display = "none";
+
+                var configuredIcon = document.getElementById("configured-icon-conversation-processor");
+                configuredIcon.style.display = "none";
+            }
+        })
+    };
+
     var configure = document.getElementById("configure");
     configure.addEventListener("click", function(event) {
         event.preventDefault();
@@ -120,6 +244,36 @@
             document.getElementById("status").style.display = "block";
             configure.disabled = false;
             configure.innerHTML = "⚙️ Configure";
+        });
+    });
+
+    var reinitialize = document.getElementById("reinitialize");
+    reinitialize.addEventListener("click", function(event) {
+        event.preventDefault();
+        reinitialize.disabled = true;
+        reinitialize.innerHTML = "Reinitializing...";
+        const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
+        fetch('/api/reinitialize?&client=web', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Success:', data);
+            document.getElementById("status").innerHTML = "Reinitialized successfully!";
+            document.getElementById("status").style.display = "block";
+            reinitialize.disabled = false;
+            reinitialize.innerHTML = "🔄 Reinitialized";
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+            document.getElementById("status").innerHTML = "Unable to reinitialize. Raise issue on Khoj Discord or Github.";
+            document.getElementById("status").style.display = "block";
+            reinitialize.disabled = false;
+            reinitialize.innerHTML = "🔄 Reinitialize";
         });
     });
 </script>

@@ -44,9 +44,9 @@
                 </tr>
             </table>
 
-            <h4>You probably don't need to edit these.</h4>
+            <h4 style="display: none;">You probably don't need to edit these.</h4>
 
-            <table>
+            <table style="display: none;" >
                 <tr>
                     <td>
                         <label for="compressed-jsonl">Compressed JSONL (Output)</label>
@@ -149,7 +149,7 @@
         .then(response => response.json())
         .then(data => {
             if (data["status"] == "ok") {
-                document.getElementById("success").innerHTML = "✅ Successfully updated. Click Configure on your <a href='/config'>settings page</a> to complete your Khoj setup.";
+                document.getElementById("success").innerHTML = "✅ Successfully updated. Go to your <a href='/config'>settings page</a> to complete setup.";
                 document.getElementById("success").style.display = "block";
             } else {
                 document.getElementById("success").innerHTML = "⚠️ Failed to update settings.";
