@@ -58,6 +58,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # Add Settings Panels for each Search Type to Configure Window Layout
         self.search_settings_panels = []
         for search_type in SearchType:
+            if search_type == SearchType.All:
+                continue
             current_content_config = self.current_config["content-type"].get(
                 search_type, None
             ) or self.get_default_config(search_type=search_type)
