@@ -93,6 +93,13 @@ def run():
         configure_routes(app)
         server = ServerThread(app, args.host, args.port, args.socket)
 
+        url = f"http://{args.host}:{args.port}"
+        logger.info(f"🌗 Khoj is running at {url}")
+        try:
+            webbrowser.open(url)
+        except:
+            logger.warning("🚧 Unable to open browser. Please open it manually to configure Khoj.")
+
         # Show Main Window on First Run Experience or if on Linux
         if args.config is None or system() not in ["Windows", "Darwin"]:
             main_window.show()
@@ -141,12 +148,6 @@ def start_server(app, host=None, port=None, socket=None):
     if socket:
         uvicorn.run(app, proxy_headers=True, uds=socket, log_level="debug", use_colors=True, log_config=None)
     else:
-        url = f"http://{host}:{port}"
-        logger.info(f"🌗 Khoj is running at {url}")
-        try:
-            webbrowser.open(url)
-        except:
-            logger.warning("🚧 Unable to open browser. Please open it manually to configure Khoj.")
         uvicorn.run(app, host=host, port=port, log_level="debug", use_colors=True, log_config=None)
     logger.info("🌒 Stopping Khoj")
 
