@@ -64,7 +64,16 @@ def run():
 
     logger.info("🌘 Starting Khoj")
 
-    if args.gui:
+    if not args.gui:
+        if not state.demo:
+            # Setup task scheduler
+            poll_task_scheduler()
+
+        # Start Server
+        configure_server(args, required=False)
+        configure_routes(app)
+        start_server(app, host=args.host, port=args.port, socket=args.socket)
+    else:
         logger.warning("🚧 GUI is being deprecated and may not work as expected. Starting...")
         # Setup GUI
         gui = QtWidgets.QApplication([])
@@ -112,15 +121,6 @@ def run():
                 pass
 
         gui.exec()
-
-    if not state.demo:
-        # Setup task scheduler
-        poll_task_scheduler()
-
-    # Start Server
-    configure_server(args, required=False)
-    configure_routes(app)
-    start_server(app, host=args.host, port=args.port, socket=args.socket)
 
 
 def sigint_handler(*args):
