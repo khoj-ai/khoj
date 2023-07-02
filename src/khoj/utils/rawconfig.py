@@ -72,7 +72,6 @@ class ImageContentConfig(ConfigBase):
 
 class ContentConfig(ConfigBase):
     org: Optional[TextContentConfig]
-    ledger: Optional[TextContentConfig]
     image: Optional[ImageContentConfig]
     markdown: Optional[TextContentConfig]
     pdf: Optional[TextContentConfig]

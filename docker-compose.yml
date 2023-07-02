@@ -18,7 +18,6 @@ services:
       #   must match the path prefix in your config file.
       - ./tests/data/org/:/data/org/
       - ./tests/data/images/:/data/images/
-      - ./tests/data/ledger/:/data/ledger/
       - ./tests/data/markdown/:/data/markdown/
       - ./tests/data/pdf/:/data/pdf/
       # Embeddings and models are populated after the first run

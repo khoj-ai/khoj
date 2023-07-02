@@ -19,7 +19,6 @@ if TYPE_CHECKING:
 class SearchType(str, Enum):
     All = "all"
     Org = "org"
-    Ledger = "ledger"
     Markdown = "markdown"
     Image = "image"
     Pdf = "pdf"
@@ -60,7 +59,6 @@ class ImageSearchModel:
 @dataclass
 class SearchModels:
     org_search: TextSearchModel = None
-    ledger_search: TextSearchModel = None
     markdown_search: TextSearchModel = None
     pdf_search: TextSearchModel = None
     image_search: ImageSearchModel = None

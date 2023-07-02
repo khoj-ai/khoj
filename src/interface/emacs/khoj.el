@@ -4,7 +4,7 @@
 
 ;; Author: Debanjum Singh Solanky <debanjum@gmail.com>
 ;; Description: An AI personal assistant for your digital brain
-;; Keywords: search, chat, org-mode, outlines, markdown, pdf, beancount, image
+;; Keywords: search, chat, org-mode, outlines, markdown, pdf, image
 ;; Version: 0.7.0
 ;; Package-Requires: ((emacs "27.1") (transient "0.3.0") (dash "2.19.1"))
 ;; URL: https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs
@@ -29,8 +29,7 @@
 ;;; Commentary:
 
 ;; Create an AI personal assistant for your `org-mode', `markdown' notes,
-;; `beancount' transactions, PDFs and images. This package exposes
-;; two assistance modes, search and chat:
+;; PDFs and images. The assistant exposes 2 modes, search and chat:
 ;;
 ;; Chat provides faster answers, iterative discovery and assisted
 ;; creativity. It requires your OpenAI API key to access GPT models
@@ -93,7 +92,6 @@
   :group 'khoj
   :type '(choice (const "org")
                  (const "markdown")
-                 (const "ledger")
                  (const "image")
                  (const "pdf")))
 
@@ -119,7 +117,6 @@
 
 (declare-function org-element-property "org-mode" (PROPERTY ELEMENT))
 (declare-function org-element-type "org-mode" (ELEMENT))
-(declare-function beancount-mode "beancount" ())
 (declare-function markdown-mode "markdown-mode" ())
 (declare-function which-key--show-keymap "which-key" (KEYMAP-NAME KEYMAP &optional PRIOR-ARGS ALL
 NO-PAGING FILTER))
@@ -135,8 +132,6 @@ NO-PAGING FILTER))
        "C-x m  | markdown\n")
      (when (member 'org enabled-content-types)
        "C-x o  | org-mode\n")
-     (when (member 'ledger enabled-content-types)
-       "C-x l  | ledger\n")
      (when (member 'image enabled-content-types)
        "C-x i  | image\n")
      (when (member 'pdf enabled-content-types)
@@ -146,7 +141,6 @@ NO-PAGING FILTER))
 (defvar khoj--reference-count 0 "Track number of references currently in chat bufffer.")
 (defun khoj--search-markdown () "Set content-type to `markdown'." (interactive) (setq khoj--content-type "markdown"))
 (defun khoj--search-org () "Set content-type to `org-mode'." (interactive) (setq khoj--content-type "org"))
-(defun khoj--search-ledger () "Set content-type to `ledger'." (interactive) (setq khoj--content-type "ledger"))
 (defun khoj--search-images () "Set content-type to image." (interactive) (setq khoj--content-type "image"))
 (defun khoj--search-pdf () "Set content-type to pdf." (interactive) (setq khoj--content-type "pdf"))
 (defun khoj--improve-rank () "Use cross-encoder to rerank search results." (interactive) (khoj--incremental-search t))
@@ -159,8 +153,6 @@ NO-PAGING FILTER))
       (define-key kmap (kbd "C-x m") #'khoj--search-markdown))
     (when (member 'org enabled-content-types)
       (define-key kmap (kbd "C-x o") #'khoj--search-org))
-    (when (member 'ledger enabled-content-types)
-      (define-key kmap (kbd "C-x l") #'khoj--search-ledger))
     (when (member 'image enabled-content-types)
       (define-key kmap (kbd "C-x i") #'khoj--search-images))
     (when (member 'pdf enabled-content-types)
@@ -531,18 +523,6 @@ CONFIG is json obtained from Khoj config API."
     ;; remove leading (, ) or SPC from extracted entries string
     (replace-regexp-in-string "^[\(\) ]" "")))
 
-(defun khoj--extract-entries-as-ledger (json-response query)
-  "Convert JSON-RESPONSE, QUERY from API to ledger entries."
-  (thread-last json-response
-               ;; extract and render entries from API response
-               (mapcar (lambda (args) (format "%s\n\n" (cdr (assoc 'entry args)))))
-               ;; Set query as heading in rendered results buffer
-               (format ";; %s\n\n%s\n" query)
-               ;; remove leading (, ) or SPC from extracted entries string
-               (replace-regexp-in-string "^[\(\) ]" "")
-               ;; remove trailing (, ) or SPC from extracted entries string
-               (replace-regexp-in-string "[\(\) ]$" "")))
-
 (defun khoj--extract-entries-as-pdf (json-response query)
   "Convert QUERY, JSON-RESPONSE from API with PDF results to `org-mode' entries."
   (thread-last
@@ -614,7 +594,6 @@ CONFIG is json obtained from Khoj config API."
   (let ((enabled-content-types (khoj--get-enabled-content-types))
         (file-extension (file-name-extension buffer-name)))
     (cond
-     ((and (member 'ledger enabled-content-types) (or (equal file-extension "bean") (equal file-extension "beancount"))) "ledger")
      ((and (member 'org enabled-content-types) (equal file-extension "org")) "org")
      ((and (member 'org enabled-content-types) (equal file-extension "pdf")) "pdf")
      ((and (member 'markdown enabled-content-types) (or (equal file-extension "markdown") (equal file-extension "md"))) "markdown")
@@ -673,7 +652,6 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
        (cond ((equal content-type "org") (khoj--extract-entries-as-org json-response query))
              ((equal content-type "markdown") (khoj--extract-entries-as-markdown json-response query))
              ((equal content-type "pdf") (khoj--extract-entries-as-pdf json-response query))
-             ((equal content-type "ledger") (khoj--extract-entries-as-ledger json-response query))
              ((equal content-type "image") (khoj--extract-entries-as-images json-response query))
              (t (khoj--extract-entries json-response query))))
       (cond ((or (equal content-type "all")
@@ -688,7 +666,6 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
                    (org-set-startup-visibility)))
             ((equal content-type "markdown") (progn (markdown-mode)
                                                     (visual-line-mode)))
-            ((equal content-type "ledger") (beancount-mode))
             ((equal content-type "image") (progn (shr-render-region (point-min) (point-max))
                                                 (goto-char (point-min))))
             (t (fundamental-mode))))
@@ -1004,7 +981,7 @@ Paragraph only starts at first text after blank line."
   ;; set content type to: last used > based on current buffer > default type
   :init-value (lambda (obj) (oset obj value (format "--content-type=%s" (or khoj--content-type (khoj--buffer-name-to-content-type (buffer-name))))))
   ;; dynamically set choices to content types enabled on khoj backend
-  :choices (or (ignore-errors (mapcar #'symbol-name (khoj--get-enabled-content-types))) '("all" "org" "markdown" "pdf" "ledger" "image")))
+  :choices (or (ignore-errors (mapcar #'symbol-name (khoj--get-enabled-content-types))) '("all" "org" "markdown" "pdf" "image")))
 
 (transient-define-suffix khoj--search-command (&optional args)
   (interactive (list (transient-args transient-current-command)))
@@ -1064,7 +1041,7 @@ Paragraph only starts at first text after blank line."
 
 ;;;###autoload
 (defun khoj ()
-  "Provide natural, search assistance for your notes, transactions and images."
+  "Provide natural, search assistance for your notes, documents and images."
   (interactive)
   (when khoj-auto-setup
     (khoj-setup t))

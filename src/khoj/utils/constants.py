@@ -22,12 +22,6 @@ default_config = {
             "compressed-jsonl": "~/.khoj/content/markdown/markdown.jsonl.gz",
             "embeddings-file": "~/.khoj/content/markdown/markdown_embeddings.pt",
         },
-        "ledger": {
-            "input-files": None,
-            "input-filter": None,
-            "compressed-jsonl": "~/.khoj/content/ledger/ledger.jsonl.gz",
-            "embeddings-file": "~/.khoj/content/ledger/ledger_embeddings.pt",
-        },
         "pdf": {
             "input-files": None,
             "input-filter": None,

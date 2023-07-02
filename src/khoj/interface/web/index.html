@@ -47,12 +47,6 @@
             }).join("\n");
         }
 
-        function render_ledger(query, data) {
-            return data.map(function (item) {
-                return `<div class="results-ledger">` + `<p>${item.entry}</p>` + `</div>`;
-            }).join("\n");
-        }
-
         function render_pdf(query, data) {
             return data.map(function (item) {
                 let compiled_lines = item.additional.compiled.split("\n");
@@ -90,8 +84,6 @@
                 results = render_org(query, data, "org-");
             } else if (type === "image") {
                 results = data.map(render_image).join('');
-            } else if (type === "ledger") {
-                results = render_ledger(query, data);
             } else if (type === "pdf") {
                 results = render_pdf(query, data);
             } else if (type === "github" || type === "all") {
@@ -360,8 +352,7 @@
             white-space: pre-wrap;
         }
         .results-pdf,
-        .results-plugin,
-        .results-ledger {
+        .results-plugin {
             text-align: left;
             white-space: pre-line;
         }

@@ -64,7 +64,7 @@
 - **General**
   - **Natural**: Advanced natural language understanding using Transformer based ML Models
   - **Pluggable**: Modular architecture makes it easy to plug in new data sources, frontends and ML models
-  - **Multiple Sources**: Index your Org-mode and Markdown notes, Beancount transactions, PDF files, Github repositories, and Photos
+  - **Multiple Sources**: Index your Org-mode and Markdown notes, PDF files, Github repositories, and Photos
   - **Multiple Interfaces**: Interact from your [Web Browser](./src/khoj/interface/web/index.html), [Emacs](./src/interface/emacs/khoj.el) or [Obsidian](./src/interface/obsidian/)
 
 ## Demos
@@ -267,7 +267,7 @@ pip install --upgrade --pre khoj-assistant
 2. [Install](https://tailscale.com/kb/installation/) [Tailscale](tailscale.com/) on your personal server and phone
 3. Open the Khoj web interface of the server from your phone browser.<br /> It should be `http://tailscale-ip-of-server:8000` or `http://name-of-server:8000` if you've setup [MagicDNS](https://tailscale.com/kb/1081/magicdns/)
 4. Click the [Add to Homescreen](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Add_to_home_screen) button
-5. Enjoy exploring your notes, transactions and images from your phone!
+5. Enjoy exploring your notes, documents and images from your phone!
 
 ![](https://github.com/khoj-ai/khoj/blob/master/docs/khoj_pwa_android.png?)
 
@@ -399,7 +399,7 @@ pip install -e .[dev]
      - Delete `content-type` and `processor` sub-section(s) irrelevant for your use-case
      - Restart khoj
 
-  Note: Wait after configuration for khoj to Load ML model, generate embeddings and expose API to query notes, images, transactions etc specified in config YAML
+  Note: Wait after configuration for khoj to Load ML model, generate embeddings and expose API to query notes, images, documents etc specified in config YAML
 
 #### Using Docker
 ##### 1. Clone
@@ -410,7 +410,7 @@ git clone https://github.com/khoj-ai/khoj && cd khoj
 
 ##### 2. Configure
 
-- **Required**: Update [docker-compose.yml](./docker-compose.yml) to mount your images, (org-mode or markdown) notes, pdf, Github repositories, and beancount directories
+- **Required**: Update [docker-compose.yml](./docker-compose.yml) to mount your images, (org-mode or markdown) notes, PDFs and Github repositories
 - **Optional**: Edit application configuration in [khoj_docker.yml](./config/khoj_docker.yml)
 
 ##### 3. Run
@@ -449,7 +449,7 @@ python3 -m pip install pyqt6  # As conda does not support pyqt6 yet
 ```shell
 python3 -m src.khoj.main -vv
 ```
-  Load ML model, generate embeddings and expose API to query notes, images, transactions etc specified in config YAML
+  Load ML model, generate embeddings and expose API to query notes, images, documents etc specified in config YAML
 
 ##### 5. Upgrade
 ```shell
