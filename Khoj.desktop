@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=Khoj
-Comment=A natural language search engine for your personal notes, transactions and images.
+Comment=An AI personal assistant for your Digital Brain
 Path=/opt
 Exec=/opt/Khoj
 Icon=Khoj

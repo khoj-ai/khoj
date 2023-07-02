@@ -357,8 +357,13 @@ def update(
 ):
     try:
         state.search_index_lock.acquire()
-        state.model = configure_search(state.model, state.config, regenerate=force or False, t=t)
-        state.search_index_lock.release()
+        try:
+            state.model = configure_search(state.model, state.config, regenerate=force or False, t=t)
+        except Exception as e:
+            logger.error(e)
+            raise HTTPException(status_code=500, detail=str(e))
+        finally:
+            state.search_index_lock.release()
     except ValueError as e:
         logger.error(e)
         raise HTTPException(status_code=500, detail=str(e))
