@@ -6,6 +6,7 @@ import logging
 import threading
 import warnings
 from platform import system
+import webbrowser
 
 # Ignore non-actionable warnings
 warnings.filterwarnings("ignore", message=r"snapshot_download.py has been made private", category=FutureWarning)
@@ -140,6 +141,12 @@ def start_server(app, host=None, port=None, socket=None):
     if socket:
         uvicorn.run(app, proxy_headers=True, uds=socket, log_level="debug", use_colors=True, log_config=None)
     else:
+        url = f"http://{host}:{port}"
+        logger.info(f"🌗 Khoj is running at {url}")
+        try:
+            webbrowser.open(url)
+        except:
+            logger.warning("🚧 Unable to open browser. Please open it manually to configure Khoj.")
         uvicorn.run(app, host=host, port=port, log_level="debug", use_colors=True, log_config=None)
     logger.info("🌒 Stopping Khoj")
 
