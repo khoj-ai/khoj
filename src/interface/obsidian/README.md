@@ -1,6 +1,6 @@
 <img src="/src/khoj/interface/web/assets/icons/khoj-logo-sideways.svg" width="200" alt="Khoj Logo">Obsidian
 
-> Natural language search for your Obsidian notes using [Khoj](https://github.com/khoj-ai/khoj)
+> An AI personal assistant for your Digital Brain in Obsidian
 
 ## Table of Contents
 
