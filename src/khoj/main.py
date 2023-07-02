@@ -77,7 +77,7 @@ def run():
         logger.warning("🚧 GUI is being deprecated and may not work as expected. Starting...")
         # Setup GUI
         gui = QtWidgets.QApplication([])
-        main_window = MainWindow(args.config_file)
+        main_window = MainWindow(args.host, args.port)
 
         # System tray is only available on Windows, MacOS.
         # On Linux (Gnome) the System tray is not supported.
