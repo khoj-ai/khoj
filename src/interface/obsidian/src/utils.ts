@@ -1,5 +1,6 @@
 import { FileSystemAdapter, Notice, RequestUrlParam, request, Vault, Modal } from 'obsidian';
 import { KhojSetting } from 'src/settings'
+import * as fs from 'fs';
 
 export function getVaultAbsolutePath(vault: Vault): string {
     let adaptor = vault.adapter;
@@ -72,7 +73,9 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
                 }
             }
             // Else if khoj is not configured to index markdown files in configured obsidian vault
-            else if (data["content-type"]["markdown"]["input-filter"].length != 1 ||
+            else if (data["content-type"]["markdown"]["input-filter"] == null ||
+                data["content-type"]["markdown"]["input-files"] != null ||
+                data["content-type"]["markdown"]["input-filter"].length != 1 ||
                 data["content-type"]["markdown"]["input-filter"][0] !== mdInVault) {
                 // Update markdown config in khoj content-type config
                 // Set markdown config to only index markdown files in configured obsidian vault
@@ -88,25 +91,40 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
             if (khoj_already_configured && !data["content-type"]["pdf"]) {
                 // Add pdf config to khoj content-type config
                 // Set pdf config to index pdf files in configured obsidian vault
-                data["content-type"]["pdf"] = {
-                    "input-filter": [pdfInVault],
-                    "input-files": null,
-                    "embeddings-file": `${khojDefaultPdfIndexDirectory}/${indexName}.pt`,
-                    "compressed-jsonl": `${khojDefaultPdfIndexDirectory}/${indexName}.jsonl.gz`,
+
+                let pdfs = fs.readdirSync(vaultPath).filter(file => file.endsWith(".pdf"));
+
+                if (pdfs.length > 0) {
+                    data["content-type"]["pdf"] = {
+                        "input-filter": [pdfInVault],
+                        "input-files": null,
+                        "embeddings-file": `${khojDefaultPdfIndexDirectory}/${indexName}.pt`,
+                        "compressed-jsonl": `${khojDefaultPdfIndexDirectory}/${indexName}.jsonl.gz`,
+                    }
+                } else {
+                    data["content-type"]["pdf"] = null;
                 }
             }
             // Else if khoj is not configured to index pdf files in configured obsidian vault
             else if (khoj_already_configured &&
-                (data["content-type"]["pdf"]["input-filter"].length != 1 ||
+                (data["content-type"]["pdf"]["input-filter"] == null ||
+                data["content-type"]["pdf"]["input-filter"].length != 1 ||
                 data["content-type"]["pdf"]["input-filter"][0] !== pdfInVault)) {
-                // Update pdf config in khoj content-type config
-                // Set pdf config to only index pdf files in configured obsidian vault
-                let khojPdfIndexDirectory = getIndexDirectoryFromBackendConfig(data["content-type"]["pdf"]["embeddings-file"]);
-                data["content-type"]["pdf"] = {
-                    "input-filter": [pdfInVault],
-                    "input-files": null,
-                    "embeddings-file": `${khojPdfIndexDirectory}/${indexName}.pt`,
-                    "compressed-jsonl": `${khojPdfIndexDirectory}/${indexName}.jsonl.gz`,
+
+                let pdfs = fs.readdirSync(vaultPath).filter(file => file.endsWith(".pdf"));
+
+                if (pdfs.length > 0) {
+                    // Update pdf config in khoj content-type config
+                    // Set pdf config to only index pdf files in configured obsidian vault
+                    let khojPdfIndexDirectory = getIndexDirectoryFromBackendConfig(data["content-type"]["pdf"]["embeddings-file"]);
+                    data["content-type"]["pdf"] = {
+                        "input-filter": [pdfInVault],
+                        "input-files": null,
+                        "embeddings-file": `${khojPdfIndexDirectory}/${indexName}.pt`,
+                        "compressed-jsonl": `${khojPdfIndexDirectory}/${indexName}.jsonl.gz`,
+                    }
+                } else {
+                    data["content-type"]["pdf"] = null;
                 }
             }
 
