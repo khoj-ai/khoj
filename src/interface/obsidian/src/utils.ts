@@ -1,6 +1,5 @@
 import { FileSystemAdapter, Notice, RequestUrlParam, request, Vault, Modal } from 'obsidian';
 import { KhojSetting } from 'src/settings'
-import * as fs from 'fs';
 
 export function getVaultAbsolutePath(vault: Vault): string {
     let adaptor = vault.adapter;
@@ -111,9 +110,9 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
                     data["content-type"]["pdf"]["input-filter"].length != 1 ||
                     data["content-type"]["pdf"]["input-filter"][0] !== pdfInVault)) {
 
-                let pdfs = fs.readdirSync(vaultPath).filter(file => file.endsWith(".pdf"));
+                let hasPdfFiles = app.vault.getFiles().some(file => file.extension === 'pdf');
 
-                if (pdfs.length > 0) {
+                if (hasPdfFiles) {
                     // Update pdf config in khoj content-type config
                     // Set pdf config to only index pdf files in configured obsidian vault
                     let khojPdfIndexDirectory = getIndexDirectoryFromBackendConfig(data["content-type"]["pdf"]["embeddings-file"]);
