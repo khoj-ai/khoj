@@ -73,28 +73,26 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
                 }
             }
             // Else if khoj is not configured to index markdown files in configured obsidian vault
-            else if (data["content-type"]["markdown"]["input-filter"] == null ||
+            else if (
                 data["content-type"]["markdown"]["input-files"] != null ||
+                data["content-type"]["markdown"]["input-filter"] == null ||
                 data["content-type"]["markdown"]["input-filter"].length != 1 ||
                 data["content-type"]["markdown"]["input-filter"][0] !== mdInVault) {
-                // Update markdown config in khoj content-type config
-                // Set markdown config to only index markdown files in configured obsidian vault
-                let khojMdIndexDirectory = getIndexDirectoryFromBackendConfig(data["content-type"]["markdown"]["embeddings-file"]);
-                data["content-type"]["markdown"] = {
-                    "input-filter": [mdInVault],
-                    "input-files": null,
-                    "embeddings-file": `${khojMdIndexDirectory}/${indexName}.pt`,
-                    "compressed-jsonl": `${khojMdIndexDirectory}/${indexName}.jsonl.gz`,
-                }
+                    // Update markdown config in khoj content-type config
+                    // Set markdown config to only index markdown files in configured obsidian vault
+                    let khojMdIndexDirectory = getIndexDirectoryFromBackendConfig(data["content-type"]["markdown"]["embeddings-file"]);
+                    data["content-type"]["markdown"] = {
+                        "input-filter": [mdInVault],
+                        "input-files": null,
+                        "embeddings-file": `${khojMdIndexDirectory}/${indexName}.pt`,
+                        "compressed-jsonl": `${khojMdIndexDirectory}/${indexName}.jsonl.gz`,
+                    }
             }
 
             if (khoj_already_configured && !data["content-type"]["pdf"]) {
-                // Add pdf config to khoj content-type config
-                // Set pdf config to index pdf files in configured obsidian vault
+                const hasPdfFiles = app.vault.getFiles().some(file => file.extension === 'pdf');
 
-                let pdfs = fs.readdirSync(vaultPath).filter(file => file.endsWith(".pdf"));
-
-                if (pdfs.length > 0) {
+                if (hasPdfFiles) {
                     data["content-type"]["pdf"] = {
                         "input-filter": [pdfInVault],
                         "input-files": null,
@@ -107,9 +105,11 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
             }
             // Else if khoj is not configured to index pdf files in configured obsidian vault
             else if (khoj_already_configured &&
-                (data["content-type"]["pdf"]["input-filter"] == null ||
-                data["content-type"]["pdf"]["input-filter"].length != 1 ||
-                data["content-type"]["pdf"]["input-filter"][0] !== pdfInVault)) {
+                (
+                    data["content-type"]["pdf"]["input-files"] != null ||
+                    data["content-type"]["pdf"]["input-filter"] == null ||
+                    data["content-type"]["pdf"]["input-filter"].length != 1 ||
+                    data["content-type"]["pdf"]["input-filter"][0] !== pdfInVault)) {
 
                 let pdfs = fs.readdirSync(vaultPath).filter(file => file.endsWith(".pdf"));
 
