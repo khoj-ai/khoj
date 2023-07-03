@@ -38,7 +38,7 @@ if not state.demo:
             search_type=None,
             processor=None,
         )
-        current_config = state.config if state.config else json.loads(default_full_config.json())
+        current_config = state.config or json.loads(default_full_config.json())
         return templates.TemplateResponse("config.html", context={"request": request, "current_config": current_config})
 
     @web_client.get("/config/content_type/github", response_class=HTMLResponse)
