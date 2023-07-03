@@ -157,6 +157,7 @@ class GithubToJsonl(TextToJsonl):
                     content += chunk.decode("utf-8")
                 except Exception as e:
                     logger.error(f"Unable to decode chunk from {file_url}")
+                    logger.error(e)
 
         return content
 
