@@ -398,7 +398,8 @@ def update(
         logger.info("📬 Search index updated via API")
 
     try:
-        state.processor_config = configure_processor(state.config.processor)
+        if state.config and state.config.processor:
+            state.processor_config = configure_processor(state.config.processor)
     except ValueError as e:
         logger.error(e)
         raise HTTPException(status_code=500, detail=str(e))
