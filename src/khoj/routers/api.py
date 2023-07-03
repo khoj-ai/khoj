@@ -54,7 +54,7 @@ if not state.demo:
         return state.config
 
     @api.post("/config/data/content_type/github", status_code=200)
-    async def set_content_config_github_data(updated_config: GithubContentConfig):
+    async def set_content_config_github_data(updated_config: Union[GithubContentConfig, None]):
         if not state.config:
             state.config = FullConfig()
             state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
@@ -70,8 +70,35 @@ if not state.demo:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
+    @api.post("/delete/config/data/content_type/{content_type}", status_code=200)
+    async def remove_content_config_data(content_type: str):
+        if not state.config or not state.config.content_type:
+            return {"status": "ok"}
+
+        if state.config.content_type:
+            state.config.content_type[content_type] = None
+
+        try:
+            save_config_to_file_updated_state()
+            return {"status": "ok"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+    @api.post("/delete/config/data/processor/conversation", status_code=200)
+    async def remove_processor_conversation_config_data():
+        if not state.config or not state.config.processor or not state.config.processor.conversation:
+            return {"status": "ok"}
+
+        state.config.processor.conversation = None
+
+        try:
+            save_config_to_file_updated_state()
+            return {"status": "ok"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
     @api.post("/config/data/content_type/{content_type}", status_code=200)
-    async def set_content_config_data(content_type: str, updated_config: TextContentConfig):
+    async def set_content_config_data(content_type: str, updated_config: Union[TextContentConfig, None]):
         if not state.config:
             state.config = FullConfig()
             state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
@@ -88,7 +115,7 @@ if not state.demo:
             return {"status": "error", "message": str(e)}
 
     @api.post("/config/data/processor/conversation", status_code=200)
-    async def set_processor_conversation_config_data(updated_config: ConversationProcessorConfig):
+    async def set_processor_conversation_config_data(updated_config: Union[ConversationProcessorConfig, None]):
         if not state.config:
             state.config = FullConfig()
             state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
@@ -342,7 +369,8 @@ def update(
         logger.info("📬 Search index updated via API")
 
     try:
-        state.processor_config = configure_processor(state.config.processor)
+        if state.config and state.config.processor:
+            state.processor_config = configure_processor(state.config.processor)
     except ValueError as e:
         logger.error(e)
         raise HTTPException(status_code=500, detail=str(e))
