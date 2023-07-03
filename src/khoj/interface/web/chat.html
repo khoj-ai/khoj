@@ -87,7 +87,14 @@
                 .then(data => {
                     if (data.detail) {
                         // If the server returns a 500 error with detail, render it as a message.
-                        renderMessage(data.detail + " You can configure Khoj chat in your <a class='inline-chat-link' href='/config'>settings</a>.", "khoj");
+                        renderMessage("Hi 👋🏾, to get started <br/>1. Get your <a class='inline-chat-link' href='https://platform.openai.com/account/api-keys'>OpenAI API key</a><br/>2. Save it in the Khoj <a class='inline-chat-link' href='/config/processor/conversation'>chat settings</a> <br/>3. Click Configure on the Khoj <a class='inline-chat-link' href='/config'>settings page</a>", "khoj");
+
+                        // Disable chat input field and update placeholder text
+                        document.getElementById("chat-input").setAttribute("disabled", "disabled");
+                        document.getElementById("chat-input").setAttribute("placeholder", "Configure Khoj to enable chat");
+                    } else {
+                        // Set welcome message on load
+                        renderMessage("Hey 👋🏾, what's up?", "khoj");
                     }
                     return data.response;
                 })
@@ -100,9 +107,6 @@
                 .catch(err => {
                     return;
                 });
-
-             // Set welcome message on load
-            renderMessage("Hey, what's up?", "khoj");
 
             // Fill query field with value passed in URL query parameters, if any.
             var query_via_url = new URLSearchParams(window.location.search).get("q");

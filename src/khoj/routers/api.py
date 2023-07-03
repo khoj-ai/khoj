@@ -408,7 +408,7 @@ async def chat(
         or state.processor_config.conversation.openai_api_key is None
     ):
         raise HTTPException(
-            status_code=500, detail="Chat processor not configured. Configure OpenAI API key on server and restart it."
+            status_code=500, detail="Set your OpenAI API key via Khoj settings and restart it to use Khoj Chat."
         )
 
     # Load Conversation History

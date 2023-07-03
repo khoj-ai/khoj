@@ -161,6 +161,14 @@
             fetch("/api/config/types")
                 .then(response => response.json())
                 .then(enabled_types => {
+                    // Show warning if no content types are enabled
+                    if (enabled_types.detail) {
+                        document.getElementById("results").innerHTML = "<div id='results-error'>To use Khoj search, setup your content plugins on the Khoj <a class='inline-chat-link' href='/config'>settings page</a>.</div>";
+                        document.getElementById("query").setAttribute("disabled", "disabled");
+                        document.getElementById("query").setAttribute("placeholder", "Configure Khoj to enable search");
+                        return [];
+                    }
+
                     document.getElementById("type").innerHTML =
                     enabled_types
                     .map(type => `<option value="${type}">${type.slice(0,1).toUpperCase() + type.slice(1)}</option>`)
@@ -407,6 +415,7 @@
             border-radius: 50%;
         }
 
+        div#results-error,
         div.results-markdown,
         div.results-org,
         div.results-pdf {
@@ -416,6 +425,10 @@
             padding: 10px;
             margin: 10px 0;
             border: 4px solid rgb(229, 229, 229);
+        }
+
+        div#results-error {
+            box-shadow: 2px 2px 2px #FF5722;
         }
 
         img {
@@ -481,8 +494,7 @@
     </style>
     <script>
         var khojBannerSubmit = document.getElementById("khoj-banner-submit");
-
-        khojBannerSubmit.addEventListener("click", function(event) {
+        khojBannerSubmit?.addEventListener("click", function(event) {
             event.preventDefault();
             var email = document.getElementById("khoj-banner-email").value;
             fetch("https://lantern.khoj.dev/beta/users/", {
