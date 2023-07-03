@@ -171,11 +171,9 @@ async def search(
         defiltered_query = filter.defilter(user_query)
 
     encoded_asymmetric_query = None
-    if t == SearchType.All or (t != SearchType.Ledger and t != SearchType.Image):
+    if t == SearchType.All or t != SearchType.Image:
         text_search_models: List[TextSearchModel] = [
-            model
-            for model_name, model in state.model.__dict__.items()
-            if isinstance(model, TextSearchModel) and model_name != "ledger_search"
+            model for model in state.model.__dict__.values() if isinstance(model, TextSearchModel)
         ]
         if text_search_models:
             with timer("Encoding query took", logger=logger):
@@ -237,33 +235,6 @@ async def search(
                     text_search.query,
                     user_query,
                     state.model.pdf_search,
-                    question_embedding=encoded_asymmetric_query,
-                    rank_results=r or False,
-                    score_threshold=score_threshold,
-                    dedupe=dedupe or True,
-                )
-            ]
-
-        if (t == SearchType.Ledger) and state.model.ledger_search:
-            # query transactions
-            search_futures += [
-                executor.submit(
-                    text_search.query,
-                    user_query,
-                    state.model.ledger_search,
-                    rank_results=r or False,
-                    score_threshold=score_threshold,
-                    dedupe=dedupe or True,
-                )
-            ]
-
-        if (t == SearchType.Music or t == SearchType.All) and state.model.music_search:
-            # query music library
-            search_futures += [
-                executor.submit(
-                    text_search.query,
-                    user_query,
-                    state.model.music_search,
                     question_embedding=encoded_asymmetric_query,
                     rank_results=r or False,
                     score_threshold=score_threshold,
