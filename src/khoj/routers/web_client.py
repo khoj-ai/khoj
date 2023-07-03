@@ -3,12 +3,11 @@ from fastapi import APIRouter
 from fastapi import Request
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
-from khoj.utils.rawconfig import TextContentConfig, ConversationProcessorConfig
+from khoj.utils.rawconfig import TextContentConfig, ConversationProcessorConfig, FullConfig
 
 # Internal Packages
 from khoj.utils import constants, state
 
-import logging
 import json
 
 
@@ -34,7 +33,12 @@ if not state.demo:
 
     @web_client.get("/config", response_class=HTMLResponse)
     def config_page(request: Request):
-        current_config = state.config if state.config else constants.default_config
+        default_full_config = FullConfig(
+            content_type=None,
+            search_type=None,
+            processor=None,
+        )
+        current_config = state.config if state.config else json.loads(default_full_config.json())
         return templates.TemplateResponse("config.html", context={"request": request, "current_config": current_config})
 
     @web_client.get("/config/content_type/github", response_class=HTMLResponse)
