@@ -112,46 +112,6 @@ Rule everything\n\
 \n"))))
 
 
-(ert-deftest khoj-tests--extract-entries-as-ledger ()
-  "Test `json-response', `query' from API formatted as beancount ledger."
-  (let ((user-query "Become God")
-        (json-response-from-khoj-backend
-         (json-read-from-string
-          "[\
-{\
-  \"entry\": \"4242-04-01 * \\\"Penance Center\\\" \\\"Book Stay for 10,000 Years\\\"\\n  Expenses:Health:Mental  15 GOLD\\n  Assets:Commodities:Gold\",\
-  \"score\": \"0.42\",\
-  \"additional\": {\
-    \"file\": \"/home/ravan/ledger.beancount\",\
-    \"compiled\": \"4242-04-01 * \\\"Penance Center\\\" \\\"Book Stay for 10,000 Years\\\"  Expenses:Health:Mental  15 GOLD Assets:Commodities:Gold\"\
-  }\
-},\
-{\
-  \"entry\": \"14242-04-01 * \\\"Brahma\\\" \\\"Boon for Invincibility from Higher Beings\\\"\\n  Income:Health  -1,00,00,000 LIFE\\n  Assets:Commodities:Life\",\
-  \"score\": \"0.42\",\
-  \"additional\": {\
-    \"file\": \"/home/ravan/ledger.beancount\",\
-    \"compiled\": \"4242-04-01 * \\\"Brahma\\\" \\\"Boon for Invincibility from Higher Beings\\\"  Income:Health  -1,00,00,000 LIFE Assets:Commodities:Life\"\
-  }\
-}]\
-")))
-    (should
-     (equal
-      (khoj--extract-entries-as-ledger json-response-from-khoj-backend user-query)
-      ";; Become God\n\
-\n\
-4242-04-01 * \"Penance Center\" \"Book Stay for 10,000 Years\"\n\
- Expenses:Health:Mental  15 GOLD\n\
- Assets:Commodities:Gold\n\
-\n\
-14242-04-01 * \"Brahma\" \"Boon for Invincibility from Higher Beings\"\n\
- Income:Health  -1,00,00,000 LIFE\n\
- Assets:Commodities:Life\n\
-\n\
-\n\
-"))))
-
-
 
 ;; -------------------------------------
 ;; Test Helpers for Find Similar Feature

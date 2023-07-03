@@ -12,7 +12,6 @@ from fastapi.staticfiles import StaticFiles
 
 # Internal Packages
 from khoj.processor.conversation.gpt import summarize
-from khoj.processor.ledger.beancount_to_jsonl import BeancountToJsonl
 from khoj.processor.jsonl.jsonl_to_jsonl import JsonlToJsonl
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
@@ -109,18 +108,6 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
                 filters=[DateFilter(), WordFilter(), FileFilter()],
             )
 
-        # Initialize Org Music Search
-        if (t == state.SearchType.Music or t == None) and config.content_type.music and config.search_type.asymmetric:
-            logger.info("🎺 Setting up search for org-music")
-            # Extract Entries, Generate Music Embeddings
-            model.music_search = text_search.setup(
-                OrgToJsonl,
-                config.content_type.music,
-                search_config=config.search_type.asymmetric,
-                regenerate=regenerate,
-                filters=[DateFilter(), WordFilter()],
-            )
-
         # Initialize Markdown Search
         if (
             (t == state.SearchType.Markdown or t == None)
@@ -133,18 +120,6 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
                 MarkdownToJsonl,
                 config.content_type.markdown,
                 search_config=config.search_type.asymmetric,
-                regenerate=regenerate,
-                filters=[DateFilter(), WordFilter(), FileFilter()],
-            )
-
-        # Initialize Ledger Search
-        if (t == state.SearchType.Ledger or t == None) and config.content_type.ledger and config.search_type.symmetric:
-            logger.info("💸 Setting up search for ledger")
-            # Extract Entries, Generate Ledger Embeddings
-            model.ledger_search = text_search.setup(
-                BeancountToJsonl,
-                config.content_type.ledger,
-                search_config=config.search_type.symmetric,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
             )

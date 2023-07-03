@@ -15,7 +15,7 @@ import json
 web_client = APIRouter()
 templates = Jinja2Templates(directory=constants.web_directory)
 
-VALID_CONTENT_TYPES = ["org", "ledger", "markdown", "pdf"]
+VALID_TEXT_CONTENT_TYPES = ["org", "markdown", "pdf"]
 
 
 # Create Routes
@@ -65,7 +65,7 @@ if not state.demo:
 
     @web_client.get("/config/content_type/{content_type}", response_class=HTMLResponse)
     def content_config_page(request: Request, content_type: str):
-        if content_type not in VALID_CONTENT_TYPES:
+        if content_type not in VALID_TEXT_CONTENT_TYPES:
             return templates.TemplateResponse("config.html", context={"request": request})
 
         default_copy = constants.default_config.copy()
