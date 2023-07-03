@@ -98,10 +98,14 @@ class PdfToJsonl(TextToJsonl):
         entries = []
         entry_to_location_map = []
         for pdf_file in pdf_files:
-            loader = PyPDFLoader(pdf_file)
-            pdf_entries_per_file = [page.page_content for page in loader.load()]
-            entry_to_location_map += zip(pdf_entries_per_file, [pdf_file] * len(pdf_entries_per_file))
-            entries.extend(pdf_entries_per_file)
+            try:
+                loader = PyPDFLoader(pdf_file)
+                pdf_entries_per_file = [page.page_content for page in loader.load()]
+                entry_to_location_map += zip(pdf_entries_per_file, [pdf_file] * len(pdf_entries_per_file))
+                entries.extend(pdf_entries_per_file)
+            except Exception as e:
+                logger.error(f"Error processing file: {pdf_file}. This file will not be indexed.")
+                logger.error(e)
 
         return entries, dict(entry_to_location_map)
 
