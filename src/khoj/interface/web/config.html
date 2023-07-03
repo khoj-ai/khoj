@@ -253,7 +253,7 @@
         reinitialize.disabled = true;
         reinitialize.innerHTML = "Reinitializing...";
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
-        fetch('/api/update?&client=web?force=true', {
+        fetch('/api/update?&client=web&force=True', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',

@@ -92,6 +92,9 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
         logger.warning("🚨 No Content or Search type is configured.")
         return
 
+    if model is None:
+        model = SearchModels()
+
     try:
         # Initialize Org Notes Search
         if (t == state.SearchType.Org or t == None) and config.content_type.org and config.search_type.asymmetric:
