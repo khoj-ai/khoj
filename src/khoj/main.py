@@ -74,7 +74,6 @@ def run():
         configure_routes(app)
         start_server(app, host=args.host, port=args.port, socket=args.socket)
     else:
-        logger.warning("🚧 GUI is being deprecated and may not work as expected. Starting...")
         # Setup GUI
         gui = QtWidgets.QApplication([])
         main_window = MainWindow(args.host, args.port)
