@@ -67,7 +67,7 @@ def chat_completion_with_backoff(messages, model_name, temperature, openai_api_k
         model_name=model_name,
         temperature=temperature,
         openai_api_key=openai_api_key or os.getenv("OPENAI_API_KEY"),
-        request_timeout=10,
+        request_timeout=20,
         max_retries=1,
     )
     return chat(messages).content
