@@ -478,7 +478,7 @@ async def chat(
             result_list = []
             for query in inferred_queries:
                 result_list.extend(
-                    await search(query, request=request, n=5, r=True, score_threshold=-5.0, dedupe=False)
+                    await search(query, request=request, n=5, r=False, score_threshold=-5.0, dedupe=False)
                 )
             compiled_references = [item.additional["compiled"] for item in result_list]
 
@@ -501,7 +501,15 @@ async def chat(
 
     try:
         with timer("Generating chat response took", logger):
-            gpt_response = converse(compiled_references, q, meta_log, model=chat_model, api_key=api_key)
+            gpt_response = converse(
+                compiled_references,
+                q,
+                meta_log,
+                model=chat_model,
+                api_key=api_key,
+                chat_session=chat_session,
+                inferred_queries=inferred_queries,
+            )
     except Exception as e:
         gpt_response = str(e)
 

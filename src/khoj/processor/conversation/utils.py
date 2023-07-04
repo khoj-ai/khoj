@@ -6,6 +6,7 @@ from typing import Any, Optional
 from uuid import UUID
 import asyncio
 from threading import Thread
+import json
 
 # External Packages
 from langchain.chat_models import ChatOpenAI
@@ -36,8 +37,9 @@ max_prompt_size = {"gpt-3.5-turbo": 4096, "gpt-4": 8192}
 
 
 class ThreadedGenerator:
-    def __init__(self):
+    def __init__(self, compiled_references):
         self.queue = queue.Queue()
+        self.compiled_references = compiled_references
 
     def __iter__(self):
         return self
@@ -45,13 +47,15 @@ class ThreadedGenerator:
     def __next__(self):
         item = self.queue.get()
         if item is StopIteration:
-            raise item
+            raise StopIteration
         return item
 
     def send(self, data):
         self.queue.put(data)
 
     def close(self):
+        if self.compiled_references and len(self.compiled_references) > 0:
+            self.queue.put(f"### compiled references:{json.dumps(self.compiled_references)}")
         self.queue.put(StopIteration)
 
 
@@ -101,8 +105,8 @@ def completion_with_backoff(**kwargs):
     before_sleep=before_sleep_log(logger, logging.DEBUG),
     reraise=True,
 )
-def chat_completion_with_backoff(messages, model_name, temperature, openai_api_key=None):
-    g = ThreadedGenerator()
+def chat_completion_with_backoff(messages, compiled_references, model_name, temperature, openai_api_key=None):
+    g = ThreadedGenerator(compiled_references)
     t = Thread(target=llm_thread, args=(g, messages, model_name, temperature, openai_api_key))
     t.start()
     return g

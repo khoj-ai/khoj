@@ -89,10 +89,21 @@
                             }
 
                             const chunk = decoder.decode(value, { stream: true });
-                            new_response_text.innerHTML += chunk;
-                            console.log(`Received ${chunk.length} bytes of data`);
-                            console.log(`Chunk: ${chunk}`);
-                            readStream();
+
+                            if (chunk.startsWith("### compiled references:")) {
+                                const rawReference = chunk.split("### compiled references:")[1];
+                                const rawReferenceAsJson = JSON.parse(rawReference);
+                                let polishedReference = rawReferenceAsJson.map((reference, index) => generateReference(reference, index))
+                                    .join("<sup>,</sup>");
+
+                                new_response_text.innerHTML += polishedReference;
+                            } else {
+                                new_response_text.innerHTML += chunk;
+                                console.log(`Received ${chunk.length} bytes of data`);
+                                console.log(`Chunk: ${chunk}`);
+                                document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+                                readStream();
+                            }
                         });
                     }
                     readStream();

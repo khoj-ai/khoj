@@ -172,6 +172,7 @@ def converse(references, user_query, conversation_log={}, model="gpt-3.5-turbo",
     logger.debug(f"Conversation Context for GPT: {messages}")
     return chat_completion_with_backoff(
         messages=messages,
+        compiled_references=references,
         model_name=model,
         temperature=temperature,
         openai_api_key=api_key,
