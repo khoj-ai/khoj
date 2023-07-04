@@ -64,14 +64,47 @@
             // Generate backend API URL to execute query
             let url = `/api/chat?q=${encodeURIComponent(query)}&client=web`;
 
-            // Call specified Khoj API
+            let chat_body = document.getElementById("chat-body");
+            let new_response = document.createElement("div");
+            new_response.classList.add("chat-message", "khoj");
+            new_response.attributes["data-meta"] = "🏮 Khoj at " + formatDate(new Date());
+            chat_body.appendChild(new_response);
+
+            let new_response_text = document.createElement("div");
+            new_response_text.classList.add("chat-message-text", "khoj");
+            new_response.appendChild(new_response_text);
+
+            // Call specified Khoj API which returns a streamed response of type text/plain
             fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    // Render message by Khoj to chat body
-                    console.log(data.response);
-                    renderMessageWithReference(data.response, "khoj", data.context);
+                .then(response => {
+                    console.log(response);
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+
+                    function readStream() {
+                        reader.read().then(({ done, value }) => {
+                            if (done) {
+                                console.log("Stream complete");
+                                return;
+                            }
+
+                            const chunk = decoder.decode(value, { stream: true });
+                            new_response_text.innerHTML += chunk;
+                            console.log(`Received ${chunk.length} bytes of data`);
+                            console.log(`Chunk: ${chunk}`);
+                            readStream();
+                        });
+                    }
+                    readStream();
                 });
+
+
+            // fetch(url)
+            //     .then(data => {
+            //         // Render message by Khoj to chat body
+            //         console.log(data.response);
+            //         renderMessageWithReference(data.response, "khoj", data.context);
+            //     });
         }
 
         function incrementalChat(event) {
@@ -82,7 +115,7 @@
         }
 
         window.onload = function () {
-            fetch('/api/chat?client=web')
+            fetch('/api/chat/init?client=web')
                 .then(response => response.json())
                 .then(data => {
                     if (data.detail) {

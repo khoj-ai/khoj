@@ -170,12 +170,18 @@ def converse(references, user_query, conversation_log={}, model="gpt-3.5-turbo",
 
     # Get Response from GPT
     logger.debug(f"Conversation Context for GPT: {messages}")
-    response = chat_completion_with_backoff(
+    return chat_completion_with_backoff(
         messages=messages,
         model_name=model,
         temperature=temperature,
         openai_api_key=api_key,
     )
 
-    # Extract, Clean Message from GPT's Response
-    return response.strip(empty_escape_sequences)
+    # async for tokens in chat_completion_with_backoff(
+    #     messages=messages,
+    #     model_name=model,
+    #     temperature=temperature,
+    #     openai_api_key=api_key,
+    # ):
+    #     logger.info(f"Tokens from GPT: {tokens}")
+    #     yield tokens
