@@ -98,6 +98,9 @@ export class KhojChatModal extends Modal {
             text: `${message}`
         })
 
+        // Remove user-select: none property to make text selectable
+        chat_message_el.style.userSelect = "text";
+
         // Scroll to bottom after inserting chat messages
         this.modalEl.scrollTop = this.modalEl.scrollHeight;
 
