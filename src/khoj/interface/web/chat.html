@@ -77,7 +77,6 @@
             // Call specified Khoj API which returns a streamed response of type text/plain
             fetch(url)
                 .then(response => {
-                    console.log(response);
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
 

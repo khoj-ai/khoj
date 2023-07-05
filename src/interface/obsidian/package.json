@@ -8,7 +8,12 @@
         "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
         "version": "node version-bump.mjs && git add manifest.json versions.json"
     },
-    "keywords": ["search", "chat", "AI", "assistant"],
+    "keywords": [
+        "search",
+        "chat",
+        "AI",
+        "assistant"
+    ],
     "author": "Debanjum Singh Solanky",
     "license": "GPL-3.0-or-later",
     "devDependencies": {
@@ -20,5 +25,9 @@
         "obsidian": "latest",
         "tslib": "2.4.0",
         "typescript": "4.7.4"
+    },
+    "dependencies": {
+        "@types/node-fetch": "^2.6.4",
+        "node-fetch": "3.0.0"
     }
 }
