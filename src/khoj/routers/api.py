@@ -398,7 +398,6 @@ def update(
 @api.get("/chat/init")
 def chat_init(
     request: Request,
-    q: Optional[str] = None,
     client: Optional[str] = None,
     user_agent: Optional[str] = Header(None),
     referer: Optional[str] = Header(None),
@@ -429,9 +428,7 @@ def chat_init(
         )
     ]
 
-    # If user query is empty, return chat history
-    if not q:
-        return {"status": "ok", "response": meta_log.get("chat", [])}
+    return {"status": "ok", "response": meta_log.get("chat", [])}
 
 
 @api.get("/chat", response_class=StreamingResponse)
@@ -474,7 +471,7 @@ async def chat(
     chat_session = state.processor_config.conversation.chat_session
     meta_log = state.processor_config.conversation.meta_log
 
-    # If user query is empty, return chat history
+    # If user query is empty, return nothing
     if not q:
         return StreamingResponse(None)
 

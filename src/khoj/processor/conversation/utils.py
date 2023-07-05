@@ -2,9 +2,7 @@
 import os
 import logging
 from datetime import datetime
-from typing import Any, Optional
-from uuid import UUID
-import asyncio
+from typing import Any
 from threading import Thread
 import json
 
@@ -12,10 +10,8 @@ import json
 from langchain.chat_models import ChatOpenAI
 from langchain.llms import OpenAI
 from langchain.schema import ChatMessage
-from langchain.callbacks.base import BaseCallbackHandler
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
-from langchain.callbacks import AsyncIteratorCallbackHandler
-from langchain.callbacks.base import BaseCallbackManager, AsyncCallbackHandler
+from langchain.callbacks.base import BaseCallbackManager
 import openai
 import tiktoken
 from tenacity import (
@@ -50,6 +46,7 @@ class ThreadedGenerator:
         item = self.queue.get()
         if item is StopIteration:
             if self.completion_func:
+                # The completion func effective acts as a callback. It adds the aggregated response to the conversation history. It's constructed in api.py.
                 self.completion_func(gpt_response=self.response)
             raise StopIteration
         return item

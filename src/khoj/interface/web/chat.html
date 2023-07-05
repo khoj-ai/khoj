@@ -84,7 +84,6 @@
                     function readStream() {
                         reader.read().then(({ done, value }) => {
                             if (done) {
-                                console.log("Stream complete");
                                 return;
                             }
 
@@ -99,8 +98,6 @@
                                 new_response_text.innerHTML += polishedReference;
                             } else {
                                 new_response_text.innerHTML += chunk;
-                                console.log(`Received ${chunk.length} bytes of data`);
-                                console.log(`Chunk: ${chunk}`);
                                 document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
                                 readStream();
                             }
@@ -108,14 +105,6 @@
                     }
                     readStream();
                 });
-
-
-            // fetch(url)
-            //     .then(data => {
-            //         // Render message by Khoj to chat body
-            //         console.log(data.response);
-            //         renderMessageWithReference(data.response, "khoj", data.context);
-            //     });
         }
 
         function incrementalChat(event) {
@@ -428,31 +417,33 @@
     <script>
         var khojBannerSubmit = document.getElementById("khoj-banner-submit");
 
-        khojBannerSubmit.addEventListener("click", function(event) {
-            event.preventDefault();
-            var email = document.getElementById("khoj-banner-email").value;
-            fetch("https://lantern.khoj.dev/beta/users/", {
-                    method: "POST",
-                    body: JSON.stringify({
-                        email: email
-                    }),
-                    headers: {
-                        "Content-Type": "application/json"
-                    }
-                }).then(function(response) {
-                    return response.json();
-                }).then(function(data) {
-                    console.log(data);
-                    if (data.user != null) {
-                        document.getElementById("khoj-banner").innerHTML = "Thanks for signing up. We'll be in touch soon! 🚀";
-                        document.getElementById("khoj-banner-submit").remove();
-                    } else {
+        if (khojBannerSubmit != null) {
+            khojBannerSubmit.addEventListener("click", function(event) {
+                event.preventDefault();
+                var email = document.getElementById("khoj-banner-email").value;
+                fetch("https://lantern.khoj.dev/beta/users/", {
+                        method: "POST",
+                        body: JSON.stringify({
+                            email: email
+                        }),
+                        headers: {
+                            "Content-Type": "application/json"
+                        }
+                    }).then(function(response) {
+                        return response.json();
+                    }).then(function(data) {
+                        console.log(data);
+                        if (data.user != null) {
+                            document.getElementById("khoj-banner").innerHTML = "Thanks for signing up. We'll be in touch soon! 🚀";
+                            document.getElementById("khoj-banner-submit").remove();
+                        } else {
+                            document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
+                        }
+                    }).catch(function(error) {
+                        console.log(error);
                         document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
-                    }
-                }).catch(function(error) {
-                    console.log(error);
-                    document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
+                    });
                 });
-            });
+        }
     </script>
 </html>
