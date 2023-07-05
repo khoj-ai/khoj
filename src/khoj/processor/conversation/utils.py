@@ -2,6 +2,7 @@
 import os
 import logging
 from datetime import datetime
+from time import perf_counter
 from typing import Any
 from threading import Thread
 import json
@@ -38,6 +39,7 @@ class ThreadedGenerator:
         self.compiled_references = compiled_references
         self.completion_func = completion_func
         self.response = ""
+        self.start_time = perf_counter()
 
     def __iter__(self):
         return self
@@ -45,6 +47,8 @@ class ThreadedGenerator:
     def __next__(self):
         item = self.queue.get()
         if item is StopIteration:
+            time_to_response = perf_counter() - self.start_time
+            logger.info(f"Time to stream full response: {time_to_response:.3f}")
             if self.completion_func:
                 # The completion func effective acts as a callback.
                 # It adds the aggregated response to the conversation history. It's constructed in api.py.
