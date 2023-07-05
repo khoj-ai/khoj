@@ -37,9 +37,11 @@ max_prompt_size = {"gpt-3.5-turbo": 4096, "gpt-4": 8192}
 
 
 class ThreadedGenerator:
-    def __init__(self, compiled_references):
+    def __init__(self, compiled_references, completion_func=None):
         self.queue = queue.Queue()
         self.compiled_references = compiled_references
+        self.completion_func = completion_func
+        self.response = ""
 
     def __iter__(self):
         return self
@@ -47,10 +49,13 @@ class ThreadedGenerator:
     def __next__(self):
         item = self.queue.get()
         if item is StopIteration:
+            if self.completion_func:
+                self.completion_func(gpt_response=self.response)
             raise StopIteration
         return item
 
     def send(self, data):
+        self.response += data
         self.queue.put(data)
 
     def close(self):
@@ -65,7 +70,6 @@ class StreamingChatCallbackHandler(StreamingStdOutCallbackHandler):
         self.gen = gen
 
     def on_llm_new_token(self, token: str, **kwargs) -> Any:
-        logger.debug(f"New Token: {token}")
         self.gen.send(token)
 
 
@@ -105,8 +109,10 @@ def completion_with_backoff(**kwargs):
     before_sleep=before_sleep_log(logger, logging.DEBUG),
     reraise=True,
 )
-def chat_completion_with_backoff(messages, compiled_references, model_name, temperature, openai_api_key=None):
-    g = ThreadedGenerator(compiled_references)
+def chat_completion_with_backoff(
+    messages, compiled_references, model_name, temperature, openai_api_key=None, completion_func=None
+):
+    g = ThreadedGenerator(compiled_references, completion_func=completion_func)
     t = Thread(target=llm_thread, args=(g, messages, model_name, temperature, openai_api_key))
     t.start()
     return g

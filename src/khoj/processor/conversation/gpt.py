@@ -144,7 +144,15 @@ def extract_search_type(text, model, api_key=None, temperature=0.5, max_tokens=1
     return json.loads(response.strip(empty_escape_sequences))
 
 
-def converse(references, user_query, conversation_log={}, model="gpt-3.5-turbo", api_key=None, temperature=0.2):
+def converse(
+    references,
+    user_query,
+    conversation_log={},
+    model="gpt-3.5-turbo",
+    api_key=None,
+    temperature=0.2,
+    completion_func=None,
+):
     """
     Converse with user using OpenAI's ChatGPT
     """
@@ -176,6 +184,7 @@ def converse(references, user_query, conversation_log={}, model="gpt-3.5-turbo",
         model_name=model,
         temperature=temperature,
         openai_api_key=api_key,
+        completion_func=completion_func,
     )
 
     # async for tokens in chat_completion_with_backoff(

@@ -6,6 +6,7 @@ import yaml
 import logging
 from datetime import datetime
 from typing import List, Optional, Union
+from functools import partial
 
 # External Packages
 from fastapi import APIRouter, HTTPException, Header, Request
@@ -442,6 +443,24 @@ async def chat(
     referer: Optional[str] = Header(None),
     host: Optional[str] = Header(None),
 ) -> StreamingResponse:
+    def _save_to_conversation_log(
+        q: str,
+        gpt_response: str,
+        user_message_time: str,
+        compiled_references: List[str],
+        inferred_queries: List[str],
+        chat_session: str,
+        meta_log,
+    ):
+        state.processor_config.conversation.chat_session = message_to_prompt(q, chat_session, gpt_message=gpt_response)
+        state.processor_config.conversation.meta_log["chat"] = message_to_log(
+            q,
+            gpt_response,
+            user_message_metadata={"created": user_message_time},
+            khoj_message_metadata={"context": compiled_references, "intent": {"inferred-queries": inferred_queries}},
+            conversation_log=meta_log.get("chat", []),
+        )
+
     if (
         state.processor_config is None
         or state.processor_config.conversation is None
@@ -501,26 +520,21 @@ async def chat(
 
     try:
         with timer("Generating chat response took", logger):
-            gpt_response = converse(
-                compiled_references,
+            partial_completion = partial(
+                _save_to_conversation_log,
                 q,
-                meta_log,
-                model=chat_model,
-                api_key=api_key,
-                chat_session=chat_session,
+                user_message_time=user_message_time,
+                compiled_references=compiled_references,
                 inferred_queries=inferred_queries,
+                chat_session=chat_session,
+                meta_log=meta_log,
             )
+
+            gpt_response = converse(
+                compiled_references, q, meta_log, model=chat_model, api_key=api_key, completion_func=partial_completion
+            )
+
     except Exception as e:
         gpt_response = str(e)
-
-    # Update Conversation History
-    # state.processor_config.conversation.chat_session = message_to_prompt(q, chat_session, gpt_message=gpt_response)
-    # state.processor_config.conversation.meta_log["chat"] = message_to_log(
-    #     q,
-    #     gpt_response,
-    #     user_message_metadata={"created": user_message_time},
-    #     khoj_message_metadata={"context": compiled_references, "intent": {"inferred-queries": inferred_queries}},
-    #     conversation_log=meta_log.get("chat", []),
-    # )
 
     return StreamingResponse(gpt_response, media_type="text/event-stream", status_code=200)
