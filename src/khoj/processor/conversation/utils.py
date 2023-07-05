@@ -46,7 +46,8 @@ class ThreadedGenerator:
         item = self.queue.get()
         if item is StopIteration:
             if self.completion_func:
-                # The completion func effective acts as a callback. It adds the aggregated response to the conversation history. It's constructed in api.py.
+                # The completion func effective acts as a callback.
+                # It adds the aggregated response to the conversation history. It's constructed in api.py.
                 self.completion_func(gpt_response=self.response)
             raise StopIteration
         return item
