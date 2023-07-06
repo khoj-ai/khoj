@@ -324,7 +324,7 @@ async def search(
     state.query_cache[query_cache_key] = results
 
     user_state = {
-        "client_host": request.client.host,
+        "client_host": request.client.host if request.client else "unknown",
         "user_agent": user_agent or "unknown",
         "referer": referer or "unknown",
         "host": host or "unknown",
@@ -380,7 +380,7 @@ def update(
         logger.info("📬 Processor reconfigured via API")
 
     user_state = {
-        "client_host": request.client.host,
+        "client_host": request.client.host if request.client else None,
         "user_agent": user_agent or "unknown",
         "referer": referer or "unknown",
         "host": host or "unknown",
@@ -416,7 +416,7 @@ def chat_init(
     meta_log = state.processor_config.conversation.meta_log
 
     user_state = {
-        "client_host": request.client.host,
+        "client_host": request.client.host if request.client else None,
         "user_agent": user_agent or "unknown",
         "referer": referer or "unknown",
         "host": host or "unknown",
@@ -503,7 +503,7 @@ async def chat(
     logger.debug(f"Conversation Type: {conversation_type}")
 
     user_state = {
-        "client_host": request.client.host,
+        "client_host": request.client.host if request.client else None,
         "user_agent": user_agent or "unknown",
         "referer": referer or "unknown",
         "host": host or "unknown",

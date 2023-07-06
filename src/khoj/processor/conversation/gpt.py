@@ -2,6 +2,7 @@
 import json
 import logging
 from datetime import datetime
+from typing import Optional
 
 # Internal Packages
 from khoj.utils.constants import empty_escape_sequences
@@ -47,6 +48,8 @@ def summarize(text, summary_type, model, user_query=None, api_key=None, temperat
         prompt = prompts.summarize_chat.format(text=text)
     elif summary_type == "notes":
         prompt = prompts.summarize_notes.format(text=text, user_query=user_query)
+    else:
+        raise ValueError(f"Invalid summary type: {summary_type}")
 
     # Get Response from GPT
     logger.debug(f"Prompt for GPT: {prompt}")
@@ -64,7 +67,9 @@ def summarize(text, summary_type, model, user_query=None, api_key=None, temperat
     return str(response).replace("\n\n", "")
 
 
-def extract_questions(text, model="text-davinci-003", conversation_log={}, api_key=None, temperature=0, max_tokens=100):
+def extract_questions(
+    text, model: Optional[str] = "text-davinci-003", conversation_log={}, api_key=None, temperature=0, max_tokens=100
+):
     """
     Infer search queries to retrieve relevant notes to answer user query
     """
@@ -148,7 +153,7 @@ def converse(
     references,
     user_query,
     conversation_log={},
-    model="gpt-3.5-turbo",
+    model: Optional[str] = "gpt-3.5-turbo",
     api_key=None,
     temperature=0.2,
     completion_func=None,
