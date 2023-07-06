@@ -1,10 +1,13 @@
 from pathlib import Path
+from khoj.utils import state
 
 app_root_directory = Path(__file__).parent.parent.parent
 web_directory = app_root_directory / "khoj/interface/web/"
 empty_escape_sequences = "\n|\r|\t| "
 app_env_filepath = "~/.khoj/env"
 telemetry_server = "https://khoj.beta.haletic.com/v1/telemetry"
+
+update_cadence_minutes = 60 * 24 if state.demo else 60  # 24 hours if demo, 1 hour otherwise
 
 # default app config to use
 default_config = {

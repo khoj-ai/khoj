@@ -41,6 +41,7 @@ from fastapi.responses import StreamingResponse
 api = APIRouter()
 logger = logging.getLogger(__name__)
 
+# If it's a demo instance, prevent updating any of the configuration.
 if not state.demo:
 
     @api.get("/config/data", response_model=FullConfig)

@@ -65,9 +65,8 @@ def run():
     logger.info("🌘 Starting Khoj")
 
     if not args.gui:
-        if not state.demo:
-            # Setup task scheduler
-            poll_task_scheduler()
+        # Setup task scheduler
+        poll_task_scheduler()
 
         # Start Server
         configure_server(args, required=False)

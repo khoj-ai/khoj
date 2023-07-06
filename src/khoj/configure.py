@@ -67,7 +67,7 @@ def configure_routes(app):
     app.include_router(web_client)
 
 
-@schedule.repeat(schedule.every(61).minutes)
+@schedule.repeat(schedule.every(constants.update_cadence_minutes).minutes)
 def update_search_index():
     state.search_index_lock.acquire()
     state.model = configure_search(state.model, state.config, regenerate=False)
