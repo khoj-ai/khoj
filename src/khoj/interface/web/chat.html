@@ -427,33 +427,31 @@
     <script>
         var khojBannerSubmit = document.getElementById("khoj-banner-submit");
 
-        if (khojBannerSubmit != null) {
-            khojBannerSubmit.addEventListener("click", function(event) {
-                event.preventDefault();
-                var email = document.getElementById("khoj-banner-email").value;
-                fetch("https://lantern.khoj.dev/beta/users/", {
-                        method: "POST",
-                        body: JSON.stringify({
-                            email: email
-                        }),
-                        headers: {
-                            "Content-Type": "application/json"
-                        }
-                    }).then(function(response) {
-                        return response.json();
-                    }).then(function(data) {
-                        console.log(data);
-                        if (data.user != null) {
-                            document.getElementById("khoj-banner").innerHTML = "Thanks for signing up. We'll be in touch soon! 🚀";
-                            document.getElementById("khoj-banner-submit").remove();
-                        } else {
-                            document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
-                        }
-                    }).catch(function(error) {
-                        console.log(error);
+        khojBannerSubmit?.addEventListener("click", function(event) {
+            event.preventDefault();
+            var email = document.getElementById("khoj-banner-email").value;
+            fetch("https://lantern.khoj.dev/beta/users/", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        email: email
+                    }),
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                }).then(function(response) {
+                    return response.json();
+                }).then(function(data) {
+                    console.log(data);
+                    if (data.user != null) {
+                        document.getElementById("khoj-banner").innerHTML = "Thanks for signing up. We'll be in touch soon! 🚀";
+                        document.getElementById("khoj-banner-submit").remove();
+                    } else {
                         document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
-                    });
+                    }
+                }).catch(function(error) {
+                    console.log(error);
+                    document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
                 });
-        }
+            });
     </script>
 </html>
