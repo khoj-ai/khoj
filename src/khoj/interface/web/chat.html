@@ -90,21 +90,22 @@
                                 return;
                             }
 
+                            // Decode message chunk from stream
                             const chunk = decoder.decode(value, { stream: true });
-
                             if (chunk.startsWith("### compiled references:")) {
-                                const rawReference = chunk.split("### compiled references:")[1];
-                                const rawReferenceAsJson = JSON.parse(rawReference);
-                                let polishedReference = rawReferenceAsJson.map((reference, index) => generateReference(reference, index))
+                                // Display references used to generate response
+                                const rawReferences = chunk.split("### compiled references:")[1];
+                                const rawReferencesAsJson = JSON.parse(rawReferences);
+                                let polishedReferences = rawReferencesAsJson
+                                    .map((reference, index) => generateReference(reference, index))
                                     .join("<sup>,</sup>");
-
-                                new_response_text.innerHTML += polishedReference;
+                                new_response_text.innerHTML += polishedReferences;
                             } else {
-                                // Clear temporary status message
+                                // Display response from Khoj
                                 if (new_response_text.innerHTML === "🤔") {
+                                    // Clear temporary status message
                                     new_response_text.innerHTML = "";
                                 }
-
                                 new_response_text.innerHTML += chunk;
                                 readStream();
                             }
