@@ -1,4 +1,4 @@
-import { App, Modal, request, Setting } from 'obsidian';
+import { App, Modal, request } from 'obsidian';
 import { KhojSetting } from 'src/settings';
 import fetch from "node-fetch";
 
