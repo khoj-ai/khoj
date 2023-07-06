@@ -48,7 +48,7 @@ class ThreadedGenerator:
         item = self.queue.get()
         if item is StopIteration:
             time_to_response = perf_counter() - self.start_time
-            logger.info(f"Time to stream full response: {time_to_response:.3f}")
+            logger.info(f"Chat streaming took: {time_to_response:.3f} seconds")
             if self.completion_func:
                 # The completion func effective acts as a callback.
                 # It adds the aggregated response to the conversation history. It's constructed in api.py.

@@ -175,6 +175,8 @@ def converse(
         conversation_log,
         model,
     )
+    truncated_messages = "\n".join({f"{message.content[:40]}..." for message in messages})
+    logger.debug(f"Conversation Context for GPT: {truncated_messages}")
 
     # Get Response from GPT
     return chat_completion_with_backoff(
