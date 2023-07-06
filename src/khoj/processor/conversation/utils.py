@@ -2,11 +2,17 @@
 import os
 import logging
 from datetime import datetime
+from time import perf_counter
+from typing import Any
+from threading import Thread
+import json
 
 # External Packages
 from langchain.chat_models import ChatOpenAI
 from langchain.llms import OpenAI
 from langchain.schema import ChatMessage
+from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+from langchain.callbacks.base import BaseCallbackManager
 import openai
 import tiktoken
 from tenacity import (
@@ -20,10 +26,53 @@ from tenacity import (
 
 # Internal Packages
 from khoj.utils.helpers import merge_dicts
+import queue
 
 
 logger = logging.getLogger(__name__)
 max_prompt_size = {"gpt-3.5-turbo": 4096, "gpt-4": 8192}
+
+
+class ThreadedGenerator:
+    def __init__(self, compiled_references, completion_func=None):
+        self.queue = queue.Queue()
+        self.compiled_references = compiled_references
+        self.completion_func = completion_func
+        self.response = ""
+        self.start_time = perf_counter()
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        item = self.queue.get()
+        if item is StopIteration:
+            time_to_response = perf_counter() - self.start_time
+            logger.info(f"Chat streaming took: {time_to_response:.3f} seconds")
+            if self.completion_func:
+                # The completion func effective acts as a callback.
+                # It adds the aggregated response to the conversation history. It's constructed in api.py.
+                self.completion_func(gpt_response=self.response)
+            raise StopIteration
+        return item
+
+    def send(self, data):
+        self.response += data
+        self.queue.put(data)
+
+    def close(self):
+        if self.compiled_references and len(self.compiled_references) > 0:
+            self.queue.put(f"### compiled references:{json.dumps(self.compiled_references)}")
+        self.queue.put(StopIteration)
+
+
+class StreamingChatCallbackHandler(StreamingStdOutCallbackHandler):
+    def __init__(self, gen: ThreadedGenerator):
+        super().__init__()
+        self.gen = gen
+
+    def on_llm_new_token(self, token: str, **kwargs) -> Any:
+        self.gen.send(token)
 
 
 @retry(
@@ -62,15 +111,31 @@ def completion_with_backoff(**kwargs):
     before_sleep=before_sleep_log(logger, logging.DEBUG),
     reraise=True,
 )
-def chat_completion_with_backoff(messages, model_name, temperature, openai_api_key=None):
+def chat_completion_with_backoff(
+    messages, compiled_references, model_name, temperature, openai_api_key=None, completion_func=None
+):
+    g = ThreadedGenerator(compiled_references, completion_func=completion_func)
+    t = Thread(target=llm_thread, args=(g, messages, model_name, temperature, openai_api_key))
+    t.start()
+    return g
+
+
+def llm_thread(g, messages, model_name, temperature, openai_api_key=None):
+    callback_handler = StreamingChatCallbackHandler(g)
     chat = ChatOpenAI(
+        streaming=True,
+        verbose=True,
+        callback_manager=BaseCallbackManager([callback_handler]),
         model_name=model_name,
         temperature=temperature,
         openai_api_key=openai_api_key or os.getenv("OPENAI_API_KEY"),
         request_timeout=20,
         max_retries=1,
     )
-    return chat(messages).content
+
+    chat(messages=messages)
+
+    g.close()
 
 
 def generate_chatml_messages_with_context(

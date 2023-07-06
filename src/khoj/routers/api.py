@@ -6,6 +6,7 @@ import yaml
 import logging
 from datetime import datetime
 from typing import List, Optional, Union
+from functools import partial
 
 # External Packages
 from fastapi import APIRouter, HTTPException, Header, Request
@@ -34,6 +35,7 @@ from khoj.utils.rawconfig import (
 from khoj.utils.state import SearchType
 from khoj.utils import state, constants
 from khoj.utils.yaml import save_config_to_file_updated_state
+from fastapi.responses import StreamingResponse
 
 # Initialize Router
 api = APIRouter()
@@ -393,10 +395,9 @@ def update(
     return {"status": "ok", "message": "khoj reloaded"}
 
 
-@api.get("/chat")
-async def chat(
+@api.get("/chat/init")
+def chat_init(
     request: Request,
-    q: Optional[str] = None,
     client: Optional[str] = None,
     user_agent: Optional[str] = Header(None),
     referer: Optional[str] = Header(None),
@@ -412,12 +413,67 @@ async def chat(
         )
 
     # Load Conversation History
+    meta_log = state.processor_config.conversation.meta_log
+
+    user_state = {
+        "client_host": request.client.host,
+        "user_agent": user_agent or "unknown",
+        "referer": referer or "unknown",
+        "host": host or "unknown",
+    }
+
+    state.telemetry += [
+        log_telemetry(
+            telemetry_type="api", api="chat", client=client, app_config=state.config.app, properties=user_state
+        )
+    ]
+
+    return {"status": "ok", "response": meta_log.get("chat", [])}
+
+
+@api.get("/chat", response_class=StreamingResponse)
+async def chat(
+    request: Request,
+    q: Optional[str] = None,
+    client: Optional[str] = None,
+    user_agent: Optional[str] = Header(None),
+    referer: Optional[str] = Header(None),
+    host: Optional[str] = Header(None),
+) -> StreamingResponse:
+    def _save_to_conversation_log(
+        q: str,
+        gpt_response: str,
+        user_message_time: str,
+        compiled_references: List[str],
+        inferred_queries: List[str],
+        chat_session: str,
+        meta_log,
+    ):
+        state.processor_config.conversation.chat_session = message_to_prompt(q, chat_session, gpt_message=gpt_response)
+        state.processor_config.conversation.meta_log["chat"] = message_to_log(
+            q,
+            gpt_response,
+            user_message_metadata={"created": user_message_time},
+            khoj_message_metadata={"context": compiled_references, "intent": {"inferred-queries": inferred_queries}},
+            conversation_log=meta_log.get("chat", []),
+        )
+
+    if (
+        state.processor_config is None
+        or state.processor_config.conversation is None
+        or state.processor_config.conversation.openai_api_key is None
+    ):
+        raise HTTPException(
+            status_code=500, detail="Set your OpenAI API key via Khoj settings and restart it to use Khoj Chat."
+        )
+
+    # Load Conversation History
     chat_session = state.processor_config.conversation.chat_session
     meta_log = state.processor_config.conversation.meta_log
 
-    # If user query is empty, return chat history
+    # If user query is empty, return nothing
     if not q:
-        return {"status": "ok", "response": meta_log.get("chat", [])}
+        return StreamingResponse(None)
 
     # Initialize Variables
     api_key = state.processor_config.conversation.openai_api_key
@@ -438,31 +494,13 @@ async def chat(
             result_list = []
             for query in inferred_queries:
                 result_list.extend(
-                    await search(query, request=request, n=5, r=True, score_threshold=-5.0, dedupe=False)
+                    await search(query, request=request, n=5, r=False, score_threshold=-5.0, dedupe=False)
                 )
             compiled_references = [item.additional["compiled"] for item in result_list]
 
     # Switch to general conversation type if no relevant notes found for the given query
     conversation_type = "notes" if compiled_references else "general"
     logger.debug(f"Conversation Type: {conversation_type}")
-
-    try:
-        with timer("Generating chat response took", logger):
-            gpt_response = converse(compiled_references, q, meta_log, model=chat_model, api_key=api_key)
-        status = "ok"
-    except Exception as e:
-        gpt_response = str(e)
-        status = "error"
-
-    # Update Conversation History
-    state.processor_config.conversation.chat_session = message_to_prompt(q, chat_session, gpt_message=gpt_response)
-    state.processor_config.conversation.meta_log["chat"] = message_to_log(
-        q,
-        gpt_response,
-        user_message_metadata={"created": user_message_time},
-        khoj_message_metadata={"context": compiled_references, "intent": {"inferred-queries": inferred_queries}},
-        conversation_log=meta_log.get("chat", []),
-    )
 
     user_state = {
         "client_host": request.client.host,
@@ -477,4 +515,23 @@ async def chat(
         )
     ]
 
-    return {"status": status, "response": gpt_response, "context": compiled_references}
+    try:
+        with timer("Generating chat response took", logger):
+            partial_completion = partial(
+                _save_to_conversation_log,
+                q,
+                user_message_time=user_message_time,
+                compiled_references=compiled_references,
+                inferred_queries=inferred_queries,
+                chat_session=chat_session,
+                meta_log=meta_log,
+            )
+
+            gpt_response = converse(
+                compiled_references, q, meta_log, model=chat_model, api_key=api_key, completion_func=partial_completion
+            )
+
+    except Exception as e:
+        gpt_response = str(e)
+
+    return StreamingResponse(gpt_response, media_type="text/event-stream", status_code=200)

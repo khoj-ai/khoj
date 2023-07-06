@@ -1,6 +1,6 @@
 import { App, Modal, request, Setting } from 'obsidian';
 import { KhojSetting } from 'src/settings';
-
+import fetch from "node-fetch";
 
 export class KhojChatModal extends Modal {
     result: string;
@@ -34,13 +34,8 @@ export class KhojChatModal extends Modal {
         // Create area for chat logs
         contentEl.createDiv({ attr: { id: "khoj-chat-body", class: "khoj-chat-body" } });
 
-        // Get conversation history from Khoj backend
-        let chatUrl = `${this.setting.khojUrl}/api/chat?client=obsidian`;
-        let response = await request(chatUrl);
-        let chatLogs = JSON.parse(response).response;
-        chatLogs.forEach((chatLog: any) => {
-            this.renderMessageWithReferences(chatLog.message, chatLog.by, chatLog.context, new Date(chatLog.created));
-        });
+        // Get chat history from Khoj backend
+        await this.getChatHistory();
 
         // Add chat input field
         contentEl.createEl("input",
@@ -107,11 +102,51 @@ export class KhojChatModal extends Modal {
         return chat_message_el
     }
 
+    createKhojResponseDiv(dt?: Date): HTMLDivElement {
+        let message_time = this.formatDate(dt ?? new Date());
+
+        // Append message to conversation history HTML element.
+        // The chat logs should display above the message input box to follow standard UI semantics
+        let chat_body_el = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
+        let chat_message_el = chat_body_el.createDiv({
+            attr: {
+                "data-meta": `🏮 Khoj at ${message_time}`,
+                class: `khoj-chat-message khoj`
+            },
+        }).createDiv({
+            attr: {
+                class: `khoj-chat-message-text khoj`
+            },
+        })
+
+        // Scroll to bottom after inserting chat messages
+        this.modalEl.scrollTop = this.modalEl.scrollHeight;
+
+        return chat_message_el
+    }
+
+    renderIncrementalMessage(htmlElement: HTMLDivElement, additionalMessage: string) {
+        htmlElement.innerHTML += additionalMessage;
+        // Scroll to bottom of modal, till the send message input box
+        this.modalEl.scrollTop = this.modalEl.scrollHeight;
+    }
+
     formatDate(date: Date): string {
         // Format date in HH:MM, DD MMM YYYY format
         let time_string = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
         let date_string = date.toLocaleString('en-IN', { year: 'numeric', month: 'short', day: '2-digit' }).replace(/-/g, ' ');
         return `${time_string}, ${date_string}`;
+    }
+
+
+    async getChatHistory(): Promise<void> {
+        // Get chat history from Khoj backend
+        let chatUrl = `${this.setting.khojUrl}/api/chat/init?client=obsidian`;
+        let response = await request(chatUrl);
+        let chatLogs = JSON.parse(response).response;
+        chatLogs.forEach((chatLog: any) => {
+            this.renderMessageWithReferences(chatLog.message, chatLog.by, chatLog.context, new Date(chatLog.created));
+        });
     }
 
     async getChatResponse(query: string | undefined | null): Promise<void> {
@@ -124,10 +159,37 @@ export class KhojChatModal extends Modal {
         // Get chat response from Khoj backend
         let encodedQuery = encodeURIComponent(query);
         let chatUrl = `${this.setting.khojUrl}/api/chat?q=${encodedQuery}&client=obsidian`;
-        let response = await request(chatUrl);
-        let data = JSON.parse(response);
+        let responseElement = this.createKhojResponseDiv();
 
-        // Render Khoj response as chat message
-        this.renderMessage(data.response, "khoj");
+        // Temporary status message to indicate that Khoj is thinking
+        this.renderIncrementalMessage(responseElement, "🤔");
+
+        let response = await fetch(chatUrl, {
+            method: "GET",
+            headers: {
+                "Access-Control-Allow-Origin": "*",
+                "Content-Type": "text/event-stream"
+            },
+        })
+
+        try {
+            if (response.body == null) {
+                throw new Error("Response body is null");
+            }
+            // Clear thinking status message
+            if (responseElement.innerHTML === "🤔") {
+                responseElement.innerHTML = "";
+            }
+
+            for await (const chunk of response.body) {
+                const responseText = chunk.toString();
+                if (responseText.startsWith("### compiled references:")) {
+                    return;
+                }
+                this.renderIncrementalMessage(responseElement, responseText);
+            }
+        } catch (err) {
+            this.renderIncrementalMessage(responseElement, "Sorry, unable to get response from Khoj backend ❤️‍🩹. Contact developer for help at team@khoj.dev or <a href='https://discord.gg/BDgyabRM6e'>in Discord</a>")
+        }
     }
 }
