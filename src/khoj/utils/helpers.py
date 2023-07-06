@@ -175,7 +175,11 @@ def get_server_id():
 
 
 def log_telemetry(
-    telemetry_type: str, api: str = None, client: str = None, app_config: AppConfig = None, properties: dict = None
+    telemetry_type: str,
+    api: str = None,
+    client: Optional[str] = None,
+    app_config: Optional[AppConfig] = None,
+    properties: dict = None,
 ):
     """Log basic app usage telemetry like client, os, api called"""
     # Do not log usage telemetry, if telemetry is disabled via app config
