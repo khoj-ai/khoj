@@ -67,12 +67,14 @@ def configure_routes(app):
     app.include_router(web_client)
 
 
-@schedule.repeat(schedule.every(61).minutes)
-def update_search_index():
-    state.search_index_lock.acquire()
-    state.model = configure_search(state.model, state.config, regenerate=False)
-    state.search_index_lock.release()
-    logger.info("📬 Search index updated via Scheduler")
+if not state.demo:
+
+    @schedule.repeat(schedule.every(61).minutes)
+    def update_search_index():
+        state.search_index_lock.acquire()
+        state.model = configure_search(state.model, state.config, regenerate=False)
+        state.search_index_lock.release()
+        logger.info("📬 Search index updated via Scheduler")
 
 
 def configure_search_types(config: FullConfig):
