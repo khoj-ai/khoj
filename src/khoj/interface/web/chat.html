@@ -74,6 +74,10 @@
             new_response_text.classList.add("chat-message-text", "khoj");
             new_response.appendChild(new_response_text);
 
+            // Temporary status message to indicate that Khoj is thinking
+            new_response_text.innerHTML = "🤔";
+            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+
             // Call specified Khoj API which returns a streamed response of type text/plain
             fetch(url)
                 .then(response => {
@@ -96,10 +100,17 @@
 
                                 new_response_text.innerHTML += polishedReference;
                             } else {
+                                // Clear temporary status message
+                                if (new_response_text.innerHTML === "🤔") {
+                                    new_response_text.innerHTML = "";
+                                }
+
                                 new_response_text.innerHTML += chunk;
-                                document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
                                 readStream();
                             }
+
+                            // Scroll to bottom of chat window as chat response is streamed
+                            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
                         });
                     }
                     readStream();
