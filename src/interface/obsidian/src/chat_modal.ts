@@ -158,7 +158,7 @@ export class KhojChatModal extends Modal {
 
         // Get chat response from Khoj backend
         let encodedQuery = encodeURIComponent(query);
-        let chatUrl = `${this.setting.khojUrl}/api/chat?q=${encodedQuery}&client=obsidian`;
+        let chatUrl = `${this.setting.khojUrl}/api/chat?q=${encodedQuery}&n=${this.setting.resultsCount}&client=obsidian`;
         let responseElement = this.createKhojResponseDiv();
 
         // Temporary status message to indicate that Khoj is thinking
