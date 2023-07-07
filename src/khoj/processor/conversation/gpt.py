@@ -31,8 +31,8 @@ def answer(text, user_query, model, api_key=None, temperature=0.5, max_tokens=50
         model_name=model,
         temperature=temperature,
         max_tokens=max_tokens,
-        stop='"""',
-        api_key=api_key,
+        model_kwargs={"stop": ['"""']},
+        openai_api_key=api_key,
     )
 
     # Extract, Clean Message from GPT's Response
@@ -59,8 +59,8 @@ def summarize(text, summary_type, model, user_query=None, api_key=None, temperat
         temperature=temperature,
         max_tokens=max_tokens,
         frequency_penalty=0.2,
-        stop='"""',
-        api_key=api_key,
+        model_kwargs={"stop": ['"""']},
+        openai_api_key=api_key,
     )
 
     # Extract, Clean Message from GPT's Response
@@ -104,8 +104,8 @@ def extract_questions(
         model_name=model,
         temperature=temperature,
         max_tokens=max_tokens,
-        stop=["A: ", "\n"],
-        api_key=api_key,
+        model_kwargs={"stop": ["A: ", "\n"]},
+        openai_api_key=api_key,
     )
 
     # Extract, Clean Message from GPT's Response
@@ -143,8 +143,8 @@ def extract_search_type(text, model, api_key=None, temperature=0.5, max_tokens=1
         temperature=temperature,
         max_tokens=max_tokens,
         frequency_penalty=0.2,
-        stop=["\n"],
-        api_key=api_key,
+        model_kwargs={"stop": ["\n"]},
+        openai_api_key=api_key,
     )
 
     # Extract, Clean Message from GPT's Response
@@ -155,9 +155,9 @@ def converse(
     references,
     user_query,
     conversation_log={},
-    model: Optional[str] = "gpt-3.5-turbo",
-    api_key=None,
-    temperature=0.2,
+    model: str = "gpt-3.5-turbo",
+    api_key: Optional[str] = None,
+    temperature: float = 0.2,
     completion_func=None,
 ):
     """
