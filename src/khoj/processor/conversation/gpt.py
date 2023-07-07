@@ -1,5 +1,4 @@
 # Standard Packages
-import json
 import logging
 from datetime import datetime
 from typing import Optional
@@ -15,28 +14,6 @@ from khoj.processor.conversation.utils import (
 
 
 logger = logging.getLogger(__name__)
-
-
-def answer(text, user_query, model, api_key=None, temperature=0.5, max_tokens=500):
-    """
-    Answer user query using provided text as reference with OpenAI's GPT
-    """
-    # Setup Prompt from arguments
-    prompt = prompts.answer.format(text=text, user_query=user_query)
-
-    # Get Response from GPT
-    logger.debug(f"Prompt for GPT: {prompt}")
-    response = completion_with_backoff(
-        prompt=prompt,
-        model_name=model,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        model_kwargs={"stop": ['"""']},
-        openai_api_key=api_key,
-    )
-
-    # Extract, Clean Message from GPT's Response
-    return str(response).replace("\n\n", "")
 
 
 def summarize(text, summary_type, model, user_query=None, api_key=None, temperature=0.5, max_tokens=200):
@@ -124,31 +101,6 @@ def extract_questions(
         questions = [text]
     logger.debug(f"Extracted Questions by GPT: {questions}")
     return questions
-
-
-def extract_search_type(text, model, api_key=None, temperature=0.5, max_tokens=100, verbose=0):
-    """
-    Extract search type from user query using OpenAI's GPT
-    """
-    # Setup Prompt to extract search type
-    prompt = prompts.search_type + f"{text}\nA:"
-    if verbose > 1:
-        print(f"Message -> Prompt: {text} -> {prompt}")
-
-    # Get Response from GPT
-    logger.debug(f"Prompt for GPT: {prompt}")
-    response = completion_with_backoff(
-        prompt=prompt,
-        model_name=model,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        frequency_penalty=0.2,
-        model_kwargs={"stop": ["\n"]},
-        openai_api_key=api_key,
-    )
-
-    # Extract, Clean Message from GPT's Response
-    return json.loads(response.strip(empty_escape_sequences))
 
 
 def converse(
