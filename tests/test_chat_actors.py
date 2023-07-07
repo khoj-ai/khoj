@@ -4,6 +4,7 @@ from datetime import datetime
 
 # External Packages
 import pytest
+import freezegun
 from freezegun import freeze_time
 
 # Internal Packages
@@ -18,6 +19,8 @@ if api_key is None:
         reason="Set OPENAI_API_KEY environment variable to run tests below. Get OpenAI API key from https://platform.openai.com/account/api-keys",
         allow_module_level=True,
     )
+
+freezegun.configure(extend_ignore_list=["transformers"])
 
 
 # Test

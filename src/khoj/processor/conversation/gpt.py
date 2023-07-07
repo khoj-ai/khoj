@@ -110,14 +110,16 @@ def extract_questions(
 
     # Extract, Clean Message from GPT's Response
     try:
-        questions = json.loads(
-            # Clean response to increase likelihood of valid JSON. E.g replace ' with " to enclose strings
+        questions = (
             response.strip(empty_escape_sequences)
             .replace("['", '["')
             .replace("']", '"]')
             .replace("', '", '", "')
+            .replace('["', "")
+            .replace('"]', "")
+            .split('", "')
         )
-    except json.decoder.JSONDecodeError:
+    except:
         logger.warning(f"GPT returned invalid JSON. Falling back to using user message as search query.\n{response}")
         questions = [text]
     logger.debug(f"Extracted Questions by GPT: {questions}")
