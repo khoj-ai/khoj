@@ -133,17 +133,6 @@
                 });
         }
 
-        function updateIndex() {
-            type = document.getElementById("type").value;
-            fetch(`/api/update?t=${type}&client=web`)
-                .then(response => response.json())
-                .then(data => {
-                    console.log(data);
-                    document.getElementById("results").innerHTML =
-                        render_results(data);
-                });
-        }
-
         function incrementalSearch(event) {
             type = document.getElementById("type").value;
             // Search with reranking on 'Enter'
@@ -268,9 +257,6 @@
             <!--Add Dropdown to Select Query Type -->
             <select id="type" class="option" onchange="setTypeFieldInUrl(this)"></select>
 
-            <!--Add Button To Regenerate -->
-            <button id="update" class="option" onclick="updateIndex()">Update</button>
-
             <!--Add Results Count Input To Set Results Count -->
             <input type="number" id="results-count" min="1" max="100" value="6" placeholder="results count" onchange="setCountFieldInUrl(this)">
         </div>
@@ -318,7 +304,7 @@
         #options {
             padding: 0;
             display: grid;
-            grid-template-columns: 1fr 1fr minmax(70px, 0.5fr);
+            grid-template-columns: 1fr minmax(70px, 0.5fr);
         }
         #options > * {
             padding: 15px;
