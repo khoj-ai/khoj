@@ -496,7 +496,7 @@ async def chat(
             result_list = []
             for query in inferred_queries:
                 result_list.extend(
-                    await search(query, request=request, n=n, r=False, score_threshold=-5.0, dedupe=False)
+                    await search(query, request=request, n=n, r=True, score_threshold=-5.0, dedupe=False)
                 )
             compiled_references = [item.additional["compiled"] for item in result_list]
 
