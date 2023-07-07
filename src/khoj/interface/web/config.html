@@ -169,6 +169,10 @@
         </div>
     </div>
     <div class="section">
+        <div id="results-count">
+            <label for="results-count-slider">Results Count: <span id="results-count-value">5</span></label>
+            <input type="range" id="results-count-slider" name="results-count-slider" min="1" max="10" step="1" value="5">
+        </div>
         <div id="status" style="display: none;"></div>
         <button id="configure" type="submit">⚙️ Configure</button>
         <button id="reinitialize" type="submit">🔄 Reinitialize</button>
@@ -276,5 +280,25 @@
             reinitialize.innerHTML = "🔄 Reinitialize";
         });
     });
+
+    // Setup the results count slider
+    const resultsCountSlider = document.getElementById('results-count-slider');
+    const resultsCountValue = document.getElementById('results-count-value');
+
+    // Set the initial value of the slider
+    resultsCountValue.textContent = resultsCountSlider.value;
+
+    // Store the slider value in localStorage when it changes
+    resultsCountSlider.addEventListener('input', () => {
+        resultsCountValue.textContent = resultsCountSlider.value;
+        localStorage.setItem('khojResultsCount', resultsCountSlider.value);
+    });
+
+    // Get the slider value from localStorage on page load
+    const storedResultsCount = localStorage.getItem('khojResultsCount');
+    if (storedResultsCount) {
+        resultsCountSlider.value = storedResultsCount;
+        resultsCountValue.textContent = storedResultsCount;
+    }
 </script>
 {% endblock %}

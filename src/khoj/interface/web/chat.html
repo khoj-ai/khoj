@@ -51,6 +51,7 @@
         function chat() {
             // Extract required fields for search from form
             let query = document.getElementById("chat-input").value.trim();
+            let results_count = localStorage.getItem("khojResultsCount");
             console.log(`Query: ${query}`);
 
             // Short circuit on empty query
@@ -62,7 +63,7 @@
             document.getElementById("chat-input").value = "";
 
             // Generate backend API URL to execute query
-            let url = `/api/chat?q=${encodeURIComponent(query)}&client=web`;
+            let url = `/api/chat?q=${encodeURIComponent(query)}&n=${results_count}&client=web`;
 
             let chat_body = document.getElementById("chat-body");
             let new_response = document.createElement("div");
