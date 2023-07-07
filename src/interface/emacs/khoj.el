@@ -83,7 +83,7 @@
   :type 'integer)
 
 (defcustom khoj-results-count 5
-  "Number of results to get from Khoj API for each query."
+  "Number of results to show in search and use for chat responses."
   :group 'khoj
   :type 'integer)
 
@@ -766,7 +766,7 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
   "Send QUERY to Khoj Chat API."
   (let* ((url-request-method "GET")
          (encoded-query (url-hexify-string query))
-         (query-url (format "%s/api/chat?q=%s&client=emacs" khoj-server-url encoded-query)))
+         (query-url (format "%s/api/chat?q=%s&n=%s&client=emacs" khoj-server-url khoj-results-count encoded-query)))
     (with-temp-buffer
       (condition-case ex
           (progn
