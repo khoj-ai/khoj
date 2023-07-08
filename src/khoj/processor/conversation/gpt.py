@@ -32,8 +32,7 @@ def summarize(session, model, api_key=None, temperature=0.5, max_tokens=200):
         model_name=model,
         temperature=temperature,
         max_tokens=max_tokens,
-        frequency_penalty=0.2,
-        model_kwargs={"stop": ['"""']},
+        model_kwargs={"stop": ['"""'], "frequency_penalty": 0.2},
         openai_api_key=api_key,
     )
 
