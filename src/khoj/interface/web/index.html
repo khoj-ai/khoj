@@ -126,7 +126,7 @@
                 setQueryFieldInUrl(query);
 
             // Execute Search and Render Results
-            url = createRequestUrl(query, type, results_count, rerank);
+            url = createRequestUrl(query, type, results_count || 5, rerank);
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
