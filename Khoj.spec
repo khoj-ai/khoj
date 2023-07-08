@@ -5,7 +5,7 @@ from PyInstaller.utils.hooks import copy_metadata
 import sysconfig
 
 datas = [
-    ('src/khoj/interface/web', 'src/khoj/interface/web'),
+    ('src/khoj/interface/web', 'khoj/interface/web'),
     (f'{sysconfig.get_paths()["purelib"]}/transformers', 'transformers'),
     (f'{sysconfig.get_paths()["purelib"]}/langchain', 'langchain'),
     (f'{sysconfig.get_paths()["purelib"]}/PIL', 'PIL')
