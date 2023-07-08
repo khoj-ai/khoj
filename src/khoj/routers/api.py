@@ -15,7 +15,7 @@ from sentence_transformers import util
 # Internal Packages
 from khoj.configure import configure_processor, configure_search
 from khoj.processor.conversation.gpt import converse, extract_questions
-from khoj.processor.conversation.utils import message_to_log, message_to_prompt
+from khoj.processor.conversation.utils import message_to_log, reciprocal_conversation_to_chatml
 from khoj.search_type import image_search, text_search
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
@@ -448,10 +448,9 @@ async def chat(
         user_message_time: str,
         compiled_references: List[str],
         inferred_queries: List[str],
-        chat_session: str,
         meta_log,
     ):
-        state.processor_config.conversation.chat_session = message_to_prompt(q, chat_session, gpt_message=gpt_response)
+        state.processor_config.conversation.chat_session += reciprocal_conversation_to_chatml([q, gpt_response])
         state.processor_config.conversation.meta_log["chat"] = message_to_log(
             q,
             gpt_response,
@@ -470,7 +469,6 @@ async def chat(
         )
 
     # Load Conversation History
-    chat_session = state.processor_config.conversation.chat_session
     meta_log = state.processor_config.conversation.meta_log
 
     # If user query is empty, return nothing
@@ -479,7 +477,6 @@ async def chat(
 
     # Initialize Variables
     api_key = state.processor_config.conversation.openai_api_key
-    model = state.processor_config.conversation.model
     chat_model = state.processor_config.conversation.chat_model
     user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     conversation_type = "general" if q.startswith("@general") else "notes"
@@ -489,7 +486,7 @@ async def chat(
     if conversation_type == "notes":
         # Infer search queries from user message
         with timer("Extracting search queries took", logger):
-            inferred_queries = extract_questions(q, model=model, api_key=api_key, conversation_log=meta_log)
+            inferred_queries = extract_questions(q, api_key=api_key, conversation_log=meta_log)
 
         # Collate search results as context for GPT
         with timer("Searching knowledge base took", logger):
@@ -525,7 +522,6 @@ async def chat(
                 user_message_time=user_message_time,
                 compiled_references=compiled_references,
                 inferred_queries=inferred_queries,
-                chat_session=chat_session,
                 meta_log=meta_log,
             )
 

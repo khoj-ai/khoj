@@ -37,12 +37,7 @@ Question: {query}
 ## Summarize Chat
 ## --
 summarize_chat = PromptTemplate.from_template(
-    """
-You are an AI. Summarize the conversation below from your perspective:
-
-{text}
-
-Summarize the conversation from the AI's first-person perspective:"""
+    f"{personality.format()} Summarize the conversation from your first person perspective"
 )
 
 

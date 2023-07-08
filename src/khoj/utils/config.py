@@ -72,7 +72,7 @@ class ConversationProcessorConfigModel:
         self.model = processor_config.model
         self.chat_model = processor_config.chat_model
         self.conversation_logfile = Path(processor_config.conversation_logfile)
-        self.chat_session = ""
+        self.chat_session: List[str] = []
         self.meta_log: dict = {}
 
 

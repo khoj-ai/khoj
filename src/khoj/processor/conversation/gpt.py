@@ -3,6 +3,9 @@ import logging
 from datetime import datetime
 from typing import Optional
 
+# External Packages
+from langchain.schema import ChatMessage
+
 # Internal Packages
 from khoj.utils.constants import empty_escape_sequences
 from khoj.processor.conversation import prompts
@@ -16,22 +19,16 @@ from khoj.processor.conversation.utils import (
 logger = logging.getLogger(__name__)
 
 
-def summarize(text, summary_type, model, user_query=None, api_key=None, temperature=0.5, max_tokens=200):
+def summarize(session, model, api_key=None, temperature=0.5, max_tokens=200):
     """
-    Summarize user input using OpenAI's GPT
+    Summarize conversation session using the specified OpenAI chat model
     """
-    # Setup Prompt based on Summary Type
-    if summary_type == "chat":
-        prompt = prompts.summarize_chat.format(text=text)
-    elif summary_type == "notes":
-        prompt = prompts.summarize_notes.format(text=text, user_query=user_query)
-    else:
-        raise ValueError(f"Invalid summary type: {summary_type}")
+    messages = [ChatMessage(content=prompts.summarize_chat.format(), role="system")] + session
 
     # Get Response from GPT
-    logger.debug(f"Prompt for GPT: {prompt}")
+    logger.debug(f"Prompt for GPT: {messages}")
     response = completion_with_backoff(
-        prompt=prompt,
+        messages=messages,
         model_name=model,
         temperature=temperature,
         max_tokens=max_tokens,
@@ -41,11 +38,11 @@ def summarize(text, summary_type, model, user_query=None, api_key=None, temperat
     )
 
     # Extract, Clean Message from GPT's Response
-    return str(response).replace("\n\n", "")
+    return str(response.content).replace("\n\n", "")
 
 
 def extract_questions(
-    text, model: Optional[str] = "text-davinci-003", conversation_log={}, api_key=None, temperature=0, max_tokens=100
+    text, model: Optional[str] = "gpt-4", conversation_log={}, api_key=None, temperature=0, max_tokens=100
 ):
     """
     Infer search queries to retrieve relevant notes to answer user query
@@ -74,10 +71,11 @@ def extract_questions(
         chat_history=chat_history,
         text=text,
     )
+    messages = [ChatMessage(content=prompt, role="assistant")]
 
     # Get Response from GPT
     response = completion_with_backoff(
-        prompt=prompt,
+        messages=messages,
         model_name=model,
         temperature=temperature,
         max_tokens=max_tokens,
@@ -88,7 +86,7 @@ def extract_questions(
     # Extract, Clean Message from GPT's Response
     try:
         questions = (
-            response.strip(empty_escape_sequences)
+            response.content.strip(empty_escape_sequences)
             .replace("['", '["')
             .replace("']", '"]')
             .replace("', '", '", "')
