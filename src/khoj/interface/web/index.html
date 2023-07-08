@@ -112,12 +112,15 @@
             // Extract required fields for search from form
             query = document.getElementById("query").value.trim();
             type = document.getElementById("type").value;
+            searchHint = document.getElementById("info-hint");
             results_count = localStorage.getItem("khojResultsCount");
             console.log(`Query: ${query}, Type: ${type}, Results Count: ${results_count}`);
 
             // Short circuit on empty query
-            if (query.length === 0)
+            if (query.length === 0) {
+                searchHint.style.display = "none";
                 return;
+            }
 
             // If set query field in url query param on rerank
             if (rerank)
@@ -131,6 +134,8 @@
                     console.log(data);
                     document.getElementById("results").innerHTML = render_results(data, query, type);
                 });
+
+            setTimeout(() => { searchHint.style.display = "block"; }, 3000);
         }
 
         function incrementalSearch(event) {
@@ -247,6 +252,12 @@
             <select id="type" class="option" onchange="setTypeFieldInUrl(this)"></select>
         </div>
 
+        <!--Add Hints to Guide Search -->
+        <div id="info-hint" style="display: none">
+            Unexpected results? Hit Enter to get better results.
+            Else click Reinitialize on the <a href="/config">settings page</a> to fix it.
+        </div>
+
         <!-- Section to Render Results -->
         <div id="results"></div>
     </body>
@@ -256,7 +267,7 @@
             body {
                 display: grid;
                 grid-template-columns: 1fr;
-                grid-template-rows: 1fr auto auto minmax(80px, 100%);
+                grid-template-rows: 1fr auto auto auto minmax(80px, 100%);
             }
             body > * {
                 grid-column: 1;
@@ -266,7 +277,7 @@
             body {
                 display: grid;
                 grid-template-columns: 1fr min(70vw, 100%) 1fr;
-                grid-template-rows: 1fr auto auto minmax(80px, 100%);
+                grid-template-rows: 1fr auto auto auto minmax(80px, 100%);
                 padding-top: 60vw;
             }
             body > * {
@@ -307,6 +318,13 @@
 
         #query {
             font-size: larger;
+        }
+        #info-hint {
+            font-size: small;
+            color: #aaa;
+            text-align: center;
+            margin: 5px 0 0 0;
+            padding: 0;
         }
         #results {
             font-size: medium;
