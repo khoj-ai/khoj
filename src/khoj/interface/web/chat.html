@@ -51,6 +51,7 @@
         function chat() {
             // Extract required fields for search from form
             let query = document.getElementById("chat-input").value.trim();
+            let results_count = localStorage.getItem("khojResultsCount");
             console.log(`Query: ${query}`);
 
             // Short circuit on empty query
@@ -62,7 +63,7 @@
             document.getElementById("chat-input").value = "";
 
             // Generate backend API URL to execute query
-            let url = `/api/chat?q=${encodeURIComponent(query)}&client=web`;
+            let url = `/api/chat?q=${encodeURIComponent(query)}&n=${results_count}&client=web`;
 
             let chat_body = document.getElementById("chat-body");
             let new_response = document.createElement("div");
@@ -73,6 +74,10 @@
             let new_response_text = document.createElement("div");
             new_response_text.classList.add("chat-message-text", "khoj");
             new_response.appendChild(new_response_text);
+
+            // Temporary status message to indicate that Khoj is thinking
+            new_response_text.innerHTML = "🤔";
+            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
 
             // Call specified Khoj API which returns a streamed response of type text/plain
             fetch(url)
@@ -86,6 +91,7 @@
                                 return;
                             }
 
+                            // Decode message chunk from stream
                             const chunk = decoder.decode(value, { stream: true });
 
                             if (chunk.includes("### compiled references:")) {
@@ -100,10 +106,17 @@
                                 new_response_text.innerHTML += polishedReference;
                                 document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
                             } else {
+                                // Display response from Khoj
+                                if (new_response_text.innerHTML === "🤔") {
+                                    // Clear temporary status message
+                                    new_response_text.innerHTML = "";
+                                }
                                 new_response_text.innerHTML += chunk;
-                                document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
                                 readStream();
                             }
+
+                            // Scroll to bottom of chat window as chat response is streamed
+                            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
                         });
                     }
                     readStream();
@@ -420,33 +433,31 @@
     <script>
         var khojBannerSubmit = document.getElementById("khoj-banner-submit");
 
-        if (khojBannerSubmit != null) {
-            khojBannerSubmit.addEventListener("click", function(event) {
-                event.preventDefault();
-                var email = document.getElementById("khoj-banner-email").value;
-                fetch("https://lantern.khoj.dev/beta/users/", {
-                        method: "POST",
-                        body: JSON.stringify({
-                            email: email
-                        }),
-                        headers: {
-                            "Content-Type": "application/json"
-                        }
-                    }).then(function(response) {
-                        return response.json();
-                    }).then(function(data) {
-                        console.log(data);
-                        if (data.user != null) {
-                            document.getElementById("khoj-banner").innerHTML = "Thanks for signing up. We'll be in touch soon! 🚀";
-                            document.getElementById("khoj-banner-submit").remove();
-                        } else {
-                            document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
-                        }
-                    }).catch(function(error) {
-                        console.log(error);
+        khojBannerSubmit?.addEventListener("click", function(event) {
+            event.preventDefault();
+            var email = document.getElementById("khoj-banner-email").value;
+            fetch("https://lantern.khoj.dev/beta/users/", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        email: email
+                    }),
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                }).then(function(response) {
+                    return response.json();
+                }).then(function(data) {
+                    console.log(data);
+                    if (data.user != null) {
+                        document.getElementById("khoj-banner").innerHTML = "Thanks for signing up. We'll be in touch soon! 🚀";
+                        document.getElementById("khoj-banner-submit").remove();
+                    } else {
                         document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
-                    });
+                    }
+                }).catch(function(error) {
+                    console.log(error);
+                    document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
                 });
-        }
+            });
     </script>
 </html>

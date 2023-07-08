@@ -4,6 +4,7 @@ from datetime import datetime
 
 # External Packages
 import pytest
+import freezegun
 from freezegun import freeze_time
 
 # Internal Packages
@@ -19,6 +20,8 @@ if api_key is None:
         allow_module_level=True,
     )
 
+freezegun.configure(extend_ignore_list=["transformers"])
+
 
 # Test
 # ----------------------------------------------------------------------------------------------------
@@ -30,9 +33,9 @@ def test_extract_question_with_date_filter_from_relative_day():
 
     # Assert
     expected_responses = [
-        ('dt="1984-04-01"', ""),
-        ('dt>="1984-04-01"', 'dt<"1984-04-02"'),
-        ('dt>"1984-03-31"', 'dt<"1984-04-02"'),
+        ("dt='1984-04-01'", ""),
+        ("dt>='1984-04-01'", "dt<'1984-04-02'"),
+        ("dt>'1984-03-31'", "dt<'1984-04-02'"),
     ]
     assert len(response) == 1
     assert any([start in response[0] and end in response[0] for start, end in expected_responses]), (
@@ -48,7 +51,7 @@ def test_extract_question_with_date_filter_from_relative_month():
     response = extract_questions("Which countries did I visit last month?")
 
     # Assert
-    expected_responses = [('dt>="1984-03-01"', 'dt<"1984-04-01"'), ('dt>="1984-03-01"', 'dt<="1984-03-31"')]
+    expected_responses = [("dt>='1984-03-01'", "dt<'1984-04-01'"), ("dt>='1984-03-01'", "dt<='1984-03-31'")]
     assert len(response) == 1
     assert any([start in response[0] and end in response[0] for start, end in expected_responses]), (
         "Expected date filter to limit to March 1984 in response but got: " + response[0]
@@ -64,9 +67,9 @@ def test_extract_question_with_date_filter_from_relative_year():
 
     # Assert
     expected_responses = [
-        ('dt>="1984-01-01"', ""),
-        ('dt>="1984-01-01"', 'dt<"1985-01-01"'),
-        ('dt>="1984-01-01"', 'dt<="1984-12-31"'),
+        ("dt>='1984-01-01'", ""),
+        ("dt>='1984-01-01'", "dt<'1985-01-01'"),
+        ("dt>='1984-01-01'", "dt<='1984-12-31'"),
     ]
     assert len(response) == 1
     assert any([start in response[0] and end in response[0] for start, end in expected_responses]), (
@@ -169,8 +172,8 @@ def test_generate_search_query_with_date_and_context_from_chat_history():
 
     # Assert
     expected_responses = [
-        ('dt>="2000-04-01"', 'dt<"2000-05-01"'),
-        ('dt>="2000-04-01"', 'dt<="2000-04-31"'),
+        ("dt>='2000-04-01'", "dt<'2000-05-01'"),
+        ("dt>='2000-04-01'", "dt<='2000-04-30'"),
     ]
     assert len(response) == 1
     assert "Masai Mara" in response[0]
@@ -183,11 +186,12 @@ def test_generate_search_query_with_date_and_context_from_chat_history():
 @pytest.mark.chatquality
 def test_chat_with_no_chat_history_or_retrieved_content():
     # Act
-    response = converse(
+    response_gen = converse(
         references=[],  # Assume no context retrieved from notes for the user_query
         user_query="Hello, my name is Testatron. Who are you?",
         api_key=api_key,
     )
+    response = "".join([response_chunk for response_chunk in response_gen])
 
     # Assert
     expected_responses = ["Khoj", "khoj"]
@@ -207,12 +211,13 @@ def test_answer_from_chat_history_and_no_content():
     ]
 
     # Act
-    response = converse(
+    response_gen = converse(
         references=[],  # Assume no context retrieved from notes for the user_query
         user_query="What is my name?",
         conversation_log=populate_chat_history(message_list),
         api_key=api_key,
     )
+    response = "".join([response_chunk for response_chunk in response_gen])
 
     # Assert
     expected_responses = ["Testatron", "testatron"]
@@ -237,12 +242,13 @@ def test_answer_from_chat_history_and_previously_retrieved_content():
     ]
 
     # Act
-    response = converse(
+    response_gen = converse(
         references=[],  # Assume no context retrieved from notes for the user_query
         user_query="Where was I born?",
         conversation_log=populate_chat_history(message_list),
         api_key=api_key,
     )
+    response = "".join([response_chunk for response_chunk in response_gen])
 
     # Assert
     assert len(response) > 0
@@ -261,7 +267,7 @@ def test_answer_from_chat_history_and_currently_retrieved_content():
     ]
 
     # Act
-    response = converse(
+    response_gen = converse(
         references=[
             "Testatron was born on 1st April 1984 in Testville."
         ],  # Assume context retrieved from notes for the user_query
@@ -269,6 +275,7 @@ def test_answer_from_chat_history_and_currently_retrieved_content():
         conversation_log=populate_chat_history(message_list),
         api_key=api_key,
     )
+    response = "".join([response_chunk for response_chunk in response_gen])
 
     # Assert
     assert len(response) > 0
@@ -286,12 +293,13 @@ def test_refuse_answering_unanswerable_question():
     ]
 
     # Act
-    response = converse(
+    response_gen = converse(
         references=[],  # Assume no context retrieved from notes for the user_query
         user_query="Where was I born?",
         conversation_log=populate_chat_history(message_list),
         api_key=api_key,
     )
+    response = "".join([response_chunk for response_chunk in response_gen])
 
     # Assert
     expected_responses = [
@@ -326,11 +334,12 @@ Expenses:Food:Dining  10.00 USD""",
     ]
 
     # Act
-    response = converse(
+    response_gen = converse(
         references=context,  # Assume context retrieved from notes for the user_query
         user_query="What did I have for Dinner today?",
         api_key=api_key,
     )
+    response = "".join([response_chunk for response_chunk in response_gen])
 
     # Assert
     expected_responses = ["tacos", "Tacos"]
@@ -357,11 +366,12 @@ Expenses:Food:Dining  10.00 USD""",
     ]
 
     # Act
-    response = converse(
+    response_gen = converse(
         references=context,  # Assume context retrieved from notes for the user_query
         user_query="How much did I spend on dining this year?",
         api_key=api_key,
     )
+    response = "".join([response_chunk for response_chunk in response_gen])
 
     # Assert
     assert len(response) > 0
@@ -380,12 +390,13 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content():
     ]
 
     # Act
-    response = converse(
+    response_gen = converse(
         references=[],  # Assume no context retrieved from notes for the user_query
         user_query="Write a haiku about unit testing in 3 lines",
         conversation_log=populate_chat_history(message_list),
         api_key=api_key,
     )
+    response = "".join([response_chunk for response_chunk in response_gen])
 
     # Assert
     expected_responses = ["test", "Test"]
@@ -411,11 +422,12 @@ My sister, Aiyla is married to Tolga. They have 3 kids, Yildiz, Ali and Ahmet.""
     ]
 
     # Act
-    response = converse(
+    response_gen = converse(
         references=context,  # Assume context retrieved from notes for the user_query
         user_query="How many kids does my older sister have?",
         api_key=api_key,
     )
+    response = "".join([response_chunk for response_chunk in response_gen])
 
     # Assert
     expected_responses = ["which sister", "Which sister", "which of your sister", "Which of your sister"]

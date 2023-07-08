@@ -218,7 +218,7 @@ def configure_conversation_processor(conversation_processor_config):
     else:
         # Initialize Conversation Logs
         conversation_processor.meta_log = {}
-        conversation_processor.chat_session = ""
+        conversation_processor.chat_session = []
 
     return conversation_processor
 
@@ -238,9 +238,9 @@ def save_chat_session():
     chat_session = state.processor_config.conversation.chat_session
     openai_api_key = state.processor_config.conversation.openai_api_key
     conversation_log = state.processor_config.conversation.meta_log
-    model = state.processor_config.conversation.model
+    chat_model = state.processor_config.conversation.chat_model
     session = {
-        "summary": summarize(chat_session, summary_type="chat", model=model, api_key=openai_api_key),
+        "summary": summarize(chat_session, model=chat_model, api_key=openai_api_key),
         "session-start": conversation_log.get("session", [{"session-end": 0}])[-1]["session-end"],
         "session-end": len(conversation_log["chat"]),
     }
@@ -255,7 +255,7 @@ def save_chat_session():
     with open(conversation_logfile, "w+", encoding="utf-8") as logfile:
         json.dump(conversation_log, logfile, indent=2)
 
-    state.processor_config.conversation.chat_session = None
+    state.processor_config.conversation.chat_session = []
     logger.info("📩 Saved current chat session to conversation logs")
 
 

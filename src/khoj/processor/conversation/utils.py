@@ -9,7 +9,6 @@ import json
 
 # External Packages
 from langchain.chat_models import ChatOpenAI
-from langchain.llms import OpenAI
 from langchain.schema import ChatMessage
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.callbacks.base import BaseCallbackManager
@@ -48,7 +47,7 @@ class ThreadedGenerator:
         item = self.queue.get()
         if item is StopIteration:
             time_to_response = perf_counter() - self.start_time
-            logger.info(f"Time to stream full response: {time_to_response:.3f}")
+            logger.info(f"Chat streaming took: {time_to_response:.3f} seconds")
             if self.completion_func:
                 # The completion func effective acts as a callback.
                 # It adds the aggregated response to the conversation history. It's constructed in api.py.
@@ -89,13 +88,11 @@ class StreamingChatCallbackHandler(StreamingStdOutCallbackHandler):
     reraise=True,
 )
 def completion_with_backoff(**kwargs):
-    prompt = kwargs.pop("prompt")
-    if "api_key" in kwargs:
-        kwargs["openai_api_key"] = kwargs.get("api_key")
-    else:
+    messages = kwargs.pop("messages")
+    if not "openai_api_key" in kwargs:
         kwargs["openai_api_key"] = os.getenv("OPENAI_API_KEY")
-    llm = OpenAI(**kwargs, request_timeout=20, max_retries=1)
-    return llm(prompt)
+    llm = ChatOpenAI(**kwargs, request_timeout=20, max_retries=1)
+    return llm(messages=messages)
 
 
 @retry(
@@ -126,11 +123,12 @@ def llm_thread(g, messages, model_name, temperature, openai_api_key=None):
         streaming=True,
         verbose=True,
         callback_manager=BaseCallbackManager([callback_handler]),
-        model_name=model_name,
+        model_name=model_name,  # type: ignore
         temperature=temperature,
         openai_api_key=openai_api_key or os.getenv("OPENAI_API_KEY"),
         request_timeout=20,
         max_retries=1,
+        client=None,
     )
 
     chat(messages=messages)
@@ -194,15 +192,6 @@ def truncate_messages(messages, max_prompt_size, model_name):
 def reciprocal_conversation_to_chatml(message_pair):
     """Convert a single back and forth between user and assistant to chatml format"""
     return [ChatMessage(content=message, role=role) for message, role in zip(message_pair, ["user", "assistant"])]
-
-
-def message_to_prompt(
-    user_message, conversation_history="", gpt_message=None, start_sequence="\nAI:", restart_sequence="\nHuman:"
-):
-    """Create prompt for GPT from messages and conversation history"""
-    gpt_message = f" {gpt_message}" if gpt_message else ""
-
-    return f"{conversation_history}{restart_sequence} {user_message}{start_sequence}{gpt_message}"
 
 
 def message_to_log(user_message, gpt_message, user_message_metadata={}, khoj_message_metadata={}, conversation_log=[]):

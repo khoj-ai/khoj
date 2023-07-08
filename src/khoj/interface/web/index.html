@@ -114,8 +114,8 @@
             // Extract required fields for search from form
             query = document.getElementById("query").value.trim();
             type = document.getElementById("type").value;
-            results_count = document.getElementById("results-count").value || 6;
-            console.log(`Query: ${query}, Type: ${type}`);
+            results_count = localStorage.getItem("khojResultsCount");
+            console.log(`Query: ${query}, Type: ${type}, Results Count: ${results_count}`);
 
             // Short circuit on empty query
             if (query.length === 0)
@@ -132,17 +132,6 @@
                 .then(data => {
                     console.log(data);
                     document.getElementById("results").innerHTML = render_results(data, query, type);
-                });
-        }
-
-        function updateIndex() {
-            type = document.getElementById("type").value;
-            fetch(`/api/update?t=${type}&client=web`)
-                .then(response => response.json())
-                .then(data => {
-                    console.log(data);
-                    document.getElementById("results").innerHTML =
-                        render_results(data);
                 });
         }
 
@@ -204,12 +193,6 @@
             window.history.pushState({}, "", url.href);
         }
 
-        function setCountFieldInUrl(results_count) {
-            var url = new URL(window.location.href);
-            url.searchParams.set("n", results_count.value);
-            window.history.pushState({}, "", url.href);
-        }
-
         function setQueryFieldInUrl(query) {
             var url = new URL(window.location.href);
             url.searchParams.set("q", query);
@@ -219,11 +202,6 @@
         window.onload = function () {
             // Dynamically populate type dropdown based on enabled content types and type passed as URL query parameter
             populate_type_dropdown();
-
-            // Set results count field with value passed in URL query parameters, if any.
-            var results_count = new URLSearchParams(window.location.search).get("n");
-            if (results_count)
-                document.getElementById("results-count").value = results_count;
 
             // Fill query field with value passed in URL query parameters, if any.
             var query_via_url = new URLSearchParams(window.location.search).get("q");
@@ -269,12 +247,6 @@
         <div id="options">
             <!--Add Dropdown to Select Query Type -->
             <select id="type" class="option" onchange="setTypeFieldInUrl(this)"></select>
-
-            <!--Add Button To Regenerate -->
-            <button id="update" class="option" onclick="updateIndex()">Update</button>
-
-            <!--Add Results Count Input To Set Results Count -->
-            <input type="number" id="results-count" min="1" max="100" value="6" placeholder="results count" onchange="setCountFieldInUrl(this)">
         </div>
 
         <!-- Section to Render Results -->
@@ -320,7 +292,7 @@
         #options {
             padding: 0;
             display: grid;
-            grid-template-columns: 1fr 1fr minmax(70px, 0.5fr);
+            grid-template-columns: 1fr;
         }
         #options > * {
             padding: 15px;
@@ -330,9 +302,6 @@
         }
         .option:hover {
             box-shadow: 0 0 11px #aaa;
-        }
-        #options > select {
-            margin-right: 10px;
         }
         #options > button {
             margin-right: 10px;

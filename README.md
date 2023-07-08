@@ -37,6 +37,7 @@
   - [Access Khoj on Mobile](#access-khoj-on-mobile)
   - [Use OpenAI Models for Search](#use-openai-models-for-search)
   - [Search across Different Languages](#search-across-different-languages)
+  - [Boostrap Khoj Search for Offline Usage Later](#bootstrap-khoj-search-for-offline-usage-later)
 - [Miscellaneous](#Miscellaneous)
   - [Setup OpenAI API key in Khoj](#set-your-openai-api-key-in-khoj)
   - [GPT API](#gpt-api)
@@ -307,6 +308,19 @@ pip install --upgrade --pre khoj-assistant
   ```
 
   2. Regenerate your content index. For example, by opening [\<khoj-url\>/api/update?t=force](http://localhost:8000/api/update?t=force)
+
+### Bootstrap Khoj Search for Offline Usage later
+
+  You can bootstrap Khoj pre-emptively to run on machines that do not have internet access. An example use-case would be to run Khoj on an air-gapped machine.
+  Note: *Only search can currently run in fully offline mode, not chat.*
+
+  - With Internet
+    1. Manually download the [asymmetric text](https://huggingface.co/sentence-transformers/multi-qa-MiniLM-L6-cos-v1), [symmetric text](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)and [image search](https://huggingface.co/sentence-transformers/clip-ViT-B-32) models from HuggingFace
+    2. Pip install khoj (and dependencies) in an associated virtualenv. E.g `python -m venv .venv && source .venv/bin/activate && pip install khoj-assistant`
+  - Without Internet
+    1. Copy each of the search models into their respective folders, `asymmetric`, `symmetric` and `image` under the `~/.khoj/search/` directory on the air-gapped machine
+    2. Copy the khoj virtual environment directory onto the air-gapped machine, activate the environment and start and khoj as normal. E.g `source .venv/bin/activate && khoj`
+
 
 ## Miscellaneous
 ### Set your OpenAI API key in Khoj

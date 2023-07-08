@@ -1,7 +1,10 @@
 # Standard Packages
-import json
 import logging
 from datetime import datetime
+from typing import Optional
+
+# External Packages
+from langchain.schema import ChatMessage
 
 # Internal Packages
 from khoj.utils.constants import empty_escape_sequences
@@ -16,55 +19,31 @@ from khoj.processor.conversation.utils import (
 logger = logging.getLogger(__name__)
 
 
-def answer(text, user_query, model, api_key=None, temperature=0.5, max_tokens=500):
+def summarize(session, model, api_key=None, temperature=0.5, max_tokens=200):
     """
-    Answer user query using provided text as reference with OpenAI's GPT
+    Summarize conversation session using the specified OpenAI chat model
     """
-    # Setup Prompt from arguments
-    prompt = prompts.answer.format(text=text, user_query=user_query)
+    messages = [ChatMessage(content=prompts.summarize_chat.format(), role="system")] + session
 
     # Get Response from GPT
-    logger.debug(f"Prompt for GPT: {prompt}")
+    logger.debug(f"Prompt for GPT: {messages}")
     response = completion_with_backoff(
-        prompt=prompt,
-        model_name=model,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        stop='"""',
-        api_key=api_key,
-    )
-
-    # Extract, Clean Message from GPT's Response
-    return str(response).replace("\n\n", "")
-
-
-def summarize(text, summary_type, model, user_query=None, api_key=None, temperature=0.5, max_tokens=200):
-    """
-    Summarize user input using OpenAI's GPT
-    """
-    # Setup Prompt based on Summary Type
-    if summary_type == "chat":
-        prompt = prompts.summarize_chat.format(text=text)
-    elif summary_type == "notes":
-        prompt = prompts.summarize_notes.format(text=text, user_query=user_query)
-
-    # Get Response from GPT
-    logger.debug(f"Prompt for GPT: {prompt}")
-    response = completion_with_backoff(
-        prompt=prompt,
+        messages=messages,
         model_name=model,
         temperature=temperature,
         max_tokens=max_tokens,
         frequency_penalty=0.2,
-        stop='"""',
-        api_key=api_key,
+        model_kwargs={"stop": ['"""']},
+        openai_api_key=api_key,
     )
 
     # Extract, Clean Message from GPT's Response
-    return str(response).replace("\n\n", "")
+    return str(response.content).replace("\n\n", "")
 
 
-def extract_questions(text, model="text-davinci-003", conversation_log={}, api_key=None, temperature=0, max_tokens=100):
+def extract_questions(
+    text, model: Optional[str] = "gpt-4", conversation_log={}, api_key=None, temperature=0, max_tokens=100
+):
     """
     Infer search queries to retrieve relevant notes to answer user query
     """
@@ -92,65 +71,43 @@ def extract_questions(text, model="text-davinci-003", conversation_log={}, api_k
         chat_history=chat_history,
         text=text,
     )
+    messages = [ChatMessage(content=prompt, role="assistant")]
 
     # Get Response from GPT
     response = completion_with_backoff(
-        prompt=prompt,
+        messages=messages,
         model_name=model,
         temperature=temperature,
         max_tokens=max_tokens,
-        stop=["A: ", "\n"],
-        api_key=api_key,
+        model_kwargs={"stop": ["A: ", "\n"]},
+        openai_api_key=api_key,
     )
 
     # Extract, Clean Message from GPT's Response
     try:
-        questions = json.loads(
-            # Clean response to increase likelihood of valid JSON. E.g replace ' with " to enclose strings
-            response.strip(empty_escape_sequences)
+        questions = (
+            response.content.strip(empty_escape_sequences)
             .replace("['", '["')
             .replace("']", '"]')
             .replace("', '", '", "')
+            .replace('["', "")
+            .replace('"]', "")
+            .split('", "')
         )
-    except json.decoder.JSONDecodeError:
+    except:
         logger.warning(f"GPT returned invalid JSON. Falling back to using user message as search query.\n{response}")
         questions = [text]
     logger.debug(f"Extracted Questions by GPT: {questions}")
     return questions
 
 
-def extract_search_type(text, model, api_key=None, temperature=0.5, max_tokens=100, verbose=0):
-    """
-    Extract search type from user query using OpenAI's GPT
-    """
-    # Setup Prompt to extract search type
-    prompt = prompts.search_type + f"{text}\nA:"
-    if verbose > 1:
-        print(f"Message -> Prompt: {text} -> {prompt}")
-
-    # Get Response from GPT
-    logger.debug(f"Prompt for GPT: {prompt}")
-    response = completion_with_backoff(
-        prompt=prompt,
-        model_name=model,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        frequency_penalty=0.2,
-        stop=["\n"],
-        api_key=api_key,
-    )
-
-    # Extract, Clean Message from GPT's Response
-    return json.loads(response.strip(empty_escape_sequences))
-
-
 def converse(
     references,
     user_query,
     conversation_log={},
-    model="gpt-3.5-turbo",
-    api_key=None,
-    temperature=0.2,
+    model: str = "gpt-3.5-turbo",
+    api_key: Optional[str] = None,
+    temperature: float = 0.2,
     completion_func=None,
 ):
     """
@@ -175,6 +132,8 @@ def converse(
         conversation_log,
         model,
     )
+    truncated_messages = "\n".join({f"{message.content[:40]}..." for message in messages})
+    logger.debug(f"Conversation Context for GPT: {truncated_messages}")
 
     # Get Response from GPT
     return chat_completion_with_backoff(

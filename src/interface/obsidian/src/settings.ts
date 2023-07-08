@@ -54,7 +54,7 @@ export class KhojSettingTab extends PluginSettingTab {
                 }));
         new Setting(containerEl)
             .setName('Results Count')
-            .setDesc('The number of search results to show')
+            .setDesc('The number of results to show in search and use for chat')
             .addSlider(slider => slider
                 .setLimits(1, 10, 1)
                 .setValue(this.plugin.settings.resultsCount)

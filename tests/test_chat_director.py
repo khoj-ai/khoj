@@ -41,7 +41,7 @@ def populate_chat_history(message_list):
 def test_chat_with_no_chat_history_or_retrieved_content(chat_client):
     # Act
     response = chat_client.get(f'/api/chat?q="Hello, my name is Testatron. Who are you?"')
-    response_message = response.json()["response"]
+    response_message = response.content.decode("utf-8")
 
     # Assert
     expected_responses = ["Khoj", "khoj"]
@@ -63,7 +63,7 @@ def test_answer_from_chat_history(chat_client):
 
     # Act
     response = chat_client.get(f'/api/chat?q="What is my name?"')
-    response_message = response.json()["response"]
+    response_message = response.content.decode("utf-8")
 
     # Assert
     expected_responses = ["Testatron", "testatron"]
@@ -89,7 +89,7 @@ def test_answer_from_currently_retrieved_content(chat_client):
 
     # Act
     response = chat_client.get(f'/api/chat?q="Where was Xi Li born?"')
-    response_message = response.json()["response"]
+    response_message = response.content.decode("utf-8")
 
     # Assert
     assert response.status_code == 200
@@ -112,7 +112,7 @@ def test_answer_from_chat_history_and_previously_retrieved_content(chat_client):
 
     # Act
     response = chat_client.get(f'/api/chat?q="Where was I born?"')
-    response_message = response.json()["response"]
+    response_message = response.content.decode("utf-8")
 
     # Assert
     assert response.status_code == 200
@@ -134,7 +134,7 @@ def test_answer_from_chat_history_and_currently_retrieved_content(chat_client):
 
     # Act
     response = chat_client.get(f'/api/chat?q="Where was I born?"')
-    response_message = response.json()["response"]
+    response_message = response.content.decode("utf-8")
 
     # Assert
     assert response.status_code == 200
@@ -158,13 +158,13 @@ def test_no_answer_in_chat_history_or_retrieved_content(chat_client):
 
     # Act
     response = chat_client.get(f'/api/chat?q="Where was I born?"')
-    response_message = response.json()["response"]
+    response_message = response.content.decode("utf-8")
 
     # Assert
     expected_responses = ["don't know", "do not know", "no information", "do not have", "don't have"]
     assert response.status_code == 200
     assert any([expected_response in response_message for expected_response in expected_responses]), (
-        "Expected chat director to say they don't know in response, but got: " + response
+        "Expected chat director to say they don't know in response, but got: " + response_message
     )
 
 
@@ -176,7 +176,7 @@ def test_answer_requires_current_date_awareness(chat_client):
     "Chat actor should be able to answer questions relative to current date using provided notes"
     # Act
     response = chat_client.get(f'/api/chat?q="Where did I have lunch today?"')
-    response_message = response.json()["response"]
+    response_message = response.content.decode("utf-8")
 
     # Assert
     expected_responses = ["Arak", "Medellin"]
@@ -193,7 +193,7 @@ def test_answer_requires_date_aware_aggregation_across_provided_notes(chat_clien
     "Chat director should be able to answer questions that require date aware aggregation across multiple notes"
     # Act
     response = chat_client.get(f'/api/chat?q="How much did I spend on dining this year?"')
-    response_message = response.json()["response"]
+    response_message = response.content.decode("utf-8")
 
     # Assert
     assert response.status_code == 200
@@ -213,7 +213,7 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content(chat_c
 
     # Act
     response = chat_client.get(f'/api/chat?q=""Write a haiku about unit testing. Do not say anything else."')
-    response_message = response.json()["response"]
+    response_message = response.content.decode("utf-8")
 
     # Assert
     expected_responses = ["test", "Test"]
@@ -230,7 +230,7 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content(chat_c
 def test_ask_for_clarification_if_not_enough_context_in_question(chat_client):
     # Act
     response = chat_client.get(f'/api/chat?q="What is the name of Namitas older son"')
-    response_message = response.json()["response"]
+    response_message = response.content.decode("utf-8")
 
     # Assert
     expected_responses = [
@@ -259,7 +259,7 @@ def test_answer_in_chat_history_beyond_lookback_window(chat_client):
 
     # Act
     response = chat_client.get(f'/api/chat?q="What is my name?"')
-    response_message = response.json()["response"]
+    response_message = response.content.decode("utf-8")
 
     # Assert
     expected_responses = ["Testatron", "testatron"]
@@ -275,7 +275,7 @@ def test_answer_requires_multiple_independent_searches(chat_client):
     "Chat director should be able to answer by doing multiple independent searches for required information"
     # Act
     response = chat_client.get(f'/api/chat?q="Is Xi older than Namita?"')
-    response_message = response.json()["response"]
+    response_message = response.content.decode("utf-8")
 
     # Assert
     expected_responses = ["he is older than namita", "xi is older than namita"]

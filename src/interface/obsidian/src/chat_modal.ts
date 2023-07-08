@@ -1,4 +1,4 @@
-import { App, Modal, request, Setting } from 'obsidian';
+import { App, Modal, request } from 'obsidian';
 import { KhojSetting } from 'src/settings';
 import fetch from "node-fetch";
 
@@ -93,6 +93,9 @@ export class KhojChatModal extends Modal {
             text: `${message}`
         })
 
+        // Remove user-select: none property to make text selectable
+        chat_message_el.style.userSelect = "text";
+
         // Scroll to bottom after inserting chat messages
         this.modalEl.scrollTop = this.modalEl.scrollHeight;
 
@@ -155,7 +158,11 @@ export class KhojChatModal extends Modal {
 
         // Get chat response from Khoj backend
         let encodedQuery = encodeURIComponent(query);
-        let chatUrl = `${this.setting.khojUrl}/api/chat?q=${encodedQuery}&client=obsidian`;
+        let chatUrl = `${this.setting.khojUrl}/api/chat?q=${encodedQuery}&n=${this.setting.resultsCount}&client=obsidian`;
+        let responseElement = this.createKhojResponseDiv();
+
+        // Temporary status message to indicate that Khoj is thinking
+        this.renderIncrementalMessage(responseElement, "🤔");
 
         let response = await fetch(chatUrl, {
             method: "GET",
@@ -164,11 +171,14 @@ export class KhojChatModal extends Modal {
                 "Content-Type": "text/event-stream"
             },
         })
-        let responseElemeent = this.createKhojResponseDiv();
 
         try {
             if (response.body == null) {
                 throw new Error("Response body is null");
+            }
+            // Clear thinking status message
+            if (responseElement.innerHTML === "🤔") {
+                responseElement.innerHTML = "";
             }
 
             for await (const chunk of response.body) {
@@ -176,10 +186,10 @@ export class KhojChatModal extends Modal {
                 if (responseText.startsWith("### compiled references:")) {
                     return;
                 }
-                this.renderIncrementalMessage(responseElemeent, responseText);
+                this.renderIncrementalMessage(responseElement, responseText);
             }
         } catch (err) {
-            this.renderIncrementalMessage(responseElemeent, "Sorry, unable to get response from Khoj backend ❤️‍🩹. Contact developer for help at team@khoj.dev or <a href='https://discord.gg/BDgyabRM6e'>in Discord</a>")
+            this.renderIncrementalMessage(responseElement, "Sorry, unable to get response from Khoj backend ❤️‍🩹. Contact developer for help at team@khoj.dev or <a href='https://discord.gg/BDgyabRM6e'>in Discord</a>")
         }
     }
 }
