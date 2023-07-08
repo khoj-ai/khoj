@@ -152,6 +152,7 @@ if not state.demo:
         _initialize_config()
 
         state.config.processor = ProcessorConfig(conversation=updated_config)
+        state.processor_config = configure_processor(state.config.processor)
         try:
             save_config_to_file_updated_state()
             return {"status": "ok"}
