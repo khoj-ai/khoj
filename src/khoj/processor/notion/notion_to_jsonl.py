@@ -27,40 +27,50 @@ class NotionToJsonl(TextToJsonl):
 
         # Get all pages
         with timer("Getting all pages via search endpoint", logger=logger):
-            response = self.session.post(
-                "https://api.notion.com/v1/search",
-                json={"page_size": 100},
-            ).json()
+            responses = []
 
-        pages_or_databases = response["results"]
+            while True:
+                result = self.session.post(
+                    "https://api.notion.com/v1/search",
+                    json={"page_size": 100},
+                ).json()
+                responses.append(result)
+                if result["has_more"] == False:
+                    break
+                else:
+                    self.session.params = {"start_cursor": responses[-1]["next_cursor"]}
 
-        # Get all pages content
-        for p_or_d in pages_or_databases:
-            with timer(f"Processing {p_or_d['object']} {p_or_d['id']}", logger=logger):
-                if p_or_d["object"] == "database":
-                    # TODO: Handle databases
-                    continue
-                elif p_or_d["object"] == "page":
-                    page_id = p_or_d["id"]
-                    title, content = self.get_page_content(page_id)
-                    for block in content["results"]:
-                        block_type = block.get("type", None)
-                        if block_type == None:
+        for response in responses:
+            with timer("Processing response", logger=logger):
+                pages_or_databases = response["results"]
+
+                # Get all pages content
+                for p_or_d in pages_or_databases:
+                    with timer(f"Processing {p_or_d['object']} {p_or_d['id']}", logger=logger):
+                        if p_or_d["object"] == "database":
+                            # TODO: Handle databases
                             continue
-                        block_data = block[block_type]
-                        if block_data.get("rich_text", None) and len(block_data["rich_text"]) > 0:
-                            raw_content = ""
-                            for text in block_data["rich_text"]:
-                                raw_content += text["plain_text"]
-                            if raw_content != "":
-                                current_entries.append(
-                                    Entry(
-                                        compiled=raw_content,
-                                        raw=raw_content,
-                                        heading=title,
-                                        file=p_or_d["url"],
-                                    )
-                                )
+                        elif p_or_d["object"] == "page":
+                            page_id = p_or_d["id"]
+                            title, content = self.get_page_content(page_id)
+                            for block in content["results"]:
+                                block_type = block.get("type", None)
+                                if block_type == None:
+                                    continue
+                                block_data = block[block_type]
+                                if block_data.get("rich_text", None) and len(block_data["rich_text"]) > 0:
+                                    raw_content = ""
+                                    for text in block_data["rich_text"]:
+                                        raw_content += text["plain_text"]
+                                    if raw_content != "":
+                                        current_entries.append(
+                                            Entry(
+                                                compiled=raw_content,
+                                                raw=raw_content,
+                                                heading=title,
+                                                file=p_or_d["url"],
+                                            )
+                                        )
 
         return self.update_entries_with_ids(current_entries, previous_entries)
 
