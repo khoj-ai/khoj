@@ -33,9 +33,9 @@ def test_extract_question_with_date_filter_from_relative_day():
 
     # Assert
     expected_responses = [
-        ('dt="1984-04-01"', ""),
-        ('dt>="1984-04-01"', 'dt<"1984-04-02"'),
-        ('dt>"1984-03-31"', 'dt<"1984-04-02"'),
+        ("dt='1984-04-01'", ""),
+        ("dt>='1984-04-01'", "dt<'1984-04-02'"),
+        ("dt>'1984-03-31'", "dt<'1984-04-02'"),
     ]
     assert len(response) == 1
     assert any([start in response[0] and end in response[0] for start, end in expected_responses]), (
@@ -51,7 +51,7 @@ def test_extract_question_with_date_filter_from_relative_month():
     response = extract_questions("Which countries did I visit last month?")
 
     # Assert
-    expected_responses = [('dt>="1984-03-01"', 'dt<"1984-04-01"'), ('dt>="1984-03-01"', 'dt<="1984-03-31"')]
+    expected_responses = [("dt>='1984-03-01'", "dt<'1984-04-01'"), ("dt>='1984-03-01'", "dt<='1984-03-31'")]
     assert len(response) == 1
     assert any([start in response[0] and end in response[0] for start, end in expected_responses]), (
         "Expected date filter to limit to March 1984 in response but got: " + response[0]
@@ -67,9 +67,9 @@ def test_extract_question_with_date_filter_from_relative_year():
 
     # Assert
     expected_responses = [
-        ('dt>="1984-01-01"', ""),
-        ('dt>="1984-01-01"', 'dt<"1985-01-01"'),
-        ('dt>="1984-01-01"', 'dt<="1984-12-31"'),
+        ("dt>='1984-01-01'", ""),
+        ("dt>='1984-01-01'", "dt<'1985-01-01'"),
+        ("dt>='1984-01-01'", "dt<='1984-12-31'"),
     ]
     assert len(response) == 1
     assert any([start in response[0] and end in response[0] for start, end in expected_responses]), (
@@ -172,8 +172,8 @@ def test_generate_search_query_with_date_and_context_from_chat_history():
 
     # Assert
     expected_responses = [
-        ('dt>="2000-04-01"', 'dt<"2000-05-01"'),
-        ('dt>="2000-04-01"', 'dt<="2000-04-31"'),
+        ("dt>='2000-04-01'", "dt<'2000-05-01'"),
+        ("dt>='2000-04-01'", "dt<='2000-04-30'"),
     ]
     assert len(response) == 1
     assert "Masai Mara" in response[0]

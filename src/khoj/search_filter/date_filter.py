@@ -23,7 +23,7 @@ class DateFilter(BaseFilter):
     # - dt>="yesterday" dt<"tomorrow"
     # - dt>="last week"
     # - dt:"2 years ago"
-    date_regex = r"dt([:><=]{1,2})\"(.*?)\""
+    date_regex = r"dt([:><=]{1,2})[\"'](.*?)[\"']"
 
     def __init__(self, entry_key="raw"):
         self.entry_key = entry_key
