@@ -293,5 +293,25 @@
             button.innerHTML = '⚠️ Unsuccessful';
         });
     }
+
+    // Setup the results count slider
+    const resultsCountSlider = document.getElementById('results-count-slider');
+    const resultsCountValue = document.getElementById('results-count-value');
+
+    // Set the initial value of the slider
+    resultsCountValue.textContent = resultsCountSlider.value;
+
+    // Store the slider value in localStorage when it changes
+    resultsCountSlider.addEventListener('input', () => {
+        resultsCountValue.textContent = resultsCountSlider.value;
+        localStorage.setItem('khojResultsCount', resultsCountSlider.value);
+    });
+
+    // Get the slider value from localStorage on page load
+    const storedResultsCount = localStorage.getItem('khojResultsCount');
+    if (storedResultsCount) {
+        resultsCountSlider.value = storedResultsCount;
+        resultsCountValue.textContent = storedResultsCount;
+    }
 </script>
 {% endblock %}

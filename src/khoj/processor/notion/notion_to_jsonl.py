@@ -53,24 +53,40 @@ class NotionToJsonl(TextToJsonl):
                         elif p_or_d["object"] == "page":
                             page_id = p_or_d["id"]
                             title, content = self.get_page_content(page_id)
+                            raw_content = ""
+                            curr_heading = ""
                             for block in content["results"]:
                                 block_type = block.get("type", None)
                                 if block_type == None:
                                     continue
                                 block_data = block[block_type]
+                                raw_content = ""
                                 if block_data.get("rich_text", None) and len(block_data["rich_text"]) > 0:
-                                    raw_content = ""
+                                    if block_type in ["heading_1", "heading_2", "heading_3"]:
+                                        if raw_content != "":
+                                            current_entries.append(
+                                                Entry(
+                                                    compiled=raw_content,
+                                                    raw=raw_content,
+                                                    heading=title,
+                                                    file=p_or_d["url"],
+                                                )
+                                            )
+                                        curr_heading = block_data["rich_text"][0]["plain_text"]
+                                    if curr_heading != "":
+                                        raw_content = curr_heading + "\n"
                                     for text in block_data["rich_text"]:
                                         raw_content += text["plain_text"]
-                                    if raw_content != "":
-                                        current_entries.append(
-                                            Entry(
-                                                compiled=raw_content,
-                                                raw=raw_content,
-                                                heading=title,
-                                                file=p_or_d["url"],
-                                            )
+                                        raw_content += "\n"
+                                if raw_content != "":
+                                    current_entries.append(
+                                        Entry(
+                                            compiled=raw_content,
+                                            raw=raw_content,
+                                            heading=title,
+                                            file=p_or_d["url"],
                                         )
+                                    )
 
         return self.update_entries_with_ids(current_entries, previous_entries)
 

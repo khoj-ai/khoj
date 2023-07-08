@@ -72,7 +72,7 @@
                 } else if (item.additional.file.endsWith(".pdf")) {
                     html += render_pdf(query, [item]);
                 } else if (item.additional.file.includes("notion.so")) {
-                    html += `<div class="results-notion">` + `<a href="${item.additional.file}">${item.additional.heading}</a>` + `<p>${item.entry}</p>` + `</div>`;
+                    html += `<div class="results-notion">` + `<b><a href="${item.additional.file}">${item.additional.heading}</a></b>` + `<p>${item.entry}</p>` + `</div>`;
                 }
             });
             return html;
@@ -349,12 +349,12 @@
             white-space: pre-wrap;
         }
         .results-pdf,
+        .results-notion,
         .results-plugin {
             text-align: left;
             white-space: pre-line;
         }
         .results-markdown,
-        .results-notion,
         .results-github {
             text-align: left;
         }
