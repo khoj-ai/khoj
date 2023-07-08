@@ -104,8 +104,8 @@ class PdfToJsonl(TextToJsonl):
                 entry_to_location_map += zip(pdf_entries_per_file, [pdf_file] * len(pdf_entries_per_file))
                 entries.extend(pdf_entries_per_file)
             except Exception as e:
-                logger.error(f"Error processing file: {pdf_file}. This file will not be indexed.")
-                logger.error(e)
+                logger.warning(f"Unable to process file: {pdf_file}. This file will not be indexed.")
+                logger.warning(e)
 
         return entries, dict(entry_to_location_map)
 

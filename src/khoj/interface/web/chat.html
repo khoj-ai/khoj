@@ -51,7 +51,7 @@
         function chat() {
             // Extract required fields for search from form
             let query = document.getElementById("chat-input").value.trim();
-            let results_count = localStorage.getItem("khojResultsCount");
+            let results_count = localStorage.getItem("khojResultsCount") || 5;
             console.log(`Query: ${query}`);
 
             // Short circuit on empty query
