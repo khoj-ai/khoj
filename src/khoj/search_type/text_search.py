@@ -159,7 +159,11 @@ def collate_results(hits, entries: List[Entry], count=5) -> List[SearchResponse]
             {
                 "entry": entries[hit["corpus_id"]].raw,
                 "score": f"{hit.get('cross-score') or hit.get('score')}",
-                "additional": {"file": entries[hit["corpus_id"]].file, "compiled": entries[hit["corpus_id"]].compiled},
+                "additional": {
+                    "file": entries[hit["corpus_id"]].file,
+                    "compiled": entries[hit["corpus_id"]].compiled,
+                    "heading": entries[hit["corpus_id"]].heading,
+                },
             }
         )
         for hit in hits[0:count]

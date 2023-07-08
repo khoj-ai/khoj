@@ -66,7 +66,7 @@ if not state.demo:
     @web_client.get("/config/content_type/notion", response_class=HTMLResponse)
     def notion_config_page(request: Request):
         default_copy = constants.default_config.copy()
-        default_notion = default_copy["content-type"]["notion"]
+        default_notion = default_copy["content-type"]["notion"]  # type: ignore
 
         default_config = TextContentConfig(
             compressed_jsonl=default_notion["compressed-jsonl"],

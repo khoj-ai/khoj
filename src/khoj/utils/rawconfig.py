@@ -153,4 +153,9 @@ class Entry:
 
     @classmethod
     def from_dict(cls, dictionary: dict):
-        return cls(raw=dictionary["raw"], compiled=dictionary["compiled"], file=dictionary.get("file", None))
+        return cls(
+            raw=dictionary["raw"],
+            compiled=dictionary["compiled"],
+            file=dictionary.get("file", None),
+            heading=dictionary.get("heading", None),
+        )
