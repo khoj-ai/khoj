@@ -3,7 +3,7 @@ from __future__ import annotations  # to avoid quoting type hints
 from enum import Enum
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING, Dict, List, Union
 
 # External Packages
 import torch
@@ -23,6 +23,7 @@ class SearchType(str, Enum):
     Image = "image"
     Pdf = "pdf"
     Github = "github"
+    Notion = "notion"
 
 
 class ProcessorType(str, Enum):
@@ -58,12 +59,13 @@ class ImageSearchModel:
 
 @dataclass
 class SearchModels:
-    org_search: TextSearchModel = None
-    markdown_search: TextSearchModel = None
-    pdf_search: TextSearchModel = None
-    image_search: ImageSearchModel = None
-    github_search: TextSearchModel = None
-    plugin_search: Dict[str, TextSearchModel] = None
+    org_search: Union[TextSearchModel, None] = None
+    markdown_search: Union[TextSearchModel, None] = None
+    pdf_search: Union[TextSearchModel, None] = None
+    image_search: Union[ImageSearchModel, None] = None
+    github_search: Union[TextSearchModel, None] = None
+    notion_search: Union[TextSearchModel, None] = None
+    plugin_search: Union[Dict[str, TextSearchModel], None] = None
 
 
 class ConversationProcessorConfigModel:
@@ -78,4 +80,4 @@ class ConversationProcessorConfigModel:
 
 @dataclass
 class ProcessorConfigModel:
-    conversation: ConversationProcessorConfigModel = None
+    conversation: Union[ConversationProcessorConfigModel, None] = None

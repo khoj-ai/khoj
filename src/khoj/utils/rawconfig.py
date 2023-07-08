@@ -52,6 +52,10 @@ class GithubContentConfig(TextConfigBase):
     repos: List[GithubRepoConfig]
 
 
+class NotionContentConfig(TextConfigBase):
+    token: str
+
+
 class ImageContentConfig(ConfigBase):
     input_directories: Optional[List[Path]]
     input_filter: Optional[List[str]]
@@ -77,6 +81,7 @@ class ContentConfig(ConfigBase):
     pdf: Optional[TextContentConfig]
     github: Optional[GithubContentConfig]
     plugins: Optional[Dict[str, TextContentConfig]]
+    notion: Optional[NotionContentConfig]
 
 
 class TextSearchConfig(ConfigBase):

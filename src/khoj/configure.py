@@ -17,6 +17,7 @@ from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.pdf.pdf_to_jsonl import PdfToJsonl
 from khoj.processor.github.github_to_jsonl import GithubToJsonl
+from khoj.processor.notion.notion_to_jsonl import NotionToJsonl
 from khoj.search_type import image_search, text_search
 from khoj.utils import constants, state
 from khoj.utils.config import SearchType, SearchModels, ProcessorConfigModel, ConversationProcessorConfigModel
@@ -169,6 +170,18 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
                     regenerate=regenerate,
                     filters=[DateFilter(), WordFilter(), FileFilter()],
                 )
+
+        # Initialize Notion Search
+        if (t == None or t in state.SearchType) and config.content_type.notion:
+            logger.info("🔌 Setting up search for notion")
+            model.notion_search = text_search.setup(
+                NotionToJsonl,
+                config.content_type.notion,
+                search_config=config.search_type.asymmetric,
+                regenerate=regenerate,
+                filters=[DateFilter(), WordFilter(), FileFilter()],
+            )
+
     except Exception as e:
         logger.error("🚨 Failed to setup search")
         raise e
@@ -248,7 +261,7 @@ def save_chat_session():
 
 @schedule.repeat(schedule.every(59).minutes)
 def upload_telemetry():
-    if not state.config or not state.config.app.should_log_telemetry or not state.telemetry:
+    if not state.config or not state.config.app or not state.config.app.should_log_telemetry or not state.telemetry:
         message = "📡 No telemetry to upload" if not state.telemetry else "📡 Telemetry logging disabled"
         logger.debug(message)
         return
