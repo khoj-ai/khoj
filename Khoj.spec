@@ -6,8 +6,10 @@ import sysconfig
 
 datas = [
     ('src/khoj/interface/web', 'src/khoj/interface/web'),
-    (f'{sysconfig.get_paths()["purelib"]}/transformers', 'transformers')
+    (f'{sysconfig.get_paths()["purelib"]}/transformers', 'transformers'),
+    (f'{sysconfig.get_paths()["purelib"]}/langchain', 'langchain')
 ]
+datas += copy_metadata('torch')
 datas += copy_metadata('tqdm')
 datas += copy_metadata('regex')
 datas += copy_metadata('requests')
