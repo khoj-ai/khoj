@@ -88,13 +88,17 @@
 
                             const chunk = decoder.decode(value, { stream: true });
 
-                            if (chunk.startsWith("### compiled references:")) {
+                            if (chunk.includes("### compiled references:")) {
+                                const additionalResponse = chunk.split("### compiled references:")[0];
+                                new_response_text.innerHTML += additionalResponse;
+
                                 const rawReference = chunk.split("### compiled references:")[1];
                                 const rawReferenceAsJson = JSON.parse(rawReference);
                                 let polishedReference = rawReferenceAsJson.map((reference, index) => generateReference(reference, index))
                                     .join("<sup>,</sup>");
 
                                 new_response_text.innerHTML += polishedReference;
+                                document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
                             } else {
                                 new_response_text.innerHTML += chunk;
                                 document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;

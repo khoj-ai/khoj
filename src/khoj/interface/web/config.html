@@ -14,7 +14,6 @@
                             <img id="configured-icon-github" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
                         {% endif %}
                     </h3>
-
                 </div>
                 <div class="card-description-row">
                 <p class="card-description">Set repositories for Khoj to index</p>
@@ -32,6 +31,37 @@
                 {% if current_config.content_type.github %}
                     <div id="clear-github" class="card-action-row">
                         <button class="card-button" onclick="clearContentType('github')">
+                            Disable
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/notion.svg" alt="Notion">
+                    <h3 class="card-title">
+                        Notion
+                        {% if current_config.content_type.notion %}
+                            <img id="configured-icon-notion" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                        {% endif %}
+                    </h3>
+                </div>
+                <div class="card-description-row">
+                    <p class="card-description">Configure your settings from Notion</p>
+                </div>
+                <div class="card-action-row">
+                    <a class="card-button" href="/config/content_type/notion">
+                        {% if current_config.content_type.content %}
+                            Update
+                        {% else %}
+                            Setup
+                        {% endif %}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                    </a>
+                </div>
+                {% if current_config.content_type.notion %}
+                    <div id="clear-notion" class="card-action-row">
+                        <button class="card-button" onclick="clearContentType('notion')">
                             Disable
                         </button>
                     </div>
@@ -220,40 +250,20 @@
     var configure = document.getElementById("configure");
     configure.addEventListener("click", function(event) {
         event.preventDefault();
-        configure.disabled = true;
-        configure.innerHTML = "Configuring...";
-        const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
-        fetch('/api/update?&client=web', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Success:', data);
-            document.getElementById("status").innerHTML = "Configured successfully!";
-            document.getElementById("status").style.display = "block";
-            configure.disabled = false;
-            configure.innerHTML = "⚙️ Configured";
-        })
-        .catch((error) => {
-            console.error('Error:', error);
-            document.getElementById("status").innerHTML = "Unable to save configuration. Raise issue on Khoj Discord or Github.";
-            document.getElementById("status").style.display = "block";
-            configure.disabled = false;
-            configure.innerHTML = "⚙️ Configure";
-        });
+        updateIndex(false, "Configured successfully!", "Unable to configure. Raise issue on Khoj Discord or Github.", configure, "Configuring...");
     });
 
     var reinitialize = document.getElementById("reinitialize");
     reinitialize.addEventListener("click", function(event) {
         event.preventDefault();
-        reinitialize.disabled = true;
-        reinitialize.innerHTML = "Reinitializing...";
+        updateIndex(true, "Reinitialized successfully!", "Unable to reinitialize. Raise issue on Khoj Discord or Github.", reinitialize, "Reinitializing...");
+    });
+
+    function updateIndex(force, successText, errorText, button, loadingText) {
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
-        fetch('/api/update?&client=web&force=True', {
+        button.disabled = true;
+        button.innerHTML = loadingText;
+        fetch('/api/update?&client=web&force=' + force, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -263,18 +273,21 @@
         .then(response => response.json())
         .then(data => {
             console.log('Success:', data);
+            if (data.detail != null) {
+                throw new Error(data.detail);
+            }
             document.getElementById("status").innerHTML = "Reinitialized successfully!";
             document.getElementById("status").style.display = "block";
-            reinitialize.disabled = false;
-            reinitialize.innerHTML = "🔄 Reinitialized";
+            button.disabled = false;
+            button.innerHTML = '✅ Done!';
         })
         .catch((error) => {
             console.error('Error:', error);
             document.getElementById("status").innerHTML = "Unable to reinitialize. Raise issue on Khoj Discord or Github.";
             document.getElementById("status").style.display = "block";
-            reinitialize.disabled = false;
-            reinitialize.innerHTML = "🔄 Reinitialize";
+            button.disabled = false;
+            button.innerHTML = '⚠️ Unsuccessful';
         });
-    });
+    }
 </script>
 {% endblock %}
