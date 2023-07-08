@@ -102,7 +102,7 @@ A: You visited the Angkor Wat Temple in Cambodia with Pablo, Namita and Xi.
 
 Q: What national parks did I go to last year?
 
-["National park I visited in {last_new_year} dt>="{last_new_year_date}" dt<"{current_new_year_date}""]
+["National park I visited in {last_new_year} dt>='{last_new_year_date}' dt<'{current_new_year_date}'"]
 
 A: You visited the Grand Canyon and Yellowstone National Park in {last_new_year}.
 
