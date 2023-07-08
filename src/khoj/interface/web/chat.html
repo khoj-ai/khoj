@@ -51,7 +51,7 @@
         function chat() {
             // Extract required fields for search from form
             let query = document.getElementById("chat-input").value.trim();
-            let results_count = localStorage.getItem("khojResultsCount");
+            let results_count = localStorage.getItem("khojResultsCount") || 5;
             console.log(`Query: ${query}`);
 
             // Short circuit on empty query
@@ -93,14 +93,17 @@
 
                             // Decode message chunk from stream
                             const chunk = decoder.decode(value, { stream: true });
-                            if (chunk.startsWith("### compiled references:")) {
-                                // Display references used to generate response
-                                const rawReferences = chunk.split("### compiled references:")[1];
-                                const rawReferencesAsJson = JSON.parse(rawReferences);
-                                let polishedReferences = rawReferencesAsJson
-                                    .map((reference, index) => generateReference(reference, index))
+                            if (chunk.includes("### compiled references:")) {
+                                const additionalResponse = chunk.split("### compiled references:")[0];
+                                new_response_text.innerHTML += additionalResponse;
+
+                                const rawReference = chunk.split("### compiled references:")[1];
+                                const rawReferenceAsJson = JSON.parse(rawReference);
+                                let polishedReference = rawReferenceAsJson.map((reference, index) => generateReference(reference, index))
                                     .join("<sup>,</sup>");
-                                new_response_text.innerHTML += polishedReferences;
+
+                                new_response_text.innerHTML += polishedReference;
+                                document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
                             } else {
                                 // Display response from Khoj
                                 if (new_response_text.innerHTML === "🤔") {

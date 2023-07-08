@@ -81,6 +81,17 @@ if not state.demo:
         if state.config.content_type:
             state.config.content_type[content_type] = None
 
+        if content_type == "github":
+            state.model.github_search = None
+        elif content_type == "plugins":
+            state.model.plugin_search = None
+        elif content_type == "pdf":
+            state.model.pdf_search = None
+        elif content_type == "markdown":
+            state.model.markdown_search = None
+        elif content_type == "org":
+            state.model.org_search = None
+
         try:
             save_config_to_file_updated_state()
             return {"status": "ok"}
@@ -123,6 +134,7 @@ if not state.demo:
             state.config = FullConfig()
             state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
         state.config.processor = ProcessorConfig(conversation=updated_config)
+        state.processor_config = configure_processor(state.config.processor)
         try:
             save_config_to_file_updated_state()
             return {"status": "ok"}

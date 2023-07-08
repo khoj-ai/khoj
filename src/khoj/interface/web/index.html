@@ -113,7 +113,7 @@
             query = document.getElementById("query").value.trim();
             type = document.getElementById("type").value;
             searchHint = document.getElementById("info-hint");
-            results_count = localStorage.getItem("khojResultsCount");
+            results_count = localStorage.getItem("khojResultsCount") || 5;
             console.log(`Query: ${query}, Type: ${type}, Results Count: ${results_count}`);
 
             // Short circuit on empty query

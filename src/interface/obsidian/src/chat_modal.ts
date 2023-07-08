@@ -138,7 +138,6 @@ export class KhojChatModal extends Modal {
         return `${time_string}, ${date_string}`;
     }
 
-
     async getChatHistory(): Promise<void> {
         // Get chat history from Khoj backend
         let chatUrl = `${this.setting.khojUrl}/api/chat/init?client=obsidian`;
