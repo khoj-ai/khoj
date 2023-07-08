@@ -140,7 +140,7 @@ export class KhojChatModal extends Modal {
 
     async getChatHistory(): Promise<void> {
         // Get chat history from Khoj backend
-        let chatUrl = `${this.setting.khojUrl}/api/chat/init?client=obsidian`;
+        let chatUrl = `${this.setting.khojUrl}/api/chat/history?client=obsidian&`;
         let response = await request(chatUrl);
         let chatLogs = JSON.parse(response).response;
         chatLogs.forEach((chatLog: any) => {
@@ -157,7 +157,7 @@ export class KhojChatModal extends Modal {
 
         // Get chat response from Khoj backend
         let encodedQuery = encodeURIComponent(query);
-        let chatUrl = `${this.setting.khojUrl}/api/chat?q=${encodedQuery}&n=${this.setting.resultsCount}&client=obsidian`;
+        let chatUrl = `${this.setting.khojUrl}/api/chat?q=${encodedQuery}&n=${this.setting.resultsCount}&client=obsidian&stream=true`;
         let responseElement = this.createKhojResponseDiv();
 
         // Temporary status message to indicate that Khoj is thinking

@@ -4,6 +4,7 @@ import math
 import time
 import yaml
 import logging
+import json
 from datetime import datetime
 from typing import List, Optional, Union
 from functools import partial
@@ -35,7 +36,7 @@ from khoj.utils.rawconfig import (
 from khoj.utils.state import SearchType
 from khoj.utils import state, constants
 from khoj.utils.yaml import save_config_to_file_updated_state
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 
 # Initialize Router
 api = APIRouter()
@@ -408,22 +409,15 @@ def update(
     return {"status": "ok", "message": "khoj reloaded"}
 
 
-@api.get("/chat/init")
-def chat_init(
+@api.get("/chat/history")
+def chat_history(
     request: Request,
     client: Optional[str] = None,
     user_agent: Optional[str] = Header(None),
     referer: Optional[str] = Header(None),
     host: Optional[str] = Header(None),
 ):
-    if (
-        state.processor_config is None
-        or state.processor_config.conversation is None
-        or state.processor_config.conversation.openai_api_key is None
-    ):
-        raise HTTPException(
-            status_code=500, detail="Set your OpenAI API key via Khoj settings and restart it to use Khoj Chat."
-        )
+    _perform_chat_checks()
 
     # Load Conversation History
     meta_log = state.processor_config.conversation.meta_log
@@ -444,33 +438,56 @@ def chat_init(
     return {"status": "ok", "response": meta_log.get("chat", [])}
 
 
-@api.get("/chat", response_class=StreamingResponse)
+@api.get("/chat", response_class=Response)
 async def chat(
     request: Request,
-    q: Optional[str] = None,
+    q: str,
     n: Optional[int] = 5,
     client: Optional[str] = None,
+    stream: Optional[bool] = False,
     user_agent: Optional[str] = Header(None),
     referer: Optional[str] = Header(None),
     host: Optional[str] = Header(None),
-) -> StreamingResponse:
-    def _save_to_conversation_log(
-        q: str,
-        gpt_response: str,
-        user_message_time: str,
-        compiled_references: List[str],
-        inferred_queries: List[str],
-        meta_log,
-    ):
-        state.processor_config.conversation.chat_session += reciprocal_conversation_to_chatml([q, gpt_response])
-        state.processor_config.conversation.meta_log["chat"] = message_to_log(
-            q,
-            gpt_response,
-            user_message_metadata={"created": user_message_time},
-            khoj_message_metadata={"context": compiled_references, "intent": {"inferred-queries": inferred_queries}},
-            conversation_log=meta_log.get("chat", []),
-        )
+) -> Response:
+    _perform_chat_checks()
+    compiled_references, inferred_queries = await _get_top_k_results(request, q, (n or 5))
 
+    gpt_response = _generate_chat_response(
+        request,
+        q,
+        client,
+        user_agent,
+        referer,
+        host,
+        meta_log=state.processor_config.conversation.meta_log,
+        compiled_references=compiled_references,
+        inferred_queries=inferred_queries,
+    )
+
+    if gpt_response is None:
+        return Response(content="No response from GPT", media_type="text/plain", status_code=500)
+
+    if stream:
+        return StreamingResponse(gpt_response, media_type="text/event-stream", status_code=200)
+
+    if isinstance(gpt_response, str):
+        return Response(content=gpt_response, media_type="text/plain", status_code=200)
+
+    aggregated_gpt_response = ""
+    while True:
+        try:
+            aggregated_gpt_response += next(gpt_response)
+        except StopIteration:
+            break
+
+    actual_response = aggregated_gpt_response.split("### compiled references:")[0]
+
+    response_obj = {"response": actual_response, "references": compiled_references}
+
+    return Response(content=json.dumps(response_obj), media_type="application/json", status_code=200)
+
+
+def _perform_chat_checks():
     if (
         state.processor_config is None
         or state.processor_config.conversation is None
@@ -480,17 +497,17 @@ async def chat(
             status_code=500, detail="Set your OpenAI API key via Khoj settings and restart it to use Khoj Chat."
         )
 
+
+async def _get_top_k_results(
+    request: Request,
+    q: str,
+    n: int,
+):
     # Load Conversation History
     meta_log = state.processor_config.conversation.meta_log
 
-    # If user query is empty, return nothing
-    if not q:
-        return StreamingResponse(None)
-
     # Initialize Variables
     api_key = state.processor_config.conversation.openai_api_key
-    chat_model = state.processor_config.conversation.chat_model
-    user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     conversation_type = "general" if q.startswith("@general") else "notes"
     compiled_references = []
     inferred_queries = []
@@ -508,6 +525,46 @@ async def chat(
                     await search(query, request=request, n=n, r=True, score_threshold=-5.0, dedupe=False)
                 )
             compiled_references = [item.additional["compiled"] for item in result_list]
+
+    return compiled_references, inferred_queries
+
+
+def _generate_chat_response(
+    request: Request,
+    q: str,
+    client: Union[str, None],
+    user_agent: Union[str, None],
+    referer: Union[str, None],
+    host: Union[str, None],
+    meta_log: dict,
+    compiled_references: List[str] = [],
+    inferred_queries: List[str] = [],
+):
+    def _save_to_conversation_log(
+        q: str,
+        gpt_response: str,
+        user_message_time: str,
+        compiled_references: List[str],
+        inferred_queries: List[str],
+        meta_log,
+    ):
+        state.processor_config.conversation.chat_session += reciprocal_conversation_to_chatml([q, gpt_response])
+        state.processor_config.conversation.meta_log["chat"] = message_to_log(
+            q,
+            gpt_response,
+            user_message_metadata={"created": user_message_time},
+            khoj_message_metadata={"context": compiled_references, "intent": {"inferred-queries": inferred_queries}},
+            conversation_log=meta_log.get("chat", []),
+        )
+
+    # Load Conversation History
+    meta_log = state.processor_config.conversation.meta_log
+
+    # Initialize Variables
+    api_key = state.processor_config.conversation.openai_api_key
+    chat_model = state.processor_config.conversation.chat_model
+    user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    conversation_type = "general" if q.startswith("@general") else "notes"
 
     # Switch to general conversation type if no relevant notes found for the given query
     conversation_type = "notes" if compiled_references else "general"
@@ -544,4 +601,4 @@ async def chat(
     except Exception as e:
         gpt_response = str(e)
 
-    return StreamingResponse(gpt_response, media_type="text/event-stream", status_code=200)
+    return gpt_response
