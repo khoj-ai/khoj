@@ -88,7 +88,7 @@
                 results = data.map(render_image).join('');
             } else if (type === "pdf") {
                 results = render_pdf(query, data);
-            } else if (type === "github" || type === "all") {
+            } else if (type === "github" || type === "all" || type === "notion") {
                 results = render_multiple(query, data, type);
             } else {
                 results = data.map((item) => `<div class="results-plugin">` + `<p>${item.entry}</p>` + `</div>`).join("\n")
