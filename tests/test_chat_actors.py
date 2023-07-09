@@ -174,6 +174,8 @@ def test_generate_search_query_with_date_and_context_from_chat_history():
     expected_responses = [
         ("dt>='2000-04-01'", "dt<'2000-05-01'"),
         ("dt>='2000-04-01'", "dt<='2000-04-30'"),
+        ('dt>="2000-04-01"', 'dt<"2000-05-01"'),
+        ('dt>="2000-04-01"', 'dt<="2000-04-30"'),
     ]
     assert len(response) == 1
     assert "Masai Mara" in response[0]
