@@ -5,9 +5,12 @@ from PyInstaller.utils.hooks import copy_metadata
 import sysconfig
 
 datas = [
-    ('src/khoj/interface/web', 'src/khoj/interface/web'),
-    (f'{sysconfig.get_paths()["purelib"]}/transformers', 'transformers')
+    ('src/khoj/interface/web', 'khoj/interface/web'),
+    (f'{sysconfig.get_paths()["purelib"]}/transformers', 'transformers'),
+    (f'{sysconfig.get_paths()["purelib"]}/langchain', 'langchain'),
+    (f'{sysconfig.get_paths()["purelib"]}/PIL', 'PIL')
 ]
+datas += copy_metadata('torch')
 datas += copy_metadata('tqdm')
 datas += copy_metadata('regex')
 datas += copy_metadata('requests')
@@ -15,6 +18,7 @@ datas += copy_metadata('packaging')
 datas += copy_metadata('filelock')
 datas += copy_metadata('numpy')
 datas += copy_metadata('tokenizers')
+datas += copy_metadata('pillow')
 
 block_cipher = None
 
@@ -23,7 +27,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=datas,
-    hiddenimports=['huggingface_hub.repository'],
+    hiddenimports=['huggingface_hub.repository', 'PIL', 'PIL._tkinter_finder', 'tiktoken_ext', 'tiktoken_ext.openai_public'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

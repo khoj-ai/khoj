@@ -63,7 +63,7 @@
             document.getElementById("chat-input").value = "";
 
             // Generate backend API URL to execute query
-            let url = `/api/chat?q=${encodeURIComponent(query)}&n=${results_count || 5}&client=web`;
+            let url = `/api/chat?q=${encodeURIComponent(query)}&n=${results_count}&client=web&stream=true`;
 
             let chat_body = document.getElementById("chat-body");
             let new_response = document.createElement("div");
@@ -131,7 +131,7 @@
         }
 
         window.onload = function () {
-            fetch('/api/chat/init?client=web')
+            fetch('/api/chat/history?client=web')
                 .then(response => response.json())
                 .then(data => {
                     if (data.detail) {

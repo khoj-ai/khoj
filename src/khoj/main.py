@@ -172,5 +172,10 @@ class ServerThread(QThread):
         start_server(self.app, self.host, self.port, self.socket)
 
 
-if __name__ == "__main__":
+def run_gui():
+    sys.argv += ["--gui"]
     run()
+
+
+if __name__ == "__main__":
+    run_gui()
