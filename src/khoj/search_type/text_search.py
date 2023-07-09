@@ -15,7 +15,7 @@ from khoj.utils import state
 from khoj.utils.helpers import get_absolute_path, is_none_or_empty, resolve_absolute_path, load_model, timer
 from khoj.utils.config import TextSearchModel
 from khoj.utils.models import BaseEncoder
-from khoj.utils.rawconfig import SearchResponse, TextSearchConfig, TextContentConfig, Entry
+from khoj.utils.rawconfig import SearchResponse, TextSearchConfig, TextConfigBase, Entry
 from khoj.utils.jsonl import load_jsonl
 
 
@@ -159,7 +159,11 @@ def collate_results(hits, entries: List[Entry], count=5) -> List[SearchResponse]
             {
                 "entry": entries[hit["corpus_id"]].raw,
                 "score": f"{hit.get('cross-score') or hit.get('score')}",
-                "additional": {"file": entries[hit["corpus_id"]].file, "compiled": entries[hit["corpus_id"]].compiled},
+                "additional": {
+                    "file": entries[hit["corpus_id"]].file,
+                    "compiled": entries[hit["corpus_id"]].compiled,
+                    "heading": entries[hit["corpus_id"]].heading,
+                },
             }
         )
         for hit in hits[0:count]
@@ -168,7 +172,7 @@ def collate_results(hits, entries: List[Entry], count=5) -> List[SearchResponse]
 
 def setup(
     text_to_jsonl: Type[TextToJsonl],
-    config: TextContentConfig,
+    config: TextConfigBase,
     search_config: TextSearchConfig,
     regenerate: bool,
     filters: List[BaseFilter] = [],
@@ -186,7 +190,8 @@ def setup(
     # Extract Updated Entries
     entries = extract_entries(config.compressed_jsonl)
     if is_none_or_empty(entries):
-        raise ValueError(f"No valid entries found in specified files: {config.input_files} or {config.input_filter}")
+        config_params = ", ".join([f"{key}={value}" for key, value in config.dict().items()])
+        raise ValueError(f"No valid entries found in specified files: {config_params}")
     top_k = min(len(entries), top_k)  # top_k hits can't be more than the total entries in corpus
 
     # Compute or Load Embeddings

@@ -62,7 +62,7 @@ class TextToJsonl(ABC):
 
     @staticmethod
     def mark_entries_for_update(
-        current_entries: List[Entry], previous_entries: List[Entry], key="compiled", logger=None
+        current_entries: List[Entry], previous_entries: List[Entry], key="compiled", logger: logging.Logger = None
     ) -> List[Tuple[int, Entry]]:
         # Hash all current and previous entries to identify new entries
         with timer("Hash previous, current entries", logger):
@@ -90,3 +90,8 @@ class TextToJsonl(ABC):
             entries_with_ids = existing_entries_sorted + new_entries
 
         return entries_with_ids
+
+    @staticmethod
+    def convert_text_maps_to_jsonl(entries: List[Entry]) -> str:
+        # Convert each entry to JSON and write to JSONL file
+        return "".join([f"{entry.to_json()}\n" for entry in entries])

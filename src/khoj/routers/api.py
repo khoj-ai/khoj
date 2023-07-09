@@ -28,6 +28,7 @@ from khoj.utils.rawconfig import (
     TextContentConfig,
     ConversationProcessorConfig,
     GithubContentConfig,
+    NotionContentConfig,
 )
 from khoj.utils.state import SearchType
 from khoj.utils import state, constants
@@ -45,6 +46,11 @@ logger = logging.getLogger(__name__)
 # If it's a demo instance, prevent updating any of the configuration.
 if not state.demo:
 
+    def _initialize_config():
+        if state.config is None:
+            state.config = FullConfig()
+            state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
+
     @api.get("/config/data", response_model=FullConfig)
     def get_config_data():
         return state.config
@@ -59,14 +65,27 @@ if not state.demo:
 
     @api.post("/config/data/content_type/github", status_code=200)
     async def set_content_config_github_data(updated_config: Union[GithubContentConfig, None]):
-        if not state.config:
-            state.config = FullConfig()
-            state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
+        _initialize_config()
 
         if not state.config.content_type:
             state.config.content_type = ContentConfig(**{"github": updated_config})
         else:
             state.config.content_type.github = updated_config
+
+        try:
+            save_config_to_file_updated_state()
+            return {"status": "ok"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+    @api.post("/config/data/content_type/notion", status_code=200)
+    async def set_content_config_notion_data(updated_config: Union[NotionContentConfig, None]):
+        _initialize_config()
+
+        if not state.config.content_type:
+            state.config.content_type = ContentConfig(**{"notion": updated_config})
+        else:
+            state.config.content_type.notion = updated_config
 
         try:
             save_config_to_file_updated_state()
@@ -84,6 +103,8 @@ if not state.demo:
 
         if content_type == "github":
             state.model.github_search = None
+        elif content_type == "notion":
+            state.model.notion_search = None
         elif content_type == "plugins":
             state.model.plugin_search = None
         elif content_type == "pdf":
@@ -114,9 +135,7 @@ if not state.demo:
 
     @api.post("/config/data/content_type/{content_type}", status_code=200)
     async def set_content_config_data(content_type: str, updated_config: Union[TextContentConfig, None]):
-        if not state.config:
-            state.config = FullConfig()
-            state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
+        _initialize_config()
 
         if not state.config.content_type:
             state.config.content_type = ContentConfig(**{content_type: updated_config})
@@ -131,9 +150,8 @@ if not state.demo:
 
     @api.post("/config/data/processor/conversation", status_code=200)
     async def set_processor_conversation_config_data(updated_config: Union[ConversationProcessorConfig, None]):
-        if not state.config:
-            state.config = FullConfig()
-            state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
+        _initialize_config()
+
         state.config.processor = ProcessorConfig(conversation=updated_config)
         state.processor_config = configure_processor(state.config.processor)
         try:
@@ -305,6 +323,20 @@ async def search(
                     user_query,
                     # Get plugin search model for specified search type, or the first one if none specified
                     state.model.plugin_search.get(t.value) or next(iter(state.model.plugin_search.values())),
+                    question_embedding=encoded_asymmetric_query,
+                    rank_results=r or False,
+                    score_threshold=score_threshold,
+                    dedupe=dedupe or True,
+                )
+            ]
+
+        if (t == SearchType.Notion or t == SearchType.All) and state.model.notion_search:
+            # query notion pages
+            search_futures += [
+                executor.submit(
+                    text_search.query,
+                    user_query,
+                    state.model.notion_search,
                     question_embedding=encoded_asymmetric_query,
                     rank_results=r or False,
                     score_threshold=score_threshold,

@@ -93,6 +93,7 @@
 
                             // Decode message chunk from stream
                             const chunk = decoder.decode(value, { stream: true });
+
                             if (chunk.includes("### compiled references:")) {
                                 const additionalResponse = chunk.split("### compiled references:")[0];
                                 new_response_text.innerHTML += additionalResponse;

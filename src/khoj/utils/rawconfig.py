@@ -52,6 +52,10 @@ class GithubContentConfig(TextConfigBase):
     repos: List[GithubRepoConfig]
 
 
+class NotionContentConfig(TextConfigBase):
+    token: str
+
+
 class ImageContentConfig(ConfigBase):
     input_directories: Optional[List[Path]]
     input_filter: Optional[List[str]]
@@ -77,6 +81,7 @@ class ContentConfig(ConfigBase):
     pdf: Optional[TextContentConfig]
     github: Optional[GithubContentConfig]
     plugins: Optional[Dict[str, TextContentConfig]]
+    notion: Optional[NotionContentConfig]
 
 
 class TextSearchConfig(ConfigBase):
@@ -148,4 +153,9 @@ class Entry:
 
     @classmethod
     def from_dict(cls, dictionary: dict):
-        return cls(raw=dictionary["raw"], compiled=dictionary["compiled"], file=dictionary.get("file", None))
+        return cls(
+            raw=dictionary["raw"],
+            compiled=dictionary["compiled"],
+            file=dictionary.get("file", None),
+            heading=dictionary.get("heading", None),
+        )

@@ -71,6 +71,8 @@
                     html += render_markdown(query, [item]);
                 } else if (item.additional.file.endsWith(".pdf")) {
                     html += render_pdf(query, [item]);
+                } else if (item.additional.file.includes("notion.so")) {
+                    html += `<div class="results-notion">` + `<b><a href="${item.additional.file}">${item.additional.heading}</a></b>` + `<p>${item.entry}</p>` + `</div>`;
                 }
             });
             return html;
@@ -86,7 +88,7 @@
                 results = data.map(render_image).join('');
             } else if (type === "pdf") {
                 results = render_pdf(query, data);
-            } else if (type === "github" || type === "all") {
+            } else if (type === "github" || type === "all" || type === "notion") {
                 results = render_multiple(query, data, type);
             } else {
                 results = data.map((item) => `<div class="results-plugin">` + `<p>${item.entry}</p>` + `</div>`).join("\n")
@@ -127,7 +129,7 @@
                 setQueryFieldInUrl(query);
 
             // Execute Search and Render Results
-            url = createRequestUrl(query, type, results_count, rerank);
+            url = createRequestUrl(query, type, results_count || 5, rerank);
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
@@ -347,6 +349,7 @@
             white-space: pre-wrap;
         }
         .results-pdf,
+        .results-notion,
         .results-plugin {
             text-align: left;
             white-space: pre-line;
@@ -404,6 +407,7 @@
 
         div#results-error,
         div.results-markdown,
+        div.results-notion,
         div.results-org,
         div.results-pdf {
             text-align: left;

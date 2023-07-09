@@ -41,6 +41,11 @@ default_config = {
             "compressed-jsonl": "~/.khoj/content/github/github.jsonl.gz",
             "embeddings-file": "~/.khoj/content/github/github_embeddings.pt",
         },
+        "notion": {
+            "token": None,
+            "compressed-jsonl": "~/.khoj/content/notion/notion.jsonl.gz",
+            "embeddings-file": "~/.khoj/content/notion/notion_embeddings.pt",
+        },
     },
     "search-type": {
         "symmetric": {
