@@ -254,19 +254,31 @@
     var configure = document.getElementById("configure");
     configure.addEventListener("click", function(event) {
         event.preventDefault();
-        updateIndex(false, "Configured successfully!", "Unable to configure. Raise issue on Khoj Discord or Github.", configure, "Configuring...");
+        updateIndex(
+            force=false,
+            successText="Configured successfully!",
+            errorText="Unable to configure. Raise issue on Khoj <a href='https://github.com/khoj-ai/khoj/issues'>Github</a> or <a href='https://discord.gg/BDgyabRM6e'>Discord</a>.",
+            button=configure,
+            loadingText="Configuring...",
+            emoji="⚙️");
     });
 
     var reinitialize = document.getElementById("reinitialize");
     reinitialize.addEventListener("click", function(event) {
         event.preventDefault();
-        updateIndex(true, "Reinitialized successfully!", "Unable to reinitialize. Raise issue on Khoj Discord or Github.", reinitialize, "Reinitializing...");
+        updateIndex(
+            force=true,
+            successText="Reinitialized successfully!",
+            errorText="Unable to reinitialize. Raise issue on Khoj <a href='https://github.com/khoj-ai/khoj/issues'>Github</a> or <a href='https://discord.gg/BDgyabRM6e'>Discord</a>.",
+            button=reinitialize,
+            loadingText="Reinitializing...",
+            emoji="🔄");
     });
 
-    function updateIndex(force, successText, errorText, button, loadingText) {
+    function updateIndex(force, successText, errorText, button, loadingText, emoji) {
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
         button.disabled = true;
-        button.innerHTML = loadingText;
+        button.innerHTML = emoji + loadingText;
         fetch('/api/update?&client=web&force=' + force, {
             method: 'GET',
             headers: {
@@ -280,14 +292,14 @@
             if (data.detail != null) {
                 throw new Error(data.detail);
             }
-            document.getElementById("status").innerHTML = "Reinitialized successfully!";
+            document.getElementById("status").innerHTML = emoji + successText;
             document.getElementById("status").style.display = "block";
             button.disabled = false;
             button.innerHTML = '✅ Done!';
         })
         .catch((error) => {
             console.error('Error:', error);
-            document.getElementById("status").innerHTML = "Unable to reinitialize. Raise issue on Khoj Discord or Github.";
+            document.getElementById("status").innerHTML = emoji + errorText
             document.getElementById("status").style.display = "block";
             button.disabled = false;
             button.innerHTML = '⚠️ Unsuccessful';
