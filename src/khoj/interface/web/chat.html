@@ -181,19 +181,19 @@
                 </div>
             {% endif %}
             {% if demo %}
-                <a href="https://khoj.dev" target="_blank">
+                <a class="khoj-logo" href="https://khoj.dev" target="_blank">
                     <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways.svg" alt="Khoj"></img>
                 </a>
             {% else %}
-                <a href="https://lantern.khoj.dev" target="_blank">
+                <a class="khoj-logo" href="https://lantern.khoj.dev" target="_blank">
                     <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways.svg" alt="Khoj"></img>
                 </a>
             {% endif %}
             <nav class="khoj-nav">
-                <a class="khoj-nav-selected" href="/chat">Chat</a>
-                <a href="/">Search</a>
+                <a class="khoj-nav khoj-nav-selected" href="/chat">Chat</a>
+                <a class="khoj-nav" href="/">Search</a>
                 {% if not demo %}
-                    <a href="/config">Settings</a>
+                    <a class="khoj-nav" href="/config">Settings</a>
                 {% endif %}
             </nav>
         </div>
@@ -363,6 +363,18 @@
             }
             a.khoj-banner {
                 display: block;
+            }
+
+            div.khoj-header {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                padding: 0;
+                margin-bottom: 8px;
+                margin-top: 8px;
+            }
+
+            nav.khoj-nav {
+                grid-gap: 0px;
             }
         }
         @media only screen and (min-width: 600px) {

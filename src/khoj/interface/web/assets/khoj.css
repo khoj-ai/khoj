@@ -41,17 +41,28 @@
 }
 .khoj-header {
     display: grid;
-    grid-auto-flow: row;
+    grid-auto-flow: column;
     gap: 20px;
     padding: 16px 0;
     margin: 0 0 16px 0;
 }
-.khoj-nav {
+
+nav.khoj-nav {
     display: grid;
     grid-auto-flow: column;
     grid-gap: 32px;
-    justify-self: center;
+    justify-self: right;
 }
+
+a.khoj-nav {
+    display: flex;
+    align-items: center;
+}
+
+a.khoj-logo {
+    justify-self: left;
+}
+
 .khoj-nav a {
     color: #333;
     text-decoration: none;
@@ -68,6 +79,6 @@
     background-color: var(--primary);
 }
 img.khoj-logo {
-    width: min(60vw, 150px);
+    width: min(60vw, 100px);
     justify-self: center;
 }

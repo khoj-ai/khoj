@@ -9,13 +9,19 @@
         <link rel="stylesheet" href="/static/assets/khoj.css">
     </head>
     <body class="khoj-configure">
-        <div class="khoj-header">
-            <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways.svg" alt="Khoj"></img>
-            <nav class="khoj-nav">
-                <a href="/chat">Chat</a>
-                <a href="/">Search</a>
-                <a class="khoj-nav-selected" href="/config">Settings</a>
-            </nav>
+        <div class="khoj-header-wrapper">
+            <div class="filler"></div>
+            <div class="khoj-header">
+                <a class="khoj-logo" href="https://lantern.khoj.dev" target="_blank">
+                    <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways.svg" alt="Khoj"></img>
+                </a>
+                <nav class="khoj-nav">
+                    <a class="khoj-nav" href="/chat">Chat</a>
+                    <a class="khoj-nav" href="/">Search</a>
+                    <a class="khoj-nav khoj-nav-selected" href="/config">Settings</a>
+                </nav>
+            </div>
+            <div class="filler"></div>
         </div>
         <div class=”content”>
             {% block content %}
@@ -27,6 +33,41 @@
             width: 100%;
             margin: 0;
             padding: 0;
+        }
+        @media only screen and (max-width: 600px) {
+            body {
+                display: grid;
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto auto auto minmax(80px, 100%);
+            }
+            body > * {
+                grid-column: 1;
+            }
+
+            div.filler {
+                display: none;
+            }
+
+            div.khoj-header {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                padding: 0;
+                margin-bottom: 8px;
+                margin-top: 8px;
+                padding-top: 8px;
+            }
+
+            body.khoj-configure {
+                padding: 0;
+            }
+        }
+
+        img.khoj-logo {
+            max-width: none!important;
+        }
+        div.khoj-header-wrapper{
+            display: grid;
+            grid-template-columns: 1fr min(70vw, 100%) 1fr;
         }
         .page {
             display: grid;
