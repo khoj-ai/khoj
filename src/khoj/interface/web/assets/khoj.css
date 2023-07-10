@@ -68,9 +68,10 @@ a.khoj-logo {
     text-decoration: none;
     font-size: 20px;
     font-weight: normal;
-    padding: 8px;
+    padding: 0 4px;
     border-radius: 4px;
     justify-self: center;
+    margin: 0;
 }
 .khoj-nav a:hover {
     background-color: var(--primary-hover);
@@ -79,6 +80,22 @@ a.khoj-logo {
     background-color: var(--primary);
 }
 img.khoj-logo {
-    width: min(60vw, 100px);
+    width: min(60vw, 111px);
+    max-width: 100%;
     justify-self: center;
+}
+
+@media only screen and (max-width: 600px) {
+    div.khoj-header {
+        display: grid;
+        grid-auto-flow: column;
+        gap: 20px;
+        padding: 16px 10px;
+        margin: 0 0 16px 0;
+    }
+
+    nav.khoj-nav {
+        grid-gap: 0px;
+        justify-content: space-between;
+    }
 }
