@@ -388,6 +388,19 @@ Note: *Khoj will ignore code files in the repository for now as the default AI m
 
 ![](https://github.com/khoj-ai/khoj/blob/master/docs/khoj_codebase_visualization_0.2.1.png?)
 
+### Create Khoj Release
+Follow the steps below to [release](https://github.com/debanjum/khoj/releases/) Khoj. This will create a stable release of Khoj on [Pypi](https://pypi.org/project/khoj-assistant/), [Melpa](https://stable.melpa.org/#%252Fkhoj) and [Obsidian](https://obsidian.md/plugins?id%253Dkhoj). It will also create desktop apps of Khoj and attach them to the latest release.
+
+1. Create and tag release commit by running the bump_version script. The release commit sets version number in required metadata files.
+  ```shell
+  ./scripts/bump_version.sh -c "<release_version>"
+  ```
+2. Push commit and then the tag to trigger the release workflow to create Release with auto generated release notes.
+  ```shell
+  git push origin master  # push release commit to khoj repository
+  git push origin <release_version>  # push release tag to khoj repository
+  ```
+3. [Optional] Update the Release Notes to highlight new features, fixes and updates
 ### Setup
 #### Using Pip
 ##### 1. Install
