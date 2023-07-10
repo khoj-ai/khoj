@@ -51,8 +51,13 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
                         "input-files": null,
                         "embeddings-file": `${khojDefaultMdIndexDirectory}/${indexName}.pt`,
                         "compressed-jsonl": `${khojDefaultMdIndexDirectory}/${indexName}.jsonl.gz`,
-                    },
-                    "pdf": {
+                    }
+                }
+
+                const hasPdfFiles = app.vault.getFiles().some(file => file.extension === 'pdf');
+
+                if (hasPdfFiles) {
+                    data["content-type"]["pdf"] = {
                         "input-filter": [pdfInVault],
                         "input-files": null,
                         "embeddings-file": `${khojDefaultPdfIndexDirectory}/${indexName}.pt`,
