@@ -535,6 +535,7 @@ async def extract_references_and_questions(
 
     # Initialize Variables
     api_key = state.processor_config.conversation.openai_api_key
+    chat_model = state.processor_config.conversation.chat_model
     conversation_type = "general" if q.startswith("@general") else "notes"
     compiled_references = []
     inferred_queries = []
@@ -542,7 +543,7 @@ async def extract_references_and_questions(
     if conversation_type == "notes":
         # Infer search queries from user message
         with timer("Extracting search queries took", logger):
-            inferred_queries = extract_questions(q, api_key=api_key, conversation_log=meta_log)
+            inferred_queries = extract_questions(q, model=chat_model, api_key=api_key, conversation_log=meta_log)
 
         # Collate search results as context for GPT
         with timer("Searching knowledge base took", logger):
