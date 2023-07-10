@@ -94,9 +94,10 @@ def run():
         url = f"http://{args.host}:{args.port}"
         logger.info(f"🌗 Khoj is running at {url}")
         try:
-            webbrowser.open(url)
+            startup_url = url if args.config else f"{url}/config"
+            webbrowser.open(startup_url)
         except:
-            logger.warning("🚧 Unable to open browser. Please open it manually to configure Khoj.")
+            logger.warning(f"🚧 Unable to open browser. Please open {url} manually to configure or use Khoj.")
 
         # Show Main Window on First Run Experience or if on Linux
         if args.config is None or system() not in ["Windows", "Darwin"]:
