@@ -7,7 +7,9 @@ RUN apt update -y && \
     apt -y install python3-pip python3-pyqt6 git
 
 # Install Application
-RUN pip install --no-cache-dir git+https://github.com/khoj-ai/khoj.git
+COPY . .
+RUN sed -i 's/dynamic = \["version"\]/version = "0.0.0"/' pyproject.toml && \
+    pip install --no-cache-dir .
 
 # Run the Application
 # There are more arguments required for the application to run,
