@@ -85,6 +85,21 @@ img.khoj-logo {
     justify-self: center;
 }
 
+a.khoj-banner {
+    color: black;
+    text-decoration: none;
+}
+
+p.khoj-banner {
+    font-size: medium;
+    margin: 0;
+    padding: 10px;
+}
+
+p#khoj-banner {
+    display: inline;
+}
+
 @media only screen and (max-width: 600px) {
     div.khoj-header {
         display: grid;

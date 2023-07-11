@@ -166,20 +166,20 @@
         }
     </script>
     <body>
+        <div id="khoj-banner-container" class="khoj-banner-container">
+        {% if demo %}
+            <!-- Banner linking to https://khoj.dev -->
+                <a class="khoj-banner" href="https://khoj.dev" target="_blank">
+                    <p id="khoj-banner" class="khoj-banner">
+                        Enroll in Khoj cloud to get your own assistant
+                    </p>
+                </a>
+                <input type="text" id="khoj-banner-email" placeholder="email" class="khoj-banner-email"></input>
+                <button id="khoj-banner-submit" class="khoj-banner-button">Submit</button>
+        {% endif %}
+        </div>
         <!--Add Header Logo and Nav Pane-->
         <div class="khoj-header">
-            {% if demo %}
-                <!-- Banner linking to https://khoj.dev -->
-                <div class="khoj-banner-container">
-                    <a class="khoj-banner" href="https://khoj.dev" target="_blank">
-                        <p id="khoj-banner" class="khoj-banner">
-                            Enroll in Khoj cloud to get your own Github assistant
-                        </p>
-                    </a>
-                    <input type="text" id="khoj-banner-email" placeholder="email" class="khoj-banner-email"></input>
-                    <button id="khoj-banner-submit" class="khoj-banner-button">Submit</button>
-                </div>
-            {% endif %}
             {% if demo %}
                 <a class="khoj-logo" href="https://khoj.dev" target="_blank">
                     <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways.svg" alt="Khoj"></img>
@@ -351,7 +351,7 @@
         @media only screen and (max-width: 600px) {
             body {
                 grid-template-columns: 1fr;
-                grid-template-rows: auto minmax(80px, 100%) auto;
+                grid-template-rows: auto auto minmax(80px, 100%) auto;
             }
             body > * {
                 grid-column: 1;
@@ -364,11 +364,14 @@
             a.khoj-banner {
                 display: block;
             }
+            p.khoj-banner {
+                padding: 0;
+            }
         }
         @media only screen and (min-width: 600px) {
             body {
                 grid-template-columns: auto min(70vw, 100%) auto;
-                grid-template-rows: auto minmax(80px, 100%) auto;
+                grid-template-rows: auto auto minmax(80px, 100%) auto;
             }
             body > * {
                 grid-column: 2;
@@ -395,17 +398,8 @@
             }
         }
 
-        a.khoj-banner {
-            color: black;
-        }
-
         a.khoj-logo {
             text-align: center;
-        }
-
-        p.khoj-banner {
-            margin: 0;
-            padding: 10px;
         }
 
         button#khoj-banner-submit,
@@ -420,17 +414,17 @@
         input#khoj-banner-email:hover {
             box-shadow: 0 0 11px #aaa;
         }
-
-        p#khoj-banner {
-            display: inline;
-        }
-
-        a.khoj-banner {
-            color: black;
-            text-decoration: none;
+        div.khoj-banner-container-hidden {
+            margin: 0px;
+            padding: 0px;
         }
     </style>
     <script>
+        if ("{{demo}}" === "False") {
+            document.getElementById("khoj-banner-container").classList.remove("khoj-banner-container");
+            document.getElementById("khoj-banner-container").classList.add("khoj-banner-container-hidden");
+        }
+
         var khojBannerSubmit = document.getElementById("khoj-banner-submit");
 
         khojBannerSubmit?.addEventListener("click", function(event) {
