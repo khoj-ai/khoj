@@ -35,12 +35,12 @@ def configure_server(args, required=False):
     if args.config is None:
         if required:
             logger.error(
-                f"Exiting as Khoj is not configured.\nConfigure it via http://localhost:8000/config or by editing {state.config_file}."
+                f"Exiting as Khoj is not configured.\nConfigure it via http://localhost:42110/config or by editing {state.config_file}."
             )
             sys.exit(1)
         else:
             logger.warning(
-                f"Khoj is not configured.\nConfigure it via http://localhost:8000/config, plugins or by editing {state.config_file}."
+                f"Khoj is not configured.\nConfigure it via http://localhost:42110/config, plugins or by editing {state.config_file}."
             )
             return
     else:

@@ -23,7 +23,7 @@ def cli(args=None):
     )
     parser.add_argument("--verbose", "-v", action="count", default=0, help="Show verbose conversion logs. Default: 0")
     parser.add_argument("--host", type=str, default="127.0.0.1", help="Host address of the server. Default: 127.0.0.1")
-    parser.add_argument("--port", "-p", type=int, default=8000, help="Port of the server. Default: 8000")
+    parser.add_argument("--port", "-p", type=int, default=42110, help="Port of the server. Default: 42110")
     parser.add_argument(
         "--socket",
         type=pathlib.Path,

@@ -169,9 +169,9 @@ The optional steps below allow using Khoj from within an existing application li
 - **Khoj via Emacs**
   - Run `M-x khoj <user-query>`
 - **Khoj via Web**
-  - Open <http://localhost:8000/> directly
+  - Open <http://localhost:42110/> directly
 - **Khoj via API**
-  - See the Khoj FastAPI [Swagger Docs](http://localhost:8000/docs), [ReDocs](http://localhost:8000/redocs)
+  - See the Khoj FastAPI [Swagger Docs](http://localhost:42110/docs), [ReDocs](http://localhost:42110/redocs)
 
 <details><summary>Query Filters</summary>
 
@@ -207,7 +207,7 @@ Use structured query syntax to filter the natural language search results
 - [Setup your OpenAI API key in Khoj](#set-your-openai-api-key-in-khoj)
 
 #### Use
-1. Open [/chat](http://localhost:8000/chat)[^2]
+1. Open [/chat](http://localhost:42110/chat)[^2]
 2. Type your queries and see response by Khoj from your notes
 
 #### Demo
@@ -256,7 +256,7 @@ pip install --upgrade --pre khoj-assistant
 - **Refer**: [Issue with Fix](https://github.com/khoj-ai/khoj/issues/82#issuecomment-1241890946) for more details
 
 #### Search starts giving wonky results
-- **Fix**: Open [/api/update?force=true](http://localhost:8000/api/update?force=true)[^2] in browser to regenerate index from scratch
+- **Fix**: Open [/api/update?force=true](http://localhost:42110/api/update?force=true)[^2] in browser to regenerate index from scratch
 - **Note**: *This is a fix for when you percieve the search results have degraded. Not if you think they've always given wonky results*
 
 #### Khoj in Docker errors out with \"Killed\" in error message
@@ -270,7 +270,7 @@ pip install --upgrade --pre khoj-assistant
 ### Access Khoj on Mobile
 1. [Setup Khoj](#Setup) on your personal server. This can be any always-on machine, i.e an old computer, RaspberryPi(?) etc
 2. [Install](https://tailscale.com/kb/installation/) [Tailscale](tailscale.com/) on your personal server and phone
-3. Open the Khoj web interface of the server from your phone browser.<br /> It should be `http://tailscale-ip-of-server:8000` or `http://name-of-server:8000` if you've setup [MagicDNS](https://tailscale.com/kb/1081/magicdns/)
+3. Open the Khoj web interface of the server from your phone browser.<br /> It should be `http://tailscale-ip-of-server:42110` or `http://name-of-server:42110` if you've setup [MagicDNS](https://tailscale.com/kb/1081/magicdns/)
 4. Click the [Add to Homescreen](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Add_to_home_screen) button
 5. Enjoy exploring your notes, documents and images from your phone!
 
@@ -311,7 +311,7 @@ pip install --upgrade --pre khoj-assistant
      model_directory: "~/.khoj/search/asymmetric/"
   ```
 
-  2. Regenerate your content index. For example, by opening [\<khoj-url\>/api/update?t=force](http://localhost:8000/api/update?t=force)
+  2. Regenerate your content index. For example, by opening [\<khoj-url\>/api/update?t=force](http://localhost:42110/api/update?t=force)
 
 ### Bootstrap Khoj Search for Offline Usage later
 
@@ -330,7 +330,7 @@ pip install --upgrade --pre khoj-assistant
 ### Set your OpenAI API key in Khoj
 If you want, Khoj can be configured to use OpenAI for search and chat.<br />
 Add your OpenAI API to Khoj by using either of the two options below:
- - Open your [Khoj settings](http://localhost:8000/config/processor/conversation), add your OpenAI API key, and click *Save*. Then go to your [Khoj settings](http://localhost:8000/config) and click `Configure`. This will refresh Khoj with your OpenAI API key.
+ - Open your [Khoj settings](http://localhost:42110/config/processor/conversation), add your OpenAI API key, and click *Save*. Then go to your [Khoj settings](http://localhost:42110/config) and click `Configure`. This will refresh Khoj with your OpenAI API key.
  - Set `openai-api-key` field under `processor.conversation` section in your `khoj.yml`[^1] to your [OpenAI API key](https://beta.openai.com/account/api-keys) and restart khoj:
     ```diff
     processor:
@@ -344,11 +344,11 @@ Add your OpenAI API to Khoj by using either of the two options below:
 **Warning**: *This will enable Khoj to send your query and note(s) to OpenAI for processing*
 
 ### GPT API
-- The [chat](http://localhost:8000/api/chat), [answer](http://localhost:8000/api/beta/answer) and [search](http://localhost:8000/api/beta/search) API endpoints use [OpenAI API](https://openai.com/api/)
+- The [chat](http://localhost:42110/api/chat), [answer](http://localhost:42110/api/beta/answer) and [search](http://localhost:42110/api/beta/search) API endpoints use [OpenAI API](https://openai.com/api/)
 - They are disabled by default
 - To use them:
   1. [Setup your OpenAI API key in Khoj](#set-your-openai-api-key-in-khoj)
-  2. Interact with them from the [Khoj Swagger docs](http://locahost:8000/docs)[^2]
+  2. Interact with them from the [Khoj Swagger docs](http://locahost:42110/docs)[^2]
 
 ### Index Github Repository for Search, Chat
 The Khoj Github plugin can index issues, commit messages and markdown, org-mode and PDF files from any repositories you have access to. This allows you to chat or search with these repositories. Get answers, resolve issues or just explore a repo with the help of your AI personal assistant.
@@ -422,7 +422,7 @@ pip install -e .[dev]
    khoj -vv
    ```
 2. Configure Khoj
-   - **Via the Settings UI**: Add files, directories to index the [Khoj settings](http://localhost:8000/config) UI once Khoj has started up. Once you've saved all your settings, click `Configure`.
+   - **Via the Settings UI**: Add files, directories to index the [Khoj settings](http://localhost:42110/config) UI once Khoj has started up. Once you've saved all your settings, click `Configure`.
    - **Manually**:
      - Copy the `config/khoj_sample.yml` to `~/.khoj/khoj.yml`
      - Set `input-files` or `input-filter` in each relevant `content-type` section of `~/.khoj/khoj.yml`
@@ -502,4 +502,4 @@ docker-compose build --pull
 
 [^1]: Default Khoj config file @ `~/.khoj/khoj.yml`
 
-[^2]: Default Khoj url @ http://localhost:8000
+[^2]: Default Khoj url @ http://localhost:42110

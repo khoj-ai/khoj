@@ -11,7 +11,7 @@ export interface KhojSetting {
 
 export const DEFAULT_SETTINGS: KhojSetting = {
     resultsCount: 6,
-    khojUrl: 'http://127.0.0.1:8000',
+    khojUrl: 'http://127.0.0.1:42110',
     connectedToBackend: false,
     autoConfigure: true,
     openaiApiKey: '',
