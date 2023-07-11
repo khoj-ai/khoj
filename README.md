@@ -47,10 +47,10 @@
   - [Miscellaneous](#Miscellaneous-1)
 - [Development](#Development)
   - [Visualize Codebase](#visualize-codebase)
+  - [Create Release](#create-khoj-release)
   - [Setup](#Setup)
     - [Using Pip](#Using-Pip)
     - [Using Docker](#Using-Docker)
-    - [Using Conda](#Using-Conda)
   - [Validate](#Validate)
 - [Credits](#Credits)
 
@@ -456,39 +456,6 @@ docker-compose up -d
 
 ```shell
 docker-compose build --pull
-```
-
-#### Using Conda
-##### 1. Install Dependencies
-- [Install Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
-
-##### 2. Install Khoj
-```shell
-git clone https://github.com/khoj-ai/khoj && cd khoj
-conda env create -f config/environment.yml
-conda activate khoj
-python3 -m pip install pyqt6  # As conda does not support pyqt6 yet
-```
-
-##### 3. Configure
-- Copy the `config/khoj_sample.yml` to `~/.khoj/khoj.yml`
-- Set `input-files` or `input-filter` in each relevant `content-type` section of `~/.khoj/khoj.yml`
-  - Set `input-directories` field in `image` `content-type` section
-- Delete `content-type`, `processor` sub-sections irrelevant for your use-case
-
-##### 4. Run
-```shell
-python3 -m src.khoj.main -vv
-```
-  Load ML model, generate embeddings and expose API to query notes, images, documents etc specified in config YAML
-
-##### 5. Upgrade
-```shell
-cd khoj
-git pull origin master
-conda deactivate khoj
-conda env update -f config/environment.yml
-conda activate khoj
 ```
 
 ### Validate
