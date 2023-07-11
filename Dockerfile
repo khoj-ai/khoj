@@ -6,9 +6,8 @@ LABEL org.opencontainers.image.source https://github.com/khoj-ai/khoj
 RUN apt update -y && \
     apt -y install python3-pip python3-pyqt6 git
 
-# Install Python Dependencies
-RUN pip install --upgrade pip && \
-    pip install git+https://github.com/khoj-ai/khoj.git
+# Install Application
+RUN pip install --no-cache-dir git+https://github.com/khoj-ai/khoj.git
 
 # Run the Application
 # There are more arguments required for the application to run,
