@@ -62,34 +62,35 @@ class TextToJsonl(ABC):
 
     @staticmethod
     def mark_entries_for_update(
-        current_entries: List[Entry], previous_entries: List[Entry], key="compiled", logger: logging.Logger = None
-    ) -> List[Tuple[int, Entry]]:
-        # Hash all current and previous entries to identify new entries
-        with timer("Hash previous, current entries", logger):
-            current_entry_hashes = list(map(TextToJsonl.hash_func(key), current_entries))
-            previous_entry_hashes = list(map(TextToJsonl.hash_func(key), previous_entries))
+            current_entries: List[Entry], previous_entries: List[Entry], key="compiled", logger: logging.Logger = None
+        ) -> List[Tuple[int, Entry]]:
+            # Hash all current and previous entries to identify new entries
+            with timer("Hash previous, current entries", logger):
+                current_entry_hashes = list(map(hashlib.sha256, map(getattr, current_entries, [key])))
+                previous_entry_hashes = list(map(hashlib.sha256, map(getattr, previous_entries, [key])))
 
-        with timer("Identify, Mark, Combine new, existing entries", logger):
-            hash_to_current_entries = dict(zip(current_entry_hashes, current_entries))
-            hash_to_previous_entries = dict(zip(previous_entry_hashes, previous_entries))
+            with timer("Identify, Mark, Combine new, existing entries", logger):
+                hash_to_current_entries = dict(zip(current_entry_hashes, current_entries))
+                hash_to_previous_entries = dict(zip(previous_entry_hashes, previous_entries))
 
-            # All entries that did not exist in the previous set are to be added
-            new_entry_hashes = set(current_entry_hashes) - set(previous_entry_hashes)
-            # All entries that exist in both current and previous sets are kept
-            existing_entry_hashes = set(current_entry_hashes) & set(previous_entry_hashes)
+                # All entries that did not exist in the previous set are to be added
+                new_entry_hashes = set(current_entry_hashes) - set(previous_entry_hashes)
+                # All entries that exist in both current and previous sets are kept
+                existing_entry_hashes = set(current_entry_hashes) & set(previous_entry_hashes)
 
-            # Mark new entries with -1 id to flag for later embeddings generation
-            new_entries = [(-1, hash_to_current_entries[entry_hash]) for entry_hash in new_entry_hashes]
-            # Set id of existing entries to their previous ids to reuse their existing encoded embeddings
-            existing_entries = [
-                (previous_entry_hashes.index(entry_hash), hash_to_previous_entries[entry_hash])
-                for entry_hash in existing_entry_hashes
-            ]
+                # Mark new entries with -1 id to flag for later embeddings generation
+                new_entries = [(-1, hash_to_current_entries[entry_hash]) for entry_hash in new_entry_hashes]
+                # Set id of existing entries to their previous ids to reuse their existing encoded embeddings
+                existing_entries = [
+                    (previous_entry_hashes.index(entry_hash), hash_to_previous_entries[entry_hash])
+                    for entry_hash in existing_entry_hashes
+                ]
 
-            existing_entries_sorted = sorted(existing_entries, key=lambda e: e[0])
-            entries_with_ids = existing_entries_sorted + new_entries
+                existing_entries_sorted = sorted(existing_entries, key=lambda e: e[0])
+                entries_with_ids = existing_entries_sorted + new_entries
 
-        return entries_with_ids
+            return entries_with_ids
+
 
     @staticmethod
     def convert_text_maps_to_jsonl(entries: List[Entry]) -> str:
