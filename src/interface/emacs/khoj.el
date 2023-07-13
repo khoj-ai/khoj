@@ -62,7 +62,7 @@
 ;; Khoj Static Configuration
 ;; -------------------------
 
-(defcustom khoj-server-url "http://localhost:8000"
+(defcustom khoj-server-url "http://localhost:42110"
   "Location of Khoj API server."
   :group 'khoj
   :type 'string)

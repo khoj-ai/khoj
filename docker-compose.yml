@@ -7,7 +7,7 @@ services:
       # If changing the remote port (right hand side),
       #   change the port in the args in the build section,
       #   as well as the port in the command section to match
-      - "8000:8000"
+      - "42110:42110"
     working_dir: /app
     volumes:
       - .:/app
@@ -25,4 +25,4 @@ services:
       - ./tests/data/embeddings/:/data/embeddings/
       - ./tests/data/models/:/data/models/
     # Use 0.0.0.0 to explicitly set the host ip for the service on the container. https://pythonspeed.com/articles/docker-connection-refused/
-    command: --host="0.0.0.0" --port=8000 -c=config/khoj_docker.yml -vv
+    command: --host="0.0.0.0" --port=42110 -c=config/khoj_docker.yml -vv

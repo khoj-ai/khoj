@@ -2,6 +2,12 @@
 import os
 import signal
 import sys
+
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w")
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, "w")
+
 import logging
 import threading
 import warnings
@@ -15,8 +21,8 @@ warnings.filterwarnings("ignore", message=r"legacy way to download files from th
 # External Packages
 import uvicorn
 from fastapi import FastAPI
-from PyQt6 import QtWidgets
-from PyQt6.QtCore import QThread, QTimer
+from PySide6 import QtWidgets
+from PySide6.QtCore import QThread, QTimer
 from rich.logging import RichHandler
 import schedule
 

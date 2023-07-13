@@ -44,4 +44,4 @@ jobs:
           push: true
           tags: ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}
           build-args: |
-            PORT=8000
+            PORT=42110

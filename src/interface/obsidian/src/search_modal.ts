@@ -75,7 +75,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
                 this.rerank = true
                 // Set input element to contents of active markdown file
                 // truncate to first 8,000 characters to avoid hitting query size limits
-                this.inputEl.value = await this.app.vault.read(file).then(file_str => file_str.slice(0, 8000));
+                this.inputEl.value = await this.app.vault.read(file).then(file_str => file_str.slice(0, 42110));
                 // Trigger search to get and render similar notes from khoj backend
                 this.inputEl.dispatchEvent(new Event('input'));
                 this.rerank = false
