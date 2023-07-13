@@ -2,7 +2,7 @@
 import webbrowser
 
 # External Packages
-from PyQt6 import QtGui, QtWidgets
+from PySide6 import QtGui, QtWidgets
 
 # Internal Packages
 from khoj.utils import constants, state

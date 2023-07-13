@@ -46,7 +46,7 @@ dependencies = [
     "tenacity >= 8.2.2",
     "pillow == 9.3.0",
     "pydantic >= 1.10.10",
-    "pyqt6 == 6.3.1",
+    "pyside6 >= 6.5.1",
     "pyyaml == 6.0",
     "rich >= 13.3.1",
     "schedule == 1.1.0",
