@@ -56,7 +56,7 @@ jobs:
 
           pyinstaller --noconfirm Khoj.spec
           if [ "$RUNNER_OS" == "Windows" ]; then
-            mv dist/Khoj.exe dist/khoj_dev"_amd64.exe
+            mv dist/Khoj.exe dist/khoj_dev_amd64.exe
           fi
 
       - name: 💻 Create Mac App DMG
