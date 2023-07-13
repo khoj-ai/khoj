@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - master
+  pull_request:
+    branches:
+      - master
   workflow_dispatch:
 
 jobs:
@@ -106,7 +109,7 @@ jobs:
           name: khoj_dev_amd64.${{matrix.extension}}
           path: dist/khoj_dev_amd64.${{matrix.extension}}
 
-      - name: 🌈 Release
+      - name: 🌈 Dev Release 🦿
         uses: softprops/action-gh-release@v1
         with:
           generate_release_notes: false
