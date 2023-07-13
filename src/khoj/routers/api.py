@@ -34,7 +34,7 @@ from khoj.utils.state import SearchType
 from khoj.utils import state, constants
 from khoj.utils.yaml import save_config_to_file_updated_state
 from fastapi.responses import StreamingResponse, Response
-from khoj.routers.helpers import perform_chat_checks, generate_chat_response
+from khoj.routers.helpers import perform_chat_checks, generate_chat_response, update_telemetry_state
 from khoj.processor.conversation.gpt import extract_questions
 from fastapi.requests import Request
 
@@ -56,21 +56,70 @@ if not state.demo:
         return state.config
 
     @api.post("/config/data")
-    async def set_config_data(updated_config: FullConfig):
+    async def set_config_data(
+        request: Request,
+        updated_config: FullConfig,
+        client: Optional[str] = None,
+        user_agent: Optional[str] = Header(None),
+        referer: Optional[str] = Header(None),
+        host: Optional[str] = Header(None),
+    ):
         state.config = updated_config
         with open(state.config_file, "w") as outfile:
             yaml.dump(yaml.safe_load(state.config.json(by_alias=True)), outfile)
             outfile.close()
+
+        configuration_update_metadata = dict()
+
+        if state.config.content_type is not None:
+            configuration_update_metadata["github"] = state.config.content_type.github is not None
+            configuration_update_metadata["notion"] = state.config.content_type.notion is not None
+            configuration_update_metadata["org"] = state.config.content_type.org is not None
+            configuration_update_metadata["pdf"] = state.config.content_type.pdf is not None
+            configuration_update_metadata["markdown"] = state.config.content_type.markdown is not None
+            configuration_update_metadata["plugins"] = state.config.content_type.plugins is not None
+
+        if state.config.processor is not None:
+            configuration_update_metadata["conversation_processor"] = state.config.processor.conversation is not None
+
+        update_telemetry_state(
+            request=request,
+            telemetry_type="api",
+            api="set_config_data",
+            client=client,
+            user_agent=user_agent,
+            referer=referer,
+            host=host,
+            metadata=configuration_update_metadata,
+        )
         return state.config
 
     @api.post("/config/data/content_type/github", status_code=200)
-    async def set_content_config_github_data(updated_config: Union[GithubContentConfig, None]):
+    async def set_content_config_github_data(
+        request: Request,
+        updated_config: Union[GithubContentConfig, None],
+        client: Optional[str] = None,
+        user_agent: Optional[str] = Header(None),
+        referer: Optional[str] = Header(None),
+        host: Optional[str] = Header(None),
+    ):
         _initialize_config()
 
         if not state.config.content_type:
             state.config.content_type = ContentConfig(**{"github": updated_config})
         else:
             state.config.content_type.github = updated_config
+
+        update_telemetry_state(
+            request=request,
+            telemetry_type="api",
+            api="delete_content_type",
+            client=client,
+            user_agent=user_agent,
+            referer=referer,
+            host=host,
+            metadata={"content_type": "github"},
+        )
 
         try:
             save_config_to_file_updated_state()
@@ -79,13 +128,31 @@ if not state.demo:
             return {"status": "error", "message": str(e)}
 
     @api.post("/config/data/content_type/notion", status_code=200)
-    async def set_content_config_notion_data(updated_config: Union[NotionContentConfig, None]):
+    async def set_content_config_notion_data(
+        request: Request,
+        updated_config: Union[NotionContentConfig, None],
+        client: Optional[str] = None,
+        user_agent: Optional[str] = Header(None),
+        referer: Optional[str] = Header(None),
+        host: Optional[str] = Header(None),
+    ):
         _initialize_config()
 
         if not state.config.content_type:
             state.config.content_type = ContentConfig(**{"notion": updated_config})
         else:
             state.config.content_type.notion = updated_config
+
+        update_telemetry_state(
+            request=request,
+            telemetry_type="api",
+            api="delete_content_type",
+            client=client,
+            user_agent=user_agent,
+            referer=referer,
+            host=host,
+            metadata={"content_type": "notion"},
+        )
 
         try:
             save_config_to_file_updated_state()
@@ -94,9 +161,27 @@ if not state.demo:
             return {"status": "error", "message": str(e)}
 
     @api.post("/delete/config/data/content_type/{content_type}", status_code=200)
-    async def remove_content_config_data(content_type: str):
+    async def remove_content_config_data(
+        request: Request,
+        content_type: str,
+        client: Optional[str] = None,
+        user_agent: Optional[str] = Header(None),
+        referer: Optional[str] = Header(None),
+        host: Optional[str] = Header(None),
+    ):
         if not state.config or not state.config.content_type:
             return {"status": "ok"}
+
+        update_telemetry_state(
+            request=request,
+            telemetry_type="api",
+            api="delete_content_type",
+            client=client,
+            user_agent=user_agent,
+            referer=referer,
+            host=host,
+            metadata={"content_type": content_type},
+        )
 
         if state.config.content_type:
             state.config.content_type[content_type] = None
@@ -121,11 +206,28 @@ if not state.demo:
             return {"status": "error", "message": str(e)}
 
     @api.post("/delete/config/data/processor/conversation", status_code=200)
-    async def remove_processor_conversation_config_data():
+    async def remove_processor_conversation_config_data(
+        request: Request,
+        client: Optional[str] = None,
+        user_agent: Optional[str] = Header(None),
+        referer: Optional[str] = Header(None),
+        host: Optional[str] = Header(None),
+    ):
         if not state.config or not state.config.processor or not state.config.processor.conversation:
             return {"status": "ok"}
 
         state.config.processor.conversation = None
+
+        update_telemetry_state(
+            request=request,
+            telemetry_type="api",
+            api="delete_content_type",
+            client=client,
+            user_agent=user_agent,
+            referer=referer,
+            host=host,
+            metadata={"content_type": "processor.conversation"},
+        )
 
         try:
             save_config_to_file_updated_state()
@@ -134,13 +236,32 @@ if not state.demo:
             return {"status": "error", "message": str(e)}
 
     @api.post("/config/data/content_type/{content_type}", status_code=200)
-    async def set_content_config_data(content_type: str, updated_config: Union[TextContentConfig, None]):
+    async def set_content_config_data(
+        request: Request,
+        content_type: str,
+        updated_config: Union[TextContentConfig, None],
+        client: Optional[str] = None,
+        user_agent: Optional[str] = Header(None),
+        referer: Optional[str] = Header(None),
+        host: Optional[str] = Header(None),
+    ):
         _initialize_config()
 
         if not state.config.content_type:
             state.config.content_type = ContentConfig(**{content_type: updated_config})
         else:
             state.config.content_type[content_type] = updated_config
+
+        update_telemetry_state(
+            request=request,
+            telemetry_type="api",
+            api="set_content_type",
+            client=client,
+            user_agent=user_agent,
+            referer=referer,
+            host=host,
+            metadata={"content_type": content_type},
+        )
 
         try:
             save_config_to_file_updated_state()
@@ -149,11 +270,30 @@ if not state.demo:
             return {"status": "error", "message": str(e)}
 
     @api.post("/config/data/processor/conversation", status_code=200)
-    async def set_processor_conversation_config_data(updated_config: Union[ConversationProcessorConfig, None]):
+    async def set_processor_conversation_config_data(
+        request: Request,
+        updated_config: Union[ConversationProcessorConfig, None],
+        client: Optional[str] = None,
+        user_agent: Optional[str] = Header(None),
+        referer: Optional[str] = Header(None),
+        host: Optional[str] = Header(None),
+    ):
         _initialize_config()
 
         state.config.processor = ProcessorConfig(conversation=updated_config)
         state.processor_config = configure_processor(state.config.processor)
+
+        update_telemetry_state(
+            request=request,
+            telemetry_type="api",
+            api="set_content_type",
+            client=client,
+            user_agent=user_agent,
+            referer=referer,
+            host=host,
+            metadata={"content_type": "processor.conversation"},
+        )
+
         try:
             save_config_to_file_updated_state()
             return {"status": "ok"}
@@ -369,20 +509,16 @@ async def search(
     # Cache results
     state.query_cache[query_cache_key] = results
 
-    user_state = {
-        "client_host": request.client.host if request.client else "unknown",
-        "user_agent": user_agent or "unknown",
-        "referer": referer or "unknown",
-        "host": host or "unknown",
-    }
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="search",
+        client=client,
+        user_agent=user_agent,
+        referer=referer,
+        host=host,
+    )
 
-    # Only log telemetry if query is new and not a continuation of previous query
-    if state.previous_query is None or state.previous_query not in user_query:
-        state.telemetry += [
-            log_telemetry(
-                telemetry_type="api", api="search", client=client, app_config=state.config.app, properties=user_state
-            )
-        ]
     state.previous_query = user_query
 
     end_time = time.time()
@@ -425,18 +561,15 @@ def update(
     else:
         logger.info("📬 Processor reconfigured via API")
 
-    user_state = {
-        "client_host": request.client.host if request.client else None,
-        "user_agent": user_agent or "unknown",
-        "referer": referer or "unknown",
-        "host": host or "unknown",
-    }
-
-    state.telemetry += [
-        log_telemetry(
-            telemetry_type="api", api="update", client=client, app_config=state.config.app, properties=user_state
-        )
-    ]
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="update",
+        client=client,
+        user_agent=user_agent,
+        referer=referer,
+        host=host,
+    )
 
     return {"status": "ok", "message": "khoj reloaded"}
 
@@ -454,18 +587,15 @@ def chat_history(
     # Load Conversation History
     meta_log = state.processor_config.conversation.meta_log
 
-    user_state = {
-        "client_host": request.client.host if request.client else None,
-        "user_agent": user_agent or "unknown",
-        "referer": referer or "unknown",
-        "host": host or "unknown",
-    }
-
-    state.telemetry += [
-        log_telemetry(
-            telemetry_type="api", api="chat", client=client, app_config=state.config.app, properties=user_state
-        )
-    ]
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="chat",
+        client=client,
+        user_agent=user_agent,
+        referer=referer,
+        host=host,
+    )
 
     return {"status": "ok", "response": meta_log.get("chat", [])}
 
@@ -509,18 +639,15 @@ async def chat(
 
     response_obj = {"response": actual_response, "context": compiled_references}
 
-    user_state = {
-        "client_host": request.client.host if request.client else None,
-        "user_agent": user_agent or "unknown",
-        "referer": referer or "unknown",
-        "host": host or "unknown",
-    }
-
-    state.telemetry += [
-        log_telemetry(
-            telemetry_type="api", api="chat", client=client, app_config=state.config.app, properties=user_state
-        )
-    ]
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="chat",
+        client=client,
+        user_agent=user_agent,
+        referer=referer,
+        host=host,
+    )
 
     return Response(content=json.dumps(response_obj), media_type="application/json", status_code=200)
 
