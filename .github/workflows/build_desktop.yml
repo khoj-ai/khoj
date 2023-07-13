@@ -108,10 +108,4 @@ jobs:
         with:
           name: khoj_dev_amd64.${{matrix.extension}}
           path: dist/khoj_dev_amd64.${{matrix.extension}}
-
-      - name: 🌈 Dev Release 🦿
-        uses: softprops/action-gh-release@v1
-        with:
-          generate_release_notes: false
-          prerelease: true
-          files: dist/khoj_dev_amd64.${{matrix.extension}}
+          retention-days: 1
