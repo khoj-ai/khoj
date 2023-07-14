@@ -60,9 +60,6 @@ if not state.demo:
         request: Request,
         updated_config: FullConfig,
         client: Optional[str] = None,
-        user_agent: Optional[str] = Header(None),
-        referer: Optional[str] = Header(None),
-        host: Optional[str] = Header(None),
     ):
         state.config = updated_config
         with open(state.config_file, "w") as outfile:
@@ -85,11 +82,8 @@ if not state.demo:
         update_telemetry_state(
             request=request,
             telemetry_type="api",
-            api="set_config_data",
+            api="set_config",
             client=client,
-            user_agent=user_agent,
-            referer=referer,
-            host=host,
             metadata=configuration_update_metadata,
         )
         return state.config
@@ -99,9 +93,6 @@ if not state.demo:
         request: Request,
         updated_config: Union[GithubContentConfig, None],
         client: Optional[str] = None,
-        user_agent: Optional[str] = Header(None),
-        referer: Optional[str] = Header(None),
-        host: Optional[str] = Header(None),
     ):
         _initialize_config()
 
@@ -113,11 +104,8 @@ if not state.demo:
         update_telemetry_state(
             request=request,
             telemetry_type="api",
-            api="delete_content_type",
+            api="set_content_config",
             client=client,
-            user_agent=user_agent,
-            referer=referer,
-            host=host,
             metadata={"content_type": "github"},
         )
 
@@ -132,9 +120,6 @@ if not state.demo:
         request: Request,
         updated_config: Union[NotionContentConfig, None],
         client: Optional[str] = None,
-        user_agent: Optional[str] = Header(None),
-        referer: Optional[str] = Header(None),
-        host: Optional[str] = Header(None),
     ):
         _initialize_config()
 
@@ -146,11 +131,8 @@ if not state.demo:
         update_telemetry_state(
             request=request,
             telemetry_type="api",
-            api="delete_content_type",
+            api="set_content_config",
             client=client,
-            user_agent=user_agent,
-            referer=referer,
-            host=host,
             metadata={"content_type": "notion"},
         )
 
@@ -165,9 +147,6 @@ if not state.demo:
         request: Request,
         content_type: str,
         client: Optional[str] = None,
-        user_agent: Optional[str] = Header(None),
-        referer: Optional[str] = Header(None),
-        host: Optional[str] = Header(None),
     ):
         if not state.config or not state.config.content_type:
             return {"status": "ok"}
@@ -175,11 +154,8 @@ if not state.demo:
         update_telemetry_state(
             request=request,
             telemetry_type="api",
-            api="delete_content_type",
+            api="delete_content_config",
             client=client,
-            user_agent=user_agent,
-            referer=referer,
-            host=host,
             metadata={"content_type": content_type},
         )
 
@@ -209,9 +185,6 @@ if not state.demo:
     async def remove_processor_conversation_config_data(
         request: Request,
         client: Optional[str] = None,
-        user_agent: Optional[str] = Header(None),
-        referer: Optional[str] = Header(None),
-        host: Optional[str] = Header(None),
     ):
         if not state.config or not state.config.processor or not state.config.processor.conversation:
             return {"status": "ok"}
@@ -221,12 +194,9 @@ if not state.demo:
         update_telemetry_state(
             request=request,
             telemetry_type="api",
-            api="delete_content_type",
+            api="delete_processor_config",
             client=client,
-            user_agent=user_agent,
-            referer=referer,
-            host=host,
-            metadata={"content_type": "processor.conversation"},
+            metadata={"processor_type": "conversation"},
         )
 
         try:
@@ -241,9 +211,6 @@ if not state.demo:
         content_type: str,
         updated_config: Union[TextContentConfig, None],
         client: Optional[str] = None,
-        user_agent: Optional[str] = Header(None),
-        referer: Optional[str] = Header(None),
-        host: Optional[str] = Header(None),
     ):
         _initialize_config()
 
@@ -255,11 +222,8 @@ if not state.demo:
         update_telemetry_state(
             request=request,
             telemetry_type="api",
-            api="set_content_type",
+            api="set_content_config",
             client=client,
-            user_agent=user_agent,
-            referer=referer,
-            host=host,
             metadata={"content_type": content_type},
         )
 
@@ -274,9 +238,6 @@ if not state.demo:
         request: Request,
         updated_config: Union[ConversationProcessorConfig, None],
         client: Optional[str] = None,
-        user_agent: Optional[str] = Header(None),
-        referer: Optional[str] = Header(None),
-        host: Optional[str] = Header(None),
     ):
         _initialize_config()
 
@@ -286,12 +247,9 @@ if not state.demo:
         update_telemetry_state(
             request=request,
             telemetry_type="api",
-            api="set_content_type",
+            api="set_content_config",
             client=client,
-            user_agent=user_agent,
-            referer=referer,
-            host=host,
-            metadata={"content_type": "processor.conversation"},
+            metadata={"processor_type": "conversation"},
         )
 
         try:
