@@ -1,11 +1,12 @@
-from fastapi import HTTPException
 import logging
 from datetime import datetime
 from functools import partial
-from typing import List
+from typing import List, Optional
+
+from fastapi import HTTPException, Request
 
 from khoj.utils import state
-from khoj.utils.helpers import timer
+from khoj.utils.helpers import timer, log_telemetry
 from khoj.processor.conversation.gpt import converse
 from khoj.processor.conversation.utils import message_to_log, reciprocal_conversation_to_chatml
 
@@ -22,6 +23,33 @@ def perform_chat_checks():
         raise HTTPException(
             status_code=500, detail="Set your OpenAI API key via Khoj settings and restart it to use Khoj Chat."
         )
+
+
+def update_telemetry_state(
+    request: Request,
+    telemetry_type: str,
+    api: str,
+    client: Optional[str] = None,
+    user_agent: Optional[str] = None,
+    referer: Optional[str] = None,
+    host: Optional[str] = None,
+    metadata: Optional[dict] = None,
+):
+    user_state = {
+        "client_host": request.client.host if request.client else None,
+        "user_agent": user_agent or "unknown",
+        "referer": referer or "unknown",
+        "host": host or "unknown",
+    }
+
+    if metadata:
+        user_state.update(metadata)
+
+    state.telemetry += [
+        log_telemetry(
+            telemetry_type=telemetry_type, api=api, client=client, app_config=state.config.app, properties=user_state
+        )
+    ]
 
 
 def generate_chat_response(
