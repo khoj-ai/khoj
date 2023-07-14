@@ -40,12 +40,12 @@ if not state.demo:
         )
         current_config = state.config or json.loads(default_full_config.json())
         successfully_configured = {
-            "pdf": state.model.pdf_search is not None,
-            "markdown": state.model.markdown_search is not None,
-            "org": state.model.org_search is not None,
-            "image": state.model.image_search is not None,
-            "github": state.model.github_search is not None,
-            "notion": state.model.notion_search is not None,
+            "pdf": state.content_index.pdf is not None,
+            "markdown": state.content_index.markdown is not None,
+            "org": state.content_index.org is not None,
+            "image": state.content_index.image is not None,
+            "github": state.content_index.github is not None,
+            "notion": state.content_index.notion is not None,
             "conversation": state.processor_config.conversation is not None,
         }
         return templates.TemplateResponse(

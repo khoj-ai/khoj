@@ -12,7 +12,7 @@ from fastapi import APIRouter, HTTPException, Header, Request
 from sentence_transformers import util
 
 # Internal Packages
-from khoj.configure import configure_processor, configure_search
+from khoj.configure import configure_content, configure_processor, configure_search
 from khoj.search_type import image_search, text_search
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
@@ -163,17 +163,17 @@ if not state.demo:
             state.config.content_type[content_type] = None
 
         if content_type == "github":
-            state.model.github_search = None
+            state.content_index.github = None
         elif content_type == "notion":
-            state.model.notion_search = None
+            state.content_index.notion = None
         elif content_type == "plugins":
-            state.model.plugin_search = None
+            state.content_index.plugins = None
         elif content_type == "pdf":
-            state.model.pdf_search = None
+            state.content_index.pdf = None
         elif content_type == "markdown":
-            state.model.markdown_search = None
+            state.content_index.markdown = None
         elif content_type == "org":
-            state.model.org_search = None
+            state.content_index.org = None
 
         try:
             save_config_to_file_updated_state()
@@ -280,7 +280,7 @@ def get_config_types():
         for search_type in SearchType
         if (
             search_type.value in configured_content_types
-            and getattr(state.model, f"{search_type.value}_search") is not None
+            and getattr(state.content_index, search_type.value) is not None
         )
         or ("plugins" in configured_content_types and search_type.name in configured_content_types["plugins"])
         or search_type == SearchType.All
@@ -308,7 +308,7 @@ async def search(
     if q is None or q == "":
         logger.warning(f"No query param (q) passed in API call to initiate search")
         return results
-    if not state.model or not any(state.model.__dict__.values()):
+    if not state.search_models or not any(state.search_models.__dict__.values()):
         logger.warning(f"No search models loaded. Configure a search model before initiating search")
         return results
 
@@ -332,7 +332,7 @@ async def search(
     encoded_asymmetric_query = None
     if t == SearchType.All or t != SearchType.Image:
         text_search_models: List[TextSearchModel] = [
-            model for model in state.model.__dict__.values() if isinstance(model, TextSearchModel)
+            model for model in state.search_models.__dict__.values() if isinstance(model, TextSearchModel)
         ]
         if text_search_models:
             with timer("Encoding query took", logger=logger):
@@ -345,13 +345,14 @@ async def search(
                 )
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        if (t == SearchType.Org or t == SearchType.All) and state.model.org_search:
+        if (t == SearchType.Org or t == SearchType.All) and state.content_index.org and state.search_models.text_search:
             # query org-mode notes
             search_futures += [
                 executor.submit(
                     text_search.query,
                     user_query,
-                    state.model.org_search,
+                    state.search_models.text_search,
+                    state.content_index.org,
                     question_embedding=encoded_asymmetric_query,
                     rank_results=r or False,
                     score_threshold=score_threshold,
@@ -359,13 +360,18 @@ async def search(
                 )
             ]
 
-        if (t == SearchType.Markdown or t == SearchType.All) and state.model.markdown_search:
+        if (
+            (t == SearchType.Markdown or t == SearchType.All)
+            and state.content_index.markdown
+            and state.search_models.text_search
+        ):
             # query markdown notes
             search_futures += [
                 executor.submit(
                     text_search.query,
                     user_query,
-                    state.model.markdown_search,
+                    state.search_models.text_search,
+                    state.content_index.markdown,
                     question_embedding=encoded_asymmetric_query,
                     rank_results=r or False,
                     score_threshold=score_threshold,
@@ -373,13 +379,18 @@ async def search(
                 )
             ]
 
-        if (t == SearchType.Github or t == SearchType.All) and state.model.github_search:
+        if (
+            (t == SearchType.Github or t == SearchType.All)
+            and state.content_index.github
+            and state.search_models.text_search
+        ):
             # query github issues
             search_futures += [
                 executor.submit(
                     text_search.query,
                     user_query,
-                    state.model.github_search,
+                    state.search_models.text_search,
+                    state.content_index.github,
                     question_embedding=encoded_asymmetric_query,
                     rank_results=r or False,
                     score_threshold=score_threshold,
@@ -387,13 +398,14 @@ async def search(
                 )
             ]
 
-        if (t == SearchType.Pdf or t == SearchType.All) and state.model.pdf_search:
+        if (t == SearchType.Pdf or t == SearchType.All) and state.content_index.pdf and state.search_models.text_search:
             # query pdf files
             search_futures += [
                 executor.submit(
                     text_search.query,
                     user_query,
-                    state.model.pdf_search,
+                    state.search_models.text_search,
+                    state.content_index.pdf,
                     question_embedding=encoded_asymmetric_query,
                     rank_results=r or False,
                     score_threshold=score_threshold,
@@ -401,26 +413,38 @@ async def search(
                 )
             ]
 
-        if (t == SearchType.Image) and state.model.image_search:
+        if (t == SearchType.Image) and state.content_index.image and state.search_models.image_search:
             # query images
             search_futures += [
                 executor.submit(
                     image_search.query,
                     user_query,
                     results_count,
-                    state.model.image_search,
+                    state.search_models.image_search,
+                    state.content_index.image,
                     score_threshold=score_threshold,
                 )
             ]
 
-        if (t == SearchType.All or t in SearchType) and state.model.plugin_search:
+        if (
+            (t == SearchType.All or t in SearchType)
+            and state.content_index.plugins
+            and state.search_models.plugin_search
+        ):
             # query specified plugin type
+            # Get plugin content, search model for specified search type, or the first one if none specified
+            plugin_search = state.search_models.plugin_search.get(t.value) or next(
+                iter(state.search_models.plugin_search.values())
+            )
+            plugin_content = state.content_index.plugins.get(t.value) or next(
+                iter(state.content_index.plugins.values())
+            )
             search_futures += [
                 executor.submit(
                     text_search.query,
                     user_query,
-                    # Get plugin search model for specified search type, or the first one if none specified
-                    state.model.plugin_search.get(t.value) or next(iter(state.model.plugin_search.values())),
+                    plugin_search,
+                    plugin_content,
                     question_embedding=encoded_asymmetric_query,
                     rank_results=r or False,
                     score_threshold=score_threshold,
@@ -428,13 +452,18 @@ async def search(
                 )
             ]
 
-        if (t == SearchType.Notion or t == SearchType.All) and state.model.notion_search:
+        if (
+            (t == SearchType.Notion or t == SearchType.All)
+            and state.content_index.notion
+            and state.search_models.text_search
+        ):
             # query notion pages
             search_futures += [
                 executor.submit(
                     text_search.query,
                     user_query,
-                    state.model.notion_search,
+                    state.search_models.text_search,
+                    state.content_index.notion,
                     question_embedding=encoded_asymmetric_query,
                     rank_results=r or False,
                     score_threshold=score_threshold,
@@ -445,13 +474,13 @@ async def search(
         # Query across each requested content types in parallel
         with timer("Query took", logger):
             for search_future in concurrent.futures.as_completed(search_futures):
-                if t == SearchType.Image:
+                if t == SearchType.Image and state.content_index.image:
                     hits = await search_future.result()
                     output_directory = constants.web_directory / "images"
                     # Collate results
                     results += image_search.collate_results(
                         hits,
-                        image_names=state.model.image_search.image_names,
+                        image_names=state.content_index.image.image_names,
                         output_directory=output_directory,
                         image_files_url="/static/images",
                         count=results_count,
@@ -498,7 +527,12 @@ def update(
     try:
         state.search_index_lock.acquire()
         try:
-            state.model = configure_search(state.model, state.config, regenerate=force or False, t=t)
+            if state.config and state.config.search_type:
+                state.search_models = configure_search(state.search_models, state.config.search_type)
+            if state.search_models:
+                state.content_index = configure_content(
+                    state.content_index, state.config.content_type, state.search_models, regenerate=force or False, t=t
+                )
         except Exception as e:
             logger.error(e)
             raise HTTPException(status_code=500, detail=str(e))

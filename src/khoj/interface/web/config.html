@@ -12,7 +12,7 @@
                         Github
                         {% if current_config.content_type.github %}
                             {% if current_model_state.github == False %}
-                                <img id="misconfigured-icon-github" class="configured-icon" src="/static/assets/icons/red-x-icon.svg" alt="Configured">
+                                <img id="misconfigured-icon-github" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you just need to click Configure.">
                             {% else %}
                                 <img id="configured-icon-github" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
                             {% endif %}
@@ -47,7 +47,7 @@
                         Notion
                         {% if current_config.content_type.notion %}
                             {% if current_model_state.notion == False %}
-                                <img id="misconfigured-icon-notion" class="configured-icon" src="/static/assets/icons/red-x-icon.svg" alt="Configured">
+                                <img id="misconfigured-icon-notion" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you just need to click Configure.">
                             {% else %}
                                 <img id="configured-icon-notion" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
                             {% endif %}
@@ -82,7 +82,7 @@
                         Markdown
                         {% if current_config.content_type.markdown %}
                             {% if current_model_state.markdown == False%}
-                                <img id="misconfigured-icon-markdown" class="configured-icon" src="/static/assets/icons/red-x-icon.svg" alt="Configured">
+                                <img id="misconfigured-icon-markdown" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you just need to click Configure.">
                             {% else %}
                                 <img id="configured-icon-markdown" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
                             {% endif %}
@@ -117,7 +117,7 @@
                         Org
                         {% if current_config.content_type.org %}
                             {% if current_model_state.org == False %}
-                                <img id="misconfigured-icon-org" class="configured-icon" src="/static/assets/icons/red-x-icon.svg" alt="Configured">
+                                <img id="misconfigured-icon-org" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you just need to click Configure.">
                             {% else %}
                                 <img id="configured-icon-org" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
                             {% endif %}
@@ -152,7 +152,7 @@
                         PDF
                         {% if current_config.content_type.pdf %}
                             {% if current_model_state.pdf == False %}
-                                <img id="misconfigured-icon-pdf" class="configured-icon" src="/static/assets/icons/red-x-icon.svg" alt="Configured">
+                                <img id="misconfigured-icon-pdf" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you need to click Configure.">
                             {% else %}
                                 <img id="configured-icon-pdf" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
                             {% endif %}
@@ -192,7 +192,7 @@
                         Chat
                         {% if current_config.processor and current_config.processor.conversation %}
                             {% if current_model_state.conversation == False %}
-                                <img id="misconfigured-icon-conversation-processor" class="configured-icon" src="/static/assets/icons/red-x-icon.svg" alt="Configured">
+                                <img id="misconfigured-icon-conversation-processor" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you just need to click Configure.">
                             {% else %}
                                 <img id="configured-icon-conversation-processor" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
                             {% endif %}
@@ -333,14 +333,14 @@
             if (data.detail != null) {
                 throw new Error(data.detail);
             }
-            document.getElementById("status").innerHTML = emoji + successText;
+            document.getElementById("status").innerHTML = emoji + " " + successText;
             document.getElementById("status").style.display = "block";
             button.disabled = false;
             button.innerHTML = '✅ Done!';
         })
         .catch((error) => {
             console.error('Error:', error);
-            document.getElementById("status").innerHTML = emoji + errorText
+            document.getElementById("status").innerHTML = emoji + " " + errorText
             document.getElementById("status").style.display = "block";
             button.disabled = false;
             button.innerHTML = '⚠️ Unsuccessful';

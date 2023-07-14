@@ -119,9 +119,9 @@ class AppConfig(ConfigBase):
 
 
 class FullConfig(ConfigBase):
-    content_type: Optional[ContentConfig]
-    search_type: Optional[SearchConfig]
-    processor: Optional[ProcessorConfig]
+    content_type: Optional[ContentConfig] = None
+    search_type: Optional[SearchConfig] = None
+    processor: Optional[ProcessorConfig] = None
     app: Optional[AppConfig] = AppConfig(should_log_telemetry=True)
 
 
