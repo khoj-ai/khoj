@@ -5,9 +5,10 @@ from PIL import Image
 
 # External Packages
 import pytest
+from khoj.utils.config import SearchModels
 
 # Internal Packages
-from khoj.utils.state import model
+from khoj.utils.state import content_index, search_models
 from khoj.utils.constants import web_directory
 from khoj.search_type import image_search
 from khoj.utils.helpers import resolve_absolute_path
@@ -16,10 +17,12 @@ from khoj.utils.rawconfig import ContentConfig, SearchConfig
 
 # Test
 # ----------------------------------------------------------------------------------------------------
-def test_image_search_setup(content_config: ContentConfig, search_config: SearchConfig):
+def test_image_search_setup(content_config: ContentConfig, search_models: SearchModels):
     # Act
     # Regenerate image search embeddings during image setup
-    image_search_model = image_search.setup(content_config.image, search_config.image, regenerate=True)
+    image_search_model = image_search.setup(
+        content_config.image, search_models.image_search.image_encoder, regenerate=True
+    )
 
     # Assert
     assert len(image_search_model.image_names) == 3
@@ -54,8 +57,11 @@ def test_image_metadata(content_config: ContentConfig):
 @pytest.mark.anyio
 async def test_image_search(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
+    search_models.image_search = image_search.initialize_model(search_config.image)
+    content_index.image = image_search.setup(
+        content_config.image, search_models.image_search.image_encoder, regenerate=False
+    )
     output_directory = resolve_absolute_path(web_directory)
-    model.image_search = image_search.setup(content_config.image, search_config.image, regenerate=False)
     query_expected_image_pairs = [
         ("kitten", "kitten_park.jpg"),
         ("horse and dog in a farm", "horse_dog.jpg"),
@@ -64,11 +70,13 @@ async def test_image_search(content_config: ContentConfig, search_config: Search
 
     # Act
     for query, expected_image_name in query_expected_image_pairs:
-        hits = await image_search.query(query, count=1, model=model.image_search)
+        hits = await image_search.query(
+            query, count=1, search_model=search_models.image_search, content=content_index.image
+        )
 
         results = image_search.collate_results(
             hits,
-            model.image_search.image_names,
+            content_index.image.image_names,
             output_directory=output_directory,
             image_files_url="/static/images",
             count=1,
@@ -90,7 +98,10 @@ async def test_image_search(content_config: ContentConfig, search_config: Search
 @pytest.mark.anyio
 async def test_image_search_query_truncated(content_config: ContentConfig, search_config: SearchConfig, caplog):
     # Arrange
-    model.image_search = image_search.setup(content_config.image, search_config.image, regenerate=False)
+    search_models.image_search = image_search.initialize_model(search_config.image)
+    content_index.image = image_search.setup(
+        content_config.image, search_models.image_search.image_encoder, regenerate=False
+    )
     max_words_supported = 10
     query = " ".join(["hello"] * 100)
     truncated_query = " ".join(["hello"] * max_words_supported)
@@ -98,7 +109,9 @@ async def test_image_search_query_truncated(content_config: ContentConfig, searc
     # Act
     try:
         with caplog.at_level(logging.INFO, logger="khoj.search_type.image_search"):
-            await image_search.query(query, count=1, model=model.image_search)
+            await image_search.query(
+                query, count=1, search_model=search_models.image_search, content=content_index.image
+            )
     # Assert
     except RuntimeError as e:
         if "The size of tensor a (102) must match the size of tensor b (77)" in str(e):
@@ -110,8 +123,11 @@ async def test_image_search_query_truncated(content_config: ContentConfig, searc
 @pytest.mark.anyio
 async def test_image_search_by_filepath(content_config: ContentConfig, search_config: SearchConfig, caplog):
     # Arrange
+    search_models.image_search = image_search.initialize_model(search_config.image)
+    content_index.image = image_search.setup(
+        content_config.image, search_models.image_search.image_encoder, regenerate=False
+    )
     output_directory = resolve_absolute_path(web_directory)
-    model.image_search = image_search.setup(content_config.image, search_config.image, regenerate=False)
     image_directory = content_config.image.input_directories[0]
 
     query = f"file:{image_directory.joinpath('kitten_park.jpg')}"
@@ -119,11 +135,13 @@ async def test_image_search_by_filepath(content_config: ContentConfig, search_co
 
     # Act
     with caplog.at_level(logging.INFO, logger="khoj.search_type.image_search"):
-        hits = await image_search.query(query, count=1, model=model.image_search)
+        hits = await image_search.query(
+            query, count=1, search_model=search_models.image_search, content=content_index.image
+        )
 
         results = image_search.collate_results(
             hits,
-            model.image_search.image_names,
+            content_index.image.image_names,
             output_directory=output_directory,
             image_files_url="/static/images",
             count=1,
