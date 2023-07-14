@@ -20,9 +20,15 @@ from khoj.processor.github.github_to_jsonl import GithubToJsonl
 from khoj.processor.notion.notion_to_jsonl import NotionToJsonl
 from khoj.search_type import image_search, text_search
 from khoj.utils import constants, state
-from khoj.utils.config import SearchType, SearchModels, ProcessorConfigModel, ConversationProcessorConfigModel
+from khoj.utils.config import (
+    ContentIndex,
+    SearchType,
+    SearchModels,
+    ProcessorConfigModel,
+    ConversationProcessorConfigModel,
+)
 from khoj.utils.helpers import LRU, resolve_absolute_path, merge_dicts
-from khoj.utils.rawconfig import FullConfig, ProcessorConfig
+from khoj.utils.rawconfig import FullConfig, ProcessorConfig, SearchConfig, ContentConfig
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.word_filter import WordFilter
 from khoj.search_filter.file_filter import FileFilter
@@ -49,11 +55,19 @@ def configure_server(args, required=False):
     # Initialize Processor from Config
     state.processor_config = configure_processor(args.config.processor)
 
-    # Initialize the search type and model from Config
+    # Initialize Search Models from Config
     state.search_index_lock.acquire()
     state.SearchType = configure_search_types(state.config)
-    state.model = configure_search(state.model, state.config, args.regenerate)
+    state.search_models = configure_search(state.search_models, state.config.search_type)
     state.search_index_lock.release()
+
+    # Initialize Content from Config
+    if state.search_models:
+        state.search_index_lock.acquire()
+        state.content_index = configure_content(
+            state.content_index, state.config.content_type, state.search_models, args.regenerate
+        )
+        state.search_index_lock.release()
 
 
 def configure_routes(app):
@@ -73,7 +87,9 @@ if not state.demo:
     @schedule.repeat(schedule.every(61).minutes)
     def update_search_index():
         state.search_index_lock.acquire()
-        state.model = configure_search(state.model, state.config, regenerate=False)
+        state.content_index = configure_content(
+            state.content_index, state.config.content_type, state.search_models, regenerate=False
+        )
         state.search_index_lock.release()
         logger.info("📬 Search index updated via Scheduler")
 
@@ -90,94 +106,116 @@ def configure_search_types(config: FullConfig):
     return Enum("SearchType", merge_dicts(core_search_types, plugin_search_types))
 
 
-def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, t: Optional[state.SearchType] = None):
-    if config is None or config.content_type is None or config.search_type is None:
-        logger.warning("🚨 No Content or Search type is configured.")
-        return
+def configure_search(search_models: SearchModels, search_config: SearchConfig) -> Optional[SearchModels]:
+    # Run Validation Checks
+    if search_config is None:
+        logger.warning("🚨 No Search type is configured.")
+        return None
+    if search_models is None:
+        search_models = SearchModels()
 
-    if model is None:
-        model = SearchModels()
+    # Initialize Search Models
+    if search_config.asymmetric:
+        logger.info("🔍 📜 Setting up text search model")
+        search_models.text_search = text_search.initialize_model(search_config.asymmetric)
+
+    if search_config.image:
+        logger.info("🔍 🌄 Setting up image search model")
+        search_models.image_search = image_search.initialize_model(search_config.image)
+
+    return search_models
+
+
+def configure_content(
+    content_index: Optional[ContentIndex],
+    content_config: Optional[ContentConfig],
+    search_models: SearchModels,
+    regenerate: bool,
+    t: Optional[state.SearchType] = None,
+) -> Optional[ContentIndex]:
+    # Run Validation Checks
+    if content_config is None:
+        logger.warning("🚨 No Content type is configured.")
+        return None
+    if content_index is None:
+        content_index = ContentIndex()
 
     try:
         # Initialize Org Notes Search
-        if (t == state.SearchType.Org or t == None) and config.content_type.org and config.search_type.asymmetric:
+        if (t == state.SearchType.Org or t == None) and content_config.org and search_models.text_search:
             logger.info("🦄 Setting up search for orgmode notes")
             # Extract Entries, Generate Notes Embeddings
-            model.org_search = text_search.setup(
+            content_index.org = text_search.setup(
                 OrgToJsonl,
-                config.content_type.org,
-                search_config=config.search_type.asymmetric,
+                content_config.org,
+                search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
             )
 
         # Initialize Markdown Search
-        if (
-            (t == state.SearchType.Markdown or t == None)
-            and config.content_type.markdown
-            and config.search_type.asymmetric
-        ):
+        if (t == state.SearchType.Markdown or t == None) and content_config.markdown and search_models.text_search:
             logger.info("💎 Setting up search for markdown notes")
             # Extract Entries, Generate Markdown Embeddings
-            model.markdown_search = text_search.setup(
+            content_index.markdown = text_search.setup(
                 MarkdownToJsonl,
-                config.content_type.markdown,
-                search_config=config.search_type.asymmetric,
+                content_config.markdown,
+                search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
             )
 
         # Initialize PDF Search
-        if (t == state.SearchType.Pdf or t == None) and config.content_type.pdf and config.search_type.asymmetric:
+        if (t == state.SearchType.Pdf or t == None) and content_config.pdf and search_models.text_search:
             logger.info("🖨️ Setting up search for pdf")
             # Extract Entries, Generate PDF Embeddings
-            model.pdf_search = text_search.setup(
+            content_index.pdf = text_search.setup(
                 PdfToJsonl,
-                config.content_type.pdf,
-                search_config=config.search_type.asymmetric,
+                content_config.pdf,
+                search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
             )
 
         # Initialize Image Search
-        if (t == state.SearchType.Image or t == None) and config.content_type.image and config.search_type.image:
+        if (t == state.SearchType.Image or t == None) and content_config.image and search_models.image_search:
             logger.info("🌄 Setting up search for images")
             # Extract Entries, Generate Image Embeddings
-            model.image_search = image_search.setup(
-                config.content_type.image, search_config=config.search_type.image, regenerate=regenerate
+            content_index.image = image_search.setup(
+                content_config.image, search_models.image_search.image_encoder, regenerate=regenerate
             )
 
-        if (t == state.SearchType.Github or t == None) and config.content_type.github and config.search_type.asymmetric:
+        if (t == state.SearchType.Github or t == None) and content_config.github and search_models.text_search:
             logger.info("🐙 Setting up search for github")
             # Extract Entries, Generate Github Embeddings
-            model.github_search = text_search.setup(
+            content_index.github = text_search.setup(
                 GithubToJsonl,
-                config.content_type.github,
-                search_config=config.search_type.asymmetric,
+                content_config.github,
+                search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
             )
 
         # Initialize External Plugin Search
-        if (t == None or t in state.SearchType) and config.content_type.plugins:
+        if (t == None or t in state.SearchType) and content_config.plugins and search_models.text_search:
             logger.info("🔌 Setting up search for plugins")
-            model.plugin_search = {}
-            for plugin_type, plugin_config in config.content_type.plugins.items():
-                model.plugin_search[plugin_type] = text_search.setup(
+            content_index.plugins = {}
+            for plugin_type, plugin_config in content_config.plugins.items():
+                content_index.plugins[plugin_type] = text_search.setup(
                     JsonlToJsonl,
                     plugin_config,
-                    search_config=config.search_type.asymmetric,
+                    search_models.text_search.bi_encoder,
                     regenerate=regenerate,
                     filters=[DateFilter(), WordFilter(), FileFilter()],
                 )
 
         # Initialize Notion Search
-        if (t == None or t in state.SearchType) and config.content_type.notion:
+        if (t == None or t in state.SearchType) and content_config.notion and search_models.text_search:
             logger.info("🔌 Setting up search for notion")
-            model.notion_search = text_search.setup(
+            content_index.notion = text_search.setup(
                 NotionToJsonl,
-                config.content_type.notion,
-                search_config=config.search_type.asymmetric,
+                content_config.notion,
+                search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
             )
@@ -189,7 +227,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
     # Invalidate Query Cache
     state.query_cache = LRU()
 
-    return model
+    return content_index
 
 
 def configure_processor(processor_config: ProcessorConfig):
