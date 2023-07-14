@@ -56,18 +56,26 @@ def configure_server(args, required=False):
     state.processor_config = configure_processor(args.config.processor)
 
     # Initialize Search Models from Config
-    state.search_index_lock.acquire()
-    state.SearchType = configure_search_types(state.config)
-    state.search_models = configure_search(state.search_models, state.config.search_type)
-    state.search_index_lock.release()
+    try:
+        state.search_index_lock.acquire()
+        state.SearchType = configure_search_types(state.config)
+        state.search_models = configure_search(state.search_models, state.config.search_type)
+    except Exception as e:
+        logger.error(f"🚨 Error configuring search models on app load: {e}")
+    finally:
+        state.search_index_lock.release()
 
     # Initialize Content from Config
     if state.search_models:
-        state.search_index_lock.acquire()
-        state.content_index = configure_content(
-            state.content_index, state.config.content_type, state.search_models, args.regenerate
-        )
-        state.search_index_lock.release()
+        try:
+            state.search_index_lock.acquire()
+            state.content_index = configure_content(
+                state.content_index, state.config.content_type, state.search_models, args.regenerate
+            )
+        except Exception as e:
+            logger.error(f"🚨 Error configuring content index on app load: {e}")
+        finally:
+            state.search_index_lock.release()
 
 
 def configure_routes(app):
@@ -86,12 +94,16 @@ if not state.demo:
 
     @schedule.repeat(schedule.every(61).minutes)
     def update_search_index():
-        state.search_index_lock.acquire()
-        state.content_index = configure_content(
-            state.content_index, state.config.content_type, state.search_models, regenerate=False
-        )
-        state.search_index_lock.release()
-        logger.info("📬 Search index updated via Scheduler")
+        try:
+            state.search_index_lock.acquire()
+            state.content_index = configure_content(
+                state.content_index, state.config.content_type, state.search_models, regenerate=False
+            )
+            logger.info("📬 Content index updated via Scheduler")
+        except Exception as e:
+            logger.error(f"🚨 Error updating content index via Scheduler: {e}")
+        finally:
+            state.search_index_lock.release()
 
 
 def configure_search_types(config: FullConfig):
