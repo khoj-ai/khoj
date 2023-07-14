@@ -51,8 +51,11 @@ def configure_server(args, required=False):
 
     # Initialize the search type and model from Config
     state.search_index_lock.acquire()
-    state.SearchType = configure_search_types(state.config)
-    state.model = configure_search(state.model, state.config, args.regenerate)
+    try:
+        state.SearchType = configure_search_types(state.config)
+        state.model = configure_search(state.model, state.config, args.regenerate)
+    except Exception as e:
+        logger.error(f"🚨 Failed to initialize search: {e}")
     state.search_index_lock.release()
 
 
@@ -183,7 +186,7 @@ def configure_search(model: SearchModels, config: FullConfig, regenerate: bool, 
             )
 
     except Exception as e:
-        logger.error("🚨 Failed to setup search")
+        logger.error(f"🚨 Failed to setup search: {e}", exc_info=True)
         raise e
 
     # Invalidate Query Cache

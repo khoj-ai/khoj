@@ -11,7 +11,11 @@
                     <h3 class="card-title">
                         Github
                         {% if current_config.content_type.github %}
-                            <img id="configured-icon-github" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                            {% if current_model_state.github == False %}
+                                <img id="misconfigured-icon-github" class="configured-icon" src="/static/assets/icons/red-x-icon.svg" alt="Configured">
+                            {% else %}
+                                <img id="configured-icon-github" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                            {% endif %}
                         {% endif %}
                     </h3>
                 </div>
@@ -42,7 +46,11 @@
                     <h3 class="card-title">
                         Notion
                         {% if current_config.content_type.notion %}
-                            <img id="configured-icon-notion" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                            {% if current_model_state.notion == False %}
+                                <img id="misconfigured-icon-notion" class="configured-icon" src="/static/assets/icons/red-x-icon.svg" alt="Configured">
+                            {% else %}
+                                <img id="configured-icon-notion" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                            {% endif %}
                         {% endif %}
                     </h3>
                 </div>
@@ -73,7 +81,11 @@
                     <h3 class="card-title">
                         Markdown
                         {% if current_config.content_type.markdown %}
-                            <img id="configured-icon-markdown" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                            {% if current_model_state.markdown == False%}
+                                <img id="misconfigured-icon-markdown" class="configured-icon" src="/static/assets/icons/red-x-icon.svg" alt="Configured">
+                            {% else %}
+                                <img id="configured-icon-markdown" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                            {% endif %}
                         {% endif %}
                     </h3>
                 </div>
@@ -104,7 +116,11 @@
                     <h3 class="card-title">
                         Org
                         {% if current_config.content_type.org %}
-                            <img id="configured-icon-org" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                            {% if current_model_state.org == False %}
+                                <img id="misconfigured-icon-org" class="configured-icon" src="/static/assets/icons/red-x-icon.svg" alt="Configured">
+                            {% else %}
+                                <img id="configured-icon-org" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                            {% endif %}
                         {% endif %}
                     </h3>
                 </div>
@@ -135,7 +151,11 @@
                     <h3 class="card-title">
                         PDF
                         {% if current_config.content_type.pdf %}
-                            <img id="configured-icon-pdf" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                            {% if current_model_state.pdf == False %}
+                                <img id="misconfigured-icon-pdf" class="configured-icon" src="/static/assets/icons/red-x-icon.svg" alt="Configured">
+                            {% else %}
+                                <img id="configured-icon-pdf" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                            {% endif %}
                         {% endif %}
                     </h3>
                 </div>
@@ -171,8 +191,12 @@
                     <h3 class="card-title">
                         Chat
                         {% if current_config.processor and current_config.processor.conversation %}
-                            <img id="configured-icon-conversation-processor" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
-                         {% endif %}
+                            {% if current_model_state.conversation == False %}
+                                <img id="misconfigured-icon-conversation-processor" class="configured-icon" src="/static/assets/icons/red-x-icon.svg" alt="Configured">
+                            {% else %}
+                                <img id="configured-icon-conversation-processor" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                            {% endif %}
+                        {% endif %}
                     </h3>
                 </div>
                 <div class="card-description-row">
@@ -227,7 +251,14 @@
                 contentTypeClearButton.style.display = "none";
 
                 var configuredIcon = document.getElementById("configured-icon-" + content_type);
-                configuredIcon.style.display = "none";
+                if (configuredIcon) {
+                    configuredIcon.style.display = "none";
+                }
+
+                var misconfiguredIcon = document.getElementById("misconfigured-icon-" + content_type);
+                if (misconfiguredIcon) {
+                    misconfiguredIcon.style.display = "none";
+                }
             }
         })
     };
@@ -248,7 +279,15 @@
                 conversationClearButton.style.display = "none";
 
                 var configuredIcon = document.getElementById("configured-icon-conversation-processor");
-                configuredIcon.style.display = "none";
+                if (configuredIcon) {
+                    configuredIcon.style.display = "none";
+                }
+
+                var misconfiguredIcon = document.getElementById("misconfigured-icon-conversation-processor");
+
+                if (misconfiguredIcon) {
+                    misconfiguredIcon.style.display = "none";
+                }
             }
         })
     };
