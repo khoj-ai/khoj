@@ -39,15 +39,36 @@ if not state.demo:
             processor=None,
         )
         current_config = state.config or json.loads(default_full_config.json())
+
         successfully_configured = {
-            "pdf": state.content_index.pdf is not None,
-            "markdown": state.content_index.markdown is not None,
-            "org": state.content_index.org is not None,
-            "image": state.content_index.image is not None,
-            "github": state.content_index.github is not None,
-            "notion": state.content_index.notion is not None,
-            "conversation": state.processor_config.conversation is not None,
+            "pdf": False,
+            "markdown": False,
+            "org": False,
+            "image": False,
+            "github": False,
+            "notion": False,
+            "conversation": False,
         }
+
+        if state.content_index:
+            successfully_configured.update(
+                {
+                    "pdf": state.content_index.pdf is not None,
+                    "markdown": state.content_index.markdown is not None,
+                    "org": state.content_index.org is not None,
+                    "image": state.content_index.image is not None,
+                    "github": state.content_index.github is not None,
+                    "notion": state.content_index.notion is not None,
+                }
+            )
+
+        if state.processor_config:
+            successfully_configured.update(
+                {
+                    "conversation": state.processor_config.conversation is not None,
+                }
+            )
+
         return templates.TemplateResponse(
             "config.html",
             context={
