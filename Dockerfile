@@ -6,6 +6,8 @@ LABEL org.opencontainers.image.source https://github.com/khoj-ai/khoj
 RUN apt update -y && \
     apt -y install python3-pip git
 
+RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
+
 # Install Application
 COPY . .
 RUN sed -i 's/dynamic = \["version"\]/version = "0.0.0"/' pyproject.toml && \
