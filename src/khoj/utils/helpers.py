@@ -20,7 +20,7 @@ from khoj.utils import constants
 
 if TYPE_CHECKING:
     # External Packages
-    from sentence_transformers import CrossEncoder
+    from sentence_transformers import SentenceTransformer, CrossEncoder
 
     # Internal Packages
     from khoj.utils.models import BaseEncoder
@@ -64,7 +64,9 @@ def merge_dicts(priority_dict: dict, default_dict: dict):
     return merged_dict
 
 
-def load_model(model_name: str, model_type, model_dir=None, device: str = None) -> Union[BaseEncoder, CrossEncoder]:
+def load_model(
+    model_name: str, model_type, model_dir=None, device: str = None
+) -> Union[BaseEncoder, SentenceTransformer, CrossEncoder]:
     "Load model from disk or huggingface"
     # Construct model path
     logger = logging.getLogger(__name__)

@@ -3,7 +3,7 @@ from __future__ import annotations  # to avoid quoting type hints
 from enum import Enum
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 # External Packages
 import torch
@@ -30,42 +30,48 @@ class ProcessorType(str, Enum):
     Conversation = "conversation"
 
 
+@dataclass
+class TextContent:
+    entries: List[Entry]
+    corpus_embeddings: torch.Tensor
+    filters: List[BaseFilter]
+
+
+@dataclass
+class ImageContent:
+    image_names: List[str]
+    image_embeddings: torch.Tensor
+    image_metadata_embeddings: torch.Tensor
+
+
+@dataclass
 class TextSearchModel:
-    def __init__(
-        self,
-        entries: List[Entry],
-        corpus_embeddings: torch.Tensor,
-        bi_encoder: BaseEncoder,
-        cross_encoder: CrossEncoder,
-        filters: List[BaseFilter],
-        top_k,
-    ):
-        self.entries = entries
-        self.corpus_embeddings = corpus_embeddings
-        self.bi_encoder = bi_encoder
-        self.cross_encoder = cross_encoder
-        self.filters = filters
-        self.top_k = top_k
+    bi_encoder: BaseEncoder
+    cross_encoder: Optional[CrossEncoder] = None
+    top_k: Optional[int] = 15
 
 
+@dataclass
 class ImageSearchModel:
-    def __init__(self, image_names, image_embeddings, image_metadata_embeddings, image_encoder: BaseEncoder):
-        self.image_encoder = image_encoder
-        self.image_names = image_names
-        self.image_embeddings = image_embeddings
-        self.image_metadata_embeddings = image_metadata_embeddings
-        self.image_encoder = image_encoder
+    image_encoder: BaseEncoder
+
+
+@dataclass
+class ContentIndex:
+    org: Optional[TextContent] = None
+    markdown: Optional[TextContent] = None
+    pdf: Optional[TextContent] = None
+    github: Optional[TextContent] = None
+    notion: Optional[TextContent] = None
+    image: Optional[ImageContent] = None
+    plugins: Optional[Dict[str, TextContent]] = None
 
 
 @dataclass
 class SearchModels:
-    org_search: Union[TextSearchModel, None] = None
-    markdown_search: Union[TextSearchModel, None] = None
-    pdf_search: Union[TextSearchModel, None] = None
-    image_search: Union[ImageSearchModel, None] = None
-    github_search: Union[TextSearchModel, None] = None
-    notion_search: Union[TextSearchModel, None] = None
-    plugin_search: Union[Dict[str, TextSearchModel], None] = None
+    text_search: Optional[TextSearchModel] = None
+    image_search: Optional[ImageSearchModel] = None
+    plugin_search: Optional[Dict[str, TextSearchModel]] = None
 
 
 class ConversationProcessorConfigModel:

@@ -9,13 +9,14 @@ from pathlib import Path
 
 # Internal Packages
 from khoj.utils import config as utils_config
-from khoj.utils.config import SearchModels, ProcessorConfigModel
+from khoj.utils.config import ContentIndex, SearchModels, ProcessorConfigModel
 from khoj.utils.helpers import LRU
 from khoj.utils.rawconfig import FullConfig
 
 # Application Global State
 config = FullConfig()
-model = SearchModels()
+search_models = SearchModels()
+content_index = ContentIndex()
 processor_config = ProcessorConfigModel()
 config_file: Path = None
 verbose: int = 0
