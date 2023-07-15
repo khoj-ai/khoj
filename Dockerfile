@@ -4,9 +4,7 @@ LABEL org.opencontainers.image.source https://github.com/khoj-ai/khoj
 
 # Install System Dependencies
 RUN apt update -y && \
-    apt -y install python3-pip git
-
-RUN apt-get update && apt-get install ffmpeg libsm6 libxext6 libegl1  -y
+    apt -y install python3-pip git libegl1
 
 # Install Application
 COPY . .
