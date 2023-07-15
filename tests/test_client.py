@@ -11,7 +11,8 @@ from fastapi.testclient import TestClient
 from khoj.main import app
 from khoj.configure import configure_routes, configure_search_types
 from khoj.utils import state
-from khoj.utils.state import model, config
+from khoj.utils.config import SearchModels
+from khoj.utils.state import search_models, content_index, config
 from khoj.search_type import text_search, image_search
 from khoj.utils.rawconfig import ContentConfig, SearchConfig
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
@@ -143,7 +144,10 @@ def test_get_configured_types_with_no_content_config():
 # ----------------------------------------------------------------------------------------------------
 def test_image_search(client, content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    model.image_search = image_search.setup(content_config.image, search_config.image, regenerate=False)
+    search_models.image_search = image_search.initialize_model(search_config.image)
+    content_index.image = image_search.setup(
+        content_config.image, search_models.image_search.image_encoder, regenerate=False
+    )
     query_expected_image_pairs = [
         ("kitten", "kitten_park.jpg"),
         ("a horse and dog on a leash", "horse_dog.jpg"),
@@ -166,7 +170,10 @@ def test_image_search(client, content_config: ContentConfig, search_config: Sear
 # ----------------------------------------------------------------------------------------------------
 def test_notes_search(client, content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
-    model.org_search = text_search.setup(OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=False)
+    search_models.text_search = text_search.initialize_model(search_config.asymmetric)
+    content_index.org = text_search.setup(
+        OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=False
+    )
     user_query = quote("How to git install application?")
 
     # Act
@@ -183,8 +190,9 @@ def test_notes_search(client, content_config: ContentConfig, search_config: Sear
 def test_notes_search_with_only_filters(client, content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     filters = [WordFilter(), FileFilter()]
-    model.org_search = text_search.setup(
-        OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=False, filters=filters
+    search_models.text_search = text_search.initialize_model(search_config.asymmetric)
+    content_index.org = text_search.setup(
+        OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=False, filters=filters
     )
     user_query = quote('+"Emacs" file:"*.org"')
 
@@ -202,8 +210,9 @@ def test_notes_search_with_only_filters(client, content_config: ContentConfig, s
 def test_notes_search_with_include_filter(client, content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     filters = [WordFilter()]
-    model.org_search = text_search.setup(
-        OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=False, filters=filters
+    search_models.text_search = text_search.initialize_model(search_config.asymmetric)
+    content_index.org = text_search.setup(
+        OrgToJsonl, content_config.org, search_models.text_search, regenerate=False, filters=filters
     )
     user_query = quote('How to git install application? +"Emacs"')
 
@@ -221,8 +230,9 @@ def test_notes_search_with_include_filter(client, content_config: ContentConfig,
 def test_notes_search_with_exclude_filter(client, content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     filters = [WordFilter()]
-    model.org_search = text_search.setup(
-        OrgToJsonl, content_config.org, search_config.asymmetric, regenerate=False, filters=filters
+    search_models.text_search = text_search.initialize_model(search_config.asymmetric)
+    content_index.org = text_search.setup(
+        OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=False, filters=filters
     )
     user_query = quote('How to git install application? -"clone"')
 

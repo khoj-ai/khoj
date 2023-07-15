@@ -12,10 +12,12 @@ from sentence_transformers import SentenceTransformer, util
 from PIL import Image
 from tqdm import trange
 import torch
+from khoj.utils import state
 
 # Internal Packages
 from khoj.utils.helpers import get_absolute_path, get_from_dict, resolve_absolute_path, load_model, timer
-from khoj.utils.config import ImageSearchModel
+from khoj.utils.config import ImageContent, ImageSearchModel
+from khoj.utils.models import BaseEncoder
 from khoj.utils.rawconfig import ImageContentConfig, ImageSearchConfig, SearchResponse
 
 
@@ -40,7 +42,7 @@ def initialize_model(search_config: ImageSearchConfig):
         model_type=search_config.encoder_type or SentenceTransformer,
     )
 
-    return encoder
+    return ImageSearchModel(encoder)
 
 
 def extract_entries(image_directories):
@@ -143,7 +145,9 @@ def extract_metadata(image_name):
     return image_processed_metadata
 
 
-async def query(raw_query, count, model: ImageSearchModel, score_threshold: float = -math.inf):
+async def query(
+    raw_query, count, search_model: ImageSearchModel, content: ImageContent, score_threshold: float = -math.inf
+):
     # Set query to image content if query is of form file:/path/to/file.png
     if raw_query.startswith("file:") and pathlib.Path(raw_query[5:]).is_file():
         query_imagepath = resolve_absolute_path(pathlib.Path(raw_query[5:]), strict=True)
@@ -158,21 +162,21 @@ async def query(raw_query, count, model: ImageSearchModel, score_threshold: floa
 
     # Now we encode the query (which can either be an image or a text string)
     with timer("Query Encode Time", logger):
-        query_embedding = model.image_encoder.encode([query], convert_to_tensor=True, show_progress_bar=False)
+        query_embedding = search_model.image_encoder.encode([query], convert_to_tensor=True, show_progress_bar=False)
 
     # Compute top_k ranked images based on cosine-similarity b/w query and all image embeddings.
     with timer("Search Time", logger):
         image_hits = {
             result["corpus_id"]: {"image_score": result["score"], "score": result["score"]}
-            for result in util.semantic_search(query_embedding, model.image_embeddings, top_k=count)[0]
+            for result in util.semantic_search(query_embedding, content.image_embeddings, top_k=count)[0]
         }
 
     # Compute top_k ranked images based on cosine-similarity b/w query and all image metadata embeddings.
-    if model.image_metadata_embeddings:
+    if content.image_metadata_embeddings:
         with timer("Metadata Search Time", logger):
             metadata_hits = {
                 result["corpus_id"]: result["score"]
-                for result in util.semantic_search(query_embedding, model.image_metadata_embeddings, top_k=count)[0]
+                for result in util.semantic_search(query_embedding, content.image_metadata_embeddings, top_k=count)[0]
             }
 
         # Sum metadata, image scores of the highest ranked images
@@ -239,10 +243,7 @@ def collate_results(hits, image_names, output_directory, image_files_url, count=
     return results
 
 
-def setup(config: ImageContentConfig, search_config: ImageSearchConfig, regenerate: bool) -> ImageSearchModel:
-    # Initialize Model
-    encoder = initialize_model(search_config)
-
+def setup(config: ImageContentConfig, encoder: BaseEncoder, regenerate: bool) -> ImageContent:
     # Extract Entries
     absolute_image_files, filtered_image_files = set(), set()
     if config.input_directories:
@@ -268,4 +269,4 @@ def setup(config: ImageContentConfig, search_config: ImageSearchConfig, regenera
         use_xmp_metadata=config.use_xmp_metadata,
     )
 
-    return ImageSearchModel(all_image_files, image_embeddings, image_metadata_embeddings, encoder)
+    return ImageContent(all_image_files, image_embeddings, image_metadata_embeddings)

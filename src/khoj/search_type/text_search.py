@@ -13,7 +13,7 @@ from khoj.search_filter.base_filter import BaseFilter
 # Internal Packages
 from khoj.utils import state
 from khoj.utils.helpers import get_absolute_path, is_none_or_empty, resolve_absolute_path, load_model, timer
-from khoj.utils.config import TextSearchModel
+from khoj.utils.config import TextContent, TextSearchModel
 from khoj.utils.models import BaseEncoder
 from khoj.utils.rawconfig import SearchResponse, TextSearchConfig, TextConfigBase, Entry
 from khoj.utils.jsonl import load_jsonl
@@ -25,9 +25,6 @@ logger = logging.getLogger(__name__)
 def initialize_model(search_config: TextSearchConfig):
     "Initialize model for semantic search on text"
     torch.set_num_threads(4)
-
-    # Number of entries we want to retrieve with the bi-encoder
-    top_k = 15
 
     # If model directory is configured
     if search_config.model_directory:
@@ -52,7 +49,7 @@ def initialize_model(search_config: TextSearchConfig):
         device=f"{state.device}",
     )
 
-    return bi_encoder, cross_encoder, top_k
+    return TextSearchModel(bi_encoder, cross_encoder)
 
 
 def extract_entries(jsonl_file) -> List[Entry]:
@@ -67,7 +64,7 @@ def compute_embeddings(
     new_entries = []
     # Load pre-computed embeddings from file if exists and update them if required
     if embeddings_file.exists() and not regenerate:
-        corpus_embeddings = torch.load(get_absolute_path(embeddings_file), map_location=state.device)
+        corpus_embeddings: torch.Tensor = torch.load(get_absolute_path(embeddings_file), map_location=state.device)
         logger.debug(f"Loaded {len(corpus_embeddings)} text embeddings from {embeddings_file}")
 
         # Encode any new entries in the corpus and update corpus embeddings
@@ -104,17 +101,18 @@ def compute_embeddings(
 
 async def query(
     raw_query: str,
-    model: TextSearchModel,
+    search_model: TextSearchModel,
+    content: TextContent,
     question_embedding: Union[torch.Tensor, None] = None,
     rank_results: bool = False,
     score_threshold: float = -math.inf,
     dedupe: bool = True,
 ) -> Tuple[List[dict], List[Entry]]:
     "Search for entries that answer the query"
-    query, entries, corpus_embeddings = raw_query, model.entries, model.corpus_embeddings
+    query, entries, corpus_embeddings = raw_query, content.entries, content.corpus_embeddings
 
     # Filter query, entries and embeddings before semantic search
-    query, entries, corpus_embeddings = apply_filters(query, entries, corpus_embeddings, model.filters)
+    query, entries, corpus_embeddings = apply_filters(query, entries, corpus_embeddings, content.filters)
 
     # If no entries left after filtering, return empty results
     if entries is None or len(entries) == 0:
@@ -127,18 +125,17 @@ async def query(
     # Encode the query using the bi-encoder
     if question_embedding is None:
         with timer("Query Encode Time", logger, state.device):
-            question_embedding = model.bi_encoder.encode([query], convert_to_tensor=True, device=state.device)
+            question_embedding = search_model.bi_encoder.encode([query], convert_to_tensor=True, device=state.device)
             question_embedding = util.normalize_embeddings(question_embedding)
 
     # Find relevant entries for the query
+    top_k = min(len(entries), search_model.top_k or 10)  # top_k hits can't be more than the total entries in corpus
     with timer("Search Time", logger, state.device):
-        hits = util.semantic_search(
-            question_embedding, corpus_embeddings, top_k=model.top_k, score_function=util.dot_score
-        )[0]
+        hits = util.semantic_search(question_embedding, corpus_embeddings, top_k, score_function=util.dot_score)[0]
 
     # Score all retrieved entries using the cross-encoder
-    if rank_results:
-        hits = cross_encoder_score(model.cross_encoder, query, entries, hits)
+    if rank_results and search_model.cross_encoder:
+        hits = cross_encoder_score(search_model.cross_encoder, query, entries, hits)
 
     # Filter results by score threshold
     hits = [hit for hit in hits if hit.get("cross-score", hit.get("score")) >= score_threshold]
@@ -173,13 +170,10 @@ def collate_results(hits, entries: List[Entry], count=5) -> List[SearchResponse]
 def setup(
     text_to_jsonl: Type[TextToJsonl],
     config: TextConfigBase,
-    search_config: TextSearchConfig,
+    bi_encoder: BaseEncoder,
     regenerate: bool,
     filters: List[BaseFilter] = [],
-) -> TextSearchModel:
-    # Initialize Model
-    bi_encoder, cross_encoder, top_k = initialize_model(search_config)
-
+) -> TextContent:
     # Map notes in text files to (compressed) JSONL formatted file
     config.compressed_jsonl = resolve_absolute_path(config.compressed_jsonl)
     previous_entries = (
@@ -192,7 +186,6 @@ def setup(
     if is_none_or_empty(entries):
         config_params = ", ".join([f"{key}={value}" for key, value in config.dict().items()])
         raise ValueError(f"No valid entries found in specified files: {config_params}")
-    top_k = min(len(entries), top_k)  # top_k hits can't be more than the total entries in corpus
 
     # Compute or Load Embeddings
     config.embeddings_file = resolve_absolute_path(config.embeddings_file)
@@ -203,7 +196,7 @@ def setup(
     for filter in filters:
         filter.load(entries, regenerate=regenerate)
 
-    return TextSearchModel(entries, corpus_embeddings, bi_encoder, cross_encoder, filters, top_k)
+    return TextContent(entries, corpus_embeddings, filters)
 
 
 def apply_filters(
