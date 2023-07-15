@@ -21,8 +21,6 @@ warnings.filterwarnings("ignore", message=r"legacy way to download files from th
 # External Packages
 import uvicorn
 from fastapi import FastAPI
-from PySide6 import QtWidgets
-from PySide6.QtCore import QThread, QTimer
 from rich.logging import RichHandler
 import schedule
 
@@ -30,9 +28,6 @@ import schedule
 from khoj.configure import configure_routes, configure_server
 from khoj.utils import state
 from khoj.utils.cli import cli
-from khoj.interface.desktop.main_window import MainWindow
-from khoj.interface.desktop.system_tray import create_system_tray
-
 
 # Initialize the Application Server
 app = FastAPI()
@@ -79,6 +74,11 @@ def run():
         configure_routes(app)
         start_server(app, host=args.host, port=args.port, socket=args.socket)
     else:
+        from PySide6 import QtWidgets
+        from PySide6.QtCore import QThread, QTimer
+        from khoj.interface.desktop.main_window import MainWindow, ServerThread
+        from khoj.interface.desktop.system_tray import create_system_tray
+
         # Setup GUI
         gui = QtWidgets.QApplication([])
         main_window = MainWindow(args.host, args.port)
@@ -95,7 +95,7 @@ def run():
         # Setup Server
         configure_server(args, required=False)
         configure_routes(app)
-        server = ServerThread(app, args.host, args.port, args.socket)
+        server = ServerThread(start_server_func=lambda: start_server(app, host=args.host, port=args.port))
 
         url = f"http://{args.host}:{args.port}"
         logger.info(f"🌗 Khoj is running at {url}")
@@ -136,6 +136,8 @@ def run():
 
 
 def sigint_handler(*args):
+    from PySide6 import QtWidgets
+
     QtWidgets.QApplication.quit()
 
 
@@ -162,21 +164,6 @@ def poll_task_scheduler():
     timer_thread.daemon = True
     timer_thread.start()
     schedule.run_pending()
-
-
-class ServerThread(QThread):
-    def __init__(self, app, host=None, port=None, socket=None):
-        super(ServerThread, self).__init__()
-        self.app = app
-        self.host = host
-        self.port = port
-        self.socket = socket
-
-    def __del__(self):
-        self.wait()
-
-    def run(self):
-        start_server(self.app, self.host, self.port, self.socket)
 
 
 def run_gui():

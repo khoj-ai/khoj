@@ -7,6 +7,19 @@ from PySide6.QtCore import Qt
 
 # Internal Packages
 from khoj.utils import constants
+from PySide6.QtCore import QThread
+
+
+class ServerThread(QThread):
+    def __init__(self, start_server_func):
+        super(ServerThread, self).__init__()
+        self.start_server_func = start_server_func
+
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        self.start_server_func()
 
 
 class MainWindow(QtWidgets.QMainWindow):

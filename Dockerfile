@@ -4,7 +4,7 @@ LABEL org.opencontainers.image.source https://github.com/khoj-ai/khoj
 
 # Install System Dependencies
 RUN apt update -y && \
-    apt -y install python3-pip git libegl1
+    apt -y install python3-pip git
 
 # Install Application
 COPY . .
