@@ -233,7 +233,7 @@ def configure_content(
             )
 
     except Exception as e:
-        logger.error("🚨 Failed to setup search")
+        logger.error(f"🚨 Failed to setup search: {e}", exc_info=True)
         raise e
 
     # Invalidate Query Cache

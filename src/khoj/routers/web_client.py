@@ -39,7 +39,23 @@ if not state.demo:
             processor=None,
         )
         current_config = state.config or json.loads(default_full_config.json())
-        return templates.TemplateResponse("config.html", context={"request": request, "current_config": current_config})
+        successfully_configured = {
+            "pdf": state.content_index.pdf is not None,
+            "markdown": state.content_index.markdown is not None,
+            "org": state.content_index.org is not None,
+            "image": state.content_index.image is not None,
+            "github": state.content_index.github is not None,
+            "notion": state.content_index.notion is not None,
+            "conversation": state.processor_config.conversation is not None,
+        }
+        return templates.TemplateResponse(
+            "config.html",
+            context={
+                "request": request,
+                "current_config": current_config,
+                "current_model_state": successfully_configured,
+            },
+        )
 
     @web_client.get("/config/content_type/github", response_class=HTMLResponse)
     def github_config_page(request: Request):
