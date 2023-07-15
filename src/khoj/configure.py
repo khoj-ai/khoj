@@ -64,29 +64,29 @@ def configure_server(config: FullConfig, regenerate: bool, search_type: Optional
 
     # Initialize Processor from Config
     try:
-        state.search_index_lock.acquire()
+        state.config_lock.acquire()
         state.processor_config = configure_processor(state.config.processor)
     except Exception as e:
         logger.error(f"🚨 Failed to configure processor")
         raise e
     finally:
-        state.search_index_lock.release()
+        state.config_lock.release()
 
     # Initialize Search Models from Config
     try:
-        state.search_index_lock.acquire()
+        state.config_lock.acquire()
         state.SearchType = configure_search_types(state.config)
         state.search_models = configure_search(state.search_models, state.config.search_type)
     except Exception as e:
         logger.error(f"🚨 Failed to configure search models")
         raise e
     finally:
-        state.search_index_lock.release()
+        state.config_lock.release()
 
     # Initialize Content from Config
     if state.search_models:
         try:
-            state.search_index_lock.acquire()
+            state.config_lock.acquire()
             state.content_index = configure_content(
                 state.content_index, state.config.content_type, state.search_models, regenerate, search_type
             )
@@ -94,7 +94,7 @@ def configure_server(config: FullConfig, regenerate: bool, search_type: Optional
             logger.error(f"🚨 Failed to index content")
             raise e
         finally:
-            state.search_index_lock.release()
+            state.config_lock.release()
 
 
 def configure_routes(app):
@@ -114,7 +114,7 @@ if not state.demo:
     @schedule.repeat(schedule.every(61).minutes)
     def update_search_index():
         try:
-            state.search_index_lock.acquire()
+            state.config_lock.acquire()
             state.content_index = configure_content(
                 state.content_index, state.config.content_type, state.search_models, regenerate=False
             )
@@ -122,7 +122,7 @@ if not state.demo:
         except Exception as e:
             logger.error(f"🚨 Error updating content index via Scheduler: {e}")
         finally:
-            state.search_index_lock.release()
+            state.config_lock.release()
 
 
 def configure_search_types(config: FullConfig):
