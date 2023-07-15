@@ -78,6 +78,8 @@ class NotionToJsonl(TextToJsonl):
             NotionBlockType.DIVIDER.value,
         ]
 
+        self.body_params = {"page_size": 100}
+
     def process(self, previous_entries=None):
         current_entries = []
 
@@ -88,13 +90,13 @@ class NotionToJsonl(TextToJsonl):
             while True:
                 result = self.session.post(
                     "https://api.notion.com/v1/search",
-                    json={"page_size": 100},
+                    json=self.body_params,
                 ).json()
                 responses.append(result)
                 if result["has_more"] == False:
                     break
                 else:
-                    self.session.params = {"start_cursor": responses[-1]["next_cursor"]}
+                    self.body_params.update({"start_cursor": result["next_cursor"]})
 
         for response in responses:
             with timer("Processing response", logger=logger):
@@ -174,7 +176,8 @@ class NotionToJsonl(TextToJsonl):
         return f"\n<b>{heading}</b>\n"
 
     def process_nested_children(self, children, raw_content, block_type=None):
-        for child in children["results"]:
+        results = children["results"] if children.get("results") else []
+        for child in results:
             child_type = child.get("type")
             if child_type == None:
                 continue
@@ -199,7 +202,11 @@ class NotionToJsonl(TextToJsonl):
         return raw_text
 
     def get_block_children(self, block_id):
-        return self.session.get(f"https://api.notion.com/v1/blocks/{block_id}/children").json()
+        try:
+            return self.session.get(f"https://api.notion.com/v1/blocks/{block_id}/children").json()
+        except Exception as e:
+            logger.error(f"Error getting children for block {block_id}: {e}")
+            return {}
 
     def get_page(self, page_id):
         return self.session.get(f"https://api.notion.com/v1/pages/{page_id}").json()
@@ -215,7 +222,18 @@ class NotionToJsonl(TextToJsonl):
             logger.error(f"Error getting page {page_id}: {e}")
             return None, None
         properties = page["properties"]
-        title_field = "Title" if "Title" in properties else "title"
+        title_field = "title"
+        if "Title" in properties:
+            title_field = "Title"
+        elif "Name" in properties:
+            title_field = "Name"
+        elif "Page" in properties:
+            title_field = "Page"
+        elif "Event" in properties:
+            title_field = "Event"
+        elif title_field not in properties:
+            logger.error(f"Page {page_id} does not have a title field")
+            return None, None
         title = page["properties"][title_field]["title"][0]["text"]["content"]
         return title, content
 
