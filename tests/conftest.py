@@ -90,7 +90,7 @@ def content_config(tmp_path_factory, search_models: SearchModels, search_config:
     content_config.org = TextContentConfig(
         input_files=None,
         input_filter=["tests/data/org/*.org"],
-        compressed_jsonl=content_dir.joinpath("notes.jsonl"),
+        compressed_jsonl=content_dir.joinpath("notes.jsonl.gz"),
         embeddings_file=content_dir.joinpath("note_embeddings.pt"),
     )
 
@@ -101,7 +101,7 @@ def content_config(tmp_path_factory, search_models: SearchModels, search_config:
 
     content_config.plugins = {
         "plugin1": TextContentConfig(
-            input_files=[content_dir.joinpath("notes.jsonl")],
+            input_files=[content_dir.joinpath("notes.jsonl.gz")],
             input_filter=None,
             compressed_jsonl=content_dir.joinpath("plugin.jsonl.gz"),
             embeddings_file=content_dir.joinpath("plugin_embeddings.pt"),
@@ -142,7 +142,7 @@ def md_content_config(tmp_path_factory):
     content_config.markdown = TextContentConfig(
         input_files=None,
         input_filter=["tests/data/markdown/*.markdown"],
-        compressed_jsonl=content_dir.joinpath("markdown.jsonl"),
+        compressed_jsonl=content_dir.joinpath("markdown.jsonl.gz"),
         embeddings_file=content_dir.joinpath("markdown_embeddings.pt"),
     )
 

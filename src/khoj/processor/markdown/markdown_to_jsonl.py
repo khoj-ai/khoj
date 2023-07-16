@@ -10,7 +10,7 @@ from typing import List
 from khoj.processor.text_to_jsonl import TextToJsonl
 from khoj.utils.helpers import get_absolute_path, is_none_or_empty, timer
 from khoj.utils.constants import empty_escape_sequences
-from khoj.utils.jsonl import dump_jsonl, compress_jsonl_data
+from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry, TextContentConfig
 
 
@@ -61,10 +61,7 @@ class MarkdownToJsonl(TextToJsonl):
             jsonl_data = MarkdownToJsonl.convert_markdown_maps_to_jsonl(entries)
 
             # Compress JSONL formatted Data
-            if output_file.suffix == ".gz":
-                compress_jsonl_data(jsonl_data, output_file)
-            elif output_file.suffix == ".jsonl":
-                dump_jsonl(jsonl_data, output_file)
+            compress_jsonl_data(jsonl_data, output_file)
 
         return entries_with_ids
 
