@@ -125,9 +125,13 @@ class OrgToJsonl(TextToJsonl):
                 # Ignore title notes i.e notes with just headings and empty body
                 continue
 
+            todo_str = f"{parsed_entry.todo} " if parsed_entry.todo else ""
             # Prepend filename as top heading to entry
             filename = Path(entry_to_file_map[parsed_entry]).stem
-            heading = f"* {filename}\n** {parsed_entry.heading}." if parsed_entry.heading else f"* {filename}."
+            if parsed_entry.heading:
+                heading = f"* {filename}\n** {todo_str}{parsed_entry.heading}."
+            else:
+                heading = f"* {filename}."
 
             compiled = heading
             if state.verbose > 2:
