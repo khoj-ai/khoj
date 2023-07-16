@@ -80,7 +80,7 @@ class NotionToJsonl(TextToJsonl):
 
         self.body_params = {"page_size": 100}
 
-    def process(self, previous_entries=None):
+    def process(self, previous_entries=[]):
         current_entries = []
 
         # Get all pages
@@ -240,12 +240,9 @@ class NotionToJsonl(TextToJsonl):
     def update_entries_with_ids(self, current_entries, previous_entries):
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
-            if not previous_entries:
-                entries_with_ids = list(enumerate(current_entries))
-            else:
-                entries_with_ids = TextToJsonl.mark_entries_for_update(
-                    current_entries, previous_entries, key="compiled", logger=logger
-                )
+            entries_with_ids = TextToJsonl.mark_entries_for_update(
+                current_entries, previous_entries, key="compiled", logger=logger
+            )
 
         with timer("Write Notion entries to JSONL file", logger):
             # Process Each Entry from all Notion entries

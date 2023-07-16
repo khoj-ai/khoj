@@ -22,7 +22,7 @@ class OrgToJsonl(TextToJsonl):
         self.config = config
 
     # Define Functions
-    def process(self, previous_entries: List[Entry] = None):
+    def process(self, previous_entries: List[Entry] = []):
         # Extract required fields from config
         org_files, org_file_filter, output_file = (
             self.config.input_files,
@@ -51,9 +51,7 @@ class OrgToJsonl(TextToJsonl):
             current_entries = self.split_entries_by_max_tokens(current_entries, max_tokens=256)
 
         # Identify, mark and merge any new entries with previous entries
-        if not previous_entries:
-            entries_with_ids = list(enumerate(current_entries))
-        else:
+        with timer("Identify new or updated entries", logger):
             entries_with_ids = TextToJsonl.mark_entries_for_update(
                 current_entries, previous_entries, key="compiled", logger=logger
             )

@@ -15,7 +15,6 @@ from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.text_to_jsonl import TextToJsonl
 from khoj.utils.jsonl import dump_jsonl, compress_jsonl_data
 from khoj.utils.rawconfig import Entry
-from khoj.utils import state
 
 
 logger = logging.getLogger(__name__)
@@ -38,7 +37,7 @@ class GithubToJsonl(TextToJsonl):
         else:
             return
 
-    def process(self, previous_entries=None):
+    def process(self, previous_entries=[]):
         current_entries = []
         for repo in self.config.repos:
             current_entries += self.process_repo(repo)

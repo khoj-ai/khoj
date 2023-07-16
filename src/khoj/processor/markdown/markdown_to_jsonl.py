@@ -23,7 +23,7 @@ class MarkdownToJsonl(TextToJsonl):
         self.config = config
 
     # Define Functions
-    def process(self, previous_entries=None):
+    def process(self, previous_entries=[]):
         # Extract required fields from config
         markdown_files, markdown_file_filter, output_file = (
             self.config.input_files,
@@ -51,12 +51,9 @@ class MarkdownToJsonl(TextToJsonl):
 
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
-            if not previous_entries:
-                entries_with_ids = list(enumerate(current_entries))
-            else:
-                entries_with_ids = TextToJsonl.mark_entries_for_update(
-                    current_entries, previous_entries, key="compiled", logger=logger
-                )
+            entries_with_ids = TextToJsonl.mark_entries_for_update(
+                current_entries, previous_entries, key="compiled", logger=logger
+            )
 
         with timer("Write markdown entries to JSONL file", logger):
             # Process Each Entry from All Notes Files
