@@ -122,7 +122,9 @@ def test_entry_chunking_by_max_tokens(org_config_with_only_new_file: TextContent
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_asymmetric_reload(content_config: ContentConfig, search_models: SearchModels, new_org_file: Path):
+def test_regenerate_index_with_new_entry(
+    content_config: ContentConfig, search_models: SearchModels, new_org_file: Path
+):
     # Arrange
     initial_notes_model = text_search.setup(
         OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=True
@@ -136,25 +138,20 @@ def test_asymmetric_reload(content_config: ContentConfig, search_models: SearchM
     with open(new_org_file, "w") as f:
         f.write("\n* A Chihuahua doing Tango\n- Saw a super cute video of a chihuahua doing the Tango on Youtube\n")
 
+    # Act
     # regenerate notes jsonl, model embeddings and model to include entry from new file
     regenerated_notes_model = text_search.setup(
         OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=True
-    )
-
-    # Act
-    # reload embeddings, entries, notes model from previously generated notes jsonl and model embeddings files
-    initial_notes_model = text_search.setup(
-        OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=False
     )
 
     # Assert
     assert len(regenerated_notes_model.entries) == 11
     assert len(regenerated_notes_model.corpus_embeddings) == 11
 
-    # Assert
-    # verify new entry loaded from updated embeddings, entries
-    assert len(initial_notes_model.entries) == 11
-    assert len(initial_notes_model.corpus_embeddings) == 11
+    # verify new entry appended to index, without disrupting order or content of existing entries
+    error_details = compare_index(initial_notes_model, regenerated_notes_model)
+    if error_details:
+        pytest.fail(error_details, False)
 
     # Cleanup
     # reset input_files in config to empty list
