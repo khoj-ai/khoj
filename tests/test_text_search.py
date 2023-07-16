@@ -162,6 +162,40 @@ def test_asymmetric_reload(content_config: ContentConfig, search_models: SearchM
 
 
 # ----------------------------------------------------------------------------------------------------
+def test_update_index_with_duplicate_entries_in_stable_order(
+    org_config_with_only_new_file: TextContentConfig, search_models: SearchModels
+):
+    # Arrange
+    new_file_to_index = Path(org_config_with_only_new_file.input_files[0])
+
+    # Insert org-mode entries with same compiled form into new org file
+    new_entry = "* TODO A Chihuahua doing Tango\n- Saw a super cute video of a chihuahua doing the Tango on Youtube\n"
+    with open(new_file_to_index, "w") as f:
+        f.write(f"{new_entry}{new_entry}")
+
+    # Act
+    # load embeddings, entries, notes model after adding new org-mode file
+    initial_index = text_search.setup(
+        OrgToJsonl, org_config_with_only_new_file, search_models.text_search.bi_encoder, regenerate=True
+    )
+
+    # update embeddings, entries, notes model after adding new org-mode file
+    updated_index = text_search.setup(
+        OrgToJsonl, org_config_with_only_new_file, search_models.text_search.bi_encoder, regenerate=False
+    )
+
+    # Assert
+    # verify only 1 entry added even if there are multiple duplicate entries
+    assert len(initial_index.entries) == len(updated_index.entries) == 1
+    assert len(initial_index.corpus_embeddings) == len(updated_index.corpus_embeddings) == 1
+
+    # verify the same entry is added even when there are multiple duplicate entries
+    error_details = compare_index(initial_index, updated_index)
+    if error_details:
+        pytest.fail(error_details)
+
+
+# ----------------------------------------------------------------------------------------------------
 def test_incremental_update(content_config: ContentConfig, search_models: SearchModels, new_org_file: Path):
     # Arrange
     initial_notes_model = text_search.setup(
