@@ -196,7 +196,7 @@ def test_update_index_with_duplicate_entries_in_stable_order(
 def test_update_index_with_new_entry(content_config: ContentConfig, search_models: SearchModels, new_org_file: Path):
     # Arrange
     initial_notes_model = text_search.setup(
-        OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=True
+        OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=True, normalize=False
     )
 
     # append org-mode entry to first org input file in config
@@ -208,7 +208,7 @@ def test_update_index_with_new_entry(content_config: ContentConfig, search_model
     # update embeddings, entries with the newly added note
     content_config.org.input_files = [f"{new_org_file}"]
     final_notes_model = text_search.setup(
-        OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=False
+        OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=False, normalize=False
     )
 
     # Assert
@@ -218,7 +218,6 @@ def test_update_index_with_new_entry(content_config: ContentConfig, search_model
     # verify new entry appended to index, without disrupting order or content of existing entries
     error_details = compare_index(initial_notes_model, final_notes_model)
     if error_details:
-        # fails at embeddings index 4, 7. These are not swapped with the new entry embedding or each other
         pytest.fail(error_details, False)
 
     # Cleanup
