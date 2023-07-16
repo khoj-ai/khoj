@@ -199,24 +199,27 @@ def test_update_index_with_new_entry(content_config: ContentConfig, search_model
         OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=True
     )
 
-    assert len(initial_notes_model.entries) == 10
-    assert len(initial_notes_model.corpus_embeddings) == 10
-
     # append org-mode entry to first org input file in config
     with open(new_org_file, "w") as f:
-        f.write("\n* A Chihuahua doing Tango\n- Saw a super cute video of a chihuahua doing the Tango on Youtube\n")
+        new_entry = "\n* A Chihuahua doing Tango\n- Saw a super cute video of a chihuahua doing the Tango on Youtube\n"
+        f.write(new_entry)
 
     # Act
     # update embeddings, entries with the newly added note
     content_config.org.input_files = [f"{new_org_file}"]
-    initial_notes_model = text_search.setup(
+    final_notes_model = text_search.setup(
         OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=False
     )
 
     # Assert
-    # verify new entry added in updated embeddings, entries
-    assert len(initial_notes_model.entries) == 11
-    assert len(initial_notes_model.corpus_embeddings) == 11
+    assert len(final_notes_model.entries) == len(initial_notes_model.entries) + 1
+    assert len(final_notes_model.corpus_embeddings) == len(initial_notes_model.corpus_embeddings) + 1
+
+    # verify new entry appended to index, without disrupting order or content of existing entries
+    error_details = compare_index(initial_notes_model, final_notes_model)
+    if error_details:
+        # fails at embeddings index 4, 7. These are not swapped with the new entry embedding or each other
+        pytest.fail(error_details, False)
 
     # Cleanup
     # reset input_files in config to empty list
