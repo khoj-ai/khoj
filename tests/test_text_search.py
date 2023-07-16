@@ -18,7 +18,7 @@ from khoj.processor.github.github_to_jsonl import GithubToJsonl
 
 # Test
 # ----------------------------------------------------------------------------------------------------
-def test_asymmetric_setup_with_missing_file_raises_error(
+def test_text_search_setup_with_missing_file_raises_error(
     org_config_with_only_new_file: TextContentConfig, search_config: SearchConfig
 ):
     # Arrange
@@ -33,7 +33,7 @@ def test_asymmetric_setup_with_missing_file_raises_error(
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_asymmetric_setup_with_empty_file_raises_error(
+def test_text_search_setup_with_empty_file_raises_error(
     org_config_with_only_new_file: TextContentConfig, search_config: SearchConfig
 ):
     # Act
@@ -43,7 +43,7 @@ def test_asymmetric_setup_with_empty_file_raises_error(
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_asymmetric_setup(content_config: ContentConfig, search_models: SearchModels):
+def test_text_search_setup(content_config: ContentConfig, search_models: SearchModels):
     # Act
     # Regenerate notes embeddings during asymmetric setup
     notes_model = text_search.setup(
@@ -56,7 +56,7 @@ def test_asymmetric_setup(content_config: ContentConfig, search_models: SearchMo
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_text_content_index_only_updates_on_changes(content_config: ContentConfig, search_models: SearchModels, caplog):
+def test_text_index_same_if_content_unchanged(content_config: ContentConfig, search_models: SearchModels, caplog):
     # Arrange
     caplog.set_level(logging.INFO, logger="khoj")
 
@@ -193,7 +193,7 @@ def test_update_index_with_duplicate_entries_in_stable_order(
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_incremental_update(content_config: ContentConfig, search_models: SearchModels, new_org_file: Path):
+def test_update_index_with_new_entry(content_config: ContentConfig, search_models: SearchModels, new_org_file: Path):
     # Arrange
     initial_notes_model = text_search.setup(
         OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=True
