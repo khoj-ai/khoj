@@ -5,20 +5,20 @@ import time
 import yaml
 import logging
 import json
-from typing import List, Optional, Union
+from typing import Iterable, List, Optional, Union
 
 # External Packages
 from fastapi import APIRouter, HTTPException, Header, Request
 from sentence_transformers import util
 
 # Internal Packages
-from khoj.configure import configure_content, configure_processor, configure_search
+from khoj.configure import configure_processor, configure_server
 from khoj.search_type import image_search, text_search
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
 from khoj.utils.config import TextSearchModel
-from khoj.utils.helpers import log_telemetry, timer
+from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import (
     ContentConfig,
     FullConfig,
@@ -524,34 +524,26 @@ def update(
     referer: Optional[str] = Header(None),
     host: Optional[str] = Header(None),
 ):
+    if not state.config:
+        error_msg = f"🚨 Khoj is not configured.\nConfigure it via http://localhost:42110/config, plugins or by editing {state.config_file}."
+        logger.warning(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
     try:
-        state.search_index_lock.acquire()
-        try:
-            if state.config and state.config.search_type:
-                state.search_models = configure_search(state.search_models, state.config.search_type)
-            if state.search_models:
-                state.content_index = configure_content(
-                    state.content_index, state.config.content_type, state.search_models, regenerate=force or False, t=t
-                )
-        except Exception as e:
-            logger.error(e)
-            raise HTTPException(status_code=500, detail=str(e))
-        finally:
-            state.search_index_lock.release()
-    except ValueError as e:
-        logger.error(e)
-        raise HTTPException(status_code=500, detail=str(e))
+        configure_server(state.config, regenerate=force or False, search_type=t)
+    except Exception as e:
+        error_msg = f"🚨 Failed to update server via API: {e}"
+        logger.error(error_msg, exc_info=True)
+        raise HTTPException(status_code=500, detail=error_msg)
     else:
-        logger.info("📬 Search index updated via API")
-
-    try:
-        if state.config and state.config.processor:
-            state.processor_config = configure_processor(state.config.processor)
-    except ValueError as e:
-        logger.error(e)
-        raise HTTPException(status_code=500, detail=str(e))
-    else:
-        logger.info("📬 Processor reconfigured via API")
+        components = []
+        if state.search_models:
+            components.append("Search models")
+        if state.content_index:
+            components.append("Content index")
+        if state.processor_config:
+            components.append("Conversation processor")
+        components_msg = ", ".join(components)
+        logger.info(f"📬 {components_msg} updated via API")
 
     update_telemetry_state(
         request=request,

@@ -10,7 +10,7 @@ from langchain.document_loaders import PyPDFLoader
 # Internal Packages
 from khoj.processor.text_to_jsonl import TextToJsonl
 from khoj.utils.helpers import get_absolute_path, is_none_or_empty, timer
-from khoj.utils.jsonl import dump_jsonl, compress_jsonl_data
+from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry
 
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class PdfToJsonl(TextToJsonl):
     # Define Functions
-    def process(self, previous_entries=None):
+    def process(self, previous_entries=[]):
         # Extract required fields from config
         pdf_files, pdf_file_filter, output_file = (
             self.config.input_files,
@@ -45,12 +45,9 @@ class PdfToJsonl(TextToJsonl):
 
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
-            if not previous_entries:
-                entries_with_ids = list(enumerate(current_entries))
-            else:
-                entries_with_ids = TextToJsonl.mark_entries_for_update(
-                    current_entries, previous_entries, key="compiled", logger=logger
-                )
+            entries_with_ids = TextToJsonl.mark_entries_for_update(
+                current_entries, previous_entries, key="compiled", logger=logger
+            )
 
         with timer("Write PDF entries to JSONL file", logger):
             # Process Each Entry from All Notes Files
@@ -58,10 +55,7 @@ class PdfToJsonl(TextToJsonl):
             jsonl_data = PdfToJsonl.convert_pdf_maps_to_jsonl(entries)
 
             # Compress JSONL formatted Data
-            if output_file.suffix == ".gz":
-                compress_jsonl_data(jsonl_data, output_file)
-            elif output_file.suffix == ".jsonl":
-                dump_jsonl(jsonl_data, output_file)
+            compress_jsonl_data(jsonl_data, output_file)
 
         return entries_with_ids
 

@@ -37,45 +37,63 @@ from khoj.search_filter.file_filter import FileFilter
 logger = logging.getLogger(__name__)
 
 
-def configure_server(args, required=False):
-    if args.config is None:
-        if required:
-            logger.error(
-                f"Exiting as Khoj is not configured.\nConfigure it via http://localhost:42110/config or by editing {state.config_file}."
-            )
-            sys.exit(1)
-        else:
-            logger.warning(
-                f"Khoj is not configured.\nConfigure it via http://localhost:42110/config, plugins or by editing {state.config_file}."
-            )
-            return
-    else:
-        state.config = args.config
+def initialize_server(
+    config: Optional[FullConfig], regenerate: bool, type: Optional[SearchType] = None, required=False
+):
+    if config is None and required:
+        logger.error(
+            f"🚨 Exiting as Khoj is not configured.\nConfigure it via http://localhost:42110/config or by editing {state.config_file}."
+        )
+        sys.exit(1)
+    elif config is None:
+        logger.warning(
+            f"🚨 Khoj is not configured.\nConfigure it via http://localhost:42110/config, plugins or by editing {state.config_file}."
+        )
+        return None
+
+    try:
+        configure_server(config, regenerate, type)
+    except Exception as e:
+        logger.error(f"🚨 Failed to configure server on app load: {e}", exc_info=True)
+
+
+def configure_server(config: FullConfig, regenerate: bool, search_type: Optional[SearchType] = None):
+    # Update Config
+    state.config = config
 
     # Initialize Processor from Config
-    state.processor_config = configure_processor(args.config.processor)
+    try:
+        state.config_lock.acquire()
+        state.processor_config = configure_processor(state.config.processor)
+    except Exception as e:
+        logger.error(f"🚨 Failed to configure processor")
+        raise e
+    finally:
+        state.config_lock.release()
 
     # Initialize Search Models from Config
     try:
-        state.search_index_lock.acquire()
+        state.config_lock.acquire()
         state.SearchType = configure_search_types(state.config)
         state.search_models = configure_search(state.search_models, state.config.search_type)
     except Exception as e:
-        logger.error(f"🚨 Error configuring search models on app load: {e}")
+        logger.error(f"🚨 Failed to configure search models")
+        raise e
     finally:
-        state.search_index_lock.release()
+        state.config_lock.release()
 
     # Initialize Content from Config
     if state.search_models:
         try:
-            state.search_index_lock.acquire()
+            state.config_lock.acquire()
             state.content_index = configure_content(
-                state.content_index, state.config.content_type, state.search_models, args.regenerate
+                state.content_index, state.config.content_type, state.search_models, regenerate, search_type
             )
         except Exception as e:
-            logger.error(f"🚨 Error configuring content index on app load: {e}")
+            logger.error(f"🚨 Failed to index content")
+            raise e
         finally:
-            state.search_index_lock.release()
+            state.config_lock.release()
 
 
 def configure_routes(app):
@@ -95,7 +113,7 @@ if not state.demo:
     @schedule.repeat(schedule.every(61).minutes)
     def update_search_index():
         try:
-            state.search_index_lock.acquire()
+            state.config_lock.acquire()
             state.content_index = configure_content(
                 state.content_index, state.config.content_type, state.search_models, regenerate=False
             )
@@ -103,7 +121,7 @@ if not state.demo:
         except Exception as e:
             logger.error(f"🚨 Error updating content index via Scheduler: {e}")
         finally:
-            state.search_index_lock.release()
+            state.config_lock.release()
 
 
 def configure_search_types(config: FullConfig):
@@ -118,10 +136,10 @@ def configure_search_types(config: FullConfig):
     return Enum("SearchType", merge_dicts(core_search_types, plugin_search_types))
 
 
-def configure_search(search_models: SearchModels, search_config: SearchConfig) -> Optional[SearchModels]:
+def configure_search(search_models: SearchModels, search_config: Optional[SearchConfig]) -> Optional[SearchModels]:
     # Run Validation Checks
     if search_config is None:
-        logger.warning("🚨 No Search type is configured.")
+        logger.warning("🚨 No Search configuration available.")
         return None
     if search_models is None:
         search_models = SearchModels()
@@ -147,7 +165,7 @@ def configure_content(
 ) -> Optional[ContentIndex]:
     # Run Validation Checks
     if content_config is None:
-        logger.warning("🚨 No Content type is configured.")
+        logger.warning("🚨 No Content configuration available.")
         return None
     if content_index is None:
         content_index = ContentIndex()
@@ -242,9 +260,10 @@ def configure_content(
     return content_index
 
 
-def configure_processor(processor_config: ProcessorConfig):
+def configure_processor(processor_config: Optional[ProcessorConfig]):
     if not processor_config:
-        return
+        logger.warning("🚨 No Processor configuration available.")
+        return None
 
     processor = ProcessorConfigModel()
 

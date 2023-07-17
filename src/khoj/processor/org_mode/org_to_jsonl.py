@@ -8,7 +8,7 @@ from typing import Iterable, List
 from khoj.processor.org_mode import orgnode
 from khoj.processor.text_to_jsonl import TextToJsonl
 from khoj.utils.helpers import get_absolute_path, is_none_or_empty, timer
-from khoj.utils.jsonl import dump_jsonl, compress_jsonl_data
+from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry, TextContentConfig
 from khoj.utils import state
 
@@ -22,7 +22,7 @@ class OrgToJsonl(TextToJsonl):
         self.config = config
 
     # Define Functions
-    def process(self, previous_entries: List[Entry] = None):
+    def process(self, previous_entries: List[Entry] = []):
         # Extract required fields from config
         org_files, org_file_filter, output_file = (
             self.config.input_files,
@@ -51,9 +51,7 @@ class OrgToJsonl(TextToJsonl):
             current_entries = self.split_entries_by_max_tokens(current_entries, max_tokens=256)
 
         # Identify, mark and merge any new entries with previous entries
-        if not previous_entries:
-            entries_with_ids = list(enumerate(current_entries))
-        else:
+        with timer("Identify new or updated entries", logger):
             entries_with_ids = TextToJsonl.mark_entries_for_update(
                 current_entries, previous_entries, key="compiled", logger=logger
             )
@@ -64,10 +62,7 @@ class OrgToJsonl(TextToJsonl):
             jsonl_data = self.convert_org_entries_to_jsonl(entries)
 
             # Compress JSONL formatted Data
-            if output_file.suffix == ".gz":
-                compress_jsonl_data(jsonl_data, output_file)
-            elif output_file.suffix == ".jsonl":
-                dump_jsonl(jsonl_data, output_file)
+            compress_jsonl_data(jsonl_data, output_file)
 
         return entries_with_ids
 
@@ -125,9 +120,13 @@ class OrgToJsonl(TextToJsonl):
                 # Ignore title notes i.e notes with just headings and empty body
                 continue
 
+            todo_str = f"{parsed_entry.todo} " if parsed_entry.todo else ""
             # Prepend filename as top heading to entry
             filename = Path(entry_to_file_map[parsed_entry]).stem
-            heading = f"* {filename}\n** {parsed_entry.heading}." if parsed_entry.heading else f"* {filename}."
+            if parsed_entry.heading:
+                heading = f"* {filename}\n** {todo_str}{parsed_entry.heading}."
+            else:
+                heading = f"* {filename}."
 
             compiled = heading
             if state.verbose > 2:

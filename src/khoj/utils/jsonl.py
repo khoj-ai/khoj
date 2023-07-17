@@ -20,7 +20,7 @@ def load_jsonl(input_path):
     # Open JSONL file
     if input_path.suffix == ".gz":
         jsonl_file = gzip.open(get_absolute_path(input_path), "rt", encoding="utf-8")
-    elif input_path.suffix == ".jsonl":
+    else:
         jsonl_file = open(get_absolute_path(input_path), "r", encoding="utf-8")
 
     # Read JSONL file
@@ -34,17 +34,6 @@ def load_jsonl(input_path):
     logger.debug(f"Loaded {len(data)} records from {input_path}")
 
     return data
-
-
-def dump_jsonl(jsonl_data, output_path):
-    "Write List of JSON objects to JSON line file"
-    # Create output directory, if it doesn't exist
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write(jsonl_data)
-
-    logger.debug(f"Wrote jsonl data to {output_path}")
 
 
 def compress_jsonl_data(jsonl_data, output_path):
