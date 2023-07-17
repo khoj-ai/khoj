@@ -532,7 +532,7 @@ def update(
         configure_server(state.config, regenerate=force or False, search_type=t)
     except Exception as e:
         error_msg = f"🚨 Failed to update server via API: {e}"
-        logger.error(error_msg)
+        logger.error(error_msg, exc_info=True)
         raise HTTPException(status_code=500, detail=error_msg)
     else:
         components = []

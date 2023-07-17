@@ -54,8 +54,7 @@ def initialize_server(
     try:
         configure_server(config, regenerate, type)
     except Exception as e:
-        logger.error(f"🚨 Failed to configure server on app load: {e}")
-        raise e
+        logger.error(f"🚨 Failed to configure server on app load: {e}", exc_info=True)
 
 
 def configure_server(config: FullConfig, regenerate: bool, search_type: Optional[SearchType] = None):
