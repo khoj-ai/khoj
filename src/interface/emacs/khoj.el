@@ -595,7 +595,7 @@ CONFIG is json obtained from Khoj config API."
         (file-extension (file-name-extension buffer-name)))
     (cond
      ((and (member 'org enabled-content-types) (equal file-extension "org")) "org")
-     ((and (member 'org enabled-content-types) (equal file-extension "pdf")) "pdf")
+     ((and (member 'pdf enabled-content-types) (equal file-extension "pdf")) "pdf")
      ((and (member 'markdown enabled-content-types) (or (equal file-extension "markdown") (equal file-extension "md"))) "markdown")
      (t khoj-default-content-type))))
 
