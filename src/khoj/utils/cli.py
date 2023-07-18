@@ -46,7 +46,7 @@ def cli(args=None):
     if not args.config_file.exists():
         args.config = None
     else:
-        migrate_config(args)
+        args = migrate_config(args)
         args.config = parse_config_from_file(args.config_file)
 
     return args
@@ -59,3 +59,9 @@ def migrate_config(args):
     if "version" not in raw_config:
         raw_config["version"] = args.version_no
         save_config_to_file(raw_config, args.config_file)
+
+        # regenerate khoj index on first start of this version
+        # this should refresh index and apply index corruption fixes from #325
+        args.regenerate = True
+
+    return args
