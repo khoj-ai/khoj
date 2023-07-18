@@ -219,7 +219,7 @@ class NotionToJsonl(TextToJsonl):
             page = self.get_page(page_id)
             content = self.get_page_children(page_id)
         except Exception as e:
-            logger.error(f"Error getting page {page_id}: {e}")
+            logger.error(f"Error getting page {page_id}: {e}", exc_info=True)
             return None, None
         properties = page["properties"]
         title_field = "title"
