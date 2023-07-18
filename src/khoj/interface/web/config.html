@@ -190,7 +190,7 @@
                     <img class="card-icon" src="/static/assets/icons/chat.svg" alt="Chat">
                     <h3 class="card-title">
                         Chat
-                        {% if current_config.processor and current_config.processor.conversation %}
+                        {% if current_config.processor and current_config.processor.open_ai %}
                             {% if current_model_state.conversation == False %}
                                 <img id="misconfigured-icon-conversation-processor" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you just need to click Configure.">
                             {% else %}
@@ -203,8 +203,8 @@
                 <p class="card-description">Setup Khoj Chat with OpenAI</p>
                 </div>
                 <div class="card-action-row">
-                    <a class="card-button" href="/config/processor/conversation">
-                        {% if current_config.processor and current_config.processor.conversation %}
+                    <a class="card-button" href="/config/processor/conversation/open-ai">
+                        {% if current_config.processor and current_config.processor.open_ai %}
                             Update
                         {% else %}
                             Setup
@@ -212,7 +212,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
                     </a>
                 </div>
-                {% if current_config.processor and current_config.processor.conversation %}
+                {% if current_config.processor and current_config.processor.open_ai %}
                     <div id="clear-conversation" class="card-action-row">
                         <button class="card-button" onclick="clearConversationProcessor()">
                             Disable
@@ -265,7 +265,7 @@
 
     function clearConversationProcessor() {
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
-        fetch('/api/delete/config/data/processor/conversation', {
+        fetch('/api/delete/config/data/processor/conversation/open-ai', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -319,7 +319,7 @@
     function updateIndex(force, successText, errorText, button, loadingText, emoji) {
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
         button.disabled = true;
-        button.innerHTML = emoji + loadingText;
+        button.innerHTML = emoji + " " + loadingText;
         fetch('/api/update?&client=web&force=' + force, {
             method: 'GET',
             headers: {

@@ -18,6 +18,28 @@ Question: {query}
 """.strip()
 )
 
+general_conversation_falcon = PromptTemplate.from_template(
+    """
+Using your general knowledge and our past conversations as context, answer the following question.
+### Instruct:\n{query}\n
+### Response:
+""".strip()
+)
+
+chat_history_falcon = PromptTemplate.from_template(
+    """
+### Human:\n{user_msg}\n
+### Assistant:\n{assistant_msg}\n
+""".strip()
+)
+
+conversation_falcon = PromptTemplate.from_template(
+    """
+Using our past conversations as context, answer the following question.
+
+Question: {query}
+""".strip()
+)
 
 ## Notes Conversation
 ## --
@@ -25,6 +47,17 @@ notes_conversation = PromptTemplate.from_template(
     """
 Using the notes and our past conversations as context, answer the following question.
 Current Date: {current_date}
+
+Notes:
+{references}
+
+Question: {query}
+""".strip()
+)
+
+notes_conversation_falcon = PromptTemplate.from_template(
+    """
+Using the notes and our past conversations as context, answer the following question. If the answer is not contained within the notes, say "I don't know."
 
 Notes:
 {references}
@@ -66,6 +99,40 @@ Notes:
 Question: {user_query}
 
 Answer (in second person):"""
+)
+
+extract_questions_falcon = PromptTemplate.from_template(
+    """
+You are Khoj, an extremely smart and helpful search assistant with the ability to retrieve information from the user's notes.
+- The user will provide their questions and answers to you for context.
+- Add as much context from the previous questions and answers as required into your search queries.
+- Break messages into multiple search queries when required to retrieve the relevant information.
+- Add date filters to your search queries from questions and answers when required to retrieve the relevant information.
+
+What searches, if any, will you need to perform to answer the users question?
+
+Q: How was my trip to Cambodia?
+
+["How was my trip to Cambodia?"]
+
+A: The trip was amazing. I went to the Angkor Wat temple and it was beautiful.
+
+Q: Who did i visit that temple with?
+
+["Who did I visit the Angkor Wat Temple in Cambodia with?"]
+
+A: You visited the Angkor Wat Temple in Cambodia with Pablo, Namita and Xi.
+
+Q: How many tennis balls fit in the back of a 2002 Honda Civic?
+
+["What is the size of a tennis ball?", "What is the trunk size of a 2002 Honda Civic?"]
+
+A: 1085 tennis balls will fit in the trunk of a Honda Civic
+
+{chat_history}
+Q: {text}
+
+"""
 )
 
 

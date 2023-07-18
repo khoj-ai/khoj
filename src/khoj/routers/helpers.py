@@ -7,22 +7,22 @@ from fastapi import HTTPException, Request
 
 from khoj.utils import state
 from khoj.utils.helpers import timer, log_telemetry
-from khoj.processor.conversation.gpt import converse
-from khoj.processor.conversation.utils import message_to_log, reciprocal_conversation_to_chatml
-
+from khoj.processor.conversation.open_ai.gpt import converse
+from khoj.processor.conversation.gpt4all.chat_model import converse_falcon
+from khoj.processor.conversation.open_ai.utils import reciprocal_conversation_to_chatml
+from khoj.processor.conversation.utils import message_to_log
+from khoj.processor.conversation.utils import ThreadedGenerator
+from khoj.configure import configure_processor
 
 logger = logging.getLogger(__name__)
 
 
 def perform_chat_checks():
-    if (
-        state.processor_config is None
-        or state.processor_config.conversation is None
-        or state.processor_config.conversation.openai_api_key is None
-    ):
-        raise HTTPException(
-            status_code=500, detail="Set your OpenAI API key via Khoj settings and restart it to use Khoj Chat."
-        )
+    if state.processor_config is None or state.processor_config.conversation is None:
+        if state.processor_config.conversation and state.processor_config.conversation.open_ai_model:
+            return
+
+        state.processor_config = configure_processor()
 
 
 def update_telemetry_state(
@@ -57,19 +57,19 @@ def generate_chat_response(
     meta_log: dict,
     compiled_references: List[str] = [],
     inferred_queries: List[str] = [],
-):
+) -> ThreadedGenerator:
     def _save_to_conversation_log(
         q: str,
-        gpt_response: str,
+        chat_response: str,
         user_message_time: str,
         compiled_references: List[str],
         inferred_queries: List[str],
         meta_log,
     ):
-        state.processor_config.conversation.chat_session += reciprocal_conversation_to_chatml([q, gpt_response])
+        state.processor_config.conversation.chat_session += reciprocal_conversation_to_chatml([q, chat_response])
         state.processor_config.conversation.meta_log["chat"] = message_to_log(
-            q,
-            gpt_response,
+            user_message=q,
+            chat_response=chat_response,
             user_message_metadata={"created": user_message_time},
             khoj_message_metadata={"context": compiled_references, "intent": {"inferred-queries": inferred_queries}},
             conversation_log=meta_log.get("chat", []),
@@ -78,9 +78,10 @@ def generate_chat_response(
     # Load Conversation History
     meta_log = state.processor_config.conversation.meta_log
 
+    # if not state.processor_config.conversation or not state.processor_config.conversation.open_ai_model:
+    # raise HTTPException(status_code=500, detail="Set your OpenAI API key via Khoj settings and restart it.")
+
     # Initialize Variables
-    api_key = state.processor_config.conversation.openai_api_key
-    chat_model = state.processor_config.conversation.chat_model
     user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     conversation_type = "general" if q.startswith("@general") else "notes"
 
@@ -99,12 +100,29 @@ def generate_chat_response(
                 meta_log=meta_log,
             )
 
-            gpt_response = converse(
-                compiled_references, q, meta_log, model=chat_model, api_key=api_key, completion_func=partial_completion
-            )
+            if state.processor_config.conversation.open_ai_model:
+                api_key = state.processor_config.conversation.open_ai_model.api_key
+                chat_model = state.processor_config.conversation.open_ai_model.chat_model
+                chat_response = converse(
+                    compiled_references,
+                    q,
+                    meta_log,
+                    model=chat_model,
+                    api_key=api_key,
+                    completion_func=partial_completion,
+                )
+            else:
+                loaded_model = state.processor_config.conversation.gpt4all_model.loaded_model
+                chat_response = converse_falcon(
+                    references=compiled_references,
+                    user_query=q,
+                    loaded_model=loaded_model,
+                    conversation_log=meta_log,
+                    completion_func=partial_completion,
+                )
 
     except Exception as e:
-        logger.error(e)
+        logger.error(e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-    return gpt_response
+    return chat_response

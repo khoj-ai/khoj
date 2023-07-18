@@ -27,12 +27,12 @@ class OpenAI(BaseEncoder):
         if (
             not state.processor_config
             or not state.processor_config.conversation
-            or not state.processor_config.conversation.openai_api_key
+            or not state.processor_config.conversation.open_ai_model
         ):
             raise Exception(
                 f"Set OpenAI API key under processor-config > conversation > openai-api-key in config file: {state.config_file}"
             )
-        openai.api_key = state.processor_config.conversation.openai_api_key
+        openai.api_key = state.processor_config.conversation.open_ai_model.api_key
         self.embedding_dimensions = None
 
     def encode(self, entries, device=None, **kwargs):

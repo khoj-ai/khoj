@@ -4,6 +4,8 @@ from enum import Enum
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from gpt4all import GPT4All
+from khoj.utils.rawconfig import GPT4AllProcessorConfig
 
 # External Packages
 import torch
@@ -13,7 +15,7 @@ if TYPE_CHECKING:
     from sentence_transformers import CrossEncoder
     from khoj.search_filter.base_filter import BaseFilter
     from khoj.utils.models import BaseEncoder
-    from khoj.utils.rawconfig import ConversationProcessorConfig, Entry
+    from khoj.utils.rawconfig import ConversationProcessorConfig, Entry, OpenAIProcessorConfig
 
 
 class SearchType(str, Enum):
@@ -75,10 +77,15 @@ class SearchModels:
 
 
 class ConversationProcessorConfigModel:
-    def __init__(self, processor_config: ConversationProcessorConfig):
-        self.openai_api_key = processor_config.openai_api_key
-        self.model = processor_config.model
-        self.chat_model = processor_config.chat_model
+    def __init__(
+        self,
+        processor_config: ConversationProcessorConfig,
+        openai_procesor_config: Union[OpenAIProcessorConfig, None] = None,
+    ):
+        self.open_ai_model = openai_procesor_config
+        self.gpt4all_model = GPT4AllProcessorConfig()
+        if not self.open_ai_model:
+            self.gpt4all_model.loaded_model = GPT4All(self.gpt4all_model.chat_model)  # type: ignore
         self.conversation_logfile = Path(processor_config.conversation_logfile)
         self.chat_session: List[str] = []
         self.meta_log: dict = {}

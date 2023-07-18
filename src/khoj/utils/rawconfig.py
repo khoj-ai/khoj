@@ -1,13 +1,15 @@
 # System Packages
 import json
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union, Any
 
 # External Packages
 from pydantic import BaseModel, validator
 
 # Internal Packages
 from khoj.utils.helpers import to_snake_case_from_dash, is_none_or_empty
+
+from gpt4all import GPT4All
 
 
 class ConfigBase(BaseModel):
@@ -104,14 +106,22 @@ class SearchConfig(ConfigBase):
 
 
 class ConversationProcessorConfig(ConfigBase):
-    openai_api_key: str
     conversation_logfile: Path
-    model: Optional[str] = "text-davinci-003"
+
+
+class OpenAIProcessorConfig(ConfigBase):
+    api_key: str
     chat_model: Optional[str] = "gpt-3.5-turbo"
+
+
+class GPT4AllProcessorConfig(ConfigBase):
+    chat_model: Optional[str] = "ggml-model-gpt4all-falcon-q4_0.bin"
+    loaded_model: Union[Any, None] = None
 
 
 class ProcessorConfig(ConfigBase):
     conversation: Optional[ConversationProcessorConfig]
+    open_ai: Optional[OpenAIProcessorConfig]
 
 
 class AppConfig(ConfigBase):

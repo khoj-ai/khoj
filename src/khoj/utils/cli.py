@@ -45,6 +45,7 @@ def cli(args=None):
     if not args.config_file.exists():
         args.config = None
     else:
+        # Run migrations on config file
         args.config = parse_config_from_file(args.config_file)
 
     return args
