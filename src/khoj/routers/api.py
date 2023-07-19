@@ -186,7 +186,7 @@ if not state.demo:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
-    @api.post("/delete/config/data/processor/conversation/open-ai", status_code=200)
+    @api.post("/delete/config/data/processor/open-ai", status_code=200)
     async def remove_processor_conversation_config_data(
         request: Request,
         client: Optional[str] = None,
@@ -239,8 +239,8 @@ if not state.demo:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
-    @api.post("/config/data/processor/conversation/open-ai", status_code=200)
-    async def set_processor_conversation_config_data(
+    @api.post("/config/data/processor/open-ai", status_code=200)
+    async def set_processor_openai_config_data(
         request: Request,
         updated_config: Union[OpenAIProcessorConfig, None],
         client: Optional[str] = None,
@@ -257,9 +257,38 @@ if not state.demo:
         update_telemetry_state(
             request=request,
             telemetry_type="api",
-            api="set_content_config",
+            api="set_processor_config",
             client=client,
             metadata={"processor_type": "conversation"},
+        )
+
+        try:
+            save_config_to_file_updated_state()
+            return {"status": "ok"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+    @api.post("/config/data/processor/enable_local_llm", status_code=200)
+    async def set_processor_enable_local_llm_config_data(
+        request: Request,
+        enable_local_llm: bool,
+        client: Optional[str] = None,
+    ):
+        _initialize_config()
+
+        if not state.config.processor or not state.config.processor.conversation:
+            conversation_logfile = resolve_absolute_path("~/.khoj/processor/conversation/conversation_logs.json")
+            state.config.processor = ProcessorConfig(conversation=ConversationProcessorConfig(conversation_logfile=conversation_logfile))  # type: ignore
+
+        state.config.processor.enable_local_llm = enable_local_llm
+        state.processor_config = configure_processor(state.config.processor)
+
+        update_telemetry_state(
+            request=request,
+            telemetry_type="api",
+            api="set_processor_config",
+            client=client,
+            metadata={"processor_type": f"{'enable' if enable_local_llm else 'disable'}_local_llm"},
         )
 
         try:

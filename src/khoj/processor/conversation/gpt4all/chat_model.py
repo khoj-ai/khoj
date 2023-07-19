@@ -87,6 +87,7 @@ def converse_falcon(
     compiled_references_message = "\n\n".join({f"### {item}" for item in references})
 
     # Get Conversation Primer appropriate to Conversation Type
+    # TODO If compiled_references_message is too long, we need to truncate it.
     if compiled_references_message == "":
         conversation_primer = prompts.conversation_falcon.format(query=user_query)
     else:
@@ -99,7 +100,7 @@ def converse_falcon(
         conversation_primer,
         prompts.personality.format(),
         conversation_log,
-        model_name="text-davinci-003",  # This isn't actually the model, but this helps us get an approximate encoding to run message truncation.
+        model_name="text-davinci-001",  # This isn't actually the model, but this helps us get an approximate encoding to run message truncation.
     )
 
     g = ThreadedGenerator(references, completion_func=completion_func)

@@ -151,7 +151,7 @@ if not state.demo:
             },
         )
 
-    @web_client.get("/config/processor/conversation/open-ai", response_class=HTMLResponse)
+    @web_client.get("/config/processor/open-ai", response_class=HTMLResponse)
     def conversation_processor_config_page(request: Request):
         default_copy = constants.default_config.copy()
         default_processor_config = default_copy["processor"]["conversation"]["open-ai-model"]  # type: ignore

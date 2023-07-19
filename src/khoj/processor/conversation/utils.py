@@ -13,7 +13,7 @@ import queue
 from khoj.utils.helpers import merge_dicts
 
 logger = logging.getLogger(__name__)
-max_prompt_size = {"gpt-3.5-turbo": 4096, "gpt-4": 8192, "text-davinci-003": 2048}
+max_prompt_size = {"gpt-3.5-turbo": 4096, "gpt-4": 8192, "text-davinci-001": 910}
 
 
 class ThreadedGenerator:

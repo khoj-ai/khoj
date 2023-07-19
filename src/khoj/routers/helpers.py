@@ -10,17 +10,20 @@ from khoj.utils.helpers import timer, log_telemetry
 from khoj.processor.conversation.open_ai.gpt import converse
 from khoj.processor.conversation.gpt4all.chat_model import converse_falcon
 from khoj.processor.conversation.utils import reciprocal_conversation_to_chatml, message_to_log, ThreadedGenerator
-from khoj.configure import configure_processor
 
 logger = logging.getLogger(__name__)
 
 
 def perform_chat_checks():
-    if state.processor_config is None or state.processor_config.conversation is None:
-        if state.processor_config.conversation and state.processor_config.conversation.open_ai_model:
-            return
+    if state.processor_config.conversation and (
+        state.processor_config.conversation.open_ai_model
+        or state.processor_config.conversation.gpt4all_model.loaded_model
+    ):
+        return
 
-        state.processor_config = configure_processor(processor_config=state.config.processor)
+    raise HTTPException(
+        status_code=500, detail="Set your OpenAI API key or enable Local LLM via Khoj settings and restart it."
+    )
 
 
 def update_telemetry_state(

@@ -85,12 +85,15 @@ class ConversationProcessorConfigModel:
     ):
         self.open_ai_model = openai_procesor_config
         self.gpt4all_model = GPT4AllProcessorConfig()
-        if not self.open_ai_model:
-            self.gpt4all_model.loaded_model = GPT4All(self.gpt4all_model.chat_model)  # type: ignore
+        self.enable_local_llm = enable_local_llm
         self.conversation_logfile = Path(processor_config.conversation_logfile)
         self.chat_session: List[str] = []
         self.meta_log: dict = {}
-        self.enable_local_llm = enable_local_llm
+
+        if not self.open_ai_model and self.enable_local_llm:
+            self.gpt4all_model.loaded_model = GPT4All(self.gpt4all_model.chat_model)  # type: ignore
+        else:
+            self.gpt4all_model.loaded_model = None
 
 
 @dataclass
