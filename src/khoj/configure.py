@@ -37,9 +37,7 @@ from khoj.search_filter.file_filter import FileFilter
 logger = logging.getLogger(__name__)
 
 
-def initialize_server(
-    config: Optional[FullConfig], regenerate: bool, type: Optional[SearchType] = None, required=False
-):
+def initialize_server(config: Optional[FullConfig], regenerate: bool, required=False):
     if config is None and required:
         logger.error(
             f"🚨 Exiting as Khoj is not configured.\nConfigure it via http://localhost:42110/config or by editing {state.config_file}."
@@ -52,7 +50,7 @@ def initialize_server(
         return None
 
     try:
-        configure_server(config, regenerate, type)
+        configure_server(config, regenerate)
     except Exception as e:
         logger.error(f"🚨 Failed to configure server on app load: {e}", exc_info=True)
 

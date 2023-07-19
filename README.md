@@ -311,7 +311,7 @@ pip install --upgrade --pre khoj-assistant
      model_directory: "~/.khoj/search/asymmetric/"
   ```
 
-  2. Regenerate your content index. For example, by opening [\<khoj-url\>/api/update?t=force](http://localhost:42110/api/update?t=force)
+  2. Regenerate your content index. For example, by opening [\<khoj-url\>/api/update?force=true](http://localhost:42110/api/update?force=true)
 
 ### Bootstrap Khoj Search for Offline Usage later
 
