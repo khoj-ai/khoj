@@ -20,7 +20,7 @@ def perform_chat_checks():
         if state.processor_config.conversation and state.processor_config.conversation.open_ai_model:
             return
 
-        state.processor_config = configure_processor()
+        state.processor_config = configure_processor(processor_config=state.config.processor)
 
 
 def update_telemetry_state(

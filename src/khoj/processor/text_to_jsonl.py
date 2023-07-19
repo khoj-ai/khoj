@@ -17,7 +17,7 @@ class TextToJsonl(ABC):
         self.config = config
 
     @abstractmethod
-    def process(self, previous_entries: List[Entry] = None) -> List[Tuple[int, Entry]]:
+    def process(self, previous_entries: List[Entry] = []) -> List[Tuple[int, Entry]]:
         ...
 
     @staticmethod
@@ -78,16 +78,23 @@ class TextToJsonl(ABC):
             # All entries that exist in both current and previous sets are kept
             existing_entry_hashes = set(current_entry_hashes) & set(previous_entry_hashes)
 
+            # load new entries in the order in which they are processed for a stable sort
+            new_entries = [
+                (current_entry_hashes.index(entry_hash), hash_to_current_entries[entry_hash])
+                for entry_hash in new_entry_hashes
+            ]
+            new_entries_sorted = sorted(new_entries, key=lambda e: e[0])
             # Mark new entries with -1 id to flag for later embeddings generation
-            new_entries = [(-1, hash_to_current_entries[entry_hash]) for entry_hash in new_entry_hashes]
+            new_entries_sorted = [(-1, entry[1]) for entry in new_entries_sorted]
+
             # Set id of existing entries to their previous ids to reuse their existing encoded embeddings
             existing_entries = [
                 (previous_entry_hashes.index(entry_hash), hash_to_previous_entries[entry_hash])
                 for entry_hash in existing_entry_hashes
             ]
-
             existing_entries_sorted = sorted(existing_entries, key=lambda e: e[0])
-            entries_with_ids = existing_entries_sorted + new_entries
+
+            entries_with_ids = existing_entries_sorted + new_entries_sorted
 
         return entries_with_ids
 

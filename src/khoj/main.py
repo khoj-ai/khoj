@@ -25,7 +25,7 @@ from rich.logging import RichHandler
 import schedule
 
 # Internal Packages
-from khoj.configure import configure_routes, configure_server
+from khoj.configure import configure_routes, initialize_server
 from khoj.utils import state
 from khoj.utils.cli import cli
 
@@ -70,7 +70,7 @@ def run():
         poll_task_scheduler()
 
         # Start Server
-        configure_server(args, required=False)
+        initialize_server(args.config, args.regenerate, required=False)
         configure_routes(app)
         start_server(app, host=args.host, port=args.port, socket=args.socket)
     else:
@@ -93,7 +93,7 @@ def run():
             tray.show()
 
         # Setup Server
-        configure_server(args, required=False)
+        initialize_server(args.config, args.regenerate, required=False)
         configure_routes(app)
         server = ServerThread(start_server_func=lambda: start_server(app, host=args.host, port=args.port))
 

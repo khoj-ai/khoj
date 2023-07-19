@@ -133,6 +133,7 @@ class FullConfig(ConfigBase):
     search_type: Optional[SearchConfig] = None
     processor: Optional[ProcessorConfig] = None
     app: Optional[AppConfig] = AppConfig(should_log_telemetry=True)
+    version: Optional[str] = None
 
 
 class SearchResponse(ConfigBase):

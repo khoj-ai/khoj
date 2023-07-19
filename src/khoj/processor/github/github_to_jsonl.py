@@ -13,9 +13,8 @@ from khoj.utils.rawconfig import Entry, GithubContentConfig, GithubRepoConfig
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.text_to_jsonl import TextToJsonl
-from khoj.utils.jsonl import dump_jsonl, compress_jsonl_data
+from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry
-from khoj.utils import state
 
 
 logger = logging.getLogger(__name__)
@@ -38,7 +37,7 @@ class GithubToJsonl(TextToJsonl):
         else:
             return
 
-    def process(self, previous_entries=None):
+    def process(self, previous_entries=[]):
         current_entries = []
         for repo in self.config.repos:
             current_entries += self.process_repo(repo)
@@ -98,10 +97,7 @@ class GithubToJsonl(TextToJsonl):
             jsonl_data = MarkdownToJsonl.convert_markdown_maps_to_jsonl(entries)
 
             # Compress JSONL formatted Data
-            if self.config.compressed_jsonl.suffix == ".gz":
-                compress_jsonl_data(jsonl_data, self.config.compressed_jsonl)
-            elif self.config.compressed_jsonl.suffix == ".jsonl":
-                dump_jsonl(jsonl_data, self.config.compressed_jsonl)
+            compress_jsonl_data(jsonl_data, self.config.compressed_jsonl)
 
         return entries_with_ids
 
