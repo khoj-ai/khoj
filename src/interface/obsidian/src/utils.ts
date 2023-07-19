@@ -142,25 +142,35 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
                 data["processor"] = {
                     "conversation": {
                         "conversation-logfile": `${khojDefaultChatDirectory}/conversation.json`,
+                    },
+                    "open-ai-model": {
                         "model": khojDefaultChatModelName,
-                        "openai-api-key": setting.openaiApiKey,
+                        "api-key": setting.openaiApiKey,
                     }
                 }
             }
             // Else if khoj config has no conversation processor config
             else if (!data["processor"]["conversation"]) {
-                data["processor"]["conversation"] = {
-                    "conversation-logfile": `${khojDefaultChatDirectory}/conversation.json`,
-                    "model": khojDefaultChatModelName,
-                    "openai-api-key": setting.openaiApiKey,
+                data["processor"] = {
+                    "conversation": {
+                        "conversation-logfile": `${khojDefaultChatDirectory}/conversation.json`,
+                    },
+                    "open-ai-model": {
+                        "chat-model": khojDefaultChatModelName,
+                        "api-key": setting.openaiApiKey,
+                    }
                 }
             }
             // Else if khoj is not configured with OpenAI API key from khoj plugin settings
             else if (data["processor"]["conversation"]["openai-api-key"] !== setting.openaiApiKey) {
-                data["processor"]["conversation"] = {
-                    "conversation-logfile": data["processor"]["conversation"]["conversation-logfile"],
-                    "model": data["processor"]["conversation"]["model"],
-                    "openai-api-key": setting.openaiApiKey,
+                data["processor"] = {
+                    "conversation": {
+                        "conversation-logfile": data["processor"]["conversation"]["conversation-logfile"],
+                    },
+                    "open-ai-model": {
+                        "model": data["processor"]["open-ai"]["chat-model"],
+                        "api-key": setting.openaiApiKey,
+                    }
                 }
             }
 
