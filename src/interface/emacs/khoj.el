@@ -624,7 +624,7 @@ CONFIG is json obtained from Khoj config API."
       (buffer-string)))
   ;; Update index on khoj server after configuration update
   (let ((khoj--server-ready? nil))
-    (url-retrieve (format "%s/api/update?t=org&client=emacs" khoj-server-url) #'identity)))
+    (url-retrieve (format "%s/api/update?client=emacs" khoj-server-url) #'identity)))
 
 (defun khoj--get-enabled-content-types ()
   "Get content types enabled for search from API."
@@ -1032,7 +1032,8 @@ Paragraph only starts at first text after blank line."
   (let* ((force-update (if (member "--force-update" args) "true" "false"))
          ;; set content type to: specified > last used > based on current buffer > default type
          (content-type (or (transient-arg-value "--content-type=" args) (khoj--buffer-name-to-content-type (buffer-name))))
-         (update-url (format "%s/api/update?t=%s&force=%s&client=emacs" khoj-server-url content-type force-update))
+         (type-query (if (equal content-type "all") "" (format "t=%s" content-type)))
+         (update-url (format "%s/api/update?%s&force=%s&client=emacs" khoj-server-url type-query force-update))
          (url-request-method "GET"))
     (progn
       (setq khoj--content-type content-type)
