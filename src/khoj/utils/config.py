@@ -81,6 +81,7 @@ class ConversationProcessorConfigModel:
         self,
         processor_config: ConversationProcessorConfig,
         openai_procesor_config: Union[OpenAIProcessorConfig, None] = None,
+        enable_local_llm: Union[bool, None] = False,
     ):
         self.open_ai_model = openai_procesor_config
         self.gpt4all_model = GPT4AllProcessorConfig()
@@ -89,6 +90,7 @@ class ConversationProcessorConfigModel:
         self.conversation_logfile = Path(processor_config.conversation_logfile)
         self.chat_session: List[str] = []
         self.meta_log: dict = {}
+        self.enable_local_llm = enable_local_llm
 
 
 @dataclass

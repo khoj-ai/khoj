@@ -9,8 +9,6 @@ from pydantic import BaseModel, validator
 # Internal Packages
 from khoj.utils.helpers import to_snake_case_from_dash, is_none_or_empty
 
-from gpt4all import GPT4All
-
 
 class ConfigBase(BaseModel):
     class Config:
@@ -122,6 +120,7 @@ class GPT4AllProcessorConfig(ConfigBase):
 class ProcessorConfig(ConfigBase):
     conversation: Optional[ConversationProcessorConfig]
     open_ai: Optional[OpenAIProcessorConfig]
+    enable_local_llm: Optional[bool] = False
 
 
 class AppConfig(ConfigBase):

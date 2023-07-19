@@ -287,7 +287,9 @@ def configure_conversation_processor(processor_config: Optional[ProcessorConfig]
         )
     else:
         conversation_processor = ConversationProcessorConfigModel(
-            processor_config=processor_config.conversation, openai_procesor_config=processor_config.open_ai
+            processor_config=processor_config.conversation,
+            openai_procesor_config=processor_config.open_ai,
+            enable_local_llm=processor_config.enable_local_llm,
         )
         conversation_logfile = resolve_absolute_path(conversation_processor.conversation_logfile)
 
