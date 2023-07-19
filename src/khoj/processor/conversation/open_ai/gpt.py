@@ -12,8 +12,8 @@ from khoj.processor.conversation import prompts
 from khoj.processor.conversation.open_ai.utils import (
     chat_completion_with_backoff,
     completion_with_backoff,
-    generate_chatml_messages_with_context,
 )
+from khoj.processor.conversation.utils import generate_chatml_messages_with_context
 
 
 logger = logging.getLogger(__name__)

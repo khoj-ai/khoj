@@ -9,9 +9,7 @@ from khoj.utils import state
 from khoj.utils.helpers import timer, log_telemetry
 from khoj.processor.conversation.open_ai.gpt import converse
 from khoj.processor.conversation.gpt4all.chat_model import converse_falcon
-from khoj.processor.conversation.open_ai.utils import reciprocal_conversation_to_chatml
-from khoj.processor.conversation.utils import message_to_log
-from khoj.processor.conversation.utils import ThreadedGenerator
+from khoj.processor.conversation.utils import reciprocal_conversation_to_chatml, message_to_log, ThreadedGenerator
 from khoj.configure import configure_processor
 
 logger = logging.getLogger(__name__)

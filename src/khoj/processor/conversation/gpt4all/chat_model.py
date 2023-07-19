@@ -1,11 +1,14 @@
 from typing import Union, List
-from khoj.processor.conversation import prompts
-from khoj.utils.constants import empty_escape_sequences
 from datetime import datetime
 import logging
 from gpt4all import GPT4All
-from khoj.processor.conversation.utils import ThreadedGenerator
 from threading import Thread
+from langchain.schema import ChatMessage
+
+
+from khoj.processor.conversation.utils import ThreadedGenerator, generate_chatml_messages_with_context
+from khoj.processor.conversation import prompts
+from khoj.utils.constants import empty_escape_sequences
 
 logger = logging.getLogger(__name__)
 
@@ -92,13 +95,12 @@ def converse_falcon(
         )
 
     # Setup Prompt with Primer or Conversation History
-    messages = generate_messages_with_history_falcon(
+    messages = generate_chatml_messages_with_context(
         conversation_primer,
         prompts.personality.format(),
         conversation_log,
+        model_name="text-davinci-003",  # This isn't actually the model, but this helps us get an approximate encoding to run message truncation.
     )
-    truncated_messages = "\n".join({f"{message[:40]}..." for message in messages})
-    logger.debug(f"Conversation Context for Falcon: {truncated_messages}")
 
     g = ThreadedGenerator(references, completion_func=completion_func)
     t = Thread(target=llm_thread, args=(g, messages, gpt4all_model))
@@ -106,39 +108,26 @@ def converse_falcon(
     return g
 
 
-def llm_thread(g, messages: List[str], model: GPT4All):
-    message = "\n".join(messages)
-    prompted_message = prompts.general_conversation_falcon.format(query=message)
+def llm_thread(g, messages: List[ChatMessage], model: GPT4All):
+    user_message = messages[0]
+    system_message = messages[-1]
+    conversation_history = messages[1:-1]
+
+    formatted_messages = [
+        prompts.chat_history_falcon_from_assistant.format(message=system_message)
+        if message.role == "assistant"
+        else prompts.chat_history_falcon_from_user.format(message=message.content)
+        for message in conversation_history
+    ]
+
+    chat_history = "".join(formatted_messages)
+    full_message = system_message.content + chat_history + user_message.content
+
+    prompted_message = prompts.general_conversation_falcon.format(query=full_message)
     response_iterator = model.generate(
         prompted_message, streaming=True, max_tokens=256, top_k=1, temp=0, repeat_penalty=1.7
     )
     for response in response_iterator:
-        # if response.strip(empty_escape_sequences) == "":
-        # continue
         logger.info(response)
         g.send(response)
     g.close()
-
-
-def generate_messages_with_history_falcon(user_message, system_message, conversation_log={}, lookback_turns=2):
-    """Generate messages for ChatGPT with context from previous conversation"""
-    # Extract Chat History for Context
-    chat_logs = []
-    for chat in conversation_log.get("chat", []):
-        chat_notes = f'\n\n Notes:\n{chat.get("context")}' if chat.get("context") else "\n"
-        chat_logs += [chat["message"] + chat_notes]
-
-    rest_backnforths = []
-    # Extract in reverse chronological order
-    for user_msg, assistant_msg in zip(chat_logs[-2::-2], chat_logs[::-2]):
-        if len(rest_backnforths) >= 2 * lookback_turns:
-            break
-        rest_backnforths.append(prompts.chat_history_falcon.format(user_msg=user_msg, assistant_msg=assistant_msg))
-
-    # Format user and system messages to chatml format
-
-    messages = [system_message] + rest_backnforths[::-1] + [user_message]
-    # TODO Add truncation based on max prompt size
-
-    # Return message in chronological order
-    return messages

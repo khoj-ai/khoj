@@ -26,10 +26,15 @@ Using your general knowledge and our past conversations as context, answer the f
 """.strip()
 )
 
-chat_history_falcon = PromptTemplate.from_template(
+chat_history_falcon_from_user = PromptTemplate.from_template(
     """
-### Human:\n{user_msg}\n
-### Assistant:\n{assistant_msg}\n
+### Human:\n{message}\n
+""".strip()
+)
+
+chat_history_falcon_from_assistant = PromptTemplate.from_template(
+    """
+### Assistant:\n{message}\n
 """.strip()
 )
 
