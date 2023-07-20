@@ -1,11 +1,10 @@
 # Standard Packages
 from datetime import datetime
-import sys
 
 # External Packages
 import pytest
 
-DEBUG = True
+DEBUG = False
 pytestmark = pytest.mark.skipif(
     DEBUG,
     reason="The GPT4All library uses some typing syntax that isn't considered valid. This causes some tests to fail. Hence, disable it in CI.",
