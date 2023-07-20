@@ -281,15 +281,17 @@ def configure_conversation_processor(processor_config: Optional[ProcessorConfig]
         or not processor_config.conversation.conversation_logfile
     ):
         conversation_logfile = resolve_absolute_path("~/.khoj/processor/conversation/conversation_logs.json")
+        conversation_config = processor_config.conversation if processor_config else None
         conversation_processor = ConversationProcessorConfigModel(
-            processor_config=ConversationProcessorConfig(conversation_logfile=conversation_logfile),
-            openai_procesor_config=(processor_config.open_ai if processor_config else None),
+            conversation_config=ConversationProcessorConfig(
+                conversation_logfile=conversation_logfile,
+                open_ai=(conversation_config.open_ai if (conversation_config is not None) else None),
+                enable_local_llm=(conversation_config.enable_local_llm if (conversation_config is not None) else False),
+            )
         )
     else:
         conversation_processor = ConversationProcessorConfigModel(
-            processor_config=processor_config.conversation,
-            openai_procesor_config=processor_config.open_ai,
-            enable_local_llm=processor_config.enable_local_llm,
+            conversation_config=processor_config.conversation,
         )
         conversation_logfile = resolve_absolute_path(conversation_processor.conversation_logfile)
 

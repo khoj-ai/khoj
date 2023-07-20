@@ -103,10 +103,6 @@ class SearchConfig(ConfigBase):
     image: Optional[ImageSearchConfig]
 
 
-class ConversationProcessorConfig(ConfigBase):
-    conversation_logfile: Path
-
-
 class OpenAIProcessorConfig(ConfigBase):
     api_key: str
     chat_model: Optional[str] = "gpt-3.5-turbo"
@@ -117,10 +113,14 @@ class GPT4AllProcessorConfig(ConfigBase):
     loaded_model: Union[Any, None] = None
 
 
-class ProcessorConfig(ConfigBase):
-    conversation: Optional[ConversationProcessorConfig]
+class ConversationProcessorConfig(ConfigBase):
+    conversation_logfile: Path
     open_ai: Optional[OpenAIProcessorConfig]
     enable_local_llm: Optional[bool] = False
+
+
+class ProcessorConfig(ConfigBase):
+    conversation: Optional[ConversationProcessorConfig]
 
 
 class AppConfig(ConfigBase):

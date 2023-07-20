@@ -191,7 +191,12 @@ if not state.demo:
         request: Request,
         client: Optional[str] = None,
     ):
-        if not state.config or not state.config.processor or not state.config.processor.open_ai:
+        if (
+            not state.config
+            or not state.config.processor
+            or not state.config.processor.conversation
+            or not state.config.processor.conversation.open_ai
+        ):
             return {"status": "ok"}
 
         state.config.processor.open_ai = None
@@ -251,7 +256,8 @@ if not state.demo:
             conversation_logfile = resolve_absolute_path("~/.khoj/processor/conversation/conversation_logs.json")
             state.config.processor = ProcessorConfig(conversation=ConversationProcessorConfig(conversation_logfile=conversation_logfile))  # type: ignore
 
-        state.config.processor.open_ai = updated_config
+        assert state.config.processor.conversation is not None
+        state.config.processor.conversation.open_ai = updated_config
         state.processor_config = configure_processor(state.config.processor)
 
         update_telemetry_state(
@@ -280,7 +286,8 @@ if not state.demo:
             conversation_logfile = resolve_absolute_path("~/.khoj/processor/conversation/conversation_logs.json")
             state.config.processor = ProcessorConfig(conversation=ConversationProcessorConfig(conversation_logfile=conversation_logfile))  # type: ignore
 
-        state.config.processor.enable_local_llm = enable_local_llm
+        assert state.config.processor.conversation is not None
+        state.config.processor.conversation.enable_local_llm = enable_local_llm
         state.processor_config = configure_processor(state.config.processor)
 
         update_telemetry_state(
