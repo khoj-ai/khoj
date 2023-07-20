@@ -17,8 +17,9 @@ from freezegun import freeze_time
 if not SKIP_TESTS:
     from gpt4all import GPT4All
 
-# Internal Packages
-from khoj.processor.conversation.gpt4all.chat_model import converse_falcon, extract_questions_falcon
+    # Internal Packages
+    from khoj.processor.conversation.gpt4all.chat_model import converse_falcon, extract_questions_falcon
+
 from khoj.processor.conversation.utils import message_to_log
 
 
