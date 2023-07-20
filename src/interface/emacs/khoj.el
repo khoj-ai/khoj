@@ -423,15 +423,25 @@ CONFIG is json obtained from Khoj config API."
     ;; Configure processors
     (cond
      ((not khoj-openai-api-key)
-      (setq config (delq (assoc 'processor config) config)))
+      (let* ((processor (assoc 'processor config))
+             (conversation (assoc 'conversation processor))
+             (open-ai (assoc 'open-ai conversation)))
+        (when open-ai
+          (setcdr conversation (delq open-ai (cdr conversation)))
+          (setcdr processor (delq conversation (cdr processor)))
+          (push conversation (cdr processor))
+          (setq config (delq processor config))
+          (push processor config))))
 
      ((not current-config)
       (message "khoj.el: Chat not configured yet.")
       (setq config (delq (assoc 'processor config) config))
       (cl-pushnew `(processor . ((conversation . ((conversation-logfile . ,(format "%s/conversation.json" default-chat-dir))
-                                                  (chat-model . ,chat-model)
-                                                  (model . ,default-model)
-                                                  (openai-api-key . ,khoj-openai-api-key)))))
+                                                  (open-ai . (
+                                                              (chat-model . ,chat-model)
+                                                              (api-key . , khoj-openai-api-key)
+                                                              ))
+                                                  ))))
                   config))
 
      ((not (alist-get 'conversation (alist-get 'processor config)))
@@ -440,21 +450,19 @@ CONFIG is json obtained from Khoj config API."
          (setq new-processor-type (delq (assoc 'conversation new-processor-type) new-processor-type))
          (cl-pushnew `(conversation . ((conversation-logfile . ,(format "%s/conversation.json" default-chat-dir))
                                        (chat-model . ,chat-model)
-                                       (model . ,default-model)
                                        (openai-api-key . ,khoj-openai-api-key)))
                      new-processor-type)
         (setq config (delq (assoc 'processor config) config))
         (cl-pushnew `(processor . ,new-processor-type) config)))
 
      ;; Else if khoj is not configured with specified openai api key
-     ((not (and (equal (alist-get 'openai-api-key (alist-get 'conversation (alist-get 'processor config))) khoj-openai-api-key)
-                (equal (alist-get 'chat-model (alist-get 'conversation (alist-get 'processor config))) khoj-chat-model)))
+     ((not (and (equal (alist-get 'api-key (alist-get 'open-ai (alist-get 'conversation (alist-get 'processor config)))) khoj-openai-api-key)
+                (equal (alist-get 'chat-model (alist-get 'open-ai (alist-get 'conversation (alist-get 'processor config)))) khoj-chat-model)))
       (message "khoj.el: Chat configuration has gone stale.")
       (let* ((chat-directory (khoj--get-directory-from-config config '(processor conversation conversation-logfile)))
              (new-processor-type (alist-get 'processor config)))
         (setq new-processor-type (delq (assoc 'conversation new-processor-type) new-processor-type))
         (cl-pushnew `(conversation . ((conversation-logfile . ,(format "%s/conversation.json" chat-directory))
-                                      (model . ,default-model)
                                       (chat-model . ,khoj-chat-model)
                                       (openai-api-key . ,khoj-openai-api-key)))
                     new-processor-type)
