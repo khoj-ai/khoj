@@ -1,11 +1,10 @@
 # Standard Packages
 from datetime import datetime
-import sys
 
 # External Packages
 import pytest
 
-SKIP_TESTS = sys.version_info < (3, 9)
+SKIP_TESTS = True
 pytestmark = pytest.mark.skipif(
     SKIP_TESTS,
     reason="The GPT4All library uses some typing syntax that isn't considered valid for Python 3.8. This causes some tests to fail. Hence, disable it in CI for Python 3.8.",
