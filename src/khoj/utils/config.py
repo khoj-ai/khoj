@@ -1,10 +1,16 @@
 # System Packages
 from __future__ import annotations  # to avoid quoting type hints
+import sys
+
 from enum import Enum
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
-from gpt4all import GPT4All
+
+SKIP_GPT4ALL_IMPORT = sys.version_info < (3, 9)
+if not SKIP_GPT4ALL_IMPORT:
+    from gpt4all import GPT4All
+
 from khoj.utils.rawconfig import GPT4AllProcessorConfig
 
 # External Packages
@@ -79,14 +85,12 @@ class SearchModels:
 class ConversationProcessorConfigModel:
     def __init__(
         self,
-        processor_config: ConversationProcessorConfig,
-        openai_procesor_config: Union[OpenAIProcessorConfig, None] = None,
-        enable_local_llm: Union[bool, None] = False,
+        conversation_config: ConversationProcessorConfig,
     ):
-        self.open_ai_model = openai_procesor_config
+        self.open_ai_model = conversation_config.open_ai
         self.gpt4all_model = GPT4AllProcessorConfig()
-        self.enable_local_llm = enable_local_llm
-        self.conversation_logfile = Path(processor_config.conversation_logfile)
+        self.enable_local_llm = conversation_config.enable_local_llm
+        self.conversation_logfile = Path(conversation_config.conversation_logfile)
         self.chat_session: List[str] = []
         self.meta_log: dict = {}
 
