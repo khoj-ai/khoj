@@ -62,10 +62,11 @@ default_config = {
     },
     "processor": {
         "conversation": {
-            "open-ai-model": {
-                "openai-api-key": None,
+            "open-ai": {
+                "api-key": None,
                 "chat-model": "gpt-3.5-turbo",
             },
+            "enable-local-llm": False,
             "conversation-logfile": "~/.khoj/processor/conversation/conversation_logs.json",
         }
     },

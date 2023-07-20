@@ -225,18 +225,18 @@
                     <img class="card-icon" src="/static/assets/icons/chat.svg" alt="Chat">
                     <h3 class="card-title">
                         Offline Chat
-                        <img id="configured-icon-conversation-enable-local-llm" class="configured-icon {% if current_config.processor.conversation.enable_local_llm %}enabled{% else %}disabled{% endif %}" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                        <img id="configured-icon-conversation-enable-local-llm" class="configured-icon {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.enable_local_llm %}enabled{% else %}disabled{% endif %}" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
                     </h3>
                 </div>
                 <div class="card-description-row">
                 <p class="card-description">Setup offline chat with Falcon</p>
                 </div>
-                <div id="clear-enable-local-llm" class="card-action-row {% if current_config.processor.conversation.enable_local_llm %}enabled{% else %}disabled{% endif %}">
+                <div id="clear-enable-local-llm" class="card-action-row {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.enable_local_llm %}enabled{% else %}disabled{% endif %}">
                     <button class="card-button" onclick="toggleEnableLocalLLLM(false)">
                         Disable
                     </button>
                 </div>
-                <div id="set-enable-local-llm" class="card-action-row {% if current_config.processor.conversation.enable_local_llm %}disabled{% else %}enabled{% endif %}">
+                <div id="set-enable-local-llm" class="card-action-row {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.enable_local_llm %}disabled{% else %}enabled{% endif %}">
                     <button class="card-button happy" onclick="toggleEnableLocalLLLM(true)">
                         Enable
                     </button>
