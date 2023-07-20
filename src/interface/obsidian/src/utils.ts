@@ -36,7 +36,7 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
     let khojDefaultMdIndexDirectory = getIndexDirectoryFromBackendConfig(defaultConfig["content-type"]["markdown"]["embeddings-file"]);
     let khojDefaultPdfIndexDirectory = getIndexDirectoryFromBackendConfig(defaultConfig["content-type"]["pdf"]["embeddings-file"]);
     let khojDefaultChatDirectory = getIndexDirectoryFromBackendConfig(defaultConfig["processor"]["conversation"]["conversation-logfile"]);
-    let khojDefaultChatModelName = defaultConfig["processor"]["conversation"]["model"];
+    let khojDefaultChatModelName = defaultConfig["processor"]["conversation"]["open-ai"]["chat-model"];
 
     // Get current config if khoj backend configured, else get default config from khoj backend
     await request(khoj_already_configured ? khojConfigUrl : `${khojConfigUrl}/default`)
@@ -142,20 +142,20 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
                 data["processor"] = {
                     "conversation": {
                         "conversation-logfile": `${khojDefaultChatDirectory}/conversation.json`,
-                        "open-ai-model": {
-                            "model": khojDefaultChatModelName,
+                        "open-ai": {
+                            "chat-model": khojDefaultChatModelName,
                             "api-key": setting.openaiApiKey,
                         }
                     },
                 }
             }
             // Else if khoj config has no conversation processor config
-            else if (!data["processor"]["conversation"] || !data["processor"]["conversation"]["open-ai-model"]) {
+            else if (!data["processor"]["conversation"] || !data["processor"]["conversation"]["open-ai"]) {
                 data["processor"] = {
                     "conversation": {
                         "conversation-logfile": `${khojDefaultChatDirectory}/conversation.json`,
                         "open-ai": {
-                            "model": khojDefaultChatModelName,
+                            "chat-model": khojDefaultChatModelName,
                             "api-key": setting.openaiApiKey,
                         }
                     },
@@ -166,8 +166,8 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
                 data["processor"] = {
                     "conversation": {
                         "conversation-logfile": data["processor"]["conversation"]["conversation-logfile"],
-                        "open-ai-model": {
-                            "model": data["processor"]["conversation"]["open-ai"]["model"],
+                        "open-ai": {
+                            "chat-model": data["processor"]["conversation"]["open-ai"]["chat-model"],
                             "api-key": setting.openaiApiKey,
                         }
                     },
