@@ -1,19 +1,20 @@
 # Standard Packages
 from datetime import datetime
+import sys
 
 # External Packages
 import pytest
 
-DEBUG = False
+SKIP_TESTS = sys.version_info < (3, 9)
 pytestmark = pytest.mark.skipif(
-    DEBUG,
-    reason="The GPT4All library uses some typing syntax that isn't considered valid. This causes some tests to fail. Hence, disable it in CI.",
+    SKIP_TESTS,
+    reason="The GPT4All library uses some typing syntax that isn't considered valid for Python 3.8. This causes some tests to fail. Hence, disable it in CI for Python 3.8.",
 )
 
 import freezegun
 from freezegun import freeze_time
 
-if not DEBUG:
+if not SKIP_TESTS:
     from gpt4all import GPT4All
 
 # Internal Packages
