@@ -373,7 +373,7 @@ CONFIG is json obtained from Khoj config API."
              (ignore-error json-end-of-file (json-parse-buffer :object-type 'alist :array-type 'list :null-object json-null :false-object json-false))))
          (default-index-dir (khoj--get-directory-from-config default-config '(content-type org embeddings-file)))
          (default-chat-dir (khoj--get-directory-from-config default-config '(processor conversation conversation-logfile)))
-         (chat-model (or khoj-chat-model (alist-get 'chat-model (alist-get 'conversation (alist-get 'processor default-config)))))
+         (chat-model (or khoj-chat-model (alist-get 'chat-model (alist-get 'open-ai (alist-get 'conversation (alist-get 'processor config))))))
          (default-model (alist-get 'model (alist-get 'conversation (alist-get 'processor default-config))))
          (config (or current-config default-config)))
 
