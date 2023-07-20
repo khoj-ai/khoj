@@ -13,7 +13,9 @@ pytestmark = pytest.mark.skipif(
 
 import freezegun
 from freezegun import freeze_time
-from gpt4all import GPT4All
+
+if not DEBUG:
+    from gpt4all import GPT4All
 
 # Internal Packages
 from khoj.processor.conversation.gpt4all.chat_model import converse_falcon, extract_questions_falcon
