@@ -9,7 +9,6 @@ from freezegun import freeze_time
 
 # Internal Packages
 from khoj.processor.conversation.open_ai.gpt import converse, extract_questions
-from khoj.processor.conversation.gpt4all.chat_model import converse_falcon, extract_questions_falcon
 from khoj.processor.conversation.utils import message_to_log
 
 
