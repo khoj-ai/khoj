@@ -5,7 +5,7 @@
 ;; Author: Debanjum Singh Solanky <debanjum@gmail.com>
 ;; Description: An AI personal assistant for your digital brain
 ;; Keywords: search, chat, org-mode, outlines, markdown, pdf, image
-;; Version: 0.8.2
+;; Version: 0.9.0
 ;; Package-Requires: ((emacs "27.1") (transient "0.3.0") (dash "2.19.1"))
 ;; URL: https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs
 
@@ -221,6 +221,11 @@ for example), set this to the full interpreter path."
   :type '(repeat string)
   :group 'khoj)
 
+(defcustom khoj-chat-model nil
+  "Specify chat model to use for chat with khoj."
+  :type 'string
+  :group 'khoj)
+
 (defcustom khoj-openai-api-key nil
   "OpenAI API key used to configure chat on khoj server."
   :type 'string
@@ -368,7 +373,8 @@ CONFIG is json obtained from Khoj config API."
              (ignore-error json-end-of-file (json-parse-buffer :object-type 'alist :array-type 'list :null-object json-null :false-object json-false))))
          (default-index-dir (khoj--get-directory-from-config default-config '(content-type org embeddings-file)))
          (default-chat-dir (khoj--get-directory-from-config default-config '(processor conversation conversation-logfile)))
-         (default-model (or (alist-get 'model (alist-get 'conversation (alist-get 'processor default-config))) "text-davinci-003"))
+         (chat-model (or khoj-chat-model (alist-get 'chat-model (alist-get 'conversation (alist-get 'processor default-config)))))
+         (default-model (alist-get 'model (alist-get 'conversation (alist-get 'processor default-config))))
          (config (or current-config default-config)))
 
     ;; Configure content types
@@ -423,6 +429,7 @@ CONFIG is json obtained from Khoj config API."
       (message "khoj.el: Chat not configured yet.")
       (setq config (delq (assoc 'processor config) config))
       (cl-pushnew `(processor . ((conversation . ((conversation-logfile . ,(format "%s/conversation.json" default-chat-dir))
+                                                  (chat-model . ,chat-model)
                                                   (model . ,default-model)
                                                   (openai-api-key . ,khoj-openai-api-key)))))
                   config))
@@ -432,6 +439,7 @@ CONFIG is json obtained from Khoj config API."
        (let ((new-processor-type (alist-get 'processor config)))
          (setq new-processor-type (delq (assoc 'conversation new-processor-type) new-processor-type))
          (cl-pushnew `(conversation . ((conversation-logfile . ,(format "%s/conversation.json" default-chat-dir))
+                                       (chat-model . ,chat-model)
                                        (model . ,default-model)
                                        (openai-api-key . ,khoj-openai-api-key)))
                      new-processor-type)
@@ -439,14 +447,15 @@ CONFIG is json obtained from Khoj config API."
         (cl-pushnew `(processor . ,new-processor-type) config)))
 
      ;; Else if khoj is not configured with specified openai api key
-     ((not (equal (alist-get 'openai-api-key (alist-get 'conversation (alist-get 'processor config))) khoj-openai-api-key))
+     ((not (and (equal (alist-get 'openai-api-key (alist-get 'conversation (alist-get 'processor config))) khoj-openai-api-key)
+                (equal (alist-get 'chat-model (alist-get 'conversation (alist-get 'processor config))) khoj-chat-model)))
       (message "khoj.el: Chat configuration has gone stale.")
       (let* ((chat-directory (khoj--get-directory-from-config config '(processor conversation conversation-logfile)))
-             (model-name (khoj--get-directory-from-config config '(processor conversation model)))
              (new-processor-type (alist-get 'processor config)))
         (setq new-processor-type (delq (assoc 'conversation new-processor-type) new-processor-type))
         (cl-pushnew `(conversation . ((conversation-logfile . ,(format "%s/conversation.json" chat-directory))
-                                      (model . ,model-name)
+                                      (model . ,default-model)
+                                      (chat-model . ,khoj-chat-model)
                                       (openai-api-key . ,khoj-openai-api-key)))
                     new-processor-type)
         (setq config (delq (assoc 'processor config) config))
@@ -609,13 +618,13 @@ CONFIG is json obtained from Khoj config API."
   ;; POST provided config to khoj server
   (let ((url-request-method "POST")
         (url-request-extra-headers '(("Content-Type" . "application/json")))
-        (url-request-data (json-encode-alist config))
+        (url-request-data (encode-coding-string (json-encode-alist config) 'utf-8))
         (config-url (format "%s/api/config/data" khoj-server-url)))
     (with-current-buffer (url-retrieve-synchronously config-url)
       (buffer-string)))
   ;; Update index on khoj server after configuration update
   (let ((khoj--server-ready? nil))
-    (url-retrieve (format "%s/api/update?t=org&client=emacs" khoj-server-url) #'identity)))
+    (url-retrieve (format "%s/api/update?client=emacs" khoj-server-url) #'identity)))
 
 (defun khoj--get-enabled-content-types ()
   "Get content types enabled for search from API."
@@ -1023,7 +1032,8 @@ Paragraph only starts at first text after blank line."
   (let* ((force-update (if (member "--force-update" args) "true" "false"))
          ;; set content type to: specified > last used > based on current buffer > default type
          (content-type (or (transient-arg-value "--content-type=" args) (khoj--buffer-name-to-content-type (buffer-name))))
-         (update-url (format "%s/api/update?t=%s&force=%s&client=emacs" khoj-server-url content-type force-update))
+         (type-query (if (equal content-type "all") "" (format "t=%s" content-type)))
+         (update-url (format "%s/api/update?%s&force=%s&client=emacs" khoj-server-url type-query force-update))
          (url-request-method "GET"))
     (progn
       (setq khoj--content-type content-type)

@@ -35,11 +35,11 @@ def test_search_with_invalid_content_type(client):
 
 # ----------------------------------------------------------------------------------------------------
 def test_search_with_valid_content_type(client):
-    for content_type in ["all", "org", "markdown", "image", "pdf", "plugin1"]:
+    for content_type in ["all", "org", "markdown", "image", "pdf", "github", "notion", "plugin1"]:
         # Act
         response = client.get(f"/api/search?q=random&t={content_type}")
         # Assert
-        assert response.status_code == 200
+        assert response.status_code == 200, f"Returned status: {response.status_code} for content type: {content_type}"
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -53,11 +53,11 @@ def test_update_with_invalid_content_type(client):
 
 # ----------------------------------------------------------------------------------------------------
 def test_update_with_valid_content_type(client):
-    for content_type in ["org", "markdown", "image", "pdf", "plugin1"]:
+    for content_type in ["all", "org", "markdown", "image", "pdf", "github", "notion", "plugin1"]:
         # Act
         response = client.get(f"/api/update?t={content_type}")
         # Assert
-        assert response.status_code == 200
+        assert response.status_code == 200, f"Returned status: {response.status_code} for content type: {content_type}"
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -71,11 +71,11 @@ def test_regenerate_with_invalid_content_type(client):
 
 # ----------------------------------------------------------------------------------------------------
 def test_regenerate_with_valid_content_type(client):
-    for content_type in ["org", "markdown", "image", "pdf", "plugin1"]:
+    for content_type in ["all", "org", "markdown", "image", "pdf", "github", "notion", "plugin1"]:
         # Act
         response = client.get(f"/api/update?force=true&t={content_type}")
         # Assert
-        assert response.status_code == 200
+        assert response.status_code == 200, f"Returned status: {response.status_code} for content type: {content_type}"
 
 
 # ----------------------------------------------------------------------------------------------------
