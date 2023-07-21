@@ -7,7 +7,7 @@
 # Khoj
 *An AI personal assistant for your digital brain*
 
-Welcome to the Docs! This is the best place to get started with Khoj. Check out our [Github](https://github.com/khoj-ai/khoj) to dive straight into the code.
+Welcome to the Khoj Docs! This is the best place to get started with Khoj. Check out our [Github](https://github.com/khoj-ai/khoj) to explore the code or our [Website](https://khoj.dev) for an invite up to Khoj cloud.
 
 Khoj gives you lightning fast, offline search on your personal machine and gives you the power to talk to your notes.
 
@@ -28,7 +28,7 @@ Khoj gives you lightning fast, offline search on your personal machine and gives
   - **Natural**: Advanced natural language understanding using Transformer based ML Models
   - **Pluggable**: Modular architecture makes it easy to plug in new data sources, frontends and ML models
   - **Multiple Sources**: Index your Org-mode and Markdown notes, PDF files, Github repositories, and Photos
-  - **Multiple Interfaces**: Interact from your [Web Browser](./src/khoj/interface/web/index.html), [Emacs](./src/interface/emacs/khoj.el) or [Obsidian](./src/interface/obsidian/)
+  - **Multiple Interfaces**: Interact from your [Web Browser](https://docs.khoj.dev/#/web), [Emacs](https://docs.khoj.dev/#/emacs) or [Obsidian](https://docs.khoj.dev/#/obsidian)
 
 ## Install
 [Click here](./setup.md) for full setup instructions.
@@ -52,8 +52,3 @@ If you're using Github or Notion, you can get on a waitlist for [Khoj Cloud](htt
 - Charles Cave for [OrgNode Parser](http://members.optusnet.com.au/~charles57/GTD/orgnode.html)
 - [Org.js](https://mooz.github.io/org-js/) to render Org-mode results on the Web interface
 - [Markdown-it](https://github.com/markdown-it/markdown-it) to render Markdown results on the Web interface
-
-
-[^1]: Default Khoj config file @ `~/.khoj/khoj.yml`
-
-[^2]: Default Khoj url @ http://localhost:42110

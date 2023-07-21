@@ -1,6 +1,6 @@
 <h1><img src="./assets/khoj-logo-sideways.svg" width="200" alt="Khoj Logo">Emacs</h1>
 
-An AI personal assistance for your digital brain
+> An AI personal assistance for your digital brain
 
 <img src="https://stable.melpa.org/packages/khoj-badge.svg" width="150" alt="Melpa Stable Badge">
 <img src="https://melpa.org/packages/khoj-badge.svg" width="150" alt="Melpa Badge">
@@ -100,7 +100,7 @@ Indexes the specified org files, directories. Sets up OpenAI API key for Khoj Ch
 
   E.g "When did I file my taxes last year?"
 
-  See [Khoj Chat](./README.md#khoj-chat) for more details
+  See [Khoj Chat](/#/chat) for more details
 
 ### Find Similar Entries
 This feature finds entries similar to the one you are currently on.

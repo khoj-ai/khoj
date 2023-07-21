@@ -87,7 +87,7 @@ pip install --upgrade --pre khoj-assistant
 - **Refer**: [Issue with Fix](https://github.com/khoj-ai/khoj/issues/82#issuecomment-1241890946) for more details
 
 #### Search starts giving wonky results
-- **Fix**: Open [/api/update?force=true](http://localhost:42110/api/update?force=true)[^2] in browser to regenerate index from scratch
+- **Fix**: Open [/api/update?force=true](http://localhost:42110/api/update?force=true) in browser to regenerate index from scratch
 - **Note**: *This is a fix for when you percieve the search results have degraded. Not if you think they've always given wonky results*
 
 #### Khoj in Docker errors out with \"Killed\" in error message
