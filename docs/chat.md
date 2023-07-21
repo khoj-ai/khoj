@@ -28,7 +28,7 @@
 2. Type your queries and see response by Khoj from your notes
 
 #### Demo
-![](./assets/khoj_chat_web_interface.png)
+![](./assets/khoj_chat_on_web.png ':size=400px')
 
 ### Details
 1. Your query is used to retrieve the most relevant notes, if any, using Khoj search

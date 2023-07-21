@@ -1,13 +1,24 @@
 ## Demos
 
-### Interfaces
+### Screenshots
+#### Web
+![](./assets/khoj_search_on_web.png ':size=300px')
+![](./assets/khoj_chat_on_web.png ':size=300px')
 
-![](./assets/interfaces.png)
+#### Obsidian
+![](./assets/khoj_search_on_obsidian.png ':size=300px')
+![](./assets/khoj_chat_on_obsidian.png ':size=300px')
 
-### Khoj in Obsidian
+#### Emacs
+![](./assets/khoj_search_on_emacs.png ':size=300px')
+![](./assets/khoj_chat_on_emacs.png ':size=400px')
+
+
+### Videos
+#### Khoj in Obsidian
 [KhojObsidian](https://github-production-user-asset-6210df.s3.amazonaws.com/6413477/240061700-3e33d8ea-25bb-46c8-a3bf-c92f78d0f56b.mp4 ':include :type=mp4')
 
-#### Installation
+##### Installation
 
 1. Install Khoj via `pip` and start Khoj backend in a terminal (Run `khoj`)
     ```bash
@@ -21,10 +32,10 @@
     - Search \"*Announce plugin to folks*\" in the [Obsidian Plugin docs](https://marcus.se.net/obsidian-plugin-docs/)
     - Jump to the [search result](https://marcus.se.net/obsidian-plugin-docs/publishing/submit-your-plugin)
 
-### Khoj in Emacs, Browser
+#### Khoj in Emacs, Browser
 [KhojEmacs](https://user-images.githubusercontent.com/6413477/184735169-92c78bf1-d827-4663-9087-a1ea194b8f4b.mp4 ':include :type=mp4')
 
-#### Installation
+##### Installation
 
 - Install Khoj via pip
 - Start Khoj app
@@ -32,7 +43,7 @@
 - Search \"*Setup editor*\" on the Web and Emacs. Re-rank the results for better accuracy
 - Top result is what we are looking for, the [section to Install Khoj.el on Emacs](https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#2-Install-Khojel)
 
-#### Analysis
+##### Analysis
 
 - The results do not have any words used in the query
   - *Based on the top result it seems the re-ranking model understands that Emacs is an editor?*

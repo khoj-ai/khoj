@@ -22,7 +22,7 @@ Run the following command in your terminal to install the Khoj backend.
 For more detailed Windows installation and troubleshooting, see [Windows Install](./windows_install.md).
 
 
-### 2. Run
+### 2. Start
 
 Run the following commmand from your terminal to start the Khoj backend and open Khoj in your browser.
 
@@ -36,6 +36,8 @@ Note: To start Khoj automatically in the background use [Task scheduler](https:/
 1. Set `File`, `Folder` and hit `Save` in each Plugins you want to enable for Search on the Khoj config page
 2. Add your OpenAI API key to Chat Feature settings if you want to use Chat
 3. Click `Configure` and wait. The app will download ML models and index the content for search and (optionally) chat
+
+[configure demo](./assets/khoj_configure_on_web.mp4 ':include :type=mp4')
 
 ### 4. Install Interface Plugins (Optional)
 Khoj exposes a web interface to search, chat and configure by default.<br />

@@ -112,3 +112,18 @@ Follow the steps below to [release](https://github.com/debanjum/khoj/releases/) 
 *[Interactive Visualization](https://mango-dune-07a8b7110.1.azurestaticapps.net/?repo=debanjum%2Fkhoj)*
 
 ![](./assets/khoj_codebase_visualization_0.2.1.png)
+
+## Visualize Khoj Obsidian Plugin Codebase
+
+![](./assets/khoj_obsidian_codebase_visualization_0.2.1.png)
+
+## Khoj Obsidian Plugin Implementation
+The plugin implements the following functionality to search your notes with Khoj:
+- [X] Open the Khoj search modal via left ribbon icon or the *Khoj: Search* command
+- [X] Render results as Markdown preview to improve readability
+- [X] Configure Khoj via the plugin setting tab on the settings page
+  - Set Obsidian Vault to Index with Khoj. Defaults to all markdown, PDF files in current Vault
+  - Set URL of Khoj backend
+  - Set Number of Search Results to show in Search Modal
+- [X] Allow reranking of result to improve search quality
+- [X] Allow Finding notes similar to current note being viewed

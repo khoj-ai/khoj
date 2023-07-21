@@ -1,12 +1,14 @@
 ## Khoj Search
-- **Using Obsidian**
-  - Click the *Khoj search* icon 🔎 on the [Ribbon](https://help.obsidian.md/User+interface/Workspace/Ribbon) or Search for *Khoj: Search* in the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
-- **Using Emacs**
-  - Run `M-x khoj <user-query>`
-- **Using Web**
+### Use
+- **From Web**
   - Open <http://localhost:42110/> in your web browser
-- **Using API**
-  - See the Khoj FastAPI [Swagger Docs](http://localhost:42110/docs), [ReDocs](http://localhost:42110/redocs)
+- **From Obsidian**
+  - Click the *Khoj search* icon 🔎 on the [Ribbon](https://help.obsidian.md/User+interface/Workspace/Ribbon) or Search for *Khoj: Search* in the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
+- **From Emacs**
+  - Run `M-x khoj <user-query>`
+
+### Demo
+![](./assets/khoj_search_on_web.png ':size=400px')
 
 ### Query Filters
 
