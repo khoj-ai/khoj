@@ -1,28 +1,6 @@
-<img src="/src/khoj/interface/web/assets/icons/khoj-logo-sideways.svg" width="200" alt="Khoj Logo">Obsidian
+<h1><img src="./assets/khoj-logo-sideways.svg" width="200" alt="Khoj Logo">Obsidian</h1>
 
 > An AI personal assistant for your Digital Brain in Obsidian
-
-## Table of Contents
-
-- [Features](#Features)
-- [Demo](#Demo)
-  - [Search Demo](#Search-Demo)
-- [Interfaces](#Interfaces)
-  - [Search Modal](#Search-Modal)
-  - [Chat Modal](#Chat-Modal)
-- [Setup](#Setup)
-  - [Setup Backend](#1-Setup-Backend)
-  - [Setup Plugin](#2-Setup-Plugin)
-- [Use](#Use)
-  - [Search](#search)
-  - [Chat](#chat)
-  - [Find Similar Notes](#find-similar-notes)
-- [Upgrade](#Upgrade)
-  - [Upgrade Backend](#1-Upgrade-Backend)
-  - [Upgrade Plugin](#2-Upgrade-Plugin)
-- [Troubleshoot](#Troubleshoot)
-- [Visualize Codebase](#Visualize-Codebase)
-- [Implementation](#Implementation)
 
 ## Features
 - **Search**
@@ -34,31 +12,6 @@
   - **Iterative discovery**: Iteratively explore and (re-)discover your notes
   - **Assisted creativity**: Smoothly weave across answers retrieval and content generation
 
-## Demo
-### Search Demo
-https://github.com/khoj-ai/khoj/assets/6413477/3e33d8ea-25bb-46c8-a3bf-c92f78d0f56b
-
-<details><summary>Description</summary>
-
-1. Install Khoj via `pip` and start Khoj backend
-    ```shell
-    python -m pip install khoj-assistant && khoj
-    ```
-2. Install Khoj plugin via Community Plugins settings pane on Obsidian app
-    - Check the new Khoj plugin settings
-    - Wait for Khoj backend to index markdown, PDF files in the current Vault
-    - Open Khoj plugin on Obsidian via Search button on Left Pane
-    - Search \"*Announce plugin to folks*\" in the [Obsidian Plugin docs](https://marcus.se.net/obsidian-plugin-docs/)
-    - Jump to the [search result](https://marcus.se.net/obsidian-plugin-docs/publishing/submit-your-plugin)
-
-</details>
-
-## Interfaces
-### Search Modal
-![](https://github.com/khoj-ai/khoj/blob/master/src/interface/obsidian/docs/khoj_on_obsidian_0.2.5.png?)
-
-### Chat Modal
-![](https://github.com/khoj-ai/khoj/blob/master/src/interface/obsidian/docs/khoj_chat_on_obsidian_0.6.0.png?)
 
 ## Setup
 - *Make sure [python](https://realpython.com/installing-python/) and [pip](https://pip.pypa.io/en/stable/installation/) are installed on your machine*
@@ -94,16 +47,14 @@ Notes:
 
 See [Khoj Chat](https://github.com/khoj-ai/khoj/tree/master/#Khoj-Chat) for more details
 
-![](https://github.com/khoj-ai/khoj/blob/master/src/interface/obsidian/docs/khoj_chat_on_obsidian_0.6.0.png?)
-
 ### Search
 Click the *Khoj search* icon 🔎 on the [Ribbon](https://help.obsidian.md/User+interface/Workspace/Ribbon) or run *Khoj: Search* from the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
 
 *Note: Ensure the khoj server is running in the background before searching. Execute `khoj` in your terminal if it is not already running*
 
-https://user-images.githubusercontent.com/6413477/218801155-cd67e8b4-a770-404a-8179-d6b61caa0f93.mp4
+[search_demo](https://user-images.githubusercontent.com/6413477/218801155-cd67e8b4-a770-404a-8179-d6b61caa0f93.mp4 ':include :type=mp4')
 
-<details><summary>Query Filters</summary>
+#### Query Filters
 
 Use structured query syntax to filter the natural language search results
 - **Word Filter**: Get entries that include/exclude a specified term
@@ -123,8 +74,6 @@ Use structured query syntax to filter the natural language search results
     - excluding words *"big"* and *"brother"*
     - that best match the natural language query *"what is the meaning of life?"*
 
-</details>
-
 ### Find Similar Notes
 To see other notes similar to the current one, run *Khoj: Find Similar Notes* from the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
 
@@ -138,6 +87,30 @@ To see other notes similar to the current one, run *Khoj: Find Similar Notes* fr
   2. Click the *Check for updates* button
   3. Click the *Update* button next to Khoj, if available
 
+## Demo
+### Search Demo
+[demo](https://github-production-user-asset-6210df.s3.amazonaws.com/6413477/240061700-3e33d8ea-25bb-46c8-a3bf-c92f78d0f56b.mp4 ':include :type=mp4')
+
+#### Description
+
+1. Install Khoj via `pip` and start Khoj backend
+    ```shell
+    python -m pip install khoj-assistant && khoj
+    ```
+2. Install Khoj plugin via Community Plugins settings pane on Obsidian app
+    - Check the new Khoj plugin settings
+    - Wait for Khoj backend to index markdown, PDF files in the current Vault
+    - Open Khoj plugin on Obsidian via Search button on Left Pane
+    - Search \"*Announce plugin to folks*\" in the [Obsidian Plugin docs](https://marcus.se.net/obsidian-plugin-docs/)
+    - Jump to the [search result](https://marcus.se.net/obsidian-plugin-docs/publishing/submit-your-plugin)
+
+## Interfaces
+### Search Modal
+![](./assets/khoj_on_obsidian_0.2.5.png)
+
+### Chat Modal
+![](./assets/khoj_chat_on_obsidian_0.6.0.png)
+
 ## Troubleshooting
   - Open the Khoj plugin settings pane, to configure Khoj
   - Toggle Enable/Disable Khoj, if setting changes have not applied
@@ -148,7 +121,8 @@ To see other notes similar to the current one, run *Khoj: Find Similar Notes* fr
   So notes across multiple vaults **cannot** be searched at the same time
 
 ## Visualize Codebase
-<img src="https://github.com/khoj-ai/khoj/blob/master/src/interface/obsidian/docs/khoj_obsidian_codebase_visualization_0.2.1.png" width="700" />
+
+![](./assets/khoj_obsidian_codebase_visualization_0.2.1.png)
 
 ## Implementation
 The plugin implements the following functionality to search your notes with Khoj:
