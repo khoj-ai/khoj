@@ -4,9 +4,10 @@
 [![dockerize](https://github.com/khoj-ai/khoj/actions/workflows/dockerize.yml/badge.svg)](https://github.com/khoj-ai/khoj/pkgs/container/khoj)
 [![pypi](https://github.com/khoj-ai/khoj/actions/workflows/pypi.yml/badge.svg)](https://pypi.org/project/khoj-assistant/)
 
+# Khoj
 *An AI personal assistant for your digital brain*
 
-Welcome to the Docs! This is the best place to get started with Khoj. Check out our [Github](https://github.com/khoj-ai/khoj) for more details.
+Welcome to the Docs! This is the best place to get started with Khoj. Check out our [Github](https://github.com/khoj-ai/khoj) to dive straight into the code.
 
 Khoj gives you lightning fast, offline search on your personal machine and gives you the power to talk to your notes.
 
