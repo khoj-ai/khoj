@@ -85,7 +85,7 @@ def configure_server(config: FullConfig, regenerate: bool, search_type: Optional
         try:
             state.config_lock.acquire()
             state.content_index = configure_content(
-                state.config.content_type, state.search_models, regenerate, search_type
+                state.content_index, state.config.content_type, state.search_models, regenerate, search_type
             )
         except Exception as e:
             logger.error(f"🚨 Failed to index content")
@@ -112,7 +112,9 @@ if not state.demo:
     def update_search_index():
         try:
             state.config_lock.acquire()
-            state.content_index = configure_content(state.config.content_type, state.search_models, regenerate=False)
+            state.content_index = configure_content(
+                state.content_index, state.config.content_type, state.search_models, regenerate=False
+            )
             logger.info("📬 Content index updated via Scheduler")
         except Exception as e:
             logger.error(f"🚨 Error updating content index via Scheduler: {e}")
@@ -153,6 +155,7 @@ def configure_search(search_models: SearchModels, search_config: Optional[Search
 
 
 def configure_content(
+    content_index: Optional[ContentIndex],
     content_config: Optional[ContentConfig],
     search_models: SearchModels,
     regenerate: bool,
@@ -162,9 +165,8 @@ def configure_content(
     if content_config is None:
         logger.warning("🚨 No Content configuration available.")
         return None
-
-    # Initialize Variables
-    content_index = ContentIndex()
+    if content_index is None:
+        content_index = ContentIndex()
 
     try:
         # Initialize Org Notes Search
