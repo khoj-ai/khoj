@@ -16,4 +16,5 @@
 The Khoj web interface is the default interface. It comes packaged with the khoj server.
 
 ## Interface
-![](./assets/khoj_chat_web_interface.png?)
+![](./assets/khoj_search_on_web.png ':size=400px')
+![](./assets/khoj_chat_on_web.png ':size=400px')

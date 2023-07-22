@@ -2,9 +2,9 @@
 These are the general setup instructions for Khoj.
 
 - Make sure [python](https://realpython.com/installing-python/) and [pip](https://pip.pypa.io/en/stable/installation/) are installed on your machine
-- Check the [Khoj.el Readme](https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#Setup) to setup Khoj with Emacs<br />
+- Check the [Khoj Emacs docs](/emacs?id=setup) to setup Khoj with Emacs<br />
   Its simpler as it can skip the server *install*, *run* and *configure* step below.
-- Check the [Khoj Obsidian Readme](https://github.com/khoj-ai/khoj/tree/master/src/interface/obsidian#Setup) to setup Khoj with Obsidian<br />
+- Check the [Khoj Obsidian docs](/obsidian?id=_2-setup-plugin) to setup Khoj with Obsidian<br />
   Its simpler as it can skip the *configure* step below.
 
 ### 1. Install
@@ -37,17 +37,17 @@ Note: To start Khoj automatically in the background use [Task scheduler](https:/
 2. Add your OpenAI API key to Chat Feature settings if you want to use Chat
 3. Click `Configure` and wait. The app will download ML models and index the content for search and (optionally) chat
 
-[configure demo](./assets/khoj_configure_on_web.mp4 ':include :type=mp4')
+![configure demo](https://user-images.githubusercontent.com/6413477/255307879-61247d3f-c69a-46ef-b058-9bc533cb5c72.mp4 ':include :type=mp4')
 
 ### 4. Install Interface Plugins (Optional)
 Khoj exposes a web interface to search, chat and configure by default.<br />
 The optional steps below allow using Khoj from within an existing application like Obsidian or Emacs.
 
 - **Khoj Obsidian**:<br />
-[Install](https://github.com/khoj-ai/khoj/tree/master/src/interface/obsidian#2-Setup-Plugin) the Khoj Obsidian plugin
+[Install](/obsidian?id=_2-setup-plugin) the Khoj Obsidian plugin
 
 - **Khoj Emacs**:<br />
-[Install](https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#2-Install-Khojel) khoj.el
+[Install](/emacs?id=setup) khoj.el
 
 
 ## Upgrade
@@ -64,11 +64,11 @@ pip install --upgrade --pre khoj-assistant
 
 ### Upgrade Khoj on Emacs
 - Use your Emacs Package Manager to Upgrade
-- See [khoj.el readme](https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs#Upgrade) for details
+- See [khoj.el package setup](/emacs?id=setup) for details
 
 ### Upgrade Khoj on Obsidian
 - Upgrade via the Community plugins tab on the settings pane in the Obsidian app
-- See the [khoj plugin readme](https://github.com/khoj-ai/khoj/tree/master/src/interface/obsidian#2-Setup-Plugin) for details
+- See the [khoj plugin setup](/obsidian.md?id=_2-setup-plugin) for details
 
 ## Uninstall
 1. (Optional) Hit `Ctrl-C` in the terminal running the khoj server to stop it

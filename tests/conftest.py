@@ -10,7 +10,7 @@ from khoj.main import app
 from khoj.configure import configure_processor, configure_routes, configure_search_types
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.search_type import image_search, text_search
-from khoj.utils.config import ImageContent, SearchModels, TextContent
+from khoj.utils.config import SearchModels
 from khoj.utils.helpers import resolve_absolute_path
 from khoj.utils.rawconfig import (
     ContentConfig,

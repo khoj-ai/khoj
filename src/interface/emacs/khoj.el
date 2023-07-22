@@ -221,7 +221,7 @@ for example), set this to the full interpreter path."
   :type '(repeat string)
   :group 'khoj)
 
-(defcustom khoj-chat-model nil
+(defcustom khoj-chat-model "gpt-3.5-turbo"
   "Specify chat model to use for chat with khoj."
   :type 'string
   :group 'khoj)

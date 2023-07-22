@@ -31,7 +31,7 @@ Khoj gives you lightning fast, offline search on your personal machine and gives
   - **Multiple Interfaces**: Interact from your [Web Browser](https://docs.khoj.dev/#/web), [Emacs](https://docs.khoj.dev/#/emacs) or [Obsidian](https://docs.khoj.dev/#/obsidian)
 
 ## Install
-[Click here](./setup.md) for full setup instructions.
+[Click here](/setup) for full setup instructions.
 
 ## Supported data sources
 - markdown*
