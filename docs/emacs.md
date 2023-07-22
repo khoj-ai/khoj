@@ -20,18 +20,17 @@
   - **Assisted creativity**: Smoothly weave across answer retrieval and content generation
 
 ## Interface
-### Search UI
+#### Search
+![khoj search on emacs](./assets/khoj_search_on_emacs.png ':size=400px')
 
-![khoj_emacs](./assets/khoj_on_emacs.png)
-
-### Chat UI
-![khoj_chat_emacs](./assets/khoj_chat_on_emacs_0.5.0.png)
+#### Chat
+![khoj chat on emacs](./assets/khoj_chat_on_emacs.png ':size=400px')
 
 ## Setup
-- /Make sure [[https://realpython.com/installing-python/][python]] and [[https://pip.pypa.io/en/stable/installation/][pip]] are installed on your machine/
+- *Make sure [python](https://realpython.com/installing-python/) and [pip](https://pip.pypa.io/en/stable/installation/) are installed on your machine*
 
-- /khoj.el attempts to automatically install, start and configure the khoj server./
-  If this fails, follow [[https://github.com/khoj-ai/khoj/tree/master/#Setup][these instructions]] to manually setup the khoj server.
+- *khoj.el attempts to automatically install, start and configure the khoj server.*
+  If this fails, follow [these instructions](/setup) to manually setup the khoj server.
 
 ### Direct Install
 ```elisp
@@ -70,7 +69,7 @@ Indexes your org-agenda files, by default.
                 khoj-openai-api-key "YOUR_OPENAI_API_KEY")) ; required to enable chat
 ```
 
-### With [https://github.com/raxod502/straight.el](Straight.el)
+### With [Straight.el](https://github.com/raxod502/straight.el)
 Add below snippet to your Emacs config file.
 Indexes the specified org files, directories. Sets up OpenAI API key for Khoj Chat
 
@@ -108,7 +107,7 @@ This feature finds entries similar to the one you are currently on.
 2. Hit `C-c s f` (or `M-x khoj RET f`) to find similar entries
 
 ### Advanced Usage
-- Add [[https://github.com/khoj-ai/khoj/#query-filters][query filters]] during search to narrow down results further
+- Add [query filters](https://github.com/khoj-ai/khoj/#query-filters) during search to narrow down results further
 
   e.g `What is the meaning of life? -"god" +"none" dt>"last week"`
 

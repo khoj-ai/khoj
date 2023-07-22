@@ -49,7 +49,7 @@ Notes:
 - *Using Khoj Chat will result in query relevant notes being shared with OpenAI for ChatGPT to respond.*
 - *To use Khoj Chat, ensure you've set your [OpenAI API key](https://platform.openai.com/account/api-keys) in the Khoj plugin settings.*
 
-See [Khoj Chat](https://github.com/khoj-ai/khoj/tree/master/#Khoj-Chat) for more details
+See [Khoj Chat](/chat) for more details
 
 ### Search
 Click the *Khoj search* icon 🔎 on the [Ribbon](https://help.obsidian.md/User+interface/Workspace/Ribbon) or run *Khoj: Search* from the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
