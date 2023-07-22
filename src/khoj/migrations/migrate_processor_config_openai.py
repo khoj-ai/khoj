@@ -36,6 +36,8 @@ from khoj.utils.yaml import load_config_from_file, save_config_to_file
 def migrate_processor_conversation_schema(args):
     raw_config = load_config_from_file(args.config_file)
 
+    raw_config["version"] = args.version_no
+
     if "processor" not in raw_config:
         return args
     if "conversation" not in raw_config["processor"]:
