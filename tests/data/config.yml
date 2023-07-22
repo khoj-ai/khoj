@@ -1,23 +1,27 @@
 content-type:
   org:
-    input-files: [ "~/first_from_config.org", "~/second_from_config.org" ]
-    input-filter: ["*.org", "~/notes/*.org"]
-    compressed-jsonl: ".notes.json.gz"
-    embeddings-file: ".note_embeddings.pt"
+    compressed-jsonl: .notes.json.gz
+    embeddings-file: .note_embeddings.pt
     index-header-entries: true
-
+    input-files:
+    - ~/first_from_config.org
+    - ~/second_from_config.org
+    input-filter:
+    - '*.org'
+    - ~/notes/*.org
   plugins:
     content_plugin_1:
-      input-files: [ "content_plugin_1_new.jsonl.gz" ]
-      compressed-jsonl: "content_plugin_1.jsonl.gz"
-      embeddings-file: "content_plugin_1_embeddings.pt"
-
+      compressed-jsonl: content_plugin_1.jsonl.gz
+      embeddings-file: content_plugin_1_embeddings.pt
+      input-files:
+      - content_plugin_1_new.jsonl.gz
     content_plugin_2:
-      input-filter: [ "*2_new.jsonl.gz" ]
-      compressed-jsonl: "content_plugin_2.jsonl.gz"
-      embeddings-file: "content_plugin_2_embeddings.pt"
-
+      compressed-jsonl: content_plugin_2.jsonl.gz
+      embeddings-file: content_plugin_2_embeddings.pt
+      input-filter:
+      - '*2_new.jsonl.gz'
 search-type:
   asymmetric:
-    encoder: "sentence-transformers/msmarco-MiniLM-L-6-v3"
-    cross-encoder: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    cross-encoder: cross-encoder/ms-marco-MiniLM-L-6-v2
+    encoder: sentence-transformers/msmarco-MiniLM-L-6-v3
+version: 0.9.1.dev0
