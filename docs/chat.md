@@ -20,6 +20,7 @@
     -    openai-api-key: # "YOUR_OPENAI_API_KEY"
     +    openai-api-key: sk-aaaaaaaaaaaaaaaaaaaaaaaahhhhhhhhhhhhhhhhhhhhhhhh
         model: "text-davinci-003"
+        chat-model: "gpt-3.5-turbo"
         conversation-logfile: "~/.khoj/processor/conversation/conversation_logs.json"
     ```
 
