@@ -1,0 +1,13 @@
+## Features
+- **Search**
+  - **Local**: Your personal data stays local. All search and indexing is done on your machine. *Unlike chat which requires access to GPT.*
+  - **Incremental**: Incremental search for a fast, search-as-you-type experience
+- **Chat**
+  - **Faster answers**: Find answers faster, smoother than search. No need to manually scan through your notes to find answers.
+  - **Iterative discovery**: Iteratively explore and (re-)discover your notes
+  - **Assisted creativity**: Smoothly weave across answers retrieval and content generation
+- **General**
+  - **Natural**: Advanced natural language understanding using Transformer based ML Models
+  - **Pluggable**: Modular architecture makes it easy to plug in new data sources, frontends and ML models
+  - **Multiple Sources**: Index your Org-mode and Markdown notes, PDF files, Github repositories, and Photos
+  - **Multiple Interfaces**: Interact from your [Web Browser](https://github.com/khoj-ai/khoj/blob/master/src/khoj/interface/web/index.html), [Emacs](https://github.com/khoj-ai/khoj/blob/master//src/interface/emacs/khoj.el) or [Obsidian](https://github.com/khoj-ai/khoj/blob/master/src/interface/obsidian/)

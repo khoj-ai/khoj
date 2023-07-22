@@ -1,0 +1,20 @@
+- Get Started
+    - [Overview](README.md)
+    - [Install](setup.md)
+        - [Windows Installation](windows_install.md)
+    - [Demos](demos.md)
+- Use
+    - [Features](features.md)
+        - [Chat](chat.md)
+        - [Search](search.md)
+    - Interfaces
+        - [Obsidian](obsidian.md)
+        - [Emacs](emacs.md)
+        - [Web](web.md)
+    - Data Sources
+        - [Github](github_integration.md)
+        - [Notion](notion_integration.md)
+    - [Advanced](advanced.md)
+    - [Performance](performance.md)
+- Contributing
+    - [Development](development.md)
