@@ -6,9 +6,7 @@ from threading import Thread
 
 from langchain.schema import ChatMessage
 
-SKIP_GPT4ALL_IMPORT = sys.version_info < (3, 9)
-if not SKIP_GPT4ALL_IMPORT:
-    from gpt4all import GPT4All
+from gpt4all import GPT4All
 
 
 from khoj.processor.conversation.utils import ThreadedGenerator, generate_chatml_messages_with_context

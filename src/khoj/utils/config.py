@@ -7,9 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
-SKIP_GPT4ALL_IMPORT = sys.version_info < (3, 9)
-if not SKIP_GPT4ALL_IMPORT:
-    from gpt4all import GPT4All
+from gpt4all import GPT4All
 
 from khoj.utils.rawconfig import GPT4AllProcessorConfig
 

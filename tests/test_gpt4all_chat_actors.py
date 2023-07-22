@@ -7,17 +7,16 @@ import pytest
 SKIP_TESTS = True
 pytestmark = pytest.mark.skipif(
     SKIP_TESTS,
-    reason="The GPT4All library uses some typing syntax that isn't considered valid for Python 3.8. This causes some tests to fail. Hence, disable it in CI for Python 3.8.",
+    reason="The GPT4All library has some quirks that make it hard to test in CI. This causes some tests to fail. Hence, disable it in CI.",
 )
 
 import freezegun
 from freezegun import freeze_time
 
-if not SKIP_TESTS:
-    from gpt4all import GPT4All
+from gpt4all import GPT4All
 
-    # Internal Packages
-    from khoj.processor.conversation.gpt4all.chat_model import converse_falcon, extract_questions_falcon
+# Internal Packages
+from khoj.processor.conversation.gpt4all.chat_model import converse_falcon, extract_questions_falcon
 
 from khoj.processor.conversation.utils import message_to_log
 
