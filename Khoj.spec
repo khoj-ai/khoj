@@ -21,7 +21,7 @@ datas += copy_metadata('tokenizers')
 datas += copy_metadata('pillow')
 datas += copy_metadata('huggingface_hub')
 datas += copy_metadata('safetensors')
-dates += copy_metadata('pyyaml')
+datas += copy_metadata('pyyaml')
 
 block_cipher = None
 
