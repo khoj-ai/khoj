@@ -19,9 +19,10 @@ warnings.filterwarnings("ignore", message=r"snapshot_download.py has been made p
 warnings.filterwarnings("ignore", message=r"legacy way to download files from the HF hub,", category=FutureWarning)
 
 from PySide6 import QtWidgets
-from PySide6.QtCore import QThread, QTimer
-from khoj.interface.desktop.main_window import MainWindow, ServerThread
-from khoj.interface.desktop.system_tray import create_system_tray
+from PySide6.QtCore import QTimer
+
+# from khoj.interface.desktop.main_window import MainWindow, ServerThread
+# from khoj.interface.desktop.system_tray import create_system_tray
 
 # External Packages
 import uvicorn
@@ -79,8 +80,8 @@ def run():
         configure_routes(app)
         start_server(app, host=args.host, port=args.port, socket=args.socket)
     else:
-        # from khoj.interface.desktop.main_window import MainWindow, ServerThread
-        # from khoj.interface.desktop.system_tray import create_system_tray
+        from khoj.interface.desktop.main_window import MainWindow, ServerThread
+        from khoj.interface.desktop.system_tray import create_system_tray
 
         # Setup GUI
         gui = QtWidgets.QApplication([])
