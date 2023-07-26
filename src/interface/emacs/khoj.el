@@ -373,7 +373,7 @@ CONFIG is json obtained from Khoj config API."
              (ignore-error json-end-of-file (json-parse-buffer :object-type 'alist :array-type 'list :null-object json-null :false-object json-false))))
          (default-index-dir (khoj--get-directory-from-config default-config '(content-type org embeddings-file)))
          (default-chat-dir (khoj--get-directory-from-config default-config '(processor conversation conversation-logfile)))
-         (chat-model (or khoj-chat-model (alist-get 'chat-model (alist-get 'open-ai (alist-get 'conversation (alist-get 'processor config))))))
+         (chat-model (or khoj-chat-model (alist-get 'chat-model (alist-get 'open-ai (alist-get 'conversation (alist-get 'processor default-config))))))
          (default-model (alist-get 'model (alist-get 'conversation (alist-get 'processor default-config))))
          (config (or current-config default-config)))
 
@@ -427,10 +427,12 @@ CONFIG is json obtained from Khoj config API."
              (conversation (assoc 'conversation processor))
              (open-ai (assoc 'open-ai conversation)))
         (when open-ai
+          ;; Unset the `open-ai' field in the khoj conversation processor config
+          (message "khoj.el: disable Khoj Chat using OpenAI as your OpenAI API key got removed from config")
           (setcdr conversation (delq open-ai (cdr conversation)))
           (setcdr processor (delq conversation (cdr processor)))
-          (push conversation (cdr processor))
           (setq config (delq processor config))
+          (push conversation (cdr processor))
           (push processor config))))
 
      ((not current-config)
@@ -439,7 +441,7 @@ CONFIG is json obtained from Khoj config API."
       (cl-pushnew `(processor . ((conversation . ((conversation-logfile . ,(format "%s/conversation.json" default-chat-dir))
                                                   (open-ai . (
                                                               (chat-model . ,chat-model)
-                                                              (api-key . , khoj-openai-api-key)
+                                                              (api-key . ,khoj-openai-api-key)
                                                               ))
                                                   ))))
                   config))
