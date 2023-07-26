@@ -1,15 +1,12 @@
 # System Packages
 from __future__ import annotations  # to avoid quoting type hints
-import sys
 
 from enum import Enum
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Union, Any
 
 from gpt4all import GPT4All
-
-from khoj.utils.rawconfig import GPT4AllProcessorConfig
 
 # External Packages
 import torch
@@ -78,6 +75,12 @@ class SearchModels:
     text_search: Optional[TextSearchModel] = None
     image_search: Optional[ImageSearchModel] = None
     plugin_search: Optional[Dict[str, TextSearchModel]] = None
+
+
+@dataclass
+class GPT4AllProcessorConfig:
+    chat_model: Optional[str] = "ggml-model-gpt4all-falcon-q4_0.bin"
+    loaded_model: Union[Any, None] = None
 
 
 class ConversationProcessorConfigModel:

@@ -108,11 +108,6 @@ class OpenAIProcessorConfig(ConfigBase):
     chat_model: Optional[str] = "gpt-3.5-turbo"
 
 
-class GPT4AllProcessorConfig(ConfigBase):
-    chat_model: Optional[str] = "ggml-model-gpt4all-falcon-q4_0.bin"
-    loaded_model: Union[Any, None] = None
-
-
 class ConversationProcessorConfig(ConfigBase):
     conversation_logfile: Path
     openai: Optional[OpenAIProcessorConfig]
