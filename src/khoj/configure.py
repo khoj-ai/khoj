@@ -88,6 +88,7 @@ def configure_server(config: FullConfig, regenerate: bool, search_type: Optional
             )
         except Exception as e:
             logger.error(f"🚨 Error configuring content index on app load: {e}", exc_info=True)
+            raise e
         finally:
             state.config_lock.release()
 
