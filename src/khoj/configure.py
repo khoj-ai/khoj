@@ -74,7 +74,7 @@ def configure_server(config: FullConfig, regenerate: bool, search_type: Optional
         state.SearchType = configure_search_types(state.config)
         state.search_models = configure_search(state.search_models, state.config.search_type)
     except Exception as e:
-        logger.error(f"🚨 Error configuring search models on app load: {e}", exc_info=True)
+        logger.error(f"🚨 Failed to configure search models", exc_info=True)
         raise e
     finally:
         state.config_lock.release()
@@ -87,7 +87,7 @@ def configure_server(config: FullConfig, regenerate: bool, search_type: Optional
                 state.content_index, state.config.content_type, state.search_models, regenerate, search_type
             )
         except Exception as e:
-            logger.error(f"🚨 Error configuring content index on app load: {e}", exc_info=True)
+            logger.error(f"🚨 Failed to index content", exc_info=True)
             raise e
         finally:
             state.config_lock.release()
