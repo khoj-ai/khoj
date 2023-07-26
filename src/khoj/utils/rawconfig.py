@@ -116,7 +116,7 @@ class GPT4AllProcessorConfig(ConfigBase):
 class ConversationProcessorConfig(ConfigBase):
     conversation_logfile: Path
     open_ai: Optional[OpenAIProcessorConfig]
-    enable_local_llm: Optional[bool] = False
+    enable_offline_chat: Optional[bool] = False
 
 
 class ProcessorConfig(ConfigBase):

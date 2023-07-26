@@ -66,7 +66,7 @@ default_config = {
                 "api-key": None,
                 "chat-model": "gpt-3.5-turbo",
             },
-            "enable-local-llm": False,
+            "enable-offline-chat": False,
             "conversation-logfile": "~/.khoj/processor/conversation/conversation_logs.json",
         }
     },

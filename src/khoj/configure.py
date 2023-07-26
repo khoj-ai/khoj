@@ -63,7 +63,7 @@ def configure_server(config: FullConfig, regenerate: bool, search_type: Optional
         state.config_lock.acquire()
         state.processor_config = configure_processor(state.config.processor)
     except Exception as e:
-        logger.error(f"🚨 Failed to configure processor")
+        logger.error(f"🚨 Failed to configure processor", exc_info=True)
         raise e
     finally:
         state.config_lock.release()
@@ -75,6 +75,7 @@ def configure_server(config: FullConfig, regenerate: bool, search_type: Optional
         state.search_models = configure_search(state.search_models, state.config.search_type)
     except Exception as e:
         logger.error(f"🚨 Error configuring search models on app load: {e}", exc_info=True)
+        raise e
     finally:
         state.config_lock.release()
 
@@ -278,13 +279,19 @@ def configure_conversation_processor(processor_config: Optional[ProcessorConfig]
         or not processor_config.conversation
         or not processor_config.conversation.conversation_logfile
     ):
-        conversation_logfile = resolve_absolute_path("~/.khoj/processor/conversation/conversation_logs.json")
+        default_config = constants.default_config
+        default_conversation_logfile = resolve_absolute_path(
+            default_config["processor"]["conversation"]["conversation-logfile"]
+        )
+        conversation_logfile = resolve_absolute_path(default_conversation_logfile)
         conversation_config = processor_config.conversation if processor_config else None
         conversation_processor = ConversationProcessorConfigModel(
             conversation_config=ConversationProcessorConfig(
                 conversation_logfile=conversation_logfile,
                 open_ai=(conversation_config.open_ai if (conversation_config is not None) else None),
-                enable_local_llm=(conversation_config.enable_local_llm if (conversation_config is not None) else False),
+                enable_offline_chat=(
+                    conversation_config.enable_offline_chat if (conversation_config is not None) else False
+                ),
             )
         )
     else:

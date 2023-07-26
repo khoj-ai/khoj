@@ -253,7 +253,11 @@ if not state.demo:
         _initialize_config()
 
         if not state.config.processor or not state.config.processor.conversation:
-            conversation_logfile = resolve_absolute_path("~/.khoj/processor/conversation/conversation_logs.json")
+            default_config = constants.default_config
+            default_conversation_logfile = resolve_absolute_path(
+                default_config["processor"]["conversation"]["conversation-logfile"]
+            )
+            conversation_logfile = resolve_absolute_path(default_conversation_logfile)
             state.config.processor = ProcessorConfig(conversation=ConversationProcessorConfig(conversation_logfile=conversation_logfile))  # type: ignore
 
         assert state.config.processor.conversation is not None
@@ -274,20 +278,24 @@ if not state.demo:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
-    @api.post("/config/data/processor/enable_local_llm", status_code=200)
-    async def set_processor_enable_local_llm_config_data(
+    @api.post("/config/data/processor/enable_offline_chat", status_code=200)
+    async def set_processor_enable_offline_chat_config_data(
         request: Request,
-        enable_local_llm: bool,
+        enable_offline_chat: bool,
         client: Optional[str] = None,
     ):
         _initialize_config()
 
         if not state.config.processor or not state.config.processor.conversation:
-            conversation_logfile = resolve_absolute_path("~/.khoj/processor/conversation/conversation_logs.json")
+            default_config = constants.default_config
+            default_conversation_logfile = resolve_absolute_path(
+                default_config["processor"]["conversation"]["conversation-logfile"]
+            )
+            conversation_logfile = resolve_absolute_path(default_conversation_logfile)
             state.config.processor = ProcessorConfig(conversation=ConversationProcessorConfig(conversation_logfile=conversation_logfile))  # type: ignore
 
         assert state.config.processor.conversation is not None
-        state.config.processor.conversation.enable_local_llm = enable_local_llm
+        state.config.processor.conversation.enable_offline_chat = enable_offline_chat
         state.processor_config = configure_processor(state.config.processor)
 
         update_telemetry_state(
@@ -295,7 +303,7 @@ if not state.demo:
             telemetry_type="api",
             api="set_processor_config",
             client=client,
-            metadata={"processor_type": f"{'enable' if enable_local_llm else 'disable'}_local_llm"},
+            metadata={"processor_type": f"{'enable' if enable_offline_chat else 'disable'}_local_llm"},
         )
 
         try:

@@ -82,7 +82,7 @@ def converse_falcon(
     completion_func=None,
 ) -> ThreadedGenerator:
     """
-    Converse with user using OpenAI's ChatGPT
+    Converse with user using Falcon
     """
     gpt4all_model = loaded_model or GPT4All(model)
     # Initialize Variables

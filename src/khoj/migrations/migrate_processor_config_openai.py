@@ -26,7 +26,7 @@ processor:
         chat-model: gpt-3.5-turbo
         openai-api-key: sk-secret-key
     conversation-logfile: ~/.khoj/processor/conversation/conversation_logs.json
-    enable-local-llm: false
+    enable-offline-chat: false
 search-type:
     ...
 """
@@ -40,12 +40,14 @@ def migrate_processor_conversation_schema(args):
 
     if "processor" not in raw_config:
         return args
+    if raw_config["processor"] is None:
+        return args
     if "conversation" not in raw_config["processor"]:
         return args
 
-    # Add enable_local_llm to khoj config schema
-    if "enable-local-llm" not in raw_config["processor"]["conversation"]:
-        raw_config["processor"]["conversation"]["enable-local-llm"] = False
+    # Add enable_offline_chat to khoj config schema
+    if "enable-offline-chat" not in raw_config["processor"]["conversation"]:
+        raw_config["processor"]["conversation"]["enable-offline-chat"] = False
         save_config_to_file(raw_config, args.config_file)
 
     current_open_ai_api_key = raw_config["processor"]["conversation"].get("openai-api-key", None)
