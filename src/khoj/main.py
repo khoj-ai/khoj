@@ -75,7 +75,8 @@ def run():
         start_server(app, host=args.host, port=args.port, socket=args.socket)
     else:
         from PySide6 import QtWidgets
-        from PySide6.QtCore import QThread, QTimer
+        from PySide6.QtCore import QTimer
+
         from khoj.interface.desktop.main_window import MainWindow, ServerThread
         from khoj.interface.desktop.system_tray import create_system_tray
 
