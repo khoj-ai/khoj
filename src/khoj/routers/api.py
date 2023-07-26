@@ -255,7 +255,7 @@ if not state.demo:
         if not state.config.processor or not state.config.processor.conversation:
             default_config = constants.default_config
             default_conversation_logfile = resolve_absolute_path(
-                default_config["processor"]["conversation"]["conversation-logfile"]
+                default_config["processor"]["conversation"]["conversation-logfile"]  # type: ignore
             )
             conversation_logfile = resolve_absolute_path(default_conversation_logfile)
             state.config.processor = ProcessorConfig(conversation=ConversationProcessorConfig(conversation_logfile=conversation_logfile))  # type: ignore
@@ -289,7 +289,7 @@ if not state.demo:
         if not state.config.processor or not state.config.processor.conversation:
             default_config = constants.default_config
             default_conversation_logfile = resolve_absolute_path(
-                default_config["processor"]["conversation"]["conversation-logfile"]
+                default_config["processor"]["conversation"]["conversation-logfile"]  # type: ignore
             )
             conversation_logfile = resolve_absolute_path(default_conversation_logfile)
             state.config.processor = ProcessorConfig(conversation=ConversationProcessorConfig(conversation_logfile=conversation_logfile))  # type: ignore

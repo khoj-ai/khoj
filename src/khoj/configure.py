@@ -282,7 +282,7 @@ def configure_conversation_processor(
     ):
         default_config = constants.default_config
         default_conversation_logfile = resolve_absolute_path(
-            default_config["processor"]["conversation"]["conversation-logfile"]
+            default_config["processor"]["conversation"]["conversation-logfile"]  # type: ignore
         )
         conversation_logfile = resolve_absolute_path(default_conversation_logfile)
         conversation_config = processor_config.conversation if processor_config else None
