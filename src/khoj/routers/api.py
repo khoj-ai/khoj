@@ -207,7 +207,7 @@ if not state.demo:
             telemetry_type="api",
             api="delete_processor_openai_config",
             client=client,
-            metadata={"processor_type": "openai"},
+            metadata={"processor_conversation_type": "openai"},
         )
 
         try:
@@ -269,7 +269,7 @@ if not state.demo:
             telemetry_type="api",
             api="set_processor_config",
             client=client,
-            metadata={"processor_type": "conversation"},
+            metadata={"processor_conversation_type": "conversation"},
         )
 
         try:
@@ -303,7 +303,7 @@ if not state.demo:
             telemetry_type="api",
             api="set_processor_config",
             client=client,
-            metadata={"processor_type": f"{'enable' if enable_offline_chat else 'disable'}_local_llm"},
+            metadata={"processor_conversation_type": f"{'enable' if enable_offline_chat else 'disable'}_local_llm"},
         )
 
         try:
