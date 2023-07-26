@@ -162,7 +162,7 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
                 }
             }
             // Else if khoj is not configured with OpenAI API key from khoj plugin settings
-            else if (data["processor"]["conversation"]["openai"] !== setting.openaiApiKey) {
+            else if (data["processor"]["conversation"]["openai"]["api-key"] !== setting.openaiApiKey) {
                 data["processor"] = {
                     "conversation": {
                         "conversation-logfile": data["processor"]["conversation"]["conversation-logfile"],
