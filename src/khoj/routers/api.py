@@ -186,7 +186,7 @@ if not state.demo:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
-    @api.post("/delete/config/data/processor/openai", status_code=200)
+    @api.post("/delete/config/data/processor/conversation/openai", status_code=200)
     async def remove_processor_conversation_config_data(
         request: Request,
         client: Optional[str] = None,
@@ -244,7 +244,7 @@ if not state.demo:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
-    @api.post("/config/data/processor/openai", status_code=200)
+    @api.post("/config/data/processor/conversation/openai", status_code=200)
     async def set_processor_openai_config_data(
         request: Request,
         updated_config: Union[OpenAIProcessorConfig, None],
@@ -278,7 +278,7 @@ if not state.demo:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
-    @api.post("/config/data/processor/enable_offline_chat", status_code=200)
+    @api.post("/config/data/processor/conversation/enable_offline_chat", status_code=200)
     async def set_processor_enable_offline_chat_config_data(
         request: Request,
         enable_offline_chat: bool,

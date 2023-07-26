@@ -203,7 +203,7 @@
                 <p class="card-description">Setup chat using OpenAI</p>
                 </div>
                 <div class="card-action-row">
-                    <a class="card-button" href="/config/processor/openai">
+                    <a class="card-button" href="/config/processor/conversation/openai">
                         {% if current_config.processor and current_config.processor.conversation.openai %}
                             Update
                         {% else %}
@@ -294,7 +294,7 @@
         toggleEnableLocalLLLMButton.classList.remove("disabled");
         toggleEnableLocalLLLMButton.classList.add("enabled");
 
-        fetch('/api/config/data/processor/enable_offline_chat' + '?enable_offline_chat=' + enable, {
+        fetch('/api/config/data/processor/conversation/enable_offline_chat' + '?enable_offline_chat=' + enable, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -340,7 +340,7 @@
 
     function clearConversationProcessor() {
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
-        fetch('/api/delete/config/data/processor/openai', {
+        fetch('/api/delete/config/data/processor/conversation/openai', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
