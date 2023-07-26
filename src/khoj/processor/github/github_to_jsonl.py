@@ -52,7 +52,7 @@ class GithubToJsonl(TextToJsonl):
             try:
                 markdown_files, org_files = self.get_files(repo_url, repo)
             except Exception as e:
-                logger.error(f"Unable to download github repo {repo_shorthand}")
+                logger.error(f"Unable to download github repo {repo_shorthand}", exc_info=True)
                 raise e
 
         logger.info(f"Found {len(markdown_files)} markdown files in github repo {repo_shorthand}")

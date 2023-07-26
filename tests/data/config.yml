@@ -20,6 +20,7 @@ content-type:
       embeddings-file: content_plugin_2_embeddings.pt
       input-filter:
       - '*2_new.jsonl.gz'
+enable-offline-chat: false
 search-type:
   asymmetric:
     cross-encoder: cross-encoder/ms-marco-MiniLM-L-6-v2

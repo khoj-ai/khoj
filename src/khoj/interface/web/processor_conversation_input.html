@@ -13,7 +13,7 @@
                         <label for="openai-api-key" title="Get your OpenAI key from https://platform.openai.com/account/api-keys">OpenAI API key</label>
                     </td>
                     <td>
-                        <input type="text" id="openai-api-key" name="openai-api-key" value="{{ current_config['openai_api_key'] }}">
+                        <input type="text" id="openai-api-key" name="openai-api-key" value="{{ current_config['api_key'] }}">
                     </td>
                 </tr>
                 <tr>
@@ -22,24 +22,6 @@
                     </td>
                     <td>
                         <input type="text" id="chat-model" name="chat-model" value="{{ current_config['chat_model'] }}">
-                    </td>
-                </tr>
-            </table>
-            <table style="display: none;">
-                <tr>
-                    <td>
-                        <label for="conversation-logfile">Conversation Logfile</label>
-                    </td>
-                    <td>
-                        <input type="text" id="conversation-logfile" name="conversation-logfile" value="{{ current_config['conversation_logfile'] }}">
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <label for="model">Model</label>
-                    </td>
-                    <td>
-                        <input type="text" id="model" name="model" value="{{ current_config['model'] }}">
                     </td>
                 </tr>
             </table>
@@ -54,21 +36,23 @@
     submit.addEventListener("click", function(event) {
         event.preventDefault();
         var openai_api_key = document.getElementById("openai-api-key").value;
-        var conversation_logfile = document.getElementById("conversation-logfile").value;
-        var model = document.getElementById("model").value;
         var chat_model = document.getElementById("chat-model").value;
 
+        if (openai_api_key == "" || chat_model == "") {
+            document.getElementById("success").innerHTML = "⚠️ Please fill all the fields.";
+            document.getElementById("success").style.display = "block";
+            return;
+        }
+
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
-        fetch('/api/config/data/processor/conversation', {
+        fetch('/api/config/data/processor/conversation/openai', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken
             },
             body: JSON.stringify({
-                "openai_api_key": openai_api_key,
-                "conversation_logfile": conversation_logfile,
-                "model": model,
+                "api_key": openai_api_key,
                 "chat_model": chat_model
             })
         })

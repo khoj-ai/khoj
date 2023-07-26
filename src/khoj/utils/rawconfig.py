@@ -1,7 +1,7 @@
 # System Packages
 import json
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union, Any
 
 # External Packages
 from pydantic import BaseModel, validator
@@ -103,11 +103,15 @@ class SearchConfig(ConfigBase):
     image: Optional[ImageSearchConfig]
 
 
-class ConversationProcessorConfig(ConfigBase):
-    openai_api_key: str
-    conversation_logfile: Path
-    model: Optional[str] = "text-davinci-003"
+class OpenAIProcessorConfig(ConfigBase):
+    api_key: str
     chat_model: Optional[str] = "gpt-3.5-turbo"
+
+
+class ConversationProcessorConfig(ConfigBase):
+    conversation_logfile: Path
+    openai: Optional[OpenAIProcessorConfig]
+    enable_offline_chat: Optional[bool] = False
 
 
 class ProcessorConfig(ConfigBase):

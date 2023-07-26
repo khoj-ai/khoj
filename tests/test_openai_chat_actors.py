@@ -8,7 +8,7 @@ import freezegun
 from freezegun import freeze_time
 
 # Internal Packages
-from khoj.processor.conversation.gpt import converse, extract_questions
+from khoj.processor.conversation.openai.gpt import converse, extract_questions
 from khoj.processor.conversation.utils import message_to_log
 
 

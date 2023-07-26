@@ -20,7 +20,7 @@
                     </h3>
                 </div>
                 <div class="card-description-row">
-                <p class="card-description">Set repositories for Khoj to index</p>
+                <p class="card-description">Set repositories to index</p>
                 </div>
                 <div class="card-action-row">
                     <a class="card-button" href="/config/content_type/github">
@@ -90,7 +90,7 @@
                     </h3>
                 </div>
                 <div class="card-description-row">
-                    <p class="card-description">Set markdown files for Khoj to index</p>
+                    <p class="card-description">Set markdown files to index</p>
                 </div>
                 <div class="card-action-row">
                     <a class="card-button" href="/config/content_type/markdown">
@@ -125,7 +125,7 @@
                     </h3>
                 </div>
                 <div class="card-description-row">
-                <p class="card-description">Set org files for Khoj to index</p>
+                <p class="card-description">Set org files to index</p>
                 </div>
                 <div class="card-action-row">
                     <a class="card-button" href="/config/content_type/org">
@@ -160,7 +160,7 @@
                     </h3>
                 </div>
                 <div class="card-description-row">
-                <p class="card-description">Set PDF files for Khoj to index</p>
+                <p class="card-description">Set PDF files to index</p>
                 </div>
                 <div class="card-action-row">
                     <a class="card-button" href="/config/content_type/pdf">
@@ -187,10 +187,10 @@
         <div class="section-cards">
             <div class="card">
                 <div class="card-title-row">
-                    <img class="card-icon" src="/static/assets/icons/chat.svg" alt="Chat">
+                    <img class="card-icon" src="/static/assets/icons/openai-logomark.svg" alt="Chat">
                     <h3 class="card-title">
                         Chat
-                        {% if current_config.processor and current_config.processor.conversation %}
+                        {% if current_config.processor and current_config.processor.conversation.openai %}
                             {% if current_model_state.conversation == False %}
                                 <img id="misconfigured-icon-conversation-processor" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you just need to click Configure.">
                             {% else %}
@@ -200,11 +200,11 @@
                     </h3>
                 </div>
                 <div class="card-description-row">
-                <p class="card-description">Setup Khoj Chat with OpenAI</p>
+                <p class="card-description">Setup chat using OpenAI</p>
                 </div>
                 <div class="card-action-row">
-                    <a class="card-button" href="/config/processor/conversation">
-                        {% if current_config.processor and current_config.processor.conversation %}
+                    <a class="card-button" href="/config/processor/conversation/openai">
+                        {% if current_config.processor and current_config.processor.conversation.openai %}
                             Update
                         {% else %}
                             Setup
@@ -212,13 +212,38 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
                     </a>
                 </div>
-                {% if current_config.processor and current_config.processor.conversation %}
+                {% if current_config.processor and current_config.processor.conversation.openai %}
                     <div id="clear-conversation" class="card-action-row">
                         <button class="card-button" onclick="clearConversationProcessor()">
                             Disable
                         </button>
                     </div>
                 {% endif %}
+            </div>
+            <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/chat.svg" alt="Chat">
+                    <h3 class="card-title">
+                        Offline Chat
+                        <img id="configured-icon-conversation-enable-offline-chat" class="configured-icon {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.enable_offline_chat %}enabled{% else %}disabled{% endif %}" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                    </h3>
+                </div>
+                <div class="card-description-row">
+                <p class="card-description">Setup offline chat (Falcon 7B)</p>
+                </div>
+                <div id="clear-enable-offline-chat" class="card-action-row {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.enable_offline_chat %}enabled{% else %}disabled{% endif %}">
+                    <button class="card-button" onclick="toggleEnableLocalLLLM(false)">
+                        Disable
+                    </button>
+                </div>
+                <div id="set-enable-offline-chat" class="card-action-row {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.enable_offline_chat %}disabled{% else %}enabled{% endif %}">
+                    <button class="card-button happy" onclick="toggleEnableLocalLLLM(true)">
+                        Enable
+                    </button>
+                </div>
+                <div id="toggle-enable-offline-chat" class="card-action-row disabled">
+                    <div class="loader"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -263,9 +288,59 @@
         })
     };
 
+    function toggleEnableLocalLLLM(enable) {
+        const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
+        var toggleEnableLocalLLLMButton = document.getElementById("toggle-enable-offline-chat");
+        toggleEnableLocalLLLMButton.classList.remove("disabled");
+        toggleEnableLocalLLLMButton.classList.add("enabled");
+
+        fetch('/api/config/data/processor/conversation/enable_offline_chat' + '?enable_offline_chat=' + enable, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status == "ok") {
+                // Toggle the Enabled/Disabled UI based on the action/response.
+                var enableLocalLLLMButton = document.getElementById("set-enable-offline-chat");
+                var disableLocalLLLMButton = document.getElementById("clear-enable-offline-chat");
+                var configuredIcon = document.getElementById("configured-icon-conversation-enable-offline-chat");
+                var toggleEnableLocalLLLMButton = document.getElementById("toggle-enable-offline-chat");
+
+                toggleEnableLocalLLLMButton.classList.remove("enabled");
+                toggleEnableLocalLLLMButton.classList.add("disabled");
+
+
+                if (enable) {
+                    enableLocalLLLMButton.classList.add("disabled");
+                    enableLocalLLLMButton.classList.remove("enabled");
+
+                    configuredIcon.classList.add("enabled");
+                    configuredIcon.classList.remove("disabled");
+
+                    disableLocalLLLMButton.classList.remove("disabled");
+                    disableLocalLLLMButton.classList.add("enabled");
+                } else {
+                    enableLocalLLLMButton.classList.remove("disabled");
+                    enableLocalLLLMButton.classList.add("enabled");
+
+                    configuredIcon.classList.remove("enabled");
+                    configuredIcon.classList.add("disabled");
+
+                    disableLocalLLLMButton.classList.add("disabled");
+                    disableLocalLLLMButton.classList.remove("enabled");
+                }
+
+            }
+        })
+    }
+
     function clearConversationProcessor() {
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
-        fetch('/api/delete/config/data/processor/conversation', {
+        fetch('/api/delete/config/data/processor/conversation/openai', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -319,7 +394,7 @@
     function updateIndex(force, successText, errorText, button, loadingText, emoji) {
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
         button.disabled = true;
-        button.innerHTML = emoji + loadingText;
+        button.innerHTML = emoji + " " + loadingText;
         fetch('/api/update?&client=web&force=' + force, {
             method: 'GET',
             headers: {

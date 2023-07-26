@@ -9,11 +9,11 @@ from langchain.schema import ChatMessage
 # Internal Packages
 from khoj.utils.constants import empty_escape_sequences
 from khoj.processor.conversation import prompts
-from khoj.processor.conversation.utils import (
+from khoj.processor.conversation.openai.utils import (
     chat_completion_with_backoff,
     completion_with_backoff,
-    generate_chatml_messages_with_context,
 )
+from khoj.processor.conversation.utils import generate_chatml_messages_with_context
 
 
 logger = logging.getLogger(__name__)

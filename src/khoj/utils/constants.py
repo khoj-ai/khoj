@@ -62,10 +62,12 @@ default_config = {
     },
     "processor": {
         "conversation": {
-            "openai-api-key": None,
-            "model": "text-davinci-003",
+            "openai": {
+                "api-key": None,
+                "chat-model": "gpt-3.5-turbo",
+            },
+            "enable-offline-chat": False,
             "conversation-logfile": "~/.khoj/processor/conversation/conversation_logs.json",
-            "chat-model": "gpt-3.5-turbo",
         }
     },
 }

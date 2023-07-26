@@ -3,7 +3,7 @@ from fastapi import APIRouter
 from fastapi import Request
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
-from khoj.utils.rawconfig import TextContentConfig, ConversationProcessorConfig, FullConfig
+from khoj.utils.rawconfig import TextContentConfig, OpenAIProcessorConfig, FullConfig
 
 # Internal Packages
 from khoj.utils import constants, state
@@ -151,28 +151,29 @@ if not state.demo:
             },
         )
 
-    @web_client.get("/config/processor/conversation", response_class=HTMLResponse)
+    @web_client.get("/config/processor/conversation/openai", response_class=HTMLResponse)
     def conversation_processor_config_page(request: Request):
         default_copy = constants.default_config.copy()
-        default_processor_config = default_copy["processor"]["conversation"]  # type: ignore
-        default_processor_config = ConversationProcessorConfig(
-            openai_api_key="",
-            model=default_processor_config["model"],
-            conversation_logfile=default_processor_config["conversation-logfile"],
+        default_processor_config = default_copy["processor"]["conversation"]["openai"]  # type: ignore
+        default_openai_config = OpenAIProcessorConfig(
+            api_key="",
             chat_model=default_processor_config["chat-model"],
         )
 
-        current_processor_conversation_config = (
-            state.config.processor.conversation
-            if state.config and state.config.processor and state.config.processor.conversation
-            else default_processor_config
+        current_processor_openai_config = (
+            state.config.processor.conversation.openai
+            if state.config
+            and state.config.processor
+            and state.config.processor.conversation
+            and state.config.processor.conversation.openai
+            else default_openai_config
         )
-        current_processor_conversation_config = json.loads(current_processor_conversation_config.json())
+        current_processor_openai_config = json.loads(current_processor_openai_config.json())
 
         return templates.TemplateResponse(
             "processor_conversation_input.html",
             context={
                 "request": request,
-                "current_config": current_processor_conversation_config,
+                "current_config": current_processor_openai_config,
             },
         )

@@ -11,7 +11,6 @@ import schedule
 from fastapi.staticfiles import StaticFiles
 
 # Internal Packages
-from khoj.processor.conversation.gpt import summarize
 from khoj.processor.jsonl.jsonl_to_jsonl import JsonlToJsonl
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
@@ -28,7 +27,7 @@ from khoj.utils.config import (
     ConversationProcessorConfigModel,
 )
 from khoj.utils.helpers import LRU, resolve_absolute_path, merge_dicts
-from khoj.utils.rawconfig import FullConfig, ProcessorConfig, SearchConfig, ContentConfig
+from khoj.utils.rawconfig import FullConfig, ProcessorConfig, SearchConfig, ContentConfig, ConversationProcessorConfig
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.word_filter import WordFilter
 from khoj.search_filter.file_filter import FileFilter
@@ -64,7 +63,7 @@ def configure_server(config: FullConfig, regenerate: bool, search_type: Optional
         state.config_lock.acquire()
         state.processor_config = configure_processor(state.config.processor)
     except Exception as e:
-        logger.error(f"🚨 Failed to configure processor")
+        logger.error(f"🚨 Failed to configure processor", exc_info=True)
         raise e
     finally:
         state.config_lock.release()
@@ -75,7 +74,7 @@ def configure_server(config: FullConfig, regenerate: bool, search_type: Optional
         state.SearchType = configure_search_types(state.config)
         state.search_models = configure_search(state.search_models, state.config.search_type)
     except Exception as e:
-        logger.error(f"🚨 Failed to configure search models")
+        logger.error(f"🚨 Failed to configure search models", exc_info=True)
         raise e
     finally:
         state.config_lock.release()
@@ -88,7 +87,7 @@ def configure_server(config: FullConfig, regenerate: bool, search_type: Optional
                 state.content_index, state.config.content_type, state.search_models, regenerate, search_type
             )
         except Exception as e:
-            logger.error(f"🚨 Failed to index content")
+            logger.error(f"🚨 Failed to index content", exc_info=True)
             raise e
         finally:
             state.config_lock.release()
@@ -117,7 +116,7 @@ if not state.demo:
             )
             logger.info("📬 Content index updated via Scheduler")
         except Exception as e:
-            logger.error(f"🚨 Error updating content index via Scheduler: {e}")
+            logger.error(f"🚨 Error updating content index via Scheduler: {e}", exc_info=True)
         finally:
             state.config_lock.release()
 
@@ -258,7 +257,9 @@ def configure_content(
     return content_index
 
 
-def configure_processor(processor_config: Optional[ProcessorConfig]):
+def configure_processor(
+    processor_config: Optional[ProcessorConfig], state_processor_config: Optional[ProcessorConfigModel] = None
+):
     if not processor_config:
         logger.warning("🚨 No Processor configuration available.")
         return None
@@ -266,16 +267,47 @@ def configure_processor(processor_config: Optional[ProcessorConfig]):
     processor = ProcessorConfigModel()
 
     # Initialize Conversation Processor
-    if processor_config.conversation:
-        logger.info("💬 Setting up conversation processor")
-        processor.conversation = configure_conversation_processor(processor_config.conversation)
+    logger.info("💬 Setting up conversation processor")
+    processor.conversation = configure_conversation_processor(processor_config, state_processor_config)
 
     return processor
 
 
-def configure_conversation_processor(conversation_processor_config):
-    conversation_processor = ConversationProcessorConfigModel(conversation_processor_config)
-    conversation_logfile = resolve_absolute_path(conversation_processor.conversation_logfile)
+def configure_conversation_processor(
+    processor_config: Optional[ProcessorConfig], state_processor_config: Optional[ProcessorConfigModel] = None
+):
+    if (
+        not processor_config
+        or not processor_config.conversation
+        or not processor_config.conversation.conversation_logfile
+    ):
+        default_config = constants.default_config
+        default_conversation_logfile = resolve_absolute_path(
+            default_config["processor"]["conversation"]["conversation-logfile"]  # type: ignore
+        )
+        conversation_logfile = resolve_absolute_path(default_conversation_logfile)
+        conversation_config = processor_config.conversation if processor_config else None
+        conversation_processor = ConversationProcessorConfigModel(
+            conversation_config=ConversationProcessorConfig(
+                conversation_logfile=conversation_logfile,
+                openai=(conversation_config.openai if (conversation_config is not None) else None),
+                enable_offline_chat=(
+                    conversation_config.enable_offline_chat if (conversation_config is not None) else False
+                ),
+            )
+        )
+    else:
+        conversation_processor = ConversationProcessorConfigModel(
+            conversation_config=processor_config.conversation,
+        )
+        conversation_logfile = resolve_absolute_path(conversation_processor.conversation_logfile)
+
+    # Load Conversation Logs from Disk
+    if state_processor_config and state_processor_config.conversation and state_processor_config.conversation.meta_log:
+        conversation_processor.meta_log = state_processor_config.conversation.meta_log
+        conversation_processor.chat_session = state_processor_config.conversation.chat_session
+        logger.debug(f"Loaded conversation logs from state")
+        return conversation_processor
 
     if conversation_logfile.is_file():
         # Load Metadata Logs from Conversation Logfile
@@ -302,12 +334,8 @@ def save_chat_session():
         return
 
     # Summarize Conversation Logs for this Session
-    chat_session = state.processor_config.conversation.chat_session
-    openai_api_key = state.processor_config.conversation.openai_api_key
     conversation_log = state.processor_config.conversation.meta_log
-    chat_model = state.processor_config.conversation.chat_model
     session = {
-        "summary": summarize(chat_session, model=chat_model, api_key=openai_api_key),
         "session-start": conversation_log.get("session", [{"session-end": 0}])[-1]["session-end"],
         "session-end": len(conversation_log["chat"]),
     }
@@ -344,6 +372,6 @@ def upload_telemetry():
                     log[field] = str(log[field])
         requests.post(constants.telemetry_server, json=state.telemetry)
     except Exception as e:
-        logger.error(f"📡 Error uploading telemetry: {e}")
+        logger.error(f"📡 Error uploading telemetry: {e}", exc_info=True)
     else:
         state.telemetry = []

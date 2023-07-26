@@ -1,9 +1,12 @@
 # System Packages
 from __future__ import annotations  # to avoid quoting type hints
+
 from enum import Enum
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Union, Any
+
+from gpt4all import GPT4All
 
 # External Packages
 import torch
@@ -13,7 +16,7 @@ if TYPE_CHECKING:
     from sentence_transformers import CrossEncoder
     from khoj.search_filter.base_filter import BaseFilter
     from khoj.utils.models import BaseEncoder
-    from khoj.utils.rawconfig import ConversationProcessorConfig, Entry
+    from khoj.utils.rawconfig import ConversationProcessorConfig, Entry, OpenAIProcessorConfig
 
 
 class SearchType(str, Enum):
@@ -74,14 +77,28 @@ class SearchModels:
     plugin_search: Optional[Dict[str, TextSearchModel]] = None
 
 
+@dataclass
+class GPT4AllProcessorConfig:
+    chat_model: Optional[str] = "ggml-model-gpt4all-falcon-q4_0.bin"
+    loaded_model: Union[Any, None] = None
+
+
 class ConversationProcessorConfigModel:
-    def __init__(self, processor_config: ConversationProcessorConfig):
-        self.openai_api_key = processor_config.openai_api_key
-        self.model = processor_config.model
-        self.chat_model = processor_config.chat_model
-        self.conversation_logfile = Path(processor_config.conversation_logfile)
+    def __init__(
+        self,
+        conversation_config: ConversationProcessorConfig,
+    ):
+        self.openai_model = conversation_config.openai
+        self.gpt4all_model = GPT4AllProcessorConfig()
+        self.enable_offline_chat = conversation_config.enable_offline_chat
+        self.conversation_logfile = Path(conversation_config.conversation_logfile)
         self.chat_session: List[str] = []
         self.meta_log: dict = {}
+
+        if not self.openai_model and self.enable_offline_chat:
+            self.gpt4all_model.loaded_model = GPT4All(self.gpt4all_model.chat_model)  # type: ignore
+        else:
+            self.gpt4all_model.loaded_model = None
 
 
 @dataclass

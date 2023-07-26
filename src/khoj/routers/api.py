@@ -5,7 +5,7 @@ import time
 import yaml
 import logging
 import json
-from typing import Iterable, List, Optional, Union
+from typing import List, Optional, Union
 
 # External Packages
 from fastapi import APIRouter, HTTPException, Header, Request
@@ -26,16 +26,19 @@ from khoj.utils.rawconfig import (
     SearchConfig,
     SearchResponse,
     TextContentConfig,
-    ConversationProcessorConfig,
+    OpenAIProcessorConfig,
     GithubContentConfig,
     NotionContentConfig,
+    ConversationProcessorConfig,
 )
+from khoj.utils.helpers import resolve_absolute_path
 from khoj.utils.state import SearchType
 from khoj.utils import state, constants
 from khoj.utils.yaml import save_config_to_file_updated_state
 from fastapi.responses import StreamingResponse, Response
 from khoj.routers.helpers import perform_chat_checks, generate_chat_response, update_telemetry_state
-from khoj.processor.conversation.gpt import extract_questions
+from khoj.processor.conversation.openai.gpt import extract_questions
+from khoj.processor.conversation.gpt4all.chat_model import extract_questions_falcon, converse_falcon
 from fastapi.requests import Request
 
 
@@ -50,6 +53,8 @@ if not state.demo:
         if state.config is None:
             state.config = FullConfig()
             state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
+        if state.processor_config is None:
+            state.processor_config = configure_processor(state.config.processor)
 
     @api.get("/config/data", response_model=FullConfig)
     def get_config_data():
@@ -181,22 +186,28 @@ if not state.demo:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
-    @api.post("/delete/config/data/processor/conversation", status_code=200)
+    @api.post("/delete/config/data/processor/conversation/openai", status_code=200)
     async def remove_processor_conversation_config_data(
         request: Request,
         client: Optional[str] = None,
     ):
-        if not state.config or not state.config.processor or not state.config.processor.conversation:
+        if (
+            not state.config
+            or not state.config.processor
+            or not state.config.processor.conversation
+            or not state.config.processor.conversation.openai
+        ):
             return {"status": "ok"}
 
-        state.config.processor.conversation = None
+        state.config.processor.conversation.openai = None
+        state.processor_config = configure_processor(state.config.processor, state.processor_config)
 
         update_telemetry_state(
             request=request,
             telemetry_type="api",
-            api="delete_processor_config",
+            api="delete_processor_openai_config",
             client=client,
-            metadata={"processor_type": "conversation"},
+            metadata={"processor_conversation_type": "openai"},
         )
 
         try:
@@ -233,23 +244,66 @@ if not state.demo:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
-    @api.post("/config/data/processor/conversation", status_code=200)
-    async def set_processor_conversation_config_data(
+    @api.post("/config/data/processor/conversation/openai", status_code=200)
+    async def set_processor_openai_config_data(
         request: Request,
-        updated_config: Union[ConversationProcessorConfig, None],
+        updated_config: Union[OpenAIProcessorConfig, None],
         client: Optional[str] = None,
     ):
         _initialize_config()
 
-        state.config.processor = ProcessorConfig(conversation=updated_config)
-        state.processor_config = configure_processor(state.config.processor)
+        if not state.config.processor or not state.config.processor.conversation:
+            default_config = constants.default_config
+            default_conversation_logfile = resolve_absolute_path(
+                default_config["processor"]["conversation"]["conversation-logfile"]  # type: ignore
+            )
+            conversation_logfile = resolve_absolute_path(default_conversation_logfile)
+            state.config.processor = ProcessorConfig(conversation=ConversationProcessorConfig(conversation_logfile=conversation_logfile))  # type: ignore
+
+        assert state.config.processor.conversation is not None
+        state.config.processor.conversation.openai = updated_config
+        state.processor_config = configure_processor(state.config.processor, state.processor_config)
 
         update_telemetry_state(
             request=request,
             telemetry_type="api",
-            api="set_content_config",
+            api="set_processor_config",
             client=client,
-            metadata={"processor_type": "conversation"},
+            metadata={"processor_conversation_type": "conversation"},
+        )
+
+        try:
+            save_config_to_file_updated_state()
+            return {"status": "ok"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+    @api.post("/config/data/processor/conversation/enable_offline_chat", status_code=200)
+    async def set_processor_enable_offline_chat_config_data(
+        request: Request,
+        enable_offline_chat: bool,
+        client: Optional[str] = None,
+    ):
+        _initialize_config()
+
+        if not state.config.processor or not state.config.processor.conversation:
+            default_config = constants.default_config
+            default_conversation_logfile = resolve_absolute_path(
+                default_config["processor"]["conversation"]["conversation-logfile"]  # type: ignore
+            )
+            conversation_logfile = resolve_absolute_path(default_conversation_logfile)
+            state.config.processor = ProcessorConfig(conversation=ConversationProcessorConfig(conversation_logfile=conversation_logfile))  # type: ignore
+
+        assert state.config.processor.conversation is not None
+        state.config.processor.conversation.enable_offline_chat = enable_offline_chat
+        state.processor_config = configure_processor(state.config.processor, state.processor_config)
+
+        update_telemetry_state(
+            request=request,
+            telemetry_type="api",
+            api="set_processor_config",
+            client=client,
+            metadata={"processor_conversation_type": f"{'enable' if enable_offline_chat else 'disable'}_local_llm"},
         )
 
         try:
@@ -569,7 +623,9 @@ def chat_history(
     perform_chat_checks()
 
     # Load Conversation History
-    meta_log = state.processor_config.conversation.meta_log
+    meta_log = {}
+    if state.processor_config.conversation:
+        meta_log = state.processor_config.conversation.meta_log
 
     update_telemetry_state(
         request=request,
@@ -598,24 +654,25 @@ async def chat(
     perform_chat_checks()
     compiled_references, inferred_queries = await extract_references_and_questions(request, q, (n or 5))
 
-    # Get the (streamed) chat response from GPT.
-    gpt_response = generate_chat_response(
+    # Get the (streamed) chat response from the LLM of choice.
+    llm_response = generate_chat_response(
         q,
         meta_log=state.processor_config.conversation.meta_log,
         compiled_references=compiled_references,
         inferred_queries=inferred_queries,
     )
-    if gpt_response is None:
-        return Response(content=gpt_response, media_type="text/plain", status_code=500)
+
+    if llm_response is None:
+        return Response(content=llm_response, media_type="text/plain", status_code=500)
 
     if stream:
-        return StreamingResponse(gpt_response, media_type="text/event-stream", status_code=200)
+        return StreamingResponse(llm_response, media_type="text/event-stream", status_code=200)
 
     # Get the full response from the generator if the stream is not requested.
     aggregated_gpt_response = ""
     while True:
         try:
-            aggregated_gpt_response += next(gpt_response)
+            aggregated_gpt_response += next(llm_response)
         except StopIteration:
             break
 
@@ -645,8 +702,6 @@ async def extract_references_and_questions(
     meta_log = state.processor_config.conversation.meta_log
 
     # Initialize Variables
-    api_key = state.processor_config.conversation.openai_api_key
-    chat_model = state.processor_config.conversation.chat_model
     conversation_type = "general" if q.startswith("@general") else "notes"
     compiled_references = []
     inferred_queries = []
@@ -654,7 +709,13 @@ async def extract_references_and_questions(
     if conversation_type == "notes":
         # Infer search queries from user message
         with timer("Extracting search queries took", logger):
-            inferred_queries = extract_questions(q, model=chat_model, api_key=api_key, conversation_log=meta_log)
+            if state.processor_config.conversation and state.processor_config.conversation.openai_model:
+                api_key = state.processor_config.conversation.openai_model.api_key
+                chat_model = state.processor_config.conversation.openai_model.chat_model
+                inferred_queries = extract_questions(q, model=chat_model, api_key=api_key, conversation_log=meta_log)
+            else:
+                loaded_model = state.processor_config.conversation.gpt4all_model.loaded_model
+                inferred_queries = extract_questions_falcon(q, loaded_model=loaded_model, conversation_log=meta_log)
 
         # Collate search results as context for GPT
         with timer("Searching knowledge base took", logger):

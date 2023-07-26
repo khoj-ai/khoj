@@ -5,7 +5,9 @@ from importlib.metadata import version
 
 # Internal Packages
 from khoj.utils.helpers import resolve_absolute_path
-from khoj.utils.yaml import load_config_from_file, parse_config_from_file, save_config_to_file
+from khoj.utils.yaml import parse_config_from_file
+from khoj.migrations.migrate_version import migrate_config_to_version
+from khoj.migrations.migrate_processor_config_openai import migrate_processor_conversation_schema
 
 
 def cli(args=None):
@@ -46,22 +48,14 @@ def cli(args=None):
     if not args.config_file.exists():
         args.config = None
     else:
-        args = migrate_config(args)
+        args = run_migrations(args)
         args.config = parse_config_from_file(args.config_file)
 
     return args
 
 
-def migrate_config(args):
-    raw_config = load_config_from_file(args.config_file)
-
-    # Add version to khoj config schema
-    if "version" not in raw_config:
-        raw_config["version"] = args.version_no
-        save_config_to_file(raw_config, args.config_file)
-
-        # regenerate khoj index on first start of this version
-        # this should refresh index and apply index corruption fixes from #325
-        args.regenerate = True
-
+def run_migrations(args):
+    migrations = [migrate_config_to_version, migrate_processor_conversation_schema]
+    for migration in migrations:
+        args = migration(args)
     return args
