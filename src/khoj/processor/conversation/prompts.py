@@ -21,20 +21,23 @@ Question: {query}
 general_conversation_falcon = PromptTemplate.from_template(
     """
 Using your general knowledge and our past conversations as context, answer the following question.
-### Instruct:\n{query}\n
+### Instruct:
+{query}
 ### Response:
 """.strip()
 )
 
 chat_history_falcon_from_user = PromptTemplate.from_template(
     """
-### Human:\n{message}\n
+### Human:
+{message}
 """.strip()
 )
 
 chat_history_falcon_from_assistant = PromptTemplate.from_template(
     """
-### Assistant:\n{message}\n
+### Assistant:
+{message}
 """.strip()
 )
 

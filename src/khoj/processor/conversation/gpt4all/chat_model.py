@@ -87,7 +87,7 @@ def converse_falcon(
     gpt4all_model = loaded_model or GPT4All(model)
     # Initialize Variables
     current_date = datetime.now().strftime("%Y-%m-%d")
-    compiled_references_message = "\n\n".join({f"### {item}" for item in references})
+    compiled_references_message = "\n\n".join({f"{item}" for item in references})
 
     # Get Conversation Primer appropriate to Conversation Type
     # TODO If compiled_references_message is too long, we need to truncate it.
@@ -129,7 +129,7 @@ def llm_thread(g, messages: List[ChatMessage], model: GPT4All):
 
     prompted_message = prompts.general_conversation_falcon.format(query=full_message)
     response_iterator = model.generate(
-        prompted_message, streaming=True, max_tokens=256, top_k=1, temp=0, repeat_penalty=1.7
+        prompted_message, streaming=True, max_tokens=256, top_k=1, temp=0, repeat_penalty=2.0
     )
     for response in response_iterator:
         logger.info(response)

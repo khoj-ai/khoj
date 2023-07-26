@@ -58,8 +58,9 @@ def migrate_processor_conversation_schema(args):
     conversation_logfile = raw_config["processor"]["conversation"].get("conversation-logfile", None)
 
     raw_config["processor"]["conversation"] = {
-        "openai-ai-model": {"chat-model": current_chat_model, "openai-api-key": current_open_ai_api_key},
+        "openai-ai": {"chat-model": current_chat_model, "api-key": current_open_ai_api_key},
         "conversation-logfile": conversation_logfile,
+        "enable-offline-chat": False,
     }
     save_config_to_file(raw_config, args.config_file)
     return args
