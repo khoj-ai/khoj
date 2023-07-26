@@ -37,7 +37,7 @@ from khoj.utils import state, constants
 from khoj.utils.yaml import save_config_to_file_updated_state
 from fastapi.responses import StreamingResponse, Response
 from khoj.routers.helpers import perform_chat_checks, generate_chat_response, update_telemetry_state
-from khoj.processor.conversation.open_ai.gpt import extract_questions
+from khoj.processor.conversation.openai.gpt import extract_questions
 from khoj.processor.conversation.gpt4all.chat_model import extract_questions_falcon, converse_falcon
 from fastapi.requests import Request
 
@@ -186,7 +186,7 @@ if not state.demo:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
-    @api.post("/delete/config/data/processor/open-ai", status_code=200)
+    @api.post("/delete/config/data/processor/openai", status_code=200)
     async def remove_processor_conversation_config_data(
         request: Request,
         client: Optional[str] = None,
@@ -195,19 +195,19 @@ if not state.demo:
             not state.config
             or not state.config.processor
             or not state.config.processor.conversation
-            or not state.config.processor.conversation.open_ai
+            or not state.config.processor.conversation.openai
         ):
             return {"status": "ok"}
 
-        state.config.processor.open_ai = None
-        state.processor_config = configure_processor(state.config.processor)
+        state.config.processor.conversation.openai = None
+        state.processor_config = configure_processor(state.config.processor, state.processor_config)
 
         update_telemetry_state(
             request=request,
             telemetry_type="api",
-            api="delete_processor_open_ai_config",
+            api="delete_processor_openai_config",
             client=client,
-            metadata={"processor_type": "open_ai"},
+            metadata={"processor_type": "openai"},
         )
 
         try:
@@ -244,7 +244,7 @@ if not state.demo:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
-    @api.post("/config/data/processor/open-ai", status_code=200)
+    @api.post("/config/data/processor/openai", status_code=200)
     async def set_processor_openai_config_data(
         request: Request,
         updated_config: Union[OpenAIProcessorConfig, None],
@@ -261,8 +261,8 @@ if not state.demo:
             state.config.processor = ProcessorConfig(conversation=ConversationProcessorConfig(conversation_logfile=conversation_logfile))  # type: ignore
 
         assert state.config.processor.conversation is not None
-        state.config.processor.conversation.open_ai = updated_config
-        state.processor_config = configure_processor(state.config.processor)
+        state.config.processor.conversation.openai = updated_config
+        state.processor_config = configure_processor(state.config.processor, state.processor_config)
 
         update_telemetry_state(
             request=request,
@@ -296,7 +296,7 @@ if not state.demo:
 
         assert state.config.processor.conversation is not None
         state.config.processor.conversation.enable_offline_chat = enable_offline_chat
-        state.processor_config = configure_processor(state.config.processor)
+        state.processor_config = configure_processor(state.config.processor, state.processor_config)
 
         update_telemetry_state(
             request=request,
@@ -709,9 +709,9 @@ async def extract_references_and_questions(
     if conversation_type == "notes":
         # Infer search queries from user message
         with timer("Extracting search queries took", logger):
-            if state.processor_config.conversation and state.processor_config.conversation.open_ai_model:
-                api_key = state.processor_config.conversation.open_ai_model.api_key
-                chat_model = state.processor_config.conversation.open_ai_model.chat_model
+            if state.processor_config.conversation and state.processor_config.conversation.openai_model:
+                api_key = state.processor_config.conversation.openai_model.api_key
+                chat_model = state.processor_config.conversation.openai_model.chat_model
                 inferred_queries = extract_questions(q, model=chat_model, api_key=api_key, conversation_log=meta_log)
             else:
                 loaded_model = state.processor_config.conversation.gpt4all_model.loaded_model

@@ -45,7 +45,7 @@
         }
 
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
-        fetch('/api/config/data/processor/open-ai', {
+        fetch('/api/config/data/processor/openai', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

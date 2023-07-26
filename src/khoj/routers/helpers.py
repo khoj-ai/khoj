@@ -7,7 +7,7 @@ from fastapi import HTTPException, Request
 
 from khoj.utils import state
 from khoj.utils.helpers import timer, log_telemetry
-from khoj.processor.conversation.open_ai.gpt import converse
+from khoj.processor.conversation.openai.gpt import converse
 from khoj.processor.conversation.gpt4all.chat_model import converse_falcon
 from khoj.processor.conversation.utils import reciprocal_conversation_to_chatml, message_to_log, ThreadedGenerator
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 def perform_chat_checks():
     if state.processor_config.conversation and (
-        state.processor_config.conversation.open_ai_model
+        state.processor_config.conversation.openai_model
         or state.processor_config.conversation.gpt4all_model.loaded_model
     ):
         return
@@ -79,9 +79,6 @@ def generate_chat_response(
     # Load Conversation History
     meta_log = state.processor_config.conversation.meta_log
 
-    # if not state.processor_config.conversation or not state.processor_config.conversation.open_ai_model:
-    # raise HTTPException(status_code=500, detail="Set your OpenAI API key via Khoj settings and restart it.")
-
     # Initialize Variables
     user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     conversation_type = "general" if q.startswith("@general") else "notes"
@@ -101,9 +98,9 @@ def generate_chat_response(
                 meta_log=meta_log,
             )
 
-            if state.processor_config.conversation.open_ai_model:
-                api_key = state.processor_config.conversation.open_ai_model.api_key
-                chat_model = state.processor_config.conversation.open_ai_model.chat_model
+            if state.processor_config.conversation.openai_model:
+                api_key = state.processor_config.conversation.openai_model.api_key
+                chat_model = state.processor_config.conversation.openai_model.chat_model
                 chat_response = converse(
                     compiled_references,
                     q,

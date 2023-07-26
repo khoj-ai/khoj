@@ -151,26 +151,29 @@ if not state.demo:
             },
         )
 
-    @web_client.get("/config/processor/open-ai", response_class=HTMLResponse)
+    @web_client.get("/config/processor/openai", response_class=HTMLResponse)
     def conversation_processor_config_page(request: Request):
         default_copy = constants.default_config.copy()
-        default_processor_config = default_copy["processor"]["conversation"]["open-ai-model"]  # type: ignore
-        default_processor_config = OpenAIProcessorConfig(
+        default_processor_config = default_copy["processor"]["conversation"]["openai"]  # type: ignore
+        default_openai_config = OpenAIProcessorConfig(
             api_key="",
             chat_model=default_processor_config["chat-model"],
         )
 
-        current_processor_open_ai_config = (
-            state.config.processor.open_ai
-            if state.config and state.config.processor and state.config.processor.open_ai
-            else default_processor_config
+        current_processor_openai_config = (
+            state.config.processor.conversation.openai
+            if state.config
+            and state.config.processor
+            and state.config.processor.conversation
+            and state.config.processor.conversation.openai
+            else default_openai_config
         )
-        current_processor_open_ai_config = json.loads(current_processor_open_ai_config.json())
+        current_processor_openai_config = json.loads(current_processor_openai_config.json())
 
         return templates.TemplateResponse(
             "processor_conversation_input.html",
             context={
                 "request": request,
-                "current_config": current_processor_open_ai_config,
+                "current_config": current_processor_openai_config,
             },
         )

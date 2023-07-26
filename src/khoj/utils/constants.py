@@ -62,7 +62,7 @@ default_config = {
     },
     "processor": {
         "conversation": {
-            "open-ai": {
+            "openai": {
                 "api-key": None,
                 "chat-model": "gpt-3.5-turbo",
             },

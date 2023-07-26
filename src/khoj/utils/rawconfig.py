@@ -115,7 +115,7 @@ class GPT4AllProcessorConfig(ConfigBase):
 
 class ConversationProcessorConfig(ConfigBase):
     conversation_logfile: Path
-    open_ai: Optional[OpenAIProcessorConfig]
+    openai: Optional[OpenAIProcessorConfig]
     enable_offline_chat: Optional[bool] = False
 
 

@@ -9,7 +9,7 @@ from langchain.schema import ChatMessage
 # Internal Packages
 from khoj.utils.constants import empty_escape_sequences
 from khoj.processor.conversation import prompts
-from khoj.processor.conversation.open_ai.utils import (
+from khoj.processor.conversation.openai.utils import (
     chat_completion_with_backoff,
     completion_with_backoff,
 )

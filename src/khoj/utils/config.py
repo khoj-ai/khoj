@@ -85,14 +85,14 @@ class ConversationProcessorConfigModel:
         self,
         conversation_config: ConversationProcessorConfig,
     ):
-        self.open_ai_model = conversation_config.open_ai
+        self.openai_model = conversation_config.openai
         self.gpt4all_model = GPT4AllProcessorConfig()
         self.enable_offline_chat = conversation_config.enable_offline_chat
         self.conversation_logfile = Path(conversation_config.conversation_logfile)
         self.chat_session: List[str] = []
         self.meta_log: dict = {}
 
-        if not self.open_ai_model and self.enable_offline_chat:
+        if not self.openai_model and self.enable_offline_chat:
             self.gpt4all_model.loaded_model = GPT4All(self.gpt4all_model.chat_model)  # type: ignore
         else:
             self.gpt4all_model.loaded_model = None

@@ -256,7 +256,9 @@ def configure_content(
     return content_index
 
 
-def configure_processor(processor_config: Optional[ProcessorConfig]):
+def configure_processor(
+    processor_config: Optional[ProcessorConfig], state_processor_config: Optional[ProcessorConfigModel] = None
+):
     if not processor_config:
         logger.warning("🚨 No Processor configuration available.")
         return None
@@ -265,15 +267,14 @@ def configure_processor(processor_config: Optional[ProcessorConfig]):
 
     # Initialize Conversation Processor
     logger.info("💬 Setting up conversation processor")
-    if processor_config:
-        processor.conversation = configure_conversation_processor(processor_config)
-    else:
-        processor.conversation = configure_conversation_processor(None)
+    processor.conversation = configure_conversation_processor(processor_config, state_processor_config)
 
     return processor
 
 
-def configure_conversation_processor(processor_config: Optional[ProcessorConfig]):
+def configure_conversation_processor(
+    processor_config: Optional[ProcessorConfig], state_processor_config: Optional[ProcessorConfigModel] = None
+):
     if (
         not processor_config
         or not processor_config.conversation
@@ -288,7 +289,7 @@ def configure_conversation_processor(processor_config: Optional[ProcessorConfig]
         conversation_processor = ConversationProcessorConfigModel(
             conversation_config=ConversationProcessorConfig(
                 conversation_logfile=conversation_logfile,
-                open_ai=(conversation_config.open_ai if (conversation_config is not None) else None),
+                openai=(conversation_config.openai if (conversation_config is not None) else None),
                 enable_offline_chat=(
                     conversation_config.enable_offline_chat if (conversation_config is not None) else False
                 ),
@@ -299,6 +300,13 @@ def configure_conversation_processor(processor_config: Optional[ProcessorConfig]
             conversation_config=processor_config.conversation,
         )
         conversation_logfile = resolve_absolute_path(conversation_processor.conversation_logfile)
+
+    # Load Conversation Logs from Disk
+    if state_processor_config and state_processor_config.conversation and state_processor_config.conversation.meta_log:
+        conversation_processor.meta_log = state_processor_config.conversation.meta_log
+        conversation_processor.chat_session = state_processor_config.conversation.chat_session
+        logger.debug(f"Loaded conversation logs from state")
+        return conversation_processor
 
     if conversation_logfile.is_file():
         # Load Metadata Logs from Conversation Logfile
