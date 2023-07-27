@@ -5,8 +5,7 @@ from enum import Enum
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Union, Any
-
-from gpt4all import GPT4All
+from khoj.processor.conversation.gpt4all.utils import download_model
 
 # External Packages
 import torch
@@ -79,7 +78,7 @@ class SearchModels:
 
 @dataclass
 class GPT4AllProcessorConfig:
-    chat_model: Optional[str] = "ggml-model-gpt4all-falcon-q4_0.bin"
+    chat_model: Optional[str] = "llama-2-7b-chat.ggmlv3.q4_K_S.bin"
     loaded_model: Union[Any, None] = None
 
 
@@ -96,7 +95,7 @@ class ConversationProcessorConfigModel:
         self.meta_log: dict = {}
 
         if not self.openai_model and self.enable_offline_chat:
-            self.gpt4all_model.loaded_model = GPT4All(self.gpt4all_model.chat_model)  # type: ignore
+            self.gpt4all_model.loaded_model = download_model(self.gpt4all_model.chat_model)
         else:
             self.gpt4all_model.loaded_model = None
 

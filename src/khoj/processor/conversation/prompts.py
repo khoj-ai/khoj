@@ -18,34 +18,37 @@ Question: {query}
 """.strip()
 )
 
-general_conversation_falcon = PromptTemplate.from_template(
-    """
-Using your general knowledge and our past conversations as context, answer the following question.
-### Instruct:
-{query}
-### Response:
-""".strip()
-)
+system_prompt_message_llamav2 = f"""You are Khoj, a friendly, smart and helpful personal assistant.
+Using your general knowledge and our past conversations as context, answer the following question."""
 
-chat_history_falcon_from_user = PromptTemplate.from_template(
+system_prompt_llamav2 = PromptTemplate.from_template(
     """
-### Human:
+<s>[INST] <<SYS>>
 {message}
+<</SYS>>Hi there! [/INST] Hello! How can I help you today? </s>"""
+)
+
+general_conversation_llamav2 = PromptTemplate.from_template(
+    """
+<s>[INST]{query}[/INST]
 """.strip()
 )
 
-chat_history_falcon_from_assistant = PromptTemplate.from_template(
+chat_history_llamav2_from_user = PromptTemplate.from_template(
     """
-### Assistant:
-{message}
+<s>[INST]{message}[/INST]
 """.strip()
 )
 
-conversation_falcon = PromptTemplate.from_template(
+chat_history_llamav2_from_assistant = PromptTemplate.from_template(
     """
-Using our past conversations as context, answer the following question.
+{message}</s>
+""".strip()
+)
 
-Question: {query}
+conversation_llamav2 = PromptTemplate.from_template(
+    """
+<s>[INST]{query}[/INST]
 """.strip()
 )
 
@@ -63,13 +66,10 @@ Question: {query}
 """.strip()
 )
 
-notes_conversation_falcon = PromptTemplate.from_template(
+notes_conversation_llamav2 = PromptTemplate.from_template(
     """
-Using the notes and our past conversations as context, answer the following question. If the answer is not contained within the notes, say "I don't know."
-
 Notes:
 {references}
-
 Question: {query}
 """.strip()
 )

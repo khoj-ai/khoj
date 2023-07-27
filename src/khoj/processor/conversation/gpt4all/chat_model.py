@@ -1,13 +1,11 @@
 from typing import Union, List
 from datetime import datetime
-import sys
 import logging
 from threading import Thread
 
 from langchain.schema import ChatMessage
 
 from gpt4all import GPT4All
-
 
 from khoj.processor.conversation.utils import ThreadedGenerator, generate_chatml_messages_with_context
 from khoj.processor.conversation import prompts
@@ -18,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 def extract_questions_falcon(
     text: str,
-    model: str = "ggml-model-gpt4all-falcon-q4_0.bin",
+    model: str = "llama-2-7b-chat.ggmlv3.q4_K_S.bin",
     loaded_model: Union[GPT4All, None] = None,
     conversation_log={},
     use_history: bool = False,
@@ -50,7 +48,7 @@ def extract_questions_falcon(
         chat_history=chat_history,
         text=text,
     )
-    message = prompts.general_conversation_falcon.format(query=prompt)
+    message = prompts.general_conversation_llamav2.format(query=prompt)
     response = gpt4all_model.generate(message, max_tokens=200, top_k=2)
 
     # Extract, Clean Message from GPT's Response
@@ -77,7 +75,7 @@ def converse_falcon(
     references,
     user_query,
     conversation_log={},
-    model: str = "ggml-model-gpt4all-falcon-q4_0.bin",
+    model: str = "llama-2-7b-chat.ggmlv3.q4_K_S.bin",
     loaded_model: Union[GPT4All, None] = None,
     completion_func=None,
 ) -> ThreadedGenerator:
@@ -92,18 +90,18 @@ def converse_falcon(
     # Get Conversation Primer appropriate to Conversation Type
     # TODO If compiled_references_message is too long, we need to truncate it.
     if compiled_references_message == "":
-        conversation_primer = prompts.conversation_falcon.format(query=user_query)
+        conversation_primer = prompts.conversation_llamav2.format(query=user_query)
     else:
-        conversation_primer = prompts.notes_conversation.format(
-            current_date=current_date, query=user_query, references=compiled_references_message
+        conversation_primer = prompts.notes_conversation_llamav2.format(
+            query=user_query, references=compiled_references_message
         )
 
     # Setup Prompt with Primer or Conversation History
     messages = generate_chatml_messages_with_context(
         conversation_primer,
-        prompts.personality.format(),
+        prompts.system_prompt_message_llamav2,
         conversation_log,
-        model_name="text-davinci-001",  # This isn't actually the model, but this helps us get an approximate encoding to run message truncation.
+        model_name=model,
     )
 
     g = ThreadedGenerator(references, completion_func=completion_func)
@@ -113,24 +111,22 @@ def converse_falcon(
 
 
 def llm_thread(g, messages: List[ChatMessage], model: GPT4All):
-    user_message = messages[0]
-    system_message = messages[-1]
+    user_message = messages[-1]
+    system_message = messages[0]
     conversation_history = messages[1:-1]
 
     formatted_messages = [
-        prompts.chat_history_falcon_from_assistant.format(message=system_message)
+        prompts.chat_history_llamav2_from_assistant.format(message=message.content)
         if message.role == "assistant"
-        else prompts.chat_history_falcon_from_user.format(message=message.content)
+        else prompts.chat_history_llamav2_from_user.format(message=message.content)
         for message in conversation_history
     ]
 
     chat_history = "".join(formatted_messages)
-    full_message = system_message.content + chat_history + user_message.content
-
-    prompted_message = prompts.general_conversation_falcon.format(query=full_message)
-    response_iterator = model.generate(
-        prompted_message, streaming=True, max_tokens=256, top_k=1, temp=0, repeat_penalty=2.0
-    )
+    templated_system_message = prompts.system_prompt_llamav2.format(message=system_message.content)
+    templated_user_message = prompts.general_conversation_llamav2.format(query=user_message.content)
+    prompted_message = templated_system_message + chat_history + templated_user_message
+    response_iterator = model.generate(prompted_message, streaming=True, max_tokens=2000)
     for response in response_iterator:
         logger.info(response)
         g.send(response)
