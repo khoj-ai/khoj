@@ -15,6 +15,7 @@ from khoj.utils.helpers import resolve_absolute_path
 from khoj.utils.rawconfig import (
     ContentConfig,
     ConversationProcessorConfig,
+    OpenAIProcessorConfig,
     ProcessorConfig,
     TextContentConfig,
     GithubContentConfig,
@@ -162,7 +163,7 @@ def processor_config(tmp_path_factory):
     # Setup conversation processor, if OpenAI API key is set
     processor_config = ProcessorConfig()
     processor_config.conversation = ConversationProcessorConfig(
-        openai_api_key=openai_api_key,
+        openai=OpenAIProcessorConfig(api_key=openai_api_key),
         conversation_logfile=processor_dir.joinpath("conversation_logs.json"),
     )
 
