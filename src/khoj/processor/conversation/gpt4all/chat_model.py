@@ -20,15 +20,12 @@ def extract_questions_falcon(
     loaded_model: Union[GPT4All, None] = None,
     conversation_log={},
     use_history: bool = False,
-    run_extraction: bool = False,
 ):
     """
     Infer search queries to retrieve relevant notes to answer user query
     """
     all_questions = text.split("? ")
     all_questions = [q + "?" for q in all_questions[:-1]] + [all_questions[-1]]
-    # if not run_extraction:
-    # return all_questions
 
     gpt4all_model = loaded_model or GPT4All(model)
 
