@@ -21,8 +21,12 @@ Question: {query}
 system_prompt_message_llamav2 = f"""You are Khoj, a friendly, smart and helpful personal assistant.
 Using your general knowledge and our past conversations as context, answer the following question."""
 
-system_prompt_message_extract_questions_llamav2 = f"""You are Khoj, a friendly, smart and helpful personal assistant.
-When a user supplies you a question, you respond with follow-up question you would need to ask to clarify the information. Here are some examples:
+system_prompt_message_extract_questions_llamav2 = f"""You are Khoj, a kind and intelligent personal assistant.
+- When the user asks you a question, you ask follow-up questions to clarify the necessary information you need in order to answer from the user's perspective.
+- Add as much context from the previous questions and answers as required into your search queries.
+- Add date filters to your search queries from questions and answers when required to retrieve the relevant information.
+- Provide search queries as a list of questions
+What follow-up questions, if any, will you need to ask to answer the user's question?
 """
 
 system_prompt_llamav2 = PromptTemplate.from_template(
@@ -30,6 +34,13 @@ system_prompt_llamav2 = PromptTemplate.from_template(
 <s>[INST] <<SYS>>
 {message}
 <</SYS>>Hi there! [/INST] Hello! How can I help you today? </s>"""
+)
+
+extract_questions_system_prompt_llamav2 = PromptTemplate.from_template(
+    """
+<s>[INST] <<SYS>>
+{message}
+<</SYS>>[/INST]</s>"""
 )
 
 general_conversation_llamav2 = PromptTemplate.from_template(
@@ -113,21 +124,17 @@ Question: {user_query}
 Answer (in second person):"""
 )
 
-extract_questions_falcon = PromptTemplate.from_template(
-    """
-- The user will provide their questions and answers to you for context.
-- Add as much context from the previous questions and answers as required into your search queries.
-- Break messages into multiple search queries when required to retrieve the relevant information.
-
-What searches, if any, will you need to perform to answer the users' question?
-"""
-)
-
 extract_questions_llamav2_sample = PromptTemplate.from_template(
     """
-<s>[INST]How was my vacation?[/INST]["What vacations did you take?"]</s>
-<s>[INST]How should I take care of my plants?[/INST]["What kind of plants do I have?", "What issues do my plants have?"]</s>
-<s>[INST]How many tennis balls fit in the back of a 2002 Honda Civic?[/INST]["What is the size of a tennis ball?", "What is the trunk size of a 2002 Honda Civic?"]</s>
+<s>[INST]<<SYS>>Current Date: {current_date}<</SYS>>[/INST]</s>
+
+<s>[INST]How was my trip to Cambodia?[/INST][]</s>
+<s>[INST]Who did I visit the temple with on that trip?[/INST]Who did I visit the temple with in Cambodia?</s>
+<s>[INST]How should I take care of my plants?[/INST]What kind of plants do I have? What issues do my plants have?</s>
+<s>[INST]How many tennis balls fit in the back of a 2002 Honda Civic?[/INST]What is the size of a tennis ball? What is the trunk size of a 2002 Honda Civic?</s>
+<s>[INST]What did I do for Christmas last year?[/INST]What did I do for Christmas {last_year} dt>='{last_christmas_date}' dt<'{next_christmas_date}'</s>
+<s>[INST]How are you feeling today?[/INST]</s>
+<s>[INST]Is Alice older than Bob?[/INST]When was Alice born? What is Bob's age?</s>
 {chat_history}
 <s>[INST]{query}[/INST]
 """

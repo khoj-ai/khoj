@@ -8,7 +8,7 @@ from fastapi import HTTPException, Request
 from khoj.utils import state
 from khoj.utils.helpers import timer, log_telemetry
 from khoj.processor.conversation.openai.gpt import converse
-from khoj.processor.conversation.gpt4all.chat_model import converse_falcon
+from khoj.processor.conversation.gpt4all.chat_model import converse_llama
 from khoj.processor.conversation.utils import reciprocal_conversation_to_chatml, message_to_log, ThreadedGenerator
 
 logger = logging.getLogger(__name__)
@@ -111,7 +111,7 @@ def generate_chat_response(
                 )
             else:
                 loaded_model = state.processor_config.conversation.gpt4all_model.loaded_model
-                chat_response = converse_falcon(
+                chat_response = converse_llama(
                     references=compiled_references,
                     user_query=q,
                     loaded_model=loaded_model,
