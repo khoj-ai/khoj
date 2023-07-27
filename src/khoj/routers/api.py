@@ -716,7 +716,7 @@ async def extract_references_and_questions(
             else:
                 loaded_model = state.processor_config.conversation.gpt4all_model.loaded_model
                 inferred_queries = extract_questions_llama(
-                    q, loaded_model=loaded_model, conversation_log=meta_log, use_history=True
+                    q, loaded_model=loaded_model, conversation_log=meta_log, should_extract_questions=False
                 )
 
         # Collate search results as context for GPT
