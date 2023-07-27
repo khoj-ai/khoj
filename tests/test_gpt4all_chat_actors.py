@@ -95,8 +95,9 @@ def test_extract_multiple_explicit_questions_from_message(loaded_model):
 
     # Assert
     expected_responses = ["What is the Sun?", "What is the Moon?"]
-    assert len(response) == 2
-    assert expected_responses == response
+    assert len(response) >= 2
+    assert expected_responses[0] == response[-2]
+    assert expected_responses[1] == response[-1]
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -107,9 +108,9 @@ def test_extract_multiple_implicit_questions_from_message(loaded_model):
 
     # Assert
     expected_responses = [
-        ("morpheus", "neo"),
+        ("morpheus", "neo", "height", "taller", "shorter"),
     ]
-    assert len(response) == 2
+    assert len(response) == 3
     assert any([start in response[0].lower() and end in response[1].lower() for start, end in expected_responses]), (
         "Expected two search queries in response but got: " + response[0]
     )

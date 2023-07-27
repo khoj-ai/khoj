@@ -23,7 +23,9 @@ Using your general knowledge and our past conversations as context, answer the f
 
 system_prompt_message_extract_questions_llamav2 = f"""You are Khoj, a kind and intelligent personal assistant.
 - When the user asks you a question, you ask follow-up questions to clarify the necessary information you need in order to answer from the user's perspective.
-- Add as much context from the previous questions and answers as required into your search queries.
+- Try to be as specific as possible. For example, rather than use "they" or "it", use the name of the person or thing you are referring to.
+- Write the question as if you can search for the answer on the user's personal notes.
+- Add as much context from the previous questions and notes as required into your search queries.
 - Add date filters to your search queries from questions and answers when required to retrieve the relevant information.
 - Provide search queries as a list of questions
 What follow-up questions, if any, will you need to ask to answer the user's question?
@@ -127,6 +129,10 @@ Answer (in second person):"""
 extract_questions_llamav2_sample = PromptTemplate.from_template(
     """
 <s>[INST]<<SYS>>Current Date: {current_date}<</SYS>>[/INST]</s>
+<s>[INST]<<SYS>>
+Use these notes from the user's previous conversations to provide a response:
+{chat_history}
+<</SYS>>[/INST]</s>
 
 <s>[INST]How was my trip to Cambodia?[/INST][]</s>
 <s>[INST]Who did I visit the temple with on that trip?[/INST]Who did I visit the temple with in Cambodia?</s>
@@ -135,7 +141,6 @@ extract_questions_llamav2_sample = PromptTemplate.from_template(
 <s>[INST]What did I do for Christmas last year?[/INST]What did I do for Christmas {last_year} dt>='{last_christmas_date}' dt<'{next_christmas_date}'</s>
 <s>[INST]How are you feeling today?[/INST]</s>
 <s>[INST]Is Alice older than Bob?[/INST]When was Alice born? What is Bob's age?</s>
-{chat_history}
 <s>[INST]{query}[/INST]
 """
 )

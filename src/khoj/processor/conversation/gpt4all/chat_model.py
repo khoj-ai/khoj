@@ -39,24 +39,8 @@ def extract_questions_llama(
     if use_history:
         for chat in conversation_log.get("chat", [])[-4:]:
             if chat["by"] == "khoj":
-                chat_history += prompts.chat_history_llamav2_from_user.format(message=chat["intent"]["query"])
-                if chat["intent"].get("inferred-queries"):
-                    chat_history += prompts.chat_history_llamav2_from_assistant.format(
-                        message=chat["intent"]["inferred-queries"]
-                    )
-                else:
-                    chat_history += prompts.chat_history_llamav2_from_assistant.format(message=chat["intent"]["query"])
-
-    if use_history:
-        for chat in conversation_log.get("chat", [])[-4:]:
-            if chat["by"] == "khoj":
-                chat_history += prompts.chat_history_llamav2_from_user.format(message=chat["intent"]["query"])
-                if chat["intent"].get("inferred-queries"):
-                    chat_history += prompts.chat_history_llamav2_from_assistant.format(
-                        message=chat["intent"]["inferred-queries"]
-                    )
-                else:
-                    chat_history += prompts.chat_history_llamav2_from_assistant.format(message=chat["intent"]["query"])
+                chat_history += f"Q: {chat['intent']['query']}\n"
+                chat_history += f"A: {chat['message']}\n"
 
     current_date = datetime.now().strftime("%Y-%m-%d")
     last_year = datetime.now().year - 1
@@ -89,8 +73,9 @@ def extract_questions_llama(
             .replace("', '", '", "')
             .replace('["', "")
             .replace('"]', "")
-            .split('", "')
+            .split("? ")
         )
+        questions = [q + "?" for q in questions[:-1]] + [questions[-1]]
     except:
         logger.warning(f"Llama returned invalid JSON. Falling back to using user message as search query.\n{response}")
         return all_questions
