@@ -715,7 +715,9 @@ async def extract_references_and_questions(
                 inferred_queries = extract_questions(q, model=chat_model, api_key=api_key, conversation_log=meta_log)
             else:
                 loaded_model = state.processor_config.conversation.gpt4all_model.loaded_model
-                inferred_queries = extract_questions_falcon(q, loaded_model=loaded_model, conversation_log=meta_log)
+                inferred_queries = extract_questions_falcon(
+                    q, loaded_model=loaded_model, conversation_log=meta_log, use_history=True
+                )
 
         # Collate search results as context for GPT
         with timer("Searching knowledge base took", logger):

@@ -27,8 +27,8 @@ def extract_questions_falcon(
     """
     all_questions = text.split("? ")
     all_questions = [q + "?" for q in all_questions[:-1]] + [all_questions[-1]]
-    if not run_extraction:
-        return all_questions
+    # if not run_extraction:
+    # return all_questions
 
     gpt4all_model = loaded_model or GPT4All(model)
 
@@ -36,19 +36,19 @@ def extract_questions_falcon(
     chat_history = ""
 
     if use_history:
-        chat_history = "".join(
-            [
-                f'Q: {chat["intent"]["query"]}\n\n{chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}\n\nA: {chat["message"]}\n\n'
-                for chat in conversation_log.get("chat", [])[-4:]
-                if chat["by"] == "khoj"
-            ]
-        )
+        for chat in conversation_log.get("chat", [])[-4:]:
+            if chat["by"] == "khoj":
+                chat_history += prompts.chat_history_llamav2_from_user.format(message=chat["intent"]["query"])
+                if chat["intent"].get("inferred-queries"):
+                    chat_history += prompts.chat_history_llamav2_from_assistant.format(
+                        message=chat["intent"]["inferred-queries"]
+                    )
+                else:
+                    chat_history += prompts.chat_history_llamav2_from_assistant.format(message=chat["intent"]["query"])
 
-    prompt = prompts.extract_questions_falcon.format(
-        chat_history=chat_history,
-        text=text,
-    )
-    message = prompts.general_conversation_llamav2.format(query=prompt)
+    message = prompts.system_prompt_llamav2.format(
+        message=(prompts.system_prompt_message_extract_questions_llamav2)
+    ) + prompts.extract_questions_llamav2_sample.format(query=text, chat_history=chat_history)
     response = gpt4all_model.generate(message, max_tokens=200, top_k=2)
 
     # Extract, Clean Message from GPT's Response
