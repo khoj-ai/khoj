@@ -76,12 +76,34 @@ def extract_questions_llama(
             .split("? ")
         )
         questions = [q + "?" for q in questions[:-1]] + [questions[-1]]
+        questions = filter_questions(questions)
     except:
         logger.warning(f"Llama returned invalid JSON. Falling back to using user message as search query.\n{response}")
         return all_questions
     logger.debug(f"Extracted Questions by Llama: {questions}")
     questions.extend(all_questions)
     return questions
+
+
+def filter_questions(questions: List[str]):
+    # Skip questions that seem to be apologizing for not being able to answer the question
+    hint_words = [
+        "sorry",
+        "apologize",
+        "unable",
+        "can't",
+        "cannot",
+        "don't know",
+        "don't understand",
+        "do not know",
+        "do not understand",
+    ]
+    filtered_questions = []
+    for q in questions:
+        if not any([word in q.lower() for word in hint_words]):
+            filtered_questions.append(q)
+
+    return filtered_questions
 
 
 def converse_llama(

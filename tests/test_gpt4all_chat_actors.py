@@ -16,7 +16,7 @@ from freezegun import freeze_time
 from gpt4all import GPT4All
 
 # Internal Packages
-from khoj.processor.conversation.gpt4all.chat_model import converse_llama, extract_questions_llama
+from khoj.processor.conversation.gpt4all.chat_model import converse_llama, extract_questions_llama, filter_questions
 from khoj.processor.conversation.gpt4all.utils import download_model
 
 from khoj.processor.conversation.utils import message_to_log
@@ -432,6 +432,17 @@ My sister, Aiyla is married to Tolga. They have 3 kids, Yildiz, Ali and Ahmet.""
     assert any([expected_response in response for expected_response in expected_responses]), (
         "Expected chat actor to ask for clarification in response, but got: " + response
     )
+
+
+def test_filter_questions():
+    test_questions = [
+        "I don't know how to answer that",
+        "I cannot answer anything about the nuclear secrets",
+        "Who is on the basketball team?",
+    ]
+    filtered_questions = filter_questions(test_questions)
+    assert len(filtered_questions) == 1
+    assert filtered_questions[0] == "Who is on the basketball team?"
 
 
 # Helpers

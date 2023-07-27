@@ -38,7 +38,7 @@ from khoj.utils.yaml import save_config_to_file_updated_state
 from fastapi.responses import StreamingResponse, Response
 from khoj.routers.helpers import perform_chat_checks, generate_chat_response, update_telemetry_state
 from khoj.processor.conversation.openai.gpt import extract_questions
-from khoj.processor.conversation.gpt4all.chat_model import extract_questions_llama, converse_llama
+from khoj.processor.conversation.gpt4all.chat_model import extract_questions_llama
 from fastapi.requests import Request
 
 
