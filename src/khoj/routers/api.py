@@ -723,8 +723,9 @@ async def extract_references_and_questions(
         with timer("Searching knowledge base took", logger):
             result_list = []
             for query in inferred_queries:
+                n_items = n if state.processor_config.conversation.openai_model else min(n, 3)
                 result_list.extend(
-                    await search(query, request=request, n=n, r=True, score_threshold=-5.0, dedupe=False)
+                    await search(query, request=request, n=n_items, r=True, score_threshold=-5.0, dedupe=False)
                 )
             compiled_references = [item.additional["compiled"] for item in result_list]
 
