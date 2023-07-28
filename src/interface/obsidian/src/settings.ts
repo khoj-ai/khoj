@@ -56,7 +56,7 @@ export class KhojSettingTab extends PluginSettingTab {
                 }));
         new Setting(containerEl)
             .setName('Enable Offline Chat')
-            .setDesc('Enable offline chat with Llama V2. If your OpenAI API Key is set, Khoj will use OpenAI for chat. Otherwise, Khoj will use Llama V2.')
+            .setDesc('Chat privately without an internet connection. Enabling this will use offline chat even if OpenAI is configured. You can turn it off at any time.')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.enableOfflineChat)
                 .onChange(async (value) => {
