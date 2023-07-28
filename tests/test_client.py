@@ -84,11 +84,24 @@ def test_regenerate_with_invalid_content_type(client):
 
 # ----------------------------------------------------------------------------------------------------
 def test_regenerate_with_valid_content_type(client):
-    for content_type in ["all", "org", "markdown", "image", "pdf", "github", "notion", "plugin1"]:
+    for content_type in ["all", "org", "markdown", "image", "pdf", "notion", "plugin1"]:
         # Act
         response = client.get(f"/api/update?force=true&t={content_type}")
         # Assert
         assert response.status_code == 200, f"Returned status: {response.status_code} for content type: {content_type}"
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_regenerate_with_github_fails_without_pat(client):
+    # Act
+    response = client.get(f"/api/update?force=true&t=github")
+
+    # Assert
+    assert response.status_code == 500, f"Returned status: {response.status_code} for content type: github"
+    assert (
+        response.json()["detail"]
+        == "🚨 Failed to update server via API: Github PAT token is not set. Skipping github content"
+    )
 
 
 # ----------------------------------------------------------------------------------------------------
