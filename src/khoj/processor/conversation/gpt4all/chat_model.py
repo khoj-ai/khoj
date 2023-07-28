@@ -1,13 +1,11 @@
 from typing import Union, List
 from datetime import datetime
-import sys
 import logging
 from threading import Thread
 
 from langchain.schema import ChatMessage
 
 from gpt4all import GPT4All
-
 
 from khoj.processor.conversation.utils import ThreadedGenerator, generate_chatml_messages_with_context
 from khoj.processor.conversation import prompts
@@ -16,20 +14,21 @@ from khoj.utils.constants import empty_escape_sequences
 logger = logging.getLogger(__name__)
 
 
-def extract_questions_falcon(
+def extract_questions_offline(
     text: str,
-    model: str = "ggml-model-gpt4all-falcon-q4_0.bin",
+    model: str = "llama-2-7b-chat.ggmlv3.q4_K_S.bin",
     loaded_model: Union[GPT4All, None] = None,
     conversation_log={},
-    use_history: bool = False,
-    run_extraction: bool = False,
+    use_history: bool = True,
+    should_extract_questions: bool = True,
 ):
     """
     Infer search queries to retrieve relevant notes to answer user query
     """
     all_questions = text.split("? ")
     all_questions = [q + "?" for q in all_questions[:-1]] + [all_questions[-1]]
-    if not run_extraction:
+
+    if not should_extract_questions:
         return all_questions
 
     gpt4all_model = loaded_model or GPT4All(model)
@@ -38,51 +37,85 @@ def extract_questions_falcon(
     chat_history = ""
 
     if use_history:
-        chat_history = "".join(
-            [
-                f'Q: {chat["intent"]["query"]}\n\n{chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}\n\nA: {chat["message"]}\n\n'
-                for chat in conversation_log.get("chat", [])[-4:]
-                if chat["by"] == "khoj"
-            ]
-        )
+        for chat in conversation_log.get("chat", [])[-4:]:
+            if chat["by"] == "khoj":
+                chat_history += f"Q: {chat['intent']['query']}\n"
+                chat_history += f"A: {chat['message']}\n"
 
-    prompt = prompts.extract_questions_falcon.format(
-        chat_history=chat_history,
-        text=text,
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    last_year = datetime.now().year - 1
+    last_christmas_date = f"{last_year}-12-25"
+    next_christmas_date = f"{datetime.now().year}-12-25"
+    system_prompt = prompts.extract_questions_system_prompt_llamav2.format(
+        message=(prompts.system_prompt_message_extract_questions_llamav2)
     )
-    message = prompts.general_conversation_falcon.format(query=prompt)
-    response = gpt4all_model.generate(message, max_tokens=200, top_k=2)
+    example_questions = prompts.extract_questions_llamav2_sample.format(
+        query=text,
+        chat_history=chat_history,
+        current_date=current_date,
+        last_year=last_year,
+        last_christmas_date=last_christmas_date,
+        next_christmas_date=next_christmas_date,
+    )
+    message = system_prompt + example_questions
+    response = gpt4all_model.generate(message, max_tokens=200, top_k=2, temp=0)
 
     # Extract, Clean Message from GPT's Response
     try:
+        # This will expect to be a list with a single string with a list of questions
         questions = (
             str(response)
             .strip(empty_escape_sequences)
             .replace("['", '["')
+            .replace("<s>", "")
+            .replace("</s>", "")
             .replace("']", '"]')
             .replace("', '", '", "')
             .replace('["', "")
             .replace('"]', "")
-            .split('", "')
+            .split("? ")
         )
+        questions = [q + "?" for q in questions[:-1]] + [questions[-1]]
+        questions = filter_questions(questions)
     except:
-        logger.warning(f"Falcon returned invalid JSON. Falling back to using user message as search query.\n{response}")
+        logger.warning(f"Llama returned invalid JSON. Falling back to using user message as search query.\n{response}")
         return all_questions
-    logger.debug(f"Extracted Questions by Falcon: {questions}")
+    logger.debug(f"Extracted Questions by Llama: {questions}")
     questions.extend(all_questions)
     return questions
 
 
-def converse_falcon(
+def filter_questions(questions: List[str]):
+    # Skip questions that seem to be apologizing for not being able to answer the question
+    hint_words = [
+        "sorry",
+        "apologize",
+        "unable",
+        "can't",
+        "cannot",
+        "don't know",
+        "don't understand",
+        "do not know",
+        "do not understand",
+    ]
+    filtered_questions = []
+    for q in questions:
+        if not any([word in q.lower() for word in hint_words]):
+            filtered_questions.append(q)
+
+    return filtered_questions
+
+
+def converse_offline(
     references,
     user_query,
     conversation_log={},
-    model: str = "ggml-model-gpt4all-falcon-q4_0.bin",
+    model: str = "llama-2-7b-chat.ggmlv3.q4_K_S.bin",
     loaded_model: Union[GPT4All, None] = None,
     completion_func=None,
 ) -> ThreadedGenerator:
     """
-    Converse with user using Falcon
+    Converse with user using Llama
     """
     gpt4all_model = loaded_model or GPT4All(model)
     # Initialize Variables
@@ -92,18 +125,18 @@ def converse_falcon(
     # Get Conversation Primer appropriate to Conversation Type
     # TODO If compiled_references_message is too long, we need to truncate it.
     if compiled_references_message == "":
-        conversation_primer = prompts.conversation_falcon.format(query=user_query)
+        conversation_primer = prompts.conversation_llamav2.format(query=user_query)
     else:
-        conversation_primer = prompts.notes_conversation.format(
-            current_date=current_date, query=user_query, references=compiled_references_message
+        conversation_primer = prompts.notes_conversation_llamav2.format(
+            query=user_query, references=compiled_references_message
         )
 
     # Setup Prompt with Primer or Conversation History
     messages = generate_chatml_messages_with_context(
         conversation_primer,
-        prompts.personality.format(),
+        prompts.system_prompt_message_llamav2,
         conversation_log,
-        model_name="text-davinci-001",  # This isn't actually the model, but this helps us get an approximate encoding to run message truncation.
+        model_name=model,
     )
 
     g = ThreadedGenerator(references, completion_func=completion_func)
@@ -113,24 +146,22 @@ def converse_falcon(
 
 
 def llm_thread(g, messages: List[ChatMessage], model: GPT4All):
-    user_message = messages[0]
-    system_message = messages[-1]
+    user_message = messages[-1]
+    system_message = messages[0]
     conversation_history = messages[1:-1]
 
     formatted_messages = [
-        prompts.chat_history_falcon_from_assistant.format(message=system_message)
+        prompts.chat_history_llamav2_from_assistant.format(message=message.content)
         if message.role == "assistant"
-        else prompts.chat_history_falcon_from_user.format(message=message.content)
+        else prompts.chat_history_llamav2_from_user.format(message=message.content)
         for message in conversation_history
     ]
 
     chat_history = "".join(formatted_messages)
-    full_message = system_message.content + chat_history + user_message.content
-
-    prompted_message = prompts.general_conversation_falcon.format(query=full_message)
-    response_iterator = model.generate(
-        prompted_message, streaming=True, max_tokens=256, top_k=1, temp=0, repeat_penalty=2.0
-    )
+    templated_system_message = prompts.system_prompt_llamav2.format(message=system_message.content)
+    templated_user_message = prompts.general_conversation_llamav2.format(query=user_message.content)
+    prompted_message = templated_system_message + chat_history + templated_user_message
+    response_iterator = model.generate(prompted_message, streaming=True, max_tokens=2000)
     for response in response_iterator:
         logger.info(response)
         g.send(response)

@@ -58,7 +58,7 @@ dependencies = [
     "pypdf >= 3.9.0",
     "requests >= 2.26.0",
     "bs4 >= 0.0.1",
-    "gpt4all==1.0.5",
+    "gpt4all >= 1.0.7",
 ]
 dynamic = ["version"]
 
