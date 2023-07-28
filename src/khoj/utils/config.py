@@ -94,7 +94,7 @@ class ConversationProcessorConfigModel:
         self.chat_session: List[str] = []
         self.meta_log: dict = {}
 
-        if not self.openai_model and self.enable_offline_chat:
+        if self.enable_offline_chat:
             self.gpt4all_model.loaded_model = download_model(self.gpt4all_model.chat_model)
         else:
             self.gpt4all_model.loaded_model = None
