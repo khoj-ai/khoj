@@ -14,7 +14,7 @@ from khoj.utils.constants import empty_escape_sequences
 logger = logging.getLogger(__name__)
 
 
-def extract_questions_llama(
+def extract_questions_offline(
     text: str,
     model: str = "llama-2-7b-chat.ggmlv3.q4_K_S.bin",
     loaded_model: Union[GPT4All, None] = None,
@@ -106,7 +106,7 @@ def filter_questions(questions: List[str]):
     return filtered_questions
 
 
-def converse_llama(
+def converse_offline(
     references,
     user_query,
     conversation_log={},

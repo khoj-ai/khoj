@@ -38,7 +38,7 @@ from khoj.utils.yaml import save_config_to_file_updated_state
 from fastapi.responses import StreamingResponse, Response
 from khoj.routers.helpers import perform_chat_checks, generate_chat_response, update_telemetry_state
 from khoj.processor.conversation.openai.gpt import extract_questions
-from khoj.processor.conversation.gpt4all.chat_model import extract_questions_llama
+from khoj.processor.conversation.gpt4all.chat_model import extract_questions_offline
 from fastapi.requests import Request
 
 
@@ -715,7 +715,7 @@ async def extract_references_and_questions(
                 inferred_queries = extract_questions(q, model=chat_model, api_key=api_key, conversation_log=meta_log)
             else:
                 loaded_model = state.processor_config.conversation.gpt4all_model.loaded_model
-                inferred_queries = extract_questions_llama(
+                inferred_queries = extract_questions_offline(
                     q, loaded_model=loaded_model, conversation_log=meta_log, should_extract_questions=False
                 )
 
