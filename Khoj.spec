@@ -22,6 +22,7 @@ datas += copy_metadata('pillow')
 datas += copy_metadata('huggingface_hub')
 datas += copy_metadata('safetensors')
 datas += copy_metadata('pyyaml')
+datas += copy_metadata('gpt4all')
 
 block_cipher = None
 
