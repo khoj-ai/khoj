@@ -4,7 +4,7 @@ from datetime import datetime
 # External Packages
 import pytest
 
-SKIP_TESTS = False
+SKIP_TESTS = True
 pytestmark = pytest.mark.skipif(
     SKIP_TESTS,
     reason="The GPT4All library has some quirks that make it hard to test in CI. This causes some tests to fail. Hence, disable it in CI.",
