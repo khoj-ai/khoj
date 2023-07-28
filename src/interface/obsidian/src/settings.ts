@@ -2,6 +2,7 @@ import { App, Notice, PluginSettingTab, request, Setting } from 'obsidian';
 import Khoj from 'src/main';
 
 export interface KhojSetting {
+    enableOfflineChat: boolean;
     openaiApiKey: string;
     resultsCount: number;
     khojUrl: string;
@@ -10,6 +11,7 @@ export interface KhojSetting {
 }
 
 export const DEFAULT_SETTINGS: KhojSetting = {
+    enableOfflineChat: false,
     resultsCount: 6,
     khojUrl: 'http://127.0.0.1:42110',
     connectedToBackend: false,
@@ -50,6 +52,15 @@ export class KhojSettingTab extends PluginSettingTab {
                 .setValue(`${this.plugin.settings.openaiApiKey}`)
                 .onChange(async (value) => {
                     this.plugin.settings.openaiApiKey = value.trim();
+                    await this.plugin.saveSettings();
+                }));
+        new Setting(containerEl)
+            .setName('Enable Offline Chat')
+            .setDesc('Enable offline chat with Llama V2. If your OpenAI API Key is set, Khoj will use OpenAI for chat. Otherwise, Khoj will use Llama V2.')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.enableOfflineChat)
+                .onChange(async (value) => {
+                    this.plugin.settings.enableOfflineChat = value;
                     await this.plugin.saveSettings();
                 }));
         new Setting(containerEl)
