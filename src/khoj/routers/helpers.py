@@ -86,6 +86,7 @@ def generate_chat_response(
     # Switch to general conversation type if no relevant notes found for the given query
     conversation_type = "notes" if compiled_references else "general"
     logger.debug(f"Conversation Type: {conversation_type}")
+    chat_response = None
 
     try:
         with timer("Generating chat response took", logger):
@@ -98,7 +99,17 @@ def generate_chat_response(
                 meta_log=meta_log,
             )
 
-            if state.processor_config.conversation.openai_model:
+            if state.processor_config.conversation.enable_offline_chat:
+                loaded_model = state.processor_config.conversation.gpt4all_model.loaded_model
+                chat_response = converse_offline(
+                    references=compiled_references,
+                    user_query=q,
+                    loaded_model=loaded_model,
+                    conversation_log=meta_log,
+                    completion_func=partial_completion,
+                )
+
+            elif state.processor_config.conversation.openai_model:
                 api_key = state.processor_config.conversation.openai_model.api_key
                 chat_model = state.processor_config.conversation.openai_model.chat_model
                 chat_response = converse(
@@ -107,15 +118,6 @@ def generate_chat_response(
                     meta_log,
                     model=chat_model,
                     api_key=api_key,
-                    completion_func=partial_completion,
-                )
-            else:
-                loaded_model = state.processor_config.conversation.gpt4all_model.loaded_model
-                chat_response = converse_offline(
-                    references=compiled_references,
-                    user_query=q,
-                    loaded_model=loaded_model,
-                    conversation_log=meta_log,
                     completion_func=partial_completion,
                 )
 
