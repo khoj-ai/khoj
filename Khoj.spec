@@ -8,7 +8,8 @@ datas = [
     ('src/khoj/interface/web', 'khoj/interface/web'),
     (f'{sysconfig.get_paths()["purelib"]}/transformers', 'transformers'),
     (f'{sysconfig.get_paths()["purelib"]}/langchain', 'langchain'),
-    (f'{sysconfig.get_paths()["purelib"]}/PIL', 'PIL')
+    (f'{sysconfig.get_paths()["purelib"]}/PIL', 'PIL'),
+    (f'{sysconfig.get_paths()["purelib"]}/gpt4all', 'gpt4all'),
 ]
 datas += copy_metadata('torch')
 datas += copy_metadata('tqdm')
@@ -22,7 +23,6 @@ datas += copy_metadata('pillow')
 datas += copy_metadata('huggingface_hub')
 datas += copy_metadata('safetensors')
 datas += copy_metadata('pyyaml')
-datas += copy_metadata('gpt4all')
 
 block_cipher = None
 
