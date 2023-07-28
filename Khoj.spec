@@ -47,7 +47,7 @@ a = Analysis(
 # dylibs not detected because they are loaded by ctypes
 a.binaries += TOC([
     (Path(dep._name).name, dep._name, 'BINARY')
-    for dep in pylibdmtx.EXTERNAL_DEPENDENCIES + pyzbar.EXTERNAL_DEPENDENCIES
+    for dep in pylibdmtx.EXTERNAL_DEPENDENCIES
 ])
 
 # Filter out unused and/or duplicate shared libs
