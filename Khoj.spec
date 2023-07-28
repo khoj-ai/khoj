@@ -3,7 +3,6 @@ from os.path import join
 from platform import system
 from PyInstaller.utils.hooks import copy_metadata
 import sysconfig
-from pathlib import Path
 
 datas = [
     ('src/khoj/interface/web', 'khoj/interface/web'),
