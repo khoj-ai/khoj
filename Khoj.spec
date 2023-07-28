@@ -3,14 +3,14 @@ from os.path import join
 from platform import system
 from PyInstaller.utils.hooks import copy_metadata
 import sysconfig
-from pylibdmtx import pylibdmtx
 from pathlib import Path
 
 datas = [
     ('src/khoj/interface/web', 'khoj/interface/web'),
     (f'{sysconfig.get_paths()["purelib"]}/transformers', 'transformers'),
     (f'{sysconfig.get_paths()["purelib"]}/langchain', 'langchain'),
-    (f'{sysconfig.get_paths()["purelib"]}/PIL', 'PIL')
+    (f'{sysconfig.get_paths()["purelib"]}/PIL', 'PIL'),
+    (f'{sysconfig.get_paths()["purelib"]}/gpt4all', 'gpt4all'),
 ]
 datas += copy_metadata('torch')
 datas += copy_metadata('tqdm')
@@ -24,7 +24,6 @@ datas += copy_metadata('pillow')
 datas += copy_metadata('huggingface_hub')
 datas += copy_metadata('safetensors')
 datas += copy_metadata('pyyaml')
-datas += copy_metadata('gpt4all')
 
 block_cipher = None
 
@@ -43,12 +42,6 @@ a = Analysis(
     cipher=block_cipher,
     noarchive=False,
 )
-
-# dylibs not detected because they are loaded by ctypes
-a.binaries += TOC([
-    (Path(dep._name).name, dep._name, 'BINARY')
-    for dep in pylibdmtx.EXTERNAL_DEPENDENCIES
-])
 
 # Filter out unused and/or duplicate shared libs
 torch_lib_paths = {
