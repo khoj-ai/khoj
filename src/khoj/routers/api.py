@@ -709,15 +709,16 @@ async def extract_references_and_questions(
     if conversation_type == "notes":
         # Infer search queries from user message
         with timer("Extracting search queries took", logger):
-            if state.processor_config.conversation and state.processor_config.conversation.openai_model:
-                api_key = state.processor_config.conversation.openai_model.api_key
-                chat_model = state.processor_config.conversation.openai_model.chat_model
-                inferred_queries = extract_questions(q, model=chat_model, api_key=api_key, conversation_log=meta_log)
-            else:
+            # If we've reached here, either the user has enabled offline chat or the openai model is enabled.
+            if state.processor_config.conversation.enable_offline_chat:
                 loaded_model = state.processor_config.conversation.gpt4all_model.loaded_model
                 inferred_queries = extract_questions_offline(
                     q, loaded_model=loaded_model, conversation_log=meta_log, should_extract_questions=False
                 )
+            elif state.processor_config.conversation.openai_model:
+                api_key = state.processor_config.conversation.openai_model.api_key
+                chat_model = state.processor_config.conversation.openai_model.chat_model
+                inferred_queries = extract_questions(q, model=chat_model, api_key=api_key, conversation_log=meta_log)
 
         # Collate search results as context for GPT
         with timer("Searching knowledge base took", logger):
