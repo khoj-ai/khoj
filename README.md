@@ -1,13 +1,42 @@
-<p align="center"><img src="src/khoj/interface/web/assets/icons/khoj-logo-sideways.svg" width="330" alt="Khoj Logo"></p>
+<p align="center"><img src="src/khoj/interface/web/assets/icons/khoj-logo-sideways.svg" width="230" alt="Khoj Logo"></p>
 
+<div align="center">
+  
 [![test](https://github.com/khoj-ai/khoj/actions/workflows/test.yml/badge.svg)](https://github.com/khoj-ai/khoj/actions/workflows/test.yml)
 [![dockerize](https://github.com/khoj-ai/khoj/actions/workflows/dockerize.yml/badge.svg)](https://github.com/khoj-ai/khoj/pkgs/container/khoj)
 [![pypi](https://github.com/khoj-ai/khoj/actions/workflows/pypi.yml/badge.svg)](https://pypi.org/project/khoj-assistant/)
 
-> An AI personal assistant for your digital brain
+</div>
 
-Our goal with Khoj is to make something that can live on your desktop and give you a privacy-first, open-source, and extensible way to search and chat with your digital brain.
+<div align="center">
+<b>An AI personal assistant for your digital brain</b>
+</div>
 
-| Install | Get on the Cloud | Get Involved |
-|:-------------------------:|:-------------------------:|:-------------------------:|
-| [See the docs](https://khoj-ai.github.io/khoj/)| [Visit the website](https://khoj.dev)| [Join the community](https://discord.gg/BDgyabRM6e)|
+<br />
+
+<div align="center">
+
+[📜 Read The Docs](https://khoj-ai.github.io/khoj/)
+<span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+[🌍 Try Khoj Cloud](https://khoj.dev)
+<span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+[💬 Get Involved](https://discord.gg/BDgyabRM6e)
+
+</div>
+
+<div align="center">
+  
+***
+
+Khoj is a desktop application to search and chat with your notes, documents and images. <br />
+It is an offline-first, open source AI personal assistant.
+
+***
+
+</div>
+
+| 🔎 Search | 💬 Chat |
+|:---------:|:-------:|
+| Quickly retrieve relevant documents using natural language | Get answers and create content from your existing knowledge base |
+| Does not need internet | Can be configured to work without internet |
+| <img src="https://docs.khoj.dev/assets/khoj_search_on_web.png" width="400px"> | <img src="https://docs.khoj.dev/assets/khoj_chat_on_web.png" width="400px"> |
