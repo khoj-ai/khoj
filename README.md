@@ -1,7 +1,7 @@
 <p align="center"><img src="src/khoj/interface/web/assets/icons/khoj-logo-sideways.svg" width="230" alt="Khoj Logo"></p>
 
 <div align="center">
-  
+
 [![test](https://github.com/khoj-ai/khoj/actions/workflows/test.yml/badge.svg)](https://github.com/khoj-ai/khoj/actions/workflows/test.yml)
 [![dockerize](https://github.com/khoj-ai/khoj/actions/workflows/dockerize.yml/badge.svg)](https://github.com/khoj-ai/khoj/pkgs/container/khoj)
 [![pypi](https://github.com/khoj-ai/khoj/actions/workflows/pypi.yml/badge.svg)](https://pypi.org/project/khoj-assistant/)
@@ -25,11 +25,12 @@
 </div>
 
 <div align="center">
-  
+
 ***
 
-Khoj is a desktop application to search and chat with your notes, documents and images. <br />
-It is an offline-first, open source AI personal assistant.
+Khoj is a desktop application to search and chat with your notes, documents and images.<br />
+It is an offline-first, open source AI personal assistant accessible from your Emacs, Obsidian or Web browser.<br />
+It works with jpeg, markdown, notion, org-mode, pdf files and github repositories.<br />
 
 ***
 

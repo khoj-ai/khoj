@@ -1,36 +1,37 @@
 ### Khoj Chat
 #### Overview
 - Creates a personal assistant for you to inquire and engage with your notes
-- Uses [ChatGPT](https://openai.com/blog/chatgpt) and [Khoj search](/#/search). [Offline chat](https://github.com/khoj-ai/khoj/issues/201) is coming soon.
+- You can choose to use Online or Offline Chat depending on your requirements
 - Supports multi-turn conversations with the relevant notes for context
 - Shows reference notes used to generate a response
 
-!> **Warning**: This will enable Khoj to send your query and note(s) to OpenAI for processing
+### Setup
+#### Offline Chat
+Offline chat works without internet but it is slower, lower quality and more compute intensive.
 
-#### Setup
-- Get your [OpenAI API Key](https://platform.openai.com/account/api-keys)
-- Add your OpenAI API to Khoj by using either of the two options below:
+!> **Warning**: This will download a 3Gb+ Llama v2 chat model which can take some time
 
-  - Open your [Khoj settings](http://localhost:42110/config/processor/conversation), add your OpenAI API key, and click *Save*. Then go to your [Khoj settings](http://localhost:42110/config) and click `Configure`. This will refresh Khoj with your OpenAI API key.
+- Open your [Khoj settings](http://localhost:42110/config/), click *Enable* on the Offline Chat card
 
-  - Set `openai-api-key` field under `processor.conversation` section in your `khoj.yml` @ `~/.khoj/khoj.yml` to your [OpenAI API key](https://beta.openai.com/account/api-keys) and restart khoj:
-    ```diff
-    processor:
-      conversation:
-    -    openai-api-key: # "YOUR_OPENAI_API_KEY"
-    +    openai-api-key: sk-aaaaaaaaaaaaaaaaaaaaaaaahhhhhhhhhhhhhhhhhhhhhhhh
-        model: "text-davinci-003"
-        chat-model: "gpt-3.5-turbo"
-        conversation-logfile: "~/.khoj/processor/conversation/conversation_logs.json"
-    ```
+![Configure offline chat](https://user-images.githubusercontent.com/6413477/256998545-ed6a4606-b535-492b-9edc-bf13f602776c.mp4 ':include :type=mp4')
 
-#### Use
+#### Online Chat
+Online chat requires internet to use ChatGPT but is faster, higher quality and less compute intensive.
+
+!> **Warning**: This will enable Khoj to send your chat queries and notes to OpenAI for processing
+
+1. Get your [OpenAI API Key](https://platform.openai.com/account/api-keys)
+2. Open your [Khoj Online Chat settings](http://localhost:42110/config/processor/conversation), add your OpenAI API key, and click *Save*. Then go to your [Khoj settings](http://localhost:42110/config) and click `Configure`. This will refresh Khoj with your OpenAI API key.
+
+![Configure online chat](https://user-images.githubusercontent.com/6413477/256998908-ac26e55e-13a2-45fb-9348-3b90a62f7687.mp4 ':include :type=mp4')
+
+
+### Use
 1. Open [/chat](http://localhost:42110/chat)
-2. Type your queries and see response by Khoj from your notes
+2. Type your queries and see Khoj respond using your notes as reference
 
-#### Demo
 ![](./assets/khoj_chat_on_web.png ':size=400px')
 
-### Details
+#### Details
 1. Your query is used to retrieve the most relevant notes, if any, using Khoj search
-2. These notes, the last few messages and associated metadata is passed to ChatGPT along with your query for a response
+2. These notes, the last few messages and associated metadata is passed to the enabled chat model along with your query to generate a response
