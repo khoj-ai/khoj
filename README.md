@@ -16,7 +16,7 @@
 
 <div align="center">
 
-[📜 Read The Docs](https://khoj-ai.github.io/khoj/)
+[📜 Read Docs](https://docs.khoj.dev)
 <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
 [🌍 Try Khoj Cloud](https://khoj.dev)
 <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
