@@ -723,7 +723,7 @@ async def extract_references_and_questions(
         with timer("Searching knowledge base took", logger):
             result_list = []
             for query in inferred_queries:
-                n_items = n if state.processor_config.conversation.openai_model else min(n, 3)
+                n_items = min(n, 3) if state.processor_config.conversation.enable_offline_chat else n
                 result_list.extend(
                     await search(query, request=request, n=n_items, r=True, score_threshold=-5.0, dedupe=False)
                 )
