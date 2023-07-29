@@ -145,37 +145,26 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
                 }
             }
 
+            let conversationLogFile = data?.["processor"]?.["conversation"]?.["conversation-logfile"] ?? `${khojDefaultChatDirectory}/conversation.json`;
+
             let processorData: ProcessorData = {
                 "conversation": {
-                    "conversation-logfile": `${khojDefaultChatDirectory}/conversation.json`,
+                    "conversation-logfile": conversationLogFile,
                     "openai": null,
                     "enable-offline-chat": setting.enableOfflineChat,
                 }
             }
 
-            // Else if khoj backend not configured yet or if khoj config has no conversation processor config
-            if (
-                        (!khoj_already_configured || !data["processor"]) ||
-                        (!data["processor"]["conversation"] || !data["processor"]["conversation"]["openai"])
-                ) {
+            // If the Open AI API Key was configured in the plugin settings
+            if (!!setting.openaiApiKey) {
+
+                let openAIChatModel = data?.["processor"]?.["conversation"]?.["openai"]?.["chat-model"] ?? khojDefaultChatModelName;
+
                 processorData = {
                     "conversation": {
-                        "conversation-logfile": `${khojDefaultChatDirectory}/conversation.json`,
+                        "conversation-logfile": conversationLogFile,
                         "openai": {
-                            "chat-model": khojDefaultChatModelName,
-                            "api-key": setting.openaiApiKey,
-                        },
-                        "enable-offline-chat": setting.enableOfflineChat,
-                    },
-                }
-            }
-            // Else if khoj is not configured with OpenAI API key from khoj plugin settings
-            else if (data["processor"]["conversation"]["openai"]["api-key"] !== setting.openaiApiKey) {
-                processorData = {
-                    "conversation": {
-                        "conversation-logfile": data["processor"]["conversation"]["conversation-logfile"],
-                        "openai": {
-                            "chat-model": data["processor"]["conversation"]["openai"]["chat-model"],
+                            "chat-model": openAIChatModel,
                             "api-key": setting.openaiApiKey,
                         },
                         "enable-offline-chat": setting.enableOfflineChat,
