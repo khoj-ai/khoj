@@ -2,6 +2,7 @@ import { App, Notice, PluginSettingTab, request, Setting } from 'obsidian';
 import Khoj from 'src/main';
 
 export interface KhojSetting {
+    enableOfflineChat: boolean;
     openaiApiKey: string;
     resultsCount: number;
     khojUrl: string;
@@ -10,6 +11,7 @@ export interface KhojSetting {
 }
 
 export const DEFAULT_SETTINGS: KhojSetting = {
+    enableOfflineChat: false,
     resultsCount: 6,
     khojUrl: 'http://127.0.0.1:42110',
     connectedToBackend: false,
@@ -35,7 +37,7 @@ export class KhojSettingTab extends PluginSettingTab {
         // Add khoj settings configurable from the plugin settings tab
         new Setting(containerEl)
             .setName('Khoj URL')
-            .setDesc('The URL of the Khoj backend')
+            .setDesc('The URL of the Khoj backend.')
             .addText(text => text
                 .setValue(`${this.plugin.settings.khojUrl}`)
                 .onChange(async (value) => {
@@ -45,7 +47,7 @@ export class KhojSettingTab extends PluginSettingTab {
                 }));
         new Setting(containerEl)
             .setName('OpenAI API Key')
-            .setDesc('Your OpenAI API Key for Khoj Chat')
+            .setDesc('Use OpenAI for Khoj Chat with your API key.')
             .addText(text => text
                 .setValue(`${this.plugin.settings.openaiApiKey}`)
                 .onChange(async (value) => {
@@ -53,8 +55,17 @@ export class KhojSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
         new Setting(containerEl)
+            .setName('Enable Offline Chat')
+            .setDesc('Chat privately without an internet connection. Enabling this will use offline chat even if OpenAI is configured.')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.enableOfflineChat)
+                .onChange(async (value) => {
+                    this.plugin.settings.enableOfflineChat = value;
+                    await this.plugin.saveSettings();
+                }));
+        new Setting(containerEl)
             .setName('Results Count')
-            .setDesc('The number of results to show in search and use for chat')
+            .setDesc('The number of results to show in search and use for chat.')
             .addSlider(slider => slider
                 .setLimits(1, 10, 1)
                 .setValue(this.plugin.settings.resultsCount)
@@ -65,7 +76,7 @@ export class KhojSettingTab extends PluginSettingTab {
                 }));
         new Setting(containerEl)
             .setName('Auto Configure')
-            .setDesc('Automatically configure the Khoj backend')
+            .setDesc('Automatically configure the Khoj backend.')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.autoConfigure)
                 .onChange(async (value) => {
@@ -75,7 +86,7 @@ export class KhojSettingTab extends PluginSettingTab {
         let indexVaultSetting = new Setting(containerEl);
         indexVaultSetting
             .setName('Index Vault')
-            .setDesc('Manually force Khoj to re-index your Obsidian Vault')
+            .setDesc('Manually force Khoj to re-index your Obsidian Vault.')
             .addButton(button => button
                 .setButtonText('Update')
                 .setCta()

@@ -169,7 +169,7 @@ def configure_content(
 
     try:
         # Initialize Org Notes Search
-        if (t == state.SearchType.Org or t == None) and content_config.org and search_models.text_search:
+        if (t == None or t.value == state.SearchType.Org.value) and content_config.org and search_models.text_search:
             logger.info("🦄 Setting up search for orgmode notes")
             # Extract Entries, Generate Notes Embeddings
             content_index.org = text_search.setup(
@@ -181,7 +181,11 @@ def configure_content(
             )
 
         # Initialize Markdown Search
-        if (t == state.SearchType.Markdown or t == None) and content_config.markdown and search_models.text_search:
+        if (
+            (t == None or t.value == state.SearchType.Markdown.value)
+            and content_config.markdown
+            and search_models.text_search
+        ):
             logger.info("💎 Setting up search for markdown notes")
             # Extract Entries, Generate Markdown Embeddings
             content_index.markdown = text_search.setup(
@@ -193,7 +197,7 @@ def configure_content(
             )
 
         # Initialize PDF Search
-        if (t == state.SearchType.Pdf or t == None) and content_config.pdf and search_models.text_search:
+        if (t == None or t.value == state.SearchType.Pdf.value) and content_config.pdf and search_models.text_search:
             logger.info("🖨️ Setting up search for pdf")
             # Extract Entries, Generate PDF Embeddings
             content_index.pdf = text_search.setup(
@@ -205,19 +209,42 @@ def configure_content(
             )
 
         # Initialize Image Search
-        if (t == state.SearchType.Image or t == None) and content_config.image and search_models.image_search:
+        if (
+            (t == None or t.value == state.SearchType.Image.value)
+            and content_config.image
+            and search_models.image_search
+        ):
             logger.info("🌄 Setting up search for images")
             # Extract Entries, Generate Image Embeddings
             content_index.image = image_search.setup(
                 content_config.image, search_models.image_search.image_encoder, regenerate=regenerate
             )
 
-        if (t == state.SearchType.Github or t == None) and content_config.github and search_models.text_search:
+        if (
+            (t == None or t.value == state.SearchType.Github.value)
+            and content_config.github
+            and search_models.text_search
+        ):
             logger.info("🐙 Setting up search for github")
             # Extract Entries, Generate Github Embeddings
             content_index.github = text_search.setup(
                 GithubToJsonl,
                 content_config.github,
+                search_models.text_search.bi_encoder,
+                regenerate=regenerate,
+                filters=[DateFilter(), WordFilter(), FileFilter()],
+            )
+
+        # Initialize Notion Search
+        if (
+            (t == None or t.value in state.SearchType.Notion.value)
+            and content_config.notion
+            and search_models.text_search
+        ):
+            logger.info("🔌 Setting up search for notion")
+            content_index.notion = text_search.setup(
+                NotionToJsonl,
+                content_config.notion,
                 search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
@@ -235,17 +262,6 @@ def configure_content(
                     regenerate=regenerate,
                     filters=[DateFilter(), WordFilter(), FileFilter()],
                 )
-
-        # Initialize Notion Search
-        if (t == None or t in state.SearchType) and content_config.notion and search_models.text_search:
-            logger.info("🔌 Setting up search for notion")
-            content_index.notion = text_search.setup(
-                NotionToJsonl,
-                content_config.notion,
-                search_models.text_search.bi_encoder,
-                regenerate=regenerate,
-                filters=[DateFilter(), WordFilter(), FileFilter()],
-            )
 
     except Exception as e:
         logger.error(f"🚨 Failed to setup search: {e}", exc_info=True)

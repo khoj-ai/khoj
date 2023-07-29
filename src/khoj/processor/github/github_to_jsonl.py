@@ -38,6 +38,9 @@ class GithubToJsonl(TextToJsonl):
             return
 
     def process(self, previous_entries=[]):
+        if self.config.pat_token is None or self.config.pat_token == "":
+            logger.error(f"Github PAT token is not set. Skipping github content")
+            raise ValueError("Github PAT token is not set. Skipping github content")
         current_entries = []
         for repo in self.config.repos:
             current_entries += self.process_repo(repo)
