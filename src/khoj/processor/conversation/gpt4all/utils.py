@@ -2,7 +2,7 @@ import os
 import logging
 import requests
 from gpt4all import GPT4All
-import tqdm
+from tqdm import tqdm
 
 from khoj.processor.conversation.gpt4all import model_metadata
 
@@ -24,9 +24,17 @@ def download_model(model_name):
         logger.debug(f"Downloading model {model_name} from {url} to {filename}...")
         with requests.get(url, stream=True) as r:
             r.raise_for_status()
-            with open(filename, "wb") as f:
+            total_size = int(r.headers.get("content-length", 0))
+            with open(filename, "wb") as f, tqdm(
+                unit="B",  # unit string to be displayed.
+                unit_scale=True,  # let tqdm to determine the scale in kilo, mega..etc.
+                unit_divisor=1024,  # is used when unit_scale is true
+                total=total_size,  # the total iteration.
+                desc=filename.split("/")[-1],  # prefix to be displayed on progress bar.
+            ) as progress_bar:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
+                    progress_bar.update(len(chunk))
         return GPT4All(model_name)
     except Exception as e:
         logger.error(f"Failed to download model {model_name} from {url} to {filename}. Error: {e}")
