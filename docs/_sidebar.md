@@ -14,7 +14,9 @@
     - Data Sources
         - [Github](github_integration.md)
         - [Notion](notion_integration.md)
+- Miscellaneous
     - [Advanced](advanced.md)
     - [Performance](performance.md)
+    - [Credits](credits.md)
 - Contributing
     - [Development](development.md)
