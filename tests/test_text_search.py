@@ -77,7 +77,7 @@ def test_text_index_same_if_content_unchanged(content_config: ContentConfig, sea
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.anyio
-async def test_asymmetric_search(content_config: ContentConfig, search_config: SearchConfig):
+async def test_text_search(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     content_index.org = text_search.setup(
@@ -93,7 +93,7 @@ async def test_asymmetric_search(content_config: ContentConfig, search_config: S
     results = text_search.collate_results(hits, entries, count=1)
 
     # Assert
-    # Actual_data should contain "Khoj via Emacs" entry
+    # search results should contain "git clone" entry
     search_result = results[0].entry
     assert "git clone" in search_result
 
@@ -262,7 +262,7 @@ def test_update_index_with_new_entry(content_config: ContentConfig, search_model
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.skipif(os.getenv("GITHUB_PAT_TOKEN") is None, reason="GITHUB_PAT_TOKEN not set")
-def test_asymmetric_setup_github(content_config: ContentConfig, search_models: SearchModels):
+def test_text_search_setup_github(content_config: ContentConfig, search_models: SearchModels):
     # Act
     # Regenerate github embeddings to test asymmetric setup without caching
     github_model = text_search.setup(
