@@ -45,9 +45,7 @@ processor:
   conversation:
     conversation-logfile: "/data/embeddings/conversation_logs.json"
     enable-offline-chat: false
-    openai:
-      api-key: null
-      chat-model: "chat-gpt-3.5"
+    openai: null
 
 app:
   should_log_telemetry: true
