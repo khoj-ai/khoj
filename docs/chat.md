@@ -13,7 +13,7 @@ Offline chat works without internet but it is slower, lower quality and more com
 
 - Open your [Khoj settings](http://localhost:42110/config/), click *Enable* on the Offline Chat card
 
-![Configure offline chat](https://user-images.githubusercontent.com/6413477/256998545-ed6a4606-b535-492b-9edc-bf13f602776c.mp4 ':include :type=mp4')
+![Configure offline chat](https://user-images.githubusercontent.com/6413477/257021364-8a2029f5-dc21-4de8-9af9-9ba6100d695c.mp4 ':include :type=mp4')
 
 #### Online Chat
 Online chat requires internet to use ChatGPT but is faster, higher quality and less compute intensive.
