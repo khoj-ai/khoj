@@ -6,6 +6,7 @@ from importlib import import_module
 from importlib.metadata import version
 import logging
 from os import path
+import os
 from pathlib import Path
 import platform
 import sys
@@ -168,6 +169,9 @@ def get_server_id():
     else:
         # If server_id is not found, generate a new one
         server_id = str(uuid.uuid4())
+
+        # Create khoj config directory if it doesn't exist
+        os.makedirs(path.dirname(app_env_filename), exist_ok=True)
 
         # Write the server_id to the env file
         with open(app_env_filename, "w") as f:
