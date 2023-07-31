@@ -24,7 +24,7 @@ For more detailed Windows installation and troubleshooting, see [Windows Install
 
 ### 2. Start
 
-Run the following commmand from your terminal to start the Khoj backend and open Khoj in your browser.
+Run the following command from your terminal to start the Khoj backend and open Khoj in your browser.
 
 ```shell
 khoj --gui
@@ -90,7 +90,7 @@ pip install --upgrade --pre khoj-assistant
 
 #### Search starts giving wonky results
 - **Fix**: Open [/api/update?force=true](http://localhost:42110/api/update?force=true) in browser to regenerate index from scratch
-- **Note**: *This is a fix for when you percieve the search results have degraded. Not if you think they've always given wonky results*
+- **Note**: *This is a fix for when you perceive the search results have degraded. Not if you think they've always given wonky results*
 
 #### Khoj in Docker errors out with \"Killed\" in error message
 - **Fix**: Increase RAM available to Docker Containers in Docker Settings
