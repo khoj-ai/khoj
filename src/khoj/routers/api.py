@@ -706,6 +706,10 @@ async def extract_references_and_questions(
     compiled_references = []
     inferred_queries = []
 
+    if state.content_index is None:
+        logger.warn("No content index loaded. Cannot extract references from knowledge base.")
+        return compiled_references, inferred_queries
+
     if conversation_type == "notes":
         # Infer search queries from user message
         with timer("Extracting search queries took", logger):
