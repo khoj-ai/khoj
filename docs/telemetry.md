@@ -1,11 +1,12 @@
 # Telemetry
 
-We collect some high level, anonymized metadata about usage of Khoj and send it to Posthog. This includes:
+We collect some high level, anonymized metadata about usage of Khoj. This includes:
 - Client (Web, Emacs, Obsidian)
 - API usage (Search, Chat)
 - Configured content types (Github, Org, etc)
+- Request metadata (e.g., host, referrer)
 
-We don't send any personal information or any information about your content. We only send the above metadata, as well as some basic request metadata (e.g., host, referrer). This helps us prioritize feature development and understand how people are using Khoj. Don't just take our word for it -- you can see [the code here](https://github.com/khoj-ai/khoj/tree/master/src/telemetry).
+We don't send any personal information or any information from/about your content. We only send the above metadata. This helps us prioritize feature development and understand how people are using Khoj. Don't just take our word for it -- you can see [the code here](https://github.com/khoj-ai/khoj/tree/master/src/telemetry).
 
 ## Disable Telemetry
 
