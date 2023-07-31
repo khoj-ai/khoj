@@ -19,6 +19,7 @@ repos:
   rev: v1.0.0
   hooks:
     - id: mypy
+      stages: [push, manual]
       pass_filenames: false
       args:
       - --config-file=pyproject.toml
