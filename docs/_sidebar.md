@@ -1,6 +1,7 @@
 - Get Started
     - [Overview](README.md)
     - [Install](setup.md)
+        - [Desktop Installation](desktop_installation.md)
         - [Windows Installation](windows_install.md)
     - [Demos](demos.md)
 - Use
@@ -11,10 +12,11 @@
         - [Obsidian](obsidian.md)
         - [Emacs](emacs.md)
         - [Web](web.md)
-    - Data Sources
+    - Online Data Sources
         - [Github](github_integration.md)
         - [Notion](notion_integration.md)
 - Miscellaneous
+    - [Telemetry](telemetry.md)
     - [Advanced](advanced.md)
     - [Performance](performance.md)
     - [Credits](credits.md)
