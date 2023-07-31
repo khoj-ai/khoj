@@ -21,7 +21,7 @@ def extract_questions_offline(
     conversation_log={},
     use_history: bool = True,
     should_extract_questions: bool = True,
-):
+) -> List[str]:
     """
     Infer search queries to retrieve relevant notes to answer user query
     """

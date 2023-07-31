@@ -703,8 +703,8 @@ async def extract_references_and_questions(
 
     # Initialize Variables
     conversation_type = "general" if q.startswith("@general") else "notes"
-    compiled_references = List[Any]
-    inferred_queries = List[Any]
+    compiled_references: List[Any] = []
+    inferred_queries: List[str] = []
 
     if state.content_index is None:
         logger.warn(
