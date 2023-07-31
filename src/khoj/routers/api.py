@@ -707,7 +707,9 @@ async def extract_references_and_questions(
     inferred_queries = []
 
     if state.content_index is None:
-        logger.warn("No content index loaded. Cannot extract references from knowledge base.")
+        logger.warn(
+            "No content index loaded, so cannot extract references from knowledge base. Please configure your data sources and update the index to chat with your notes."
+        )
         return compiled_references, inferred_queries
 
     if conversation_type == "notes":
