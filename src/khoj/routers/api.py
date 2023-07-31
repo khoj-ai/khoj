@@ -5,7 +5,7 @@ import time
 import yaml
 import logging
 import json
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Any
 
 # External Packages
 from fastapi import APIRouter, HTTPException, Header, Request
@@ -703,8 +703,8 @@ async def extract_references_and_questions(
 
     # Initialize Variables
     conversation_type = "general" if q.startswith("@general") else "notes"
-    compiled_references = []
-    inferred_queries = []
+    compiled_references = List[Any]
+    inferred_queries = List[Any]
 
     if state.content_index is None:
         logger.warn(
