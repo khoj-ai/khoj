@@ -174,7 +174,7 @@ def processor_config(tmp_path_factory):
 def processor_config_offline_chat(tmp_path_factory):
     processor_dir = tmp_path_factory.mktemp("processor")
 
-    # Setup conversation processor, if OpenAI API key is set
+    # Setup conversation processor
     processor_config = ProcessorConfig()
     processor_config.conversation = ConversationProcessorConfig(
         enable_offline_chat=True,

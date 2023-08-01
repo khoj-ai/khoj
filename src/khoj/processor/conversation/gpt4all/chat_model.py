@@ -124,11 +124,9 @@ def converse_offline(
     """
     gpt4all_model = loaded_model or GPT4All(model)
     # Initialize Variables
-    current_date = datetime.now().strftime("%Y-%m-%d")
     compiled_references_message = "\n\n".join({f"{item}" for item in references})
 
     # Get Conversation Primer appropriate to Conversation Type
-    # TODO If compiled_references_message is too long, we need to truncate it.
     if compiled_references_message == "":
         conversation_primer = user_query
     else:

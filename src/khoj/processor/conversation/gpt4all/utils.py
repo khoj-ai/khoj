@@ -19,6 +19,7 @@ def download_model(model_name: str):
     if os.path.exists(filename):
         return GPT4All(model_name)
 
+    # Download the model to a tmp file. Once the download is completed, move the tmp file to the actual file
     tmp_filename = filename + ".tmp"
 
     try:
