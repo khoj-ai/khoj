@@ -76,7 +76,9 @@
             new_response.appendChild(new_response_text);
 
             // Temporary status message to indicate that Khoj is thinking
-            new_response_text.innerHTML = "🤔";
+            let loading_spinner = document.createElement("div");
+            loading_spinner.classList.add("spinner");
+            new_response_text.appendChild(loading_spinner);
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
 
             // Call specified Khoj API which returns a streamed response of type text/plain
@@ -107,10 +109,10 @@
                                 document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
                             } else {
                                 // Display response from Khoj
-                                if (new_response_text.innerHTML === "🤔") {
-                                    // Clear temporary status message
-                                    new_response_text.innerHTML = "";
+                                if (new_response_text.getElementsByClassName("spinner").length > 0) {
+                                    new_response_text.removeChild(loading_spinner);
                                 }
+
                                 new_response_text.innerHTML += chunk;
                                 readStream();
                             }
@@ -268,6 +270,21 @@
             background: var(--primary);
             margin-left: auto;
             white-space: pre-line;
+        }
+        /* Spinner symbol when the chat message is loading */
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-inverse);
+            border-radius: 50%;
+            width: 12px;
+            height: 12px;
+            animation: spin 2s linear infinite;
+            margin: 0px 0px 0px 10px;
+            display: inline-block;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
         /* add left protrusion to khoj chat bubble */
         .chat-message-text.khoj:after {
