@@ -42,6 +42,10 @@ class ThreadedGenerator:
         return item
 
     def send(self, data):
+        if self.response == "":
+            time_to_first_response = perf_counter() - self.start_time
+            logger.debug(f"First response took: {time_to_first_response:.3f} seconds")
+
         self.response += data
         self.queue.put(data)
 
