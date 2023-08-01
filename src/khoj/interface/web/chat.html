@@ -77,9 +77,9 @@
             new_response.appendChild(new_response_text);
 
             // Temporary status message to indicate that Khoj is thinking
-            let loading_spinner = document.createElement("div");
-            loading_spinner.classList.add("spinner");
-            new_response_text.appendChild(loading_spinner);
+            let loadingSpinner = document.createElement("div");
+            loadingSpinner.classList.add("spinner");
+            new_response_text.appendChild(loadingSpinner);
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
 
             // Call specified Khoj API which returns a streamed response of type text/plain
@@ -111,7 +111,7 @@
                             } else {
                                 // Display response from Khoj
                                 if (new_response_text.getElementsByClassName("spinner").length > 0) {
-                                    new_response_text.removeChild(loading_spinner);
+                                    new_response_text.removeChild(loadingSpinner);
                                 }
 
                                 new_response_text.innerHTML += chunk;
