@@ -123,7 +123,7 @@ def truncate_messages(messages: list[ChatMessage], max_prompt_size, model_name) 
         current_message = "\n".join(messages[0].content.split("\n")[:-1])
         original_question = "\n".join(messages[0].content.split("\n")[-1:])
         original_question_tokens = len(encoder.encode(original_question))
-        remaining_tokens = max_prompt_size - original_question_tokens
+        remaining_tokens = max_prompt_size - original_question_tokens - system_message_tokens
         truncated_message = encoder.decode(encoder.encode(current_message)[:remaining_tokens]).strip()
         logger.debug(
             f"Truncate current message to fit within max prompt size of {max_prompt_size} supported by {model_name} model:\n {truncated_message}"
