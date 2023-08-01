@@ -25,6 +25,7 @@ port: int = None
 cli_args: List[str] = None
 query_cache = LRU()
 config_lock = threading.Lock()
+chat_lock = threading.Lock()
 SearchType = utils_config.SearchType
 telemetry: List[Dict[str, str]] = []
 previous_query: str = None

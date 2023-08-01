@@ -10,6 +10,7 @@ from gpt4all import GPT4All
 from khoj.processor.conversation.utils import ThreadedGenerator, generate_chatml_messages_with_context
 from khoj.processor.conversation import prompts
 from khoj.utils.constants import empty_escape_sequences
+from khoj.utils import state
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,11 @@ def extract_questions_offline(
         next_christmas_date=next_christmas_date,
     )
     message = system_prompt + example_questions
-    response = gpt4all_model.generate(message, max_tokens=200, top_k=2, temp=0, n_batch=128)
+    state.chat_lock.acquire()
+    try:
+        response = gpt4all_model.generate(message, max_tokens=200, top_k=2, temp=0, n_batch=128)
+    finally:
+        state.chat_lock.release()
 
     # Extract, Clean Message from GPT's Response
     try:
@@ -162,6 +167,10 @@ def llm_thread(g, messages: List[ChatMessage], model: GPT4All):
     templated_user_message = prompts.general_conversation_llamav2.format(query=user_message.content)
     prompted_message = templated_system_message + chat_history + templated_user_message
     response_iterator = model.generate(prompted_message, streaming=True, max_tokens=1000, n_batch=256)
-    for response in response_iterator:
-        g.send(response)
+    state.chat_lock.acquire()
+    try:
+        for response in response_iterator:
+            g.send(response)
+    finally:
+        state.chat_lock.release()
     g.close()
