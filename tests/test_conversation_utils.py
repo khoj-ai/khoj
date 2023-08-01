@@ -56,7 +56,10 @@ class TestTruncateMessage:
         prompt = utils.truncate_messages(chat_messages, self.max_prompt_size, self.model_name)
         tokens = sum([len(self.encoder.encode(message.content)) for message in prompt])
 
-        # The original object has been modified. Verify certain properties
+        # The original object has been modified. Verify certain properties.
+        assert len(prompt) == (
+            len(chat_messages) + 1
+        )  # Because the system_prompt is popped off from the chat_messages lsit
         assert len(prompt) < 26
         assert len(prompt) > 1
         assert prompt[0] != copy_big_chat_message
