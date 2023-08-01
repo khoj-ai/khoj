@@ -61,6 +61,7 @@
             // Add message by user to chat body
             renderMessage(query, "you");
             document.getElementById("chat-input").value = "";
+            document.getElementById("chat-input").setAttribute("disabled", "disabled");
 
             // Generate backend API URL to execute query
             let url = `/api/chat?q=${encodeURIComponent(query)}&n=${results_count}&client=web&stream=true`;
@@ -122,6 +123,7 @@
                         });
                     }
                     readStream();
+                    document.getElementById("chat-input").removeAttribute("disabled");
                 });
         }
 
