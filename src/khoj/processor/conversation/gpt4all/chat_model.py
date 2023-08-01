@@ -58,7 +58,7 @@ def extract_questions_offline(
         next_christmas_date=next_christmas_date,
     )
     message = system_prompt + example_questions
-    response = gpt4all_model.generate(message, max_tokens=200, top_k=2, temp=0)
+    response = gpt4all_model.generate(message, max_tokens=200, top_k=2, temp=0, n_batch=128)
 
     # Extract, Clean Message from GPT's Response
     try:
@@ -161,7 +161,7 @@ def llm_thread(g, messages: List[ChatMessage], model: GPT4All):
     templated_system_message = prompts.system_prompt_llamav2.format(message=system_message.content)
     templated_user_message = prompts.general_conversation_llamav2.format(query=user_message.content)
     prompted_message = templated_system_message + chat_history + templated_user_message
-    response_iterator = model.generate(prompted_message, streaming=True, max_tokens=1000)
+    response_iterator = model.generate(prompted_message, streaming=True, max_tokens=1000, n_batch=256)
     for response in response_iterator:
         g.send(response)
     g.close()
