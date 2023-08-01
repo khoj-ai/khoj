@@ -125,7 +125,7 @@ def converse_offline(
     # Get Conversation Primer appropriate to Conversation Type
     # TODO If compiled_references_message is too long, we need to truncate it.
     if compiled_references_message == "":
-        conversation_primer = prompts.conversation_llamav2.format(query=user_query)
+        conversation_primer = user_query
     else:
         conversation_primer = prompts.notes_conversation_llamav2.format(
             query=user_query, references=compiled_references_message
