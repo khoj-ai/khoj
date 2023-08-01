@@ -15,9 +15,13 @@ logger = logging.getLogger(__name__)
 
 
 def perform_chat_checks():
-    if state.processor_config.conversation and (
-        state.processor_config.conversation.openai_model
-        or state.processor_config.conversation.gpt4all_model.loaded_model
+    if (
+        state.processor_config
+        and state.processor_config.conversation
+        and (
+            state.processor_config.conversation.openai_model
+            or state.processor_config.conversation.gpt4all_model.loaded_model
+        )
     ):
         return
 

@@ -7,13 +7,15 @@ import tiktoken
 
 # External packages
 from langchain.schema import ChatMessage
+from transformers import LlamaTokenizerFast
 
 # Internal Packages
 import queue
 from khoj.utils.helpers import merge_dicts
 
 logger = logging.getLogger(__name__)
-max_prompt_size = {"gpt-3.5-turbo": 4096, "gpt-4": 8192, "llama-2-7b-chat.ggmlv3.q4_K_S.bin": 850}
+max_prompt_size = {"gpt-3.5-turbo": 4096, "gpt-4": 8192, "llama-2-7b-chat.ggmlv3.q4_K_S.bin": 2048}
+tokenizer = {"llama-2-7b-chat.ggmlv3.q4_K_S.bin": "hf-internal-testing/llama-tokenizer"}
 
 
 class ThreadedGenerator:
@@ -102,10 +104,12 @@ def generate_chatml_messages_with_context(
 
 def truncate_messages(messages, max_prompt_size, model_name):
     """Truncate messages to fit within max prompt size supported by model"""
-    try:
+
+    if "llama" in model_name:
+        encoder = LlamaTokenizerFast.from_pretrained(tokenizer[model_name])
+    else:
         encoder = tiktoken.encoding_for_model(model_name)
-    except KeyError:
-        encoder = tiktoken.encoding_for_model("text-davinci-001")
+
     tokens = sum([len(encoder.encode(message.content)) for message in messages])
     while tokens > max_prompt_size and len(messages) > 1:
         messages.pop()
