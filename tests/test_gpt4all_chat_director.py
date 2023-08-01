@@ -273,7 +273,7 @@ def test_answer_in_chat_history_beyond_lookback_window(client_offline_chat):
 @pytest.mark.chatquality
 def test_answer_chat_history_very_long(client_offline_chat):
     # Arrange
-    message_list = [(fake.paragraph(), fake.sentence(), []) for _ in range(100)]
+    message_list = [(" ".join([fake.paragraph() for _ in range(50)]), fake.sentence(), []) for _ in range(10)]
 
     populate_chat_history(message_list)
 
