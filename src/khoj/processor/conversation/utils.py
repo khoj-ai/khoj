@@ -7,13 +7,15 @@ import tiktoken
 
 # External packages
 from langchain.schema import ChatMessage
+from transformers import LlamaTokenizerFast
 
 # Internal Packages
 import queue
 from khoj.utils.helpers import merge_dicts
 
 logger = logging.getLogger(__name__)
-max_prompt_size = {"gpt-3.5-turbo": 4096, "gpt-4": 8192, "llama-2-7b-chat.ggmlv3.q4_K_S.bin": 850}
+max_prompt_size = {"gpt-3.5-turbo": 4096, "gpt-4": 8192, "llama-2-7b-chat.ggmlv3.q4_K_S.bin": 1548}
+tokenizer = {"llama-2-7b-chat.ggmlv3.q4_K_S.bin": "hf-internal-testing/llama-tokenizer"}
 
 
 class ThreadedGenerator:
@@ -40,6 +42,10 @@ class ThreadedGenerator:
         return item
 
     def send(self, data):
+        if self.response == "":
+            time_to_first_response = perf_counter() - self.start_time
+            logger.debug(f"First response took: {time_to_first_response:.3f} seconds")
+
         self.response += data
         self.queue.put(data)
 
@@ -100,30 +106,35 @@ def generate_chatml_messages_with_context(
     return messages[::-1]
 
 
-def truncate_messages(messages, max_prompt_size, model_name):
+def truncate_messages(messages: list[ChatMessage], max_prompt_size, model_name) -> list[ChatMessage]:
     """Truncate messages to fit within max prompt size supported by model"""
-    try:
+
+    if "llama" in model_name:
+        encoder = LlamaTokenizerFast.from_pretrained(tokenizer[model_name])
+    else:
         encoder = tiktoken.encoding_for_model(model_name)
-    except KeyError:
-        encoder = tiktoken.encoding_for_model("text-davinci-001")
+
+    system_message = messages.pop()
+    system_message_tokens = len(encoder.encode(system_message.content))
+
     tokens = sum([len(encoder.encode(message.content)) for message in messages])
-    while tokens > max_prompt_size and len(messages) > 1:
+    while (tokens + system_message_tokens) > max_prompt_size and len(messages) > 1:
         messages.pop()
         tokens = sum([len(encoder.encode(message.content)) for message in messages])
 
-    # Truncate last message if still over max supported prompt size by model
-    if tokens > max_prompt_size:
-        last_message = "\n".join(messages[-1].content.split("\n")[:-1])
-        original_question = "\n".join(messages[-1].content.split("\n")[-1:])
+    # Truncate current message if still over max supported prompt size by model
+    if (tokens + system_message_tokens) > max_prompt_size:
+        current_message = "\n".join(messages[0].content.split("\n")[:-1])
+        original_question = "\n".join(messages[0].content.split("\n")[-1:])
         original_question_tokens = len(encoder.encode(original_question))
-        remaining_tokens = max_prompt_size - original_question_tokens
-        truncated_message = encoder.decode(encoder.encode(last_message)[:remaining_tokens]).strip()
+        remaining_tokens = max_prompt_size - original_question_tokens - system_message_tokens
+        truncated_message = encoder.decode(encoder.encode(current_message)[:remaining_tokens]).strip()
         logger.debug(
-            f"Truncate last message to fit within max prompt size of {max_prompt_size} supported by {model_name} model:\n {truncated_message}"
+            f"Truncate current message to fit within max prompt size of {max_prompt_size} supported by {model_name} model:\n {truncated_message}"
         )
-        messages = [ChatMessage(content=truncated_message + original_question, role=messages[-1].role)]
+        messages = [ChatMessage(content=truncated_message + original_question, role=messages[0].role)]
 
-    return messages
+    return messages + [system_message]
 
 
 def reciprocal_conversation_to_chatml(message_pair):

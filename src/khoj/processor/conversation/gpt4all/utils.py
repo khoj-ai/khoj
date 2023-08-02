@@ -9,7 +9,7 @@ from khoj.processor.conversation.gpt4all import model_metadata
 logger = logging.getLogger(__name__)
 
 
-def download_model(model_name):
+def download_model(model_name: str):
     url = model_metadata.model_name_to_url.get(model_name)
     if not url:
         logger.debug(f"Model {model_name} not found in model metadata. Skipping download.")
@@ -19,13 +19,16 @@ def download_model(model_name):
     if os.path.exists(filename):
         return GPT4All(model_name)
 
+    # Download the model to a tmp file. Once the download is completed, move the tmp file to the actual file
+    tmp_filename = filename + ".tmp"
+
     try:
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        os.makedirs(os.path.dirname(tmp_filename), exist_ok=True)
         logger.debug(f"Downloading model {model_name} from {url} to {filename}...")
         with requests.get(url, stream=True) as r:
             r.raise_for_status()
             total_size = int(r.headers.get("content-length", 0))
-            with open(filename, "wb") as f, tqdm(
+            with open(tmp_filename, "wb") as f, tqdm(
                 unit="B",  # unit string to be displayed.
                 unit_scale=True,  # let tqdm to determine the scale in kilo, mega..etc.
                 unit_divisor=1024,  # is used when unit_scale is true
@@ -35,7 +38,14 @@ def download_model(model_name):
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
                     progress_bar.update(len(chunk))
+
+        # Move the tmp file to the actual file
+        os.rename(tmp_filename, filename)
+        logger.debug(f"Successfully downloaded model {model_name} from {url} to {filename}")
         return GPT4All(model_name)
     except Exception as e:
         logger.error(f"Failed to download model {model_name} from {url} to {filename}. Error: {e}")
+        # Remove the tmp file if it exists
+        if os.path.exists(tmp_filename):
+            os.remove(tmp_filename)
         return None
