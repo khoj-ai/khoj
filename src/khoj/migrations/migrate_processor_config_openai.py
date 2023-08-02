@@ -34,6 +34,7 @@ from khoj.utils.yaml import load_config_from_file, save_config_to_file
 
 
 def migrate_processor_conversation_schema(args):
+    schema_version = "0.10.0"
     raw_config = load_config_from_file(args.config_file)
 
     if "processor" not in raw_config:
@@ -48,7 +49,7 @@ def migrate_processor_conversation_schema(args):
     if current_openai_api_key is None and current_chat_model is None:
         return args
 
-    raw_config["version"] = "0.10.0"
+    raw_config["version"] = schema_version
 
     # Add enable_offline_chat to khoj config schema
     if "enable-offline-chat" not in raw_config["processor"]["conversation"]:
