@@ -160,6 +160,7 @@ def llm_thread(g, messages: List[ChatMessage], model: GPT4All):
         for message in conversation_history
     ]
 
+    stop_words = ["<s>"]
     chat_history = "".join(formatted_messages)
     templated_system_message = prompts.system_prompt_llamav2.format(message=system_message.content)
     templated_user_message = prompts.general_conversation_llamav2.format(query=user_message.content)
@@ -168,6 +169,9 @@ def llm_thread(g, messages: List[ChatMessage], model: GPT4All):
     state.chat_lock.acquire()
     try:
         for response in response_iterator:
+            if any(stop_word in response.strip() for stop_word in stop_words):
+                logger.debug(f"Stop response as hit stop word in {response}")
+                break
             g.send(response)
     finally:
         state.chat_lock.release()
