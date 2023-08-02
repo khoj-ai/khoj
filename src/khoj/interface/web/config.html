@@ -231,19 +231,38 @@
                 <div class="card-description-row">
                 <p class="card-description">Setup offline chat (Llama V2)</p>
                 </div>
+
+                <div class="card-action-row">
+                    <a class="card-button" href="/config/processor/conversation/offline">
+                        {% if current_config.processor and current_config.processor.conversation.enable_offline_chat %}
+                            Update
+                        {% else %}
+                            Setup
+                        {% endif %}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                    </a>
+                </div>
+
                 <div id="clear-enable-offline-chat" class="card-action-row {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.enable_offline_chat %}enabled{% else %}disabled{% endif %}">
                     <button class="card-button" onclick="toggleEnableLocalLLLM(false)">
                         Disable
                     </button>
                 </div>
-                <div id="set-enable-offline-chat" class="card-action-row {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.enable_offline_chat %}disabled{% else %}enabled{% endif %}">
-                    <button class="card-button happy" onclick="toggleEnableLocalLLLM(true)">
-                        Enable
-                    </button>
-                </div>
-                <div id="toggle-enable-offline-chat" class="card-action-row disabled">
-                    <div class="loader"></div>
-                </div>
+
+<!--                -->
+<!--                <div id="clear-enable-offline-chat" class="card-action-row {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.enable_offline_chat %}enabled{% else %}disabled{% endif %}">-->
+<!--                    <button class="card-button" onclick="toggleEnableLocalLLLM(false)">-->
+<!--                        Disable-->
+<!--                    </button>-->
+<!--                </div>-->
+<!--                <div id="set-enable-offline-chat" class="card-action-row {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.enable_offline_chat %}disabled{% else %}enabled{% endif %}">-->
+<!--                    <button class="card-button happy" onclick="toggleEnableLocalLLLM(true)">-->
+<!--                        Enable-->
+<!--                    </button>-->
+<!--                </div>-->
+<!--                <div id="toggle-enable-offline-chat" class="card-action-row disabled">-->
+<!--                    <div class="loader"></div>-->
+<!--                </div>-->
             </div>
         </div>
     </div>
@@ -290,9 +309,9 @@
 
     function toggleEnableLocalLLLM(enable) {
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
-        var toggleEnableLocalLLLMButton = document.getElementById("toggle-enable-offline-chat");
-        toggleEnableLocalLLLMButton.classList.remove("disabled");
-        toggleEnableLocalLLLMButton.classList.add("enabled");
+        // var toggleEnableLocalLLLMButton = document.getElementById("toggle-enable-offline-chat");
+        // toggleEnableLocalLLLMButton.classList.remove("disabled");
+        // toggleEnableLocalLLLMButton.classList.add("enabled");
 
         fetch('/api/config/data/processor/conversation/enable_offline_chat' + '?enable_offline_chat=' + enable, {
             method: 'POST',
@@ -305,34 +324,34 @@
         .then(data => {
             if (data.status == "ok") {
                 // Toggle the Enabled/Disabled UI based on the action/response.
-                var enableLocalLLLMButton = document.getElementById("set-enable-offline-chat");
+                // var enableLocalLLLMButton = document.getElementById("set-enable-offline-chat");
                 var disableLocalLLLMButton = document.getElementById("clear-enable-offline-chat");
-                var configuredIcon = document.getElementById("configured-icon-conversation-enable-offline-chat");
-                var toggleEnableLocalLLLMButton = document.getElementById("toggle-enable-offline-chat");
+                // var configuredIcon = document.getElementById("configured-icon-conversation-enable-offline-chat");
+                // var toggleEnableLocalLLLMButton = document.getElementById("toggle-enable-offline-chat");
+                //
+                // toggleEnableLocalLLLMButton.classList.remove("enabled");
+                // toggleEnableLocalLLLMButton.classList.add("disabled");
 
-                toggleEnableLocalLLLMButton.classList.remove("enabled");
-                toggleEnableLocalLLLMButton.classList.add("disabled");
 
+                // if (enable) {
+                //     enableLocalLLLMButton.classList.add("disabled");
+                //     enableLocalLLLMButton.classList.remove("enabled");
+                //
+                //     configuredIcon.classList.add("enabled");
+                //     configuredIcon.classList.remove("disabled");
+                //
+                //     disableLocalLLLMButton.classList.remove("disabled");
+                //     disableLocalLLLMButton.classList.add("enabled");
+                // } else {
+                //     enableLocalLLLMButton.classList.remove("disabled");
+                //     enableLocalLLLMButton.classList.add("enabled");
 
-                if (enable) {
-                    enableLocalLLLMButton.classList.add("disabled");
-                    enableLocalLLLMButton.classList.remove("enabled");
-
-                    configuredIcon.classList.add("enabled");
-                    configuredIcon.classList.remove("disabled");
-
-                    disableLocalLLLMButton.classList.remove("disabled");
-                    disableLocalLLLMButton.classList.add("enabled");
-                } else {
-                    enableLocalLLLMButton.classList.remove("disabled");
-                    enableLocalLLLMButton.classList.add("enabled");
-
-                    configuredIcon.classList.remove("enabled");
-                    configuredIcon.classList.add("disabled");
+                    // configuredIcon.classList.remove("enabled");
+                    // configuredIcon.classList.add("disabled");
 
                     disableLocalLLLMButton.classList.add("disabled");
                     disableLocalLLLMButton.classList.remove("enabled");
-                }
+                // }
 
             }
         })
