@@ -278,12 +278,11 @@ if not state.demo:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
-
     @api.post("/config/data/processor/conversation/offline", status_code=200)
-    async def set_processor_openai_config_data(
-            request: Request,
-            updated_config: Union[LlamaProcessorConfig, None],
-            client: Optional[str] = None,
+    async def set_processor_offline_config_data(
+        request: Request,
+        updated_config: Union[LlamaProcessorConfig, None],
+        client: Optional[str] = None,
     ):
         _initialize_config()
 
@@ -315,7 +314,6 @@ if not state.demo:
             return {"status": "ok"}
         except Exception as e:
             return {"status": "error", "message": str(e)}
-
 
     # This API will no longer set offline_chat enable, only disable.
     @api.post("/config/data/processor/conversation/enable_offline_chat", status_code=200)
