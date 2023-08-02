@@ -454,6 +454,28 @@ My sister, Aiyla is married to Tolga. They have 3 kids, Yildiz, Ali and Ahmet.""
     )
 
 
+# ----------------------------------------------------------------------------------------------------
+def test_chat_does_not_exceed_prompt_size(loaded_model):
+    "Ensure chat context and response together do not exceed max prompt size for the model"
+    # Arrange
+    prompt_size_exceeded_error = "ERROR: The prompt size exceeds the context window size and cannot be processed"
+    context = [" ".join([f"{number}" for number in range(2043)])]
+
+    # Act
+    response_gen = converse_offline(
+        references=context,  # Assume context retrieved from notes for the user_query
+        user_query="What numbers come after these?",
+        loaded_model=loaded_model,
+    )
+    response = "".join([response_chunk for response_chunk in response_gen])
+
+    # Assert
+    assert prompt_size_exceeded_error not in response, (
+        "Expected chat response to be within prompt limits, but got exceeded error: " + response
+    )
+
+
+# ----------------------------------------------------------------------------------------------------
 def test_filter_questions():
     test_questions = [
         "I don't know how to answer that",

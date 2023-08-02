@@ -165,7 +165,7 @@ def llm_thread(g, messages: List[ChatMessage], model: GPT4All):
     templated_system_message = prompts.system_prompt_llamav2.format(message=system_message.content)
     templated_user_message = prompts.general_conversation_llamav2.format(query=user_message.content)
     prompted_message = templated_system_message + chat_history + templated_user_message
-    response_iterator = model.generate(prompted_message, streaming=True, max_tokens=1000, n_batch=256)
+    response_iterator = model.generate(prompted_message, streaming=True, max_tokens=500, n_batch=256)
     state.chat_lock.acquire()
     try:
         for response in response_iterator:
