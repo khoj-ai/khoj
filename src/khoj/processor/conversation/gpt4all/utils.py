@@ -1,12 +1,24 @@
 import os
 import logging
 import requests
+import hashlib
+
 from gpt4all import GPT4All
 from tqdm import tqdm
 
 from khoj.processor.conversation.gpt4all import model_metadata
 
 logger = logging.getLogger(__name__)
+
+expected_checksum = {"llama-2-7b-chat.ggmlv3.q4_K_S.bin": "cfa87b15d92fb15a2d7c354b0098578b"}
+
+
+def get_md5_checksum(filename: str):
+    hash_md5 = hashlib.md5()
+    with open(filename, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
 
 
 def download_model(model_name: str):
@@ -38,6 +50,14 @@ def download_model(model_name: str):
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
                     progress_bar.update(len(chunk))
+
+        # Verify the checksum
+        if expected_checksum.get(filename.split("/")[-1]) != get_md5_checksum(tmp_filename):
+            logger.error(
+                f"Checksum verification failed for {filename}. Removing the tmp file. Offline model will not be available."
+            )
+            os.remove(tmp_filename)
+            return None
 
         # Move the tmp file to the actual file
         os.rename(tmp_filename, filename)
