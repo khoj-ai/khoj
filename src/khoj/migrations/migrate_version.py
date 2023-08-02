@@ -6,7 +6,7 @@ def migrate_config_to_version(args):
 
     # Add version to khoj config schema
     if "version" not in raw_config:
-        raw_config["version"] = args.version_no
+        raw_config["version"] = "0.9.0"
         save_config_to_file(raw_config, args.config_file)
 
         # regenerate khoj index on first start of this version
