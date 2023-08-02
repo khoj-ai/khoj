@@ -64,7 +64,7 @@ def download_model(model_name: str):
         logger.debug(f"Successfully downloaded model {model_name} from {url} to {filename}")
         return GPT4All(model_name)
     except Exception as e:
-        logger.error(f"Failed to download model {model_name} from {url} to {filename}. Error: {e}")
+        logger.error(f"Failed to download model {model_name} from {url} to {filename}. Error: {e}", exc_info=True)
         # Remove the tmp file if it exists
         if os.path.exists(tmp_filename):
             os.remove(tmp_filename)
