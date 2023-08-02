@@ -84,11 +84,14 @@ class GPT4AllProcessorConfig:
 
 class ConversationProcessorConfigModel:
     def __init__(
-        self,
-        conversation_config: ConversationProcessorConfig,
+            self,
+            conversation_config: ConversationProcessorConfig,
     ):
         self.openai_model = conversation_config.openai
-        self.gpt4all_model = GPT4AllProcessorConfig()
+        self.gpt4all_model = GPT4AllProcessorConfig(
+            chat_model=conversation_config.offline_model.model_name
+            if conversation_config.offline_model is not None else "llama-2-7b-chat.ggmlv3.q4_K_S.bin"
+        )
         self.enable_offline_chat = conversation_config.enable_offline_chat
         self.conversation_logfile = Path(conversation_config.conversation_logfile)
         self.chat_session: List[str] = []

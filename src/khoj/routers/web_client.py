@@ -3,13 +3,12 @@ from fastapi import APIRouter
 from fastapi import Request
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
-from khoj.utils.rawconfig import TextContentConfig, OpenAIProcessorConfig, FullConfig
+from khoj.utils.rawconfig import TextContentConfig, OpenAIProcessorConfig, FullConfig, LlamaProcessorConfig
 
 # Internal Packages
 from khoj.utils import constants, state
 
 import json
-
 
 # Initialize Router
 web_client = APIRouter()
@@ -78,6 +77,7 @@ if not state.demo:
             },
         )
 
+
     @web_client.get("/config/content_type/github", response_class=HTMLResponse)
     def github_config_page(request: Request):
         default_copy = constants.default_config.copy()
@@ -100,6 +100,7 @@ if not state.demo:
             "content_type_github_input.html", context={"request": request, "current_config": current_config}
         )
 
+
     @web_client.get("/config/content_type/notion", response_class=HTMLResponse)
     def notion_config_page(request: Request):
         default_copy = constants.default_config.copy()
@@ -121,6 +122,7 @@ if not state.demo:
         return templates.TemplateResponse(
             "content_type_notion_input.html", context={"request": request, "current_config": current_config}
         )
+
 
     @web_client.get("/config/content_type/{content_type}", response_class=HTMLResponse)
     def content_config_page(request: Request, content_type: str):
@@ -151,6 +153,7 @@ if not state.demo:
             },
         )
 
+
     @web_client.get("/config/processor/conversation/openai", response_class=HTMLResponse)
     def conversation_processor_config_page(request: Request):
         default_copy = constants.default_config.copy()
@@ -163,9 +166,9 @@ if not state.demo:
         current_processor_openai_config = (
             state.config.processor.conversation.openai
             if state.config
-            and state.config.processor
-            and state.config.processor.conversation
-            and state.config.processor.conversation.openai
+               and state.config.processor
+               and state.config.processor.conversation
+               and state.config.processor.conversation.openai
             else default_openai_config
         )
         current_processor_openai_config = json.loads(current_processor_openai_config.json())
@@ -175,5 +178,34 @@ if not state.demo:
             context={
                 "request": request,
                 "current_config": current_processor_openai_config,
+            },
+        )
+
+
+    @web_client.get("/config/processor/conversation/offline", response_class=HTMLResponse)
+    def offline_conversation_processor_config_page(request: Request):
+        default_copy = constants.default_config.copy()
+        default_processor_config = default_copy["processor"]["conversation"]["offline-model"]  # type: ignore
+        default_offline_config = LlamaProcessorConfig(
+            model_name=default_processor_config,
+        )
+        current_processor_offline_model_config = (
+            state.config.processor.conversation.offline_model
+            if state.config
+               and state.config.processor
+               and state.config.processor.conversation
+               and state.config.processor.conversation.offline_model
+            else default_offline_config
+        )
+
+        current_processor_offline_model_config = json.loads(current_processor_offline_model_config.json())
+
+        # print(current_processor_offline_model_config)
+
+        return templates.TemplateResponse(
+            "processor_conversation_offline_input.html",
+            context={
+                "request": request,
+                "current_config": current_processor_offline_model_config,
             },
         )

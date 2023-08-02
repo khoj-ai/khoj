@@ -30,6 +30,7 @@ from khoj.utils.rawconfig import (
     GithubContentConfig,
     NotionContentConfig,
     ConversationProcessorConfig,
+    LlamaProcessorConfig,
 )
 from khoj.utils.helpers import resolve_absolute_path
 from khoj.utils.state import SearchType
@@ -40,7 +41,6 @@ from khoj.routers.helpers import perform_chat_checks, generate_chat_response, up
 from khoj.processor.conversation.openai.gpt import extract_questions
 from khoj.processor.conversation.gpt4all.chat_model import extract_questions_offline
 from fastapi.requests import Request
-
 
 # Initialize Router
 api = APIRouter()
@@ -278,6 +278,46 @@ if not state.demo:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
+
+    @api.post("/config/data/processor/conversation/offline", status_code=200)
+    async def set_processor_openai_config_data(
+            request: Request,
+            updated_config: Union[LlamaProcessorConfig, None],
+            client: Optional[str] = None,
+    ):
+        _initialize_config()
+
+        if not state.config.processor or not state.config.processor.conversation:
+            default_config = constants.default_config
+            default_conversation_logfile = resolve_absolute_path(
+                default_config["processor"]["conversation"]["conversation-logfile"]  # type: ignore
+            )
+            conversation_logfile = resolve_absolute_path(default_conversation_logfile)
+            state.config.processor = ProcessorConfig(conversation=ConversationProcessorConfig(conversation_logfile=conversation_logfile))  # type: ignore
+
+        assert state.config.processor.conversation is not None
+        state.config.processor.conversation.offline_model = updated_config
+        state.config.processor.conversation.enable_offline_chat = True
+        state.processor_config = configure_processor(state.config.processor, state.processor_config)
+
+        update_telemetry_state(
+            request=request,
+            telemetry_type="api",
+            api="set_processor_config",
+            client=client,
+            metadata={"processor_conversation_type": "conversation"},
+        )
+
+        logger.debug(f"Offline State Changed {state.config.processor}")
+
+        try:
+            save_config_to_file_updated_state()
+            return {"status": "ok"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+
+    # This API will no longer set offline_chat enable, only disable.
     @api.post("/config/data/processor/conversation/enable_offline_chat", status_code=200)
     async def set_processor_enable_offline_chat_config_data(
         request: Request,
@@ -295,7 +335,9 @@ if not state.demo:
             state.config.processor = ProcessorConfig(conversation=ConversationProcessorConfig(conversation_logfile=conversation_logfile))  # type: ignore
 
         assert state.config.processor.conversation is not None
+        assert enable_offline_chat == False
         state.config.processor.conversation.enable_offline_chat = enable_offline_chat
+        state.config.processor.conversation.offline_model = None
         state.processor_config = configure_processor(state.config.processor, state.processor_config)
 
         update_telemetry_state(

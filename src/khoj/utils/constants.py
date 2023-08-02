@@ -67,6 +67,7 @@ default_config = {
                 "chat-model": "gpt-3.5-turbo",
             },
             "enable-offline-chat": False,
+            "offline-model": None,
             "conversation-logfile": "~/.khoj/processor/conversation/conversation_logs.json",
         }
     },
