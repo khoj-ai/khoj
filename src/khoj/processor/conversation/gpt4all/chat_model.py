@@ -61,7 +61,7 @@ def extract_questions_offline(
     message = system_prompt + example_questions
     state.chat_lock.acquire()
     try:
-        response = gpt4all_model.generate(message, max_tokens=200, top_k=2, temp=0, n_batch=128)
+        response = gpt4all_model.generate(message, max_tokens=200, top_k=2, temp=0, n_batch=256)
     finally:
         state.chat_lock.release()
 

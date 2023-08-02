@@ -24,7 +24,7 @@ def download_model(model_name: str):
 
     try:
         os.makedirs(os.path.dirname(tmp_filename), exist_ok=True)
-        logger.debug(f"Downloading model {model_name} from {url} to {tmp_filename}...")
+        logger.debug(f"Downloading model {model_name} from {url} to {filename}...")
         with requests.get(url, stream=True) as r:
             r.raise_for_status()
             total_size = int(r.headers.get("content-length", 0))
@@ -39,12 +39,12 @@ def download_model(model_name: str):
                     f.write(chunk)
                     progress_bar.update(len(chunk))
 
-        logger.debug(f"Successfully downloaded model {model_name} from {url} to {tmp_filename}")
         # Move the tmp file to the actual file
         os.rename(tmp_filename, filename)
+        logger.debug(f"Successfully downloaded model {model_name} from {url} to {filename}")
         return GPT4All(model_name)
     except Exception as e:
-        logger.error(f"Failed to download model {model_name} from {url} to {tmp_filename}. Error: {e}")
+        logger.error(f"Failed to download model {model_name} from {url} to {filename}. Error: {e}")
         # Remove the tmp file if it exists
         if os.path.exists(tmp_filename):
             os.remove(tmp_filename)
