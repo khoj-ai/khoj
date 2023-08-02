@@ -93,37 +93,36 @@ def generate_chat_response(
     chat_response = None
 
     try:
-        with timer("Generating chat response took", logger):
-            partial_completion = partial(
-                _save_to_conversation_log,
-                q,
-                user_message_time=user_message_time,
-                compiled_references=compiled_references,
-                inferred_queries=inferred_queries,
-                meta_log=meta_log,
+        partial_completion = partial(
+            _save_to_conversation_log,
+            q,
+            user_message_time=user_message_time,
+            compiled_references=compiled_references,
+            inferred_queries=inferred_queries,
+            meta_log=meta_log,
+        )
+
+        if state.processor_config.conversation.enable_offline_chat:
+            loaded_model = state.processor_config.conversation.gpt4all_model.loaded_model
+            chat_response = converse_offline(
+                references=compiled_references,
+                user_query=q,
+                loaded_model=loaded_model,
+                conversation_log=meta_log,
+                completion_func=partial_completion,
             )
 
-            if state.processor_config.conversation.enable_offline_chat:
-                loaded_model = state.processor_config.conversation.gpt4all_model.loaded_model
-                chat_response = converse_offline(
-                    references=compiled_references,
-                    user_query=q,
-                    loaded_model=loaded_model,
-                    conversation_log=meta_log,
-                    completion_func=partial_completion,
-                )
-
-            elif state.processor_config.conversation.openai_model:
-                api_key = state.processor_config.conversation.openai_model.api_key
-                chat_model = state.processor_config.conversation.openai_model.chat_model
-                chat_response = converse(
-                    compiled_references,
-                    q,
-                    meta_log,
-                    model=chat_model,
-                    api_key=api_key,
-                    completion_func=partial_completion,
-                )
+        elif state.processor_config.conversation.openai_model:
+            api_key = state.processor_config.conversation.openai_model.api_key
+            chat_model = state.processor_config.conversation.openai_model.chat_model
+            chat_response = converse(
+                compiled_references,
+                q,
+                meta_log,
+                model=chat_model,
+                api_key=api_key,
+                completion_func=partial_completion,
+            )
 
     except Exception as e:
         logger.error(e, exc_info=True)
