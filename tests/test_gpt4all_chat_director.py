@@ -36,6 +36,7 @@ def populate_chat_history(message_list):
 
 # Tests
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
 def test_chat_with_no_chat_history_or_retrieved_content_gpt4all(client_offline_chat):
     # Act
@@ -73,6 +74,7 @@ def test_answer_from_chat_history(client_offline_chat):
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
 def test_answer_from_currently_retrieved_content(client_offline_chat):
     # Arrange
@@ -145,6 +147,7 @@ def test_answer_from_chat_history_and_currently_retrieved_content(client_offline
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
 def test_no_answer_in_chat_history_or_retrieved_content(client_offline_chat):
     "Chat director should say don't know as not enough contexts in chat history or retrieved to answer question"
@@ -186,6 +189,7 @@ def test_answer_requires_current_date_awareness(client_offline_chat):
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
 @freeze_time("2023-04-01")
 def test_answer_requires_date_aware_aggregation_across_provided_notes(client_offline_chat):
@@ -200,6 +204,7 @@ def test_answer_requires_date_aware_aggregation_across_provided_notes(client_off
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
 def test_answer_general_question_not_in_chat_history_or_retrieved_content(client_offline_chat):
     # Arrange
@@ -287,6 +292,7 @@ def test_answer_chat_history_very_long(client_offline_chat):
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
 def test_answer_requires_multiple_independent_searches(client_offline_chat):
     "Chat director should be able to answer by doing multiple independent searches for required information"

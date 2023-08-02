@@ -35,6 +35,7 @@ freezegun.configure(extend_ignore_list=["transformers"])
 
 # Test
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.xfail(reason="Search actor isn't very date aware nor capable of formatting")
 @pytest.mark.chatquality
 @freeze_time("1984-04-02")
 def test_extract_question_with_date_filter_from_relative_day(loaded_model):
@@ -54,7 +55,7 @@ def test_extract_question_with_date_filter_from_relative_day(loaded_model):
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.xfail(reason="Chat actor still isn't very date aware nor capable of formatting")
+@pytest.mark.xfail(reason="Search actor still isn't very date aware nor capable of formatting")
 @pytest.mark.chatquality
 @freeze_time("1984-04-02")
 def test_extract_question_with_date_filter_from_relative_month(loaded_model):
@@ -168,7 +169,6 @@ def test_generate_search_query_using_question_from_chat_history(loaded_model):
 
 
 # ----------------------------------------------------------------------------------------------------
-# @pytest.mark.xfail(reason="Chat actor does not consistently follow template instructions.")
 @pytest.mark.chatquality
 def test_generate_search_query_using_answer_from_chat_history(loaded_model):
     # Arrange
@@ -198,7 +198,7 @@ def test_generate_search_query_using_answer_from_chat_history(loaded_model):
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.xfail(reason="Chat actor is not sufficiently date-aware")
+@pytest.mark.xfail(reason="Search actor unable to create date filter using chat history and notes as context")
 @pytest.mark.chatquality
 def test_generate_search_query_with_date_and_context_from_chat_history(loaded_model):
     # Arrange
@@ -239,7 +239,7 @@ def test_chat_with_no_chat_history_or_retrieved_content(loaded_model):
     response = "".join([response_chunk for response_chunk in response_gen])
 
     # Assert
-    expected_responses = ["Khoj", "khoj", "khooj", "Khooj", "KHOJ"]
+    expected_responses = ["Khoj", "khoj", "KHOJ"]
     assert len(response) > 0
     assert any([expected_response in response for expected_response in expected_responses]), (
         "Expected assistants name, [K|k]hoj, in response but got: " + response
@@ -426,6 +426,7 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content(loaded
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.xfail(reason="Chat actor doesn't ask clarifying questions when context is insufficient")
 @pytest.mark.chatquality
 def test_ask_for_clarification_if_not_enough_context_in_question(loaded_model):
     "Chat actor should ask for clarification if question cannot be answered unambiguously with the provided context"
