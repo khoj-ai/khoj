@@ -61,7 +61,7 @@ def extract_questions_offline(
     message = system_prompt + example_questions
     state.chat_lock.acquire()
     try:
-        response = gpt4all_model.generate(message, max_tokens=200, top_k=2, temp=0, n_batch=256)
+        response = gpt4all_model.generate(message, max_tokens=200, top_k=2, temp=0, n_batch=512)
     finally:
         state.chat_lock.release()
 
@@ -167,7 +167,7 @@ def llm_thread(g, messages: List[ChatMessage], model: GPT4All):
     prompted_message = templated_system_message + chat_history + templated_user_message
 
     state.chat_lock.acquire()
-    response_iterator = model.generate(prompted_message, streaming=True, max_tokens=500, n_batch=256)
+    response_iterator = model.generate(prompted_message, streaming=True, max_tokens=500, n_batch=512)
     try:
         for response in response_iterator:
             if any(stop_word in response.strip() for stop_word in stop_words):
