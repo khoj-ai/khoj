@@ -91,7 +91,7 @@ jobs:
         shell: bash
         run: |
           if [ "$RUNNER_OS" == "Linux" ]; then
-            sudo apt install libegl1 libxcb-xinerama0 python3-tk -y
+            sudo apt update && sudo apt install libegl1 libxcb-xinerama0 python3-tk -y
           fi
           python -m pip install --upgrade pip
           pip install pyinstaller

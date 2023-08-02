@@ -8,6 +8,7 @@ from khoj.utils.helpers import resolve_absolute_path
 from khoj.utils.yaml import parse_config_from_file
 from khoj.migrations.migrate_version import migrate_config_to_version
 from khoj.migrations.migrate_processor_config_openai import migrate_processor_conversation_schema
+from khoj.migrations.migrate_offline_model import migrate_offline_model
 
 
 def cli(args=None):
@@ -55,7 +56,7 @@ def cli(args=None):
 
 
 def run_migrations(args):
-    migrations = [migrate_config_to_version, migrate_processor_conversation_schema]
+    migrations = [migrate_config_to_version, migrate_processor_conversation_schema, migrate_offline_model]
     for migration in migrations:
         args = migration(args)
     return args

@@ -171,6 +171,20 @@ def processor_config(tmp_path_factory):
 
 
 @pytest.fixture(scope="session")
+def processor_config_offline_chat(tmp_path_factory):
+    processor_dir = tmp_path_factory.mktemp("processor")
+
+    # Setup conversation processor
+    processor_config = ProcessorConfig()
+    processor_config.conversation = ConversationProcessorConfig(
+        enable_offline_chat=True,
+        conversation_logfile=processor_dir.joinpath("conversation_logs.json"),
+    )
+
+    return processor_config
+
+
+@pytest.fixture(scope="session")
 def chat_client(md_content_config: ContentConfig, search_config: SearchConfig, processor_config: ProcessorConfig):
     # Initialize app state
     state.config.content_type = md_content_config
@@ -210,6 +224,32 @@ def client(content_config: ContentConfig, search_config: SearchConfig, processor
     state.content_index.image = image_search.setup(
         content_config.image, state.search_models.image_search, regenerate=False
     )
+
+    state.processor_config = configure_processor(processor_config)
+
+    configure_routes(app)
+    return TestClient(app)
+
+
+@pytest.fixture(scope="function")
+def client_offline_chat(
+    content_config: ContentConfig, search_config: SearchConfig, processor_config_offline_chat: ProcessorConfig
+):
+    state.config.content_type = content_config
+    state.config.search_type = search_config
+    state.SearchType = configure_search_types(state.config)
+
+    # These lines help us Mock the Search models for these search types
+    state.search_models.text_search = text_search.initialize_model(search_config.asymmetric)
+    state.search_models.image_search = image_search.initialize_model(search_config.image)
+    state.content_index.org = text_search.setup(
+        OrgToJsonl, content_config.org, state.search_models.text_search.bi_encoder, regenerate=False
+    )
+    state.content_index.image = image_search.setup(
+        content_config.image, state.search_models.image_search, regenerate=False
+    )
+
+    state.processor_config = configure_processor(processor_config_offline_chat)
 
     configure_routes(app)
     return TestClient(app)

@@ -61,6 +61,7 @@
             // Add message by user to chat body
             renderMessage(query, "you");
             document.getElementById("chat-input").value = "";
+            document.getElementById("chat-input").setAttribute("disabled", "disabled");
 
             // Generate backend API URL to execute query
             let url = `/api/chat?q=${encodeURIComponent(query)}&n=${results_count}&client=web&stream=true`;
@@ -76,7 +77,9 @@
             new_response.appendChild(new_response_text);
 
             // Temporary status message to indicate that Khoj is thinking
-            new_response_text.innerHTML = "🤔";
+            let loadingSpinner = document.createElement("div");
+            loadingSpinner.classList.add("spinner");
+            new_response_text.appendChild(loadingSpinner);
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
 
             // Call specified Khoj API which returns a streamed response of type text/plain
@@ -107,10 +110,10 @@
                                 document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
                             } else {
                                 // Display response from Khoj
-                                if (new_response_text.innerHTML === "🤔") {
-                                    // Clear temporary status message
-                                    new_response_text.innerHTML = "";
+                                if (new_response_text.getElementsByClassName("spinner").length > 0) {
+                                    new_response_text.removeChild(loadingSpinner);
                                 }
+
                                 new_response_text.innerHTML += chunk;
                                 readStream();
                             }
@@ -120,6 +123,7 @@
                         });
                     }
                     readStream();
+                    document.getElementById("chat-input").removeAttribute("disabled");
                 });
         }
 
@@ -136,7 +140,7 @@
                 .then(data => {
                     if (data.detail) {
                         // If the server returns a 500 error with detail, render a setup hint.
-                        renderMessage("Hi 👋🏾, to get started <br/>1. Get your <a class='inline-chat-link' href='https://platform.openai.com/account/api-keys'>OpenAI API key</a><br/>2. Save it in the Khoj <a class='inline-chat-link' href='/config/processor/conversation/openai'>chat settings</a> <br/>3. Click Configure on the Khoj <a class='inline-chat-link' href='/config'>settings page</a>", "khoj");
+                        renderMessage("Hi 👋🏾, to get started you have two options:<ol><li><b>Use OpenAI</b>: <ol><li>Get your <a class='inline-chat-link' href='https://platform.openai.com/account/api-keys'>OpenAI API key</a></li><li>Save it in the Khoj <a class='inline-chat-link' href='/config/processor/conversation/openai'>chat settings</a></li><li>Click Configure on the Khoj <a class='inline-chat-link' href='/config'>settings page</a></li></ol></li><li><b>Enable offline chat</b>: <ol><li>Go to the Khoj <a class='inline-chat-link' href='/config'>settings page</a> and enable offline chat</li></ol></li></ol>", "khoj");
 
                         // Disable chat input field and update placeholder text
                         document.getElementById("chat-input").setAttribute("disabled", "disabled");
@@ -268,6 +272,21 @@
             background: var(--primary);
             margin-left: auto;
             white-space: pre-line;
+        }
+        /* Spinner symbol when the chat message is loading */
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-inverse);
+            border-radius: 50%;
+            width: 12px;
+            height: 12px;
+            animation: spin 2s linear infinite;
+            margin: 0px 0px 0px 10px;
+            display: inline-block;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
         /* add left protrusion to khoj chat bubble */
         .chat-message-text.khoj:after {

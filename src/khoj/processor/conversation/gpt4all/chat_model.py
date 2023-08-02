@@ -10,6 +10,7 @@ from gpt4all import GPT4All
 from khoj.processor.conversation.utils import ThreadedGenerator, generate_chatml_messages_with_context
 from khoj.processor.conversation import prompts
 from khoj.utils.constants import empty_escape_sequences
+from khoj.utils import state
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,11 @@ def extract_questions_offline(
         next_christmas_date=next_christmas_date,
     )
     message = system_prompt + example_questions
-    response = gpt4all_model.generate(message, max_tokens=200, top_k=2, temp=0)
+    state.chat_lock.acquire()
+    try:
+        response = gpt4all_model.generate(message, max_tokens=200, top_k=2, temp=0, n_batch=512)
+    finally:
+        state.chat_lock.release()
 
     # Extract, Clean Message from GPT's Response
     try:
@@ -119,13 +124,11 @@ def converse_offline(
     """
     gpt4all_model = loaded_model or GPT4All(model)
     # Initialize Variables
-    current_date = datetime.now().strftime("%Y-%m-%d")
     compiled_references_message = "\n\n".join({f"{item}" for item in references})
 
     # Get Conversation Primer appropriate to Conversation Type
-    # TODO If compiled_references_message is too long, we need to truncate it.
     if compiled_references_message == "":
-        conversation_primer = prompts.conversation_llamav2.format(query=user_query)
+        conversation_primer = user_query
     else:
         conversation_primer = prompts.notes_conversation_llamav2.format(
             query=user_query, references=compiled_references_message
@@ -157,11 +160,20 @@ def llm_thread(g, messages: List[ChatMessage], model: GPT4All):
         for message in conversation_history
     ]
 
+    stop_words = ["<s>"]
     chat_history = "".join(formatted_messages)
     templated_system_message = prompts.system_prompt_llamav2.format(message=system_message.content)
     templated_user_message = prompts.general_conversation_llamav2.format(query=user_message.content)
     prompted_message = templated_system_message + chat_history + templated_user_message
-    response_iterator = model.generate(prompted_message, streaming=True, max_tokens=2000)
-    for response in response_iterator:
-        g.send(response)
+
+    state.chat_lock.acquire()
+    response_iterator = model.generate(prompted_message, streaming=True, max_tokens=500, n_batch=512)
+    try:
+        for response in response_iterator:
+            if any(stop_word in response.strip() for stop_word in stop_words):
+                logger.debug(f"Stop response as hit stop word in {response}")
+                break
+            g.send(response)
+    finally:
+        state.chat_lock.release()
     g.close()

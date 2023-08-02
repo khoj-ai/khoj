@@ -484,7 +484,7 @@ class Orgnode(object):
         if self._closed or self._scheduled or self._deadline:
             n = n + "\n"
 
-        # Ouput Property Drawer
+        # Output Property Drawer
         n = n + indent + ":PROPERTIES:\n"
         for key, value in self._properties.items():
             n = n + indent + f":{key}: {value}\n"
