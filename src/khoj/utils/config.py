@@ -2,6 +2,8 @@
 from __future__ import annotations  # to avoid quoting type hints
 
 from enum import Enum
+import logging
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Union, Any
@@ -9,6 +11,8 @@ from khoj.processor.conversation.gpt4all.utils import download_model
 
 # External Packages
 import torch
+
+logger = logging.getLogger(__name__)
 
 # Internal Packages
 if TYPE_CHECKING:
@@ -95,7 +99,12 @@ class ConversationProcessorConfigModel:
         self.meta_log: dict = {}
 
         if self.enable_offline_chat:
-            self.gpt4all_model.loaded_model = download_model(self.gpt4all_model.chat_model)
+            try:
+                self.gpt4all_model.loaded_model = download_model(self.gpt4all_model.chat_model)
+            except ValueError as e:
+                self.gpt4all_model.loaded_model = None
+                logger.error(f"Error while loading offline chat model: {e}", exc_info=True)
+                self.enable_offline_chat = False
         else:
             self.gpt4all_model.loaded_model = None
 

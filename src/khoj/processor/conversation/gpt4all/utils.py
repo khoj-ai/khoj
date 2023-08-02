@@ -57,7 +57,7 @@ def download_model(model_name: str):
                 f"Checksum verification failed for {filename}. Removing the tmp file. Offline model will not be available."
             )
             os.remove(tmp_filename)
-            return None
+            raise ValueError(f"Checksum verification failed for downloading {model_name} from {url}.")
 
         # Move the tmp file to the actual file
         os.rename(tmp_filename, filename)
