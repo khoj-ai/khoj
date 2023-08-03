@@ -38,7 +38,6 @@ It works with jpeg, markdown, notion, org-mode, pdf files and github repositorie
 
 <div align="center">
 
-***
 
 This repo branches from the official khoj release, but has some features that are not supported in the official release temporarily.<br />
 
