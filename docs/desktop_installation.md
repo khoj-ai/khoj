@@ -16,6 +16,9 @@ Make sure you meet the prerequisites for Windows installation. You can find them
 2. Open the downloaded file and double click to install.
 
 ## Linux
+
+For the Linux installation, you have to have `glibc` version 2.35 or higher. You can check your version with `ldd --version`.
+
 1. Download the latest release from [here](https://github.com/khoj-ai/khoj/releases). You'll want the `khoj_<version>_amd64.deb` file.
 2. In your downloads folder, run `sudo dpkg -i khoj_<version>_amd64.deb` to install Khoj.
 
