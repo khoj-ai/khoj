@@ -31,7 +31,7 @@ Welcome to the Khoj Docs! This is the best place to [get started](./setup.md) wi
 - It works with jpeg, markdown, [notion](./notion_integration.md) org-mode, pdf files and [github repositories](./github_integration.md)
 
 ## Quickstart
-[Click here](/setup) for full setup instructions
+[Click here](./setup.md) for full setup instructions
 
 ```shell
 pip install khoj-assistant && khoj
