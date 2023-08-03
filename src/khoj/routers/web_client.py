@@ -48,6 +48,8 @@ if not state.demo:
             "github": False,
             "notion": False,
             "enable_offline_model": False,
+            "conversation_openai": False,
+            "conversation_gpt4all": False,
         }
 
         if state.content_index:
@@ -62,7 +64,7 @@ if not state.demo:
                 }
             )
 
-        if state.processor_config:
+        if state.processor_config and state.processor_config.conversation:
             successfully_configured.update(
                 {
                     "conversation_openai": state.processor_config.conversation.openai_model is not None,
