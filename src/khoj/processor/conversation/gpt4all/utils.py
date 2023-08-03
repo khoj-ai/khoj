@@ -1,12 +1,24 @@
 import os
 import logging
 import requests
+import hashlib
+
 from gpt4all import GPT4All
 from tqdm import tqdm
 
 from khoj.processor.conversation.gpt4all import model_metadata
 
 logger = logging.getLogger(__name__)
+
+expected_checksum = {"llama-2-7b-chat.ggmlv3.q4_K_S.bin": "cfa87b15d92fb15a2d7c354b0098578b"}
+
+
+def get_md5_checksum(filename: str):
+    hash_md5 = hashlib.md5()
+    with open(filename, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
 
 
 def download_model(model_name: str):
@@ -33,18 +45,26 @@ def download_model(model_name: str):
                 unit_scale=True,  # let tqdm to determine the scale in kilo, mega..etc.
                 unit_divisor=1024,  # is used when unit_scale is true
                 total=total_size,  # the total iteration.
-                desc=filename.split("/")[-1],  # prefix to be displayed on progress bar.
+                desc=model_name,  # prefix to be displayed on progress bar.
             ) as progress_bar:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
                     progress_bar.update(len(chunk))
+
+        # Verify the checksum
+        if expected_checksum.get(model_name) != get_md5_checksum(tmp_filename):
+            logger.error(
+                f"Checksum verification failed for {filename}. Removing the tmp file. Offline model will not be available."
+            )
+            os.remove(tmp_filename)
+            raise ValueError(f"Checksum verification failed for downloading {model_name} from {url}.")
 
         # Move the tmp file to the actual file
         os.rename(tmp_filename, filename)
         logger.debug(f"Successfully downloaded model {model_name} from {url} to {filename}")
         return GPT4All(model_name)
     except Exception as e:
-        logger.error(f"Failed to download model {model_name} from {url} to {filename}. Error: {e}")
+        logger.error(f"Failed to download model {model_name} from {url} to {filename}. Error: {e}", exc_info=True)
         # Remove the tmp file if it exists
         if os.path.exists(tmp_filename):
             os.remove(tmp_filename)
