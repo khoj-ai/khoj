@@ -47,7 +47,6 @@ if not state.demo:
             "image": False,
             "github": False,
             "notion": False,
-            "conversation": False,
             "enable_offline_model": False,
         }
 

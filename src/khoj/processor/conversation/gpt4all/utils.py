@@ -45,14 +45,14 @@ def download_model(model_name: str):
                 unit_scale=True,  # let tqdm to determine the scale in kilo, mega..etc.
                 unit_divisor=1024,  # is used when unit_scale is true
                 total=total_size,  # the total iteration.
-                desc=filename.split("/")[-1],  # prefix to be displayed on progress bar.
+                desc=model_name,  # prefix to be displayed on progress bar.
             ) as progress_bar:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
                     progress_bar.update(len(chunk))
 
         # Verify the checksum
-        if expected_checksum.get(filename.split("/")[-1]) != get_md5_checksum(tmp_filename):
+        if expected_checksum.get(model_name) != get_md5_checksum(tmp_filename):
             logger.error(
                 f"Checksum verification failed for {filename}. Removing the tmp file. Offline model will not be available."
             )
