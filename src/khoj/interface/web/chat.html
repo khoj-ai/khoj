@@ -61,6 +61,7 @@
             // Add message by user to chat body
             renderMessage(query, "you");
             document.getElementById("chat-input").value = "";
+            autoResize();
             document.getElementById("chat-input").setAttribute("disabled", "disabled");
 
             // Generate backend API URL to execute query
@@ -128,10 +129,20 @@
         }
 
         function incrementalChat(event) {
-            // Send chat message on 'Enter'
-            if (event.key === 'Enter') {
+            if (!event.shiftKey && event.key === 'Enter') {
                 chat();
+            } else if (event.key === 'Enter') {
+                console.log('enter!')
             }
+        }
+
+        function autoResize() {
+            const textarea = document.getElementById('chat-input');
+            const scrollTop = textarea.scrollTop;
+            textarea.style.height = '0';
+            const scrollHeight = textarea.scrollHeight;
+            textarea.style.height = Math.min(scrollHeight, 200) + 'px';
+            textarea.scrollTop = scrollTop;
         }
 
         window.onload = function () {
@@ -207,7 +218,8 @@
 
         <!-- Chat Footer -->
         <div id="chat-footer">
-            <input type="text" id="chat-input" class="option" onkeyup=incrementalChat(event) autofocus="autofocus" placeholder="What is the meaning of life?">
+<!--            <input type="text" id="chat-input" class="option" onkeyup=incrementalChat(event) autofocus="autofocus" placeholder="What is the meaning of life?">-->
+            <textarea id="chat-input" class="option" oninput="autoResize()" onkeyup=incrementalChat(event) autofocus="autofocus" placeholder="What is the meaning of life?"></textarea>
         </div>
     </body>
 
@@ -255,6 +267,7 @@
         .chat-message.you {
             margin-right: auto;
             text-align: right;
+            white-space: pre-line;
         }
         /* basic style chat message text */
         .chat-message-text {
@@ -335,7 +348,20 @@
             box-shadow: 0 0 11px #aaa;
         }
         #chat-input {
-            font-size: medium;
+            /*font-size: medium;*/
+            /*height: 50px;*/
+            /*min-height: 50px;*/
+            /*max-height: 200px;*/
+            /*overflow-y: hidden;*/
+            /*resize: vertical;*/
+            font-family: roboto, karma, segoe ui, sans-serif;
+            font-size: 18px;
+            height: 44px;
+            resize: none;
+            overflow-y: hidden;
+            max-height: 200px;
+            box-sizing: border-box; /* 让内容高度包含在设置的高度范围内（包含padding和border） */
+            padding: 10px; /* 设置适当的内边距，使内容与四周保持距离 */
         }
 
         a.inline-chat-link {
