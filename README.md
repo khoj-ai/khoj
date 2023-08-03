@@ -36,6 +36,22 @@ It works with jpeg, markdown, notion, org-mode, pdf files and github repositorie
 
 </div>
 
+<div align="center">
+
+***
+
+This repo branches from the official khoj release, but has some features that are not supported in the official release temporarily.<br />
+
+| 🎈 New Features |
+|:---------:|
+|**1. Specify your own offline model, but require gpt4all support.**|
+|**2. Multi-line input mode by (shift&enter)**|
+
+
+***
+
+</div>
+
 | 🔎 Search | 💬 Chat |
 |:---------:|:-------:|
 | Quickly retrieve relevant documents using natural language | Get answers and create content from your existing knowledge base |
