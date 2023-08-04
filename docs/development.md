@@ -13,6 +13,10 @@ python3 -m venv .venv && source .venv/bin/activate
 
 # Install Khoj for Development
 pip install -e .[dev]
+
+# For MacOS or zsh users run this
+pip install -e .'[dev]'
+
 ```
 
 #### 2. Run
