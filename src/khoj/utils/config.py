@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from sentence_transformers import CrossEncoder
     from khoj.search_filter.base_filter import BaseFilter
     from khoj.utils.models import BaseEncoder
-    from khoj.utils.rawconfig import ConversationProcessorConfig, Entry, OpenAIProcessorConfig
+    from khoj.utils.rawconfig import ConversationProcessorConfig, Entry, OpenAIProcessorConfig, PageContentConfig
 
 
 class SearchType(str, Enum):
@@ -68,7 +68,7 @@ class ContentIndex:
     org: Optional[TextContent] = None
     markdown: Optional[TextContent] = None
     pdf: Optional[TextContent] = None
-    url: Optional[PageContentConfig] = None
+    url: Optional[TextContent] = None
     github: Optional[TextContent] = None
     notion: Optional[TextContent] = None
     image: Optional[ImageContent] = None

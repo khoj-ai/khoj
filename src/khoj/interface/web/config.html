@@ -183,11 +183,11 @@
 
             <div class="card">
                 <div class="card-title-row">
-                    <img class="card-icon" src="/static/assets/icons/pdf.svg" alt="PDF">
+                    <img class="card-icon" src="/static/assets/icons/url.svg" alt="PDF">
                     <h3 class="card-title">
                         URL
                         {% if current_config.content_type.url %}
-                            {% if current_model_state.pdf == False %}
+                            {% if current_model_state.url == False %}
                                 <img id="misconfigured-icon-url" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you need to click Configure.">
                             {% else %}
                                 <img id="configured-icon-url" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
