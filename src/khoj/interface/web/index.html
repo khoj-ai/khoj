@@ -56,9 +56,19 @@
             }).join("\n");
         }
 
+        function render_url(query, data) {
+            return data.map(function (item) {
+                let compiled_lines = item.additional.compiled.split("\n");
+                let filename = compiled_lines.shift();
+                let text_match = compiled_lines.join("\n")
+                return `<div class="results-pdf">` + `<h2>${filename}</h2>\n<p>${text_match}</p>` + `</div>`;
+            }).join("\n");
+        }
+
         function render_multiple(query, data, type) {
             let html = "";
             data.forEach(item => {
+                console.log(item.additional.file)
                 if (item.additional.file.endsWith(".org")) {
                     html += render_org(query, [item], "org-");
                 } else if (
@@ -73,6 +83,8 @@
                     html += render_pdf(query, [item]);
                 } else if (item.additional.file.includes("notion.so")) {
                     html += `<div class="results-notion">` + `<b><a href="${item.additional.file}">${item.additional.heading}</a></b>` + `<p>${item.entry}</p>` + `</div>`;
+                } else {
+                    html += render_url(query, [item]);
                 }
             });
             return html;
@@ -88,6 +100,8 @@
                 results = data.map(render_image).join('');
             } else if (type === "pdf") {
                 results = render_pdf(query, data);
+            } else if (type === "url") {
+                results = render_url(query, data);
             } else if (type === "github" || type === "all" || type === "notion") {
                 results = render_multiple(query, data, type);
             } else {
