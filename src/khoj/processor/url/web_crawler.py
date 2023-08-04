@@ -1,3 +1,6 @@
+# The following code is heavily inspired by the implementation found at: [Auto-GPT](
+# https://github.com/Significant-Gravitas/Auto-GPT/blob/master/autogpt/commands/web_selenium.py)
+
 from bs4 import BeautifulSoup
 from selenium.common.exceptions import WebDriverException
 
@@ -14,8 +17,9 @@ from selenium.webdriver.edge.webdriver import WebDriver as EdgeDriver
 # from selenium.webdriver.firefox.service import Service as GeckoDriverService
 # from selenium.webdriver.firefox.webdriver import WebDriver as FirefoxDriver
 from selenium.webdriver.remote.webdriver import WebDriver
-from selenium.webdriver.safari.options import Options as SafariOptions
-from selenium.webdriver.safari.webdriver import WebDriver as SafariDriver
+
+# from selenium.webdriver.safari.options import Options as SafariOptions
+# from selenium.webdriver.safari.webdriver import WebDriver as SafariDriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
