@@ -3,7 +3,7 @@ from fastapi import APIRouter
 from fastapi import Request
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
-from khoj.utils.rawconfig import TextContentConfig, OpenAIProcessorConfig, FullConfig
+from khoj.utils.rawconfig import TextContentConfig, OpenAIProcessorConfig, FullConfig, PageContentConfig
 
 # Internal Packages
 from khoj.utils import constants, state
@@ -15,7 +15,7 @@ import json
 web_client = APIRouter()
 templates = Jinja2Templates(directory=constants.web_directory)
 
-VALID_TEXT_CONTENT_TYPES = ["org", "markdown", "pdf"]
+VALID_TEXT_CONTENT_TYPES = ["org", "markdown", "pdf", "url"]
 
 
 # Create Routes
@@ -42,6 +42,7 @@ if not state.demo:
 
         successfully_configured = {
             "pdf": False,
+            "url": False,
             "markdown": False,
             "org": False,
             "image": False,
@@ -56,6 +57,7 @@ if not state.demo:
             successfully_configured.update(
                 {
                     "pdf": state.content_index.pdf is not None,
+                    "url": state.content_index.url is not None,
                     "markdown": state.content_index.markdown is not None,
                     "org": state.content_index.org is not None,
                     "image": state.content_index.image is not None,
@@ -133,10 +135,16 @@ if not state.demo:
         default_copy = constants.default_config.copy()
         default_content_type = default_copy["content-type"][content_type]  # type: ignore
 
-        default_config = TextContentConfig(
-            compressed_jsonl=default_content_type["compressed-jsonl"],
-            embeddings_file=default_content_type["embeddings-file"],
-        )
+        if content_type == "url":
+            default_config = PageContentConfig(
+                compressed_jsonl=default_content_type["compressed-jsonl"],
+                embeddings_file=default_content_type["embeddings-file"],
+            )
+        else:
+            default_config = TextContentConfig(
+                compressed_jsonl=default_content_type["compressed-jsonl"],
+                embeddings_file=default_content_type["embeddings-file"],
+            )
 
         current_config = (
             state.config.content_type[content_type]
@@ -146,7 +154,7 @@ if not state.demo:
         current_config = json.loads(current_config.json())
 
         return templates.TemplateResponse(
-            "content_type_input.html",
+            f"content_type_{content_type}_input.html",
             context={
                 "request": request,
                 "current_config": current_config,

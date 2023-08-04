@@ -28,6 +28,12 @@ default_config = {
             "compressed-jsonl": "~/.khoj/content/pdf/pdf.jsonl.gz",
             "embeddings-file": "~/.khoj/content/pdf/pdf_embeddings.pt",
         },
+        "url": {
+            "input-files": None,
+            "input-filter": None,
+            "compressed-jsonl": "~/.khoj/content/url/url.jsonl.gz",
+            "embeddings-file": "~/.khoj/content/url/url_embeddings.pt",
+        },
         "image": {
             "input-directories": None,
             "input-filter": None,

@@ -28,6 +28,7 @@ class SearchType(str, Enum):
     Markdown = "markdown"
     Image = "image"
     Pdf = "pdf"
+    URL = "url"
     Github = "github"
     Notion = "notion"
 
@@ -67,6 +68,7 @@ class ContentIndex:
     org: Optional[TextContent] = None
     markdown: Optional[TextContent] = None
     pdf: Optional[TextContent] = None
+    url: Optional[PageContentConfig] = None
     github: Optional[TextContent] = None
     notion: Optional[TextContent] = None
     image: Optional[ImageContent] = None

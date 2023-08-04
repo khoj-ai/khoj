@@ -41,6 +41,10 @@ class TextContentConfig(TextConfigBase):
         return input_filter
 
 
+class PageContentConfig(TextConfigBase):
+    input_files: Optional[List[str]]
+
+
 class GithubRepoConfig(ConfigBase):
     name: str
     owner: str
@@ -79,6 +83,7 @@ class ContentConfig(ConfigBase):
     image: Optional[ImageContentConfig]
     markdown: Optional[TextContentConfig]
     pdf: Optional[TextContentConfig]
+    url: Optional[PageContentConfig]
     github: Optional[GithubContentConfig]
     plugins: Optional[Dict[str, TextContentConfig]]
     notion: Optional[NotionContentConfig]
