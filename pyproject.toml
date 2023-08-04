@@ -60,6 +60,8 @@ dependencies = [
     "requests >= 2.26.0",
     "bs4 >= 0.0.1",
     "gpt4all >= 1.0.7",
+    "selenium == 4.1.4",
+    "webdriver-manager >= 4.0.0"
 ]
 dynamic = ["version"]
 
