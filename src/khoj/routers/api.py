@@ -26,6 +26,7 @@ from khoj.utils.rawconfig import (
     SearchConfig,
     SearchResponse,
     TextContentConfig,
+    PageContentConfig,
     OpenAIProcessorConfig,
     GithubContentConfig,
     NotionContentConfig,
@@ -175,6 +176,8 @@ if not state.demo:
             state.content_index.plugins = None
         elif content_type == "pdf":
             state.content_index.pdf = None
+        elif content_type == "url":
+            state.content_index.url = None
         elif content_type == "markdown":
             state.content_index.markdown = None
         elif content_type == "org":
@@ -220,7 +223,7 @@ if not state.demo:
     async def set_content_config_data(
         request: Request,
         content_type: str,
-        updated_config: Union[TextContentConfig, None],
+        updated_config: Union[Union[TextContentConfig, PageContentConfig], None],
         client: Optional[str] = None,
     ):
         _initialize_config()
@@ -500,6 +503,21 @@ async def search(
                     user_query,
                     state.search_models.text_search,
                     state.content_index.pdf,
+                    question_embedding=encoded_asymmetric_query,
+                    rank_results=r or False,
+                    score_threshold=score_threshold,
+                    dedupe=dedupe or True,
+                )
+            ]
+
+        if (t == SearchType.URL or t == SearchType.All) and state.content_index.url and state.search_models.text_search:
+            # query pdf files
+            search_futures += [
+                executor.submit(
+                    text_search.query,
+                    user_query,
+                    state.search_models.text_search,
+                    state.content_index.url,
                     question_embedding=encoded_asymmetric_query,
                     rank_results=r or False,
                     score_threshold=score_threshold,

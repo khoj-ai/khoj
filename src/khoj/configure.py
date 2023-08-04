@@ -15,6 +15,7 @@ from khoj.processor.jsonl.jsonl_to_jsonl import JsonlToJsonl
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.pdf.pdf_to_jsonl import PdfToJsonl
+from khoj.processor.url.url_to_jsonl import URLToJsonl
 from khoj.processor.github.github_to_jsonl import GithubToJsonl
 from khoj.processor.notion.notion_to_jsonl import NotionToJsonl
 from khoj.search_type import image_search, text_search
@@ -203,6 +204,18 @@ def configure_content(
             content_index.pdf = text_search.setup(
                 PdfToJsonl,
                 content_config.pdf,
+                search_models.text_search.bi_encoder,
+                regenerate=regenerate,
+                filters=[DateFilter(), WordFilter(), FileFilter()],
+            )
+
+        # Initialize URL Search
+        if (t == None or t.value == state.SearchType.URL.value) and content_config.url and search_models.text_search:
+            logger.info("🕸️️ Setting up search for URL")
+            # Extract Entries, Generate PDF Embeddings
+            content_index.url = text_search.setup(
+                URLToJsonl,
+                content_config.url,
                 search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
