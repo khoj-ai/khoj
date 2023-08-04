@@ -180,6 +180,42 @@
                     </div>
                 {% endif %}
             </div>
+
+            <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/pdf.svg" alt="PDF">
+                    <h3 class="card-title">
+                        URL
+                        {% if current_config.content_type.url %}
+                            {% if current_model_state.pdf == False %}
+                                <img id="misconfigured-icon-url" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you need to click Configure.">
+                            {% else %}
+                                <img id="configured-icon-url" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                            {% endif %}
+                        {% endif %}
+                    </h3>
+                </div>
+                <div class="card-description-row">
+                <p class="card-description">Set URLs to index</p>
+                </div>
+                <div class="card-action-row">
+                    <a class="card-button" href="/config/content_type/url">
+                        {% if current_config.content_type.url %}
+                            Update
+                        {% else %}
+                            Setup
+                        {% endif %}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                    </a>
+                </div>
+                {% if current_config.content_type.url %}
+                    <div id="clear-url" class="card-action-row">
+                        <button class="card-button" onclick="clearContentType('pdf')">
+                            Disable
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
         </div>
     </div>
     <div class="section">
