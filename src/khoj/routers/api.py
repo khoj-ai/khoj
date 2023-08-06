@@ -525,6 +525,25 @@ async def search(
                 )
             ]
 
+        if (
+            (t == SearchType.Plaintext or t == SearchType.All)
+            and state.content_index.plaintext
+            and state.search_models.text_search
+        ):
+            # query plaintext files
+            search_futures += [
+                executor.submit(
+                    text_search.query,
+                    user_query,
+                    state.search_models.text_search,
+                    state.content_index.plaintext,
+                    question_embedding=encoded_asymmetric_query,
+                    rank_results=r or False,
+                    score_threshold=score_threshold,
+                    dedupe=dedupe or True,
+                )
+            ]
+
         # Query across each requested content types in parallel
         with timer("Query took", logger):
             for search_future in concurrent.futures.as_completed(search_futures):

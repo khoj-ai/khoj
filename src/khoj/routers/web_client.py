@@ -15,7 +15,7 @@ import json
 web_client = APIRouter()
 templates = Jinja2Templates(directory=constants.web_directory)
 
-VALID_TEXT_CONTENT_TYPES = ["org", "markdown", "pdf"]
+VALID_TEXT_CONTENT_TYPES = ["org", "markdown", "pdf", "plaintext"]
 
 
 # Create Routes
@@ -47,6 +47,7 @@ if not state.demo:
             "image": False,
             "github": False,
             "notion": False,
+            "plaintext": False,
             "enable_offline_model": False,
             "conversation_openai": False,
             "conversation_gpt4all": False,
@@ -61,6 +62,7 @@ if not state.demo:
                     "image": state.content_index.image is not None,
                     "github": state.content_index.github is not None,
                     "notion": state.content_index.notion is not None,
+                    "plaintext": state.content_index.plaintext is not None,
                 }
             )
 

@@ -17,6 +17,7 @@ from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.pdf.pdf_to_jsonl import PdfToJsonl
 from khoj.processor.github.github_to_jsonl import GithubToJsonl
 from khoj.processor.notion.notion_to_jsonl import NotionToJsonl
+from khoj.processor.plaintext.plaintext_to_jsonl import PlaintextToJsonl
 from khoj.search_type import image_search, text_search
 from khoj.utils import constants, state
 from khoj.utils.config import (
@@ -203,6 +204,22 @@ def configure_content(
             content_index.pdf = text_search.setup(
                 PdfToJsonl,
                 content_config.pdf,
+                search_models.text_search.bi_encoder,
+                regenerate=regenerate,
+                filters=[DateFilter(), WordFilter(), FileFilter()],
+            )
+
+        # Initialize Plaintext Search
+        if (
+            (t == None or t.value == state.SearchType.Plaintext.value)
+            and content_config.plaintext
+            and search_models.text_search
+        ):
+            logger.info("📄 Setting up search for plaintext")
+            # Extract Entries, Generate Plaintext Embeddings
+            content_index.plaintext = text_search.setup(
+                PlaintextToJsonl,
+                content_config.plaintext,
                 search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
