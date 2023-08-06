@@ -113,6 +113,8 @@
             suffix = "**/*.org"
         else if ('{{content_type}}' === "pdf")
             suffix = "**/*.pdf"
+        else if ('{{content_type}}' === "plaintext")
+            suffix = "**/*.txt"
 
         var inputFileNodes = document.getElementsByName("input-files");
         var input_files = getValidInputNodes(inputFileNodes).map(node => node.value);
