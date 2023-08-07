@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
         include:
-        - os: ubuntu-latest
+        - os: ubuntu-20.04
           extension: deb
         - os: macos-latest
           extension: dmg
@@ -82,12 +82,12 @@ jobs:
             "dist/dmg/"
 
       - uses: ruby/setup-ruby@v1
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-20.04'
         with:
           ruby-version: '3.0'
 
       - name: 🐧 Create Debian Package
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-20.04'
         shell: bash
         run: |
           # Install Debian Packager
