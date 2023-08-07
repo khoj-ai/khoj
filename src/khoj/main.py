@@ -81,8 +81,9 @@ def run():
         from khoj.interface.desktop.system_tray import create_system_tray
 
         # Setup GUI
+        url = f"http://{args.host}:{args.port}"
         gui = QtWidgets.QApplication([])
-        main_window = MainWindow(args.host, args.port)
+        main_window = MainWindow(url)
 
         # System tray is only available on Windows, MacOS.
         # On Linux (Gnome) the System tray is not supported.
@@ -98,7 +99,6 @@ def run():
         configure_routes(app)
         server = ServerThread(start_server_func=lambda: start_server(app, host=args.host, port=args.port))
 
-        url = f"http://{args.host}:{args.port}"
         logger.info(f"🌗 Khoj is running at {url}")
         try:
             startup_url = url if args.config else f"{url}/config"
