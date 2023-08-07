@@ -131,8 +131,6 @@
         function incrementalChat(event) {
             if (!event.shiftKey && event.key === 'Enter') {
                 chat();
-            } else if (event.key === 'Enter') {
-                console.log('enter!')
             }
         }
 
@@ -218,7 +216,6 @@
 
         <!-- Chat Footer -->
         <div id="chat-footer">
-<!--            <input type="text" id="chat-input" class="option" onkeyup=incrementalChat(event) autofocus="autofocus" placeholder="What is the meaning of life?">-->
             <textarea id="chat-input" class="option" oninput="autoResize()" onkeyup=incrementalChat(event) autofocus="autofocus" placeholder="What is the meaning of life?"></textarea>
         </div>
     </body>
@@ -349,8 +346,8 @@
         }
         #chat-input {
             font-family: roboto, karma, segoe ui, sans-serif;
-            font-size: 18px;
-            height: 44px;
+            font-size: medium;
+            height: 40px;
             resize: none;
             overflow-y: hidden;
             max-height: 200px;
