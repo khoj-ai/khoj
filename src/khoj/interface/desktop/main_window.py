@@ -25,6 +25,7 @@ class MainWindow(QWebEngineView):
 
     def __init__(self, url: str):
         super(MainWindow, self).__init__()
+        self.base_url = url
 
         # Initialize Configure Window
         self.setWindowTitle("Khoj")
@@ -36,9 +37,16 @@ class MainWindow(QWebEngineView):
         # Open Khoj Web App Root
         self.webpage = QWebEnginePage()
         self.setPage(self.webpage)
-        self.webpage.load(QUrl(url))
+        self.webpage.load(QUrl(self.base_url))
 
         self.position_window()
+
+    def show_page(self, page: str = ""):
+        def load_page():
+            self.webpage.load(QUrl(f"{self.base_url}/{page}"))
+            self.show()
+
+        return load_page
 
     def position_window(self):
         "Position the window at center of X axis and near top on Y axis"
