@@ -2,6 +2,7 @@
 import os
 import signal
 import sys
+import locale
 
 if sys.stdout is None:
     sys.stdout = open(os.devnull, "w")
@@ -31,6 +32,9 @@ from khoj.utils.cli import cli
 
 # Initialize the Application Server
 app = FastAPI()
+
+# Set Locale
+locale.setlocale(locale.LC_ALL, "")
 
 # Setup Logger
 rich_handler = RichHandler(rich_tracebacks=True)
