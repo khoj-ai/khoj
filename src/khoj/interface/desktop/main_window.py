@@ -41,10 +41,13 @@ class MainWindow(QWebEngineView):
 
         self.position_window()
 
-    def show_page(self, page: str = ""):
+    def show_page(self, page: str = "", maximized=False):
         def load_page():
             self.webpage.load(QUrl(f"{self.base_url}/{page}"))
-            self.show()
+            if maximized:
+                self.showMaximized()
+            else:
+                self.show()
 
         return load_page
 

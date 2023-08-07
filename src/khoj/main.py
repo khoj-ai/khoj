@@ -101,7 +101,9 @@ def run():
         logger.info(f"🌗 Khoj is running at {url}")
 
         # Show config window on first run and main window otherwise
-        startup_window = main_window.show_page() if args.config else main_window.show_page("config")
+        startup_window = (
+            main_window.show_page(maximized=True) if args.config else main_window.show_page("config", maximized=True)
+        )
         startup_window()
 
         # Setup Signal Handlers
