@@ -6,5 +6,5 @@
 	"description": "An AI Personal Assistant for your Digital Brain",
 	"author": "Debanjum Singh Solanky",
 	"authorUrl": "https://github.com/debanjum",
-	"isDesktopOnly": false
+	"isDesktopOnly": true
 }
