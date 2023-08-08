@@ -141,6 +141,7 @@
             const scrollHeight = textarea.scrollHeight;
             textarea.style.height = Math.min(scrollHeight, 200) + 'px';
             textarea.scrollTop = scrollTop;
+            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
         }
 
         window.onload = function () {
