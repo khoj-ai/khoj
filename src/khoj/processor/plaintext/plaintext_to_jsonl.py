@@ -25,7 +25,7 @@ class PlaintextToJsonl(TextToJsonl):
         )
 
         # Get Plaintext Input Files to Process
-        all_input_plaintext_files = PlaintextToJsonl.get_jsonl_files(input_jsonl_files, input_jsonl_filter)
+        all_input_plaintext_files = PlaintextToJsonl.get_plaintext_files(input_jsonl_files, input_jsonl_filter)
 
         # Extract Entries from specified plaintext files
         with timer("Parse entries from plaintext files", logger):
@@ -54,7 +54,7 @@ class PlaintextToJsonl(TextToJsonl):
         return entries_with_ids
 
     @staticmethod
-    def get_jsonl_files(jsonl_files=None, jsonl_file_filters=None):
+    def get_plaintext_files(jsonl_files=None, jsonl_file_filters=None):
         "Get all jsonl files to process"
         absolute_jsonl_files, filtered_jsonl_files = set(), set()
         if jsonl_files:
@@ -104,8 +104,7 @@ class PlaintextToJsonl(TextToJsonl):
             entries.append(
                 Entry(
                     raw=entry,
-                    compiled=entry,
-                    file=file,
+                    compiled=f"{Path(file).stem}\n{entry}",
                     heading=Path(file).stem,
                 )
             )
