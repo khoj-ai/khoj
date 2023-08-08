@@ -18,14 +18,14 @@ class PlaintextToJsonl(TextToJsonl):
     # Define Functions
     def process(self, previous_entries=[]):
         # Extract required fields from config
-        input_jsonl_files, input_jsonl_filter, output_file = (
+        input_files, input_filter, output_file = (
             self.config.input_files,
             self.config.input_filter,
             self.config.compressed_jsonl,
         )
 
         # Get Plaintext Input Files to Process
-        all_input_plaintext_files = PlaintextToJsonl.get_plaintext_files(input_jsonl_files, input_jsonl_filter)
+        all_input_plaintext_files = PlaintextToJsonl.get_plaintext_files(input_files, input_filter)
 
         # Extract Entries from specified plaintext files
         with timer("Parse entries from plaintext files", logger):
@@ -54,19 +54,19 @@ class PlaintextToJsonl(TextToJsonl):
         return entries_with_ids
 
     @staticmethod
-    def get_plaintext_files(jsonl_files=None, jsonl_file_filters=None):
-        "Get all jsonl files to process"
-        absolute_jsonl_files, filtered_jsonl_files = set(), set()
-        if jsonl_files:
-            absolute_jsonl_files = {get_absolute_path(jsonl_file) for jsonl_file in jsonl_files}
-        if jsonl_file_filters:
-            filtered_jsonl_files = {
+    def get_plaintext_files(plaintext_files=None, plaintext_file_filters=None):
+        "Get all files to process"
+        absolute_plaintext_files, filtered_plaintext_files = set(), set()
+        if plaintext_files:
+            absolute_plaintext_files = {get_absolute_path(jsonl_file) for jsonl_file in plaintext_files}
+        if plaintext_file_filters:
+            filtered_plaintext_files = {
                 filtered_file
-                for jsonl_file_filter in jsonl_file_filters
+                for jsonl_file_filter in plaintext_file_filters
                 for filtered_file in glob.glob(get_absolute_path(jsonl_file_filter), recursive=True)
             }
 
-        all_target_files = sorted(absolute_jsonl_files | filtered_jsonl_files)
+        all_target_files = sorted(absolute_plaintext_files | filtered_plaintext_files)
 
         files_with_no_plaintext_extensions = {
             target_files for target_files in all_target_files if not PlaintextToJsonl.is_plaintextfile(target_files)
@@ -104,6 +104,7 @@ class PlaintextToJsonl(TextToJsonl):
             entries.append(
                 Entry(
                     raw=entry,
+                    file=file,
                     compiled=f"{Path(file).stem}\n{entry}",
                     heading=Path(file).stem,
                 )

@@ -22,6 +22,10 @@ def test_plaintext_file(tmp_path):
 
     maps = PlaintextToJsonl.convert_plaintext_entries_to_maps(file_to_entries)
 
+    # Convert each entry.file to absolute path to make them JSON serializable
+    for map in maps:
+        map.file = str(Path(map.file).absolute())
+
     # Process Each Entry from All Notes Files
     jsonl_string = PlaintextToJsonl.convert_entries_to_jsonl(maps)
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
