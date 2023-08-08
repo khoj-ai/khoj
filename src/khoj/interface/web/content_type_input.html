@@ -106,33 +106,43 @@
 
     submit.addEventListener("click", function(event) {
         event.preventDefault();
-        let suffix = ""
+        let globFormat = "**/*."
+        let suffixes = [];
         if ('{{content_type}}' == "markdown")
-            suffix = "**/*.md"
+            suffixes = ["md", "markdown"]
         else if ('{{content_type}}' == "org")
-            suffix = "**/*.org"
+            suffixes = ["org"]
         else if ('{{content_type}}' === "pdf")
-            suffix = "**/*.pdf"
+            suffixes = ["pdf"]
         else if ('{{content_type}}' === "plaintext")
-            suffix = "**/*.txt"
+            suffixes = ['*']
 
         var inputFileNodes = document.getElementsByName("input-files");
-        var input_files = getValidInputNodes(inputFileNodes).map(node => node.value);
+        var inputFiles = getValidInputNodes(inputFileNodes).map(node => node.value);
 
         var inputFilterNodes = document.getElementsByName("input-filter");
-        var input_filter = getValidInputNodes(inputFilterNodes).map(node => `${node.value}/${suffix}`);
 
-        if (input_files.length === 0 && input_filter.length === 0) {
+        var inputFilter = [];
+        var nodes = getValidInputNodes(inputFilterNodes);
+        if (nodes.length > 0) {
+            for (var i = 0; i < nodes.length; i++) {
+                for (var j = 0; j < suffixes.length; j++) {
+                    inputFilter.push(nodes[i].value + globFormat + suffixes[j]);
+                }
+            }
+        }
+
+        if (inputFiles.length === 0 && inputFilter.length === 0) {
             alert("You must specify at least one input file or input filter.");
             return;
         }
 
-        if (input_files.length == 0) {
-            input_files = null;
+        if (inputFiles.length == 0) {
+            inputFiles = null;
         }
 
-        if (input_filter.length == 0) {
-            input_filter = null;
+        if (inputFilter.length == 0) {
+            inputFilter = null;
         }
 
         var compressed_jsonl = document.getElementById("compressed-jsonl").value;
@@ -147,8 +157,8 @@
                 'X-CSRFToken': csrfToken
             },
             body: JSON.stringify({
-                "input_files": input_files,
-                "input_filter": input_filter,
+                "input_files": inputFiles,
+                "input_filter": inputFilter,
                 "compressed_jsonl": compressed_jsonl,
                 "embeddings_file": embeddings_file,
                 "index_heading_entries": index_heading_entries

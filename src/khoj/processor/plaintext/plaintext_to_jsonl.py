@@ -72,7 +72,8 @@ class PlaintextToJsonl(TextToJsonl):
             target_files for target_files in all_target_files if not PlaintextToJsonl.is_plaintextfile(target_files)
         }
         if any(files_with_no_plaintext_extensions):
-            print(f"[Warning] There maybe non plaintext files in the input set: {files_with_no_plaintext_extensions}")
+            logger.warn(f"Skipping unsupported files from plaintext indexing: {files_with_no_plaintext_extensions}")
+            all_target_files = list(set(all_target_files) - files_with_no_plaintext_extensions)
 
         logger.debug(f"Processing files: {all_target_files}")
 
@@ -81,7 +82,7 @@ class PlaintextToJsonl(TextToJsonl):
     @staticmethod
     def is_plaintextfile(file: str):
         "Check if file is plaintext file"
-        return file.endswith(("txt", "md", "rst", "html", "htm", "csv", "tsv", "jsonl", "xml"))
+        return file.endswith(("txt", "md", "markdown", "org", "mbox", "rst", "html", "htm", "xml"))
 
     @staticmethod
     def extract_plaintext_entries(plaintext_files: List[str]):
