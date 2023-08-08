@@ -24,7 +24,7 @@ For more detailed Windows installation and troubleshooting, see [Windows Install
 
 ### 2. Start
 
-Run the following command from your terminal to start the Khoj backend and open Khoj in your browser.
+Run the following command in your terminal to start the Khoj backend and open the Khoj native GUI
 
 ```shell
 khoj --gui
