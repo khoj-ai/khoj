@@ -95,9 +95,12 @@ class OrgToJsonl(TextToJsonl):
         entries = []
         entry_to_file_map = []
         for org_file in org_files:
-            org_file_entries = orgnode.makelist_with_filepath(str(org_file))
-            entry_to_file_map += zip(org_file_entries, [org_file] * len(org_file_entries))
-            entries.extend(org_file_entries)
+            try:
+                org_file_entries = orgnode.makelist_with_filepath(str(org_file))
+                entry_to_file_map += zip(org_file_entries, [org_file] * len(org_file_entries))
+                entries.extend(org_file_entries)
+            except Exception as e:
+                logger.error(f"Error processing file: {org_file} with error: {e}", exc_info=True)
 
         return entries, dict(entry_to_file_map)
 
