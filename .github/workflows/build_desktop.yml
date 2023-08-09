@@ -110,4 +110,4 @@ jobs:
         with:
           name: khoj_dev_amd64.${{matrix.extension}}
           path: dist/khoj_dev_amd64.${{matrix.extension}}
-          retention-days: 1
+          retention-days: 3
