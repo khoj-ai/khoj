@@ -180,6 +180,41 @@
                     </div>
                 {% endif %}
             </div>
+            <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/plaintext.svg" alt="Plaintext">
+                    <h3 class="card-title">
+                        Plaintext
+                        {% if current_config.content_type.plaintext %}
+                            {% if current_model_state.plaintext == False %}
+                                <img id="misconfigured-icon-plaintext" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you need to click Configure.">
+                            {% else %}
+                                <img id="configured-icon-plaintext" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                            {% endif %}
+                        {% endif %}
+                    </h3>
+                </div>
+                <div class="card-description-row">
+                <p class="card-description">Set Plaintext files to index</p>
+                </div>
+                <div class="card-action-row">
+                    <a class="card-button" href="/config/content_type/plaintext">
+                        {% if current_config.content_type.plaintext %}
+                            Update
+                        {% else %}
+                            Setup
+                        {% endif %}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                    </a>
+                </div>
+                {% if current_config.content_type.plaintext %}
+                    <div id="clear-plaintext" class="card-action-row">
+                        <button class="card-button" onclick="clearContentType('plaintext')">
+                            Disable
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
         </div>
     </div>
     <div class="section">

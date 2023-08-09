@@ -73,6 +73,8 @@
                     html += render_pdf(query, [item]);
                 } else if (item.additional.file.includes("notion.so")) {
                     html += `<div class="results-notion">` + `<b><a href="${item.additional.file}">${item.additional.heading}</a></b>` + `<p>${item.entry}</p>` + `</div>`;
+                } else {
+                    html += `<div class="results-plugin">` + `<b><a href="${item.additional.file}">${item.additional.heading}</a></b>` + `<p>${item.entry}</p>` + `</div>`;
                 }
             });
             return html;
@@ -412,6 +414,7 @@
         div.results-markdown,
         div.results-notion,
         div.results-org,
+        div.results-plugin,
         div.results-pdf {
             text-align: left;
             box-shadow: 2px 2px 2px var(--primary-hover);

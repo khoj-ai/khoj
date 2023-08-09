@@ -46,6 +46,12 @@ default_config = {
             "compressed-jsonl": "~/.khoj/content/notion/notion.jsonl.gz",
             "embeddings-file": "~/.khoj/content/notion/notion_embeddings.pt",
         },
+        "plaintext": {
+            "input-files": None,
+            "input-filter": None,
+            "compressed-jsonl": "~/.khoj/content/plaintext/plaintext.jsonl.gz",
+            "embeddings-file": "~/.khoj/content/plaintext/plaintext_embeddings.pt",
+        },
     },
     "search-type": {
         "symmetric": {
