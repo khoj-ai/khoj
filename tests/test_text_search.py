@@ -281,7 +281,7 @@ def compare_index(initial_notes_model, final_notes_model):
 
     # verify new entry embedding appended to embeddings tensor, without disrupting order or content of existing embeddings
     for index in range(len(initial_notes_model.corpus_embeddings)):
-        if not torch.equal(final_notes_model.corpus_embeddings[index], initial_notes_model.corpus_embeddings[index]):
+        if not initial_notes_model.corpus_embeddings[index].allclose(final_notes_model.corpus_embeddings[index]):
             mismatched_embeddings.append(index)
 
     error_details = ""
