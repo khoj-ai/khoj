@@ -61,6 +61,7 @@
             // Add message by user to chat body
             renderMessage(query, "you");
             document.getElementById("chat-input").value = "";
+            autoResize();
             document.getElementById("chat-input").setAttribute("disabled", "disabled");
 
             // Generate backend API URL to execute query
@@ -128,10 +129,19 @@
         }
 
         function incrementalChat(event) {
-            // Send chat message on 'Enter'
-            if (event.key === 'Enter') {
+            if (!event.shiftKey && event.key === 'Enter') {
                 chat();
             }
+        }
+
+        function autoResize() {
+            const textarea = document.getElementById('chat-input');
+            const scrollTop = textarea.scrollTop;
+            textarea.style.height = '0';
+            const scrollHeight = textarea.scrollHeight;
+            textarea.style.height = Math.min(scrollHeight, 200) + 'px';
+            textarea.scrollTop = scrollTop;
+            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
         }
 
         window.onload = function () {
@@ -186,11 +196,11 @@
         <div class="khoj-header">
             {% if demo %}
                 <a class="khoj-logo" href="https://khoj.dev" target="_blank">
-                    <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways.svg" alt="Khoj"></img>
+                    <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
                 </a>
             {% else %}
                 <a class="khoj-logo" href="/">
-                    <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways.svg" alt="Khoj"></img>
+                    <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
                 </a>
             {% endif %}
             <nav class="khoj-nav">
@@ -207,7 +217,7 @@
 
         <!-- Chat Footer -->
         <div id="chat-footer">
-            <input type="text" id="chat-input" class="option" onkeyup=incrementalChat(event) autofocus="autofocus" placeholder="What is the meaning of life?">
+            <textarea id="chat-input" class="option" oninput="autoResize()" onkeyup=incrementalChat(event) autofocus="autofocus" placeholder="What is the meaning of life?"></textarea>
         </div>
     </body>
 
@@ -220,7 +230,7 @@
         }
         body {
             display: grid;
-            background: #f8fafc;
+            background: #fff;
             color: #475569;
             text-align: center;
             font-family: roboto, karma, segoe ui, sans-serif;
@@ -255,6 +265,7 @@
         .chat-message.you {
             margin-right: auto;
             text-align: right;
+            white-space: pre-line;
         }
         /* basic style chat message text */
         .chat-message-text {
@@ -335,7 +346,16 @@
             box-shadow: 0 0 11px #aaa;
         }
         #chat-input {
+            font-family: roboto, karma, segoe ui, sans-serif;
             font-size: medium;
+            height: 54px;
+            resize: none;
+            overflow-y: hidden;
+            max-height: 200px;
+            box-sizing: border-box;
+            padding: 15px;
+            line-height: 1.5em;
+            margin: 0;
         }
 
         a.inline-chat-link {

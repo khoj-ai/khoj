@@ -42,7 +42,7 @@ dependencies = [
     "fastapi == 0.77.1",
     "jinja2 == 3.1.2",
     "openai >= 0.27.0",
-    "tiktoken >= 0.3.0",
+    "tiktoken >= 0.3.2",
     "tenacity >= 8.2.2",
     "pillow == 9.3.0",
     "pydantic >= 1.10.10",

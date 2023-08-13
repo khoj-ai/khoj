@@ -1,11 +1,8 @@
-# Standard Packages
-import webbrowser
-
 # External Packages
 from PySide6 import QtGui, QtWidgets
 
 # Internal Packages
-from khoj.utils import constants, state
+from khoj.utils import constants
 from khoj.interface.desktop.main_window import MainWindow
 
 
@@ -25,9 +22,9 @@ def create_system_tray(gui: QtWidgets.QApplication, main_window: MainWindow):
     # Create the menu and menu actions
     menu = QtWidgets.QMenu()
     menu_actions = [
-        ("Search", lambda: webbrowser.open(f"http://{state.host}:{state.port}/")),
-        ("Configure", lambda: webbrowser.open(f"http://{state.host}:{state.port}/config")),
-        ("App", main_window.show),
+        ("Search", main_window.show_page()),
+        ("Chat", main_window.show_page("chat")),
+        ("Configure", main_window.show_page("config")),
         ("Quit", gui.quit),
     ]
 

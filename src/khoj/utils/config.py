@@ -30,6 +30,7 @@ class SearchType(str, Enum):
     Pdf = "pdf"
     Github = "github"
     Notion = "notion"
+    Plaintext = "plaintext"
 
 
 class ProcessorType(str, Enum):
@@ -70,6 +71,7 @@ class ContentIndex:
     github: Optional[TextContent] = None
     notion: Optional[TextContent] = None
     image: Optional[ImageContent] = None
+    plaintext: Optional[TextContent] = None
     plugins: Optional[Dict[str, TextContent]] = None
 
 
