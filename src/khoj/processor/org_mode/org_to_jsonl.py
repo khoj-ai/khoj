@@ -95,19 +95,26 @@ class OrgToJsonl(TextToJsonl):
         entries = []
         entry_to_file_map = []
         for org_file in org_files:
-            org_file_entries = orgnode.makelist_with_filepath(str(org_file))
-            entry_to_file_map += zip(org_file_entries, [org_file] * len(org_file_entries))
-            entries.extend(org_file_entries)
+            try:
+                org_file_entries = orgnode.makelist_with_filepath(str(org_file))
+                entry_to_file_map += zip(org_file_entries, [org_file] * len(org_file_entries))
+                entries.extend(org_file_entries)
+            except Exception as e:
+                logger.error(f"Error processing file: {org_file} with error: {e}", exc_info=True)
 
         return entries, dict(entry_to_file_map)
 
     @staticmethod
     def process_single_org_file(org_content: str, org_file: str, entries: List, entry_to_file_map: List):
         # Process single org file. The org parser assumes that the file is a single org file and reads it from a buffer. We'll split the raw conetnt of this file by new line to mimic the same behavior.
-        org_file_entries = orgnode.makelist(org_content.split("\n"), org_file)
-        entry_to_file_map += zip(org_file_entries, [org_file] * len(org_file_entries))
-        entries.extend(org_file_entries)
-        return entries, entry_to_file_map
+        try:
+            org_file_entries = orgnode.makelist(org_content.split("\n"), org_file)
+            entry_to_file_map += zip(org_file_entries, [org_file] * len(org_file_entries))
+            entries.extend(org_file_entries)
+            return entries, entry_to_file_map
+        except Exception as e:
+            logger.error(f"Error processing file: {org_file} with error: {e}", exc_info=True)
+            return entries, entry_to_file_map
 
     @staticmethod
     def convert_org_nodes_to_entries(

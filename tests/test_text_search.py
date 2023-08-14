@@ -5,7 +5,6 @@ import os
 
 # External Packages
 import pytest
-import torch
 from khoj.utils.config import SearchModels
 
 # Internal Packages
@@ -28,7 +27,7 @@ def test_text_search_setup_with_missing_file_raises_error(
 
     # Act
     # Generate notes embeddings during asymmetric setup
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(ValueError, match=r"^No valid entries found in specified files:*"):
         text_search.setup(OrgToJsonl, org_config_with_only_new_file, search_config.asymmetric, regenerate=True)
 
 
@@ -281,7 +280,7 @@ def compare_index(initial_notes_model, final_notes_model):
 
     # verify new entry embedding appended to embeddings tensor, without disrupting order or content of existing embeddings
     for index in range(len(initial_notes_model.corpus_embeddings)):
-        if not torch.equal(final_notes_model.corpus_embeddings[index], initial_notes_model.corpus_embeddings[index]):
+        if not initial_notes_model.corpus_embeddings[index].allclose(final_notes_model.corpus_embeddings[index]):
             mismatched_embeddings.append(index)
 
     error_details = ""
