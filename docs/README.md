@@ -29,6 +29,7 @@ Welcome to the Khoj Docs! This is the best place to [get started](./setup.md) wi
 - Khoj is a desktop application to [search](./search.md) and [chat](./chat.md) with your notes, documents and images
 - It is an offline-first, open source AI personal assistant accessible from your [Emacs](./emacs.md), [Obsidian](./obsidian.md) or [Web browser](./web.md)
 - It works with jpeg, markdown, [notion](./notion_integration.md) org-mode, pdf files and [github repositories](./github_integration.md)
+- If you have more questions, check out the [FAQ](https://faq.khoj.dev/) - it's a live Khoj instance indexing our Github repository!
 
 ## Quickstart
 [Click here](./setup.md) for full setup instructions
