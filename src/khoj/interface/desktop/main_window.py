@@ -1,11 +1,13 @@
+# Standard Packages
+import webbrowser
+
 # External Packages
-from PySide6 import QtGui
-from PySide6.QtCore import Qt, QThread, QUrl
-from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWebEngineCore import QWebEnginePage
+from PySide6 import QtGui, QtWidgets
+from PySide6.QtCore import Qt
 
 # Internal Packages
 from khoj.utils import constants
+from PySide6.QtCore import QThread
 
 
 class ServerThread(QThread):
@@ -20,12 +22,11 @@ class ServerThread(QThread):
         self.start_server_func()
 
 
-class MainWindow(QWebEngineView):
+class MainWindow(QtWidgets.QMainWindow):
     """Create Window to Navigate users to the web UI"""
 
-    def __init__(self, url: str):
+    def __init__(self, host: str, port: int):
         super(MainWindow, self).__init__()
-        self.base_url = url
 
         # Initialize Configure Window
         self.setWindowTitle("Khoj")
@@ -34,22 +35,24 @@ class MainWindow(QWebEngineView):
         icon_path = constants.web_directory / "assets/icons/favicon-128x128.png"
         self.setWindowIcon(QtGui.QIcon(f"{icon_path.absolute()}"))
 
-        # Open Khoj Web App Root
-        self.webpage = QWebEnginePage()
-        self.setPage(self.webpage)
-        self.webpage.load(QUrl(self.base_url))
+        # Initialize Configure Window Layout
+        self.wlayout = QtWidgets.QVBoxLayout()
 
+        # Add a Label that says "Khoj Configuration" to the Window
+        self.wlayout.addWidget(QtWidgets.QLabel("Welcome to Khoj"))
+
+        # Add a Button to open the Web UI at http://host:port/config
+        self.open_web_ui_button = QtWidgets.QPushButton("Open Web UI")
+        self.open_web_ui_button.clicked.connect(lambda: webbrowser.open(f"http://{host}:{port}/config"))
+
+        self.wlayout.addWidget(self.open_web_ui_button)
+
+        # Set the central widget of the Window. Widget will expand
+        # to take up all the space in the window by default.
+        self.config_window = QtWidgets.QWidget()
+        self.config_window.setLayout(self.wlayout)
+        self.setCentralWidget(self.config_window)
         self.position_window()
-
-    def show_page(self, page: str = "", maximized=False):
-        def load_page():
-            self.webpage.load(QUrl(f"{self.base_url}/{page}"))
-            if maximized:
-                self.showMaximized()
-            else:
-                self.show()
-
-        return load_page
 
     def position_window(self):
         "Position the window at center of X axis and near top on Y axis"
