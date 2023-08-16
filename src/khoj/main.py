@@ -13,6 +13,7 @@ import logging
 import threading
 import warnings
 from platform import system
+import webbrowser
 
 # Ignore non-actionable warnings
 warnings.filterwarnings("ignore", message=r"snapshot_download.py has been made private", category=FutureWarning)
@@ -84,9 +85,8 @@ def run():
         from khoj.interface.desktop.system_tray import create_system_tray
 
         # Setup GUI
-        url = f"http://{args.host}:{args.port}"
         gui = QtWidgets.QApplication([])
-        main_window = MainWindow(url)
+        main_window = MainWindow(args.host, args.port)
 
         # System tray is only available on Windows, MacOS.
         # On Linux (Gnome) the System tray is not supported.
@@ -102,13 +102,17 @@ def run():
         configure_routes(app)
         server = ServerThread(start_server_func=lambda: start_server(app, host=args.host, port=args.port))
 
+        url = f"http://{args.host}:{args.port}"
         logger.info(f"🌗 Khoj is running at {url}")
+        try:
+            startup_url = url if args.config else f"{url}/config"
+            webbrowser.open(startup_url)
+        except:
+            logger.warning(f"🚧 Unable to open browser. Please open {url} manually to configure or use Khoj.")
 
-        # Show config window on first run and main window otherwise
-        startup_window = (
-            main_window.show_page(maximized=True) if args.config else main_window.show_page("config", maximized=True)
-        )
-        startup_window()
+        # Show Main Window on First Run Experience or if on Linux
+        if args.config is None or system() not in ["Windows", "Darwin"]:
+            main_window.show()
 
         # Setup Signal Handlers
         signal.signal(signal.SIGINT, sigint_handler)
