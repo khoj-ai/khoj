@@ -174,11 +174,3 @@ If your plugin does not need CSS, delete this file.
 .khoj-result-entry p br {
     display: none;
 }
-
-.khoj-info-hint {
-    color: var(--text-muted);
-    font-size: var(--font-ui-small);
-    font-style: italic;
-    text-align: center;
-    margin-bottom: 0.5em;
-}
