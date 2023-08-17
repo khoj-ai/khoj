@@ -1,5 +1,7 @@
 # Standard Packages
 import webbrowser
+import os
+import signal
 
 # External Packages
 from PySide6 import QtGui, QtWidgets
@@ -20,6 +22,10 @@ class ServerThread(QThread):
 
     def run(self):
         self.start_server_func()
+
+    def exit(self):
+        os.kill(os.getpid(), signal.SIGTERM)
+        super(ServerThread, self).exit()
 
 
 class MainWindow(QtWidgets.QMainWindow):

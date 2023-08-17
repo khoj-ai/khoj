@@ -123,7 +123,7 @@ def run():
 
         # Start Application
         server.start()
-        gui.aboutToQuit.connect(server.terminate)
+        gui.aboutToQuit.connect(server.exit)
 
         # Close Splash Screen if still open
         if system() != "Darwin":
