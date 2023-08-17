@@ -35,6 +35,8 @@ jobs:
           - '3.11'
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -54,3 +56,4 @@ jobs:
 
       - name: 🧪 Test Application
         run: pytest
+        timeout-minutes: 10
