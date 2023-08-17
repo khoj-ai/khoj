@@ -100,7 +100,7 @@ def run():
         # Setup Server
         initialize_server(args.config, args.regenerate, required=False)
         configure_routes(app)
-        server = ServerThread(start_server_func=lambda: start_server(app, host=args.host, port=args.port))
+        server = ServerThread(start_server_func=lambda: start_server(app, host=args.host, port=args.port), parent=gui)
 
         url = f"http://{args.host}:{args.port}"
         logger.info(f"🌗 Khoj is running at {url}")

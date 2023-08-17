@@ -11,8 +11,8 @@ from PySide6.QtCore import QThread
 
 
 class ServerThread(QThread):
-    def __init__(self, start_server_func):
-        super(ServerThread, self).__init__()
+    def __init__(self, start_server_func, parent=None):
+        super(ServerThread, self).__init__(parent)
         self.start_server_func = start_server_func
 
     def __del__(self):
