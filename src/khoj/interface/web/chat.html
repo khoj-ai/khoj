@@ -9,6 +9,16 @@
         <link rel="stylesheet" href="/static/assets/khoj.css">
     </head>
     <script>
+        function copyProgrammaticOutput(event) {
+            // Remove the first 4 characters which are the "Copy" button
+            const programmaticOutput = event.target.parentNode.textContent.trim().slice(4);
+            navigator.clipboard.writeText(programmaticOutput).then(() => {
+                console.log("Programmatic output copied to clipboard");
+            }).catch((error) => {
+                console.error("Error copying programmatic output to clipboard:", error);
+            });
+        }
+
         function formatDate(date) {
             // Format date in HH:MM, DD MMM YYYY format
             let time_string = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -27,10 +37,11 @@
         function renderMessage(message, by, dt=null) {
             let message_time = formatDate(dt ?? new Date());
             let by_name =  by == "khoj" ? "🏮 Khoj" : "🤔 You";
+            let formattedMessage = formatHTMLMessage(message);
             // Generate HTML for Chat Message and Append to Chat Body
             document.getElementById("chat-body").innerHTML += `
                 <div data-meta="${by_name} at ${message_time}" class="chat-message ${by}">
-                    <div class="chat-message-text ${by}">${message}</div>
+                    <div class="chat-message-text ${by}">${formattedMessage}</div>
                 </div>
             `;
             // Scroll to bottom of chat-body element
@@ -48,10 +59,19 @@
             renderMessage(message+references, by, dt);
         }
 
+        function formatHTMLMessage(htmlMessage) {
+            // Replace any ``` with <div class="programmatic-output">
+            let newHTML = htmlMessage.replace(/```([\s\S]*?)```/g, '<div class="programmatic-output"><button class="copy-button" onclick="copyProgrammaticOutput(event)">Copy</button>$1</div>');
+            // Replace any ** with <b> and __ with <u>
+            newHTML = newHTML.replace(/\*\*([\s\S]*?)\*\*/g, '<b>$1</b>');
+            newHTML = newHTML.replace(/__([\s\S]*?)__/g, '<u>$1</u>');
+            return newHTML;
+        }
+
         function chat() {
             // Extract required fields for search from form
             let query = document.getElementById("chat-input").value.trim();
-            let results_count = localStorage.getItem("khojResultsCount") || 5;
+            let resultsCount = localStorage.getItem("khojResultsCount") || 5;
             console.log(`Query: ${query}`);
 
             // Short circuit on empty query
@@ -65,7 +85,7 @@
             document.getElementById("chat-input").setAttribute("disabled", "disabled");
 
             // Generate backend API URL to execute query
-            let url = `/api/chat?q=${encodeURIComponent(query)}&n=${results_count}&client=web&stream=true`;
+            let url = `/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true`;
 
             let chat_body = document.getElementById("chat-body");
             let new_response = document.createElement("div");
@@ -73,14 +93,14 @@
             new_response.attributes["data-meta"] = "🏮 Khoj at " + formatDate(new Date());
             chat_body.appendChild(new_response);
 
-            let new_response_text = document.createElement("div");
-            new_response_text.classList.add("chat-message-text", "khoj");
-            new_response.appendChild(new_response_text);
+            let newResponseText = document.createElement("div");
+            newResponseText.classList.add("chat-message-text", "khoj");
+            new_response.appendChild(newResponseText);
 
             // Temporary status message to indicate that Khoj is thinking
             let loadingSpinner = document.createElement("div");
             loadingSpinner.classList.add("spinner");
-            new_response_text.appendChild(loadingSpinner);
+            newResponseText.appendChild(loadingSpinner);
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
 
             // Call specified Khoj API which returns a streamed response of type text/plain
@@ -92,6 +112,10 @@
                     function readStream() {
                         reader.read().then(({ done, value }) => {
                             if (done) {
+                                // Evaluate the contents of new_response_text.innerHTML after all the data has been streamed
+                                const currentHTML = newResponseText.innerHTML;
+                                newResponseText.innerHTML = formatHTMLMessage(currentHTML);
+
                                 return;
                             }
 
@@ -100,22 +124,23 @@
 
                             if (chunk.includes("### compiled references:")) {
                                 const additionalResponse = chunk.split("### compiled references:")[0];
-                                new_response_text.innerHTML += additionalResponse;
+                                newResponseText.innerHTML += additionalResponse;
 
                                 const rawReference = chunk.split("### compiled references:")[1];
                                 const rawReferenceAsJson = JSON.parse(rawReference);
                                 let polishedReference = rawReferenceAsJson.map((reference, index) => generateReference(reference, index))
                                     .join("<sup>,</sup>");
 
-                                new_response_text.innerHTML += polishedReference;
+                                newResponseText.innerHTML += polishedReference;
                                 document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+                                readStream();
                             } else {
                                 // Display response from Khoj
-                                if (new_response_text.getElementsByClassName("spinner").length > 0) {
-                                    new_response_text.removeChild(loadingSpinner);
+                                if (newResponseText.getElementsByClassName("spinner").length > 0) {
+                                    newResponseText.removeChild(loadingSpinner);
                                 }
 
-                                new_response_text.innerHTML += chunk;
+                                newResponseText.innerHTML += chunk;
                                 readStream();
                             }
 
@@ -456,6 +481,21 @@
         div.khoj-banner-container-hidden {
             margin: 0px;
             padding: 0px;
+        }
+
+        div.programmatic-output {
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+            color: #333;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            margin: 10px 0;
+            overflow-x: auto;
+            padding: 10px;
+            white-space: pre-wrap;
         }
     </style>
     <script>
