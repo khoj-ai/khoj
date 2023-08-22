@@ -17,7 +17,7 @@ class TextToJsonl(ABC):
         self.config = config
 
     @abstractmethod
-    def process(self, previous_entries: List[Entry] = []) -> List[Tuple[int, Entry]]:
+    def process(self, previous_entries: List[Entry] = [], files: dict[str, str] = None) -> List[Tuple[int, Entry]]:
         ...
 
     @staticmethod

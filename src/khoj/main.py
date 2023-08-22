@@ -26,7 +26,7 @@ from rich.logging import RichHandler
 import schedule
 
 # Internal Packages
-from khoj.configure import configure_routes, initialize_server
+from khoj.configure import configure_routes, initialize_server, initialize_content
 from khoj.utils import state
 from khoj.utils.cli import cli
 
@@ -74,8 +74,8 @@ def run():
         poll_task_scheduler()
 
         # Start Server
-        initialize_server(args.config, args.regenerate, required=False)
         configure_routes(app)
+        initialize_server(args.config, args.regenerate, required=False)
         start_server(app, host=args.host, port=args.port, socket=args.socket)
     else:
         from PySide6 import QtWidgets
@@ -172,7 +172,7 @@ def poll_task_scheduler():
 
 
 def run_gui():
-    sys.argv += ["--gui"]
+    # sys.argv += ["--gui"]
     run()
 
 

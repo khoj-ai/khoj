@@ -174,6 +174,7 @@ def collate_results(hits, entries: List[Entry], count=5) -> List[SearchResponse]
 
 def setup(
     text_to_jsonl: Type[TextToJsonl],
+    files: dict[str, str],
     config: TextConfigBase,
     bi_encoder: BaseEncoder,
     regenerate: bool,
@@ -185,7 +186,7 @@ def setup(
     previous_entries = []
     if config.compressed_jsonl.exists() and not regenerate:
         previous_entries = extract_entries(config.compressed_jsonl)
-    entries_with_indices = text_to_jsonl(config).process(previous_entries)
+    entries_with_indices = text_to_jsonl(config).process(previous_entries=previous_entries, files=files)
 
     # Extract Updated Entries
     entries = extract_entries(config.compressed_jsonl)

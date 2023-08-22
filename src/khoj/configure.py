@@ -11,27 +11,17 @@ import schedule
 from fastapi.staticfiles import StaticFiles
 
 # Internal Packages
-from khoj.processor.jsonl.jsonl_to_jsonl import JsonlToJsonl
-from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
-from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
-from khoj.processor.pdf.pdf_to_jsonl import PdfToJsonl
-from khoj.processor.github.github_to_jsonl import GithubToJsonl
-from khoj.processor.notion.notion_to_jsonl import NotionToJsonl
-from khoj.processor.plaintext.plaintext_to_jsonl import PlaintextToJsonl
 from khoj.search_type import image_search, text_search
 from khoj.utils import constants, state
 from khoj.utils.config import (
-    ContentIndex,
     SearchType,
     SearchModels,
     ProcessorConfigModel,
     ConversationProcessorConfigModel,
 )
-from khoj.utils.helpers import LRU, resolve_absolute_path, merge_dicts
-from khoj.utils.rawconfig import FullConfig, ProcessorConfig, SearchConfig, ContentConfig, ConversationProcessorConfig
-from khoj.search_filter.date_filter import DateFilter
-from khoj.search_filter.word_filter import WordFilter
-from khoj.search_filter.file_filter import FileFilter
+from khoj.utils.helpers import resolve_absolute_path, merge_dicts
+from khoj.utils.fs_syncer import collect_files
+from khoj.utils.rawconfig import FullConfig, ProcessorConfig, SearchConfig, ConversationProcessorConfig
 
 
 logger = logging.getLogger(__name__)
@@ -63,6 +53,7 @@ def configure_server(config: FullConfig, regenerate: bool, search_type: Optional
     try:
         state.config_lock.acquire()
         state.processor_config = configure_processor(state.config.processor)
+        initialize_content(regenerate, search_type)
     except Exception as e:
         logger.error(f"🚨 Failed to configure processor", exc_info=True)
         raise e
@@ -80,18 +71,24 @@ def configure_server(config: FullConfig, regenerate: bool, search_type: Optional
     finally:
         state.config_lock.release()
 
+
+def initialize_content(regenerate: bool, search_type: Optional[SearchType] = None) -> None:
     # Initialize Content from Config
     if state.search_models:
         try:
-            state.config_lock.acquire()
-            state.content_index = configure_content(
-                state.content_index, state.config.content_type, state.search_models, regenerate, search_type
-            )
+            logger.info("📬 Updating content index via Scheduler")
+            all_files = collect_files(state.config.content_type)
+            url = "http://0.0.0.0:42110/indexer/batch"
+            headers = {
+                "accept": "application/json",
+                "x-api-key": "secret",
+                "Content-Type": "application/json",
+            }
+            requests.post(url, headers=headers, json=all_files)
+            logger.info("test")
         except Exception as e:
             logger.error(f"🚨 Failed to index content", exc_info=True)
             raise e
-        finally:
-            state.config_lock.release()
 
 
 def configure_routes(app):
@@ -99,27 +96,32 @@ def configure_routes(app):
     from khoj.routers.api import api
     from khoj.routers.api_beta import api_beta
     from khoj.routers.web_client import web_client
+    from khoj.routers.indexer import indexer
 
     app.mount("/static", StaticFiles(directory=constants.web_directory), name="static")
     app.include_router(api, prefix="/api")
     app.include_router(api_beta, prefix="/api/beta")
+    app.include_router(indexer, prefix="/indexer")
     app.include_router(web_client)
 
 
 if not state.demo:
 
-    @schedule.repeat(schedule.every(61).minutes)
+    @schedule.repeat(schedule.every(1).minutes)
     def update_search_index():
         try:
-            state.config_lock.acquire()
-            state.content_index = configure_content(
-                state.content_index, state.config.content_type, state.search_models, regenerate=False
-            )
+            logger.info("📬 Updating content index via Scheduler")
+            all_files = collect_files(state.config.content_type)
+            url = "http://0.0.0.0:42110/indexer/batch"
+            headers = {
+                "accept": "application/json",
+                "x-api-key": "secret",
+                "Content-Type": "application/json",
+            }
+            requests.post(url, headers=headers, json=all_files)
             logger.info("📬 Content index updated via Scheduler")
         except Exception as e:
             logger.error(f"🚨 Error updating content index via Scheduler: {e}", exc_info=True)
-        finally:
-            state.config_lock.release()
 
 
 def configure_search_types(config: FullConfig):
@@ -152,142 +154,6 @@ def configure_search(search_models: SearchModels, search_config: Optional[Search
         search_models.image_search = image_search.initialize_model(search_config.image)
 
     return search_models
-
-
-def configure_content(
-    content_index: Optional[ContentIndex],
-    content_config: Optional[ContentConfig],
-    search_models: SearchModels,
-    regenerate: bool,
-    t: Optional[state.SearchType] = None,
-) -> Optional[ContentIndex]:
-    # Run Validation Checks
-    if content_config is None:
-        logger.warning("🚨 No Content configuration available.")
-        return None
-    if content_index is None:
-        content_index = ContentIndex()
-
-    try:
-        # Initialize Org Notes Search
-        if (t == None or t.value == state.SearchType.Org.value) and content_config.org and search_models.text_search:
-            logger.info("🦄 Setting up search for orgmode notes")
-            # Extract Entries, Generate Notes Embeddings
-            content_index.org = text_search.setup(
-                OrgToJsonl,
-                content_config.org,
-                search_models.text_search.bi_encoder,
-                regenerate=regenerate,
-                filters=[DateFilter(), WordFilter(), FileFilter()],
-            )
-
-        # Initialize Markdown Search
-        if (
-            (t == None or t.value == state.SearchType.Markdown.value)
-            and content_config.markdown
-            and search_models.text_search
-        ):
-            logger.info("💎 Setting up search for markdown notes")
-            # Extract Entries, Generate Markdown Embeddings
-            content_index.markdown = text_search.setup(
-                MarkdownToJsonl,
-                content_config.markdown,
-                search_models.text_search.bi_encoder,
-                regenerate=regenerate,
-                filters=[DateFilter(), WordFilter(), FileFilter()],
-            )
-
-        # Initialize PDF Search
-        if (t == None or t.value == state.SearchType.Pdf.value) and content_config.pdf and search_models.text_search:
-            logger.info("🖨️ Setting up search for pdf")
-            # Extract Entries, Generate PDF Embeddings
-            content_index.pdf = text_search.setup(
-                PdfToJsonl,
-                content_config.pdf,
-                search_models.text_search.bi_encoder,
-                regenerate=regenerate,
-                filters=[DateFilter(), WordFilter(), FileFilter()],
-            )
-
-        # Initialize Plaintext Search
-        if (
-            (t == None or t.value == state.SearchType.Plaintext.value)
-            and content_config.plaintext
-            and search_models.text_search
-        ):
-            logger.info("📄 Setting up search for plaintext")
-            # Extract Entries, Generate Plaintext Embeddings
-            content_index.plaintext = text_search.setup(
-                PlaintextToJsonl,
-                content_config.plaintext,
-                search_models.text_search.bi_encoder,
-                regenerate=regenerate,
-                filters=[DateFilter(), WordFilter(), FileFilter()],
-            )
-
-        # Initialize Image Search
-        if (
-            (t == None or t.value == state.SearchType.Image.value)
-            and content_config.image
-            and search_models.image_search
-        ):
-            logger.info("🌄 Setting up search for images")
-            # Extract Entries, Generate Image Embeddings
-            content_index.image = image_search.setup(
-                content_config.image, search_models.image_search.image_encoder, regenerate=regenerate
-            )
-
-        if (
-            (t == None or t.value == state.SearchType.Github.value)
-            and content_config.github
-            and search_models.text_search
-        ):
-            logger.info("🐙 Setting up search for github")
-            # Extract Entries, Generate Github Embeddings
-            content_index.github = text_search.setup(
-                GithubToJsonl,
-                content_config.github,
-                search_models.text_search.bi_encoder,
-                regenerate=regenerate,
-                filters=[DateFilter(), WordFilter(), FileFilter()],
-            )
-
-        # Initialize Notion Search
-        if (
-            (t == None or t.value in state.SearchType.Notion.value)
-            and content_config.notion
-            and search_models.text_search
-        ):
-            logger.info("🔌 Setting up search for notion")
-            content_index.notion = text_search.setup(
-                NotionToJsonl,
-                content_config.notion,
-                search_models.text_search.bi_encoder,
-                regenerate=regenerate,
-                filters=[DateFilter(), WordFilter(), FileFilter()],
-            )
-
-        # Initialize External Plugin Search
-        if (t == None or t in state.SearchType) and content_config.plugins and search_models.text_search:
-            logger.info("🔌 Setting up search for plugins")
-            content_index.plugins = {}
-            for plugin_type, plugin_config in content_config.plugins.items():
-                content_index.plugins[plugin_type] = text_search.setup(
-                    JsonlToJsonl,
-                    plugin_config,
-                    search_models.text_search.bi_encoder,
-                    regenerate=regenerate,
-                    filters=[DateFilter(), WordFilter(), FileFilter()],
-                )
-
-    except Exception as e:
-        logger.error(f"🚨 Failed to setup search: {e}", exc_info=True)
-        raise e
-
-    # Invalidate Query Cache
-    state.query_cache = LRU()
-
-    return content_index
 
 
 def configure_processor(

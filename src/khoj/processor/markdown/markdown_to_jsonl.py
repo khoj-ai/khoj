@@ -23,26 +23,14 @@ class MarkdownToJsonl(TextToJsonl):
         self.config = config
 
     # Define Functions
-    def process(self, previous_entries=[]):
+    def process(self, previous_entries=[], files=None):
         # Extract required fields from config
-        markdown_files, markdown_file_filter, output_file = (
-            self.config.input_files,
-            self.config.input_filter,
-            self.config.compressed_jsonl,
-        )
-
-        # Input Validation
-        if is_none_or_empty(markdown_files) and is_none_or_empty(markdown_file_filter):
-            print("At least one of markdown-files or markdown-file-filter is required to be specified")
-            exit(1)
-
-        # Get Markdown Files to Process
-        markdown_files = MarkdownToJsonl.get_markdown_files(markdown_files, markdown_file_filter)
+        output_file = self.config.compressed_jsonl
 
         # Extract Entries from specified Markdown files
         with timer("Parse entries from Markdown files into dictionaries", logger):
             current_entries = MarkdownToJsonl.convert_markdown_entries_to_maps(
-                *MarkdownToJsonl.extract_markdown_entries(markdown_files)
+                *MarkdownToJsonl.extract_markdown_entries(files)
             )
 
         # Split entries by max tokens supported by model
@@ -64,36 +52,6 @@ class MarkdownToJsonl(TextToJsonl):
             compress_jsonl_data(jsonl_data, output_file)
 
         return entries_with_ids
-
-    @staticmethod
-    def get_markdown_files(markdown_files=None, markdown_file_filters=None):
-        "Get Markdown files to process"
-        absolute_markdown_files, filtered_markdown_files = set(), set()
-        if markdown_files:
-            absolute_markdown_files = {get_absolute_path(markdown_file) for markdown_file in markdown_files}
-        if markdown_file_filters:
-            filtered_markdown_files = {
-                filtered_file
-                for markdown_file_filter in markdown_file_filters
-                for filtered_file in glob.glob(get_absolute_path(markdown_file_filter), recursive=True)
-            }
-
-        all_markdown_files = sorted(absolute_markdown_files | filtered_markdown_files)
-
-        files_with_non_markdown_extensions = {
-            md_file
-            for md_file in all_markdown_files
-            if not md_file.endswith(".md") and not md_file.endswith(".markdown")
-        }
-
-        if any(files_with_non_markdown_extensions):
-            logger.warning(
-                f"[Warning] There maybe non markdown-mode files in the input set: {files_with_non_markdown_extensions}"
-            )
-
-        logger.debug(f"Processing files: {all_markdown_files}")
-
-        return all_markdown_files
 
     @staticmethod
     def extract_markdown_entries(markdown_files):

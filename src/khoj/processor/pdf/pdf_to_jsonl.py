@@ -19,25 +19,13 @@ logger = logging.getLogger(__name__)
 
 class PdfToJsonl(TextToJsonl):
     # Define Functions
-    def process(self, previous_entries=[]):
+    def process(self, previous_entries=[], files=dict[str, str]):
         # Extract required fields from config
-        pdf_files, pdf_file_filter, output_file = (
-            self.config.input_files,
-            self.config.input_filter,
-            self.config.compressed_jsonl,
-        )
-
-        # Input Validation
-        if is_none_or_empty(pdf_files) and is_none_or_empty(pdf_file_filter):
-            print("At least one of pdf-files or pdf-file-filter is required to be specified")
-            exit(1)
-
-        # Get Pdf Files to Process
-        pdf_files = PdfToJsonl.get_pdf_files(pdf_files, pdf_file_filter)
+        output_file = (self.config.compressed_jsonl,)
 
         # Extract Entries from specified Pdf files
         with timer("Parse entries from PDF files into dictionaries", logger):
-            current_entries = PdfToJsonl.convert_pdf_entries_to_maps(*PdfToJsonl.extract_pdf_entries(pdf_files))
+            current_entries = PdfToJsonl.convert_pdf_entries_to_maps(*PdfToJsonl.extract_pdf_entries(files))
 
         # Split entries by max tokens supported by model
         with timer("Split entries by max token size supported by model", logger):
@@ -58,32 +46,6 @@ class PdfToJsonl(TextToJsonl):
             compress_jsonl_data(jsonl_data, output_file)
 
         return entries_with_ids
-
-    @staticmethod
-    def get_pdf_files(pdf_files=None, pdf_file_filters=None):
-        "Get PDF files to process"
-        absolute_pdf_files, filtered_pdf_files = set(), set()
-        if pdf_files:
-            absolute_pdf_files = {get_absolute_path(pdf_file) for pdf_file in pdf_files}
-        if pdf_file_filters:
-            filtered_pdf_files = {
-                filtered_file
-                for pdf_file_filter in pdf_file_filters
-                for filtered_file in glob.glob(get_absolute_path(pdf_file_filter), recursive=True)
-            }
-
-        all_pdf_files = sorted(absolute_pdf_files | filtered_pdf_files)
-
-        files_with_non_pdf_extensions = {pdf_file for pdf_file in all_pdf_files if not pdf_file.endswith(".pdf")}
-
-        if any(files_with_non_pdf_extensions):
-            logger.warning(
-                f"[Warning] There maybe non pdf-mode files in the input set: {files_with_non_pdf_extensions}"
-            )
-
-        logger.debug(f"Processing files: {all_pdf_files}")
-
-        return all_pdf_files
 
     @staticmethod
     def extract_pdf_entries(pdf_files):
