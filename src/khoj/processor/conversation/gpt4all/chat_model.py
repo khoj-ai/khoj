@@ -11,6 +11,7 @@ from khoj.processor.conversation.utils import ThreadedGenerator, generate_chatml
 from khoj.processor.conversation import prompts
 from khoj.utils.constants import empty_escape_sequences
 from khoj.utils import state
+from khoj.utils.helpers import ConversationCommand
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +119,7 @@ def converse_offline(
     model: str = "llama-2-7b-chat.ggmlv3.q4_K_S.bin",
     loaded_model: Union[GPT4All, None] = None,
     completion_func=None,
+    conversation_command=ConversationCommand.Default,
 ) -> ThreadedGenerator:
     """
     Converse with user using Llama
@@ -127,7 +129,7 @@ def converse_offline(
     compiled_references_message = "\n\n".join({f"{item}" for item in references})
 
     # Get Conversation Primer appropriate to Conversation Type
-    if compiled_references_message == "":
+    if conversation_command == ConversationCommand.General:
         conversation_primer = user_query
     else:
         conversation_primer = prompts.notes_conversation_llamav2.format(

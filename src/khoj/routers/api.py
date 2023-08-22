@@ -18,7 +18,7 @@ from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
 from khoj.utils.config import TextSearchModel
-from khoj.utils.helpers import ConversationCommand, timer
+from khoj.utils.helpers import ConversationCommand, is_none_or_empty, timer
 from khoj.utils.rawconfig import (
     ContentConfig,
     FullConfig,
@@ -36,7 +36,12 @@ from khoj.utils.state import SearchType
 from khoj.utils import state, constants
 from khoj.utils.yaml import save_config_to_file_updated_state
 from fastapi.responses import StreamingResponse, Response
-from khoj.routers.helpers import perform_chat_checks, generate_chat_response, update_telemetry_state
+from khoj.routers.helpers import (
+    get_conversation_command,
+    perform_chat_checks,
+    generate_chat_response,
+    update_telemetry_state,
+)
 from khoj.processor.conversation.openai.gpt import extract_questions
 from khoj.processor.conversation.gpt4all.chat_model import extract_questions_offline
 from fastapi.requests import Request
@@ -671,7 +676,11 @@ async def chat(
     host: Optional[str] = Header(None),
 ) -> Response:
     perform_chat_checks()
-    compiled_references, inferred_queries = await extract_references_and_questions(request, q, (n or 5))
+    conversation_command = get_conversation_command(query=q, any_references=True)
+    compiled_references, inferred_queries = await extract_references_and_questions(
+        request, q, (n or 5), conversation_command
+    )
+    conversation_command = get_conversation_command(query=q, any_references=is_none_or_empty(compiled_references))
 
     # Get the (streamed) chat response from the LLM of choice.
     llm_response = generate_chat_response(
@@ -679,6 +688,7 @@ async def chat(
         meta_log=state.processor_config.conversation.meta_log,
         compiled_references=compiled_references,
         inferred_queries=inferred_queries,
+        conversation_command=conversation_command,
     )
 
     if llm_response is None:
@@ -716,12 +726,12 @@ async def extract_references_and_questions(
     request: Request,
     q: str,
     n: int,
+    conversation_type: ConversationCommand = ConversationCommand.Default,
 ):
     # Load Conversation History
     meta_log = state.processor_config.conversation.meta_log
 
     # Initialize Variables
-    conversation_type = ConversationCommand.General if q.startswith("/general") else ConversationCommand.Default
     compiled_references: List[Any] = []
     inferred_queries: List[str] = []
 
@@ -731,7 +741,7 @@ async def extract_references_and_questions(
         )
         return compiled_references, inferred_queries
 
-    if conversation_type == ConversationCommand.Default:
+    if conversation_type != ConversationCommand.General:
         # Infer search queries from user message
         with timer("Extracting search queries took", logger):
             # If we've reached here, either the user has enabled offline chat or the openai model is enabled.

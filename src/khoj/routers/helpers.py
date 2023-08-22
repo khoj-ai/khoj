@@ -57,11 +57,22 @@ def update_telemetry_state(
     ]
 
 
+def get_conversation_command(query: str, any_references: bool = False) -> ConversationCommand:
+    if query.startswith("/general"):
+        return ConversationCommand.General
+    # If no relevant notes found for the given query
+    elif not any_references:
+        return ConversationCommand.General
+    else:
+        return ConversationCommand.Default
+
+
 def generate_chat_response(
     q: str,
     meta_log: dict,
     compiled_references: List[str] = [],
     inferred_queries: List[str] = [],
+    conversation_command: ConversationCommand = ConversationCommand.Default,
 ) -> ThreadedGenerator:
     def _save_to_conversation_log(
         q: str,
@@ -85,12 +96,8 @@ def generate_chat_response(
 
     # Initialize Variables
     user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    conversation_type = ConversationCommand.General if q.startswith("/general") else ConversationCommand.Default
-
-    # Switch to general conversation type if no relevant notes found for the given query
-    conversation_type = ConversationCommand.Default if compiled_references else ConversationCommand.General
-    logger.debug(f"Conversation Type: {conversation_type}")
     chat_response = None
+    logger.debug(f"Conversation Type: {conversation_command.name}")
 
     try:
         partial_completion = partial(
@@ -110,6 +117,7 @@ def generate_chat_response(
                 loaded_model=loaded_model,
                 conversation_log=meta_log,
                 completion_func=partial_completion,
+                conversation_command=conversation_command,
             )
 
         elif state.processor_config.conversation.openai_model:
@@ -122,6 +130,7 @@ def generate_chat_response(
                 model=chat_model,
                 api_key=api_key,
                 completion_func=partial_completion,
+                conversation_command=conversation_command,
             )
 
     except Exception as e:
