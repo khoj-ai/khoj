@@ -6,7 +6,7 @@ from typing import List, Optional
 from fastapi import HTTPException, Request
 
 from khoj.utils import state
-from khoj.utils.helpers import timer, log_telemetry
+from khoj.utils.helpers import ConversationCommand, timer, log_telemetry
 from khoj.processor.conversation.openai.gpt import converse
 from khoj.processor.conversation.gpt4all.chat_model import converse_offline
 from khoj.processor.conversation.utils import reciprocal_conversation_to_chatml, message_to_log, ThreadedGenerator
@@ -85,10 +85,10 @@ def generate_chat_response(
 
     # Initialize Variables
     user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    conversation_type = "general" if q.startswith("@general") else "notes"
+    conversation_type = ConversationCommand.General if q.startswith("@general") else ConversationCommand.Default
 
     # Switch to general conversation type if no relevant notes found for the given query
-    conversation_type = "notes" if compiled_references else "general"
+    conversation_type = ConversationCommand.Default if compiled_references else ConversationCommand.General
     logger.debug(f"Conversation Type: {conversation_type}")
     chat_response = None
 

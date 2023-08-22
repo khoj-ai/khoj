@@ -18,7 +18,7 @@ from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
 from khoj.utils.config import TextSearchModel
-from khoj.utils.helpers import timer
+from khoj.utils.helpers import ConversationCommand, timer
 from khoj.utils.rawconfig import (
     ContentConfig,
     FullConfig,
@@ -721,7 +721,7 @@ async def extract_references_and_questions(
     meta_log = state.processor_config.conversation.meta_log
 
     # Initialize Variables
-    conversation_type = "general" if q.startswith("@general") else "notes"
+    conversation_type = ConversationCommand.General if q.startswith("@general") else ConversationCommand.Default
     compiled_references: List[Any] = []
     inferred_queries: List[str] = []
 
@@ -731,7 +731,7 @@ async def extract_references_and_questions(
         )
         return compiled_references, inferred_queries
 
-    if conversation_type == "notes":
+    if conversation_type == ConversationCommand.Default:
         # Infer search queries from user message
         with timer("Extracting search queries took", logger):
             # If we've reached here, either the user has enabled offline chat or the openai model is enabled.
