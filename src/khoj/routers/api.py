@@ -721,7 +721,7 @@ async def extract_references_and_questions(
     meta_log = state.processor_config.conversation.meta_log
 
     # Initialize Variables
-    conversation_type = ConversationCommand.General if q.startswith("@general") else ConversationCommand.Default
+    conversation_type = ConversationCommand.General if q.startswith("/general") else ConversationCommand.Default
     compiled_references: List[Any] = []
     inferred_queries: List[str] = []
 
