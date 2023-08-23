@@ -63,7 +63,11 @@ def get_plaintext_files(config: TextContentConfig) -> dict[str, str]:
     filename_to_content_map = {}
     for file in all_target_files:
         with open(file, "r") as f:
-            filename_to_content_map[file] = f.read()
+            try:
+                filename_to_content_map[file] = f.read()
+            except Exception as e:
+                logger.warning(f"Unable to read file: {file} as plaintext. Skipping file.")
+                logger.warning(e, exc_info=True)
 
     return filename_to_content_map
 
@@ -102,7 +106,11 @@ def get_org_files(config: TextContentConfig):
     filename_to_content_map = {}
     for file in all_org_files:
         with open(file, "r") as f:
-            filename_to_content_map[file] = f.read()
+            try:
+                filename_to_content_map[file] = f.read()
+            except Exception as e:
+                logger.warning(f"Unable to read file: {file} as org. Skipping file.")
+                logger.warning(e, exc_info=True)
 
     return filename_to_content_map
 
@@ -147,7 +155,11 @@ def get_markdown_files(config: TextContentConfig):
     filename_to_content_map = {}
     for file in all_markdown_files:
         with open(file, "r") as f:
-            filename_to_content_map[file] = f.read()
+            try:
+                filename_to_content_map[file] = f.read()
+            except Exception as e:
+                logger.warning(f"Unable to read file: {file} as markdown. Skipping file.")
+                logger.warning(e, exc_info=True)
 
     return filename_to_content_map
 
@@ -187,6 +199,10 @@ def get_pdf_files(config: TextContentConfig):
     filename_to_content_map = {}
     for file in all_pdf_files:
         with open(file, "r") as f:
-            filename_to_content_map[file] = f.read()
+            try:
+                filename_to_content_map[file] = f.read()
+            except Exception as e:
+                logger.warning(f"Unable to read file: {file} as PDF. Skipping file.")
+                logger.warning(e, exc_info=True)
 
     return filename_to_content_map
