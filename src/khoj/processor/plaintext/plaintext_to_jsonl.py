@@ -91,8 +91,12 @@ class PlaintextToJsonl(TextToJsonl):
 
         for plaintext_file in plaintext_files:
             with open(plaintext_file, "r") as f:
-                plaintext_content = f.read()
-                entry_to_file_map.append((plaintext_content, plaintext_file))
+                try:
+                    plaintext_content = f.read()
+                    entry_to_file_map.append((plaintext_content, plaintext_file))
+                except Exception as e:
+                    logger.warning(f"Unable to process file: {plaintext_file}. This file will not be indexed.")
+                    logger.warning(e, exc_info=True)
 
         return dict(entry_to_file_map)
 
