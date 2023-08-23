@@ -22,7 +22,6 @@ def collect_files(config: ContentConfig, search_type: Optional[SearchType] = Sea
     return files
 
 
-@staticmethod
 def get_plaintext_files(config: TextContentConfig) -> dict[str, str]:
     def is_plaintextfile(file: str):
         "Check if file is plaintext file"
@@ -69,7 +68,6 @@ def get_plaintext_files(config: TextContentConfig) -> dict[str, str]:
     return filename_to_content_map
 
 
-@staticmethod
 def get_org_files(config: TextContentConfig):
     # Extract required fields from config
     org_files, org_file_filter = (
@@ -109,7 +107,6 @@ def get_org_files(config: TextContentConfig):
     return filename_to_content_map
 
 
-@staticmethod
 def get_markdown_files(config: TextContentConfig):
     # Extract required fields from config
     markdown_files, markdown_file_filter = (
@@ -155,7 +152,6 @@ def get_markdown_files(config: TextContentConfig):
     return filename_to_content_map
 
 
-@staticmethod
 def get_pdf_files(config: TextContentConfig):
     # Extract required fields from config
     pdf_files, pdf_file_filter = (
