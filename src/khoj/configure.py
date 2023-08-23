@@ -74,7 +74,7 @@ def initialize_content(regenerate: bool, search_type: Optional[SearchType] = Non
         try:
             logger.info("📬 Updating content index Scheduler")
             all_files = collect_files(state.config.content_type)
-            url = f"http://0.0.0.0:42110/indexer/batch?regenerate={regenerate}"
+            url = f"http://{state.host}:{state.port}/indexer/batch?regenerate={regenerate}"
             headers = {
                 "accept": "application/json",
                 "x-api-key": "secret",
@@ -107,7 +107,7 @@ if not state.demo:
         try:
             logger.info("📬 Updating content index via Scheduler")
             all_files = collect_files(state.config.content_type)
-            url = "http://0.0.0.0:42110/indexer/batch"
+            url = f"http://{state.host}:{state.port}/indexer/batch"
             headers = {
                 "accept": "application/json",
                 "x-api-key": "secret",
