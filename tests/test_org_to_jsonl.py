@@ -1,11 +1,14 @@
 # Standard Packages
 import json
+import os
 
 # Internal Packages
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.text_to_jsonl import TextToJsonl
 from khoj.utils.helpers import is_none_or_empty
 from khoj.utils.rawconfig import Entry
+from khoj.utils.fs_syncer import get_org_files
+from khoj.utils.rawconfig import TextContentConfig
 
 
 def test_configure_heading_entry_to_jsonl(tmp_path):
@@ -18,14 +21,17 @@ def test_configure_heading_entry_to_jsonl(tmp_path):
     :END:
     \t \r
     """
-    orgfile = create_file(tmp_path, entry)
+
+    data = {
+        f"{tmp_path}": entry,
+    }
 
     for index_heading_entries in [True, False]:
         # Act
         # Extract entries into jsonl from specified Org files
         jsonl_string = OrgToJsonl.convert_org_entries_to_jsonl(
             OrgToJsonl.convert_org_nodes_to_entries(
-                *OrgToJsonl.extract_org_entries(org_files=[orgfile]), index_heading_entries=index_heading_entries
+                *OrgToJsonl.extract_org_entries(org_files=data), index_heading_entries=index_heading_entries
             )
         )
         jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
@@ -46,12 +52,14 @@ def test_entry_split_when_exceeds_max_words(tmp_path):
     \t\r
     Body Line
     """
-    orgfile = create_file(tmp_path, entry)
-    expected_heading = f"* {orgfile.stem}\n** Heading"
+    data = {
+        f"{tmp_path}": entry,
+    }
+    expected_heading = f"* {tmp_path.stem}\n** Heading"
 
     # Act
     # Extract Entries from specified Org files
-    entries, entry_to_file_map = OrgToJsonl.extract_org_entries(org_files=[orgfile])
+    entries, entry_to_file_map = OrgToJsonl.extract_org_entries(org_files=data)
 
     # Split each entry from specified Org files by max words
     jsonl_string = OrgToJsonl.convert_org_entries_to_jsonl(
@@ -95,11 +103,13 @@ def test_entry_with_body_to_jsonl(tmp_path):
     \t\r
     Body Line 1
     """
-    orgfile = create_file(tmp_path, entry)
+    data = {
+        f"{tmp_path}": entry,
+    }
 
     # Act
     # Extract Entries from specified Org files
-    entries, entry_to_file_map = OrgToJsonl.extract_org_entries(org_files=[orgfile])
+    entries, entry_to_file_map = OrgToJsonl.extract_org_entries(org_files=data)
 
     # Process Each Entry from All Notes Files
     jsonl_string = OrgToJsonl.convert_org_entries_to_jsonl(
@@ -120,11 +130,13 @@ Intro text
 * Entry Heading
   entry body
 """
-    orgfile = create_file(tmp_path, entry)
+    data = {
+        f"{tmp_path}": entry,
+    }
 
     # Act
     # Extract Entries from specified Org files
-    entry_nodes, file_to_entries = OrgToJsonl.extract_org_entries(org_files=[orgfile])
+    entry_nodes, file_to_entries = OrgToJsonl.extract_org_entries(org_files=data)
 
     # Process Each Entry from All Notes Files
     entries = OrgToJsonl.convert_org_nodes_to_entries(entry_nodes, file_to_entries)
@@ -142,11 +154,13 @@ def test_file_with_no_headings_to_jsonl(tmp_path):
     - Bullet point 1
     - Bullet point 2
     """
-    orgfile = create_file(tmp_path, entry)
+    data = {
+        f"{tmp_path}": entry,
+    }
 
     # Act
     # Extract Entries from specified Org files
-    entry_nodes, file_to_entries = OrgToJsonl.extract_org_entries(org_files=[orgfile])
+    entry_nodes, file_to_entries = OrgToJsonl.extract_org_entries(org_files=data)
 
     # Process Each Entry from All Notes Files
     entries = OrgToJsonl.convert_org_nodes_to_entries(entry_nodes, file_to_entries)
@@ -171,18 +185,30 @@ def test_get_org_files(tmp_path):
     create_file(tmp_path, filename="orgfile2.org")
     create_file(tmp_path, filename="text1.txt")
 
-    expected_files = sorted(map(str, [group1_file1, group1_file2, group2_file1, group2_file2, orgfile1]))
+    expected_files = set(
+        [
+            os.path.join(tmp_path, file.name)
+            for file in [group1_file1, group1_file2, group2_file1, group2_file2, orgfile1]
+        ]
+    )
 
     # Setup input-files, input-filters
     input_files = [tmp_path / "orgfile1.org"]
     input_filter = [tmp_path / "group1*.org", tmp_path / "group2*.org"]
 
+    org_config = TextContentConfig(
+        input_files=input_files,
+        input_filter=[str(filter) for filter in input_filter],
+        compressed_jsonl=tmp_path / "test.jsonl",
+        embeddings_file=tmp_path / "test_embeddings.jsonl",
+    )
+
     # Act
-    extracted_org_files = OrgToJsonl.get_org_files(input_files, input_filter)
+    extracted_org_files = get_org_files(org_config)
 
     # Assert
     assert len(extracted_org_files) == 5
-    assert extracted_org_files == expected_files
+    assert set(extracted_org_files.keys()) == expected_files
 
 
 def test_extract_entries_with_different_level_headings(tmp_path):
@@ -192,11 +218,13 @@ def test_extract_entries_with_different_level_headings(tmp_path):
 * Heading 1
 ** Heading 2
 """
-    orgfile = create_file(tmp_path, entry)
+    data = {
+        f"{tmp_path}": entry,
+    }
 
     # Act
     # Extract Entries from specified Org files
-    entries, _ = OrgToJsonl.extract_org_entries(org_files=[orgfile])
+    entries, _ = OrgToJsonl.extract_org_entries(org_files=data)
 
     # Assert
     assert len(entries) == 2

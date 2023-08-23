@@ -46,7 +46,6 @@ class IndexBatchRequest(BaseModel):
 async def index_batch(
     request: Request,
     x_api_key: str = Header(None),
-    index_batch_request: IndexBatchRequest = Body(...),
     regenerate: bool = False,
     search_type: Optional[state.SearchType] = None,
 ):
@@ -55,6 +54,12 @@ async def index_batch(
     state.config_lock.acquire()
     try:
         logger.info(f"Received batch indexing request")
+        index_batch_request = ""
+        async for chunk in request.stream():
+            index_batch_request += chunk.decode()
+        index_batch_request = IndexBatchRequest.parse_raw(index_batch_request)
+        logger.info(f"Received batch indexing request size: {len(index_batch_request.dict())}")
+
         # Extract required fields from config
         state.content_index = configure_content(
             state.content_index,

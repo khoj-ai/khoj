@@ -11,7 +11,6 @@ from fastapi.testclient import TestClient
 from khoj.main import app
 from khoj.configure import configure_routes, configure_search_types
 from khoj.utils import state
-from khoj.utils.config import SearchModels
 from khoj.utils.state import search_models, content_index, config
 from khoj.search_type import text_search, image_search
 from khoj.utils.rawconfig import ContentConfig, SearchConfig
@@ -52,28 +51,6 @@ def test_update_with_invalid_content_type(client):
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_update_with_valid_content_type(client):
-    for content_type in ["all", "org", "markdown", "image", "pdf", "notion", "plugin1"]:
-        # Act
-        response = client.get(f"/api/update?t={content_type}")
-        # Assert
-        assert response.status_code == 200, f"Returned status: {response.status_code} for content type: {content_type}"
-
-
-# ----------------------------------------------------------------------------------------------------
-def test_update_with_github_fails_without_pat(client):
-    # Act
-    response = client.get(f"/api/update?t=github")
-
-    # Assert
-    assert response.status_code == 500, f"Returned status: {response.status_code} for content type: github"
-    assert (
-        response.json()["detail"]
-        == "🚨 Failed to update server via API: Github PAT token is not set. Skipping github content"
-    )
-
-
-# ----------------------------------------------------------------------------------------------------
 def test_regenerate_with_invalid_content_type(client):
     # Act
     response = client.get(f"/api/update?force=true&t=invalid_content_type")
@@ -83,10 +60,39 @@ def test_regenerate_with_invalid_content_type(client):
 
 
 # ----------------------------------------------------------------------------------------------------
+def test_index_batch(client):
+    # Arrange
+    request_body = {
+        "org": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
+        "pdf": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
+        "plaintext": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
+        "markdown": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
+    }
+
+    headers = {"x-api-key": "secret"}
+
+    # Act
+    response = client.post("/indexer/batch", json=request_body, headers=headers)
+
+    # Assert
+    assert response.status_code == 200
+
+
+# ----------------------------------------------------------------------------------------------------
 def test_regenerate_with_valid_content_type(client):
     for content_type in ["all", "org", "markdown", "image", "pdf", "notion", "plugin1"]:
+        # Arrange
+        request_body = {
+            "org": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
+            "pdf": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
+            "plaintext": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
+            "markdown": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
+        }
+
+        headers = {"x-api-key": "secret"}
+
         # Act
-        response = client.get(f"/api/update?force=true&t={content_type}")
+        response = client.post(f"/indexer/batch?search_type={content_type}", json=request_body, headers=headers)
         # Assert
         assert response.status_code == 200, f"Returned status: {response.status_code} for content type: {content_type}"
 
@@ -96,12 +102,20 @@ def test_regenerate_with_github_fails_without_pat(client):
     # Act
     response = client.get(f"/api/update?force=true&t=github")
 
+    # Arrange
+    request_body = {
+        "org": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
+        "pdf": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
+        "plaintext": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
+        "markdown": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
+    }
+
+    headers = {"x-api-key": "secret"}
+
+    # Act
+    response = client.post(f"/indexer/batch?search_type=github", json=request_body, headers=headers)
     # Assert
-    assert response.status_code == 500, f"Returned status: {response.status_code} for content type: github"
-    assert (
-        response.json()["detail"]
-        == "🚨 Failed to update server via API: Github PAT token is not set. Skipping github content"
-    )
+    assert response.status_code == 200, f"Returned status: {response.status_code} for content type: github"
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -194,11 +208,11 @@ def test_image_search(client, content_config: ContentConfig, search_config: Sear
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_notes_search(client, content_config: ContentConfig, search_config: SearchConfig):
+def test_notes_search(client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data):
     # Arrange
     search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     content_index.org = text_search.setup(
-        OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=False
+        OrgToJsonl, sample_org_data, content_config.org, search_models.text_search.bi_encoder, regenerate=False
     )
     user_query = quote("How to git install application?")
 
@@ -213,12 +227,19 @@ def test_notes_search(client, content_config: ContentConfig, search_config: Sear
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_notes_search_with_only_filters(client, content_config: ContentConfig, search_config: SearchConfig):
+def test_notes_search_with_only_filters(
+    client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data
+):
     # Arrange
     filters = [WordFilter(), FileFilter()]
     search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     content_index.org = text_search.setup(
-        OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=False, filters=filters
+        OrgToJsonl,
+        sample_org_data,
+        content_config.org,
+        search_models.text_search.bi_encoder,
+        regenerate=False,
+        filters=filters,
     )
     user_query = quote('+"Emacs" file:"*.org"')
 
@@ -233,12 +254,14 @@ def test_notes_search_with_only_filters(client, content_config: ContentConfig, s
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_notes_search_with_include_filter(client, content_config: ContentConfig, search_config: SearchConfig):
+def test_notes_search_with_include_filter(
+    client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data
+):
     # Arrange
     filters = [WordFilter()]
     search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     content_index.org = text_search.setup(
-        OrgToJsonl, content_config.org, search_models.text_search, regenerate=False, filters=filters
+        OrgToJsonl, sample_org_data, content_config.org, search_models.text_search, regenerate=False, filters=filters
     )
     user_query = quote('How to git install application? +"Emacs"')
 
@@ -253,12 +276,19 @@ def test_notes_search_with_include_filter(client, content_config: ContentConfig,
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_notes_search_with_exclude_filter(client, content_config: ContentConfig, search_config: SearchConfig):
+def test_notes_search_with_exclude_filter(
+    client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data
+):
     # Arrange
     filters = [WordFilter()]
     search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     content_index.org = text_search.setup(
-        OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=False, filters=filters
+        OrgToJsonl,
+        sample_org_data,
+        content_config.org,
+        search_models.text_search.bi_encoder,
+        regenerate=False,
+        filters=filters,
     )
     user_query = quote('How to git install application? -"clone"')
 

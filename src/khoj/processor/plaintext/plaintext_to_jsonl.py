@@ -46,7 +46,7 @@ class PlaintextToJsonl(TextToJsonl):
     def convert_plaintext_entries_to_maps(entry_to_file_map: dict) -> List[Entry]:
         "Convert each plaintext entries into a dictionary"
         entries = []
-        for entry, file in entry_to_file_map.items():
+        for file, entry in entry_to_file_map.items():
             entries.append(
                 Entry(
                     raw=entry,

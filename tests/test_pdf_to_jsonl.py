@@ -1,8 +1,12 @@
 # Standard Packages
 import json
+import os
 
 # Internal Packages
 from khoj.processor.pdf.pdf_to_jsonl import PdfToJsonl
+
+from khoj.utils.fs_syncer import get_pdf_files
+from khoj.utils.rawconfig import TextContentConfig
 
 
 def test_single_page_pdf_to_jsonl():
@@ -51,18 +55,27 @@ def test_get_pdf_files(tmp_path):
     create_file(tmp_path, filename="not-included-document.pdf")
     create_file(tmp_path, filename="not-included-text.txt")
 
-    expected_files = sorted(map(str, [group1_file1, group1_file2, group2_file1, group2_file2, file1]))
+    expected_files = set(
+        [os.path.join(tmp_path, file.name) for file in [group1_file1, group1_file2, group2_file1, group2_file2, file1]]
+    )
 
     # Setup input-files, input-filters
     input_files = [tmp_path / "document.pdf"]
     input_filter = [tmp_path / "group1*.pdf", tmp_path / "group2*.pdf"]
 
+    pdf_config = TextContentConfig(
+        input_files=input_files,
+        input_filter=[str(path) for path in input_filter],
+        compressed_jsonl=tmp_path / "test.jsonl",
+        embeddings_file=tmp_path / "test_embeddings.jsonl",
+    )
+
     # Act
-    extracted_pdf_files = PdfToJsonl.get_pdf_files(input_files, input_filter)
+    extracted_pdf_files = get_pdf_files(pdf_config)
 
     # Assert
     assert len(extracted_pdf_files) == 5
-    assert extracted_pdf_files == expected_files
+    assert set(extracted_pdf_files.keys()) == expected_files
 
 
 # Helper Functions

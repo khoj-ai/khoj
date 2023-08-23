@@ -51,14 +51,11 @@ def configure_server(config: FullConfig, regenerate: bool, search_type: Optional
 
     # Initialize Processor from Config
     try:
-        state.config_lock.acquire()
         state.processor_config = configure_processor(state.config.processor)
         initialize_content(regenerate, search_type)
     except Exception as e:
         logger.error(f"🚨 Failed to configure processor", exc_info=True)
         raise e
-    finally:
-        state.config_lock.release()
 
     # Initialize Search Models from Config
     try:
@@ -76,16 +73,15 @@ def initialize_content(regenerate: bool, search_type: Optional[SearchType] = Non
     # Initialize Content from Config
     if state.search_models:
         try:
-            logger.info("📬 Updating content index via Scheduler")
+            logger.info("📬 Updating content index Scheduler")
             all_files = collect_files(state.config.content_type)
-            url = "http://0.0.0.0:42110/indexer/batch"
+            url = f"http://0.0.0.0:42110/indexer/batch?regenerate={regenerate}"
             headers = {
                 "accept": "application/json",
                 "x-api-key": "secret",
                 "Content-Type": "application/json",
             }
-            requests.post(url, headers=headers, json=all_files)
-            logger.info("test")
+            requests.post(url, headers=headers, json=all_files, stream=True)
         except Exception as e:
             logger.error(f"🚨 Failed to index content", exc_info=True)
             raise e
@@ -107,7 +103,7 @@ def configure_routes(app):
 
 if not state.demo:
 
-    @schedule.repeat(schedule.every(1).minutes)
+    @schedule.repeat(schedule.every(17).minutes)
     def update_search_index():
         try:
             logger.info("📬 Updating content index via Scheduler")

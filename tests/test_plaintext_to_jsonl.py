@@ -1,8 +1,11 @@
 # Standard Packages
 import json
+import os
 from pathlib import Path
 
 # Internal Packages
+from khoj.utils.fs_syncer import get_plaintext_files
+from khoj.utils.rawconfig import TextContentConfig
 from khoj.processor.plaintext.plaintext_to_jsonl import PlaintextToJsonl
 
 
@@ -18,9 +21,12 @@ def test_plaintext_file(tmp_path):
 
     # Act
     # Extract Entries from specified plaintext files
-    file_to_entries = PlaintextToJsonl.extract_plaintext_entries(plaintext_files=[plaintextfile])
 
-    maps = PlaintextToJsonl.convert_plaintext_entries_to_maps(file_to_entries)
+    data = {
+        f"{plaintextfile}": entry,
+    }
+
+    maps = PlaintextToJsonl.convert_plaintext_entries_to_maps(entry_to_file_map=data)
 
     # Convert each entry.file to absolute path to make them JSON serializable
     for map in maps:
@@ -59,20 +65,30 @@ def test_get_plaintext_files(tmp_path):
     create_file(tmp_path, filename="not-included-markdown.md")
     create_file(tmp_path, filename="not-included-text.txt")
 
-    expected_files = sorted(
-        map(str, [group1_file1, group1_file2, group2_file1, group2_file2, file1, group2_file3, group2_file4])
+    expected_files = set(
+        [
+            os.path.join(tmp_path, file.name)
+            for file in [group1_file1, group1_file2, group2_file1, group2_file2, group2_file3, group2_file4, file1]
+        ]
     )
 
     # Setup input-files, input-filters
     input_files = [tmp_path / "notes.txt"]
     input_filter = [tmp_path / "group1*.md", tmp_path / "group2*.*"]
 
+    plaintext_config = TextContentConfig(
+        input_files=input_files,
+        input_filter=[str(filter) for filter in input_filter],
+        compressed_jsonl=tmp_path / "test.jsonl",
+        embeddings_file=tmp_path / "test_embeddings.jsonl",
+    )
+
     # Act
-    extracted_plaintext_files = PlaintextToJsonl.get_plaintext_files(input_files, input_filter)
+    extracted_plaintext_files = get_plaintext_files(plaintext_config)
 
     # Assert
     assert len(extracted_plaintext_files) == 7
-    assert set(extracted_plaintext_files) == set(expected_files)
+    assert set(extracted_plaintext_files.keys()) == set(expected_files)
 
 
 # Helper Functions

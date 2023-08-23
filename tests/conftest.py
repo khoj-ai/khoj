@@ -97,7 +97,12 @@ def content_config(tmp_path_factory, search_models: SearchModels, search_config:
 
     filters = [DateFilter(), WordFilter(), FileFilter()]
     text_search.setup(
-        OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=False, filters=filters
+        OrgToJsonl,
+        get_sample_data("org"),
+        content_config.org,
+        search_models.text_search.bi_encoder,
+        regenerate=False,
+        filters=filters,
     )
 
     content_config.plugins = {
@@ -109,22 +114,24 @@ def content_config(tmp_path_factory, search_models: SearchModels, search_config:
         )
     }
 
-    content_config.github = GithubContentConfig(
-        pat_token=os.getenv("GITHUB_PAT_TOKEN", ""),
-        repos=[
-            GithubRepoConfig(
-                owner="khoj-ai",
-                name="lantern",
-                branch="master",
-            )
-        ],
-        compressed_jsonl=content_dir.joinpath("github.jsonl.gz"),
-        embeddings_file=content_dir.joinpath("github_embeddings.pt"),
-    )
+    if os.getenv("GITHUB_PAT_TOKEN"):
+        content_config.github = GithubContentConfig(
+            pat_token=os.getenv("GITHUB_PAT_TOKEN", ""),
+            repos=[
+                GithubRepoConfig(
+                    owner="khoj-ai",
+                    name="lantern",
+                    branch="master",
+                )
+            ],
+            compressed_jsonl=content_dir.joinpath("github.jsonl.gz"),
+            embeddings_file=content_dir.joinpath("github_embeddings.pt"),
+        )
 
     filters = [DateFilter(), WordFilter(), FileFilter()]
     text_search.setup(
         JsonlToJsonl,
+        None,
         content_config.plugins["plugin1"],
         search_models.text_search.bi_encoder,
         regenerate=False,
@@ -196,6 +203,7 @@ def chat_client(md_content_config: ContentConfig, search_config: SearchConfig, p
     state.search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     state.content_index.markdown = text_search.setup(
         MarkdownToJsonl,
+        get_sample_data("markdown"),
         md_content_config.markdown,
         state.search_models.text_search.bi_encoder,
         regenerate=False,
@@ -219,7 +227,11 @@ def client(content_config: ContentConfig, search_config: SearchConfig, processor
     state.search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     state.search_models.image_search = image_search.initialize_model(search_config.image)
     state.content_index.org = text_search.setup(
-        OrgToJsonl, content_config.org, state.search_models.text_search.bi_encoder, regenerate=False
+        OrgToJsonl,
+        get_sample_data("org"),
+        content_config.org,
+        state.search_models.text_search.bi_encoder,
+        regenerate=False,
     )
     state.content_index.image = image_search.setup(
         content_config.image, state.search_models.image_search, regenerate=False
@@ -243,7 +255,11 @@ def client_offline_chat(
     state.search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     state.search_models.image_search = image_search.initialize_model(search_config.image)
     state.content_index.org = text_search.setup(
-        OrgToJsonl, content_config.org, state.search_models.text_search.bi_encoder, regenerate=False
+        OrgToJsonl,
+        get_sample_data("org"),
+        content_config.org,
+        state.search_models.text_search.bi_encoder,
+        regenerate=False,
     )
     state.content_index.image = image_search.setup(
         content_config.image, state.search_models.image_search, regenerate=False
@@ -274,3 +290,52 @@ def org_config_with_only_new_file(content_config: ContentConfig, new_org_file: P
     new_org_config.input_files = [f"{new_org_file}"]
     new_org_config.input_filter = None
     return new_org_config
+
+
+@pytest.fixture(scope="function")
+def sample_org_data():
+    return get_sample_data("org")
+
+
+def get_sample_data(type):
+    sample_data = {
+        "org": {
+            "readme.org": """
+* Khoj
+  /Allow natural language search on user content like notes, images using transformer based models/
+
+  All data is processed locally. User can interface with khoj app via [[./interface/emacs/khoj.el][Emacs]], API or Commandline
+
+** Dependencies
+   - Python3
+   - [[https://docs.conda.io/en/latest/miniconda.html#latest-miniconda-installer-links][Miniconda]]
+
+** Install
+   #+begin_src shell
+   git clone https://github.com/khoj-ai/khoj && cd khoj
+   conda env create -f environment.yml
+   conda activate khoj
+   #+end_src"""
+        },
+        "markdown": {
+            "readme.markdown": """
+# Khoj
+Allow natural language search on user content like notes, images using transformer based models
+
+All data is processed locally. User can interface with khoj app via [Emacs](./interface/emacs/khoj.el), API or Commandline
+
+## Dependencies
+- Python3
+- [Miniconda](https://docs.conda.io/en/latest/miniconda.html#latest-miniconda-installer-links)
+
+## Install
+```shell
+git clone
+conda env create -f environment.yml
+conda activate khoj
+```
+"""
+        },
+    }
+
+    return sample_data[type]

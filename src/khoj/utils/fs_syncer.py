@@ -12,13 +12,13 @@ logger = logging.getLogger(__name__)
 def collect_files(config: ContentConfig, search_type: Optional[SearchType] = SearchType.All):
     files = {}
     if search_type == SearchType.All or search_type == SearchType.Org:
-        files["org"] = get_org_files(config.org) if config.org else []
+        files["org"] = get_org_files(config.org) if config.org else {}
     if search_type == SearchType.All or search_type == SearchType.Markdown:
-        files["markdown"] = get_markdown_files(config.markdown) if config.markdown else []
+        files["markdown"] = get_markdown_files(config.markdown) if config.markdown else {}
     if search_type == SearchType.All or search_type == SearchType.Plaintext:
-        files["plaintext"] = get_plaintext_files(config.plaintext) if config.plaintext else []
+        files["plaintext"] = get_plaintext_files(config.plaintext) if config.plaintext else {}
     if search_type == SearchType.All or search_type == SearchType.Pdf:
-        files["pdf"] = get_pdf_files(config.pdf) if config.pdf else []
+        files["pdf"] = get_pdf_files(config.pdf) if config.pdf else {}
     return files
 
 
@@ -37,7 +37,7 @@ def get_plaintext_files(config: TextContentConfig) -> dict[str, str]:
     # Input Validation
     if is_none_or_empty(input_files) and is_none_or_empty(input_filter):
         logger.debug("At least one of input-files or input-file-filter is required to be specified")
-        return []
+        return {}
 
     "Get all files to process"
     absolute_plaintext_files, filtered_plaintext_files = set(), set()
@@ -80,7 +80,7 @@ def get_org_files(config: TextContentConfig):
     # Input Validation
     if is_none_or_empty(org_files) and is_none_or_empty(org_file_filter):
         logger.debug("At least one of org-files or org-file-filter is required to be specified")
-        return []
+        return {}
 
     "Get Org files to process"
     absolute_org_files, filtered_org_files = set(), set()
@@ -120,7 +120,7 @@ def get_markdown_files(config: TextContentConfig):
     # Input Validation
     if is_none_or_empty(markdown_files) and is_none_or_empty(markdown_file_filter):
         logger.debug("At least one of markdown-files or markdown-file-filter is required to be specified")
-        return []
+        return {}
 
     "Get Markdown files to process"
     absolute_markdown_files, filtered_markdown_files = set(), set()
@@ -166,7 +166,7 @@ def get_pdf_files(config: TextContentConfig):
     # Input Validation
     if is_none_or_empty(pdf_files) and is_none_or_empty(pdf_file_filter):
         logger.debug("At least one of pdf-files or pdf-file-filter is required to be specified")
-        return []
+        return {}
 
     "Get PDF files to process"
     absolute_pdf_files, filtered_pdf_files = set(), set()

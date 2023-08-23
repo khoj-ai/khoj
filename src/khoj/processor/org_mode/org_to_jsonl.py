@@ -1,5 +1,4 @@
 # Standard Packages
-import glob
 import logging
 from pathlib import Path
 from typing import Iterable, List
@@ -7,7 +6,7 @@ from typing import Iterable, List
 # Internal Packages
 from khoj.processor.org_mode import orgnode
 from khoj.processor.text_to_jsonl import TextToJsonl
-from khoj.utils.helpers import get_absolute_path, is_none_or_empty, timer
+from khoj.utils.helpers import timer
 from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry, TextContentConfig
 from khoj.utils import state
@@ -60,7 +59,7 @@ class OrgToJsonl(TextToJsonl):
         entry_to_file_map = []
         for org_file in org_files:
             filename = org_file
-            file = org_files[org_file].split("\n")
+            file = org_files[org_file]
             try:
                 org_file_entries = orgnode.makelist(file, filename)
                 entry_to_file_map += zip(org_file_entries, [org_file] * len(org_file_entries))
@@ -74,7 +73,7 @@ class OrgToJsonl(TextToJsonl):
     def process_single_org_file(org_content: str, org_file: str, entries: List, entry_to_file_map: List):
         # Process single org file. The org parser assumes that the file is a single org file and reads it from a buffer. We'll split the raw conetnt of this file by new line to mimic the same behavior.
         try:
-            org_file_entries = orgnode.makelist(org_content.split("\n"), org_file)
+            org_file_entries = orgnode.makelist(org_content, org_file)
             entry_to_file_map += zip(org_file_entries, [org_file] * len(org_file_entries))
             entries.extend(org_file_entries)
             return entries, entry_to_file_map
