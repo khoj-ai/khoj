@@ -1,7 +1,7 @@
 # Standard Packages
 import logging
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 # Internal Packages
 from khoj.processor.text_to_jsonl import TextToJsonl
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class PlaintextToJsonl(TextToJsonl):
     # Define Functions
-    def process(self, files: dict[str, str], previous_entries=[]):
+    def process(self, previous_entries: List[Entry] = [], files: dict[str, str] = None) -> List[Tuple[int, Entry]]:
         output_file = self.config.compressed_jsonl
 
         # Extract Entries from specified plaintext files

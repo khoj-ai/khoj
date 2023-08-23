@@ -54,10 +54,10 @@ async def index_batch(
     state.config_lock.acquire()
     try:
         logger.info(f"Received batch indexing request")
-        index_batch_request = ""
+        index_batch_request_acc = ""
         async for chunk in request.stream():
-            index_batch_request += chunk.decode()
-        index_batch_request = IndexBatchRequest.parse_raw(index_batch_request)
+            index_batch_request_acc += chunk.decode()
+        index_batch_request = IndexBatchRequest.parse_raw(index_batch_request_acc)
         logger.info(f"Received batch indexing request size: {len(index_batch_request.dict())}")
 
         # Extract required fields from config
@@ -80,7 +80,7 @@ async def index_batch(
 def configure_content(
     content_index: Optional[ContentIndex],
     content_config: Optional[ContentConfig],
-    files: Optional[dict[str, str]],
+    files: Optional[dict[str, dict[str, str]]],
     search_models: SearchModels,
     regenerate: bool,
     t: Optional[state.SearchType] = None,

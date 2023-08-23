@@ -1,7 +1,7 @@
 # Standard Packages
 import logging
 from pathlib import Path
-from typing import Iterable, List
+from typing import Iterable, List, Tuple
 
 # Internal Packages
 from khoj.processor.org_mode import orgnode
@@ -21,7 +21,7 @@ class OrgToJsonl(TextToJsonl):
         self.config = config
 
     # Define Functions
-    def process(self, files: dict[str, str], previous_entries: List[Entry] = []):
+    def process(self, previous_entries: List[Entry] = [], files: dict[str, str] = None) -> List[Tuple[int, Entry]]:
         # Extract required fields from config
         output_file = self.config.compressed_jsonl
         index_heading_entries = self.config.index_heading_entries
@@ -56,7 +56,7 @@ class OrgToJsonl(TextToJsonl):
     def extract_org_entries(org_files: dict[str, str]):
         "Extract entries from specified Org files"
         entries = []
-        entry_to_file_map = []
+        entry_to_file_map: List[Tuple[orgnode.Orgnode, str]] = []
         for org_file in org_files:
             filename = org_file
             file = org_files[org_file]
