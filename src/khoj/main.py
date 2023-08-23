@@ -26,7 +26,7 @@ from rich.logging import RichHandler
 import schedule
 
 # Internal Packages
-from khoj.configure import configure_routes, initialize_server, initialize_content
+from khoj.configure import configure_routes, initialize_server
 from khoj.utils import state
 from khoj.utils.cli import cli
 
