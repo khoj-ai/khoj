@@ -202,7 +202,8 @@ def makelist(file, filename):
                 # if we are in a heading
                 if heading:
                     # add the line to the bodytext
-                    bodytext += line.strip().rstrip("\n") + "\n" if line.strip() else ""
+                    bodytext += line.rstrip() + "\n\n" if line.strip() else ""
+                    # bodytext += line + "\n" if line.strip() else "\n"
                 # else we are in the pre heading portion of the file
                 elif line.strip():
                     # so add the line to the introtext

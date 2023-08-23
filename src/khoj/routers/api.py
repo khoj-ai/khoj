@@ -12,7 +12,7 @@ from fastapi import APIRouter, HTTPException, Header, Request
 from sentence_transformers import util
 
 # Internal Packages
-from khoj.configure import configure_processor, configure_server
+from khoj.configure import configure_processor, configure_server, initialize_content
 from khoj.search_type import image_search, text_search
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
@@ -602,7 +602,8 @@ def update(
         logger.warning(error_msg)
         raise HTTPException(status_code=500, detail=error_msg)
     try:
-        configure_server(state.config, regenerate=force or False, search_type=t)
+        configure_server(state.config)
+        initialize_content(regenerate=force or False, search_type=t)
     except Exception as e:
         error_msg = f"🚨 Failed to update server via API: {e}"
         logger.error(error_msg, exc_info=True)

@@ -27,7 +27,7 @@ from khoj.utils.rawconfig import FullConfig, ProcessorConfig, SearchConfig, Conv
 logger = logging.getLogger(__name__)
 
 
-def initialize_server(config: Optional[FullConfig], regenerate: bool, required=False):
+def initialize_server(config: Optional[FullConfig], required=False):
     if config is None and required:
         logger.error(
             f"🚨 Exiting as Khoj is not configured.\nConfigure it via http://localhost:42110/config or by editing {state.config_file}."
@@ -40,19 +40,18 @@ def initialize_server(config: Optional[FullConfig], regenerate: bool, required=F
         return None
 
     try:
-        configure_server(config, regenerate)
+        configure_server(config)
     except Exception as e:
         logger.error(f"🚨 Failed to configure server on app load: {e}", exc_info=True)
 
 
-def configure_server(config: FullConfig, regenerate: bool, search_type: Optional[SearchType] = None):
+def configure_server(config: FullConfig):
     # Update Config
     state.config = config
 
     # Initialize Processor from Config
     try:
         state.processor_config = configure_processor(state.config.processor)
-        initialize_content(regenerate, search_type)
     except Exception as e:
         logger.error(f"🚨 Failed to configure processor", exc_info=True)
         raise e
