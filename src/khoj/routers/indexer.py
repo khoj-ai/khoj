@@ -92,14 +92,14 @@ def configure_content(
     if content_index is None:
         content_index = ContentIndex()
 
-    if files is None:
-        logger.warning(f"🚨 No files to process for {t.value} search.")
-        return None
-
     if t in [type.value for type in state.SearchType]:
         t = state.SearchType(t).value
 
     assert type(t) == str or t == None, f"Invalid search type: {t}"
+
+    if files is None:
+        logger.warning(f"🚨 No files to process for {t} search.")
+        return None
 
     try:
         # Initialize Org Notes Search
