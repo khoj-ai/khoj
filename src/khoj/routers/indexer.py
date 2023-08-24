@@ -96,10 +96,15 @@ def configure_content(
         logger.warning(f"🚨 No files to process for {t.value} search.")
         return None
 
+    if t in [type.value for type in state.SearchType]:
+        t = state.SearchType(t).value
+
+    assert type(t) == str or t == None, f"Invalid search type: {t}"
+
     try:
         # Initialize Org Notes Search
         if (
-            (t == None or t.value == state.SearchType.Org.value)
+            (t == None or t == state.SearchType.Org.value)
             and content_config.org
             and search_models.text_search
             and files["org"]
@@ -117,7 +122,7 @@ def configure_content(
 
         # Initialize Markdown Search
         if (
-            (t == None or t.value == state.SearchType.Markdown.value)
+            (t == None or t == state.SearchType.Markdown.value)
             and content_config.markdown
             and search_models.text_search
             and files["markdown"]
@@ -135,7 +140,7 @@ def configure_content(
 
         # Initialize PDF Search
         if (
-            (t == None or t.value == state.SearchType.Pdf.value)
+            (t == None or t == state.SearchType.Pdf.value)
             and content_config.pdf
             and search_models.text_search
             and files["pdf"]
@@ -153,7 +158,7 @@ def configure_content(
 
         # Initialize Plaintext Search
         if (
-            (t == None or t.value == state.SearchType.Plaintext.value)
+            (t == None or t == state.SearchType.Plaintext.value)
             and content_config.plaintext
             and search_models.text_search
             and files["plaintext"]
@@ -170,22 +175,14 @@ def configure_content(
             )
 
         # Initialize Image Search
-        if (
-            (t == None or t.value == state.SearchType.Image.value)
-            and content_config.image
-            and search_models.image_search
-        ):
+        if (t == None or t == state.SearchType.Image.value) and content_config.image and search_models.image_search:
             logger.info("🌄 Setting up search for images")
             # Extract Entries, Generate Image Embeddings
             content_index.image = image_search.setup(
                 content_config.image, search_models.image_search.image_encoder, regenerate=regenerate
             )
 
-        if (
-            (t == None or t.value == state.SearchType.Github.value)
-            and content_config.github
-            and search_models.text_search
-        ):
+        if (t == None or t == state.SearchType.Github.value) and content_config.github and search_models.text_search:
             logger.info("🐙 Setting up search for github")
             # Extract Entries, Generate Github Embeddings
             content_index.github = text_search.setup(
@@ -198,11 +195,7 @@ def configure_content(
             )
 
         # Initialize Notion Search
-        if (
-            (t == None or t.value in state.SearchType.Notion.value)
-            and content_config.notion
-            and search_models.text_search
-        ):
+        if (t == None or t in state.SearchType.Notion.value) and content_config.notion and search_models.text_search:
             logger.info("🔌 Setting up search for notion")
             content_index.notion = text_search.setup(
                 NotionToJsonl,
