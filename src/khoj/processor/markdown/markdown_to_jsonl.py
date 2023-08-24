@@ -63,10 +63,14 @@ class MarkdownToJsonl(TextToJsonl):
         entry_to_file_map = []
         for markdown_file in markdown_files:
             with open(markdown_file, "r", encoding="utf8") as f:
-                markdown_content = f.read()
-                entries, entry_to_file_map = MarkdownToJsonl.process_single_markdown_file(
-                    markdown_content, markdown_file, entries, entry_to_file_map
-                )
+                try:
+                    markdown_content = f.read()
+                    entries, entry_to_file_map = MarkdownToJsonl.process_single_markdown_file(
+                        markdown_content, markdown_file, entries, entry_to_file_map
+                    )
+                except Exception as e:
+                    logger.warning(f"Unable to process file: {markdown_file}. This file will not be indexed.")
+                    logger.warning(e, exc_info=True)
 
         return entries, dict(entry_to_file_map)
 
