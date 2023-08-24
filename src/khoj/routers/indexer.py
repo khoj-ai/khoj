@@ -82,7 +82,7 @@ def configure_content(
     content_config: Optional[ContentConfig],
     files: Optional[dict[str, dict[str, str]]],
     search_models: SearchModels,
-    regenerate: bool,
+    regenerate: bool = False,
     t: Optional[state.SearchType] = None,
 ) -> Optional[ContentIndex]:
     # Run Validation Checks

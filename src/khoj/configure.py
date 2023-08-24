@@ -22,6 +22,7 @@ from khoj.utils.config import (
 from khoj.utils.helpers import resolve_absolute_path, merge_dicts
 from khoj.utils.fs_syncer import collect_files
 from khoj.utils.rawconfig import FullConfig, ProcessorConfig, SearchConfig, ConversationProcessorConfig
+from khoj.routers.indexer import configure_content
 
 
 logger = logging.getLogger(__name__)
@@ -30,12 +31,12 @@ logger = logging.getLogger(__name__)
 def initialize_server(config: Optional[FullConfig], required=False):
     if config is None and required:
         logger.error(
-            f"🚨 Exiting as Khoj is not configured.\nConfigure it via http://localhost:42110/config or by editing {state.config_file}."
+            f"🚨 Exiting as Khoj is not configured.\nConfigure it via http://{state.host}:{state.port}/config or by editing {state.config_file}."
         )
         sys.exit(1)
     elif config is None:
         logger.warning(
-            f"🚨 Khoj is not configured.\nConfigure it via http://localhost:42110/config, plugins or by editing {state.config_file}."
+            f"🚨 Khoj is not configured.\nConfigure it via http://{state.host}:{state.port}/config, plugins or by editing {state.config_file}."
         )
         return None
 
@@ -45,7 +46,7 @@ def initialize_server(config: Optional[FullConfig], required=False):
         logger.error(f"🚨 Failed to configure server on app load: {e}", exc_info=True)
 
 
-def configure_server(config: FullConfig):
+def configure_server(config: FullConfig, regenerate: bool = False, search_type: Optional[SearchType] = None):
     # Update Config
     state.config = config
 
@@ -56,11 +57,12 @@ def configure_server(config: FullConfig):
         logger.error(f"🚨 Failed to configure processor", exc_info=True)
         raise e
 
-    # Initialize Search Models from Config
+    # Initialize Search Models from Config and initialize content
     try:
         state.config_lock.acquire()
         state.SearchType = configure_search_types(state.config)
         state.search_models = configure_search(state.search_models, state.config.search_type)
+        initialize_content(regenerate, search_type)
     except Exception as e:
         logger.error(f"🚨 Failed to configure search models", exc_info=True)
         raise e
@@ -72,15 +74,11 @@ def initialize_content(regenerate: bool, search_type: Optional[SearchType] = Non
     # Initialize Content from Config
     if state.search_models:
         try:
-            logger.info("📬 Updating content index Scheduler")
+            logger.info("📬 Updating content index...")
             all_files = collect_files(state.config.content_type)
-            url = f"http://{state.host}:{state.port}/indexer/batch?regenerate={regenerate}"
-            headers = {
-                "accept": "application/json",
-                "x-api-key": "secret",
-                "Content-Type": "application/json",
-            }
-            requests.post(url, headers=headers, json=all_files, stream=True)
+            state.content_index = configure_content(
+                state.content_index, state.config.content_type, all_files, state.search_models, regenerate, search_type
+            )
         except Exception as e:
             logger.error(f"🚨 Failed to index content", exc_info=True)
             raise e
@@ -102,18 +100,14 @@ def configure_routes(app):
 
 if not state.demo:
 
-    @schedule.repeat(schedule.every(17).minutes)
+    @schedule.repeat(schedule.every(61).minutes)
     def update_search_index():
         try:
             logger.info("📬 Updating content index via Scheduler")
             all_files = collect_files(state.config.content_type)
-            url = f"http://{state.host}:{state.port}/indexer/batch"
-            headers = {
-                "accept": "application/json",
-                "x-api-key": "secret",
-                "Content-Type": "application/json",
-            }
-            requests.post(url, headers=headers, json=all_files)
+            state.content_index = configure_content(
+                state.content_index, state.config.content_type, all_files, state.search_models
+            )
             logger.info("📬 Content index updated via Scheduler")
         except Exception as e:
             logger.error(f"🚨 Error updating content index via Scheduler: {e}", exc_info=True)
