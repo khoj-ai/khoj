@@ -83,7 +83,7 @@ def configure_content(
     files: Optional[dict[str, dict[str, str]]],
     search_models: SearchModels,
     regenerate: bool = False,
-    t: Optional[state.SearchType] = None,
+    t: Optional[Union[state.SearchType, str]] = None,
 ) -> Optional[ContentIndex]:
     # Run Validation Checks
     if content_config is None:
