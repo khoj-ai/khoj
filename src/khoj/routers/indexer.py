@@ -1,6 +1,6 @@
 # Standard Packages
 import logging
-from typing import Optional
+from typing import Optional, Union
 
 # External Packages
 from fastapi import APIRouter, HTTPException, Header, Request, Body, Response
@@ -47,7 +47,7 @@ async def index_batch(
     request: Request,
     x_api_key: str = Header(None),
     regenerate: bool = False,
-    search_type: Optional[state.SearchType] = None,
+    search_type: Optional[Union[state.SearchType, str]] = None,
 ):
     if x_api_key != "secret":
         raise HTTPException(status_code=401, detail="Invalid API Key")
@@ -108,7 +108,7 @@ def configure_content(
             # Extract Entries, Generate Notes Embeddings
             content_index.org = text_search.setup(
                 OrgToJsonl,
-                files["org"],
+                files.get("org"),
                 content_config.org,
                 search_models.text_search.bi_encoder,
                 regenerate=regenerate,
@@ -126,7 +126,7 @@ def configure_content(
             # Extract Entries, Generate Markdown Embeddings
             content_index.markdown = text_search.setup(
                 MarkdownToJsonl,
-                files["markdown"],
+                files.get("markdown"),
                 content_config.markdown,
                 search_models.text_search.bi_encoder,
                 regenerate=regenerate,
@@ -144,7 +144,7 @@ def configure_content(
             # Extract Entries, Generate PDF Embeddings
             content_index.pdf = text_search.setup(
                 PdfToJsonl,
-                files["pdf"],
+                files.get("pdf"),
                 content_config.pdf,
                 search_models.text_search.bi_encoder,
                 regenerate=regenerate,
@@ -162,7 +162,7 @@ def configure_content(
             # Extract Entries, Generate Plaintext Embeddings
             content_index.plaintext = text_search.setup(
                 PlaintextToJsonl,
-                files["plaintext"],
+                files.get("plaintext"),
                 content_config.plaintext,
                 search_models.text_search.bi_encoder,
                 regenerate=regenerate,

@@ -62,13 +62,7 @@ def test_regenerate_with_invalid_content_type(client):
 # ----------------------------------------------------------------------------------------------------
 def test_index_batch(client):
     # Arrange
-    request_body = {
-        "org": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
-        "pdf": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
-        "plaintext": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
-        "markdown": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
-    }
-
+    request_body = get_sample_files_data()
     headers = {"x-api-key": "secret"}
 
     # Act
@@ -82,12 +76,7 @@ def test_index_batch(client):
 def test_regenerate_with_valid_content_type(client):
     for content_type in ["all", "org", "markdown", "image", "pdf", "notion", "plugin1"]:
         # Arrange
-        request_body = {
-            "org": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
-            "pdf": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
-            "plaintext": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
-            "markdown": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
-        }
+        request_body = get_sample_files_data()
 
         headers = {"x-api-key": "secret"}
 
@@ -103,12 +92,7 @@ def test_regenerate_with_github_fails_without_pat(client):
     response = client.get(f"/api/update?force=true&t=github")
 
     # Arrange
-    request_body = {
-        "org": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
-        "pdf": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
-        "plaintext": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
-        "markdown": {"additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string"},
-    }
+    request_body = get_sample_files_data()
 
     headers = {"x-api-key": "secret"}
 
@@ -300,3 +284,28 @@ def test_notes_search_with_exclude_filter(
     # assert actual_data does not contains word "Emacs"
     search_result = response.json()[0]["entry"]
     assert "clone" not in search_result
+
+
+def get_sample_files_data():
+    return {
+        "org": {
+            "path/to/filename.org": "* practicing piano",
+            "path/to/filename1.org": "** top 3 reasons why I moved to SF",
+            "path/to/filename2.org": "* how to build a search engine",
+        },
+        "pdf": {
+            "path/to/filename.pdf": "Moore's law does not apply to consumer hardware",
+            "path/to/filename1.pdf": "The sun is a ball of helium",
+            "path/to/filename2.pdf": "Effect of sunshine on baseline human happiness",
+        },
+        "plaintext": {
+            "path/to/filename.txt": "data,column,value",
+            "path/to/filename1.txt": "<html>my first web page</html>",
+            "path/to/filename2.txt": "2021-02-02 Journal Entry",
+        },
+        "markdown": {
+            "path/to/filename.md": "# Notes from client call",
+            "path/to/filename1.md": "## Studying anthropological records from the Fatimid caliphate",
+            "path/to/filename2.md": "**Understanding science through the lens of art**",
+        },
+    }
