@@ -13,7 +13,12 @@ def test_single_page_pdf_to_jsonl():
     "Convert single page PDF file to jsonl."
     # Act
     # Extract Entries from specified Pdf files
-    entries, entry_to_file_map = PdfToJsonl.extract_pdf_entries(pdf_files=["tests/data/pdf/singlepage.pdf"])
+    # Read singlepage.pdf into memory as bytes
+    with open("tests/data/pdf/singlepage.pdf", "rb") as f:
+        pdf_bytes = f.read()
+
+    data = {"tests/data/pdf/singlepage.pdf": pdf_bytes}
+    entries, entry_to_file_map = PdfToJsonl.extract_pdf_entries(pdf_files=data)
 
     # Process Each Entry from All Pdf Files
     jsonl_string = PdfToJsonl.convert_pdf_maps_to_jsonl(
@@ -29,7 +34,11 @@ def test_multi_page_pdf_to_jsonl():
     "Convert multiple pages from single PDF file to jsonl."
     # Act
     # Extract Entries from specified Pdf files
-    entries, entry_to_file_map = PdfToJsonl.extract_pdf_entries(pdf_files=["tests/data/pdf/multipage.pdf"])
+    with open("tests/data/pdf/multipage.pdf", "rb") as f:
+        pdf_bytes = f.read()
+
+    data = {"tests/data/pdf/multipage.pdf": pdf_bytes}
+    entries, entry_to_file_map = PdfToJsonl.extract_pdf_entries(pdf_files=data)
 
     # Process Each Entry from All Pdf Files
     jsonl_string = PdfToJsonl.convert_pdf_maps_to_jsonl(
