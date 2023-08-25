@@ -1,7 +1,6 @@
 # Standard Packages
-import glob
+import os
 import logging
-from pathlib import Path
 from typing import List
 
 # External Packages
@@ -9,7 +8,7 @@ from langchain.document_loaders import PyPDFLoader
 
 # Internal Packages
 from khoj.processor.text_to_jsonl import TextToJsonl
-from khoj.utils.helpers import get_absolute_path, is_none_or_empty, timer
+from khoj.utils.helpers import timer
 from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry
 
@@ -21,7 +20,7 @@ class PdfToJsonl(TextToJsonl):
     # Define Functions
     def process(self, previous_entries=[], files=dict[str, str]):
         # Extract required fields from config
-        output_file = (self.config.compressed_jsonl,)
+        output_file = self.config.compressed_jsonl
 
         # Extract Entries from specified Pdf files
         with timer("Parse entries from PDF files into dictionaries", logger):
@@ -55,13 +54,19 @@ class PdfToJsonl(TextToJsonl):
         entry_to_location_map = []
         for pdf_file in pdf_files:
             try:
-                loader = PyPDFLoader(pdf_file)
+                # Write the PDF file to a temporary file, as it is stored in byte format in the pdf_file object and the PyPDFLoader expects a file path
+                with open(f"{pdf_file}.pdf", "wb") as f:
+                    f.write(pdf_files[pdf_file])
+                loader = PyPDFLoader(f"{pdf_file}.pdf")
                 pdf_entries_per_file = [page.page_content for page in loader.load()]
                 entry_to_location_map += zip(pdf_entries_per_file, [pdf_file] * len(pdf_entries_per_file))
                 entries.extend(pdf_entries_per_file)
             except Exception as e:
                 logger.warning(f"Unable to process file: {pdf_file}. This file will not be indexed.")
                 logger.warning(e)
+            finally:
+                if os.path.exists(f"{pdf_file}.pdf"):
+                    os.remove(f"{pdf_file}.pdf")
 
         return entries, dict(entry_to_location_map)
 
@@ -70,9 +75,9 @@ class PdfToJsonl(TextToJsonl):
         "Convert each PDF entries into a dictionary"
         entries = []
         for parsed_entry in parsed_entries:
-            entry_filename = Path(entry_to_file_map[parsed_entry])
+            entry_filename = entry_to_file_map[parsed_entry]
             # Append base filename to compiled entry for context to model
-            heading = f"{entry_filename.stem}\n"
+            heading = f"{entry_filename}\n"
             compiled_entry = f"{heading}{parsed_entry}"
             entries.append(
                 Entry(

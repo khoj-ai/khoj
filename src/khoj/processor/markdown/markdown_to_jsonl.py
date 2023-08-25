@@ -1,5 +1,4 @@
 # Standard Packages
-import glob
 import logging
 import re
 import urllib3
@@ -8,7 +7,7 @@ from typing import List
 
 # Internal Packages
 from khoj.processor.text_to_jsonl import TextToJsonl
-from khoj.utils.helpers import get_absolute_path, is_none_or_empty, timer
+from khoj.utils.helpers import timer
 from khoj.utils.constants import empty_escape_sequences
 from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry, TextContentConfig

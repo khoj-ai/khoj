@@ -198,7 +198,7 @@ def get_pdf_files(config: TextContentConfig):
 
     filename_to_content_map = {}
     for file in all_pdf_files:
-        with open(file, "r") as f:
+        with open(file, "rb") as f:
             try:
                 filename_to_content_map[file] = f.read()
             except Exception as e:
