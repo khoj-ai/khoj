@@ -1,4 +1,4 @@
-from typing import Union, List
+from typing import Iterator, Union, List
 from datetime import datetime
 import logging
 from threading import Thread
@@ -120,7 +120,7 @@ def converse_offline(
     loaded_model: Union[GPT4All, None] = None,
     completion_func=None,
     conversation_command=ConversationCommand.Default,
-) -> ThreadedGenerator:
+) -> Union[ThreadedGenerator, Iterator[str]]:
     """
     Converse with user using Llama
     """

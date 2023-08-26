@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 from functools import partial
-from typing import List, Optional
+from typing import Iterator, List, Optional, Union
 
 from fastapi import HTTPException, Request
 
@@ -75,7 +75,7 @@ def generate_chat_response(
     compiled_references: List[str] = [],
     inferred_queries: List[str] = [],
     conversation_command: ConversationCommand = ConversationCommand.Default,
-) -> ThreadedGenerator:
+) -> Union[ThreadedGenerator, Iterator[str]]:
     def _save_to_conversation_log(
         q: str,
         chat_response: str,
