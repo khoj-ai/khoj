@@ -58,7 +58,9 @@ def update_telemetry_state(
 
 
 def get_conversation_command(query: str, any_references: bool = False) -> ConversationCommand:
-    if query.startswith("/general"):
+    if query.startswith("/notes"):
+        return ConversationCommand.Notes
+    elif query.startswith("/general"):
         return ConversationCommand.General
     # If no relevant notes found for the given query
     elif not any_references:

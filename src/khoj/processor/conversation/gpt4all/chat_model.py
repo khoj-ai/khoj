@@ -11,7 +11,7 @@ from khoj.processor.conversation.utils import ThreadedGenerator, generate_chatml
 from khoj.processor.conversation import prompts
 from khoj.utils.constants import empty_escape_sequences
 from khoj.utils import state
-from khoj.utils.helpers import ConversationCommand
+from khoj.utils.helpers import ConversationCommand, is_none_or_empty
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +131,8 @@ def converse_offline(
     # Get Conversation Primer appropriate to Conversation Type
     if conversation_command == ConversationCommand.General:
         conversation_primer = user_query
+    elif conversation_command == ConversationCommand.Notes and is_none_or_empty(compiled_references_message):
+        return iter([prompts.no_notes_found.format()])
     else:
         conversation_primer = prompts.notes_conversation_llamav2.format(
             query=user_query, references=compiled_references_message

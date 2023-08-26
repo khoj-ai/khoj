@@ -17,6 +17,11 @@ Current Date: {current_date}
 Question: {query}
 """.strip()
 )
+no_notes_found = PromptTemplate.from_template(
+    """
+    I'm sorry, I couldn't find any relevant notes to respond to your message.
+    """.strip()
+)
 
 system_prompt_message_llamav2 = f"""You are Khoj, a friendly, smart and helpful personal assistant.
 Using your general knowledge and our past conversations as context, answer the following question.
