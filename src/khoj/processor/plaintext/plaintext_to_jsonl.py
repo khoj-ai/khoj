@@ -104,7 +104,7 @@ class PlaintextToJsonl(TextToJsonl):
         from bs4 import BeautifulSoup
 
         soup = BeautifulSoup(html_content, "html.parser")
-        return soup.get_text()
+        return soup.get_text(strip=True, separator="\n")
 
     @staticmethod
     def convert_plaintext_entries_to_maps(entry_to_file_map: dict) -> List[Entry]:
