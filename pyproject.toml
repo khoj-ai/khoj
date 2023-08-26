@@ -36,6 +36,7 @@ classifiers = [
     "Topic :: Text Processing :: Linguistic",
 ]
 dependencies = [
+    "bs4 >= 0.0.1",
     "dateparser >= 1.1.1",
     "defusedxml == 0.7.1",
     "fastapi == 0.77.1",

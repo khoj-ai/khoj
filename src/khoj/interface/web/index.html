@@ -56,6 +56,44 @@
             }).join("\n");
         }
 
+        function render_html(query, data) {
+            return data.map(function (item) {
+                // Scrub the HTML to remove any script tags and associated content
+                let document = new DOMParser().parseFromString(item.entry, "text/html");
+                // let script_tags = document.querySelectorAll("script");
+                // for (let i = 0; i < script_tags.length; i++) {
+                //     script_tags[i].remove();
+                // }
+                // Scrub the HTML to remove any style tags and associated content
+                let style_tags = document.querySelectorAll("style");
+                for (let i = 0; i < style_tags.length; i++) {
+                    style_tags[i].remove();
+                }
+                // // Scrub the HTML to remove any noscript tags and associated content
+                // let noscript_tags = document.querySelectorAll("noscript");
+                // for (let i = 0; i < noscript_tags.length; i++) {
+                //     noscript_tags[i].remove();
+                // }
+                // // Scrub the HTML to remove any iframe tags and associated content
+                // let iframe_tags = document.querySelectorAll("iframe");
+                // for (let i = 0; i < iframe_tags.length; i++) {
+                //     iframe_tags[i].remove();
+                // }
+                // // Scrub the HTML to remove any object tags and associated content
+                // let object_tags = document.querySelectorAll("object");
+                // for (let i = 0; i < object_tags.length; i++) {
+                //     object_tags[i].remove();
+                // }
+                // // Scrub the HTML to remove any embed tags and associated content
+                // let embed_tags = document.querySelectorAll("embed");
+                // for (let i = 0; i < embed_tags.length; i++) {
+                //     embed_tags[i].remove();
+                // }
+                let scrubbedHTML = document.body.outerHTML;
+                return `<div class="results-html">` + scrubbedHTML + `</div>`;
+            }).join("\n");
+        }
+
         function render_multiple(query, data, type) {
             let html = "";
             data.forEach(item => {
@@ -73,6 +111,8 @@
                     html += render_pdf(query, [item]);
                 } else if (item.additional.file.includes("notion.so")) {
                     html += `<div class="results-notion">` + `<b><a href="${item.additional.file}">${item.additional.heading}</a></b>` + `<p>${item.entry}</p>` + `</div>`;
+                } else if (item.additional.file.endsWith(".html")) {
+                    html += render_html(query, [item]);
                 } else {
                     html += `<div class="results-plugin">` + `<b><a href="${item.additional.file}">${item.additional.heading}</a></b>` + `<p>${item.entry}</p>` + `</div>`;
                 }
@@ -338,6 +378,7 @@
         }
         .results-pdf,
         .results-notion,
+        .results-html,
         .results-plugin {
             text-align: left;
             white-space: pre-line;
@@ -398,6 +439,7 @@
         div.results-notion,
         div.results-org,
         div.results-plugin,
+        div.results-html,
         div.results-pdf {
             text-align: left;
             box-shadow: 2px 2px 2px var(--primary-hover);
@@ -405,6 +447,10 @@
             padding: 10px;
             margin: 10px 0;
             border: 4px solid rgb(229, 229, 229);
+        }
+
+        div.results-html {
+            height: auto !important;
         }
 
         div#results-error {
