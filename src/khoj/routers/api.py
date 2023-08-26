@@ -12,7 +12,7 @@ from fastapi import APIRouter, HTTPException, Header, Request
 from sentence_transformers import util
 
 # Internal Packages
-from khoj.configure import configure_processor, configure_server, initialize_content
+from khoj.configure import configure_processor, configure_server
 from khoj.search_type import image_search, text_search
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter

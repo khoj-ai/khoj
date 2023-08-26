@@ -22,7 +22,7 @@ from khoj.utils.config import (
 from khoj.utils.helpers import resolve_absolute_path, merge_dicts
 from khoj.utils.fs_syncer import collect_files
 from khoj.utils.rawconfig import FullConfig, ProcessorConfig, SearchConfig, ConversationProcessorConfig
-from khoj.routers.indexer import configure_content
+from khoj.routers.indexer import configure_content, load_content
 
 
 logger = logging.getLogger(__name__)
@@ -41,12 +41,14 @@ def initialize_server(config: Optional[FullConfig], required=False):
         return None
 
     try:
-        configure_server(config)
+        configure_server(config, init=True)
     except Exception as e:
         logger.error(f"🚨 Failed to configure server on app load: {e}", exc_info=True)
 
 
-def configure_server(config: FullConfig, regenerate: bool = False, search_type: Optional[SearchType] = None):
+def configure_server(
+    config: FullConfig, regenerate: bool = False, search_type: Optional[SearchType] = None, init=False
+):
     # Update Config
     state.config = config
 
@@ -62,7 +64,7 @@ def configure_server(config: FullConfig, regenerate: bool = False, search_type: 
         state.config_lock.acquire()
         state.SearchType = configure_search_types(state.config)
         state.search_models = configure_search(state.search_models, state.config.search_type)
-        initialize_content(regenerate, search_type)
+        initialize_content(regenerate, search_type, init)
     except Exception as e:
         logger.error(f"🚨 Failed to configure search models", exc_info=True)
         raise e
@@ -70,15 +72,24 @@ def configure_server(config: FullConfig, regenerate: bool = False, search_type: 
         state.config_lock.release()
 
 
-def initialize_content(regenerate: bool, search_type: Optional[SearchType] = None) -> None:
+def initialize_content(regenerate: bool, search_type: Optional[SearchType] = None, init=False):
     # Initialize Content from Config
     if state.search_models:
         try:
-            logger.info("📬 Updating content index...")
-            all_files = collect_files(state.config.content_type)
-            state.content_index = configure_content(
-                state.content_index, state.config.content_type, all_files, state.search_models, regenerate, search_type
-            )
+            if init:
+                logger.info("📬 Initializing content index...")
+                state.content_index = load_content(state.config.content_type, state.content_index, state.search_models)
+            else:
+                logger.info("📬 Updating content index...")
+                all_files = collect_files(state.config.content_type)
+                state.content_index = configure_content(
+                    state.content_index,
+                    state.config.content_type,
+                    all_files,
+                    state.search_models,
+                    regenerate,
+                    search_type,
+                )
         except Exception as e:
             logger.error(f"🚨 Failed to index content", exc_info=True)
             raise e

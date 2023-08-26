@@ -228,3 +228,58 @@ def configure_content(
     state.query_cache = LRU()
 
     return content_index
+
+
+def load_content(
+    content_config: Optional[ContentConfig],
+    content_index: Optional[ContentIndex],
+    search_models: SearchModels,
+):
+    logger.info(f"Loading content from existing embeddings...")
+    if content_config is None:
+        logger.warning("🚨 No Content configuration available.")
+        return None
+    if content_index is None:
+        content_index = ContentIndex()
+
+    if content_config.org:
+        logger.info("🦄 Loading orgmode notes")
+        content_index.org = text_search.load(content_config.org, filters=[DateFilter(), WordFilter(), FileFilter()])
+    if content_config.markdown:
+        logger.info("💎 Loading markdown notes")
+        content_index.markdown = text_search.load(
+            content_config.markdown, filters=[DateFilter(), WordFilter(), FileFilter()]
+        )
+    if content_config.pdf:
+        logger.info("🖨️ Loading pdf")
+        content_index.pdf = text_search.load(content_config.pdf, filters=[DateFilter(), WordFilter(), FileFilter()])
+    if content_config.plaintext:
+        logger.info("📄 Loading plaintext")
+        content_index.plaintext = text_search.load(
+            content_config.plaintext, filters=[DateFilter(), WordFilter(), FileFilter()]
+        )
+    if content_config.image:
+        logger.info("🌄 Loading images")
+        content_index.image = image_search.setup(
+            content_config.image, search_models.image_search.image_encoder, regenerate=False
+        )
+    if content_config.github:
+        logger.info("🐙 Loading github")
+        content_index.github = text_search.load(
+            content_config.github, filters=[DateFilter(), WordFilter(), FileFilter()]
+        )
+    if content_config.notion:
+        logger.info("🔌 Loading notion")
+        content_index.notion = text_search.load(
+            content_config.notion, filters=[DateFilter(), WordFilter(), FileFilter()]
+        )
+    if content_config.plugins:
+        logger.info("🔌 Loading plugins")
+        content_index.plugins = {}
+        for plugin_type, plugin_config in content_config.plugins.items():
+            content_index.plugins[plugin_type] = text_search.load(
+                plugin_config, filters=[DateFilter(), WordFilter(), FileFilter()]
+            )
+
+    state.query_cache = LRU()
+    return content_index
