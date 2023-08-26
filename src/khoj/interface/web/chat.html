@@ -159,6 +159,19 @@
             }
         }
 
+        function onChatInput() {
+            let chat_input = document.getElementById("chat-input");
+            if (chat_input.value === "/") {
+                let chat_tooltip = document.getElementById("chat-tooltip");
+                chat_tooltip.style.display = "block";
+                chat_tooltip.innerHTML = "Type /help for help";
+            } else {
+                let chat_tooltip = document.getElementById("chat-tooltip");
+                chat_tooltip.style.display = "none";
+            }
+            autoResize();
+        }
+
         function autoResize() {
             const textarea = document.getElementById('chat-input');
             const scrollTop = textarea.scrollTop;
@@ -242,7 +255,8 @@
 
         <!-- Chat Footer -->
         <div id="chat-footer">
-            <textarea id="chat-input" class="option" oninput="autoResize()" onkeyup=incrementalChat(event) autofocus="autofocus" placeholder="What is the meaning of life?"></textarea>
+            <div id="chat-tooltip" style="display: none;"></div>
+            <textarea id="chat-input" class="option" oninput="onChatInput()" onkeyup=incrementalChat(event) autofocus="autofocus" placeholder="What is the meaning of life?"></textarea>
         </div>
     </body>
 

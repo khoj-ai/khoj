@@ -217,3 +217,4 @@ class ConversationCommand(str, Enum):
     General = "general"
     Notes = "notes"
     Default = "default"
+    Help = "help"

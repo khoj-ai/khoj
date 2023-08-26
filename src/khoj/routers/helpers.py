@@ -62,6 +62,8 @@ def get_conversation_command(query: str, any_references: bool = False) -> Conver
         return ConversationCommand.Notes
     elif query.startswith("/general"):
         return ConversationCommand.General
+    elif query.startswith("/help"):
+        return ConversationCommand.Help
     # If no relevant notes found for the given query
     elif not any_references:
         return ConversationCommand.General
