@@ -240,7 +240,7 @@ help_message = PromptTemplate.from_template(
 **/notes**: Chat using the information in your knowledge base. This is the default method.
 **/general**: Chat using general knowledge with the LLM. This will not search against your notes.
 
-You are using the **{model}** model. To change the model, go to your <a href="/config">settings</a> page.
+You are using the **{model}** model.
 **version**: {version}
 """.strip()
 )

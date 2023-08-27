@@ -104,14 +104,17 @@
             newResponseText.appendChild(loadingSpinner);
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
 
+            let chatTooltip = document.getElementById("chat-tooltip");
+            chatTooltip.style.display = "none";
+
+            let chatInput = document.getElementById("chat-input");
+            chatInput.classList.remove("option-enabled");
+
             // Call specified Khoj API which returns a streamed response of type text/plain
             fetch(url)
                 .then(response => {
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
-
-                    let chatTooltip = document.getElementById("chat-tooltip");
-                    chatTooltip.style.display = "none";
 
                     function readStream() {
                         reader.read().then(({ done, value }) => {
@@ -176,17 +179,16 @@
             } else if (chatInput.value.startsWith("/")) {
                 const firstWord = chatInput.value.split(" ")[0];
                 if (firstWord.substring(1) in chatOptions) {
-                    // Add a div element around the text.
-                    let chatTooltip = document.getElementById("chat-tooltip");
-                    chatTooltip.style.display = "block";
-                    chatTooltip.innerHTML = "Mode: " + firstWord.substring(1);
+                    chatInput.classList.add("option-enabled");
                 } else {
-                    let chatTooltip = document.getElementById("chat-tooltip");
-                    chatTooltip.style.display = "none";
+                    chatInput.classList.remove("option-enabled");
                 }
+                let chatTooltip = document.getElementById("chat-tooltip");
+                chatTooltip.style.display = "none";
             } else {
                 let chatTooltip = document.getElementById("chat-tooltip");
                 chatTooltip.style.display = "none";
+                chatInput.classList.remove("option-enabled");
             }
 
             autoResize();
@@ -288,7 +290,8 @@
         <!-- Chat Footer -->
         <div id="chat-footer">
             <div id="chat-tooltip" style="display: none;"></div>
-            <textarea id="chat-input" class="option" oninput="onChatInput()" onkeyup=incrementalChat(event) autofocus="autofocus" placeholder="What is the meaning of life?"></textarea>
+            <textarea id="chat-input" class="option" oninput="onChatInput()" onkeyup=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands, or just type your questions and hit enter.">
+            </textarea>
         </div>
     </body>
 
@@ -427,6 +430,19 @@
             padding: 15px;
             line-height: 1.5em;
             margin: 0;
+        }
+        #chat-input:focus {
+            outline: none !important;
+        }
+
+        .option-enabled {
+            box-shadow: 0 0 12px rgb(119, 156, 46);
+        }
+
+        .option-enabled:focus {
+            outline: none !important;
+            border:1px solid #475569;
+            box-shadow: 0 0 16px var(--primary);
         }
 
         a.inline-chat-link {
