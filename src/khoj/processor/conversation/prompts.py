@@ -4,7 +4,7 @@ from langchain.prompts import PromptTemplate
 
 ## Personality
 ## --
-personality = PromptTemplate.from_template("You are Khoj, a friendly, smart and helpful personal assistant.")
+personality = PromptTemplate.from_template("You are Khoj, a smart, inquisitive and helpful personal assistant.")
 
 
 ## General Conversation
@@ -77,7 +77,9 @@ conversation_llamav2 = PromptTemplate.from_template(
 ## --
 notes_conversation = PromptTemplate.from_template(
     """
-Using the notes and our past conversations as context, answer the following question.
+Using my personal notes and our past conversations as context, answer the following question.
+Ask crisp follow-up questions to get additional context, when the answer cannot be inferred from the provided notes or past conversations.
+These questions should end with a question mark.
 Current Date: {current_date}
 
 Notes:

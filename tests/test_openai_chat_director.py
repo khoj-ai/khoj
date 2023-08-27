@@ -280,7 +280,6 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content(chat_c
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.xfail(reason="Chat director not consistently capable of asking for clarification yet.")
 @pytest.mark.chatquality
 def test_ask_for_clarification_if_not_enough_context_in_question(chat_client):
     # Act
@@ -289,10 +288,10 @@ def test_ask_for_clarification_if_not_enough_context_in_question(chat_client):
 
     # Assert
     expected_responses = [
-        "which of them is the older",
-        "which one is older",
-        "which of them is older",
-        "which one is the older",
+        "which of them",
+        "which one is",
+        "which of namita's sons",
+        "the birth order",
     ]
     assert response.status_code == 200
     assert any([expected_response in response_message.lower() for expected_response in expected_responses]), (
