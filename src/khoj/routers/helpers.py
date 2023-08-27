@@ -62,11 +62,13 @@ def get_conversation_command(query: str, any_references: bool = False) -> Conver
         return ConversationCommand.Notes
     elif query.startswith("/general"):
         return ConversationCommand.General
+    elif query.startswith("/help"):
+        return ConversationCommand.Help
     # If no relevant notes found for the given query
     elif not any_references:
         return ConversationCommand.General
     else:
-        return ConversationCommand.Default
+        return ConversationCommand.Notes
 
 
 def generate_chat_response(
@@ -74,7 +76,7 @@ def generate_chat_response(
     meta_log: dict,
     compiled_references: List[str] = [],
     inferred_queries: List[str] = [],
-    conversation_command: ConversationCommand = ConversationCommand.Default,
+    conversation_command: ConversationCommand = ConversationCommand.Notes,
 ) -> Union[ThreadedGenerator, Iterator[str]]:
     def _save_to_conversation_log(
         q: str,

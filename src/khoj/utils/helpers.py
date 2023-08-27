@@ -216,4 +216,11 @@ def log_telemetry(
 class ConversationCommand(str, Enum):
     General = "general"
     Notes = "notes"
-    Default = "default"
+    Help = "help"
+
+
+command_descriptions = {
+    ConversationCommand.General: "This command allows you to search talk with the LLM without including context from your knowledge base.",
+    ConversationCommand.Notes: "This command allows you to search talk with the LLM while including context from your knowledge base.",
+    ConversationCommand.Help: "This command displays a help message.",
+}
