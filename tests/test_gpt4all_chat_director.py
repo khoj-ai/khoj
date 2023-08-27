@@ -74,7 +74,6 @@ def test_answer_from_chat_history(client_offline_chat):
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
 def test_answer_from_currently_retrieved_content(client_offline_chat):
     # Arrange
@@ -123,7 +122,10 @@ def test_answer_from_chat_history_and_previously_retrieved_content(client_offlin
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering this question yet")
+@pytest.mark.xfail(
+    AssertionError,
+    reason="Chat director not capable of answering this question yet because it requires extract_questions",
+)
 @pytest.mark.chatquality
 def test_answer_from_chat_history_and_currently_retrieved_content(client_offline_chat):
     # Arrange

@@ -467,7 +467,7 @@
         khojBannerSubmit?.addEventListener("click", function(event) {
             event.preventDefault();
             var email = document.getElementById("khoj-banner-email").value;
-            fetch("https://lantern.khoj.dev/beta/users/", {
+            fetch("https://app.khoj.dev/beta/users/", {
                     method: "POST",
                     body: JSON.stringify({
                         email: email

@@ -209,7 +209,7 @@ def test_notes_search(client, content_config: ContentConfig, search_config: Sear
     assert response.status_code == 200
     # assert actual_data contains "Khoj via Emacs" entry
     search_result = response.json()[0]["entry"]
-    assert "git clone" in search_result
+    assert "git clone https://github.com/khoj-ai/khoj" in search_result
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -267,6 +267,6 @@ def test_notes_search_with_exclude_filter(client, content_config: ContentConfig,
 
     # Assert
     assert response.status_code == 200
-    # assert actual_data does not contains word "Emacs"
+    # assert actual_data does not contains word "clone"
     search_result = response.json()[0]["entry"]
     assert "clone" not in search_result

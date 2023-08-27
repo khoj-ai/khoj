@@ -1,12 +1,12 @@
 import logging
 from datetime import datetime
 from functools import partial
-from typing import List, Optional
+from typing import Iterator, List, Optional, Union
 
 from fastapi import HTTPException, Request
 
 from khoj.utils import state
-from khoj.utils.helpers import timer, log_telemetry
+from khoj.utils.helpers import ConversationCommand, timer, log_telemetry
 from khoj.processor.conversation.openai.gpt import converse
 from khoj.processor.conversation.gpt4all.chat_model import converse_offline
 from khoj.processor.conversation.utils import reciprocal_conversation_to_chatml, message_to_log, ThreadedGenerator
@@ -57,12 +57,27 @@ def update_telemetry_state(
     ]
 
 
+def get_conversation_command(query: str, any_references: bool = False) -> ConversationCommand:
+    if query.startswith("/notes"):
+        return ConversationCommand.Notes
+    elif query.startswith("/general"):
+        return ConversationCommand.General
+    elif query.startswith("/help"):
+        return ConversationCommand.Help
+    # If no relevant notes found for the given query
+    elif not any_references:
+        return ConversationCommand.General
+    else:
+        return ConversationCommand.Notes
+
+
 def generate_chat_response(
     q: str,
     meta_log: dict,
     compiled_references: List[str] = [],
     inferred_queries: List[str] = [],
-) -> ThreadedGenerator:
+    conversation_command: ConversationCommand = ConversationCommand.Notes,
+) -> Union[ThreadedGenerator, Iterator[str]]:
     def _save_to_conversation_log(
         q: str,
         chat_response: str,
@@ -85,12 +100,8 @@ def generate_chat_response(
 
     # Initialize Variables
     user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    conversation_type = "general" if q.startswith("@general") else "notes"
-
-    # Switch to general conversation type if no relevant notes found for the given query
-    conversation_type = "notes" if compiled_references else "general"
-    logger.debug(f"Conversation Type: {conversation_type}")
     chat_response = None
+    logger.debug(f"Conversation Type: {conversation_command.name}")
 
     try:
         partial_completion = partial(
@@ -110,6 +121,7 @@ def generate_chat_response(
                 loaded_model=loaded_model,
                 conversation_log=meta_log,
                 completion_func=partial_completion,
+                conversation_command=conversation_command,
             )
 
         elif state.processor_config.conversation.openai_model:
@@ -122,6 +134,7 @@ def generate_chat_response(
                 model=chat_model,
                 api_key=api_key,
                 completion_func=partial_completion,
+                conversation_command=conversation_command,
             )
 
     except Exception as e:

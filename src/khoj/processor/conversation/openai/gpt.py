@@ -14,6 +14,7 @@ from khoj.processor.conversation.openai.utils import (
     completion_with_backoff,
 )
 from khoj.processor.conversation.utils import generate_chatml_messages_with_context
+from khoj.utils.helpers import ConversationCommand, is_none_or_empty
 
 
 logger = logging.getLogger(__name__)
@@ -108,6 +109,7 @@ def converse(
     api_key: Optional[str] = None,
     temperature: float = 0.2,
     completion_func=None,
+    conversation_command=ConversationCommand.Notes,
 ):
     """
     Converse with user using OpenAI's ChatGPT
@@ -117,8 +119,10 @@ def converse(
     compiled_references = "\n\n".join({f"# {item}" for item in references})
 
     # Get Conversation Primer appropriate to Conversation Type
-    if compiled_references == "":
+    if conversation_command == ConversationCommand.General:
         conversation_primer = prompts.general_conversation.format(current_date=current_date, query=user_query)
+    elif conversation_command == ConversationCommand.Notes and is_none_or_empty(compiled_references):
+        return iter([prompts.no_notes_found.format()])
     else:
         conversation_primer = prompts.notes_conversation.format(
             current_date=current_date, query=user_query, references=compiled_references

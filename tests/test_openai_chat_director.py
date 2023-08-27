@@ -1,9 +1,11 @@
 # Standard Packages
 import os
+import urllib.parse
 
 # External Packages
 import pytest
 from freezegun import freeze_time
+from khoj.processor.conversation import prompts
 
 # Internal Packages
 from khoj.processor.conversation.utils import message_to_log
@@ -166,6 +168,57 @@ def test_no_answer_in_chat_history_or_retrieved_content(chat_client):
     assert any([expected_response in response_message for expected_response in expected_responses]), (
         "Expected chat director to say they don't know in response, but got: " + response_message
     )
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
+def test_answer_using_general_command(chat_client):
+    # Arrange
+    query = urllib.parse.quote("/general Where was Xi Li born?")
+    message_list = []
+    populate_chat_history(message_list)
+
+    # Act
+    response = chat_client.get(f"/api/chat?q={query}&stream=true")
+    response_message = response.content.decode("utf-8")
+
+    # Assert
+    assert response.status_code == 200
+    assert "Fujiang" not in response_message
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
+def test_answer_from_retrieved_content_using_notes_command(chat_client):
+    # Arrange
+    query = urllib.parse.quote("/notes Where was Xi Li born?")
+    message_list = []
+    populate_chat_history(message_list)
+
+    # Act
+    response = chat_client.get(f"/api/chat?q={query}&stream=true")
+    response_message = response.content.decode("utf-8")
+
+    # Assert
+    assert response.status_code == 200
+    assert "Fujiang" in response_message
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
+def test_answer_not_known_using_notes_command(chat_client):
+    # Arrange
+    query = urllib.parse.quote("/notes Where was Testatron born?")
+    message_list = []
+    populate_chat_history(message_list)
+
+    # Act
+    response = chat_client.get(f"/api/chat?q={query}&stream=true")
+    response_message = response.content.decode("utf-8")
+
+    # Assert
+    assert response.status_code == 200
+    assert response_message == prompts.no_notes_found.format()
 
 
 # ----------------------------------------------------------------------------------------------------

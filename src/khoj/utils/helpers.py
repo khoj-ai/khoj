@@ -2,6 +2,7 @@
 from __future__ import annotations  # to avoid quoting type hints
 from collections import OrderedDict
 import datetime
+from enum import Enum
 from importlib import import_module
 from importlib.metadata import version
 import logging
@@ -210,3 +211,16 @@ def log_telemetry(
 
     # Log telemetry data to telemetry endpoint
     return request_body
+
+
+class ConversationCommand(str, Enum):
+    General = "general"
+    Notes = "notes"
+    Help = "help"
+
+
+command_descriptions = {
+    ConversationCommand.General: "This command allows you to search talk with the LLM without including context from your knowledge base.",
+    ConversationCommand.Notes: "This command allows you to search talk with the LLM while including context from your knowledge base.",
+    ConversationCommand.Help: "This command displays a help message.",
+}
