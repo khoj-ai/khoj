@@ -119,11 +119,11 @@ def converse(
     compiled_references = "\n\n".join({f"# {item}" for item in references})
 
     # Get Conversation Primer appropriate to Conversation Type
-    if conversation_command == ConversationCommand.General:
-        conversation_primer = prompts.general_conversation.format(current_date=current_date, query=user_query)
-    elif conversation_command == ConversationCommand.Notes and is_none_or_empty(compiled_references):
+    if conversation_command == ConversationCommand.Notes and is_none_or_empty(compiled_references):
         completion_func(chat_response=prompts.no_notes_found.format())
         return iter([prompts.no_notes_found.format()])
+    elif conversation_command == ConversationCommand.General or is_none_or_empty(compiled_references):
+        conversation_primer = prompts.general_conversation.format(current_date=current_date, query=user_query)
     else:
         conversation_primer = prompts.notes_conversation.format(
             current_date=current_date, query=user_query, references=compiled_references
