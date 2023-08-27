@@ -236,9 +236,10 @@ Q:"""
 # --
 help_message = PromptTemplate.from_template(
     """
+**/notes**: Chat using the information in your knowledge base.
+**/general**: Chat using just Khoj's general knowledge. This will not search against your notes.
+**/default**: Chat using your knowledge base and Khoj's general knowledge for context.
 **/help**: Show this help message.
-**/notes**: Chat using the information in your knowledge base. This is the default method.
-**/general**: Chat using general knowledge with the LLM. This will not search against your notes.
 
 You are using the **{model}** model.
 **version**: {version}

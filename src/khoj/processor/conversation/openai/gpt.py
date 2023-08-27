@@ -109,7 +109,7 @@ def converse(
     api_key: Optional[str] = None,
     temperature: float = 0.2,
     completion_func=None,
-    conversation_command=ConversationCommand.Notes,
+    conversation_command=ConversationCommand.Default,
 ):
     """
     Converse with user using OpenAI's ChatGPT

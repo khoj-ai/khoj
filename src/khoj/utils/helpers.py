@@ -214,13 +214,15 @@ def log_telemetry(
 
 
 class ConversationCommand(str, Enum):
+    Default = "default"
     General = "general"
     Notes = "notes"
     Help = "help"
 
 
 command_descriptions = {
-    ConversationCommand.General: "This command allows you to search talk with the LLM without including context from your knowledge base.",
-    ConversationCommand.Notes: "This command allows you to search talk with the LLM while including context from your knowledge base.",
-    ConversationCommand.Help: "This command displays a help message with all available commands and other metadata.",
+    ConversationCommand.General: "Only talk about information that relies on Khoj's general knowledge, not your personal knowledge base.",
+    ConversationCommand.Notes: "Only talk about information that is available in your knowledge base.",
+    ConversationCommand.Default: "The default command when no command specified. It intelligently auto-switches between general and notes mode.",
+    ConversationCommand.Help: "Display a help message with all available commands and other metadata.",
 }
