@@ -30,6 +30,7 @@ SearchType = utils_config.SearchType
 telemetry: List[Dict[str, str]] = []
 previous_query: str = None
 demo: bool = False
+khoj_version: str = None
 
 if torch.cuda.is_available():
     # Use CUDA GPU

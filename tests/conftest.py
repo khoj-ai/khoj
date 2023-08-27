@@ -245,13 +245,15 @@ def client(content_config: ContentConfig, search_config: SearchConfig, processor
 
 @pytest.fixture(scope="function")
 def client_offline_chat(
-    content_config: ContentConfig, search_config: SearchConfig, processor_config_offline_chat: ProcessorConfig
+    md_content_config: ContentConfig, search_config: SearchConfig, processor_config_offline_chat: ProcessorConfig
 ):
-    state.config.content_type = content_config
+    # Initialize app state
+    state.config.content_type = md_content_config
     state.config.search_type = search_config
     state.SearchType = configure_search_types(state.config)
 
-    # These lines help us Mock the Search models for these search types
+    # Index Markdown Content for Search
+    filters = [DateFilter(), WordFilter(), FileFilter()]
     state.search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     state.search_models.image_search = image_search.initialize_model(search_config.image)
     state.content_index.org = text_search.setup(
@@ -265,6 +267,16 @@ def client_offline_chat(
         content_config.image, state.search_models.image_search, regenerate=False
     )
 
+    state.content_index.markdown = text_search.setup(
+        MarkdownToJsonl,
+        get_sample_data("markdown"),
+        md_content_config.markdown,
+        state.search_models.text_search.bi_encoder,
+        regenerate=False,
+        filters=filters,
+    )
+
+    # Initialize Processor from Config
     state.processor_config = configure_processor(processor_config_offline_chat)
 
     configure_routes(app)

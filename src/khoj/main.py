@@ -14,6 +14,7 @@ import threading
 import warnings
 from platform import system
 import webbrowser
+from importlib.metadata import version
 
 # Ignore non-actionable warnings
 warnings.filterwarnings("ignore", message=r"snapshot_download.py has been made private", category=FutureWarning)
@@ -153,6 +154,7 @@ def set_state(args):
     state.host = args.host
     state.port = args.port
     state.demo = args.demo
+    state.khoj_version = version("khoj-assistant")
 
 
 def start_server(app, host=None, port=None, socket=None):

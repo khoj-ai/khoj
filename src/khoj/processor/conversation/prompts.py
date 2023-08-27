@@ -17,6 +17,11 @@ Current Date: {current_date}
 Question: {query}
 """.strip()
 )
+no_notes_found = PromptTemplate.from_template(
+    """
+    I'm sorry, I couldn't find any relevant notes to respond to your message.
+    """.strip()
+)
 
 system_prompt_message_llamav2 = f"""You are Khoj, a friendly, smart and helpful personal assistant.
 Using your general knowledge and our past conversations as context, answer the following question.
@@ -225,3 +230,17 @@ A:{ "search-type": "notes" }
 Q:When did I go surfing last?
 A:{ "search-type": "notes" }
 Q:"""
+
+
+# System messages to user
+# --
+help_message = PromptTemplate.from_template(
+    """
+**/help**: Show this help message.
+**/notes**: Search only against the information in your knowledge base. This is the default method.
+**/general**: Search general knowledge with the LLM. This will not search against your notes.
+
+You are using the **{model}** model. To change the model, go to your <a href="/config">settings</a> page.
+**version**: {version}
+""".strip()
+)
