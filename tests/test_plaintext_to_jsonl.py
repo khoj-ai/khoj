@@ -91,6 +91,20 @@ def test_get_plaintext_files(tmp_path):
     assert set(extracted_plaintext_files.keys()) == set(expected_files)
 
 
+def test_parse_html_plaintext_file(content_config):
+    "Ensure HTML files are parsed correctly"
+    # Arrange
+    # Setup input-files, input-filters
+    extracted_plaintext_files = get_plaintext_files(content_config.plaintext)
+
+    # Act
+    maps = PlaintextToJsonl.convert_plaintext_entries_to_maps(extracted_plaintext_files)
+
+    # Assert
+    assert len(maps) == 1
+    assert "<div>" not in maps[0].raw
+
+
 # Helper Functions
 def create_file(tmp_path: Path, entry=None, filename="test.md"):
     file_ = tmp_path / filename

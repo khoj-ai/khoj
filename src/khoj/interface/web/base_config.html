@@ -34,28 +34,6 @@
             margin: 0;
             padding: 0;
         }
-        @media only screen and (max-width: 600px) {
-            body {
-                display: grid;
-                grid-template-columns: 1fr;
-                grid-template-rows: 1fr auto auto auto minmax(80px, 100%);
-            }
-            body > * {
-                grid-column: 1;
-            }
-
-            div.filler {
-                display: none;
-            }
-
-            body.khoj-configure {
-                padding: 0;
-            }
-
-            div.section {
-                padding: 12px;
-            }
-        }
 
         img.khoj-logo {
             max-width: none!important;
@@ -71,6 +49,11 @@
         }
         .section {
             display: grid;
+            justify-self: center;
+        }
+
+
+        div.section.general-settings {
             justify-self: center;
         }
 
@@ -102,6 +85,26 @@
             border-radius: 4px;
             box-shadow: 0px 1px 3px 0px rgba(0,0,0,0.1),0px 1px 2px -1px rgba(0,0,0,0.1);
             overflow: hidden;
+        }
+        div.finalize-buttons {
+            display: grid;
+            gap: 8px;
+            padding: 24px 16px;
+            width: 320px;
+            background: white;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        div#features-hint-text {
+            width: 640px;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            overflow: hidden;
+            height: 0;
+        }
+        div#features-hint-text.show {
+            opacity: 1;
+            height: auto;
         }
         .card-title-row {
             display: grid;
@@ -212,6 +215,33 @@
             .section-cards {
                 grid-template-columns: 1fr;
             }
+        }
+        @media only screen and (max-width: 600px) {
+            body {
+                display: grid;
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto auto auto minmax(80px, 100%);
+            }
+            body > * {
+                grid-column: 1;
+            }
+
+            div.filler {
+                display: none;
+            }
+
+            body.khoj-configure {
+                padding: 0;
+            }
+
+            div.section {
+                padding: 12px;
+            }
+
+            div#features-hint-text {
+                width: 320px;
+            }
+
         }
     </style>
 </html>

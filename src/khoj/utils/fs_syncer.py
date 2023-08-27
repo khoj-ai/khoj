@@ -1,6 +1,7 @@
 import logging
 import glob
 from typing import Optional
+from bs4 import BeautifulSoup
 
 from khoj.utils.helpers import get_absolute_path, is_none_or_empty
 from khoj.utils.rawconfig import TextContentConfig, ContentConfig
@@ -26,6 +27,11 @@ def get_plaintext_files(config: TextContentConfig) -> dict[str, str]:
     def is_plaintextfile(file: str):
         "Check if file is plaintext file"
         return file.endswith(("txt", "md", "markdown", "org", "mbox", "rst", "html", "htm", "xml"))
+
+    def extract_html_content(html_content: str):
+        "Extract content from HTML"
+        soup = BeautifulSoup(html_content, "html.parser")
+        return soup.get_text(strip=True, separator="\n")
 
     # Extract required fields from config
     input_files, input_filter = (
@@ -64,6 +70,9 @@ def get_plaintext_files(config: TextContentConfig) -> dict[str, str]:
     for file in all_target_files:
         with open(file, "r") as f:
             try:
+                plaintext_content = f.read()
+                if file.endswith(("html", "htm", "xml")):
+                    plaintext_content = extract_html_content(plaintext_content)
                 filename_to_content_map[file] = f.read()
             except Exception as e:
                 logger.warning(f"Unable to read file: {file} as plaintext. Skipping file.")

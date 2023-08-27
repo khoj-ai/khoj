@@ -128,6 +128,26 @@ def content_config(tmp_path_factory, search_models: SearchModels, search_config:
             embeddings_file=content_dir.joinpath("github_embeddings.pt"),
         )
 
+    content_config.plaintext = TextContentConfig(
+        input_files=None,
+        input_filter=["tests/data/plaintext/*.txt", "tests/data/plaintext/*.md", "tests/data/plaintext/*.html"],
+        compressed_jsonl=content_dir.joinpath("plaintext.jsonl.gz"),
+        embeddings_file=content_dir.joinpath("plaintext_embeddings.pt"),
+    )
+
+    content_config.github = GithubContentConfig(
+        pat_token=os.getenv("GITHUB_PAT_TOKEN", ""),
+        repos=[
+            GithubRepoConfig(
+                owner="khoj-ai",
+                name="lantern",
+                branch="master",
+            )
+        ],
+        compressed_jsonl=content_dir.joinpath("github.jsonl.gz"),
+        embeddings_file=content_dir.joinpath("github_embeddings.pt"),
+    )
+
     filters = [DateFilter(), WordFilter(), FileFilter()]
     text_search.setup(
         JsonlToJsonl,
