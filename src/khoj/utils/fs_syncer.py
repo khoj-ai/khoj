@@ -61,7 +61,7 @@ def get_plaintext_files(config: TextContentConfig) -> dict[str, str]:
         target_files for target_files in all_target_files if not is_plaintextfile(target_files)
     }
     if any(files_with_no_plaintext_extensions):
-        logger.warn(f"Skipping unsupported files from plaintext indexing: {files_with_no_plaintext_extensions}")
+        logger.warning(f"Skipping unsupported files from plaintext indexing: {files_with_no_plaintext_extensions}")
         all_target_files = list(set(all_target_files) - files_with_no_plaintext_extensions)
 
     logger.debug(f"Processing files: {all_target_files}")

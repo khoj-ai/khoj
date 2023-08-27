@@ -109,7 +109,7 @@ def test_get_configured_types_via_api(client):
 
     # Assert
     assert response.status_code == 200
-    assert response.json() == ["all", "org", "image", "plugin1"]
+    assert response.json() == ["all", "org", "image", "plaintext", "plugin1"]
 
 
 # ----------------------------------------------------------------------------------------------------

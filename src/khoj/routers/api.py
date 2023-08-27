@@ -765,7 +765,7 @@ async def extract_references_and_questions(
     inferred_queries: List[str] = []
 
     if state.content_index is None:
-        logger.warn(
+        logger.warning(
             "No content index loaded, so cannot extract references from knowledge base. Please configure your data sources and update the index to chat with your notes."
         )
         return compiled_references, inferred_queries

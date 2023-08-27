@@ -9,6 +9,7 @@ import pytest
 from khoj.main import app
 from khoj.configure import configure_processor, configure_routes, configure_search_types
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
+from khoj.processor.plaintext.plaintext_to_jsonl import PlaintextToJsonl
 from khoj.search_type import image_search, text_search
 from khoj.utils.config import SearchModels
 from khoj.utils.helpers import resolve_absolute_path
@@ -256,6 +257,13 @@ def client(content_config: ContentConfig, search_config: SearchConfig, processor
     state.content_index.image = image_search.setup(
         content_config.image, state.search_models.image_search, regenerate=False
     )
+    state.content_index.plaintext = text_search.setup(
+        PlaintextToJsonl,
+        get_sample_data("plaintext"),
+        content_config.plaintext,
+        state.search_models.text_search.bi_encoder,
+        regenerate=False,
+    )
 
     state.processor_config = configure_processor(processor_config)
 
@@ -366,6 +374,23 @@ git clone
 conda env create -f environment.yml
 conda activate khoj
 ```
+"""
+        },
+        "plaintext": {
+            "readme.txt": """
+Khoj
+Allow natural language search on user content like notes, images using transformer based models
+
+All data is processed locally. User can interface with khoj app via Emacs, API or Commandline
+
+Dependencies
+- Python3
+- Miniconda
+
+Install
+git clone
+conda env create -f environment.yml
+conda activate khoj
 """
         },
     }
