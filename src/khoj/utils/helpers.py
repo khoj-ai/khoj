@@ -222,5 +222,5 @@ class ConversationCommand(str, Enum):
 command_descriptions = {
     ConversationCommand.General: "This command allows you to search talk with the LLM without including context from your knowledge base.",
     ConversationCommand.Notes: "This command allows you to search talk with the LLM while including context from your knowledge base.",
-    ConversationCommand.Help: "This command displays a help message.",
+    ConversationCommand.Help: "This command displays a help message with all available commands and other metadata.",
 }

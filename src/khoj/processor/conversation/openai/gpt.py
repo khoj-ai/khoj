@@ -122,6 +122,7 @@ def converse(
     if conversation_command == ConversationCommand.General:
         conversation_primer = prompts.general_conversation.format(current_date=current_date, query=user_query)
     elif conversation_command == ConversationCommand.Notes and is_none_or_empty(compiled_references):
+        completion_func(chat_response=prompts.no_notes_found.format())
         return iter([prompts.no_notes_found.format()])
     else:
         conversation_primer = prompts.notes_conversation.format(

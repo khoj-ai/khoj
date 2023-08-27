@@ -91,14 +91,20 @@ class PlaintextToJsonl(TextToJsonl):
 
         for plaintext_file in plaintext_files:
             with open(plaintext_file, "r") as f:
-                try:
-                    plaintext_content = f.read()
-                    entry_to_file_map.append((plaintext_content, plaintext_file))
-                except Exception as e:
-                    logger.warning(f"Unable to process file: {plaintext_file}. This file will not be indexed.")
-                    logger.warning(e, exc_info=True)
+                plaintext_content = f.read()
+                if plaintext_file.endswith(("html", "htm", "xml")):
+                    plaintext_content = PlaintextToJsonl.extract_html_content(plaintext_content)
+                entry_to_file_map.append((plaintext_content, plaintext_file))
 
         return dict(entry_to_file_map)
+
+    @staticmethod
+    def extract_html_content(html_content: str):
+        "Extract content from HTML"
+        from bs4 import BeautifulSoup
+
+        soup = BeautifulSoup(html_content, "html.parser")
+        return soup.get_text(strip=True, separator="\n")
 
     @staticmethod
     def convert_plaintext_entries_to_maps(entry_to_file_map: dict) -> List[Entry]:
