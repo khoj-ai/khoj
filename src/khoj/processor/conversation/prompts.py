@@ -240,6 +240,7 @@ help_message = PromptTemplate.from_template(
 **/notes**: Search only against the information in your knowledge base. This is the default method.
 **/general**: Search general knowledge with the LLM. This will not search against your notes.
 
-You are using the {model} model. To change the model, go to your <a href="/config">settings</a> page.
+You are using the **{model}** model. To change the model, go to your <a href="/config">settings</a> page.
+**version**: {version}
 """.strip()
 )

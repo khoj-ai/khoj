@@ -119,7 +119,7 @@ def converse_offline(
     model: str = "llama-2-7b-chat.ggmlv3.q4_K_S.bin",
     loaded_model: Union[GPT4All, None] = None,
     completion_func=None,
-    conversation_command=ConversationCommand.Default,
+    conversation_command=ConversationCommand.Notes,
 ) -> Union[ThreadedGenerator, Iterator[str]]:
     """
     Converse with user using Llama

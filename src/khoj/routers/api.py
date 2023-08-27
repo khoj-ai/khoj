@@ -18,7 +18,7 @@ from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
 from khoj.utils.config import TextSearchModel
-from khoj.utils.helpers import ConversationCommand, is_none_or_empty, timer
+from khoj.utils.helpers import ConversationCommand, is_none_or_empty, timer, command_descriptions
 from khoj.utils.rawconfig import (
     ContentConfig,
     FullConfig,
@@ -673,9 +673,10 @@ async def chat_options(
     referer: Optional[str] = Header(None),
     host: Optional[str] = Header(None),
 ) -> Response:
-    cmd_options = []
+    cmd_options = {}
     for cmd in ConversationCommand:
-        cmd_options.append(cmd.value)
+        cmd_options[cmd.value] = command_descriptions[cmd]
+
     update_telemetry_state(
         request=request,
         telemetry_type="api",
@@ -707,7 +708,7 @@ async def chat(
     conversation_command = get_conversation_command(query=q, any_references=is_none_or_empty(compiled_references))
     if conversation_command == ConversationCommand.Help:
         model_type = "offline" if state.processor_config.conversation.enable_offline_chat else "openai"
-        formatted_help = help_message.format(model=model_type)
+        formatted_help = help_message.format(model=model_type, version=state.khoj_version)
         return StreamingResponse(iter([formatted_help]), media_type="text/event-stream", status_code=200)
 
     # Get the (streamed) chat response from the LLM of choice.
@@ -754,7 +755,7 @@ async def extract_references_and_questions(
     request: Request,
     q: str,
     n: int,
-    conversation_type: ConversationCommand = ConversationCommand.Default,
+    conversation_type: ConversationCommand = ConversationCommand.Notes,
 ):
     # Load Conversation History
     meta_log = state.processor_config.conversation.meta_log

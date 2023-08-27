@@ -9,6 +9,7 @@
         <link rel="stylesheet" href="/static/assets/khoj.css">
     </head>
     <script>
+        let chatOptions = [];
         function copyProgrammaticOutput(event) {
             // Remove the first 4 characters which are the "Copy" button
             const programmaticOutput = event.target.parentNode.textContent.trim().slice(4);
@@ -109,6 +110,9 @@
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
 
+                    let chatTooltip = document.getElementById("chat-tooltip");
+                    chatTooltip.style.display = "none";
+
                     function readStream() {
                         reader.read().then(({ done, value }) => {
                             if (done) {
@@ -160,15 +164,31 @@
         }
 
         function onChatInput() {
-            let chat_input = document.getElementById("chat-input");
-            if (chat_input.value === "/") {
-                let chat_tooltip = document.getElementById("chat-tooltip");
-                chat_tooltip.style.display = "block";
-                chat_tooltip.innerHTML = "Type /help for help";
+            let chatInput = document.getElementById("chat-input");
+            if (chatInput.value === "/") {
+                let chatTooltip = document.getElementById("chat-tooltip");
+                chatTooltip.style.display = "block";
+                let helpText = "<div>";
+                for (let key in chatOptions) {
+                    helpText += "<b>/" + key + "</b>: " + chatOptions[key] + "<br>";
+                }
+                chatTooltip.innerHTML = helpText;
+            } else if (chatInput.value.startsWith("/")) {
+                const firstWord = chatInput.value.split(" ")[0];
+                if (firstWord.substring(1) in chatOptions) {
+                    // Add a div element around the text.
+                    let chatTooltip = document.getElementById("chat-tooltip");
+                    chatTooltip.style.display = "block";
+                    chatTooltip.innerHTML = "Mode: " + firstWord.substring(1);
+                } else {
+                    let chatTooltip = document.getElementById("chat-tooltip");
+                    chatTooltip.style.display = "none";
+                }
             } else {
-                let chat_tooltip = document.getElementById("chat-tooltip");
-                chat_tooltip.style.display = "none";
+                let chatTooltip = document.getElementById("chat-tooltip");
+                chatTooltip.style.display = "none";
             }
+
             autoResize();
         }
 
@@ -204,6 +224,18 @@
                     response.forEach(chat_log => {
                         renderMessageWithReference(chat_log.message, chat_log.by, chat_log.context, new Date(chat_log.created));
                     });
+                })
+                .catch(err => {
+                    return;
+                });
+
+            fetch('/api/chat/options')
+                .then(response => response.json())
+                .then(data => {
+                    // Render chat options, if any
+                    if (data) {
+                        chatOptions = data;
+                    }
                 })
                 .catch(err => {
                     return;
@@ -464,6 +496,10 @@
             padding: 10px;
         }
 
+        div#chat-tooltip {
+            text-align: left;
+        }
+
         @keyframes gradient {
             0% {
                 background-position: 0% 50%;
@@ -523,7 +559,7 @@
         khojBannerSubmit?.addEventListener("click", function(event) {
             event.preventDefault();
             var email = document.getElementById("khoj-banner-email").value;
-            fetch("https://lantern.khoj.dev/beta/users/", {
+            fetch("https://app.khoj.dev/beta/users/", {
                     method: "POST",
                     body: JSON.stringify({
                         email: email
