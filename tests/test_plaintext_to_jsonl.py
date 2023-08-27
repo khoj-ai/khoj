@@ -18,7 +18,7 @@ def test_plaintext_file(tmp_path):
 
     # Act
     # Extract Entries from specified plaintext files
-    file_to_entries = PlaintextToJsonl.extract_plaintext_entries(plaintext_files=[plaintextfile])
+    file_to_entries = PlaintextToJsonl.extract_plaintext_entries(plaintext_files=[str(plaintextfile)])
 
     maps = PlaintextToJsonl.convert_plaintext_entries_to_maps(file_to_entries)
 
