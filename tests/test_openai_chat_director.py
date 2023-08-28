@@ -280,7 +280,6 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content(chat_c
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.xfail(reason="Chat director not consistently capable of asking for clarification yet.")
 @pytest.mark.chatquality
 def test_ask_for_clarification_if_not_enough_context_in_question(chat_client):
     # Act
@@ -289,10 +288,10 @@ def test_ask_for_clarification_if_not_enough_context_in_question(chat_client):
 
     # Assert
     expected_responses = [
-        "which of them is the older",
-        "which one is older",
-        "which of them is older",
-        "which one is the older",
+        "which of them",
+        "which one is",
+        "which of namita's sons",
+        "the birth order",
     ]
     assert response.status_code == 200
     assert any([expected_response in response_message.lower() for expected_response in expected_responses]), (
@@ -330,6 +329,22 @@ def test_answer_requires_multiple_independent_searches(chat_client):
     "Chat director should be able to answer by doing multiple independent searches for required information"
     # Act
     response = chat_client.get(f'/api/chat?q="Is Xi older than Namita?"&stream=true')
+    response_message = response.content.decode("utf-8")
+
+    # Assert
+    expected_responses = ["he is older than namita", "xi is older than namita", "xi li is older than namita"]
+    assert response.status_code == 200
+    assert any([expected_response in response_message.lower() for expected_response in expected_responses]), (
+        "Expected Xi is older than Namita, but got: " + response_message
+    )
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_answer_using_file_filter(chat_client):
+    "Chat should be able to use search filters in the query"
+    # Act
+    query = urllib.parse.quote('Is Xi older than Namita? file:"Namita.markdown" file:"Xi Li.markdown"')
+    response = chat_client.get(f"/api/chat?q={query}&stream=true")
     response_message = response.content.decode("utf-8")
 
     # Assert

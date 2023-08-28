@@ -2,6 +2,7 @@
 import re
 import logging
 from collections import defaultdict
+from typing import List
 
 # Internal Packages
 from khoj.search_filter.base_filter import BaseFilter
@@ -36,12 +37,11 @@ class WordFilter(BaseFilter):
 
         return self.word_to_entry_index
 
-    def can_filter(self, raw_query):
-        "Check if query contains word filters"
-        required_words = re.findall(self.required_regex, raw_query)
-        blocked_words = re.findall(self.blocked_regex, raw_query)
-
-        return len(required_words) != 0 or len(blocked_words) != 0
+    def get_filter_terms(self, query: str) -> List[str]:
+        "Get all filter terms in query"
+        required_terms = [f"+{required_term}" for required_term in re.findall(self.required_regex, query)]
+        blocked_terms = [f"-{blocked_term}" for blocked_term in re.findall(self.blocked_regex, query)]
+        return required_terms + blocked_terms
 
     def defilter(self, query: str) -> str:
         return re.sub(self.blocked_regex, "", re.sub(self.required_regex, "", query)).strip()

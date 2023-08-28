@@ -99,6 +99,18 @@ def test_multiple_file_filter():
     assert entry_indices == {0, 1, 2, 3}
 
 
+def test_get_file_filter_terms():
+    # Arrange
+    file_filter = FileFilter()
+    q_with_filter_terms = 'head tail file:"file 1.org" file:"/path/to/dir/*.org"'
+
+    # Act
+    filter_terms = file_filter.get_filter_terms(q_with_filter_terms)
+
+    # Assert
+    assert filter_terms == ['file:"file 1.org"', 'file:"/path/to/dir/*.org"']
+
+
 def arrange_content():
     entries = [
         Entry(compiled="", raw="First Entry", file="file 1.org"),

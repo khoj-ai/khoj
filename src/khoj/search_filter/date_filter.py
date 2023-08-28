@@ -3,6 +3,7 @@ import re
 import logging
 from collections import defaultdict
 from datetime import timedelta, datetime
+from typing import List
 from dateutil.relativedelta import relativedelta
 from math import inf
 
@@ -45,9 +46,9 @@ class DateFilter(BaseFilter):
                         continue
                     self.date_to_entry_ids[date_in_entry].add(id)
 
-    def can_filter(self, raw_query):
-        "Check if query contains date filters"
-        return self.extract_date_range(raw_query) is not None
+    def get_filter_terms(self, query: str) -> List[str]:
+        "Get all filter terms in query"
+        return [f"dt{item[0]}'{item[1]}'" for item in re.findall(self.date_regex, query)]
 
     def defilter(self, query):
         # remove date range filter from query
@@ -62,7 +63,7 @@ class DateFilter(BaseFilter):
             query_daterange = self.extract_date_range(query)
 
         # if no date in query, return all entries
-        if query_daterange is None:
+        if query_daterange == []:
             return query, set(range(len(entries)))
 
         query = self.defilter(query)
@@ -95,7 +96,7 @@ class DateFilter(BaseFilter):
         date_range_matches = re.findall(self.date_regex, query)
 
         if len(date_range_matches) == 0:
-            return None
+            return []
 
         # extract, parse natural dates ranges from date range filter passed in query
         # e.g today maps to (start_of_day, start_of_tomorrow)
@@ -110,7 +111,7 @@ class DateFilter(BaseFilter):
         #   >=yesterday maps to [start_of_yesterday, inf)
         #   <tomorrow maps to [0, start_of_tomorrow)
         # ---
-        effective_date_range = [0, inf]
+        effective_date_range: List = [0, inf]
         date_range_considering_comparator = []
         for cmp, (dtrange_start, dtrange_end) in date_ranges_from_filter:
             if cmp == ">":
@@ -135,7 +136,7 @@ class DateFilter(BaseFilter):
             ]
 
         if effective_date_range == [0, inf] or effective_date_range[0] > effective_date_range[1]:
-            return None
+            return []
         else:
             return effective_date_range
 
