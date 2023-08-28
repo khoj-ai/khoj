@@ -67,6 +67,18 @@ def test_word_include_and_exclude_filter():
     assert entry_indices == {2}
 
 
+def test_get_word_filter_terms():
+    # Arrange
+    word_filter = WordFilter()
+    query_with_include_and_exclude_filter = 'head +"include_word" -"exclude_word" tail'
+
+    # Act
+    filter_terms = word_filter.get_filter_terms(query_with_include_and_exclude_filter)
+
+    # Assert
+    assert filter_terms == ["+include_word", "-exclude_word"]
+
+
 def arrange_content():
     entries = [
         Entry(compiled="", raw="Minimal Entry"),

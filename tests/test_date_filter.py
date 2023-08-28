@@ -68,13 +68,13 @@ def test_extract_date_range():
     ]
 
     # Unparseable date filter specified in query
-    assert DateFilter().extract_date_range('head dt:"Summer of 69" tail') == None
+    assert DateFilter().extract_date_range('head dt:"Summer of 69" tail') == []
 
     # No date filter specified in query
-    assert DateFilter().extract_date_range("head tail") == None
+    assert DateFilter().extract_date_range("head tail") == []
 
     # Non intersecting date ranges
-    assert DateFilter().extract_date_range('head dt>"1984-01-01" dt<"1984-01-01" tail') == None
+    assert DateFilter().extract_date_range('head dt>"1984-01-01" dt<"1984-01-01" tail') == []
 
 
 @pytest.mark.filterwarnings("ignore:The localize method is no longer necessary.")
@@ -157,4 +157,24 @@ def test_date_filter_regex():
     assert dtrange_match == [("<=", "multi word date")]
 
     dtrange_match = re.findall(DateFilter().date_regex, "head tail")
+    assert dtrange_match == []
+
+
+def test_get_file_filter_terms():
+    dtrange_match = DateFilter().get_filter_terms('multi word head dt>"today" dt:"1984-01-01"')
+    assert dtrange_match == ["dt>'today'", "dt:'1984-01-01'"]
+
+    dtrange_match = DateFilter().get_filter_terms('head dt>"today" dt:"1984-01-01" multi word tail')
+    assert dtrange_match == ["dt>'today'", "dt:'1984-01-01'"]
+
+    dtrange_match = DateFilter().get_filter_terms('multi word head dt>="today" dt="1984-01-01"')
+    assert dtrange_match == ["dt>='today'", "dt='1984-01-01'"]
+
+    dtrange_match = DateFilter().get_filter_terms('dt<"multi word date" multi word tail')
+    assert dtrange_match == ["dt<'multi word date'"]
+
+    dtrange_match = DateFilter().get_filter_terms('head dt<="multi word date"')
+    assert dtrange_match == ["dt<='multi word date'"]
+
+    dtrange_match = DateFilter().get_filter_terms("head tail")
     assert dtrange_match == []

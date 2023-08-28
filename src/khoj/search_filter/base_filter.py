@@ -12,8 +12,11 @@ class BaseFilter(ABC):
         ...
 
     @abstractmethod
-    def can_filter(self, raw_query: str) -> bool:
+    def get_filter_terms(self, query: str) -> List[str]:
         ...
+
+    def can_filter(self, raw_query: str) -> bool:
+        return len(self.get_filter_terms(raw_query)) > 0
 
     @abstractmethod
     def apply(self, query: str, entries: List[Entry]) -> Tuple[str, Set[int]]:
