@@ -211,6 +211,24 @@ def test_answer_from_retrieved_content_using_notes_command(client_offline_chat):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
+def test_answer_using_file_filter(client_offline_chat):
+    # Arrange
+    no_answer_query = urllib.parse.quote('Where was Xi Li born? file:"Namita.markdown"')
+    answer_query = urllib.parse.quote('Where was Xi Li born? file:"Xi Li.markdown"')
+    message_list = []
+    populate_chat_history(message_list)
+
+    # Act
+    no_answer_response = client_offline_chat.get(f"/api/chat?q={no_answer_query}&stream=true").content.decode("utf-8")
+    answer_response = client_offline_chat.get(f"/api/chat?q={answer_query}&stream=true").content.decode("utf-8")
+
+    # Assert
+    assert "Fujiang" not in no_answer_response
+    assert "Fujiang" in answer_response
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
 def test_answer_not_known_using_notes_command(client_offline_chat):
     # Arrange
     query = urllib.parse.quote("/notes Where was Testatron born?")

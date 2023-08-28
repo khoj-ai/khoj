@@ -337,3 +337,19 @@ def test_answer_requires_multiple_independent_searches(chat_client):
     assert any([expected_response in response_message.lower() for expected_response in expected_responses]), (
         "Expected Xi is older than Namita, but got: " + response_message
     )
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_answer_using_file_filter(chat_client):
+    "Chat should be able to use search filters in the query"
+    # Act
+    query = urllib.parse.quote('Is Xi older than Namita? file:"Namita.markdown" file:"Xi Li.markdown"')
+    response = chat_client.get(f"/api/chat?q={query}&stream=true")
+    response_message = response.content.decode("utf-8")
+
+    # Assert
+    expected_responses = ["he is older than namita", "xi is older than namita", "xi li is older than namita"]
+    assert response.status_code == 200
+    assert any([expected_response in response_message.lower() for expected_response in expected_responses]), (
+        "Expected Xi is older than Namita, but got: " + response_message
+    )
