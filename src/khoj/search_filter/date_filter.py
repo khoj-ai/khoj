@@ -3,6 +3,7 @@ import re
 import logging
 from collections import defaultdict
 from datetime import timedelta, datetime
+from typing import List
 from dateutil.relativedelta import relativedelta
 from math import inf
 
@@ -45,9 +46,9 @@ class DateFilter(BaseFilter):
                         continue
                     self.date_to_entry_ids[date_in_entry].add(id)
 
-    def can_filter(self, raw_query):
-        "Check if query contains date filters"
-        return self.extract_date_range(raw_query) is not None
+    def get_filter_terms(self, query: str) -> List[str]:
+        "Get all filter terms in query"
+        return [f"dt{item[0]}'{item[1]}'" for item in re.findall(self.date_regex, query)]
 
     def defilter(self, query):
         # remove date range filter from query

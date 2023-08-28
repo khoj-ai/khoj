@@ -3,6 +3,7 @@ import re
 import fnmatch
 import logging
 from collections import defaultdict
+from typing import List
 
 # Internal Packages
 from khoj.search_filter.base_filter import BaseFilter
@@ -25,8 +26,9 @@ class FileFilter(BaseFilter):
             for id, entry in enumerate(entries):
                 self.file_to_entry_map[getattr(entry, self.entry_key)].add(id)
 
-    def can_filter(self, raw_query):
-        return re.search(self.file_filter_regex, raw_query) is not None
+    def get_filter_terms(self, query: str) -> List[str]:
+        "Get all filter terms in query"
+        return [f'file:"{term}"' for term in re.findall(self.file_filter_regex, query)]
 
     def defilter(self, query: str) -> str:
         return re.sub(self.file_filter_regex, "", query).strip()

@@ -158,3 +158,23 @@ def test_date_filter_regex():
 
     dtrange_match = re.findall(DateFilter().date_regex, "head tail")
     assert dtrange_match == []
+
+
+def test_get_file_filter_terms():
+    dtrange_match = DateFilter().get_filter_terms('multi word head dt>"today" dt:"1984-01-01"')
+    assert dtrange_match == ["dt>'today'", "dt:'1984-01-01'"]
+
+    dtrange_match = DateFilter().get_filter_terms('head dt>"today" dt:"1984-01-01" multi word tail')
+    assert dtrange_match == ["dt>'today'", "dt:'1984-01-01'"]
+
+    dtrange_match = DateFilter().get_filter_terms('multi word head dt>="today" dt="1984-01-01"')
+    assert dtrange_match == ["dt>='today'", "dt='1984-01-01'"]
+
+    dtrange_match = DateFilter().get_filter_terms('dt<"multi word date" multi word tail')
+    assert dtrange_match == ["dt<'multi word date'"]
+
+    dtrange_match = DateFilter().get_filter_terms('head dt<="multi word date"')
+    assert dtrange_match == ["dt<='multi word date'"]
+
+    dtrange_match = DateFilter().get_filter_terms("head tail")
+    assert dtrange_match == []
