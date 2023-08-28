@@ -4,7 +4,7 @@ from langchain.prompts import PromptTemplate
 
 ## Personality
 ## --
-personality = PromptTemplate.from_template("You are Khoj, a friendly, smart and helpful personal assistant.")
+personality = PromptTemplate.from_template("You are Khoj, a smart, inquisitive and helpful personal assistant.")
 
 
 ## General Conversation
@@ -77,7 +77,9 @@ conversation_llamav2 = PromptTemplate.from_template(
 ## --
 notes_conversation = PromptTemplate.from_template(
     """
-Using the notes and our past conversations as context, answer the following question.
+Using my personal notes and our past conversations as context, answer the following question.
+Ask crisp follow-up questions to get additional context, when the answer cannot be inferred from the provided notes or past conversations.
+These questions should end with a question mark.
 Current Date: {current_date}
 
 Notes:
@@ -236,9 +238,10 @@ Q:"""
 # --
 help_message = PromptTemplate.from_template(
     """
+**/notes**: Chat using the information in your knowledge base.
+**/general**: Chat using just Khoj's general knowledge. This will not search against your notes.
+**/default**: Chat using your knowledge base and Khoj's general knowledge for context.
 **/help**: Show this help message.
-**/notes**: Chat using the information in your knowledge base. This is the default method.
-**/general**: Chat using general knowledge with the LLM. This will not search against your notes.
 
 You are using the **{model}** model.
 **version**: {version}

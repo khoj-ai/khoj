@@ -168,12 +168,15 @@
 
         function onChatInput() {
             let chatInput = document.getElementById("chat-input");
-            if (chatInput.value === "/") {
+            if (chatInput.value.startsWith("/") && chatInput.value.split(" ").length === 1) {
                 let chatTooltip = document.getElementById("chat-tooltip");
                 chatTooltip.style.display = "block";
                 let helpText = "<div>";
+                const command = chatInput.value.split(" ")[0].substring(1);
                 for (let key in chatOptions) {
-                    helpText += "<b>/" + key + "</b>: " + chatOptions[key] + "<br>";
+                    if (!!!command || key.startsWith(command)) {
+                        helpText += "<b>/" + key + "</b>: " + chatOptions[key] + "<br>";
+                    }
                 }
                 chatTooltip.innerHTML = helpText;
             } else if (chatInput.value.startsWith("/")) {
@@ -514,6 +517,7 @@
 
         div#chat-tooltip {
             text-align: left;
+            font-size: medium;
         }
 
         @keyframes gradient {

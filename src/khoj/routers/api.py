@@ -705,7 +705,7 @@ async def chat(
     compiled_references, inferred_queries = await extract_references_and_questions(
         request, q, (n or 5), conversation_command
     )
-    conversation_command = get_conversation_command(query=q, any_references=is_none_or_empty(compiled_references))
+    conversation_command = get_conversation_command(query=q, any_references=not is_none_or_empty(compiled_references))
     if conversation_command == ConversationCommand.Help:
         model_type = "offline" if state.processor_config.conversation.enable_offline_chat else "openai"
         formatted_help = help_message.format(model=model_type, version=state.khoj_version)
@@ -755,7 +755,7 @@ async def extract_references_and_questions(
     request: Request,
     q: str,
     n: int,
-    conversation_type: ConversationCommand = ConversationCommand.Notes,
+    conversation_type: ConversationCommand = ConversationCommand.Default,
 ):
     # Load Conversation History
     meta_log = state.processor_config.conversation.meta_log
