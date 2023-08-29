@@ -91,10 +91,13 @@ class PlaintextToJsonl(TextToJsonl):
 
         for plaintext_file in plaintext_files:
             with open(plaintext_file, "r") as f:
-                plaintext_content = f.read()
-                if plaintext_file.endswith(("html", "htm", "xml")):
-                    plaintext_content = PlaintextToJsonl.extract_html_content(plaintext_content)
-                entry_to_file_map.append((plaintext_content, plaintext_file))
+                try:
+                    plaintext_content = f.read()
+                    if plaintext_file.endswith(("html", "htm", "xml")):
+                        plaintext_content = PlaintextToJsonl.extract_html_content(plaintext_content)
+                    entry_to_file_map.append((plaintext_content, plaintext_file))
+                except Exception as e:
+                    logger.error(f"Error processing file: {plaintext_file} - {e}", exc_info=True)
 
         return dict(entry_to_file_map)
 
