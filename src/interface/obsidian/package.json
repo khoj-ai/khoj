@@ -1,6 +1,6 @@
 {
     "name": "Khoj",
-    "version": "0.11.3",
+    "version": "0.11.4",
     "description": "An AI Personal Assistant for your Digital Brain",
     "main": "src/main.js",
     "scripts": {
