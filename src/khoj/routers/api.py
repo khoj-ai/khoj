@@ -771,7 +771,7 @@ async def extract_references_and_questions(
         return compiled_references, inferred_queries
 
     if conversation_type == ConversationCommand.General:
-        return compiled_references, inferred_queries
+        return compiled_references, inferred_queries, q
 
     # Extract filter terms from user message
     defiltered_query = q

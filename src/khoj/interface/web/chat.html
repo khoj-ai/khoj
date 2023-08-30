@@ -168,6 +168,8 @@
 
         function onChatInput() {
             let chatInput = document.getElementById("chat-input");
+            chatInput.value = chatInput.value.trimStart();
+
             if (chatInput.value.startsWith("/") && chatInput.value.split(" ").length === 1) {
                 let chatTooltip = document.getElementById("chat-tooltip");
                 chatTooltip.style.display = "block";

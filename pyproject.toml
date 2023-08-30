@@ -54,7 +54,7 @@ dependencies = [
     "transformers >= 4.28.0",
     "torch >= 2.0.1",
     "uvicorn == 0.17.6",
-    "aiohttp == 3.8.4",
+    "aiohttp == 3.8.5",
     "langchain >= 0.0.187",
     "pypdf >= 3.9.0",
     "requests >= 2.26.0",
