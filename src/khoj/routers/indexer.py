@@ -1,5 +1,6 @@
 # Standard Packages
 import logging
+import sys
 from typing import Optional, Union
 
 # External Packages
@@ -18,7 +19,7 @@ from khoj.processor.plaintext.plaintext_to_jsonl import PlaintextToJsonl
 from khoj.utils.rawconfig import ContentConfig
 from khoj.search_type import text_search, image_search
 from khoj.utils.config import SearchModels
-from khoj.utils.helpers import LRU
+from khoj.utils.helpers import LRU, get_file_type
 from khoj.utils.rawconfig import (
     ContentConfig,
 )
@@ -35,11 +36,20 @@ logger = logging.getLogger(__name__)
 indexer = APIRouter()
 
 
+class File(BaseModel):
+    path: str
+    content: str
+
+
 class IndexBatchRequest(BaseModel):
-    org: Optional[dict[str, str]]
-    pdf: Optional[dict[str, str]]
-    plaintext: Optional[dict[str, str]]
-    markdown: Optional[dict[str, str]]
+    files: list[File]
+
+
+class IndexerInput(BaseModel):
+    org: Optional[dict[str, str]] = None
+    markdown: Optional[dict[str, str]] = None
+    pdf: Optional[dict[str, str]] = None
+    plaintext: Optional[dict[str, str]] = None
 
 
 @indexer.post("/batch")
@@ -57,14 +67,54 @@ async def index_batch(
         index_batch_request_acc = ""
         async for chunk in request.stream():
             index_batch_request_acc += chunk.decode()
+        data_bytes = sys.getsizeof(index_batch_request_acc)
+        unit = "KB"
+        data_size = data_bytes / 1024
+        if data_size > 1000:
+            unit = "MB"
+            data_size = data_size / 1024
+        if data_size > 1000:
+            unit = "GB"
+            data_size = data_size / 1024
+        data_size_metric = f"{data_size:.2f} {unit}"
+        logger.info(f"Received {data_size_metric} of data")
         index_batch_request = IndexBatchRequest.parse_raw(index_batch_request_acc)
-        logger.info(f"Received batch indexing request size: {len(index_batch_request.dict())}")
+        logger.info(f"Received {len(index_batch_request.files)} files")
+
+        org_files = {}
+        markdown_files = {}
+        pdf_files = {}
+        plaintext_files = {}
+
+        for file in index_batch_request.files:
+            file_type = get_file_type(file.path)
+            dict_to_update = None
+            if file_type == "org":
+                dict_to_update = org_files
+            elif file_type == "markdown":
+                dict_to_update = markdown_files
+            elif file_type == "pdf":
+                dict_to_update = pdf_files
+            elif file_type == "plaintext":
+                dict_to_update = plaintext_files
+
+            if dict_to_update is not None:
+                dict_to_update[file.path] = file.content
+            else:
+                logger.info(f"Skipping unsupported streamed file: {file.path}")
+
+        indexer_input = IndexerInput(
+            org=org_files,
+            markdown=markdown_files,
+            pdf=pdf_files,
+            plaintext=plaintext_files,
+        )
 
         # Extract required fields from config
         state.content_index = configure_content(
             state.content_index,
             state.config.content_type,
-            index_batch_request.dict(),
+            indexer_input.dict(),
             state.search_models,
             regenerate=regenerate,
             t=search_type,
