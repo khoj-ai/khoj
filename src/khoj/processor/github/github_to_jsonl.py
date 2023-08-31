@@ -37,7 +37,7 @@ class GithubToJsonl(TextToJsonl):
         else:
             return
 
-    def process(self, previous_entries=[]):
+    def process(self, previous_entries=[], files=None):
         if self.config.pat_token is None or self.config.pat_token == "":
             logger.error(f"Github PAT token is not set. Skipping github content")
             raise ValueError("Github PAT token is not set. Skipping github content")

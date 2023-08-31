@@ -1,9 +1,12 @@
 # Standard Packages
 import json
 from pathlib import Path
+import os
 
 # Internal Packages
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
+from khoj.utils.fs_syncer import get_markdown_files
+from khoj.utils.rawconfig import TextContentConfig
 
 
 def test_markdown_file_with_no_headings_to_jsonl(tmp_path):
@@ -13,12 +16,14 @@ def test_markdown_file_with_no_headings_to_jsonl(tmp_path):
     - Bullet point 1
     - Bullet point 2
     """
-    markdownfile = create_file(tmp_path, entry)
-    expected_heading = "# " + markdownfile.stem
+    data = {
+        f"{tmp_path}": entry,
+    }
+    expected_heading = f"# {tmp_path.stem}"
 
     # Act
     # Extract Entries from specified Markdown files
-    entry_nodes, file_to_entries = MarkdownToJsonl.extract_markdown_entries(markdown_files=[markdownfile])
+    entry_nodes, file_to_entries = MarkdownToJsonl.extract_markdown_entries(markdown_files=data)
 
     # Process Each Entry from All Notes Files
     jsonl_string = MarkdownToJsonl.convert_markdown_maps_to_jsonl(
@@ -41,11 +46,13 @@ def test_single_markdown_entry_to_jsonl(tmp_path):
     \t\r
     Body Line 1
     """
-    markdownfile = create_file(tmp_path, entry)
+    data = {
+        f"{tmp_path}": entry,
+    }
 
     # Act
     # Extract Entries from specified Markdown files
-    entries, entry_to_file_map = MarkdownToJsonl.extract_markdown_entries(markdown_files=[markdownfile])
+    entries, entry_to_file_map = MarkdownToJsonl.extract_markdown_entries(markdown_files=data)
 
     # Process Each Entry from All Notes Files
     jsonl_string = MarkdownToJsonl.convert_markdown_maps_to_jsonl(
@@ -68,11 +75,13 @@ def test_multiple_markdown_entries_to_jsonl(tmp_path):
     \t\r
     Heading 2 Body Line 2
     """
-    markdownfile = create_file(tmp_path, entry)
+    data = {
+        f"{tmp_path}": entry,
+    }
 
     # Act
     # Extract Entries from specified Markdown files
-    entry_strings, entry_to_file_map = MarkdownToJsonl.extract_markdown_entries(markdown_files=[markdownfile])
+    entry_strings, entry_to_file_map = MarkdownToJsonl.extract_markdown_entries(markdown_files=data)
     entries = MarkdownToJsonl.convert_markdown_entries_to_maps(entry_strings, entry_to_file_map)
 
     # Process Each Entry from All Notes Files
@@ -82,7 +91,7 @@ def test_multiple_markdown_entries_to_jsonl(tmp_path):
     # Assert
     assert len(jsonl_data) == 2
     # Ensure entry compiled strings include the markdown files they originate from
-    assert all([markdownfile.stem in entry.compiled for entry in entries])
+    assert all([tmp_path.stem in entry.compiled for entry in entries])
 
 
 def test_get_markdown_files(tmp_path):
@@ -99,18 +108,27 @@ def test_get_markdown_files(tmp_path):
     create_file(tmp_path, filename="not-included-markdown.md")
     create_file(tmp_path, filename="not-included-text.txt")
 
-    expected_files = sorted(map(str, [group1_file1, group1_file2, group2_file1, group2_file2, file1]))
+    expected_files = set(
+        [os.path.join(tmp_path, file.name) for file in [group1_file1, group1_file2, group2_file1, group2_file2, file1]]
+    )
 
     # Setup input-files, input-filters
     input_files = [tmp_path / "notes.md"]
     input_filter = [tmp_path / "group1*.md", tmp_path / "group2*.markdown"]
 
+    markdown_config = TextContentConfig(
+        input_files=input_files,
+        input_filter=[str(filter) for filter in input_filter],
+        compressed_jsonl=tmp_path / "test.jsonl",
+        embeddings_file=tmp_path / "test_embeddings.jsonl",
+    )
+
     # Act
-    extracted_org_files = MarkdownToJsonl.get_markdown_files(input_files, input_filter)
+    extracted_org_files = get_markdown_files(markdown_config)
 
     # Assert
     assert len(extracted_org_files) == 5
-    assert extracted_org_files == expected_files
+    assert set(extracted_org_files.keys()) == expected_files
 
 
 def test_extract_entries_with_different_level_headings(tmp_path):
@@ -120,11 +138,13 @@ def test_extract_entries_with_different_level_headings(tmp_path):
 # Heading 1
 ## Heading 2
 """
-    markdownfile = create_file(tmp_path, entry)
+    data = {
+        f"{tmp_path}": entry,
+    }
 
     # Act
     # Extract Entries from specified Markdown files
-    entries, _ = MarkdownToJsonl.extract_markdown_entries(markdown_files=[markdownfile])
+    entries, _ = MarkdownToJsonl.extract_markdown_entries(markdown_files=data)
 
     # Assert
     assert len(entries) == 2

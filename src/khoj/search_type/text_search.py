@@ -104,6 +104,18 @@ def compute_embeddings(
     return corpus_embeddings
 
 
+def load_embeddings(
+    embeddings_file: Path,
+):
+    "Load pre-computed embeddings from file if exists and update them if required"
+    if embeddings_file.exists():
+        corpus_embeddings: torch.Tensor = torch.load(get_absolute_path(embeddings_file), map_location=state.device)
+        logger.debug(f"Loaded {len(corpus_embeddings)} text embeddings from {embeddings_file}")
+        return util.normalize_embeddings(corpus_embeddings)
+
+    return None
+
+
 async def query(
     raw_query: str,
     search_model: TextSearchModel,
@@ -174,6 +186,7 @@ def collate_results(hits, entries: List[Entry], count=5) -> List[SearchResponse]
 
 def setup(
     text_to_jsonl: Type[TextToJsonl],
+    files: dict[str, str],
     config: TextConfigBase,
     bi_encoder: BaseEncoder,
     regenerate: bool,
@@ -185,7 +198,7 @@ def setup(
     previous_entries = []
     if config.compressed_jsonl.exists() and not regenerate:
         previous_entries = extract_entries(config.compressed_jsonl)
-    entries_with_indices = text_to_jsonl(config).process(previous_entries)
+    entries_with_indices = text_to_jsonl(config).process(previous_entries=previous_entries, files=files)
 
     # Extract Updated Entries
     entries = extract_entries(config.compressed_jsonl)
@@ -201,6 +214,24 @@ def setup(
 
     for filter in filters:
         filter.load(entries, regenerate=regenerate)
+
+    return TextContent(entries, corpus_embeddings, filters)
+
+
+def load(
+    config: TextConfigBase,
+    filters: List[BaseFilter] = [],
+) -> TextContent:
+    # Map notes in text files to (compressed) JSONL formatted file
+    config.compressed_jsonl = resolve_absolute_path(config.compressed_jsonl)
+    entries = extract_entries(config.compressed_jsonl)
+
+    # Compute or Load Embeddings
+    config.embeddings_file = resolve_absolute_path(config.embeddings_file)
+    corpus_embeddings = load_embeddings(config.embeddings_file)
+
+    for filter in filters:
+        filter.load(entries, regenerate=False)
 
     return TextContent(entries, corpus_embeddings, filters)
 

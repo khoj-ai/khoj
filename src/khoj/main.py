@@ -75,8 +75,8 @@ def run():
         poll_task_scheduler()
 
         # Start Server
-        initialize_server(args.config, args.regenerate, required=False)
         configure_routes(app)
+        initialize_server(args.config, required=False)
         start_server(app, host=args.host, port=args.port, socket=args.socket)
     else:
         from PySide6 import QtWidgets
@@ -99,7 +99,7 @@ def run():
             tray.show()
 
         # Setup Server
-        initialize_server(args.config, args.regenerate, required=False)
+        initialize_server(args.config, required=False)
         configure_routes(app)
         server = ServerThread(start_server_func=lambda: start_server(app, host=args.host, port=args.port), parent=gui)
 

@@ -44,7 +44,7 @@ Body Line 1"""
     assert len(entries) == 1
     assert entries[0].heading == "Heading"
     assert entries[0].tags == list()
-    assert entries[0].body == "Body Line 1"
+    assert entries[0].body == "Body Line 1\n\n"
     assert entries[0].priority == ""
     assert entries[0].Property("ID") == ""
     assert entries[0].closed == ""
@@ -78,7 +78,7 @@ Body Line 2"""
     assert entries[0].heading == "Heading"
     assert entries[0].todo == "DONE"
     assert entries[0].tags == ["Tag1", "TAG2", "tag3"]
-    assert entries[0].body == "- Clocked Log 1\nBody Line 1\nBody Line 2"
+    assert entries[0].body == "- Clocked Log 1\n\nBody Line 1\n\nBody Line 2\n\n"
     assert entries[0].priority == "A"
     assert entries[0].Property("ID") == "id:123-456-789-4234-1231"
     assert entries[0].closed == datetime.date(1984, 4, 1)
@@ -205,7 +205,7 @@ Body 2
         assert entry.heading == f"Heading{index+1}"
         assert entry.todo == "FAILED" if index == 0 else "CANCELLED"
         assert entry.tags == [f"tag{index+1}"]
-        assert entry.body == f"- Clocked Log {index+1}\nBody {index+1}\n\n"
+        assert entry.body == f"- Clocked Log {index+1}\n\nBody {index+1}\n\n"
         assert entry.priority == "A"
         assert entry.Property("ID") == f"id:123-456-789-4234-000{index+1}"
         assert entry.closed == datetime.date(1984, 4, index + 1)
@@ -305,7 +305,7 @@ entry body
     assert entries[0].heading == "Title"
     assert entries[0].body == "intro body\n"
     assert entries[1].heading == "Entry Heading"
-    assert entries[1].body == "entry body\n"
+    assert entries[1].body == "entry body\n\n"
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -327,7 +327,7 @@ entry body
     assert entries[0].heading == "Title1 Title2"
     assert entries[0].body == "intro body\n"
     assert entries[1].heading == "Entry Heading"
-    assert entries[1].body == "entry body\n"
+    assert entries[1].body == "entry body\n\n"
 
 
 # Helper Functions

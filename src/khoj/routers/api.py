@@ -608,7 +608,7 @@ def update(
         logger.warning(error_msg)
         raise HTTPException(status_code=500, detail=error_msg)
     try:
-        configure_server(state.config, regenerate=force or False, search_type=t)
+        configure_server(state.config)
     except Exception as e:
         error_msg = f"🚨 Failed to update server via API: {e}"
         logger.error(error_msg, exc_info=True)
@@ -765,7 +765,7 @@ async def extract_references_and_questions(
     inferred_queries: List[str] = []
 
     if state.content_index is None:
-        logger.warn(
+        logger.warning(
             "No content index loaded, so cannot extract references from knowledge base. Please configure your data sources and update the index to chat with your notes."
         )
         return compiled_references, inferred_queries

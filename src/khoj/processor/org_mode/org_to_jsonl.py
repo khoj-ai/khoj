@@ -1,13 +1,12 @@
 # Standard Packages
-import glob
 import logging
 from pathlib import Path
-from typing import Iterable, List
+from typing import Iterable, List, Tuple
 
 # Internal Packages
 from khoj.processor.org_mode import orgnode
 from khoj.processor.text_to_jsonl import TextToJsonl
-from khoj.utils.helpers import get_absolute_path, is_none_or_empty, timer
+from khoj.utils.helpers import timer
 from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry, TextContentConfig
 from khoj.utils import state
@@ -22,27 +21,14 @@ class OrgToJsonl(TextToJsonl):
         self.config = config
 
     # Define Functions
-    def process(self, previous_entries: List[Entry] = []):
+    def process(self, previous_entries: List[Entry] = [], files: dict[str, str] = None) -> List[Tuple[int, Entry]]:
         # Extract required fields from config
-        org_files, org_file_filter, output_file = (
-            self.config.input_files,
-            self.config.input_filter,
-            self.config.compressed_jsonl,
-        )
+        output_file = self.config.compressed_jsonl
         index_heading_entries = self.config.index_heading_entries
-
-        # Input Validation
-        if is_none_or_empty(org_files) and is_none_or_empty(org_file_filter):
-            print("At least one of org-files or org-file-filter is required to be specified")
-            exit(1)
-
-        # Get Org Files to Process
-        with timer("Get org files to process", logger):
-            org_files = OrgToJsonl.get_org_files(org_files, org_file_filter)
 
         # Extract Entries from specified Org files
         with timer("Parse entries from org files into OrgNode objects", logger):
-            entry_nodes, file_to_entries = self.extract_org_entries(org_files)
+            entry_nodes, file_to_entries = self.extract_org_entries(files)
 
         with timer("Convert OrgNodes into list of entries", logger):
             current_entries = self.convert_org_nodes_to_entries(entry_nodes, file_to_entries, index_heading_entries)
@@ -67,36 +53,15 @@ class OrgToJsonl(TextToJsonl):
         return entries_with_ids
 
     @staticmethod
-    def get_org_files(org_files=None, org_file_filters=None):
-        "Get Org files to process"
-        absolute_org_files, filtered_org_files = set(), set()
-        if org_files:
-            absolute_org_files = {get_absolute_path(org_file) for org_file in org_files}
-        if org_file_filters:
-            filtered_org_files = {
-                filtered_file
-                for org_file_filter in org_file_filters
-                for filtered_file in glob.glob(get_absolute_path(org_file_filter), recursive=True)
-            }
-
-        all_org_files = sorted(absolute_org_files | filtered_org_files)
-
-        files_with_non_org_extensions = {org_file for org_file in all_org_files if not org_file.endswith(".org")}
-        if any(files_with_non_org_extensions):
-            logger.warning(f"There maybe non org-mode files in the input set: {files_with_non_org_extensions}")
-
-        logger.debug(f"Processing files: {all_org_files}")
-
-        return all_org_files
-
-    @staticmethod
-    def extract_org_entries(org_files):
+    def extract_org_entries(org_files: dict[str, str]):
         "Extract entries from specified Org files"
         entries = []
-        entry_to_file_map = []
+        entry_to_file_map: List[Tuple[orgnode.Orgnode, str]] = []
         for org_file in org_files:
+            filename = org_file
+            file = org_files[org_file]
             try:
-                org_file_entries = orgnode.makelist_with_filepath(str(org_file))
+                org_file_entries = orgnode.makelist(file, filename)
                 entry_to_file_map += zip(org_file_entries, [org_file] * len(org_file_entries))
                 entries.extend(org_file_entries)
             except Exception as e:
@@ -109,7 +74,7 @@ class OrgToJsonl(TextToJsonl):
     def process_single_org_file(org_content: str, org_file: str, entries: List, entry_to_file_map: List):
         # Process single org file. The org parser assumes that the file is a single org file and reads it from a buffer. We'll split the raw conetnt of this file by new line to mimic the same behavior.
         try:
-            org_file_entries = orgnode.makelist(org_content.split("\n"), org_file)
+            org_file_entries = orgnode.makelist(org_content, org_file)
             entry_to_file_map += zip(org_file_entries, [org_file] * len(org_file_entries))
             entries.extend(org_file_entries)
             return entries, entry_to_file_map

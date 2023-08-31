@@ -1,15 +1,24 @@
 # Standard Packages
 import json
+import os
 
 # Internal Packages
 from khoj.processor.pdf.pdf_to_jsonl import PdfToJsonl
+
+from khoj.utils.fs_syncer import get_pdf_files
+from khoj.utils.rawconfig import TextContentConfig
 
 
 def test_single_page_pdf_to_jsonl():
     "Convert single page PDF file to jsonl."
     # Act
     # Extract Entries from specified Pdf files
-    entries, entry_to_file_map = PdfToJsonl.extract_pdf_entries(pdf_files=["tests/data/pdf/singlepage.pdf"])
+    # Read singlepage.pdf into memory as bytes
+    with open("tests/data/pdf/singlepage.pdf", "rb") as f:
+        pdf_bytes = f.read()
+
+    data = {"tests/data/pdf/singlepage.pdf": pdf_bytes}
+    entries, entry_to_file_map = PdfToJsonl.extract_pdf_entries(pdf_files=data)
 
     # Process Each Entry from All Pdf Files
     jsonl_string = PdfToJsonl.convert_pdf_maps_to_jsonl(
@@ -25,7 +34,11 @@ def test_multi_page_pdf_to_jsonl():
     "Convert multiple pages from single PDF file to jsonl."
     # Act
     # Extract Entries from specified Pdf files
-    entries, entry_to_file_map = PdfToJsonl.extract_pdf_entries(pdf_files=["tests/data/pdf/multipage.pdf"])
+    with open("tests/data/pdf/multipage.pdf", "rb") as f:
+        pdf_bytes = f.read()
+
+    data = {"tests/data/pdf/multipage.pdf": pdf_bytes}
+    entries, entry_to_file_map = PdfToJsonl.extract_pdf_entries(pdf_files=data)
 
     # Process Each Entry from All Pdf Files
     jsonl_string = PdfToJsonl.convert_pdf_maps_to_jsonl(
@@ -51,18 +64,27 @@ def test_get_pdf_files(tmp_path):
     create_file(tmp_path, filename="not-included-document.pdf")
     create_file(tmp_path, filename="not-included-text.txt")
 
-    expected_files = sorted(map(str, [group1_file1, group1_file2, group2_file1, group2_file2, file1]))
+    expected_files = set(
+        [os.path.join(tmp_path, file.name) for file in [group1_file1, group1_file2, group2_file1, group2_file2, file1]]
+    )
 
     # Setup input-files, input-filters
     input_files = [tmp_path / "document.pdf"]
     input_filter = [tmp_path / "group1*.pdf", tmp_path / "group2*.pdf"]
 
+    pdf_config = TextContentConfig(
+        input_files=input_files,
+        input_filter=[str(path) for path in input_filter],
+        compressed_jsonl=tmp_path / "test.jsonl",
+        embeddings_file=tmp_path / "test_embeddings.jsonl",
+    )
+
     # Act
-    extracted_pdf_files = PdfToJsonl.get_pdf_files(input_files, input_filter)
+    extracted_pdf_files = get_pdf_files(pdf_config)
 
     # Assert
     assert len(extracted_pdf_files) == 5
-    assert extracted_pdf_files == expected_files
+    assert set(extracted_pdf_files.keys()) == expected_files
 
 
 # Helper Functions

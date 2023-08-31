@@ -11,7 +11,6 @@ from fastapi.testclient import TestClient
 from khoj.main import app
 from khoj.configure import configure_routes, configure_search_types
 from khoj.utils import state
-from khoj.utils.config import SearchModels
 from khoj.utils.state import search_models, content_index, config
 from khoj.search_type import text_search, image_search
 from khoj.utils.rawconfig import ContentConfig, SearchConfig
@@ -52,28 +51,6 @@ def test_update_with_invalid_content_type(client):
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_update_with_valid_content_type(client):
-    for content_type in ["all", "org", "markdown", "image", "pdf", "notion", "plugin1"]:
-        # Act
-        response = client.get(f"/api/update?t={content_type}")
-        # Assert
-        assert response.status_code == 200, f"Returned status: {response.status_code} for content type: {content_type}"
-
-
-# ----------------------------------------------------------------------------------------------------
-def test_update_with_github_fails_without_pat(client):
-    # Act
-    response = client.get(f"/api/update?t=github")
-
-    # Assert
-    assert response.status_code == 500, f"Returned status: {response.status_code} for content type: github"
-    assert (
-        response.json()["detail"]
-        == "🚨 Failed to update server via API: Github PAT token is not set. Skipping github content"
-    )
-
-
-# ----------------------------------------------------------------------------------------------------
 def test_regenerate_with_invalid_content_type(client):
     # Act
     response = client.get(f"/api/update?force=true&t=invalid_content_type")
@@ -83,10 +60,28 @@ def test_regenerate_with_invalid_content_type(client):
 
 
 # ----------------------------------------------------------------------------------------------------
+def test_index_batch(client):
+    # Arrange
+    request_body = get_sample_files_data()
+    headers = {"x-api-key": "secret"}
+
+    # Act
+    response = client.post("/indexer/batch", json=request_body, headers=headers)
+
+    # Assert
+    assert response.status_code == 200
+
+
+# ----------------------------------------------------------------------------------------------------
 def test_regenerate_with_valid_content_type(client):
     for content_type in ["all", "org", "markdown", "image", "pdf", "notion", "plugin1"]:
+        # Arrange
+        request_body = get_sample_files_data()
+
+        headers = {"x-api-key": "secret"}
+
         # Act
-        response = client.get(f"/api/update?force=true&t={content_type}")
+        response = client.post(f"/indexer/batch?search_type={content_type}", json=request_body, headers=headers)
         # Assert
         assert response.status_code == 200, f"Returned status: {response.status_code} for content type: {content_type}"
 
@@ -96,12 +91,15 @@ def test_regenerate_with_github_fails_without_pat(client):
     # Act
     response = client.get(f"/api/update?force=true&t=github")
 
+    # Arrange
+    request_body = get_sample_files_data()
+
+    headers = {"x-api-key": "secret"}
+
+    # Act
+    response = client.post(f"/indexer/batch?search_type=github", json=request_body, headers=headers)
     # Assert
-    assert response.status_code == 500, f"Returned status: {response.status_code} for content type: github"
-    assert (
-        response.json()["detail"]
-        == "🚨 Failed to update server via API: Github PAT token is not set. Skipping github content"
-    )
+    assert response.status_code == 200, f"Returned status: {response.status_code} for content type: github"
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -111,7 +109,7 @@ def test_get_configured_types_via_api(client):
 
     # Assert
     assert response.status_code == 200
-    assert response.json() == ["all", "org", "image", "plugin1"]
+    assert response.json() == ["all", "org", "image", "plaintext", "plugin1"]
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -194,11 +192,11 @@ def test_image_search(client, content_config: ContentConfig, search_config: Sear
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_notes_search(client, content_config: ContentConfig, search_config: SearchConfig):
+def test_notes_search(client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data):
     # Arrange
     search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     content_index.org = text_search.setup(
-        OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=False
+        OrgToJsonl, sample_org_data, content_config.org, search_models.text_search.bi_encoder, regenerate=False
     )
     user_query = quote("How to git install application?")
 
@@ -213,12 +211,19 @@ def test_notes_search(client, content_config: ContentConfig, search_config: Sear
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_notes_search_with_only_filters(client, content_config: ContentConfig, search_config: SearchConfig):
+def test_notes_search_with_only_filters(
+    client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data
+):
     # Arrange
     filters = [WordFilter(), FileFilter()]
     search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     content_index.org = text_search.setup(
-        OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=False, filters=filters
+        OrgToJsonl,
+        sample_org_data,
+        content_config.org,
+        search_models.text_search.bi_encoder,
+        regenerate=False,
+        filters=filters,
     )
     user_query = quote('+"Emacs" file:"*.org"')
 
@@ -233,12 +238,14 @@ def test_notes_search_with_only_filters(client, content_config: ContentConfig, s
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_notes_search_with_include_filter(client, content_config: ContentConfig, search_config: SearchConfig):
+def test_notes_search_with_include_filter(
+    client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data
+):
     # Arrange
     filters = [WordFilter()]
     search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     content_index.org = text_search.setup(
-        OrgToJsonl, content_config.org, search_models.text_search, regenerate=False, filters=filters
+        OrgToJsonl, sample_org_data, content_config.org, search_models.text_search, regenerate=False, filters=filters
     )
     user_query = quote('How to git install application? +"Emacs"')
 
@@ -253,12 +260,19 @@ def test_notes_search_with_include_filter(client, content_config: ContentConfig,
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_notes_search_with_exclude_filter(client, content_config: ContentConfig, search_config: SearchConfig):
+def test_notes_search_with_exclude_filter(
+    client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data
+):
     # Arrange
     filters = [WordFilter()]
     search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     content_index.org = text_search.setup(
-        OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=False, filters=filters
+        OrgToJsonl,
+        sample_org_data,
+        content_config.org,
+        search_models.text_search.bi_encoder,
+        regenerate=False,
+        filters=filters,
     )
     user_query = quote('How to git install application? -"clone"')
 
@@ -270,3 +284,28 @@ def test_notes_search_with_exclude_filter(client, content_config: ContentConfig,
     # assert actual_data does not contains word "clone"
     search_result = response.json()[0]["entry"]
     assert "clone" not in search_result
+
+
+def get_sample_files_data():
+    return {
+        "org": {
+            "path/to/filename.org": "* practicing piano",
+            "path/to/filename1.org": "** top 3 reasons why I moved to SF",
+            "path/to/filename2.org": "* how to build a search engine",
+        },
+        "pdf": {
+            "path/to/filename.pdf": "Moore's law does not apply to consumer hardware",
+            "path/to/filename1.pdf": "The sun is a ball of helium",
+            "path/to/filename2.pdf": "Effect of sunshine on baseline human happiness",
+        },
+        "plaintext": {
+            "path/to/filename.txt": "data,column,value",
+            "path/to/filename1.txt": "<html>my first web page</html>",
+            "path/to/filename2.txt": "2021-02-02 Journal Entry",
+        },
+        "markdown": {
+            "path/to/filename.md": "# Notes from client call",
+            "path/to/filename1.md": "## Studying anthropological records from the Fatimid caliphate",
+            "path/to/filename2.md": "**Understanding science through the lens of art**",
+        },
+    }

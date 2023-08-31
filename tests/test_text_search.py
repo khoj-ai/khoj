@@ -13,6 +13,7 @@ from khoj.search_type import text_search
 from khoj.utils.rawconfig import ContentConfig, SearchConfig, TextContentConfig
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.github.github_to_jsonl import GithubToJsonl
+from khoj.utils.fs_syncer import get_org_files
 
 
 # Test
@@ -27,26 +28,30 @@ def test_text_search_setup_with_missing_file_raises_error(
 
     # Act
     # Generate notes embeddings during asymmetric setup
-    with pytest.raises(ValueError, match=r"^No valid entries found in specified files:*"):
-        text_search.setup(OrgToJsonl, org_config_with_only_new_file, search_config.asymmetric, regenerate=True)
+    with pytest.raises(FileNotFoundError):
+        data = get_org_files(org_config_with_only_new_file)
 
 
 # ----------------------------------------------------------------------------------------------------
 def test_text_search_setup_with_empty_file_raises_error(
     org_config_with_only_new_file: TextContentConfig, search_config: SearchConfig
 ):
+    # Arrange
+    data = get_org_files(org_config_with_only_new_file)
     # Act
     # Generate notes embeddings during asymmetric setup
     with pytest.raises(ValueError, match=r"^No valid entries found*"):
-        text_search.setup(OrgToJsonl, org_config_with_only_new_file, search_config.asymmetric, regenerate=True)
+        text_search.setup(OrgToJsonl, data, org_config_with_only_new_file, search_config.asymmetric, regenerate=True)
 
 
 # ----------------------------------------------------------------------------------------------------
 def test_text_search_setup(content_config: ContentConfig, search_models: SearchModels):
+    # Arrange
+    data = get_org_files(content_config.org)
     # Act
     # Regenerate notes embeddings during asymmetric setup
     notes_model = text_search.setup(
-        OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=True
+        OrgToJsonl, data, content_config.org, search_models.text_search.bi_encoder, regenerate=True
     )
 
     # Assert
@@ -59,14 +64,16 @@ def test_text_index_same_if_content_unchanged(content_config: ContentConfig, sea
     # Arrange
     caplog.set_level(logging.INFO, logger="khoj")
 
+    data = get_org_files(content_config.org)
+
     # Act
     # Generate initial notes embeddings during asymmetric setup
-    text_search.setup(OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=True)
+    text_search.setup(OrgToJsonl, data, content_config.org, search_models.text_search.bi_encoder, regenerate=True)
     initial_logs = caplog.text
     caplog.clear()  # Clear logs
 
     # Run asymmetric setup again with no changes to data source. Ensure index is not updated
-    text_search.setup(OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=False)
+    text_search.setup(OrgToJsonl, data, content_config.org, search_models.text_search.bi_encoder, regenerate=False)
     final_logs = caplog.text
 
     # Assert
@@ -78,9 +85,11 @@ def test_text_index_same_if_content_unchanged(content_config: ContentConfig, sea
 @pytest.mark.anyio
 async def test_text_search(content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
+    data = get_org_files(content_config.org)
+
     search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     content_index.org = text_search.setup(
-        OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=True
+        OrgToJsonl, data, content_config.org, search_models.text_search.bi_encoder, regenerate=True
     )
     query = "How to git install application?"
 
@@ -108,10 +117,12 @@ def test_entry_chunking_by_max_tokens(org_config_with_only_new_file: TextContent
         for index in range(max_tokens + 1):
             f.write(f"{index} ")
 
+    data = get_org_files(org_config_with_only_new_file)
+
     # Act
     # reload embeddings, entries, notes model after adding new org-mode file
     initial_notes_model = text_search.setup(
-        OrgToJsonl, org_config_with_only_new_file, search_models.text_search.bi_encoder, regenerate=False
+        OrgToJsonl, data, org_config_with_only_new_file, search_models.text_search.bi_encoder, regenerate=False
     )
 
     # Assert
@@ -125,8 +136,9 @@ def test_regenerate_index_with_new_entry(
     content_config: ContentConfig, search_models: SearchModels, new_org_file: Path
 ):
     # Arrange
+    data = get_org_files(content_config.org)
     initial_notes_model = text_search.setup(
-        OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=True
+        OrgToJsonl, data, content_config.org, search_models.text_search.bi_encoder, regenerate=True
     )
 
     assert len(initial_notes_model.entries) == 10
@@ -137,10 +149,12 @@ def test_regenerate_index_with_new_entry(
     with open(new_org_file, "w") as f:
         f.write("\n* A Chihuahua doing Tango\n- Saw a super cute video of a chihuahua doing the Tango on Youtube\n")
 
+    data = get_org_files(content_config.org)
+
     # Act
     # regenerate notes jsonl, model embeddings and model to include entry from new file
     regenerated_notes_model = text_search.setup(
-        OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=True
+        OrgToJsonl, data, content_config.org, search_models.text_search.bi_encoder, regenerate=True
     )
 
     # Assert
@@ -169,15 +183,19 @@ def test_update_index_with_duplicate_entries_in_stable_order(
     with open(new_file_to_index, "w") as f:
         f.write(f"{new_entry}{new_entry}")
 
+    data = get_org_files(org_config_with_only_new_file)
+
     # Act
     # load embeddings, entries, notes model after adding new org-mode file
     initial_index = text_search.setup(
-        OrgToJsonl, org_config_with_only_new_file, search_models.text_search.bi_encoder, regenerate=True
+        OrgToJsonl, data, org_config_with_only_new_file, search_models.text_search.bi_encoder, regenerate=True
     )
+
+    data = get_org_files(org_config_with_only_new_file)
 
     # update embeddings, entries, notes model after adding new org-mode file
     updated_index = text_search.setup(
-        OrgToJsonl, org_config_with_only_new_file, search_models.text_search.bi_encoder, regenerate=False
+        OrgToJsonl, data, org_config_with_only_new_file, search_models.text_search.bi_encoder, regenerate=False
     )
 
     # Assert
@@ -200,19 +218,22 @@ def test_update_index_with_deleted_entry(org_config_with_only_new_file: TextCont
     new_entry = "* TODO A Chihuahua doing Tango\n- Saw a super cute video of a chihuahua doing the Tango on Youtube\n"
     with open(new_file_to_index, "w") as f:
         f.write(f"{new_entry}{new_entry} -- Tatooine")
+    data = get_org_files(org_config_with_only_new_file)
 
     # load embeddings, entries, notes model after adding new org file with 2 entries
     initial_index = text_search.setup(
-        OrgToJsonl, org_config_with_only_new_file, search_models.text_search.bi_encoder, regenerate=True
+        OrgToJsonl, data, org_config_with_only_new_file, search_models.text_search.bi_encoder, regenerate=True
     )
 
     # update embeddings, entries, notes model after removing an entry from the org file
     with open(new_file_to_index, "w") as f:
         f.write(f"{new_entry}")
 
+    data = get_org_files(org_config_with_only_new_file)
+
     # Act
     updated_index = text_search.setup(
-        OrgToJsonl, org_config_with_only_new_file, search_models.text_search.bi_encoder, regenerate=False
+        OrgToJsonl, data, org_config_with_only_new_file, search_models.text_search.bi_encoder, regenerate=False
     )
 
     # Assert
@@ -229,8 +250,9 @@ def test_update_index_with_deleted_entry(org_config_with_only_new_file: TextCont
 # ----------------------------------------------------------------------------------------------------
 def test_update_index_with_new_entry(content_config: ContentConfig, search_models: SearchModels, new_org_file: Path):
     # Arrange
+    data = get_org_files(content_config.org)
     initial_notes_model = text_search.setup(
-        OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=True, normalize=False
+        OrgToJsonl, data, content_config.org, search_models.text_search.bi_encoder, regenerate=True, normalize=False
     )
 
     # append org-mode entry to first org input file in config
@@ -238,11 +260,13 @@ def test_update_index_with_new_entry(content_config: ContentConfig, search_model
         new_entry = "\n* A Chihuahua doing Tango\n- Saw a super cute video of a chihuahua doing the Tango on Youtube\n"
         f.write(new_entry)
 
+    data = get_org_files(content_config.org)
+
     # Act
     # update embeddings, entries with the newly added note
     content_config.org.input_files = [f"{new_org_file}"]
     final_notes_model = text_search.setup(
-        OrgToJsonl, content_config.org, search_models.text_search.bi_encoder, regenerate=False, normalize=False
+        OrgToJsonl, data, content_config.org, search_models.text_search.bi_encoder, regenerate=False, normalize=False
     )
 
     # Assert
