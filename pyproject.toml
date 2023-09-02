@@ -56,11 +56,11 @@ dependencies = [
     "uvicorn == 0.17.6",
     "aiohttp == 3.8.5",
     "langchain >= 0.0.187",
-    "pypdf >= 3.9.0",
     "requests >= 2.26.0",
     "bs4 >= 0.0.1",
     "gpt4all >= 1.0.7",
     "anyio == 3.7.1",
+    "pymupdf >= 1.23.3",
 ]
 dynamic = ["version"]
 
