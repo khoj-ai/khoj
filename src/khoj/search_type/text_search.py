@@ -204,7 +204,9 @@ def setup(
     entries = extract_entries(config.compressed_jsonl)
     if is_none_or_empty(entries):
         config_params = ", ".join([f"{key}={value}" for key, value in config.dict().items()])
-        raise ValueError(f"No valid entries found in specified files: {config_params}")
+        raise ValueError(
+            f"No valid entries found in specified configuration: {config_params}, with files: {files.keys()}"
+        )
 
     # Compute or Load Embeddings
     config.embeddings_file = resolve_absolute_path(config.embeddings_file)

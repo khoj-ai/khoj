@@ -16,9 +16,10 @@ from khoj.processor.pdf.pdf_to_jsonl import PdfToJsonl
 from khoj.processor.github.github_to_jsonl import GithubToJsonl
 from khoj.processor.notion.notion_to_jsonl import NotionToJsonl
 from khoj.processor.plaintext.plaintext_to_jsonl import PlaintextToJsonl
-from khoj.utils.rawconfig import ContentConfig
+from khoj.utils.rawconfig import ContentConfig, TextContentConfig
 from khoj.search_type import text_search, image_search
 from khoj.utils.config import SearchModels
+from khoj.utils.constants import default_config
 from khoj.utils.helpers import LRU, get_file_type
 from khoj.utils.rawconfig import (
     ContentConfig,
@@ -38,7 +39,7 @@ indexer = APIRouter()
 
 class File(BaseModel):
     path: str
-    content: str
+    content: Union[str, bytes]
 
 
 class IndexBatchRequest(BaseModel):
@@ -48,7 +49,7 @@ class IndexBatchRequest(BaseModel):
 class IndexerInput(BaseModel):
     org: Optional[dict[str, str]] = None
     markdown: Optional[dict[str, str]] = None
-    pdf: Optional[dict[str, str]] = None
+    pdf: Optional[dict[str, bytes]] = None
     plaintext: Optional[dict[str, str]] = None
 
 
@@ -64,9 +65,9 @@ async def index_batch(
     state.config_lock.acquire()
     try:
         logger.info(f"Received batch indexing request")
-        index_batch_request_acc = ""
+        index_batch_request_acc = b""
         async for chunk in request.stream():
-            index_batch_request_acc += chunk.decode()
+            index_batch_request_acc += chunk
         data_bytes = sys.getsizeof(index_batch_request_acc)
         unit = "KB"
         data_size = data_bytes / 1024
@@ -121,7 +122,7 @@ async def index_batch(
         )
 
     except Exception as e:
-        logger.error(f"Failed to process batch indexing request: {e}")
+        logger.error(f"Failed to process batch indexing request: {e}", exc_info=True)
     finally:
         state.config_lock.release()
     return Response(content="OK", status_code=200)
@@ -155,10 +156,17 @@ def configure_content(
         # Initialize Org Notes Search
         if (
             (t == None or t == state.SearchType.Org.value)
-            and content_config.org
+            and (content_config.org or files["org"])
             and search_models.text_search
-            and files["org"]
         ):
+            if content_config.org == None:
+                logger.info("🦄 No configuration for orgmode notes. Using default configuration.")
+                default_configuration = default_config["content-type"]["org"]
+                content_config.org = TextContentConfig(
+                    compressed_jsonl=default_configuration["compressed-jsonl"],
+                    embeddings_file=default_configuration["embeddings-file"],
+                )
+
             logger.info("🦄 Setting up search for orgmode notes")
             # Extract Entries, Generate Notes Embeddings
             content_index.org = text_search.setup(
@@ -169,14 +177,25 @@ def configure_content(
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
             )
+    except Exception as e:
+        logger.error(f"🚨 Failed to setup org: {e}", exc_info=True)
 
+    try:
         # Initialize Markdown Search
         if (
             (t == None or t == state.SearchType.Markdown.value)
-            and content_config.markdown
+            and (content_config.markdown or files["markdown"])
             and search_models.text_search
             and files["markdown"]
         ):
+            if content_config.markdown == None:
+                logger.info("💎 No configuration for markdown notes. Using default configuration.")
+                default_configuration = default_config["content-type"]["markdown"]
+                content_config.markdown = TextContentConfig(
+                    compressed_jsonl=default_configuration["compressed-jsonl"],
+                    embeddings_file=default_configuration["embeddings-file"],
+                )
+
             logger.info("💎 Setting up search for markdown notes")
             # Extract Entries, Generate Markdown Embeddings
             content_index.markdown = text_search.setup(
@@ -188,13 +207,25 @@ def configure_content(
                 filters=[DateFilter(), WordFilter(), FileFilter()],
             )
 
+    except Exception as e:
+        logger.error(f"🚨 Failed to setup markdown: {e}", exc_info=True)
+
+    try:
         # Initialize PDF Search
         if (
             (t == None or t == state.SearchType.Pdf.value)
-            and content_config.pdf
+            and (content_config.pdf or files["pdf"])
             and search_models.text_search
             and files["pdf"]
         ):
+            if content_config.pdf == None:
+                logger.info("🖨️ No configuration for pdf notes. Using default configuration.")
+                default_configuration = default_config["content-type"]["pdf"]
+                content_config.pdf = TextContentConfig(
+                    compressed_jsonl=default_configuration["compressed-jsonl"],
+                    embeddings_file=default_configuration["embeddings-file"],
+                )
+
             logger.info("🖨️ Setting up search for pdf")
             # Extract Entries, Generate PDF Embeddings
             content_index.pdf = text_search.setup(
@@ -206,13 +237,25 @@ def configure_content(
                 filters=[DateFilter(), WordFilter(), FileFilter()],
             )
 
+    except Exception as e:
+        logger.error(f"🚨 Failed to setup PDF: {e}", exc_info=True)
+
+    try:
         # Initialize Plaintext Search
         if (
             (t == None or t == state.SearchType.Plaintext.value)
-            and content_config.plaintext
+            and (content_config.plaintext or files["plaintext"])
             and search_models.text_search
             and files["plaintext"]
         ):
+            if content_config.plaintext == None:
+                logger.info("📄 No configuration for plaintext notes. Using default configuration.")
+                default_configuration = default_config["content-type"]["plaintext"]
+                content_config.plaintext = TextContentConfig(
+                    compressed_jsonl=default_configuration["compressed-jsonl"],
+                    embeddings_file=default_configuration["embeddings-file"],
+                )
+
             logger.info("📄 Setting up search for plaintext")
             # Extract Entries, Generate Plaintext Embeddings
             content_index.plaintext = text_search.setup(
@@ -224,6 +267,10 @@ def configure_content(
                 filters=[DateFilter(), WordFilter(), FileFilter()],
             )
 
+    except Exception as e:
+        logger.error(f"🚨 Failed to setup plaintext: {e}", exc_info=True)
+
+    try:
         # Initialize Image Search
         if (t == None or t == state.SearchType.Image.value) and content_config.image and search_models.image_search:
             logger.info("🌄 Setting up search for images")
@@ -232,6 +279,10 @@ def configure_content(
                 content_config.image, search_models.image_search.image_encoder, regenerate=regenerate
             )
 
+    except Exception as e:
+        logger.error(f"🚨 Failed to setup images: {e}", exc_info=True)
+
+    try:
         if (t == None or t == state.SearchType.Github.value) and content_config.github and search_models.text_search:
             logger.info("🐙 Setting up search for github")
             # Extract Entries, Generate Github Embeddings
@@ -244,6 +295,10 @@ def configure_content(
                 filters=[DateFilter(), WordFilter(), FileFilter()],
             )
 
+    except Exception as e:
+        logger.error(f"🚨 Failed to setup GitHub: {e}", exc_info=True)
+
+    try:
         # Initialize Notion Search
         if (t == None or t in state.SearchType.Notion.value) and content_config.notion and search_models.text_search:
             logger.info("🔌 Setting up search for notion")
@@ -256,6 +311,10 @@ def configure_content(
                 filters=[DateFilter(), WordFilter(), FileFilter()],
             )
 
+    except Exception as e:
+        logger.error(f"🚨 Failed to setup GitHub: {e}", exc_info=True)
+
+    try:
         # Initialize External Plugin Search
         if (t == None or t in state.SearchType) and content_config.plugins and search_models.text_search:
             logger.info("🔌 Setting up search for plugins")
@@ -271,8 +330,7 @@ def configure_content(
                 )
 
     except Exception as e:
-        logger.error(f"🚨 Failed to setup search: {e}", exc_info=True)
-        raise e
+        logger.error(f"🚨 Failed to setup Plugin: {e}", exc_info=True)
 
     # Invalidate Query Cache
     state.query_cache = LRU()

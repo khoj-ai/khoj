@@ -2,9 +2,10 @@
 import os
 import logging
 from typing import List
+import base64
 
 # External Packages
-from langchain.document_loaders import PyPDFLoader
+from langchain.document_loaders import PyMuPDFLoader
 
 # Internal Packages
 from khoj.processor.text_to_jsonl import TextToJsonl
@@ -55,9 +56,11 @@ class PdfToJsonl(TextToJsonl):
         for pdf_file in pdf_files:
             try:
                 # Write the PDF file to a temporary file, as it is stored in byte format in the pdf_file object and the PyPDFLoader expects a file path
-                with open(f"{pdf_file}.pdf", "wb") as f:
-                    f.write(pdf_files[pdf_file])
-                loader = PyPDFLoader(f"{pdf_file}.pdf")
+                tmp_file = f"tmp_pdf_file.pdf"
+                with open(f"{tmp_file}", "wb") as f:
+                    bytes = base64.b64decode(pdf_files[pdf_file])
+                    f.write(bytes)
+                loader = PyMuPDFLoader(f"{tmp_file}")
                 pdf_entries_per_file = [page.page_content for page in loader.load()]
                 entry_to_location_map += zip(pdf_entries_per_file, [pdf_file] * len(pdf_entries_per_file))
                 entries.extend(pdf_entries_per_file)
@@ -65,8 +68,8 @@ class PdfToJsonl(TextToJsonl):
                 logger.warning(f"Unable to process file: {pdf_file}. This file will not be indexed.")
                 logger.warning(e)
             finally:
-                if os.path.exists(f"{pdf_file}.pdf"):
-                    os.remove(f"{pdf_file}.pdf")
+                if os.path.exists(f"{tmp_file}"):
+                    os.remove(f"{tmp_file}")
 
         return entries, dict(entry_to_location_map)
 
