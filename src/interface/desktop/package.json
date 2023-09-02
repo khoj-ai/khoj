@@ -1,0 +1,22 @@
+{
+  "name": "Khoj",
+  "version": "1.0.0",
+  "description": "Scaffolding for the desktop entrypoint to Khoj",
+  "main": "main.js",
+  "repository": "\"https://github.com/khoj-ai/khoj\"",
+  "author": "\"Khoj\"",
+  "license": "MIT",
+  "private": false,
+  "devDependencies": {
+    "electron": "^26.1.0"
+  },
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "axios": "^1.5.0",
+    "cron": "^2.4.3",
+    "electron-store": "^8.1.0",
+    "fs": "^0.0.1-security"
+  }
+}

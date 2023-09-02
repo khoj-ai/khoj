@@ -1,0 +1,552 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
+        <title>Khoj - Chat</title>
+
+        <link rel="icon" type="image/png" sizes="128x128" href="./assets/icons/favicon-128x128.png">
+        <link rel="manifest" href="/static/khoj_chat.webmanifest">
+        <link rel="stylesheet" href="./assets/khoj.css">
+    </head>
+    <script>
+        let chatOptions = [];
+        function copyProgrammaticOutput(event) {
+            // Remove the first 4 characters which are the "Copy" button
+            const programmaticOutput = event.target.parentNode.textContent.trim().slice(4);
+            navigator.clipboard.writeText(programmaticOutput).then(() => {
+                console.log("Programmatic output copied to clipboard");
+            }).catch((error) => {
+                console.error("Error copying programmatic output to clipboard:", error);
+            });
+        }
+
+        function formatDate(date) {
+            // Format date in HH:MM, DD MMM YYYY format
+            let time_string = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
+            let date_string = date.toLocaleString('en-IN', { year: 'numeric', month: 'short', day: '2-digit'}).replaceAll('-', ' ');
+            return `${time_string}, ${date_string}`;
+        }
+
+        function generateReference(reference, index) {
+            // Escape reference for HTML rendering
+            let escaped_ref = reference.replaceAll('"', '&quot;');
+
+            // Generate HTML for Chat Reference
+            return `<sup><abbr title="${escaped_ref}" tabindex="0">${index}</abbr></sup>`;
+        }
+
+        function renderMessage(message, by, dt=null) {
+            let message_time = formatDate(dt ?? new Date());
+            let by_name =  by == "khoj" ? "🏮 Khoj" : "🤔 You";
+            let formattedMessage = formatHTMLMessage(message);
+            // Generate HTML for Chat Message and Append to Chat Body
+            document.getElementById("chat-body").innerHTML += `
+                <div data-meta="${by_name} at ${message_time}" class="chat-message ${by}">
+                    <div class="chat-message-text ${by}">${formattedMessage}</div>
+                </div>
+            `;
+            // Scroll to bottom of chat-body element
+            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+        }
+
+        function renderMessageWithReference(message, by, context=null, dt=null) {
+            let references = '';
+            if (context) {
+                references = context
+                    .map((reference, index) => generateReference(reference, index))
+                    .join("<sup>,</sup>");
+            }
+
+            renderMessage(message+references, by, dt);
+        }
+
+        function formatHTMLMessage(htmlMessage) {
+            // Replace any ``` with <div class="programmatic-output">
+            let newHTML = htmlMessage.replace(/```([\s\S]*?)```/g, '<div class="programmatic-output"><button class="copy-button" onclick="copyProgrammaticOutput(event)">Copy</button>$1</div>');
+            // Replace any ** with <b> and __ with <u>
+            newHTML = newHTML.replace(/\*\*([\s\S]*?)\*\*/g, '<b>$1</b>');
+            newHTML = newHTML.replace(/__([\s\S]*?)__/g, '<u>$1</u>');
+            return newHTML;
+        }
+
+        function chat() {
+            // Extract required fields for search from form
+            let query = document.getElementById("chat-input").value.trim();
+            let resultsCount = localStorage.getItem("khojResultsCount") || 5;
+            console.log(`Query: ${query}`);
+
+            // Short circuit on empty query
+            if (query.length === 0)
+                return;
+
+            // Add message by user to chat body
+            renderMessage(query, "you");
+            document.getElementById("chat-input").value = "";
+            autoResize();
+            document.getElementById("chat-input").setAttribute("disabled", "disabled");
+
+            // Generate backend API URL to execute query
+            let url = `http://localhost:42110/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true`;
+
+            let chat_body = document.getElementById("chat-body");
+            let new_response = document.createElement("div");
+            new_response.classList.add("chat-message", "khoj");
+            new_response.attributes["data-meta"] = "🏮 Khoj at " + formatDate(new Date());
+            chat_body.appendChild(new_response);
+
+            let newResponseText = document.createElement("div");
+            newResponseText.classList.add("chat-message-text", "khoj");
+            new_response.appendChild(newResponseText);
+
+            // Temporary status message to indicate that Khoj is thinking
+            let loadingSpinner = document.createElement("div");
+            loadingSpinner.classList.add("spinner");
+            newResponseText.appendChild(loadingSpinner);
+            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+
+            let chatTooltip = document.getElementById("chat-tooltip");
+            chatTooltip.style.display = "none";
+
+            let chatInput = document.getElementById("chat-input");
+            chatInput.classList.remove("option-enabled");
+
+            // Call specified Khoj API which returns a streamed response of type text/plain
+            fetch(url)
+                .then(response => {
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+
+                    function readStream() {
+                        reader.read().then(({ done, value }) => {
+                            if (done) {
+                                // Evaluate the contents of new_response_text.innerHTML after all the data has been streamed
+                                const currentHTML = newResponseText.innerHTML;
+                                newResponseText.innerHTML = formatHTMLMessage(currentHTML);
+
+                                return;
+                            }
+
+                            // Decode message chunk from stream
+                            const chunk = decoder.decode(value, { stream: true });
+
+                            if (chunk.includes("### compiled references:")) {
+                                const additionalResponse = chunk.split("### compiled references:")[0];
+                                newResponseText.innerHTML += additionalResponse;
+
+                                const rawReference = chunk.split("### compiled references:")[1];
+                                const rawReferenceAsJson = JSON.parse(rawReference);
+                                let polishedReference = rawReferenceAsJson.map((reference, index) => generateReference(reference, index))
+                                    .join("<sup>,</sup>");
+
+                                newResponseText.innerHTML += polishedReference;
+                                document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+                                readStream();
+                            } else {
+                                // Display response from Khoj
+                                if (newResponseText.getElementsByClassName("spinner").length > 0) {
+                                    newResponseText.removeChild(loadingSpinner);
+                                }
+
+                                newResponseText.innerHTML += chunk;
+                                readStream();
+                            }
+
+                            // Scroll to bottom of chat window as chat response is streamed
+                            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+                        });
+                    }
+                    readStream();
+                    document.getElementById("chat-input").removeAttribute("disabled");
+                });
+        }
+
+        function incrementalChat(event) {
+            if (!event.shiftKey && event.key === 'Enter') {
+                chat();
+            }
+        }
+
+        function onChatInput() {
+            let chatInput = document.getElementById("chat-input");
+            chatInput.value = chatInput.value.trimStart();
+
+            if (chatInput.value.startsWith("/") && chatInput.value.split(" ").length === 1) {
+                let chatTooltip = document.getElementById("chat-tooltip");
+                chatTooltip.style.display = "block";
+                let helpText = "<div>";
+                const command = chatInput.value.split(" ")[0].substring(1);
+                for (let key in chatOptions) {
+                    if (!!!command || key.startsWith(command)) {
+                        helpText += "<b>/" + key + "</b>: " + chatOptions[key] + "<br>";
+                    }
+                }
+                chatTooltip.innerHTML = helpText;
+            } else if (chatInput.value.startsWith("/")) {
+                const firstWord = chatInput.value.split(" ")[0];
+                if (firstWord.substring(1) in chatOptions) {
+                    chatInput.classList.add("option-enabled");
+                } else {
+                    chatInput.classList.remove("option-enabled");
+                }
+                let chatTooltip = document.getElementById("chat-tooltip");
+                chatTooltip.style.display = "none";
+            } else {
+                let chatTooltip = document.getElementById("chat-tooltip");
+                chatTooltip.style.display = "none";
+                chatInput.classList.remove("option-enabled");
+            }
+
+            autoResize();
+        }
+
+        function autoResize() {
+            const textarea = document.getElementById('chat-input');
+            const scrollTop = textarea.scrollTop;
+            textarea.style.height = '0';
+            const scrollHeight = textarea.scrollHeight;
+            textarea.style.height = Math.min(scrollHeight, 200) + 'px';
+            textarea.scrollTop = scrollTop;
+            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+        }
+
+        window.onload = function () {
+            fetch('http://localhost:42110/api/chat/history?client=web')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.detail) {
+                        // If the server returns a 500 error with detail, render a setup hint.
+                        renderMessage("Hi 👋🏾, to get started you have two options:<ol><li><b>Use OpenAI</b>: <ol><li>Get your <a class='inline-chat-link' href='https://platform.openai.com/account/api-keys'>OpenAI API key</a></li><li>Save it in the Khoj <a class='inline-chat-link' href='/config/processor/conversation/openai'>chat settings</a></li><li>Click Configure on the Khoj <a class='inline-chat-link' href='/config'>settings page</a></li></ol></li><li><b>Enable offline chat</b>: <ol><li>Go to the Khoj <a class='inline-chat-link' href='/config'>settings page</a> and enable offline chat</li></ol></li></ol>", "khoj");
+
+                        // Disable chat input field and update placeholder text
+                        document.getElementById("chat-input").setAttribute("disabled", "disabled");
+                        document.getElementById("chat-input").setAttribute("placeholder", "Configure Khoj to enable chat");
+                    } else {
+                        // Set welcome message on load
+                        renderMessage("Hey 👋🏾, what's up?", "khoj");
+                    }
+                    return data.response;
+                })
+                .then(response => {
+                    // Render conversation history, if any
+                    response.forEach(chat_log => {
+                        renderMessageWithReference(chat_log.message, chat_log.by, chat_log.context, new Date(chat_log.created));
+                    });
+                })
+                .catch(err => {
+                    return;
+                });
+
+            fetch('http://localhost:42110/api/chat/options')
+                .then(response => response.json())
+                .then(data => {
+                    // Render chat options, if any
+                    if (data) {
+                        chatOptions = data;
+                    }
+                })
+                .catch(err => {
+                    return;
+                });
+
+            // Fill query field with value passed in URL query parameters, if any.
+            var query_via_url = new URLSearchParams(window.location.search).get("q");
+            if (query_via_url) {
+                document.getElementById("chat-input").value = query_via_url;
+                chat();
+            }
+        }
+    </script>
+    <body>
+        <div id="khoj-banner-container" class="khoj-banner-container">
+        </div>
+        <!--Add Header Logo and Nav Pane-->
+        <div class="khoj-header">
+            <a class="khoj-logo" href="/">
+                <img class="khoj-logo" src="./assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
+            </a>
+            <nav class="khoj-nav">
+                <a class="khoj-nav khoj-nav-selected" href="./chat.html">Chat</a>
+                <a class="khoj-nav" href="./index.html">Search</a>
+                <a class="khoj-nav" href="./config.html">⚙️</a>
+            </nav>
+        </div>
+
+        <!-- Chat Body -->
+        <div id="chat-body"></div>
+
+        <!-- Chat Footer -->
+        <div id="chat-footer">
+            <div id="chat-tooltip" style="display: none;"></div>
+            <textarea id="chat-input" class="option" oninput="onChatInput()" onkeyup=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands, or just type your questions and hit enter.">
+            </textarea>
+        </div>
+    </body>
+
+    <style>
+        html, body {
+            height: 100%;
+            width: 100%;
+            padding: 0px;
+            margin: 0px;
+        }
+        body {
+            display: grid;
+            background: #fff;
+            color: #475569;
+            text-align: center;
+            font-family: roboto, karma, segoe ui, sans-serif;
+            font-size: small;
+            font-weight: 300;
+            line-height: 1.5em;
+        }
+        body > * {
+            padding: 10px;
+            margin: 10px;
+        }
+        #chat-body {
+            font-size: small;
+            margin: 0px;
+            line-height: 20px;
+            overflow-y: scroll; /* Make chat body scroll to see history */
+        }
+        /* add chat metatdata to bottom of bubble */
+        .chat-message::after {
+            content: attr(data-meta);
+            display: block;
+            font-size: x-small;
+            color: #475569;
+            margin: -8px 4px 0 -5px;
+        }
+        /* move message by khoj to left */
+        .chat-message.khoj {
+            margin-left: auto;
+            text-align: left;
+        }
+        /* move message by you to right */
+        .chat-message.you {
+            margin-right: auto;
+            text-align: right;
+            white-space: pre-line;
+        }
+        /* basic style chat message text */
+        .chat-message-text {
+            margin: 10px;
+            border-radius: 10px;
+            padding: 10px;
+            position: relative;
+            display: inline-block;
+            max-width: 80%;
+            text-align: left;
+        }
+        /* color chat bubble by khoj blue */
+        .chat-message-text.khoj {
+            color: var(--primary-inverse);
+            background: var(--primary);
+            margin-left: auto;
+            white-space: pre-line;
+        }
+        /* Spinner symbol when the chat message is loading */
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-inverse);
+            border-radius: 50%;
+            width: 12px;
+            height: 12px;
+            animation: spin 2s linear infinite;
+            margin: 0px 0px 0px 10px;
+            display: inline-block;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* add left protrusion to khoj chat bubble */
+        .chat-message-text.khoj:after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: -7px;
+            border: 10px solid transparent;
+            border-top-color: var(--primary);
+            border-bottom: 0;
+            transform: rotate(-60deg);
+        }
+        /* color chat bubble by you dark grey */
+        .chat-message-text.you {
+            color: #f8fafc;
+            background: #475569;
+            margin-right: auto;
+        }
+        /* add right protrusion to you chat bubble */
+        .chat-message-text.you:after {
+            content: '';
+            position: absolute;
+            top: 91%;
+            right: -2px;
+            border: 10px solid transparent;
+            border-left-color: #475569;
+            border-right: 0;
+            margin-top: -10px;
+            transform: rotate(-60deg)
+        }
+
+        #chat-footer {
+            padding: 0;
+            display: grid;
+            grid-template-columns: minmax(70px, 100%);
+            grid-column-gap: 10px;
+            grid-row-gap: 10px;
+        }
+        #chat-footer > * {
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #475569;
+            background: #f9fafc
+        }
+        .option:hover {
+            box-shadow: 0 0 11px #aaa;
+        }
+        #chat-input {
+            font-family: roboto, karma, segoe ui, sans-serif;
+            font-size: small;
+            height: 54px;
+            resize: none;
+            overflow-y: hidden;
+            max-height: 200px;
+            box-sizing: border-box;
+            padding: 15px;
+            line-height: 1.5em;
+            margin: 0;
+        }
+        #chat-input:focus {
+            outline: none !important;
+        }
+
+        .option-enabled {
+            box-shadow: 0 0 12px rgb(119, 156, 46);
+        }
+
+        .option-enabled:focus {
+            outline: none !important;
+            border:1px solid #475569;
+            box-shadow: 0 0 16px var(--primary);
+        }
+
+        a.inline-chat-link {
+            color: #475569;
+            text-decoration: none;
+            border-bottom: 1px dotted #475569;
+        }
+
+        @media (pointer: coarse), (hover: none) {
+            abbr[title] {
+                position: relative;
+                padding-left: 4px;  /* space references out to ease tapping */
+            }
+            abbr[title]:focus:after {
+                content: attr(title);
+
+                /* position tooltip */
+                position: absolute;
+                left: 16px;  /* open tooltip to right of ref link, instead of on top of it */
+                width: auto;
+                z-index: 1;  /* show tooltip above chat messages */
+
+                /* style tooltip */
+                background-color: #aaa;
+                color: #f8fafc;
+                border-radius: 2px;
+                box-shadow: 1px 1px 4px 0 rgba(0, 0, 0, 0.4);
+                font-size small;
+                padding: 2px 4px;
+            }
+        }
+        @media only screen and (max-width: 600px) {
+            body {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto minmax(80px, 100%) auto;
+            }
+            body > * {
+                grid-column: 1;
+            }
+            #chat-footer {
+                padding: 0;
+                margin: 4px;
+                grid-template-columns: auto;
+            }
+            a.khoj-banner {
+                display: block;
+            }
+            p.khoj-banner {
+                padding: 0;
+            }
+        }
+        @media only screen and (min-width: 600px) {
+            body {
+                grid-template-columns: auto min(70vw, 100%) auto;
+                grid-template-rows: auto auto minmax(80px, 100%) auto;
+            }
+            body > * {
+                grid-column: 2;
+            }
+        }
+
+        div.khoj-banner-container {
+            padding: 0px;
+            margin: 0px;
+        }
+
+        div#chat-tooltip {
+            text-align: left;
+            font-size: medium;
+        }
+
+        @keyframes gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        a.khoj-logo {
+            text-align: center;
+        }
+
+        button#khoj-banner-submit,
+        input#khoj-banner-email {
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #475569;
+            background: #f9fafc;
+        }
+
+        button#khoj-banner-submit:hover,
+        input#khoj-banner-email:hover {
+            box-shadow: 0 0 11px #aaa;
+        }
+        div.khoj-banner-container-hidden {
+            margin: 0px;
+            padding: 0px;
+        }
+
+        div.programmatic-output {
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+            color: #333;
+            font-family: monospace;
+            font-size: small;
+            line-height: 1.5;
+            margin: 10px 0;
+            overflow-x: auto;
+            padding: 10px;
+            white-space: pre-wrap;
+        }
+    </style>
+</html>
