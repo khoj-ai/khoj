@@ -1,7 +1,7 @@
 # Standard Packages
 import logging
 import sys
-from typing import Optional, Union
+from typing import Optional, Union, Dict
 
 # External Packages
 from fastapi import APIRouter, HTTPException, Header, Request, Body, Response
@@ -82,10 +82,10 @@ async def index_batch(
         index_batch_request = IndexBatchRequest.parse_raw(index_batch_request_acc)
         logger.info(f"Received {len(index_batch_request.files)} files")
 
-        org_files = {}
-        markdown_files = {}
-        pdf_files = {}
-        plaintext_files = {}
+        org_files: Dict[str, str] = {}
+        markdown_files: Dict[str, str] = {}
+        pdf_files: Dict[str, str] = {}
+        plaintext_files: Dict[str, str] = {}
 
         for file in index_batch_request.files:
             file_type = get_file_type(file.path)
@@ -161,7 +161,7 @@ def configure_content(
         ):
             if content_config.org == None:
                 logger.info("🦄 No configuration for orgmode notes. Using default configuration.")
-                default_configuration = default_config["content-type"]["org"]
+                default_configuration = default_config["content-type"]["org"]  # type: ignore
                 content_config.org = TextContentConfig(
                     compressed_jsonl=default_configuration["compressed-jsonl"],
                     embeddings_file=default_configuration["embeddings-file"],
@@ -190,7 +190,7 @@ def configure_content(
         ):
             if content_config.markdown == None:
                 logger.info("💎 No configuration for markdown notes. Using default configuration.")
-                default_configuration = default_config["content-type"]["markdown"]
+                default_configuration = default_config["content-type"]["markdown"]  # type: ignore
                 content_config.markdown = TextContentConfig(
                     compressed_jsonl=default_configuration["compressed-jsonl"],
                     embeddings_file=default_configuration["embeddings-file"],
@@ -220,7 +220,7 @@ def configure_content(
         ):
             if content_config.pdf == None:
                 logger.info("🖨️ No configuration for pdf notes. Using default configuration.")
-                default_configuration = default_config["content-type"]["pdf"]
+                default_configuration = default_config["content-type"]["pdf"]  # type: ignore
                 content_config.pdf = TextContentConfig(
                     compressed_jsonl=default_configuration["compressed-jsonl"],
                     embeddings_file=default_configuration["embeddings-file"],
@@ -250,7 +250,7 @@ def configure_content(
         ):
             if content_config.plaintext == None:
                 logger.info("📄 No configuration for plaintext notes. Using default configuration.")
-                default_configuration = default_config["content-type"]["plaintext"]
+                default_configuration = default_config["content-type"]["plaintext"]  # type: ignore
                 content_config.plaintext = TextContentConfig(
                     compressed_jsonl=default_configuration["compressed-jsonl"],
                     embeddings_file=default_configuration["embeddings-file"],
