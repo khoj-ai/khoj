@@ -143,3 +143,24 @@ getButton.addEventListener('click', async () => {
 window.updateStateAPI.onUpdateState((event, state) => {
     console.log("state was updated", state);
 });
+
+const urlInput = document.getElementById('khoj-host-url');
+(async function() {
+    const url = await window.hostURLAPI.getURL();
+    urlInput.value = url;
+})();
+
+urlInput.addEventListener('blur', async () => {
+    const urlInputValue = urlInput.value;
+
+    // Check if it's a valid URL
+    try {
+        new URL(urlInputValue);
+    } catch (e) {
+        console.log(e);
+        return;
+    }
+
+    const url = await window.hostURLAPI.setURL(urlInput.value.trim());
+    urlInput.value = url;
+});

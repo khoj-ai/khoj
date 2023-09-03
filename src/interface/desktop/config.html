@@ -30,6 +30,13 @@
                 <div class="card-title-row">
                     <img class="card-icon" src="./assets/icons/plaintext.svg" alt="File">
                     <h3 class="card-title">
+                        Url
+                        <input id="khoj-host-url" class="card-input" type="text">
+                    </h3>
+                </div>
+                <div class="card-title-row">
+                    <img class="card-icon" src="./assets/icons/plaintext.svg" alt="File">
+                    <h3 class="card-title">
                         Files
                         <button id="toggle-files" class="card-button">
                             <svg id="toggle-files-svg" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"></path></svg>
@@ -89,7 +96,7 @@
                 grid-column: 2;
             }
         }
-        body {
+        body, input {
             padding: 0px;
             margin: 0px;
             background: #fff;
@@ -115,6 +122,12 @@
 
         a.khoj-logo {
             text-align: center;
+        }
+
+        #khoj-host-url {
+            padding: 4px;
+            box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.2);
+            border: none;
         }
 
         .card {

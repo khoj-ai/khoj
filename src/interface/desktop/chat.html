@@ -69,7 +69,7 @@
             return newHTML;
         }
 
-        function chat() {
+        async function chat() {
             // Extract required fields for search from form
             let query = document.getElementById("chat-input").value.trim();
             let resultsCount = localStorage.getItem("khojResultsCount") || 5;
@@ -85,8 +85,10 @@
             autoResize();
             document.getElementById("chat-input").setAttribute("disabled", "disabled");
 
+            let hostURL = await window.hostURLAPI.getURL();
+
             // Generate backend API URL to execute query
-            let url = `http://localhost:42110/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true`;
+            let url = `${hostURL}/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true`;
 
             let chat_body = document.getElementById("chat-body");
             let new_response = document.createElement("div");
@@ -209,8 +211,13 @@
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
         }
 
-        window.onload = function () {
-            fetch('http://localhost:42110/api/chat/history?client=web')
+        window.addEventListener('load', async() => {
+            await loadChat();
+        });
+
+        async function loadChat() {
+            const hostURL = await window.hostURLAPI.getURL();
+            fetch(`${hostURL}/api/chat/history?client=web`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.detail) {
@@ -236,7 +243,7 @@
                     return;
                 });
 
-            fetch('http://localhost:42110/api/chat/options')
+            fetch(`${hostURL}/api/chat/options`)
                 .then(response => response.json())
                 .then(data => {
                     // Render chat options, if any

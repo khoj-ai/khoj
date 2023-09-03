@@ -152,7 +152,7 @@
             return renderedResults.outerHTML;
         }
 
-        function search(rerank=false) {
+        async function search(rerank=false) {
             // Extract required fields for search from form
             query = document.getElementById("query").value.trim();
             type = document.getElementById("type").value;
@@ -169,7 +169,7 @@
                 setQueryFieldInUrl(query);
 
             // Execute Search and Render Results
-            url = createRequestUrl(query, type, results_count || 5, rerank);
+            url = await createRequestUrl(query, type, results_count || 5, rerank);
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
@@ -190,9 +190,11 @@
             }
         }
 
-        function populate_type_dropdown() {
+        async function populate_type_dropdown() {
+            const hostURL = await window.hostURLAPI.getURL();
+
             // Populate type dropdown field with enabled content types only
-            fetch("http://localhost:42110/api/config/types")
+            fetch(`${hostURL}/api/config/types`)
                 .then(response => response.json())
                 .then(enabled_types => {
                     // Show warning if no content types are enabled
@@ -218,9 +220,11 @@
                 });
         }
 
-        function createRequestUrl(query, type, results_count, rerank) {
+        async function createRequestUrl(query, type, results_count, rerank) {
             // Generate Backend API URL to execute Search
-            let url = `http://localhost:42110/api/search?q=${encodeURIComponent(query)}&n=${results_count}&client=web`;
+            const hostURL = await window.hostURLAPI.getURL();
+
+            let url = `${hostURL}/api/search?q=${encodeURIComponent(query)}&n=${results_count}&client=web`;
             // If type is not 'all', append type to URL
             if (type !== 'all')
                 url += `&t=${type}`;
@@ -242,15 +246,15 @@
             window.history.pushState({}, "", url.href);
         }
 
-        window.onload = function () {
+        window.addEventListener("load", async function() {
             // Dynamically populate type dropdown based on enabled content types and type passed as URL query parameter
-            populate_type_dropdown();
+            await populate_type_dropdown();
 
             // Fill query field with value passed in URL query parameters, if any.
             var query_via_url = new URLSearchParams(window.location.search).get("q");
             if (query_via_url)
                 document.getElementById("query").value = query_via_url;
-        }
+        });
     </script>
 
     <body>

@@ -38,3 +38,8 @@ contextBridge.exposeInMainWorld('removeFileAPI', {
 contextBridge.exposeInMainWorld('removeFolderAPI', {
     removeFolder: (folderPath) => ipcRenderer.invoke('removeFolder', folderPath)
 })
+
+contextBridge.exposeInMainWorld('hostURLAPI', {
+    setURL: (url) => ipcRenderer.invoke('setURL', url),
+    getURL: () => ipcRenderer.invoke('getURL')
+})
