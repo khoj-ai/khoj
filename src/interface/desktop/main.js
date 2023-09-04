@@ -3,16 +3,6 @@ const todesktop = require("@todesktop/runtime");
 
 todesktop.init();
 
-try {
-    const result = await todesktop.autoUpdater.checkForUpdates();
-    if (result.updateInfo) {
-      console.log("Update found:", result.updateInfo.version);
-      todesktop.autoUpdater.restartAndInstall();
-    }
-  } catch (e) {
-    console.log("Update check failed:", e);
-}
-
 const fs = require('fs');
 const {dialog} = require('electron');
 
@@ -299,6 +289,18 @@ app.whenReady().then(() => {
         website: "https://khoj.dev",
         iconPath: path.join(__dirname, 'assets', 'khoj.png')
     });
+
+    app.on('ready', async() => {
+        try {
+            const result = await todesktop.autoUpdater.checkForUpdates();
+            if (result.updateInfo) {
+              console.log("Update found:", result.updateInfo.version);
+              todesktop.autoUpdater.restartAndInstall();
+            }
+          } catch (e) {
+            console.log("Update check failed:", e);
+        }
+    })
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()
