@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class JsonlToJsonl(TextToJsonl):
     # Define Functions
-    def process(self, previous_entries=[], files: dict[str, str] = {}):
+    def process(self, previous_entries=[], files: dict[str, str] = {}, full_corpus: bool = True) -> List[Entry]:
         # Extract required fields from config
         input_jsonl_files, input_jsonl_filter, output_file = (
             self.config.input_files,

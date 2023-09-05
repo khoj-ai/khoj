@@ -119,6 +119,7 @@ async def index_batch(
             state.search_models,
             regenerate=regenerate,
             t=search_type,
+            full_corpus=False,
         )
 
     except Exception as e:
@@ -135,6 +136,7 @@ def configure_content(
     search_models: SearchModels,
     regenerate: bool = False,
     t: Optional[Union[state.SearchType, str]] = None,
+    full_corpus: bool = True,
 ) -> Optional[ContentIndex]:
     # Run Validation Checks
     if content_config is None:
@@ -176,6 +178,7 @@ def configure_content(
                 search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
+                full_corpus=full_corpus,
             )
     except Exception as e:
         logger.error(f"🚨 Failed to setup org: {e}", exc_info=True)
@@ -205,6 +208,7 @@ def configure_content(
                 search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
+                full_corpus=full_corpus,
             )
 
     except Exception as e:
@@ -235,6 +239,7 @@ def configure_content(
                 search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
+                full_corpus=full_corpus,
             )
 
     except Exception as e:
@@ -265,6 +270,7 @@ def configure_content(
                 search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
+                full_corpus=full_corpus,
             )
 
     except Exception as e:
@@ -293,6 +299,7 @@ def configure_content(
                 search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
+                full_corpus=full_corpus,
             )
 
     except Exception as e:
@@ -309,6 +316,7 @@ def configure_content(
                 search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
+                full_corpus=full_corpus,
             )
 
     except Exception as e:
@@ -327,6 +335,7 @@ def configure_content(
                     search_models.text_search.bi_encoder,
                     regenerate=regenerate,
                     filters=[DateFilter(), WordFilter(), FileFilter()],
+                    full_corpus=full_corpus,
                 )
 
     except Exception as e:

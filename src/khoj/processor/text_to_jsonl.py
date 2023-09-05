@@ -17,7 +17,9 @@ class TextToJsonl(ABC):
         self.config = config
 
     @abstractmethod
-    def process(self, previous_entries: List[Entry] = [], files: dict[str, str] = None) -> List[Tuple[int, Entry]]:
+    def process(
+        self, previous_entries: List[Entry] = [], files: dict[str, str] = None, full_corpus: bool = True
+    ) -> List[Tuple[int, Entry]]:
         ...
 
     @staticmethod
@@ -91,11 +93,14 @@ class TextToJsonl(ABC):
             # All entries that exist in the previous set and also in the deletions set should be removed
             to_delete_entry_hashes = set(previous_entry_hashes) & set(deletion_entry_hashes)
 
-            preserving_entry_hashes = (
-                (existing_entry_hashes | remaining_entry_hashes)
-                if deletion_filenames is None
-                else (set(previous_entry_hashes) - to_delete_entry_hashes)
-            )
+            preserving_entry_hashes = existing_entry_hashes
+
+            if deletion_filenames is not None:
+                preserving_entry_hashes = (
+                    (existing_entry_hashes | remaining_entry_hashes)
+                    if len(deletion_entry_hashes) == 0
+                    else (set(previous_entry_hashes) - to_delete_entry_hashes)
+                )
 
             # load new entries in the order in which they are processed for a stable sort
             new_entries = [
