@@ -12,6 +12,7 @@ __pycache__
 .vscode
 .env
 .venv/*
+todesktop.json
 
 # Build artifacts
 /src/khoj/interface/web/images

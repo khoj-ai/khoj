@@ -47,23 +47,25 @@ const schema = {
         type: 'string',
         default: KHOJ_URL
     },
-    foo: {
-        type: 'number',
-        maximum: 100,
-        minimum: 0,
-        default: 50
+    lastSync: {
+        type: 'array',
+        items: {
+            type: 'object',
+            properties: {
+                path: {
+                    type: 'string'
+                },
+                datetime: {
+                    type: 'string'
+                }
+            }
+        }
     }
 };
 
 var state = {}
 
 const store = new Store({schema});
-
-console.log(store.get('foo'));
-//=> 50
-
-store.set('foo', 70);
-// [Error: Config schema violation: `foo` should be number]
 
 console.log(store);
 
@@ -110,7 +112,13 @@ function pushDataToKhoj () {
         files: []
     }
 
+    const lastSync = store.get('lastSync') || [];
+
     for (file of filesToPush) {
+        const stats = fs.statSync(file);
+        if (stats.mtime.toISOString() < lastSync.find((syncedFile) => syncedFile.path === file)?.datetime) {
+            continue;
+        }
         try {
             let rawData;
             // If the file is a PDF or IMG file, read it as a binary file
@@ -134,7 +142,15 @@ function pushDataToKhoj () {
                 error: err
             }
         }
+    }
 
+    for (const syncedFile of lastSync) {
+        if (!filesToPush.includes(syncedFile.path)) {
+            data.files.push({
+                path: syncedFile.path,
+                content: ""
+            });
+        }
     }
 
     const headers = { 'x-api-key': 'secret', 'Content-Type': 'application/json' };
@@ -146,15 +162,29 @@ function pushDataToKhoj () {
         }
     });
 
-    axios.post(`${state.hostURL}/indexer/batch`, stream, { headers })
+    const hostURL = store.get('hostURL') || KHOJ_URL;
+
+    axios.post(`${hostURL}/indexer/batch`, stream, { headers })
         .then(response => {
             console.log(response.data);
+            const win = BrowserWindow.getAllWindows()[0];
+            win.webContents.send('update-state', state);
+            let lastSync = [];
+            for (const file of filesToPush) {
+                lastSync.push({
+                    path: file,
+                    datetime: new Date().toISOString()
+                });
+            }
+            store.set('lastSync', lastSync);
         })
         .catch(error => {
             console.error(error);
     });
 
 }
+
+pushDataToKhoj();
 
 async function handleFileOpen (event, key) {
     const { canceled, filePaths } = await dialog.showOpenDialog({properties: ['openFile', 'openDirectory'], filters: [{ name: "Valid Khoj Files", extensions: validFileTypes}] });
@@ -228,6 +258,16 @@ async function removeFolder (event, folderPath) {
     return newFolders;
 }
 
+async function syncData () {
+    try {
+        pushDataToKhoj();
+        const date = new Date();
+        console.log('Pushing data to Khoj at: ', date);
+    } catch (err) {
+        console.error(err);
+    }
+}
+
 const createWindow = () => {
     const win = new BrowserWindow({
       width: 800,
@@ -278,6 +318,8 @@ app.whenReady().then(() => {
 
     ipcMain.handle('setURL', setURL);
     ipcMain.handle('getURL', getURL);
+
+    ipcMain.handle('syncData', syncData);
 
     createWindow()
 

@@ -26,13 +26,15 @@
             </div>
         </div>
         <div class="section-cards">
-            <div class="card">
+            <div class="card configuration">
                 <div class="card-title-row">
-                    <img class="card-icon" src="./assets/icons/plaintext.svg" alt="File">
+                    <img class="card-icon" src="./assets/icons/link.svg" alt="File">
                     <h3 class="card-title">
-                        Url
-                        <input id="khoj-host-url" class="card-input" type="text">
+                        Host
                     </h3>
+                </div>
+                <div class="card-description-row">
+                    <input id="khoj-host-url" class="card-input" type="text">
                 </div>
                 <div class="card-title-row">
                     <img class="card-icon" src="./assets/icons/plaintext.svg" alt="File">
@@ -60,14 +62,15 @@
                 </div>
                 <div class="card-action-row">
                     <button id="update-data" class="card-button">
-                        Update
-                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                        Add
+                        <img class="add-files-icon" src="./assets/icons/circular-add.svg" alt="Add">
                     </button>
                 </div>
-                <div id="clear-github" class="card-action-row">
-                    <button class="card-button disabled" onclick="clearContentType('github')">
-                        Disable
-                    </button>
+                <div class="card-description-row">
+                    <button id="sync-data">Sync</button>
+                </div>
+                <div class="card-description-row">
+                    <div id="sync-status"></div>
                 </div>
             </div>
         </div>
@@ -148,6 +151,12 @@
             grid-template-columns: repeat(1, 1fr);
             gap: 16px;
             justify-items: start;
+            margin: 0;
+            width: auto;
+        }
+
+        div.configuration {
+            width: auto;
         }
 
         .card-title-row {
@@ -157,8 +166,12 @@
             gap: 12px;
         }
         .card-icon {
-            width: 40px;
-            height: 40px;
+            width: 32;
+            height: 32px;
+        }
+        .add-files-icon {
+            width: 20px;
+            height: 20px;
         }
         .card-title {
             font-size: medium;
@@ -274,6 +287,23 @@
             color: rgb(207, 67, 59);
             padding: 4px;
             cursor: pointer;
+        }
+        #sync-data {
+            background-color: #4CAF50; /* Green */
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #sync-data:hover {
+            background-color: #3e8e41; /* Dark green */
         }
     </style>
     <script>

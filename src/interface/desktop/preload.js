@@ -43,3 +43,7 @@ contextBridge.exposeInMainWorld('hostURLAPI', {
     setURL: (url) => ipcRenderer.invoke('setURL', url),
     getURL: () => ipcRenderer.invoke('getURL')
 })
+
+contextBridge.exposeInMainWorld('syncDataAPI', {
+    syncData: () => ipcRenderer.invoke('syncData')
+})

@@ -110,7 +110,6 @@ function makeFolderElement(folder) {
     const folders = await window.getFoldersAPI.getFolders();
     let currentFoldersElement = document.getElementById("current-folders");
     for (const folder of folders) {
-        console.log(folder);
         let folderElement = makeFolderElement(folder);
         currentFoldersElement.appendChild(folderElement);
     }
@@ -142,6 +141,9 @@ getButton.addEventListener('click', async () => {
 
 window.updateStateAPI.onUpdateState((event, state) => {
     console.log("state was updated", state);
+    let syncStatusElement = document.getElementById("sync-status");
+    const currentTime = new Date();
+    syncStatusElement.innerHTML = `Last synced at ${currentTime.toLocaleTimeString()}`;
 });
 
 const urlInput = document.getElementById('khoj-host-url');
@@ -163,4 +165,9 @@ urlInput.addEventListener('blur', async () => {
 
     const url = await window.hostURLAPI.setURL(urlInput.value.trim());
     urlInput.value = url;
+});
+
+const syncButton = document.getElementById('sync-data');
+syncButton.addEventListener('click', async () => {
+    await window.syncDataAPI.syncData();
 });
