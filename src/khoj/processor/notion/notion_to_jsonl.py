@@ -234,7 +234,11 @@ class NotionToJsonl(TextToJsonl):
         elif title_field not in properties:
             logger.error(f"Page {page_id} does not have a title field")
             return None, None
-        title = page["properties"][title_field]["title"][0]["text"]["content"]
+        try:
+            title = page["properties"][title_field]["title"][0]["text"]["content"]
+        except Exception as e:
+            logger.warning(f"Error getting title for page {page_id}: {e}. Setting title as None...")
+            title = None
         return title, content
 
     def update_entries_with_ids(self, current_entries, previous_entries):
