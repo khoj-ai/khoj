@@ -32,14 +32,6 @@ class TextContentConfig(TextConfigBase):
     input_filter: Optional[List[str]]
     index_heading_entries: Optional[bool] = False
 
-    @validator("input_filter")
-    def input_filter_or_files_required(cls, input_filter, values, **kwargs):
-        if is_none_or_empty(input_filter) and ("input_files" not in values or values["input_files"] is None):
-            raise ValueError(
-                "Either input_filter or input_files required in all content-type.<text_search> section of Khoj config file"
-            )
-        return input_filter
-
 
 class GithubRepoConfig(ConfigBase):
     name: str
@@ -62,16 +54,6 @@ class ImageContentConfig(ConfigBase):
     embeddings_file: Path
     use_xmp_metadata: bool
     batch_size: int
-
-    @validator("input_filter")
-    def input_filter_or_directories_required(cls, input_filter, values, **kwargs):
-        if is_none_or_empty(input_filter) and (
-            "input_directories" not in values or values["input_directories"] is None
-        ):
-            raise ValueError(
-                "Either input_filter or input_directories required in all content-type.image section of Khoj config file"
-            )
-        return input_filter
 
 
 class ContentConfig(ConfigBase):

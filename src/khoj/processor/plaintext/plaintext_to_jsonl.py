@@ -18,6 +18,10 @@ class PlaintextToJsonl(TextToJsonl):
     def process(self, previous_entries: List[Entry] = [], files: dict[str, str] = None) -> List[Tuple[int, Entry]]:
         output_file = self.config.compressed_jsonl
 
+        deletion_file_names = set([file for file in files if files[file] == ""])
+        files_to_process = set(files) - deletion_file_names
+        files = {file: files[file] for file in files_to_process}
+
         # Extract Entries from specified plaintext files
         with timer("Parse entries from plaintext files", logger):
             current_entries = PlaintextToJsonl.convert_plaintext_entries_to_maps(files)
@@ -29,7 +33,7 @@ class PlaintextToJsonl(TextToJsonl):
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
             entries_with_ids = TextToJsonl.mark_entries_for_update(
-                current_entries, previous_entries, key="compiled", logger=logger
+                current_entries, previous_entries, key="compiled", logger=logger, deletion_filenames=deletion_file_names
             )
 
         with timer("Write entries to JSONL file", logger):

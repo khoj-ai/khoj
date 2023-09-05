@@ -26,6 +26,10 @@ class MarkdownToJsonl(TextToJsonl):
         # Extract required fields from config
         output_file = self.config.compressed_jsonl
 
+        deletion_file_names = set([file for file in files if files[file] == ""])
+        files_to_process = set(files) - deletion_file_names
+        files = {file: files[file] for file in files_to_process}
+
         # Extract Entries from specified Markdown files
         with timer("Parse entries from Markdown files into dictionaries", logger):
             current_entries = MarkdownToJsonl.convert_markdown_entries_to_maps(
@@ -39,7 +43,7 @@ class MarkdownToJsonl(TextToJsonl):
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
             entries_with_ids = TextToJsonl.mark_entries_for_update(
-                current_entries, previous_entries, key="compiled", logger=logger
+                current_entries, previous_entries, key="compiled", logger=logger, deletion_filenames=deletion_file_names
             )
 
         with timer("Write markdown entries to JSONL file", logger):
