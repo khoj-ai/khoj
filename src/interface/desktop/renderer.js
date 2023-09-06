@@ -143,6 +143,10 @@ window.updateStateAPI.onUpdateState((event, state) => {
     console.log("state was updated", state);
     let syncStatusElement = document.getElementById("sync-status");
     const currentTime = new Date();
+    if (state.completed == false) {
+        syncStatusElement.innerHTML = `Sync was unsuccessful at ${currentTime.toLocaleTimeString()}. Contact team@khoj.dev to report this issue.`;
+        return;
+    }
     syncStatusElement.innerHTML = `Last synced at ${currentTime.toLocaleTimeString()}`;
 });
 

@@ -90,7 +90,9 @@ function pushDataToKhoj () {
     let filesToPush = [];
     const files = store.get('files');
     const folders = store.get('folders');
-    state = {};
+    state = {
+        completed: true
+    }
 
     if (files) {
         for (file of files) {
@@ -164,7 +166,7 @@ function pushDataToKhoj () {
 
     const hostURL = store.get('hostURL') || KHOJ_URL;
 
-    axios.post(`${hostURL}/indexer/batch`, stream, { headers })
+    axios.post(`${hostURL}/v1/indexer/batch`, stream, { headers })
         .then(response => {
             console.log(response.data);
             const win = BrowserWindow.getAllWindows()[0];
@@ -180,7 +182,10 @@ function pushDataToKhoj () {
         })
         .catch(error => {
             console.error(error);
-    });
+            state['completed'] = false
+            const win = BrowserWindow.getAllWindows()[0];
+            win.webContents.send('update-state', state);
+        });
 
 }
 
