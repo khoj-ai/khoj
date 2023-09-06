@@ -155,7 +155,7 @@
         async function search(rerank=false) {
             // Extract required fields for search from form
             query = document.getElementById("query").value.trim();
-            type = document.getElementById("type").value;
+            type = 'all';
             results_count = localStorage.getItem("khojResultsCount") || 5;
             console.log(`Query: ${query}, Type: ${type}, Results Count: ${results_count}`);
 
@@ -179,7 +179,7 @@
         }
 
         function incrementalSearch(event) {
-            type = document.getElementById("type").value;
+            type = 'all';
             // Search with reranking on 'Enter'
             if (event.key === 'Enter') {
                 search(rerank=true);
@@ -205,18 +205,7 @@
                         return [];
                     }
 
-                    document.getElementById("type").innerHTML =
-                    enabled_types
-                    .map(type => `<option value="${type}">${type.slice(0,1).toUpperCase() + type.slice(1)}</option>`)
-                    .join('');
-
                     return enabled_types;
-                })
-                .then(enabled_types => {
-                    // Set type field to content type passed in URL query parameter, if valid
-                    var type_via_url = new URLSearchParams(window.location.search).get("t");
-                    if (type_via_url && enabled_types.includes(type_via_url))
-                        document.getElementById("type").value = type_via_url;
                 });
         }
 
@@ -232,12 +221,6 @@
             if (type !== "image")
                 url += `&r=${rerank}`;
             return url;
-        }
-
-        function setTypeFieldInUrl(type) {
-            var url = new URL(window.location.href);
-            url.searchParams.set("t", type.value);
-            window.history.pushState({}, "", url.href);
         }
 
         function setQueryFieldInUrl(query) {
@@ -272,11 +255,6 @@
 
         <!--Add Text Box To Enter Query, Trigger Incremental Search OnChange -->
         <input type="text" id="query" class="option" onkeyup=incrementalSearch(event) autofocus="autofocus" placeholder="Search your knowledge base using natural language">
-
-        <div id="options">
-            <!--Add Dropdown to Select Query Type -->
-            <select id="type" class="option" onchange="setTypeFieldInUrl(this)"></select>
-        </div>
 
         <!-- Section to Render Results -->
         <div id="results"></div>

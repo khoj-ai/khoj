@@ -69,7 +69,7 @@ class TextToJsonl(ABC):
         key="compiled",
         logger: logging.Logger = None,
         deletion_filenames: Set[str] = None,
-    ) -> List[Tuple[int, Entry]]:
+    ):
         # Hash all current and previous entries to identify new entries
         with timer("Hash previous, current entries", logger):
             current_entry_hashes = list(map(TextToJsonl.hash_func(key), current_entries))
