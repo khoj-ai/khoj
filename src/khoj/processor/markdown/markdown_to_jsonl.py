@@ -22,7 +22,7 @@ class MarkdownToJsonl(TextToJsonl):
         self.config = config
 
     # Define Functions
-    def process(self, previous_entries=[], files=None, full_corpus: bool = True) -> List[Entry]:
+    def process(self, previous_entries=[], files=None, full_corpus: bool = True):
         # Extract required fields from config
         output_file = self.config.compressed_jsonl
 
