@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class PdfToJsonl(TextToJsonl):
     # Define Functions
-    def process(self, previous_entries=[], files: dict[str, str] = None, full_corpus: bool = True) -> List[Entry]:
+    def process(self, previous_entries=[], files: dict[str, str] = None, full_corpus: bool = True):
         # Extract required fields from config
         output_file = self.config.compressed_jsonl
 
