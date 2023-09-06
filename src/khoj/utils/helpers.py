@@ -66,6 +66,22 @@ def merge_dicts(priority_dict: dict, default_dict: dict):
     return merged_dict
 
 
+def get_file_type(filepath: str) -> str:
+    "Get file type from file path"
+    file_type = Path(filepath).suffix[1:]
+
+    if file_type in ["md", "markdown"]:
+        return "markdown"
+    elif file_type in ["org", "orgmode"]:
+        return "org"
+    elif file_type in ["txt", "text", "html", "xml", "htm", "rst"]:
+        return "plaintext"
+    elif file_type in ["pdf"]:
+        return "pdf"
+
+    return file_type
+
+
 def load_model(
     model_name: str, model_type, model_dir=None, device: str = None
 ) -> Union[BaseEncoder, SentenceTransformer, CrossEncoder]:

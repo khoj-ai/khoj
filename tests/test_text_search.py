@@ -132,6 +132,65 @@ def test_entry_chunking_by_max_tokens(org_config_with_only_new_file: TextContent
 
 
 # ----------------------------------------------------------------------------------------------------
+# @pytest.mark.skip(reason="Flaky due to compressed_jsonl file being rewritten by other tests")
+def test_entry_chunking_by_max_tokens_not_full_corpus(
+    org_config_with_only_new_file: TextContentConfig, search_models: SearchModels
+):
+    # Arrange
+    # Insert org-mode entry with size exceeding max token limit to new org file
+    data = {
+        "readme.org": """
+* Khoj
+  /Allow natural language search on user content like notes, images using transformer based models/
+
+  All data is processed locally. User can interface with khoj app via [[./interface/emacs/khoj.el][Emacs]], API or Commandline
+
+** Dependencies
+   - Python3
+   - [[https://docs.conda.io/en/latest/miniconda.html#latest-miniconda-installer-links][Miniconda]]
+
+** Install
+   #+begin_src shell
+   git clone https://github.com/khoj-ai/khoj && cd khoj
+   conda env create -f environment.yml
+   conda activate khoj
+   #+end_src"""
+    }
+    text_search.setup(
+        OrgToJsonl,
+        data,
+        org_config_with_only_new_file,
+        search_models.text_search.bi_encoder,
+        regenerate=False,
+    )
+
+    max_tokens = 256
+    new_file_to_index = Path(org_config_with_only_new_file.input_files[0])
+    with open(new_file_to_index, "w") as f:
+        f.write(f"* Entry more than {max_tokens} words\n")
+        for index in range(max_tokens + 1):
+            f.write(f"{index} ")
+
+    data = get_org_files(org_config_with_only_new_file)
+
+    # Act
+    # reload embeddings, entries, notes model after adding new org-mode file
+    initial_notes_model = text_search.setup(
+        OrgToJsonl,
+        data,
+        org_config_with_only_new_file,
+        search_models.text_search.bi_encoder,
+        regenerate=False,
+        full_corpus=False,
+    )
+
+    # Assert
+    # verify newly added org-mode entry is split by max tokens
+    assert len(initial_notes_model.entries) == 5
+    assert len(initial_notes_model.corpus_embeddings) == 5
+
+
+# ----------------------------------------------------------------------------------------------------
 def test_regenerate_index_with_new_entry(
     content_config: ContentConfig, search_models: SearchModels, new_org_file: Path
 ):

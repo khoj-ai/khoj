@@ -2,9 +2,10 @@
 import os
 import logging
 from typing import List
+import base64
 
 # External Packages
-from langchain.document_loaders import PyPDFLoader
+from langchain.document_loaders import PyMuPDFLoader
 
 # Internal Packages
 from khoj.processor.text_to_jsonl import TextToJsonl
@@ -18,9 +19,16 @@ logger = logging.getLogger(__name__)
 
 class PdfToJsonl(TextToJsonl):
     # Define Functions
-    def process(self, previous_entries=[], files=dict[str, str]):
+    def process(self, previous_entries=[], files: dict[str, str] = None, full_corpus: bool = True):
         # Extract required fields from config
         output_file = self.config.compressed_jsonl
+
+        if not full_corpus:
+            deletion_file_names = set([file for file in files if files[file] == ""])
+            files_to_process = set(files) - deletion_file_names
+            files = {file: files[file] for file in files_to_process}
+        else:
+            deletion_file_names = None
 
         # Extract Entries from specified Pdf files
         with timer("Parse entries from PDF files into dictionaries", logger):
@@ -33,7 +41,7 @@ class PdfToJsonl(TextToJsonl):
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
             entries_with_ids = TextToJsonl.mark_entries_for_update(
-                current_entries, previous_entries, key="compiled", logger=logger
+                current_entries, previous_entries, key="compiled", logger=logger, deletion_filenames=deletion_file_names
             )
 
         with timer("Write PDF entries to JSONL file", logger):
@@ -55,9 +63,11 @@ class PdfToJsonl(TextToJsonl):
         for pdf_file in pdf_files:
             try:
                 # Write the PDF file to a temporary file, as it is stored in byte format in the pdf_file object and the PyPDFLoader expects a file path
-                with open(f"{pdf_file}.pdf", "wb") as f:
-                    f.write(pdf_files[pdf_file])
-                loader = PyPDFLoader(f"{pdf_file}.pdf")
+                tmp_file = f"tmp_pdf_file.pdf"
+                with open(f"{tmp_file}", "wb") as f:
+                    bytes = base64.b64decode(pdf_files[pdf_file])
+                    f.write(bytes)
+                loader = PyMuPDFLoader(f"{tmp_file}")
                 pdf_entries_per_file = [page.page_content for page in loader.load()]
                 entry_to_location_map += zip(pdf_entries_per_file, [pdf_file] * len(pdf_entries_per_file))
                 entries.extend(pdf_entries_per_file)
@@ -65,8 +75,8 @@ class PdfToJsonl(TextToJsonl):
                 logger.warning(f"Unable to process file: {pdf_file}. This file will not be indexed.")
                 logger.warning(e)
             finally:
-                if os.path.exists(f"{pdf_file}.pdf"):
-                    os.remove(f"{pdf_file}.pdf")
+                if os.path.exists(f"{tmp_file}"):
+                    os.remove(f"{tmp_file}")
 
         return entries, dict(entry_to_location_map)
 

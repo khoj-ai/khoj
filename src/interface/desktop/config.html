@@ -1,0 +1,342 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
+        <title>Khoj - Search</title>
+
+        <link rel="icon" type="image/png" sizes="128x128" href="./assets/icons/favicon-128x128.png">
+        <link rel="manifest" href="./khoj.webmanifest">
+        <link rel="stylesheet" href="./assets/khoj.css">
+    </head>
+    <script type="text/javascript" src="./assets/org.min.js"></script>
+    <script type="text/javascript" src="./assets/markdown-it.min.js"></script>
+
+    <body>
+        <div class="page">
+            <!--Add Header Logo and Nav Pane-->
+            <div class="khoj-header">
+                <a class="khoj-logo" href="./index.html">
+                    <img class="khoj-logo" src="./assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
+                </a>
+                <nav class="khoj-nav">
+                    <a class="khoj-nav" href="./chat.html">Chat</a>
+                    <a class="khoj-nav" href="./index.html">Search</a>
+                    <a class="khoj-nav khoj-nav-selected" href="./config.html">⚙️</a>
+                </nav>
+            </div>
+        </div>
+        <div class="section-cards">
+            <div class="card configuration">
+                <div class="card-title-row">
+                    <img class="card-icon" src="./assets/icons/link.svg" alt="File">
+                    <h3 class="card-title">
+                        Host
+                    </h3>
+                </div>
+                <div class="card-description-row">
+                    <input id="khoj-host-url" class="card-input" type="text">
+                </div>
+                <div class="card-title-row">
+                    <img class="card-icon" src="./assets/icons/plaintext.svg" alt="File">
+                    <h3 class="card-title">
+                        Files
+                        <button id="toggle-files" class="card-button">
+                            <svg id="toggle-files-svg" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"></path></svg>
+                        </button>
+                    </h3>
+                </div>
+                <div class="card-description-row">
+                    <div id="current-files"></div>
+                </div>
+                <div class="card-title-row">
+                    <img class="card-icon" src="./assets/icons/folder.svg" alt="Folder">
+                    <h3 class="card-title">
+                        Folders
+                        <button id="toggle-folders" class="card-button">
+                            <svg id="toggle-folders-svg" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"></path></svg>
+                        </button>
+                    </h3>
+                </div>
+                <div class="card-description-row">
+                    <div id="current-folders"></div>
+                </div>
+                <div class="card-action-row">
+                    <button id="update-data" class="card-button">
+                        Add
+                        <img class="add-files-icon" src="./assets/icons/circular-add.svg" alt="Add">
+                    </button>
+                </div>
+                <div class="card-description-row">
+                    <button id="sync-data">Sync</button>
+                </div>
+                <div class="card-description-row">
+                    <div id="sync-status"></div>
+                </div>
+            </div>
+        </div>
+    </body>
+
+    <style>
+        @media only screen and (max-width: 600px) {
+            body {
+                display: grid;
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto auto auto minmax(80px, 100%);
+                font-size: small!important;
+            }
+            body > * {
+                grid-column: 1;
+            }
+        }
+        @media only screen and (min-width: 600px) {
+            body {
+                display: grid;
+                grid-template-columns: 1fr min(70vw, 100%) 1fr;
+                grid-template-rows: 1fr auto auto auto minmax(80px, 100%);
+                padding-top: 60vw;
+            }
+            body > * {
+                grid-column: 2;
+            }
+        }
+        body, input {
+            padding: 0px;
+            margin: 0px;
+            background: #fff;
+            color: #475569;
+            font-family: roboto, karma, segoe ui, sans-serif;
+            font-size: small;
+            font-weight: 300;
+            line-height: 1.5em;
+        }
+        body > * {
+            padding: 10px;
+            margin: 10px;
+        }
+
+        div.page {
+            padding: 0px;
+            margin: 0px;
+        }
+
+        svg {
+            transition: transform 0.3s ease-in-out;
+        }
+
+        a.khoj-logo {
+            text-align: center;
+        }
+
+        #khoj-host-url {
+            padding: 4px;
+            box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.2);
+            border: none;
+        }
+
+        .card {
+            display: grid;
+            /* grid-template-rows: repeat(3, 1fr); */
+            gap: 8px;
+            padding: 24px 16px;
+            width: 100%;
+            background: white;
+            border: 1px solid rgb(229, 229, 229);
+            border-radius: 4px;
+            box-shadow: 0px 1px 3px 0px rgba(0,0,0,0.1),0px 1px 2px -1px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .section-cards {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: 16px;
+            justify-items: start;
+            margin: 0;
+            width: auto;
+        }
+
+        div.configuration {
+            width: auto;
+        }
+
+        .card-title-row {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            padding: 0;
+            gap: 12px;
+        }
+        .card-icon {
+            width: 28px;
+            height: 28px;
+        }
+        .add-files-icon {
+            width: 16px;
+            height: 16px;
+        }
+        .card-title {
+            font-size: medium;
+            font-weight: normal;
+            margin: 0;
+            padding: 0;
+            align-self: center;
+        }
+        .card-title-text {
+            vertical-align: middle;
+        }
+        .card-description {
+            margin: 0;
+            color: grey;
+            font-size: small;
+        }
+        .card-button-row {
+            display: grid;
+            grid-template-columns: auto;
+            text-align: right;
+        }
+        .card-button {
+            border: none;
+            font-weight: bold;
+            color: rgb(64,64,64);
+            background: transparent;
+            font-size: small;
+            cursor: pointer;
+            margin: 0;
+            padding: 0;
+            height: 32px;
+            text-align: right;
+        }
+        .primary-button {
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: small;
+        }
+
+        button.card-button.disabled {
+            color: rgb(255, 136, 136);
+            background: transparent;
+            font-size: small;
+            cursor: pointer;
+            margin: 0;
+            padding: 0;
+            height: 32px;
+            text-align: right;
+            text-align: left;
+        }
+
+        button.card-button.happy {
+            color: rgb(0, 146, 0);
+        }
+
+        button.card-button.happy {
+            color: rgb(0, 146, 0);
+        }
+
+        img.configured-icon {
+            max-width: 16px;
+        }
+
+        div.card-action-row.enabled{
+            display: block;
+        }
+
+        img.configured-icon.enabled {
+            display: inline;
+        }
+
+        div.card-action-row.disabled,
+        img.configured-icon.disabled {
+            display: none;
+        }
+
+        div.file-element,
+        div.folder-element {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.2);
+            padding: 4px;
+            margin-bottom: 8px;
+        }
+
+        div.content-name {
+            width: 500px;
+            overflow-wrap: break-word;
+        }
+
+        div.remove-button-container {
+            text-align: right;
+        }
+
+        button.remove-folder-button,
+        button.remove-file-button {
+            background-color: rgb(253 214 214);
+            border-radius: 3px;
+            border: none;
+            color: rgb(207, 67, 59);
+            padding: 4px;
+        }
+
+        button.remove-folder-button:hover,
+        button.remove-file-button:hover {
+            background-color: rgb(255 235 235);
+            border-radius: 3px;
+            border: none;
+            color: rgb(207, 67, 59);
+            padding: 4px;
+            cursor: pointer;
+        }
+        #sync-data {
+            background-color: #ffb300;
+            border: none;
+            color: white;
+            padding: 12px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            box-shadow: 0px 5px 0px #f9f5de;
+        }
+
+        #sync-data:hover {
+            background-color: #ffcc00;
+            box-shadow: 0px 3px 0px #f9f5de;
+        }
+    </style>
+    <script>
+        var khojBannerSubmit = document.getElementById("khoj-banner-submit");
+        khojBannerSubmit?.addEventListener("click", function(event) {
+            event.preventDefault();
+            var email = document.getElementById("khoj-banner-email").value;
+            fetch("https://app.khoj.dev/beta/users/", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        email: email
+                    }),
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                }).then(function(response) {
+                    return response.json();
+                }).then(function(data) {
+                    console.log(data);
+                    if (data.user != null) {
+                        document.getElementById("khoj-banner").innerHTML = "Thanks for signing up. We'll be in touch soon! 🚀";
+                        document.getElementById("khoj-banner-submit").remove();
+                    } else {
+                        document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
+                    }
+                }).catch(function(error) {
+                    console.log(error);
+                    document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
+                });
+            });
+    </script>
+    <script src="./renderer.js"></script>
+
+</html>

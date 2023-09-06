@@ -105,7 +105,7 @@ def configure_routes(app):
     app.mount("/static", StaticFiles(directory=constants.web_directory), name="static")
     app.include_router(api, prefix="/api")
     app.include_router(api_beta, prefix="/api/beta")
-    app.include_router(indexer, prefix="/indexer")
+    app.include_router(indexer, prefix="/v1/indexer")
     app.include_router(web_client)
 
 

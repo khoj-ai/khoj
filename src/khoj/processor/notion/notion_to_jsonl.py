@@ -80,7 +80,7 @@ class NotionToJsonl(TextToJsonl):
 
         self.body_params = {"page_size": 100}
 
-    def process(self, previous_entries=[], files=None):
+    def process(self, previous_entries=[], files=None, full_corpus=True):
         current_entries = []
 
         # Get all pages

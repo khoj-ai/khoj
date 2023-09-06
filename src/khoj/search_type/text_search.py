@@ -192,19 +192,24 @@ def setup(
     regenerate: bool,
     filters: List[BaseFilter] = [],
     normalize: bool = True,
+    full_corpus: bool = True,
 ) -> TextContent:
     # Map notes in text files to (compressed) JSONL formatted file
     config.compressed_jsonl = resolve_absolute_path(config.compressed_jsonl)
     previous_entries = []
     if config.compressed_jsonl.exists() and not regenerate:
         previous_entries = extract_entries(config.compressed_jsonl)
-    entries_with_indices = text_to_jsonl(config).process(previous_entries=previous_entries, files=files)
+    entries_with_indices = text_to_jsonl(config).process(
+        previous_entries=previous_entries, files=files, full_corpus=full_corpus
+    )
 
     # Extract Updated Entries
     entries = extract_entries(config.compressed_jsonl)
     if is_none_or_empty(entries):
         config_params = ", ".join([f"{key}={value}" for key, value in config.dict().items()])
-        raise ValueError(f"No valid entries found in specified files: {config_params}")
+        raise ValueError(
+            f"No valid entries found in specified configuration: {config_params}, with files: {files.keys()}"
+        )
 
     # Compute or Load Embeddings
     config.embeddings_file = resolve_absolute_path(config.embeddings_file)

@@ -1,6 +1,7 @@
 # Standard Packages
 import json
 import os
+import base64
 
 # Internal Packages
 from khoj.processor.pdf.pdf_to_jsonl import PdfToJsonl
@@ -15,7 +16,7 @@ def test_single_page_pdf_to_jsonl():
     # Extract Entries from specified Pdf files
     # Read singlepage.pdf into memory as bytes
     with open("tests/data/pdf/singlepage.pdf", "rb") as f:
-        pdf_bytes = f.read()
+        pdf_bytes = base64.b64encode(f.read()).decode("utf-8")
 
     data = {"tests/data/pdf/singlepage.pdf": pdf_bytes}
     entries, entry_to_file_map = PdfToJsonl.extract_pdf_entries(pdf_files=data)
@@ -35,7 +36,7 @@ def test_multi_page_pdf_to_jsonl():
     # Act
     # Extract Entries from specified Pdf files
     with open("tests/data/pdf/multipage.pdf", "rb") as f:
-        pdf_bytes = f.read()
+        pdf_bytes = base64.b64encode(f.read()).decode("utf-8")
 
     data = {"tests/data/pdf/multipage.pdf": pdf_bytes}
     entries, entry_to_file_map = PdfToJsonl.extract_pdf_entries(pdf_files=data)

@@ -1,5 +1,6 @@
 import logging
 import glob
+import base64
 from typing import Optional
 from bs4 import BeautifulSoup
 
@@ -209,7 +210,7 @@ def get_pdf_files(config: TextContentConfig):
     for file in all_pdf_files:
         with open(file, "rb") as f:
             try:
-                filename_to_content_map[file] = f.read()
+                filename_to_content_map[file] = base64.b64encode(f.read()).decode("utf-8")
             except Exception as e:
                 logger.warning(f"Unable to read file: {file} as PDF. Skipping file.")
                 logger.warning(e, exc_info=True)
