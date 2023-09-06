@@ -1,7 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Khoj
-Comment=An AI personal assistant for your Digital Brain
-Path=/opt
-Exec=/opt/Khoj
-Icon=Khoj
