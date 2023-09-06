@@ -27,7 +27,7 @@ For more detailed Windows installation and troubleshooting, see [Windows Install
 Run the following command from your terminal to start the Khoj backend and open Khoj in your browser.
 
 ```shell
-khoj --gui
+khoj
 ```
 
 Note: To start Khoj automatically in the background use [Task scheduler](https://www.windowscentral.com/how-create-automated-task-using-task-scheduler-windows-10) on Windows or [Cron](https://en.wikipedia.org/wiki/Cron) on Mac, Linux (e.g with `@reboot khoj`)
