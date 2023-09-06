@@ -1,6 +1,5 @@
 # Standard Packages
 import os
-import signal
 import sys
 import locale
 
@@ -12,8 +11,6 @@ if sys.stderr is None:
 import logging
 import threading
 import warnings
-from platform import system
-import webbrowser
 from importlib.metadata import version
 
 # Ignore non-actionable warnings
@@ -70,81 +67,13 @@ def run():
 
     logger.info("🌘 Starting Khoj")
 
-    if not args.gui:
-        # Setup task scheduler
-        poll_task_scheduler()
+    # Setup task scheduler
+    poll_task_scheduler()
 
-        # Start Server
-        configure_routes(app)
-        initialize_server(args.config, required=False)
-        start_server(app, host=args.host, port=args.port, socket=args.socket)
-    else:
-        from PySide6 import QtWidgets
-        from PySide6.QtCore import QTimer
-
-        from khoj.interface.desktop.main_window import MainWindow, ServerThread
-        from khoj.interface.desktop.system_tray import create_system_tray
-
-        # Setup GUI
-        gui = QtWidgets.QApplication([])
-        main_window = MainWindow(args.host, args.port)
-
-        # System tray is only available on Windows, MacOS.
-        # On Linux (Gnome) the System tray is not supported.
-        # Since only the Main Window is available
-        # Quitting it should quit the application
-        if system() in ["Windows", "Darwin"]:
-            gui.setQuitOnLastWindowClosed(False)
-            tray = create_system_tray(gui, main_window)
-            tray.show()
-
-        # Setup Server
-        initialize_server(args.config, required=False)
-        configure_routes(app)
-        server = ServerThread(start_server_func=lambda: start_server(app, host=args.host, port=args.port), parent=gui)
-
-        url = f"http://{args.host}:{args.port}"
-        logger.info(f"🌗 Khoj is running at {url}")
-        try:
-            startup_url = url if args.config else f"{url}/config"
-            webbrowser.open(startup_url)
-        except:
-            logger.warning(f"🚧 Unable to open browser. Please open {url} manually to configure or use Khoj.")
-
-        # Show Main Window on First Run Experience or if on Linux
-        if args.config is None or system() not in ["Windows", "Darwin"]:
-            main_window.show()
-
-        # Setup Signal Handlers
-        signal.signal(signal.SIGINT, sigint_handler)
-        # Invoke Python interpreter every 500ms to handle signals, run scheduled tasks
-        timer = QTimer()
-        timer.start(500)
-        timer.timeout.connect(schedule.run_pending)
-
-        # Start Application
-        server.start()
-        gui.aboutToQuit.connect(server.exit)
-
-        # Close Splash Screen if still open
-        if system() != "Darwin":
-            try:
-                import pyi_splash
-
-                # Update the text on the splash screen
-                pyi_splash.update_text("Khoj setup complete")
-                # Close Splash Screen
-                pyi_splash.close()
-            except:
-                pass
-
-        gui.exec()
-
-
-def sigint_handler(*args):
-    from PySide6 import QtWidgets
-
-    QtWidgets.QApplication.quit()
+    # Start Server
+    configure_routes(app)
+    initialize_server(args.config, required=False)
+    start_server(app, host=args.host, port=args.port, socket=args.socket)
 
 
 def set_state(args):
@@ -171,12 +100,3 @@ def poll_task_scheduler():
     timer_thread.daemon = True
     timer_thread.start()
     schedule.run_pending()
-
-
-def run_gui():
-    sys.argv += ["--gui"]
-    run()
-
-
-if __name__ == "__main__":
-    run_gui()
