@@ -27,7 +27,7 @@ For more detailed Windows installation and troubleshooting, see [Windows Install
 Run the following command from your terminal to start the Khoj backend and open Khoj in your browser.
 
 ```shell
-khoj --gui
+khoj
 ```
 
 Note: To start Khoj automatically in the background use [Task scheduler](https://www.windowscentral.com/how-create-automated-task-using-task-scheduler-windows-10) on Windows or [Cron](https://en.wikipedia.org/wiki/Cron) on Mac, Linux (e.g with `@reboot khoj`)
@@ -73,6 +73,9 @@ pip install --upgrade --pre khoj-assistant
 ## Uninstall
 1. (Optional) Hit `Ctrl-C` in the terminal running the khoj server to stop it
 2. Delete the khoj directory in your home folder (i.e `~/.khoj` on Linux, Mac or `C:\Users\<your-username>\.khoj` on Windows)
+5. You might want to `rm -rf` the following directories:
+- `~/.khoj`
+- `~/.cache/gpt4all`
 3. Uninstall the khoj server with `pip uninstall khoj-assistant`
 4. (Optional) Uninstall khoj.el or the khoj obsidian plugin in the standard way on Emacs, Obsidian
 

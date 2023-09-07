@@ -106,11 +106,6 @@ def load_model(
     return model
 
 
-def is_pyinstaller_app():
-    "Returns true if the app is running from Native GUI created by PyInstaller"
-    return getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")
-
-
 def get_class_by_name(name: str) -> object:
     "Returns the class object from name string"
     module_name, class_name = name.rsplit(".", 1)
