@@ -138,6 +138,9 @@ def configure_content(
     t: Optional[Union[state.SearchType, str]] = None,
     full_corpus: bool = True,
 ) -> Optional[ContentIndex]:
+    def has_valid_text_config(config: TextContentConfig):
+        return config.input_files or config.input_filter
+
     # Run Validation Checks
     if content_config is None:
         logger.warning("🚨 No Content configuration available.")
@@ -158,7 +161,7 @@ def configure_content(
         # Initialize Org Notes Search
         if (
             (t == None or t == state.SearchType.Org.value)
-            and (content_config.org or files["org"])
+            and ((content_config.org and has_valid_text_config(content_config.org)) or files["org"])
             and search_models.text_search
         ):
             if content_config.org == None:
@@ -187,7 +190,7 @@ def configure_content(
         # Initialize Markdown Search
         if (
             (t == None or t == state.SearchType.Markdown.value)
-            and (content_config.markdown or files["markdown"])
+            and ((content_config.markdown and has_valid_text_config(content_config.markdown)) or files["markdown"])
             and search_models.text_search
             and files["markdown"]
         ):
@@ -218,7 +221,7 @@ def configure_content(
         # Initialize PDF Search
         if (
             (t == None or t == state.SearchType.Pdf.value)
-            and (content_config.pdf or files["pdf"])
+            and ((content_config.pdf and has_valid_text_config(content_config.pdf)) or files["pdf"])
             and search_models.text_search
             and files["pdf"]
         ):
@@ -249,7 +252,7 @@ def configure_content(
         # Initialize Plaintext Search
         if (
             (t == None or t == state.SearchType.Plaintext.value)
-            and (content_config.plaintext or files["plaintext"])
+            and ((content_config.plaintext and has_valid_text_config(content_config.plaintext)) or files["plaintext"])
             and search_models.text_search
             and files["plaintext"]
         ):

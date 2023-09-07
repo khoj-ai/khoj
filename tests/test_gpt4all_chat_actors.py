@@ -13,7 +13,10 @@ pytestmark = pytest.mark.skipif(
 import freezegun
 from freezegun import freeze_time
 
-from gpt4all import GPT4All
+try:
+    from gpt4all import GPT4All
+except ModuleNotFoundError as e:
+    print("There was an error importing GPT4All. Please run pip install gpt4all in order to install it.")
 
 # Internal Packages
 from khoj.processor.conversation.gpt4all.chat_model import converse_offline, extract_questions_offline, filter_questions
