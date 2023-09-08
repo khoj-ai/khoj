@@ -7,9 +7,12 @@ RUN apt update -y && \
     apt -y install python3-pip git
 
 # Install Application
-COPY . .
+COPY pyproject.toml .
+COPY README.md .
 RUN sed -i 's/dynamic = \["version"\]/version = "0.0.0"/' pyproject.toml && \
     pip install --no-cache-dir .
+
+COPY . .
 
 # Run the Application
 # There are more arguments required for the application to run,
