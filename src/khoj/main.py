@@ -100,3 +100,7 @@ def poll_task_scheduler():
     timer_thread.daemon = True
     timer_thread.start()
     schedule.run_pending()
+
+
+if __name__ == "__main__":
+    run()

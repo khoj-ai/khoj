@@ -11,18 +11,16 @@ import schedule
 from fastapi.staticfiles import StaticFiles
 
 # Internal Packages
-from khoj.search_type import image_search, text_search
 from khoj.utils import constants, state
 from khoj.utils.config import (
     SearchType,
-    SearchModels,
     ProcessorConfigModel,
     ConversationProcessorConfigModel,
 )
 from khoj.utils.helpers import resolve_absolute_path, merge_dicts
 from khoj.utils.fs_syncer import collect_files
-from khoj.utils.rawconfig import FullConfig, ProcessorConfig, SearchConfig, ConversationProcessorConfig
-from khoj.routers.indexer import configure_content, load_content
+from khoj.utils.rawconfig import FullConfig, ProcessorConfig, ConversationProcessorConfig
+from khoj.routers.indexer import configure_content, load_content, configure_search
 
 
 logger = logging.getLogger(__name__)
@@ -134,26 +132,6 @@ def configure_search_types(config: FullConfig):
 
     # Dynamically generate search type enum by merging core search types with configured plugin search types
     return Enum("SearchType", merge_dicts(core_search_types, plugin_search_types))
-
-
-def configure_search(search_models: SearchModels, search_config: Optional[SearchConfig]) -> Optional[SearchModels]:
-    # Run Validation Checks
-    if search_config is None:
-        logger.warning("🚨 No Search configuration available.")
-        return None
-    if search_models is None:
-        search_models = SearchModels()
-
-    # Initialize Search Models
-    if search_config.asymmetric:
-        logger.info("🔍 📜 Setting up text search model")
-        search_models.text_search = text_search.initialize_model(search_config.asymmetric)
-
-    if search_config.image:
-        logger.info("🔍 🌄 Setting up image search model")
-        search_models.image_search = image_search.initialize_model(search_config.image)
-
-    return search_models
 
 
 def configure_processor(

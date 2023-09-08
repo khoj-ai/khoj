@@ -1,6 +1,7 @@
 # Standard Packages
 import logging
 import sys
+import json
 from typing import Optional, Union, Dict
 
 # External Packages
@@ -8,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Header, Request, Body, Response
 from pydantic import BaseModel
 
 # Internal Packages
-from khoj.utils import state
+from khoj.utils import state, constants
 from khoj.processor.jsonl.jsonl_to_jsonl import JsonlToJsonl
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
@@ -18,11 +19,14 @@ from khoj.processor.notion.notion_to_jsonl import NotionToJsonl
 from khoj.processor.plaintext.plaintext_to_jsonl import PlaintextToJsonl
 from khoj.utils.rawconfig import ContentConfig, TextContentConfig
 from khoj.search_type import text_search, image_search
+from khoj.utils.yaml import save_config_to_file_updated_state
 from khoj.utils.config import SearchModels
 from khoj.utils.constants import default_config
 from khoj.utils.helpers import LRU, get_file_type
 from khoj.utils.rawconfig import (
     ContentConfig,
+    FullConfig,
+    SearchConfig,
 )
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.word_filter import WordFilter
@@ -111,6 +115,28 @@ async def index_batch(
             plaintext=plaintext_files,
         )
 
+        if state.config == None:
+            logger.info("First run, initializing state.")
+            default_full_config = FullConfig(
+                content_type=None,
+                search_type=SearchConfig.parse_obj(constants.default_config["search-type"]),
+                processor=None,
+            )
+            state.config = default_full_config
+            default_content_config = ContentConfig(
+                org=None,
+                markdown=None,
+                pdf=None,
+                image=None,
+                github=None,
+                notion=None,
+                plaintext=None,
+                plugins=None,
+            )
+            state.config.content_type = default_content_config
+            save_config_to_file_updated_state()
+            configure_search(state.search_models, state.config.search_type)
+
         # Extract required fields from config
         state.content_index = configure_content(
             state.content_index,
@@ -127,6 +153,26 @@ async def index_batch(
     finally:
         state.config_lock.release()
     return Response(content="OK", status_code=200)
+
+
+def configure_search(search_models: SearchModels, search_config: Optional[SearchConfig]) -> Optional[SearchModels]:
+    # Run Validation Checks
+    if search_config is None:
+        logger.warning("🚨 No Search configuration available.")
+        return None
+    if search_models is None:
+        search_models = SearchModels()
+
+    # Initialize Search Models
+    if search_config.asymmetric:
+        logger.info("🔍 📜 Setting up text search model")
+        search_models.text_search = text_search.initialize_model(search_config.asymmetric)
+
+    if search_config.image:
+        logger.info("🔍 🌄 Setting up image search model")
+        search_models.image_search = image_search.initialize_model(search_config.image)
+
+    return search_models
 
 
 def configure_content(
