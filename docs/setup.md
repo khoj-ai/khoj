@@ -32,7 +32,7 @@ Run the following command from your terminal to start the Khoj backend and open 
 khoj
 ```
 
-Navigate to http://localhost:42110 to open Khoj in your browser.
+Khoj should now be running at http://localhost:42110. You can see the web UI in your browser.
 
 Note: To start Khoj automatically in the background use [Task scheduler](https://www.windowscentral.com/how-create-automated-task-using-task-scheduler-windows-10) on Windows or [Cron](https://en.wikipedia.org/wiki/Cron) on Mac, Linux (e.g with `@reboot khoj`)
 
@@ -42,6 +42,8 @@ Use the sample docker-compose [in Github](https://github.com/khoj-ai/khoj/blob/m
 ```shell
 docker-compose up
 ```
+
+Khoj should now be running at http://localhost:42110. You can see the web UI in your browser.
 
 ### 2. Configure
 1. Set `File`, `Folder` and hit `Save` in each Plugins you want to enable for Search on the Khoj config page
