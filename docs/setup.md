@@ -32,6 +32,8 @@ Run the following command from your terminal to start the Khoj backend and open 
 khoj
 ```
 
+Navigate to http://localhost:42110 to open Khoj in your browser.
+
 Note: To start Khoj automatically in the background use [Task scheduler](https://www.windowscentral.com/how-create-automated-task-using-task-scheduler-windows-10) on Windows or [Cron](https://en.wikipedia.org/wiki/Cron) on Mac, Linux (e.g with `@reboot khoj`)
 
 #### 1.2 Docker Setup
