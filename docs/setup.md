@@ -8,6 +8,8 @@ These are the general setup instructions for Khoj.
   Its simpler as it can skip the *configure* step below.
 
 ### 1. Install
+
+#### 1.1 Local Setup
 Run the following command in your terminal to install the Khoj backend.
 
 - On Linux/MacOS
@@ -22,7 +24,7 @@ Run the following command in your terminal to install the Khoj backend.
 For more detailed Windows installation and troubleshooting, see [Windows Install](./windows_install.md).
 
 
-### 2. Start
+##### 1.1.1 Start
 
 Run the following command from your terminal to start the Khoj backend and open Khoj in your browser.
 
@@ -32,14 +34,21 @@ khoj
 
 Note: To start Khoj automatically in the background use [Task scheduler](https://www.windowscentral.com/how-create-automated-task-using-task-scheduler-windows-10) on Windows or [Cron](https://en.wikipedia.org/wiki/Cron) on Mac, Linux (e.g with `@reboot khoj`)
 
-### 3. Configure
+#### 1.2 Docker Setup
+Use the sample docker-compose [in Github](https://github.com/khoj-ai/khoj/blob/master/docker-compose.yml) to run Khoj in Docker. To start the container, run the following command in the same directory as the docker-compose.yml file. You'll have to configure the mounted directories to match your local knowledge base.
+
+```shell
+docker-compose up
+```
+
+### 2. Configure
 1. Set `File`, `Folder` and hit `Save` in each Plugins you want to enable for Search on the Khoj config page
 2. Add your OpenAI API key to Chat Feature settings if you want to use Chat
 3. Click `Configure` and wait. The app will download ML models and index the content for search and (optionally) chat
 
 ![configure demo](https://user-images.githubusercontent.com/6413477/255307879-61247d3f-c69a-46ef-b058-9bc533cb5c72.mp4 ':include :type=mp4')
 
-### 4. Install Interface Plugins (Optional)
+### 3. Install Interface Plugins (Optional)
 Khoj exposes a web interface to search, chat and configure by default.<br />
 The optional steps below allow using Khoj from within an existing application like Obsidian or Emacs.
 
