@@ -3,7 +3,6 @@ import logging
 import requests
 import hashlib
 
-from gpt4all import GPT4All
 from tqdm import tqdm
 
 from khoj.processor.conversation.gpt4all import model_metadata
@@ -22,6 +21,12 @@ def get_md5_checksum(filename: str):
 
 
 def download_model(model_name: str):
+    try:
+        from gpt4all import GPT4All
+    except ModuleNotFoundError as e:
+        logger.info("There was an error importing GPT4All. Please run pip install gpt4all in order to install it.")
+        raise e
+
     url = model_metadata.model_name_to_url.get(model_name)
     if not url:
         logger.debug(f"Model {model_name} not found in model metadata. Skipping download.")

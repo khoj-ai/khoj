@@ -57,9 +57,10 @@ dependencies = [
     "langchain >= 0.0.187",
     "requests >= 2.26.0",
     "bs4 >= 0.0.1",
-    "gpt4all >= 1.0.7",
     "anyio == 3.7.1",
     "pymupdf >= 1.23.3",
+    "gpt4all == 0.1.9; platform_system == 'Linux' and platform_machine == 'x86_64'",
+    "gpt4all == 0.1.9; platform_system == 'Windows' or platform_system == 'Darwin'",
 ]
 dynamic = ["version"]
 

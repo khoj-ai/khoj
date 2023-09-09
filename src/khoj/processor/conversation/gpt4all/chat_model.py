@@ -1,11 +1,9 @@
-from typing import Iterator, Union, List
+from typing import Iterator, Union, List, Any
 from datetime import datetime
 import logging
 from threading import Thread
 
 from langchain.schema import ChatMessage
-
-from gpt4all import GPT4All
 
 from khoj.processor.conversation.utils import ThreadedGenerator, generate_chatml_messages_with_context
 from khoj.processor.conversation import prompts
@@ -19,7 +17,7 @@ logger = logging.getLogger(__name__)
 def extract_questions_offline(
     text: str,
     model: str = "llama-2-7b-chat.ggmlv3.q4_K_S.bin",
-    loaded_model: Union[GPT4All, None] = None,
+    loaded_model: Union[Any, None] = None,
     conversation_log={},
     use_history: bool = True,
     should_extract_questions: bool = True,
@@ -27,6 +25,15 @@ def extract_questions_offline(
     """
     Infer search queries to retrieve relevant notes to answer user query
     """
+    try:
+        from gpt4all import GPT4All
+    except ModuleNotFoundError as e:
+        logger.info("There was an error importing GPT4All. Please run pip install gpt4all in order to install it.")
+        raise e
+
+    # Assert that loaded_model is either None or of type GPT4All
+    assert loaded_model is None or isinstance(loaded_model, GPT4All), "loaded_model must be of type GPT4All or None"
+
     all_questions = text.split("? ")
     all_questions = [q + "?" for q in all_questions[:-1]] + [all_questions[-1]]
 
@@ -117,13 +124,20 @@ def converse_offline(
     user_query,
     conversation_log={},
     model: str = "llama-2-7b-chat.ggmlv3.q4_K_S.bin",
-    loaded_model: Union[GPT4All, None] = None,
+    loaded_model: Union[Any, None] = None,
     completion_func=None,
     conversation_command=ConversationCommand.Default,
 ) -> Union[ThreadedGenerator, Iterator[str]]:
     """
     Converse with user using Llama
     """
+    try:
+        from gpt4all import GPT4All
+    except ModuleNotFoundError as e:
+        logger.info("There was an error importing GPT4All. Please run pip install gpt4all in order to install it.")
+        raise e
+
+    assert loaded_model is None or isinstance(loaded_model, GPT4All), "loaded_model must be of type GPT4All or None"
     gpt4all_model = loaded_model or GPT4All(model)
     # Initialize Variables
     compiled_references_message = "\n\n".join({f"{item}" for item in references})
@@ -152,7 +166,14 @@ def converse_offline(
     return g
 
 
-def llm_thread(g, messages: List[ChatMessage], model: GPT4All):
+def llm_thread(g, messages: List[ChatMessage], model: Any):
+    try:
+        from gpt4all import GPT4All
+    except ModuleNotFoundError as e:
+        logger.info("There was an error importing GPT4All. Please run pip install gpt4all in order to install it.")
+        raise e
+
+    assert isinstance(model, GPT4All), "model should be of type GPT4All"
     user_message = messages[-1]
     system_message = messages[0]
     conversation_history = messages[1:-1]
