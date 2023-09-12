@@ -86,7 +86,7 @@ function handleSetTitle (event, title) {
     });
 }
 
-function pushDataToKhoj () {
+function pushDataToKhoj (regenerate = false) {
     let filesToPush = [];
     const files = store.get('files');
     const folders = store.get('folders');
@@ -118,9 +118,12 @@ function pushDataToKhoj () {
 
     for (file of filesToPush) {
         const stats = fs.statSync(file);
-        if (stats.mtime.toISOString() < lastSync.find((syncedFile) => syncedFile.path === file)?.datetime) {
-            continue;
+        if (!regenerate) {
+            if (stats.mtime.toISOString() < lastSync.find((syncedFile) => syncedFile.path === file)?.datetime) {
+                continue;
+            }
         }
+
         try {
             let rawData;
             // If the file is a PDF or IMG file, read it as a binary file
@@ -166,7 +169,7 @@ function pushDataToKhoj () {
 
     const hostURL = store.get('hostURL') || KHOJ_URL;
 
-    axios.post(`${hostURL}/v1/indexer/batch`, stream, { headers })
+    axios.post(`${hostURL}/v1/indexer/batch?regenerate=${regenerate}`, stream, { headers })
         .then(response => {
             console.log(response.data);
             const win = BrowserWindow.getAllWindows()[0];
@@ -186,7 +189,6 @@ function pushDataToKhoj () {
             const win = BrowserWindow.getAllWindows()[0];
             win.webContents.send('update-state', state);
         });
-
 }
 
 pushDataToKhoj();
@@ -263,9 +265,9 @@ async function removeFolder (event, folderPath) {
     return newFolders;
 }
 
-async function syncData () {
+async function syncData (regenerate = false) {
     try {
-        pushDataToKhoj();
+        pushDataToKhoj(regenerate);
         const date = new Date();
         console.log('Pushing data to Khoj at: ', date);
     } catch (err) {
@@ -324,7 +326,9 @@ app.whenReady().then(() => {
     ipcMain.handle('setURL', setURL);
     ipcMain.handle('getURL', getURL);
 
-    ipcMain.handle('syncData', syncData);
+    ipcMain.handle('syncData', (event, regenerate) => {
+        syncData(regenerate);
+    });
 
     createWindow()
 

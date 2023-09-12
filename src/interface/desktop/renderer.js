@@ -172,6 +172,8 @@ urlInput.addEventListener('blur', async () => {
 });
 
 const syncButton = document.getElementById('sync-data');
+const syncForceToggle = document.getElementById('sync-force');
 syncButton.addEventListener('click', async () => {
-    await window.syncDataAPI.syncData();
+    const regenerate = syncForceToggle.checked;
+    await window.syncDataAPI.syncData(regenerate);
 });

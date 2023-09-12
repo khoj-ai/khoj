@@ -45,5 +45,5 @@ contextBridge.exposeInMainWorld('hostURLAPI', {
 })
 
 contextBridge.exposeInMainWorld('syncDataAPI', {
-    syncData: () => ipcRenderer.invoke('syncData')
+    syncData: (regenerate) => ipcRenderer.invoke('syncData', regenerate)
 })
