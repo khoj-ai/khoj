@@ -6,6 +6,8 @@ LABEL org.opencontainers.image.source https://github.com/khoj-ai/khoj
 RUN apt update -y && \
     apt -y install python3-pip git
 
+WORKDIR /app
+
 # Install Application
 COPY . .
 RUN sed -i 's/dynamic = \["version"\]/version = "0.0.0"/' pyproject.toml && \

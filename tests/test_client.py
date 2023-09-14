@@ -8,7 +8,7 @@ from urllib.parse import quote
 from fastapi.testclient import TestClient
 
 # Internal Packages
-from khoj.main import app
+from app.main import app
 from khoj.configure import configure_routes, configure_search_types
 from khoj.utils import state
 from khoj.utils.state import search_models, content_index, config

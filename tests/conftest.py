@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 # Internal Packages
-from khoj.main import app
+from app.main import app
 from khoj.configure import configure_processor, configure_routes, configure_search_types
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.plaintext.plaintext_to_jsonl import PlaintextToJsonl

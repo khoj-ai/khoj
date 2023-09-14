@@ -20,16 +20,26 @@ warnings.filterwarnings("ignore", message=r"legacy way to download files from th
 # External Packages
 import uvicorn
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from rich.logging import RichHandler
 import schedule
+from django.core.asgi import get_asgi_application
+
+# from django.conf import settings
 
 # Internal Packages
 from khoj.configure import configure_routes, initialize_server
 from khoj.utils import state
 from khoj.utils.cli import cli
 
+# Initialize Django
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "app.settings")
+
 # Initialize the Application Server
 app = FastAPI()
+
+# Get Django Application
+django_app = get_asgi_application()
 
 # Set Locale
 locale.setlocale(locale.LC_ALL, "")
@@ -43,6 +53,9 @@ logger = logging.getLogger("khoj")
 
 
 def run():
+    # Internal Django imports
+    from database.routers import question_router
+
     # Turn Tokenizers Parallelism Off. App does not support it.
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -72,6 +85,12 @@ def run():
 
     # Start Server
     configure_routes(app)
+
+    #  Mount Django and Static Files
+    app.include_router(question_router, tags=["questions"], prefix="/question")
+    app.mount("/django", django_app, name="django")
+    app.mount("/static", StaticFiles(directory="src/static"), name="static")
+
     initialize_server(args.config, required=False)
     start_server(app, host=args.host, port=args.port, socket=args.socket)
 
