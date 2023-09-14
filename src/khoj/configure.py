@@ -100,7 +100,7 @@ def configure_routes(app):
     from khoj.routers.web_client import web_client
     from khoj.routers.indexer import indexer
 
-    app.mount("/static", StaticFiles(directory=constants.web_directory), name="static")
+    # app.mount("/static", StaticFiles(directory=constants.web_directory), name="static")
     app.include_router(api, prefix="/api")
     app.include_router(api_beta, prefix="/api/beta")
     app.include_router(indexer, prefix="/v1/indexer")

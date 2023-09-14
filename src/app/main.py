@@ -89,7 +89,7 @@ def run():
     #  Mount Django and Static Files
     app.include_router(question_router, tags=["questions"], prefix="/question")
     app.mount("/django", django_app, name="django")
-    app.mount("/static", StaticFiles(directory="src/static"), name="static")
+    app.mount("/static", StaticFiles(directory="static"), name="static")
 
     initialize_server(args.config, required=False)
     start_server(app, host=args.host, port=args.port, socket=args.socket)
