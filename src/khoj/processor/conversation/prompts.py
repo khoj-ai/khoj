@@ -207,11 +207,11 @@ Q: What is their age difference?
 
 A: Bob is {bob_tom_age_difference} years older than Tom. As Bob is {bob_age} years old and Tom is 30 years old.
 
-Q: What did yesterday's note say?
+Q: What does yesterday's note say?
 
 ["Note from {yesterday_date} dt='{yesterday_date}'"]
 
-A: Yesterday's note, dated {yesterday_date}, contained the following information: ...
+A: Yesterday's note, dated {yesterday_date}, contains the following information: ...
 
 {chat_history}
 Q: {text}
