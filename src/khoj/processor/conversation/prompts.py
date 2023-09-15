@@ -211,7 +211,7 @@ Q: What does yesterday's note say?
 
 ["Note from {yesterday_date} dt='{yesterday_date}'"]
 
-A: Yesterday's note, dated {yesterday_date}, contains the following information: ...
+A: Yesterday's note contains the following information: ...
 
 {chat_history}
 Q: {text}
