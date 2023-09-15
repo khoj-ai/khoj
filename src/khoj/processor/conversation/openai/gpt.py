@@ -1,6 +1,6 @@
 # Standard Packages
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 # External Packages
@@ -70,6 +70,7 @@ def extract_questions(
         bob_age={current_new_year.year - 1984},
         chat_history=chat_history,
         text=text,
+        yesterday_date=(today - timedelta(days=1)).strftime("%A, %Y-%m-%d")
     )
     messages = [ChatMessage(content=prompt, role="assistant")]
 
