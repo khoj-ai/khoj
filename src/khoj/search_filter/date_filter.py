@@ -26,7 +26,7 @@ class DateFilter(BaseFilter):
     # - dt:"2 years ago"
     date_regex = r"dt([:><=]{1,2})[\"'](.*?)[\"']"
 
-    def __init__(self, entry_key="raw"):
+    def __init__(self, entry_key="compiled"):
         self.entry_key = entry_key
         self.date_to_entry_ids = defaultdict(set)
         self.cache = LRU()
