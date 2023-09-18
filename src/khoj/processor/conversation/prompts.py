@@ -209,7 +209,7 @@ A: Bob is {bob_tom_age_difference} years older than Tom. As Bob is {bob_age} yea
 
 Q: What does yesterday's note say?
 
-["Note from {yesterday_date} dt='{yesterday_date}'"]
+["Note from {yesterday_date} dt>='{yesterday_date}' dt<'{current_date}'"]
 
 A: Yesterday's note contains the following information: ...
 

@@ -28,9 +28,10 @@ def download_model(model_name: str):
         raise e
 
     url = model_metadata.model_name_to_url.get(model_name)
+    model_path = os.path.expanduser(f"~/.cache/gpt4all/")
     if not url:
         logger.debug(f"Model {model_name} not found in model metadata. Skipping download.")
-        return GPT4All(model_name)
+        return GPT4All(model_name=model_name, model_path=model_path)
 
     filename = os.path.expanduser(f"~/.cache/gpt4all/{model_name}")
     if os.path.exists(filename):
@@ -39,8 +40,8 @@ def download_model(model_name: str):
             requests.get("https://www.google.com/", timeout=5)
         except:
             logger.debug("User is offline. Disabling allowed download flag")
-            return GPT4All(model_name, allow_download=False)
-        return GPT4All(model_name)
+            return GPT4All(model_name=model_name, model_path=model_path, allow_download=False)
+        return GPT4All(model_name=model_name, model_path=model_path)
 
     # Download the model to a tmp file. Once the download is completed, move the tmp file to the actual file
     tmp_filename = filename + ".tmp"
