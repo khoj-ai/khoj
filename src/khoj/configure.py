@@ -99,13 +99,14 @@ def configure_routes(app):
     from khoj.routers.api_beta import api_beta
     from khoj.routers.web_client import web_client
     from khoj.routers.indexer import indexer
-    from khoj.routers.auth import auth
+    from khoj.routers.auth import auth_router
 
     # app.mount("/static", StaticFiles(directory=constants.web_directory), name="static")
     app.include_router(api, prefix="/api")
     app.include_router(api_beta, prefix="/api/beta")
     app.include_router(indexer, prefix="/v1/indexer")
     app.include_router(web_client)
+    app.include_router(auth_router, prefix="/auth")
 
 
 if not state.demo:

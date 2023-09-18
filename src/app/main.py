@@ -24,6 +24,7 @@ from fastapi.staticfiles import StaticFiles
 from rich.logging import RichHandler
 import schedule
 from django.core.asgi import get_asgi_application
+from starlette.middleware.sessions import SessionMiddleware
 
 # from django.conf import settings
 
@@ -92,14 +93,7 @@ def run():
     app.mount("/django", django_app, name="django")
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
-    @app.middleware("http")
-    async def add_user_to_request(request, call_next):
-        user = await adapters.retrieve_user(
-            session_id=request.cookies.get("sessionid"),
-        )
-        request.state.user = user
-        response = await call_next(request)
-        return response
+    app.add_middleware(SessionMiddleware, secret_key="!secret")
 
     initialize_server(args.config, required=False)
     start_server(app, host=args.host, port=args.port, socket=args.socket)
