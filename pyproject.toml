@@ -62,8 +62,7 @@ dependencies = [
     "gpt4all == 0.1.9; platform_system == 'Linux' and platform_machine == 'x86_64'",
     "gpt4all == 0.1.9; platform_system == 'Windows' or platform_system == 'Darwin'",
     "django == 4.2.5",
-    "django-allauth == 0.56.1",
-    # "authlib == 1.2.1",
+    "authlib == 1.2.1",
 ]
 dynamic = ["version"]
 
