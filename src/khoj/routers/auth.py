@@ -8,12 +8,8 @@ from authlib.integrations.starlette_client import OAuth, OAuthError
 
 auth_router = APIRouter()
 
-GOOGLE_CLIENT_ID = ""
-GOOGLE_CLIENT_SECRET = ""
-
-os.environ["GOOGLE_CLIENT_ID"] = GOOGLE_CLIENT_ID
-os.environ["GOOGLE_CLIENT_SECRET"] = GOOGLE_CLIENT_SECRET
-
+# if not os.environ["GOOGLE_CLIENT_ID"] or not os.environ["GOOGLE_CLIENT_SECRET"]:
+#     raise Exception("Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables")
 
 config = Config(environ=os.environ)
 
@@ -39,7 +35,7 @@ async def login(request: Request):
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 
-@auth_router.get("/auth")
+@auth_router.get("/redirect")
 async def auth(request: Request):
     try:
         token = await oauth.google.authorize_access_token(request)

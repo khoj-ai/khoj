@@ -3,11 +3,6 @@ import os
 import sys
 import locale
 
-if sys.stdout is None:
-    sys.stdout = open(os.devnull, "w")
-if sys.stderr is None:
-    sys.stderr = open(os.devnull, "w")
-
 import logging
 import threading
 import warnings
@@ -19,11 +14,14 @@ warnings.filterwarnings("ignore", message=r"legacy way to download files from th
 
 # External Packages
 import uvicorn
+import django
+import schedule
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from rich.logging import RichHandler
-import schedule
 from django.core.asgi import get_asgi_application
+from django.core.management import call_command
 from starlette.middleware.sessions import SessionMiddleware
 
 # from django.conf import settings
@@ -35,6 +33,10 @@ from khoj.utils.cli import cli
 
 # Initialize Django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "app.settings")
+django.setup()
+
+# Initialize Django Database
+call_command("migrate", "--noinput")
 
 # Initialize the Application Server
 app = FastAPI()
