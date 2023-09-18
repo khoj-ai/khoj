@@ -269,7 +269,10 @@ def client(content_config: ContentConfig, search_config: SearchConfig, processor
 
 @pytest.fixture(scope="function")
 def client_offline_chat(
-    search_config: SearchConfig, processor_config_offline_chat: ProcessorConfig, content_config: ContentConfig
+    search_config: SearchConfig,
+    processor_config_offline_chat: ProcessorConfig,
+    content_config: ContentConfig,
+    md_content_config,
 ):
     # Initialize app state
     state.config.content_type = md_content_config
@@ -280,7 +283,7 @@ def client_offline_chat(
     state.search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     state.search_models.image_search = image_search.initialize_model(search_config.image)
 
-    all_files = fs_syncer.collect_files(content_config.content_type)
+    all_files = fs_syncer.collect_files(state.config.content_type)
     state.content_index = configure_content(
         state.content_index, state.config.content_type, all_files, state.search_models
     )
