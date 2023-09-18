@@ -1,6 +1,6 @@
 # Standard Packages
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 # External Packages
@@ -42,7 +42,12 @@ def summarize(session, model, api_key=None, temperature=0.5, max_tokens=200):
 
 
 def extract_questions(
-    text, model: Optional[str] = "gpt-4", conversation_log={}, api_key=None, temperature=0, max_tokens=100
+    text,
+    model: Optional[str] = "gpt-4",
+    conversation_log={},
+    api_key=None,
+    temperature=0,
+    max_tokens=100,
 ):
     """
     Infer search queries to retrieve relevant notes to answer user query
@@ -70,6 +75,7 @@ def extract_questions(
         bob_age={current_new_year.year - 1984},
         chat_history=chat_history,
         text=text,
+        yesterday_date=(today - timedelta(days=1)).strftime("%Y-%m-%d"),
     )
     messages = [ChatMessage(content=prompt, role="assistant")]
 
