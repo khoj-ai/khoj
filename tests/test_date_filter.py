@@ -14,9 +14,9 @@ from khoj.utils.rawconfig import Entry
 @pytest.mark.filterwarnings("ignore:The localize method is no longer necessary.")
 def test_date_filter():
     entries = [
-        Entry(compiled="", raw="Entry with no date"),
-        Entry(compiled="", raw="April Fools entry: 1984-04-01"),
-        Entry(compiled="", raw="Entry with date:1984-04-02"),
+        Entry(compiled="Entry with no date", raw="Entry with no date"),
+        Entry(compiled="April Fools entry: 1984-04-01", raw="April Fools entry: 1984-04-01"),
+        Entry(compiled="Entry with date:1984-04-02", raw="Entry with date:1984-04-02"),
     ]
 
     q_with_no_date_filter = "head tail"
