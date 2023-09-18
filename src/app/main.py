@@ -55,6 +55,7 @@ logger = logging.getLogger("khoj")
 def run():
     # Internal Django imports
     from database.routers import question_router
+    from database import adapters
 
     # Turn Tokenizers Parallelism Off. App does not support it.
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -90,6 +91,15 @@ def run():
     app.include_router(question_router, tags=["questions"], prefix="/question")
     app.mount("/django", django_app, name="django")
     app.mount("/static", StaticFiles(directory="static"), name="static")
+
+    @app.middleware("http")
+    async def add_user_to_request(request, call_next):
+        user = await adapters.retrieve_user(
+            session_id=request.cookies.get("sessionid"),
+        )
+        request.state.user = user
+        response = await call_next(request)
+        return response
 
     initialize_server(args.config, required=False)
     start_server(app, host=args.host, port=args.port, socket=args.socket)

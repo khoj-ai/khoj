@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import AbstractUser
 
 
 class Question(models.Model):
@@ -15,3 +16,7 @@ class Answer(models.Model):
 
     def __str__(self):
         return self.answer
+
+
+class KhojUser(AbstractUser):
+    pass

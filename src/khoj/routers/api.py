@@ -50,6 +50,7 @@ from fastapi.requests import Request
 from database.models import Question
 from database import adapters
 from database.schemas.question import QuestionSchema, QuestionsSchema, CreateQuestionSchema
+from django.contrib.auth import authenticate, login
 
 
 # Initialize Router
@@ -370,6 +371,7 @@ async def search(
     user_agent: Optional[str] = Header(None),
     referer: Optional[str] = Header(None),
     host: Optional[str] = Header(None),
+    x_csrftoken: Optional[str] = Header(None),
 ):
     start_time = time.time()
 

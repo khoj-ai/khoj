@@ -159,6 +159,10 @@
             results_count = localStorage.getItem("khojResultsCount") || 5;
             console.log(`Query: ${query}, Type: ${type}, Results Count: ${results_count}`);
 
+            // get the CSRF token
+            const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
+            console.log(`CSRF Token: ${csrfToken}`);
+
             // Short circuit on empty query
             if (query.length === 0) {
                 return;
@@ -170,7 +174,11 @@
 
             // Execute Search and Render Results
             url = createRequestUrl(query, type, results_count || 5, rerank);
-            fetch(url)
+            fetch(url, {
+                headers: {
+                    "X-CSRFToken": csrfToken
+                }
+            })
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
