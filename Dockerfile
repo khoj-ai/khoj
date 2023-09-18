@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM ubuntu:kinetic
+FROM ubuntu:jammy
 LABEL org.opencontainers.image.source https://github.com/khoj-ai/khoj
 
 # Install System Dependencies
