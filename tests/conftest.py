@@ -26,7 +26,8 @@ from khoj.utils.rawconfig import (
     TextSearchConfig,
     ImageSearchConfig,
 )
-from khoj.utils import state
+from khoj.utils import state, fs_syncer
+from khoj.routers.indexer import configure_content
 from khoj.processor.jsonl.jsonl_to_jsonl import JsonlToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.search_filter.date_filter import DateFilter
@@ -220,15 +221,10 @@ def chat_client(md_content_config: ContentConfig, search_config: SearchConfig, p
     state.SearchType = configure_search_types(state.config)
 
     # Index Markdown Content for Search
-    filters = [DateFilter(), WordFilter(), FileFilter()]
     state.search_models.text_search = text_search.initialize_model(search_config.asymmetric)
-    state.content_index.markdown = text_search.setup(
-        MarkdownToJsonl,
-        get_sample_data("markdown"),
-        md_content_config.markdown,
-        state.search_models.text_search.bi_encoder,
-        regenerate=False,
-        filters=filters,
+    all_files = fs_syncer.collect_files(state.config.content_type)
+    state.content_index = configure_content(
+        state.content_index, state.config.content_type, all_files, state.search_models
     )
 
     # Initialize Processor from Config
@@ -273,7 +269,10 @@ def client(content_config: ContentConfig, search_config: SearchConfig, processor
 
 @pytest.fixture(scope="function")
 def client_offline_chat(
-    md_content_config: ContentConfig, search_config: SearchConfig, processor_config_offline_chat: ProcessorConfig
+    search_config: SearchConfig,
+    processor_config_offline_chat: ProcessorConfig,
+    content_config: ContentConfig,
+    md_content_config,
 ):
     # Initialize app state
     state.config.content_type = md_content_config
@@ -281,27 +280,12 @@ def client_offline_chat(
     state.SearchType = configure_search_types(state.config)
 
     # Index Markdown Content for Search
-    filters = [DateFilter(), WordFilter(), FileFilter()]
     state.search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     state.search_models.image_search = image_search.initialize_model(search_config.image)
-    state.content_index.org = text_search.setup(
-        OrgToJsonl,
-        get_sample_data("org"),
-        content_config.org,
-        state.search_models.text_search.bi_encoder,
-        regenerate=False,
-    )
-    state.content_index.image = image_search.setup(
-        content_config.image, state.search_models.image_search, regenerate=False
-    )
 
-    state.content_index.markdown = text_search.setup(
-        MarkdownToJsonl,
-        get_sample_data("markdown"),
-        md_content_config.markdown,
-        state.search_models.text_search.bi_encoder,
-        regenerate=False,
-        filters=filters,
+    all_files = fs_syncer.collect_files(state.config.content_type)
+    state.content_index = configure_content(
+        state.content_index, state.config.content_type, all_files, state.search_models
     )
 
     # Initialize Processor from Config
