@@ -20,3 +20,18 @@ class Answer(models.Model):
 
 class KhojUser(AbstractUser):
     pass
+
+
+class GoogleUser(models.Model):
+    user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
+    sub = models.CharField(max_length=200)
+    azp = models.CharField(max_length=200)
+    email = models.CharField(max_length=200)
+    name = models.CharField(max_length=200)
+    given_name = models.CharField(max_length=200)
+    family_name = models.CharField(max_length=200)
+    picture = models.CharField(max_length=200)
+    locale = models.CharField(max_length=200)
+
+    def __str__(self):
+        return self.name

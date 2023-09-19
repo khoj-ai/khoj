@@ -17,12 +17,13 @@ import uvicorn
 import django
 import schedule
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from rich.logging import RichHandler
 from django.core.asgi import get_asgi_application
 from django.core.management import call_command
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 # from django.conf import settings
 
@@ -55,10 +56,29 @@ logging.basicConfig(handlers=[rich_handler])
 logger = logging.getLogger("khoj")
 
 
+class UserSessionMiddleware(BaseHTTPMiddleware):
+    def __init__(
+        self,
+        app,
+    ):
+        from database.models import KhojUser
+
+        self.khojuser_manager = KhojUser.objects
+        super().__init__(app)
+
+    async def dispatch(self, request: Request, call_next):
+        request.state.user = request.session.get("user")
+        if request.state.user and request.state.user.get("email"):
+            user = await self.khojuser_manager.filter(email=request.state.user.get("email")).afirst()
+            if user:
+                request.state.user_object = user
+        response = await call_next(request)
+        return response
+
+
 def run():
     # Internal Django imports
     from database.routers import question_router
-    from database import adapters
 
     # Turn Tokenizers Parallelism Off. App does not support it.
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -95,6 +115,7 @@ def run():
     app.mount("/django", django_app, name="django")
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
+    app.add_middleware(UserSessionMiddleware)
     app.add_middleware(SessionMiddleware, secret_key="!secret")
 
     initialize_server(args.config, required=False)

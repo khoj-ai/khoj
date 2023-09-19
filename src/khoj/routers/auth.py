@@ -6,10 +6,12 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse, RedirectResponse
 from authlib.integrations.starlette_client import OAuth, OAuthError
 
+from database.adapters import get_or_create_user
+
 auth_router = APIRouter()
 
-# if not os.environ["GOOGLE_CLIENT_ID"] or not os.environ["GOOGLE_CLIENT_SECRET"]:
-#     raise Exception("Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables")
+if not os.environ["GOOGLE_CLIENT_ID"] or not os.environ["GOOGLE_CLIENT_SECRET"]:
+    raise Exception("Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables")
 
 config = Config(environ=os.environ)
 
@@ -41,6 +43,7 @@ async def auth(request: Request):
         token = await oauth.google.authorize_access_token(request)
     except OAuthError as error:
         return HTMLResponse(f"<h1>{error.error}</h1>")
+    khoj_user = await get_or_create_user(token)
     user = token.get("userinfo")
     if user:
         request.session["user"] = dict(user)

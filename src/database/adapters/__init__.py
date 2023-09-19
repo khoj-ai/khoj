@@ -1,17 +1,14 @@
 from typing import Type, TypeVar
 
 from django.db import models
-from django.contrib.auth import authenticate, login
-from django.middleware.csrf import rotate_token
 from django.contrib.sessions.backends.db import SessionStore
-from django.contrib.auth.models import User
 
 # Import sync_to_async from Django Channels
 from asgiref.sync import sync_to_async
 
 from fastapi import HTTPException
 
-from database.models import Question, Answer, KhojUser
+from database.models import Question, Answer, KhojUser, GoogleUser
 
 ModelType = TypeVar("ModelType", bound=models.Model)
 
@@ -41,6 +38,40 @@ async def retrieve_questions():
 
 async def retrieve_answers():
     return [a async for a in Answer.objects.all()]
+
+
+async def get_or_create_user(token: dict) -> KhojUser:
+    user = await get_user_by_token(token)
+    if not user:
+        user = await create_google_user(token)
+    return user
+
+
+async def create_google_user(token: dict) -> KhojUser:
+    user_info = token.get("userinfo")
+    user = await KhojUser.objects.acreate(username=user_info.get("email"), email=user_info.get("email"))
+    await user.asave()
+    await GoogleUser.objects.acreate(
+        sub=user_info.get("sub"),
+        azp=user_info.get("azp"),
+        email=user_info.get("email"),
+        name=user_info.get("name"),
+        given_name=user_info.get("given_name"),
+        family_name=user_info.get("family_name"),
+        picture=user_info.get("picture"),
+        locale=user_info.get("locale"),
+        user=user,
+    )
+
+    return user
+
+
+async def get_user_by_token(token: dict) -> KhojUser:
+    user_info = token.get("userinfo")
+    google_user = await GoogleUser.objects.filter(sub=user_info.get("sub")).select_related("user").afirst()
+    if not google_user:
+        return None
+    return google_user.user
 
 
 async def retrieve_user(session_id: str) -> KhojUser:
