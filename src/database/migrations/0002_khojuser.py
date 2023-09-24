@@ -12,6 +12,10 @@ class Migration(migrations.Migration):
         ("database", "0001_initial"),
     ]
 
+    run_before = [
+        ("admin", "0001_initial"),
+    ]
+
     operations = [
         migrations.CreateModel(
             name="KhojUser",

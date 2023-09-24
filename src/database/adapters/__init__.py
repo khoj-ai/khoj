@@ -8,7 +8,7 @@ from asgiref.sync import sync_to_async
 
 from fastapi import HTTPException
 
-from database.models import Question, Answer, KhojUser, GoogleUser
+from database.models import Question, Answer, KhojUser, GoogleUser, NotionConfig
 
 ModelType = TypeVar("ModelType", bound=models.Model)
 
@@ -38,6 +38,16 @@ async def retrieve_questions():
 
 async def retrieve_answers():
     return [a async for a in Answer.objects.all()]
+
+
+async def set_notion_config(token: str, user: KhojUser):
+    notion_config = await NotionConfig.objects.filter(user=user).afirst()
+    if not notion_config:
+        notion_config = await NotionConfig.objects.acreate(token=token, user=user)
+    else:
+        notion_config.token = token
+        await notion_config.asave()
+    return notion_config
 
 
 async def get_or_create_user(token: dict) -> KhojUser:

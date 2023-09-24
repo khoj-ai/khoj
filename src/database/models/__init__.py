@@ -35,3 +35,27 @@ class GoogleUser(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class NotionConfig(models.Model):
+    token = models.CharField(max_length=200)
+    compressed_jsonl = models.CharField(max_length=300)
+    embeddings_file = models.CharField(max_length=300)
+
+
+class GithubConfig(models.Model):
+    pat_token = models.CharField(max_length=200)
+    compressed_jsonl = models.CharField(max_length=300)
+    embeddings_file = models.CharField(max_length=300)
+
+
+class GithubRepoConfig(models.Model):
+    name = models.CharField(max_length=200)
+    owner = models.CharField(max_length=200)
+    branch = models.CharField(max_length=200)
+    github_config = models.ForeignKey(GithubConfig, on_delete=models.CASCADE)
+
+
+class ConversationProcessorConfig(models.Model):
+    conversation = models.JSONField()
+    enable_offline_chat = models.BooleanField(default=False)
