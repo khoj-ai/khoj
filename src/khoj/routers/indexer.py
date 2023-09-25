@@ -372,7 +372,7 @@ def configure_content(
 
     try:
         # Initialize External Plugin Search
-        if (t == None or t in state.SearchType) and content_config.plugins and search_models.text_search:
+        if t == None and content_config.plugins and search_models.text_search:
             logger.info("🔌 Setting up search for plugins")
             content_index.plugins = {}
             for plugin_type, plugin_config in content_config.plugins.items():
