@@ -37,16 +37,22 @@ class GoogleUser(models.Model):
         return self.name
 
 
+class Configuration(models.Model):
+    user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
+
+
 class NotionConfig(models.Model):
     token = models.CharField(max_length=200)
     compressed_jsonl = models.CharField(max_length=300)
     embeddings_file = models.CharField(max_length=300)
+    config = models.OneToOneField(Configuration, on_delete=models.CASCADE)
 
 
 class GithubConfig(models.Model):
     pat_token = models.CharField(max_length=200)
     compressed_jsonl = models.CharField(max_length=300)
     embeddings_file = models.CharField(max_length=300)
+    config = models.OneToOneField(Configuration, on_delete=models.CASCADE)
 
 
 class GithubRepoConfig(models.Model):
