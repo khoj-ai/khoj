@@ -3,8 +3,8 @@
 	"name": "Khoj",
 	"version": "0.12.0",
 	"minAppVersion": "0.15.0",
-	"description": "An AI Personal Assistant for your Digital Brain",
+	"description": "An Open-Source AI Personal Assistant for your Digital Brain",
 	"author": "Khoj Inc.",
-	"authorUrl": "https://github.com/khoj-ai/khoj",
+	"authorUrl": "https://github.com/khoj-ai",
 	"isDesktopOnly": true
 }
