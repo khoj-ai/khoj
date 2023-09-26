@@ -45,15 +45,15 @@ docker-compose up
 
 Khoj should now be running at http://localhost:42110. You can see the web UI in your browser.
 
-### 1.2 Select files for indexing using the desktop client [Optional]
+#### 1.3 Download the desktop client [Optional]
 
 You can use our desktop executables to select file paths and folders to index. You can simply select the folders or files, and they'll be automatically uploaded to the server. Once you specify a file or file path, you don't need to update the configuration again; it will grab any data diffs dynamically over time. This part is currently optional, but may make setup and configuration slightly easier. It removes the need for setting up custom file paths for your Khoj data configurations.
 
 **To download the desktop client, go to https://download.khoj.dev** and the correct executable for your OS will automatically start downloading. Once downloaded, you can configure your folders for indexing using the settings tab. To set your chat configuration, you'll have to use the web interface for the Khoj server you setup in the previous step.
 
-### 1.3 Use (deprecated) desktop builds
+### 1.4 Use (deprecated) desktop builds
 
-Before v0.11.4, we had self-contained desktop builds that included both the server and the client. These were difficult to maintain, but are still available as part of earlier releases. To find setup instructions, see here:
+Before `v0.12.0``, we had self-contained desktop builds that included both the server and the client. These were difficult to maintain, but are still available as part of earlier releases. To find setup instructions, see here:
 
 - [Desktop Installation](desktop_installation.md)
 - [Windows Installation](windows_install.md)
