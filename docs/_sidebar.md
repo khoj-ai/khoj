@@ -1,8 +1,6 @@
 - Get Started
     - [Overview](README.md)
     - [Install](setup.md)
-        - [Desktop Installation](desktop_installation.md)
-        - [Windows Installation](windows_install.md)
     - [Demos](demos.md)
 - Use
     - [Features](features.md)
