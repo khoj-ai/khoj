@@ -55,6 +55,7 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
     await request(khoj_already_configured ? khojConfigUrl : `${khojConfigUrl}/default`)
         .then(response => JSON.parse(response))
         .then(data => {
+            khoj_already_configured = data["content-type"] != null;
             // If khoj backend not configured yet
             if (!khoj_already_configured) {
                 // Create khoj content-type config with only markdown configured
