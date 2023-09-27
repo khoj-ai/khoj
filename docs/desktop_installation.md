@@ -1,4 +1,4 @@
-# Installing the Desktop Application
+# Installing the Desktop Application [Deprecated -- for 0.11.4 and below]
 
 We have beta desktop images available for download with new releases. This is recommended if you don't want to bother with the command line. Download the latest release from [here](https://github.com/khoj-ai/khoj/releases). You can find the latest release under the `Assets` section.
 

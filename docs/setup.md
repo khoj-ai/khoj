@@ -9,7 +9,7 @@ These are the general setup instructions for Khoj.
 
 ### 1. Install
 
-#### 1.1 Local Setup
+#### 1.1 Local Server Setup
 Run the following command in your terminal to install the Khoj backend.
 
 - On Linux/MacOS
@@ -24,7 +24,7 @@ Run the following command in your terminal to install the Khoj backend.
 For more detailed Windows installation and troubleshooting, see [Windows Install](./windows_install.md).
 
 
-##### 1.1.1 Start
+##### 1.1.1 Local Server Start
 
 Run the following command from your terminal to start the Khoj backend and open Khoj in your browser.
 
@@ -36,7 +36,7 @@ Khoj should now be running at http://localhost:42110. You can see the web UI in 
 
 Note: To start Khoj automatically in the background use [Task scheduler](https://www.windowscentral.com/how-create-automated-task-using-task-scheduler-windows-10) on Windows or [Cron](https://en.wikipedia.org/wiki/Cron) on Mac, Linux (e.g with `@reboot khoj`)
 
-#### 1.2 Docker Setup
+#### 1.2 Local Docker Setup
 Use the sample docker-compose [in Github](https://github.com/khoj-ai/khoj/blob/master/docker-compose.yml) to run Khoj in Docker. To start the container, run the following command in the same directory as the docker-compose.yml file. You'll have to configure the mounted directories to match your local knowledge base.
 
 ```shell
@@ -44,6 +44,19 @@ docker-compose up
 ```
 
 Khoj should now be running at http://localhost:42110. You can see the web UI in your browser.
+
+#### 1.3 Download the desktop client [Optional]
+
+You can use our desktop executables to select file paths and folders to index. You can simply select the folders or files, and they'll be automatically uploaded to the server. Once you specify a file or file path, you don't need to update the configuration again; it will grab any data diffs dynamically over time. This part is currently optional, but may make setup and configuration slightly easier. It removes the need for setting up custom file paths for your Khoj data configurations.
+
+**To download the desktop client, go to https://download.khoj.dev** and the correct executable for your OS will automatically start downloading. Once downloaded, you can configure your folders for indexing using the settings tab. To set your chat configuration, you'll have to use the web interface for the Khoj server you setup in the previous step.
+
+### 1.4 Use (deprecated) desktop builds
+
+Before `v0.12.0``, we had self-contained desktop builds that included both the server and the client. These were difficult to maintain, but are still available as part of earlier releases. To find setup instructions, see here:
+
+- [Desktop Installation](desktop_installation.md)
+- [Windows Installation](windows_install.md)
 
 ### 2. Configure
 1. Set `File`, `Folder` and hit `Save` in each Plugins you want to enable for Search on the Khoj config page

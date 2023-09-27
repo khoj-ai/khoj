@@ -126,6 +126,14 @@ async def query(
     dedupe: bool = True,
 ) -> Tuple[List[dict], List[Entry]]:
     "Search for entries that answer the query"
+    if (
+        content.entries is None
+        or len(content.entries) == 0
+        or content.corpus_embeddings is None
+        or len(content.corpus_embeddings) == 0
+    ):
+        return [], []
+
     query, entries, corpus_embeddings = raw_query, content.entries, content.corpus_embeddings
 
     # Filter query, entries and embeddings before semantic search
