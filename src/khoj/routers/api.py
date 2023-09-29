@@ -371,8 +371,8 @@ async def search(
     user_agent: Optional[str] = Header(None),
     referer: Optional[str] = Header(None),
     host: Optional[str] = Header(None),
-    x_csrftoken: Optional[str] = Header(None),
 ):
+    user = request.user
     start_time = time.time()
 
     # Run validation checks

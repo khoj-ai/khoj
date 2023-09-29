@@ -24,6 +24,16 @@ from django.core.asgi import get_asgi_application
 from django.core.management import call_command
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware import Middleware
+from starlette.middleware.authentication import AuthenticationMiddleware
+
+from starlette.authentication import (
+    AuthCredentials,
+    AuthenticationBackend,
+    AuthenticationError,
+    SimpleUser,
+    UnauthenticatedUser,
+)
 
 # from django.conf import settings
 
@@ -56,24 +66,28 @@ logging.basicConfig(handlers=[rich_handler])
 logger = logging.getLogger("khoj")
 
 
-class UserSessionMiddleware(BaseHTTPMiddleware):
+class AuthenticatedKhojUser(SimpleUser):
+    def __init__(self, user):
+        self.object = user
+        super().__init__(user.email)
+
+
+class UserAuthenticationBackend(AuthenticationBackend):
     def __init__(
         self,
-        app,
     ):
         from database.models import KhojUser
 
         self.khojuser_manager = KhojUser.objects
-        super().__init__(app)
+        super().__init__()
 
-    async def dispatch(self, request: Request, call_next):
-        request.state.user = request.session.get("user")
-        if request.state.user and request.state.user.get("email"):
-            user = await self.khojuser_manager.filter(email=request.state.user.get("email")).afirst()
+    async def authenticate(self, request):
+        current_user = request.session.get("user")
+        if current_user and current_user.get("email"):
+            user = await self.khojuser_manager.filter(email=current_user.get("email")).afirst()
             if user:
-                request.state.user_object = user
-        response = await call_next(request)
-        return response
+                return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
+        return AuthCredentials(), UnauthenticatedUser()
 
 
 def run():
@@ -115,7 +129,7 @@ def run():
     app.mount("/django", django_app, name="django")
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
-    app.add_middleware(UserSessionMiddleware)
+    app.add_middleware(AuthenticationMiddleware, backend=UserAuthenticationBackend())
     app.add_middleware(SessionMiddleware, secret_key="!secret")
 
     initialize_server(args.config, required=False)

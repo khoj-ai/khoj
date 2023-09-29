@@ -1,4 +1,5 @@
 from typing import Type, TypeVar
+import uuid
 
 from django.db import models
 from django.contrib.sessions.backends.db import SessionStore
@@ -59,7 +60,9 @@ async def get_or_create_user(token: dict) -> KhojUser:
 
 async def create_google_user(token: dict) -> KhojUser:
     user_info = token.get("userinfo")
-    user = await KhojUser.objects.acreate(username=user_info.get("email"), email=user_info.get("email"))
+    user = await KhojUser.objects.acreate(
+        username=user_info.get("email"), email=user_info.get("email"), uuid=uuid.uuid4()
+    )
     await user.asave()
     await GoogleUser.objects.acreate(
         sub=user_info.get("sub"),

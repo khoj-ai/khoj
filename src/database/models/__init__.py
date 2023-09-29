@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
@@ -19,7 +21,7 @@ class Answer(models.Model):
 
 
 class KhojUser(AbstractUser):
-    pass
+    uuid = models.UUIDField(models.UUIDField(default=uuid.uuid4, editable=False))
 
 
 class GoogleUser(models.Model):
