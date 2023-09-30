@@ -26,8 +26,8 @@ from khoj.routers.indexer import configure_content, load_content, configure_sear
 logger = logging.getLogger(__name__)
 
 
-def initialize_server(config: Optional[FullConfig], required=False):
-    if config is None and required:
+def initialize_server(config: Optional[FullConfig]):
+    if config is None:
         logger.error(
             f"🚨 Exiting as Khoj is not configured.\nConfigure it via http://{state.host}:{state.port}/config or by editing {state.config_file}."
         )
@@ -101,7 +101,6 @@ def configure_routes(app):
     from khoj.routers.indexer import indexer
     from khoj.routers.auth import auth_router
 
-    # app.mount("/static", StaticFiles(directory=constants.web_directory), name="static")
     app.include_router(api, prefix="/api")
     app.include_router(api_beta, prefix="/api/beta")
     app.include_router(indexer, prefix="/v1/indexer")

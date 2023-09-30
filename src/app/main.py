@@ -91,9 +91,6 @@ class UserAuthenticationBackend(AuthenticationBackend):
 
 
 def run():
-    # Internal Django imports
-    from database.routers import question_router
-
     # Turn Tokenizers Parallelism Off. App does not support it.
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -131,7 +128,7 @@ def run():
     app.add_middleware(AuthenticationMiddleware, backend=UserAuthenticationBackend())
     app.add_middleware(SessionMiddleware, secret_key="!secret")
 
-    initialize_server(args.config, required=False)
+    initialize_server(args.config)
     start_server(app, host=args.host, port=args.port, socket=args.socket)
 
 

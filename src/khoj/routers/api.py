@@ -47,21 +47,12 @@ from khoj.processor.conversation.openai.gpt import extract_questions
 from khoj.processor.conversation.gpt4all.chat_model import extract_questions_offline
 from fastapi.requests import Request
 
-from database.models import Question
 from database import adapters
-from database.schemas.question import QuestionSchema, QuestionsSchema, CreateQuestionSchema
-from django.contrib.auth import authenticate, login
 
 
 # Initialize Router
 api = APIRouter()
 logger = logging.getLogger(__name__)
-
-
-@api.get("/config/questions", response_model=List[QuestionSchema])
-async def get(request: Request, questions: List[Question] = Depends(adapters.retrieve_questions)) -> QuestionsSchema:
-    return questions
-
 
 # If it's a demo instance, prevent updating any of the configuration.
 if not state.demo:
