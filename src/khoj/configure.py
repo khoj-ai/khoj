@@ -8,7 +8,15 @@ import requests
 
 # External Packages
 import schedule
-from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.authentication import AuthenticationMiddleware
+
+from starlette.authentication import (
+    AuthCredentials,
+    AuthenticationBackend,
+    SimpleUser,
+    UnauthenticatedUser,
+)
 
 # Internal Packages
 from khoj.utils import constants, state
@@ -24,6 +32,30 @@ from khoj.routers.indexer import configure_content, load_content, configure_sear
 
 
 logger = logging.getLogger(__name__)
+
+
+class AuthenticatedKhojUser(SimpleUser):
+    def __init__(self, user):
+        self.object = user
+        super().__init__(user.email)
+
+
+class UserAuthenticationBackend(AuthenticationBackend):
+    def __init__(
+        self,
+    ):
+        from database.models import KhojUser
+
+        self.khojuser_manager = KhojUser.objects
+        super().__init__()
+
+    async def authenticate(self, request):
+        current_user = request.session.get("user")
+        if current_user and current_user.get("email"):
+            user = await self.khojuser_manager.filter(email=current_user.get("email")).afirst()
+            if user:
+                return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
+        return AuthCredentials(), UnauthenticatedUser()
 
 
 def initialize_server(config: Optional[FullConfig]):
@@ -106,6 +138,11 @@ def configure_routes(app):
     app.include_router(indexer, prefix="/v1/indexer")
     app.include_router(web_client)
     app.include_router(auth_router, prefix="/auth")
+
+
+def configure_middleware(app):
+    app.add_middleware(AuthenticationMiddleware, backend=UserAuthenticationBackend())
+    app.add_middleware(SessionMiddleware, secret_key="!secret")
 
 
 if not state.demo:

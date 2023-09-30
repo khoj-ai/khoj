@@ -17,28 +17,14 @@ import uvicorn
 import django
 import schedule
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from rich.logging import RichHandler
 from django.core.asgi import get_asgi_application
 from django.core.management import call_command
-from starlette.middleware.sessions import SessionMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.middleware import Middleware
-from starlette.middleware.authentication import AuthenticationMiddleware
-
-from starlette.authentication import (
-    AuthCredentials,
-    AuthenticationBackend,
-    AuthenticationError,
-    SimpleUser,
-    UnauthenticatedUser,
-)
-
-# from django.conf import settings
 
 # Internal Packages
-from khoj.configure import configure_routes, initialize_server
+from khoj.configure import configure_routes, initialize_server, configure_middleware
 from khoj.utils import state
 from khoj.utils.cli import cli
 
@@ -64,30 +50,6 @@ rich_handler.setFormatter(fmt=logging.Formatter(fmt="%(message)s", datefmt="[%X]
 logging.basicConfig(handlers=[rich_handler])
 
 logger = logging.getLogger("khoj")
-
-
-class AuthenticatedKhojUser(SimpleUser):
-    def __init__(self, user):
-        self.object = user
-        super().__init__(user.email)
-
-
-class UserAuthenticationBackend(AuthenticationBackend):
-    def __init__(
-        self,
-    ):
-        from database.models import KhojUser
-
-        self.khojuser_manager = KhojUser.objects
-        super().__init__()
-
-    async def authenticate(self, request):
-        current_user = request.session.get("user")
-        if current_user and current_user.get("email"):
-            user = await self.khojuser_manager.filter(email=current_user.get("email")).afirst()
-            if user:
-                return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
-        return AuthCredentials(), UnauthenticatedUser()
 
 
 def run():
@@ -125,8 +87,8 @@ def run():
     app.mount("/django", django_app, name="django")
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
-    app.add_middleware(AuthenticationMiddleware, backend=UserAuthenticationBackend())
-    app.add_middleware(SessionMiddleware, secret_key="!secret")
+    # Configure Middleware
+    configure_middleware(app)
 
     initialize_server(args.config)
     start_server(app, host=args.host, port=args.port, socket=args.socket)

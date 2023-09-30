@@ -1,3 +1,4 @@
+import logging
 import json
 import os
 from fastapi import APIRouter
@@ -8,17 +9,19 @@ from authlib.integrations.starlette_client import OAuth, OAuthError
 
 from database.adapters import get_or_create_user
 
+logger = logging.getLogger(__name__)
+
 auth_router = APIRouter()
 
-if not os.environ["GOOGLE_CLIENT_ID"] or not os.environ["GOOGLE_CLIENT_SECRET"]:
-    raise Exception("Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables")
+if not os.environ.get("GOOGLE_CLIENT_ID") or not os.environ.get("GOOGLE_CLIENT_SECRET"):
+    logger.info("Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables to use Google OAuth")
+else:
+    config = Config(environ=os.environ)
 
-config = Config(environ=os.environ)
+    oauth = OAuth(config)
 
-oauth = OAuth(config)
-
-CONF_URL = "https://accounts.google.com/.well-known/openid-configuration"
-oauth.register(name="google", server_metadata_url=CONF_URL, client_kwargs={"scope": "openid email profile"})
+    CONF_URL = "https://accounts.google.com/.well-known/openid-configuration"
+    oauth.register(name="google", server_metadata_url=CONF_URL, client_kwargs={"scope": "openid email profile"})
 
 
 @auth_router.get("/")
