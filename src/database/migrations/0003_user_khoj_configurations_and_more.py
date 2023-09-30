@@ -8,7 +8,7 @@ import uuid
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("database", "0003_googleuser"),
+        ("database", "0002_googleuser"),
     ]
 
     operations = [

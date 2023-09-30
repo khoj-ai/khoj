@@ -7,7 +7,7 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("database", "0002_khojuser"),
+        ("database", "0001_khojuser"),
     ]
 
     operations = [
