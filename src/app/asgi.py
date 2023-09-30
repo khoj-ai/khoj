@@ -14,14 +14,7 @@ from django.core.asgi import get_asgi_application
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "app.settings")
 
-print("ASGI SETTINGS: ", os.environ.get("DJANGO_SETTINGS_MODULE"))
-from django.conf import settings
-
 application = get_asgi_application()
-
-# Print application settings
-print("ASGI APPLICATION: ", settings.SETTINGS_MODULE)
-print(settings.INSTALLED_APPS)
 
 """
 FastAPI settings
@@ -40,4 +33,3 @@ fastapi_app.include_router(question_router, tags=["questions"], prefix="/questio
 # to mount Django
 fastapi_app.mount("/django", application, name="django")
 fastapi_app.mount("/static", StaticFiles(directory="static"), name="static")
-# fastapi_app.mount("/media", StaticFiles(directory="media"), name="media")
