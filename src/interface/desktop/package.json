@@ -2,7 +2,7 @@
   "name": "Khoj",
   "homepage": ".",
   "productName": "Khoj",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Scaffolding for the desktop entrypoint to Khoj",
   "main": "main.js",
   "repository": "\"https://github.com/khoj-ai/khoj\"",
