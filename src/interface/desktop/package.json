@@ -10,7 +10,7 @@
   "license": "MIT",
   "private": false,
   "devDependencies": {
-    "electron": "25.0.0"
+    "electron": "25.8.1"
   },
   "scripts": {
     "start": "yarn electron ."
