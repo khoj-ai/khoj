@@ -24,7 +24,7 @@ from khoj.processor.conversation.gpt4all.utils import download_model
 
 from khoj.processor.conversation.utils import message_to_log
 
-MODEL_NAME = "llama-2-7b-chat.ggmlv3.q4_K_S.bin"
+MODEL_NAME = "llama-2-7b-chat.ggmlv3.q4_0.bin"
 
 
 @pytest.fixture(scope="session")

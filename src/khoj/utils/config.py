@@ -84,7 +84,7 @@ class SearchModels:
 
 @dataclass
 class GPT4AllProcessorConfig:
-    chat_model: Optional[str] = "llama-2-7b-chat.ggmlv3.q4_K_S.bin"
+    chat_model: Optional[str] = "llama-2-7b-chat.ggmlv3.q4_0.bin"
     loaded_model: Union[Any, None] = None
 
 
