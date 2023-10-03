@@ -232,16 +232,17 @@ def setup(
 
 
 def load(
-    config: TextConfigBase,
+    compressed_jsonl: str,
+    embeddings_file: str,
     filters: List[BaseFilter] = [],
 ) -> TextContent:
     # Map notes in text files to (compressed) JSONL formatted file
-    config.compressed_jsonl = resolve_absolute_path(config.compressed_jsonl)
-    entries = extract_entries(config.compressed_jsonl)
+    abs_path_compressed_jsonl = resolve_absolute_path(compressed_jsonl)
+    entries = extract_entries(abs_path_compressed_jsonl)
 
     # Compute or Load Embeddings
-    config.embeddings_file = resolve_absolute_path(config.embeddings_file)
-    corpus_embeddings = load_embeddings(config.embeddings_file)
+    abs_path_embeddings_file = resolve_absolute_path(embeddings_file)
+    corpus_embeddings = load_embeddings(abs_path_embeddings_file)
 
     for filter in filters:
         filter.load(entries, regenerate=False)

@@ -5,6 +5,7 @@ web_directory = app_root_directory / "khoj/interface/web/"
 empty_escape_sequences = "\n|\r|\t| "
 app_env_filepath = "~/.khoj/env"
 telemetry_server = "https://khoj.beta.haletic.com/v1/telemetry"
+content_directory = "~/.khoj/content/"
 
 # default app config to use
 default_config = {

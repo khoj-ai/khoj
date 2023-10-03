@@ -78,3 +78,27 @@ async def retrieve_user(session_id: str) -> KhojUser:
     if not user:
         raise HTTPException(status_code=401, detail="Invalid user")
     return user
+
+
+async def set_user_github_config(user: KhojUser, pat_token: str, repos: list):
+    github_config = await GithubConfig.objects.filter(user=user).afirst()
+
+    compressed_jsonl = f"{content_directory}/github/{user.uuid}/compressed.jsonl.gz"
+    embeddings_file = f"{content_directory}/github/{user.uuid}/embeddings.pt"
+
+    if not github_config:
+        github_config = await GithubConfig.objects.acreate(
+            pat_token=pat_token, compressed_jsonl=compressed_jsonl, embeddings_file=embeddings_file, user=user
+        )
+    else:
+        github_config.pat_token = pat_token
+        github_config.compressed_jsonl = compressed_jsonl
+        github_config.embeddings_file = embeddings_file
+        await github_config.asave()
+        await github_config.githubrepoconfig.all().adelete()
+
+    for repo in repos:
+        await github_config.githubrepoconfig.acreate(
+            name=repo["name"], owner=repo["owner"], branch=repo["branch"], github_config=github_config
+        )
+    return github_config

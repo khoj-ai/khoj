@@ -10,6 +10,7 @@ from typing import List, Optional, Union, Any
 # External Packages
 from fastapi import APIRouter, HTTPException, Header, Request, Depends
 from sentence_transformers import util
+from starlette.authentication import requires
 
 # Internal Packages
 from khoj.configure import configure_processor, configure_server
@@ -102,6 +103,7 @@ if not state.demo:
         return state.config
 
     @api.post("/config/data/content_type/github", status_code=200)
+    @requires("authenticated")
     async def set_content_config_github_data(
         request: Request,
         updated_config: Union[GithubContentConfig, None],
@@ -109,10 +111,13 @@ if not state.demo:
     ):
         _initialize_config()
 
-        if not state.config.content_type:
-            state.config.content_type = ContentConfig(**{"github": updated_config})
-        else:
-            state.config.content_type.github = updated_config
+        user = request.user.object
+
+        await adapters.set_user_github_config(
+            user=user,
+            pat_token=updated_config.pat_token,
+            repos=updated_config.repos,
+        )
 
         update_telemetry_state(
             request=request,
@@ -121,12 +126,6 @@ if not state.demo:
             client=client,
             metadata={"content_type": "github"},
         )
-
-        try:
-            save_config_to_file_updated_state()
-            return {"status": "ok"}
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
 
     @api.post("/config/data/content_type/notion", status_code=200)
     async def set_content_config_notion_data(
@@ -225,6 +224,7 @@ if not state.demo:
             return {"status": "error", "message": str(e)}
 
     @api.post("/config/data/content_type/{content_type}", status_code=200)
+    @requires("authenticated")
     async def set_content_config_data(
         request: Request,
         content_type: str,
@@ -232,6 +232,8 @@ if not state.demo:
         client: Optional[str] = None,
     ):
         _initialize_config()
+
+        user = request.user.object
 
         if not state.config.content_type:
             state.config.content_type = ContentConfig(**{content_type: updated_config})
