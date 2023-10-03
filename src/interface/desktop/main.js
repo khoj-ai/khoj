@@ -193,8 +193,13 @@ function pushDataToKhoj (regenerate = false) {
 
 pushDataToKhoj();
 
-async function handleFileOpen (event, key) {
-    const { canceled, filePaths } = await dialog.showOpenDialog({properties: ['openFile', 'openDirectory'], filters: [{ name: "Valid Khoj Files", extensions: validFileTypes}] });
+async function handleFileOpen (type) {
+    let { canceled, filePaths } = {canceled: true, filePaths: []};
+    if (type === 'file') {
+        ({ canceled, filePaths } = await dialog.showOpenDialog({properties: ['openFile' ], filters: [{ name: "Valid Khoj Files", extensions: validFileTypes}] }));
+    } else if (type === 'folder') {
+        ({ canceled, filePaths } = await dialog.showOpenDialog({properties: ['openDirectory' ]}));
+    }
     if (!canceled) {
         const files = store.get('files') || [];
         const folders = store.get('folders') || [];
@@ -310,7 +315,9 @@ const createWindow = () => {
 app.whenReady().then(() => {
     ipcMain.on('set-title', handleSetTitle);
 
-    ipcMain.handle('getStoreValue', handleFileOpen);
+    ipcMain.handle('handleFileOpen', (event, type) => {
+        return handleFileOpen(type);
+    });
 
     ipcMain.on('update-state', (event, arg) => {
         console.log(arg);

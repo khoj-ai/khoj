@@ -16,7 +16,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 })
 
 contextBridge.exposeInMainWorld('storeValueAPI', {
-    getStoreValue: (key) => ipcRenderer.invoke('getStoreValue', key)
+    handleFileOpen: (key) => ipcRenderer.invoke('handleFileOpen', key)
 })
 
 contextBridge.exposeInMainWorld('getFilesAPI', {
