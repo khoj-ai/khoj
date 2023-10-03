@@ -1,5 +1,7 @@
-const getButton = document.getElementById('update-data')
+const setFolderButton = document.getElementById('update-folder');
+const setFileButton = document.getElementById('update-file');
 const showKey = document.getElementById('show-key');
+const loadingBar = document.getElementById('loading-bar');
 
 async function removeFile(filePath) {
     const updatedFiles = await window.removeFileAPI.removeFile(filePath);
@@ -115,9 +117,16 @@ function makeFolderElement(folder) {
     }
 })();
 
-getButton.addEventListener('click', async () => {
-    const key = 'foo';
-    const value = await window.storeValueAPI.getStoreValue(key);
+setFolderButton.addEventListener('click', async () => {
+    await handleFileOpen('folder');
+});
+
+setFileButton.addEventListener('click', async () => {
+    await handleFileOpen('file');
+});
+
+async function handleFileOpen(type) {
+    const value = await window.storeValueAPI.handleFileOpen(type);
     console.log(value);
     let currentFilesElement = document.getElementById("current-files");
     let currentFoldersElement = document.getElementById("current-folders");
@@ -137,10 +146,11 @@ getButton.addEventListener('click', async () => {
             currentFoldersElement.appendChild(folderElement);
         });
     }
-});
+}
 
 window.updateStateAPI.onUpdateState((event, state) => {
     console.log("state was updated", state);
+    loadingBar.style.display = 'none';
     let syncStatusElement = document.getElementById("sync-status");
     const currentTime = new Date();
     if (state.completed == false) {
@@ -174,6 +184,7 @@ urlInput.addEventListener('blur', async () => {
 const syncButton = document.getElementById('sync-data');
 const syncForceToggle = document.getElementById('sync-force');
 syncButton.addEventListener('click', async () => {
+    loadingBar.style.display = 'block';
     const regenerate = syncForceToggle.checked;
     await window.syncDataAPI.syncData(regenerate);
 });
