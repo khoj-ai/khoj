@@ -79,6 +79,8 @@
                     <input id="sync-force" type="checkbox" name="sync-force" value="force">
                     <label for="sync-force">Force Sync</label>
                 </div>
+                <div id="loading-bar" style="display: none;">
+                </div>
                 <div class="card-description-row">
                     <div id="sync-status"></div>
                 </div>
@@ -135,6 +137,34 @@
 
         a.khoj-logo {
             text-align: center;
+        }
+
+        #loading-bar {
+            height: 10px;
+            width: 100%;
+            background-color: #ddd;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #loading-bar:before {
+            content: "";
+            display: block;
+            position: absolute;
+            left: -200px;
+            width: 200px;
+            height: 100%;
+            background-color: #2980b9;
+            animation: loading-bar 2s linear infinite;
+        }
+
+        @keyframes loading-bar {
+            0% {
+                left: -200px;
+            }
+            100% {
+                left: 100%;
+            }
         }
 
         #khoj-host-url {

@@ -1,6 +1,7 @@
 const setFolderButton = document.getElementById('update-folder');
 const setFileButton = document.getElementById('update-file');
 const showKey = document.getElementById('show-key');
+const loadingBar = document.getElementById('loading-bar');
 
 async function removeFile(filePath) {
     const updatedFiles = await window.removeFileAPI.removeFile(filePath);
@@ -149,6 +150,7 @@ async function handleFileOpen(type) {
 
 window.updateStateAPI.onUpdateState((event, state) => {
     console.log("state was updated", state);
+    loadingBar.style.display = 'none';
     let syncStatusElement = document.getElementById("sync-status");
     const currentTime = new Date();
     if (state.completed == false) {
@@ -182,6 +184,7 @@ urlInput.addEventListener('blur', async () => {
 const syncButton = document.getElementById('sync-data');
 const syncForceToggle = document.getElementById('sync-force');
 syncButton.addEventListener('click', async () => {
+    loadingBar.style.display = 'block';
     const regenerate = syncForceToggle.checked;
     await window.syncDataAPI.syncData(regenerate);
 });
