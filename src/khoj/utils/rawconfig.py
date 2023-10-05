@@ -95,6 +95,7 @@ class ConversationProcessorConfig(ConfigBase):
     conversation_logfile: Path
     openai: Optional[OpenAIProcessorConfig]
     enable_offline_chat: Optional[bool] = False
+    offline_chat_model: Optional[str] = "llama-2-7b-chat.ggmlv3.q4_0.bin"
 
 
 class ProcessorConfig(ConfigBase):

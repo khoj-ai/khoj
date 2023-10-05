@@ -84,7 +84,7 @@ class SearchModels:
 
 @dataclass
 class GPT4AllProcessorConfig:
-    chat_model: Optional[str] = "llama-2-7b-chat.ggmlv3.q4_0.bin"
+    chat_model: Optional[str] = None
     loaded_model: Union[Any, None] = None
 
 
@@ -95,6 +95,7 @@ class ConversationProcessorConfigModel:
     ):
         self.openai_model = conversation_config.openai
         self.gpt4all_model = GPT4AllProcessorConfig()
+        self.gpt4all_model.chat_model = conversation_config.offline_chat_model
         self.enable_offline_chat = conversation_config.enable_offline_chat
         self.conversation_logfile = Path(conversation_config.conversation_logfile)
         self.chat_session: List[str] = []
