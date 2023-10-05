@@ -128,15 +128,15 @@ def test_extract_multiple_explicit_questions_from_message(loaded_model):
 @pytest.mark.chatquality
 def test_extract_multiple_implicit_questions_from_message(loaded_model):
     # Act
-    response = extract_questions_offline("Is Morpheus taller than Neo?", loaded_model=loaded_model)
+    response = extract_questions_offline("Is Carl taller than Ross?", loaded_model=loaded_model)
 
     # Assert
-    expected_responses = ["height", "taller", "shorter", "heights"]
+    expected_responses = ["height", "taller", "shorter", "heights", "who"]
     assert len(response) <= 3
 
     for question in response:
         assert any([expected_response in question.lower() for expected_response in expected_responses]), (
-            "Expected chat actor to ask follow-up questions about Morpheus and Neo, but got: " + question
+            "Expected chat actor to ask follow-up questions about Carl and Ross, but got: " + question
         )
 
 

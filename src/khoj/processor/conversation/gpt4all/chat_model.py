@@ -113,7 +113,7 @@ def filter_questions(questions: List[str]):
     ]
     filtered_questions = []
     for q in questions:
-        if not any([word in q.lower() for word in hint_words]):
+        if not any([word in q.lower() for word in hint_words]) and not is_none_or_empty(q):
             filtered_questions.append(q)
 
     return filtered_questions
