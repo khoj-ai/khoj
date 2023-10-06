@@ -322,7 +322,7 @@ if not state.demo:
 # Create Routes
 @api.get("/config/data/default")
 def get_default_config_data():
-    return constants.default_config
+    return constants.empty_config
 
 
 @api.get("/config/types", response_model=List[str])
