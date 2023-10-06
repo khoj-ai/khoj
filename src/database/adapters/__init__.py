@@ -10,7 +10,7 @@ from asgiref.sync import sync_to_async
 
 from fastapi import HTTPException
 
-from database.models import KhojUser, GoogleUser, NotionConfig, GithubConfig, Embeddings
+from database.models import KhojUser, GoogleUser, NotionConfig, GithubConfig, Embeddings, GithubRepoConfig
 
 from khoj.utils.constants import content_directory
 
@@ -81,28 +81,28 @@ async def retrieve_user(session_id: str) -> KhojUser:
     return user
 
 
+def get_user_github_config(user: KhojUser):
+    config = GithubConfig.objects.filter(user=user).prefetch_related("githubrepoconfig").first()
+    if not config:
+        return None
+    return config
+
+
 async def set_user_github_config(user: KhojUser, pat_token: str, repos: list):
-    github_config = await GithubConfig.objects.filter(user=user).afirst()
+    config = await GithubConfig.objects.filter(user=user).afirst()
 
-    compressed_jsonl = f"{content_directory}/github/{user.uuid}/compressed.jsonl.gz"
-    embeddings_file = f"{content_directory}/github/{user.uuid}/embeddings.pt"
-
-    if not github_config:
-        github_config = await GithubConfig.objects.acreate(
-            pat_token=pat_token, compressed_jsonl=compressed_jsonl, embeddings_file=embeddings_file, user=user
-        )
+    if not config:
+        config = await GithubConfig.objects.acreate(pat_token=pat_token, user=user)
     else:
-        github_config.pat_token = pat_token
-        github_config.compressed_jsonl = compressed_jsonl
-        github_config.embeddings_file = embeddings_file
-        await github_config.asave()
-        await github_config.githubrepoconfig.all().adelete()
+        config.pat_token = pat_token
+        await config.asave()
+        await config.githubrepoconfig.all().adelete()
 
     for repo in repos:
-        await github_config.githubrepoconfig.acreate(
-            name=repo["name"], owner=repo["owner"], branch=repo["branch"], github_config=github_config
+        await GithubRepoConfig.objects.acreate(
+            name=repo["name"], owner=repo["owner"], branch=repo["branch"], github_config=config
         )
-    return github_config
+    return config
 
 
 class EmbeddingsAdapters:
