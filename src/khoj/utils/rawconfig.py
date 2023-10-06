@@ -39,7 +39,7 @@ class GithubRepoConfig(ConfigBase):
     branch: Optional[str] = "master"
 
 
-class GithubContentConfig(TextConfigBase):
+class GithubContentConfig(ConfigBase):
     pat_token: str
     repos: List[GithubRepoConfig]
 

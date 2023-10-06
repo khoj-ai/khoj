@@ -2,6 +2,7 @@
 import sys
 import logging
 import json
+import uuid
 from enum import Enum
 from typing import Optional
 import requests
@@ -47,7 +48,17 @@ class UserAuthenticationBackend(AuthenticationBackend):
         from database.models import KhojUser
 
         self.khojuser_manager = KhojUser.objects
+        self._initialize_default_user()
         super().__init__()
+
+    def _initialize_default_user(self):
+        if not self.khojuser_manager.filter(username="default").exists():
+            self.khojuser_manager.create_user(
+                username="default",
+                email="default@example.com",
+                password="default",
+                uuid=uuid.uuid4(),
+            )
 
     async def authenticate(self, request):
         current_user = request.session.get("user")
@@ -55,6 +66,11 @@ class UserAuthenticationBackend(AuthenticationBackend):
             user = await self.khojuser_manager.filter(email=current_user.get("email")).afirst()
             if user:
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
+        else:
+            user = await self.khojuser_manager.filter(username="default").afirst()
+            if user:
+                return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
+
         return AuthCredentials(), UnauthenticatedUser()
 
 

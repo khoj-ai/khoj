@@ -112,7 +112,7 @@ if not state.demo:
         return state.config
 
     @api.post("/config/data/content_type/github", status_code=200)
-    @requires("authenticated")
+    # @requires("authenticated")
     async def set_content_config_github_data(
         request: Request,
         updated_config: Union[GithubContentConfig, None],
@@ -120,7 +120,7 @@ if not state.demo:
     ):
         _initialize_config()
 
-        user = request.user.object
+        user = request.user.object if request.user.is_authenticated else None
 
         await adapters.set_user_github_config(
             user=user,

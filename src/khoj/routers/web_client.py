@@ -3,11 +3,18 @@ from fastapi import APIRouter
 from fastapi import Request
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
-from khoj.utils.rawconfig import TextContentConfig, OpenAIProcessorConfig, FullConfig
+from starlette.authentication import requires
+from khoj.utils.rawconfig import (
+    TextContentConfig,
+    OpenAIProcessorConfig,
+    FullConfig,
+    GithubContentConfig,
+    GithubRepoConfig,
+)
 
 # Internal Packages
 from khoj.utils import constants, state
-from database.adapters import EmbeddingsAdapters
+from database.adapters import EmbeddingsAdapters, get_user_github_config
 
 import json
 
@@ -81,22 +88,29 @@ if not state.demo:
         )
 
     @web_client.get("/config/content_type/github", response_class=HTMLResponse)
+    @requires(["authenticated"])
     def github_config_page(request: Request):
-        default_copy = constants.default_config.copy()
-        default_github = default_copy["content-type"]["github"]  # type: ignore
+        user = request.user.object if request.user.is_authenticated else None
+        current_github_config = get_user_github_config(user)
 
-        default_config = TextContentConfig(
-            compressed_jsonl=default_github["compressed-jsonl"],
-            embeddings_file=default_github["embeddings-file"],
-        )
-
-        current_config = (
-            state.config.content_type.github
-            if state.config and state.config.content_type and state.config.content_type.github
-            else default_config
-        )
-
-        current_config = json.loads(current_config.json())
+        if current_github_config:
+            raw_repos = current_github_config.githubrepoconfig.all()
+            repos = []
+            for repo in raw_repos:
+                repos.append(
+                    GithubRepoConfig(
+                        name=repo.name,
+                        owner=repo.owner,
+                        branch=repo.branch,
+                    )
+                )
+            current_config = GithubContentConfig(
+                pat_token=current_github_config.pat_token,
+                repos=repos,
+            )
+            current_config = json.loads(current_config.json())
+        else:
+            current_config = {}
 
         return templates.TemplateResponse(
             "content_type_github_input.html", context={"request": request, "current_config": current_config}

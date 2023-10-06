@@ -219,6 +219,7 @@ def setup(
     filters: List[BaseFilter] = [],
     normalize: bool = True,
     full_corpus: bool = True,
+    user: KhojUser = None,
 ) -> TextContent:
     # Map notes in text files to (compressed) JSONL formatted file
     config.compressed_jsonl = resolve_absolute_path(config.compressed_jsonl)

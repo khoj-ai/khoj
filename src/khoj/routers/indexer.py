@@ -34,6 +34,7 @@ from khoj.utils.config import (
     ContentIndex,
     SearchModels,
 )
+from database.models import KhojUser, GithubConfig
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +64,7 @@ async def index_batch(
     regenerate: bool = False,
     search_type: Optional[Union[state.SearchType, str]] = None,
 ):
+    user = request.user.object if request.user.is_authenticated else None
     if x_api_key != "secret":
         raise HTTPException(status_code=401, detail="Invalid API Key")
     state.config_lock.acquire()
@@ -182,6 +184,7 @@ def configure_content(
     regenerate: bool = False,
     t: Optional[Union[state.SearchType, str]] = None,
     full_corpus: bool = True,
+    user: KhojUser = None,
 ) -> Optional[ContentIndex]:
     def has_valid_text_config(config: TextContentConfig):
         return config.input_files or config.input_filter
@@ -227,6 +230,7 @@ def configure_content(
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
                 full_corpus=full_corpus,
+                user=user,
             )
     except Exception as e:
         logger.error(f"🚨 Failed to setup org: {e}", exc_info=True)
@@ -257,6 +261,7 @@ def configure_content(
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
                 full_corpus=full_corpus,
+                user=user,
             )
 
     except Exception as e:
@@ -288,6 +293,7 @@ def configure_content(
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
                 full_corpus=full_corpus,
+                user=user,
             )
 
     except Exception as e:
@@ -319,6 +325,7 @@ def configure_content(
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
                 full_corpus=full_corpus,
+                user=user,
             )
 
     except Exception as e:
@@ -340,14 +347,16 @@ def configure_content(
         if (t == None or t == state.SearchType.Github.value) and content_config.github and search_models.text_search:
             logger.info("🐙 Setting up search for github")
             # Extract Entries, Generate Github Embeddings
+            github_config = GithubConfig.objects.filter(user=user).prefetch_related("githubrepoconfig").first()
             content_index.github = text_search.setup(
                 GithubToJsonl,
                 None,
-                content_config.github,
+                github_config,
                 search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
                 full_corpus=full_corpus,
+                user=user,
             )
 
     except Exception as e:
@@ -365,29 +374,11 @@ def configure_content(
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
                 full_corpus=full_corpus,
+                user=user,
             )
 
     except Exception as e:
         logger.error(f"🚨 Failed to setup GitHub: {e}", exc_info=True)
-
-    try:
-        # Initialize External Plugin Search
-        if t == None and content_config.plugins and search_models.text_search:
-            logger.info("🔌 Setting up search for plugins")
-            content_index.plugins = {}
-            for plugin_type, plugin_config in content_config.plugins.items():
-                content_index.plugins[plugin_type] = text_search.setup(
-                    JsonlToJsonl,
-                    None,
-                    plugin_config,
-                    search_models.text_search.bi_encoder,
-                    regenerate=regenerate,
-                    filters=[DateFilter(), WordFilter(), FileFilter()],
-                    full_corpus=full_corpus,
-                )
-
-    except Exception as e:
-        logger.error(f"🚨 Failed to setup Plugin: {e}", exc_info=True)
 
     # Invalidate Query Cache
     state.query_cache = LRU()
