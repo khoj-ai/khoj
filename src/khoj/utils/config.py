@@ -39,9 +39,7 @@ class ProcessorType(str, Enum):
 
 @dataclass
 class TextContent:
-    entries: List[Entry]
-    corpus_embeddings: torch.Tensor
-    filters: List[BaseFilter]
+    enabled: bool
 
 
 @dataclass

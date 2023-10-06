@@ -7,6 +7,7 @@ from khoj.utils.rawconfig import TextContentConfig, OpenAIProcessorConfig, FullC
 
 # Internal Packages
 from khoj.utils import constants, state
+from database.adapters import EmbeddingsAdapters
 
 import json
 
@@ -33,6 +34,8 @@ if not state.demo:
 
     @web_client.get("/config", response_class=HTMLResponse)
     def config_page(request: Request):
+        user = request.user.object if request.user.is_authenticated else None
+        enabled_content = set(EmbeddingsAdapters.get_unique_file_types(user).all())
         default_full_config = FullConfig(
             content_type=None,
             search_type=None,
@@ -41,13 +44,13 @@ if not state.demo:
         current_config = state.config or json.loads(default_full_config.json())
 
         successfully_configured = {
-            "pdf": False,
-            "markdown": False,
-            "org": False,
+            "pdf": ("pdf" in enabled_content),
+            "markdown": ("markdown" in enabled_content),
+            "org": ("org" in enabled_content),
             "image": False,
-            "github": False,
-            "notion": False,
-            "plaintext": False,
+            "github": ("github" in enabled_content),
+            "notion": ("notion" in enabled_content),
+            "plaintext": ("plaintext" in enabled_content),
             "enable_offline_model": False,
             "conversation_openai": False,
             "conversation_gpt4all": False,
@@ -56,13 +59,7 @@ if not state.demo:
         if state.content_index:
             successfully_configured.update(
                 {
-                    "pdf": state.content_index.pdf is not None,
-                    "markdown": state.content_index.markdown is not None,
-                    "org": state.content_index.org is not None,
                     "image": state.content_index.image is not None,
-                    "github": state.content_index.github is not None,
-                    "notion": state.content_index.notion is not None,
-                    "plaintext": state.content_index.plaintext is not None,
                 }
             )
 

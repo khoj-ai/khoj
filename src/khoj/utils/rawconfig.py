@@ -115,7 +115,7 @@ class FullConfig(ConfigBase):
 
 class SearchResponse(ConfigBase):
     entry: str
-    score: str
+    score: float
     additional: Optional[dict]
 
 

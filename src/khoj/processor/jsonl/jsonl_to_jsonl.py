@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import List
 
 # Internal Packages
-from khoj.processor.text_to_jsonl import TextToJsonl
+from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.helpers import get_absolute_path, timer
 from khoj.utils.jsonl import load_jsonl, compress_jsonl_data
 from khoj.utils.rawconfig import Entry
@@ -14,7 +14,7 @@ from khoj.utils.rawconfig import Entry
 logger = logging.getLogger(__name__)
 
 
-class JsonlToJsonl(TextToJsonl):
+class JsonlToJsonl(TextEmbeddings):
     # Define Functions
     def process(self, previous_entries=[], files: dict[str, str] = {}, full_corpus: bool = True):
         # Extract required fields from config
@@ -38,7 +38,7 @@ class JsonlToJsonl(TextToJsonl):
 
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
-            entries_with_ids = TextToJsonl.mark_entries_for_update(
+            entries_with_ids = TextEmbeddings.mark_entries_for_update(
                 current_entries, previous_entries, key="compiled", logger=logger
             )
 

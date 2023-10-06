@@ -2,6 +2,7 @@ import uuid
 
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from pgvector.django import VectorField, IvfflatIndex
 
 
 class KhojUser(AbstractUser):
@@ -51,3 +52,31 @@ class GithubRepoConfig(models.Model):
 class ConversationProcessorConfig(models.Model):
     conversation = models.JSONField()
     enable_offline_chat = models.BooleanField(default=False)
+
+
+class Embeddings(models.Model):
+    class EmbeddingsType(models.TextChoices):
+        IMAGE = "image"
+        PDF = "pdf"
+        PLAINTEXT = "plaintext"
+        MARKDOWN = "markdown"
+        ORG = "org"
+        NOTION = "notion"
+        GITHUB = "github"
+        CONVERSATION = "conversation"
+
+    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
+    embeddings = VectorField(dimensions=384)
+    raw = models.TextField()
+    compiled = models.TextField()
+    heading = models.CharField(max_length=400, default=None, null=True, blank=True)
+    file_type = models.CharField(max_length=30, choices=EmbeddingsType.choices, default=EmbeddingsType.PLAINTEXT)
+    file_path = models.CharField(max_length=400, default=None, null=True, blank=True)
+    file_name = models.CharField(max_length=400, default=None, null=True, blank=True)
+    url = models.URLField(max_length=400, default=None, null=True, blank=True)
+    hashed_value = models.CharField(max_length=100)
+
+    # class Meta:
+    #     indexes = [
+    #         IvfflatIndex(fields=["embeddings"], name="embeddings_idx", lists=512, opclasses=["vector_cosine_ops"])
+    #     ]

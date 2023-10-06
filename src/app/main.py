@@ -23,11 +23,6 @@ from rich.logging import RichHandler
 from django.core.asgi import get_asgi_application
 from django.core.management import call_command
 
-# Internal Packages
-from khoj.configure import configure_routes, initialize_server, configure_middleware
-from khoj.utils import state
-from khoj.utils.cli import cli
-
 # Initialize Django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "app.settings")
 django.setup()
@@ -43,6 +38,11 @@ django_app = get_asgi_application()
 
 # Set Locale
 locale.setlocale(locale.LC_ALL, "")
+
+# Internal Packages. We do this after setting up Django so that Django features are accessible to the app.
+from khoj.configure import configure_routes, initialize_server, configure_middleware
+from khoj.utils import state
+from khoj.utils.cli import cli
 
 # Setup Logger
 rich_handler = RichHandler(rich_tracebacks=True)

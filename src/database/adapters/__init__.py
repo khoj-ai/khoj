@@ -3,13 +3,14 @@ import uuid
 
 from django.db import models
 from django.contrib.sessions.backends.db import SessionStore
+from pgvector.django import CosineDistance
 
 # Import sync_to_async from Django Channels
 from asgiref.sync import sync_to_async
 
 from fastapi import HTTPException
 
-from database.models import KhojUser, GoogleUser, NotionConfig, GithubConfig
+from database.models import KhojUser, GoogleUser, NotionConfig, GithubConfig, Embeddings
 
 from khoj.utils.constants import content_directory
 
@@ -102,3 +103,36 @@ async def set_user_github_config(user: KhojUser, pat_token: str, repos: list):
             name=repo["name"], owner=repo["owner"], branch=repo["branch"], github_config=github_config
         )
     return github_config
+
+
+class EmbeddingsAdapters:
+    @staticmethod
+    def does_embedding_exist(user: KhojUser, hashed_value: str) -> bool:
+        return Embeddings.objects.filter(user=user, hashed_value=hashed_value).exists()
+
+    @staticmethod
+    def delete_embedding_by_file(user: KhojUser, file_path: str):
+        Embeddings.objects.filter(user=user, file_path=file_path).delete()
+
+    @staticmethod
+    def get_existing_entry_hashes_by_file(user: KhojUser, file_path: str):
+        return Embeddings.objects.filter(user=user, file_path=file_path).values_list("hashed_value", flat=True)
+
+    @staticmethod
+    def delete_embedding_by_hash(user: KhojUser, hashed_value: str):
+        Embeddings.objects.filter(user=user, hashed_value=hashed_value).delete()
+
+    @staticmethod
+    def search_with_embeddings(
+        user: KhojUser, embeddings: list, max_results: int = 10, file_filter: Embeddings.EmbeddingsType = None
+    ):
+        relevant_embeddings = Embeddings.objects.filter(user=user).annotate(
+            distance=CosineDistance("embeddings", embeddings)
+        )
+        if file_filter:
+            relevant_embeddings = relevant_embeddings.filter(file_type=file_filter)
+        return relevant_embeddings.order_by("distance")[:max_results]
+
+    @staticmethod
+    def get_unique_file_types(user: KhojUser):
+        return Embeddings.objects.filter(user=user).values_list("file_type", flat=True).distinct()

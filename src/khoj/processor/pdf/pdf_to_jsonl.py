@@ -8,16 +8,17 @@ import base64
 from langchain.document_loaders import PyMuPDFLoader
 
 # Internal Packages
-from khoj.processor.text_to_jsonl import TextToJsonl
+from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.helpers import timer
 from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry
+from database.models import Embeddings
 
 
 logger = logging.getLogger(__name__)
 
 
-class PdfToJsonl(TextToJsonl):
+class PdfToJsonl(TextEmbeddings):
     # Define Functions
     def process(self, previous_entries=[], files: dict[str, str] = None, full_corpus: bool = True):
         # Extract required fields from config
@@ -40,8 +41,8 @@ class PdfToJsonl(TextToJsonl):
 
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
-            entries_with_ids = TextToJsonl.mark_entries_for_update(
-                current_entries, previous_entries, key="compiled", logger=logger, deletion_filenames=deletion_file_names
+            entries_with_ids = self.update_embeddings(
+                current_entries, Embeddings.EmbeddingsType.MARKDOWN, "compiled", logger, deletion_file_names
             )
 
         with timer("Write PDF entries to JSONL file", logger):

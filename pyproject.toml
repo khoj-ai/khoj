@@ -65,6 +65,8 @@ dependencies = [
     "gpt4all == 1.0.12; platform_system == 'Windows' or platform_system == 'Darwin'",
     "itsdangerous == 2.1.2",
     "httpx == 0.25.0",
+    "pgvector == 0.2.3",
+    "psycopg2-binary == 2.9.9",
 ]
 dynamic = ["version"]
 

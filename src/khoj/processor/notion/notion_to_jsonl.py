@@ -7,9 +7,10 @@ import requests
 # Internal Packages
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry, NotionContentConfig
-from khoj.processor.text_to_jsonl import TextToJsonl
+from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry
+from database.models import Embeddings
 
 from enum import Enum
 
@@ -49,7 +50,7 @@ class NotionBlockType(Enum):
     CALLOUT = "callout"
 
 
-class NotionToJsonl(TextToJsonl):
+class NotionToJsonl(TextEmbeddings):
     def __init__(self, config: NotionContentConfig):
         super().__init__(config)
         self.config = config
@@ -244,16 +245,8 @@ class NotionToJsonl(TextToJsonl):
     def update_entries_with_ids(self, current_entries, previous_entries):
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
-            entries_with_ids = TextToJsonl.mark_entries_for_update(
-                current_entries, previous_entries, key="compiled", logger=logger
+            entries_with_ids = self.update_embeddings(
+                current_entries, Embeddings.EmbeddingsType.NOTION, key="compiled", logger=logger
             )
-
-        with timer("Write Notion entries to JSONL file", logger):
-            # Process Each Entry from all Notion entries
-            entries = list(map(lambda entry: entry[1], entries_with_ids))
-            jsonl_data = TextToJsonl.convert_text_maps_to_jsonl(entries)
-
-            # Compress JSONL formatted Data
-            compress_jsonl_data(jsonl_data, self.config.compressed_jsonl)
 
         return entries_with_ids

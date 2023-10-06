@@ -172,7 +172,7 @@
             url = createRequestUrl(query, type, results_count || 5, rerank);
             fetch(url, {
                 headers: {
-                    "X-CSRFToken": csrfToken
+                    "Content-Type": "application/json"
                 }
             })
                 .then(response => response.json())

@@ -6,17 +6,18 @@ from pathlib import Path
 from typing import List
 
 # Internal Packages
-from khoj.processor.text_to_jsonl import TextToJsonl
+from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.helpers import timer
 from khoj.utils.constants import empty_escape_sequences
 from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry, TextContentConfig
+from database.models import Embeddings
 
 
 logger = logging.getLogger(__name__)
 
 
-class MarkdownToJsonl(TextToJsonl):
+class MarkdownToJsonl(TextEmbeddings):
     def __init__(self, config: TextContentConfig):
         super().__init__(config)
         self.config = config
@@ -45,17 +46,9 @@ class MarkdownToJsonl(TextToJsonl):
 
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
-            entries_with_ids = TextToJsonl.mark_entries_for_update(
-                current_entries, previous_entries, key="compiled", logger=logger, deletion_filenames=deletion_file_names
+            entries_with_ids = self.update_embeddings(
+                current_entries, Embeddings.EmbeddingsType.MARKDOWN, "compiled", logger, deletion_file_names
             )
-
-        with timer("Write markdown entries to JSONL file", logger):
-            # Process Each Entry from All Notes Files
-            entries = list(map(lambda entry: entry[1], entries_with_ids))
-            jsonl_data = MarkdownToJsonl.convert_markdown_maps_to_jsonl(entries)
-
-            # Compress JSONL formatted Data
-            compress_jsonl_data(jsonl_data, output_file)
 
         return entries_with_ids
 

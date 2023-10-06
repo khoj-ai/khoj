@@ -5,17 +5,18 @@ from typing import Iterable, List, Tuple
 
 # Internal Packages
 from khoj.processor.org_mode import orgnode
-from khoj.processor.text_to_jsonl import TextToJsonl
+from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.helpers import timer
 from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry, TextContentConfig
 from khoj.utils import state
+from database.models import Embeddings
 
 
 logger = logging.getLogger(__name__)
 
 
-class OrgToJsonl(TextToJsonl):
+class OrgToJsonl(TextEmbeddings):
     def __init__(self, config: TextContentConfig):
         super().__init__(config)
         self.config = config
@@ -47,17 +48,9 @@ class OrgToJsonl(TextToJsonl):
 
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
-            entries_with_ids = TextToJsonl.mark_entries_for_update(
-                current_entries, previous_entries, key="compiled", logger=logger, deletion_filenames=deletion_file_names
+            entries_with_ids = self.update_embeddings(
+                current_entries, Embeddings.EmbeddingsType.ORG, "compiled", logger, deletion_file_names
             )
-
-        # Process Each Entry from All Notes Files
-        with timer("Write org entries to JSONL file", logger):
-            entries = map(lambda entry: entry[1], entries_with_ids)
-            jsonl_data = self.convert_org_entries_to_jsonl(entries)
-
-            # Compress JSONL formatted Data
-            compress_jsonl_data(jsonl_data, output_file)
 
         return entries_with_ids
 

@@ -2,19 +2,25 @@
 from abc import ABC, abstractmethod
 import hashlib
 import logging
+from tqdm import tqdm
 from typing import Callable, List, Tuple, Set
 from khoj.utils.helpers import timer
 
+
 # Internal Packages
 from khoj.utils.rawconfig import Entry, TextConfigBase
+from khoj.processor.embeddings import EmbeddingsModel
+from database.models import KhojUser, Embeddings
+from database.adapters import EmbeddingsAdapters
 
 
 logger = logging.getLogger(__name__)
 
 
-class TextToJsonl(ABC):
+class TextEmbeddings(ABC):
     def __init__(self, config: TextConfigBase):
         self.config = config
+        self.embeddings_model = EmbeddingsModel()
 
     @abstractmethod
     def process(
@@ -62,6 +68,67 @@ class TextToJsonl(ABC):
 
         return chunked_entries
 
+    def update_embeddings(
+        self,
+        current_entries: List[Entry],
+        file_type: Embeddings.EmbeddingsType,
+        key="compiled",
+        logger: logging.Logger = None,
+        deletion_filenames: Set[str] = None,
+        user: KhojUser = None,
+    ):
+        with timer("Construct current entry hashes", logger):
+            hashes_by_file = dict[str, set[str]]()
+            current_entry_hashes = list(map(TextEmbeddings.hash_func(key), current_entries))
+            hash_to_current_entries = dict(zip(current_entry_hashes, current_entries))
+            for entry in tqdm(current_entries, desc="Hashing Entries"):
+                hashes_by_file.setdefault(entry.file, set()).add(TextEmbeddings.hash_func(key)(entry))
+
+        with timer("Identify hashes for adding new entries", logger):
+            for file in tqdm(hashes_by_file, desc="Processing file with hashed values"):
+                hashes_for_file = hashes_by_file[file]
+                hashes_to_process = set()
+                existing_entries = Embeddings.objects.filter(user=user, hashed_value__in=hashes_for_file)
+                existing_entry_hashes = set([entry.hashed_value for entry in existing_entries])
+                hashes_to_process = hashes_for_file - existing_entry_hashes
+                # for hashed_val in hashes_for_file:
+                #     if not EmbeddingsAdapters.does_embedding_exist(user, hashed_val):
+                #         hashes_to_process.add(hashed_val)
+
+                entries_to_process = [hash_to_current_entries[hashed_val] for hashed_val in hashes_to_process]
+                data_to_embed = [getattr(entry, key) for entry in entries_to_process]
+                embeddings = self.embeddings_model.embed_documents(data_to_embed)
+
+                with timer("Update the database with new vector embeddings", logger):
+                    embeddings_to_create = []
+                    for hashed_val, embedding in zip(hashes_to_process, embeddings):
+                        entry = hash_to_current_entries[hashed_val]
+                        embeddings_to_create.append(
+                            Embeddings(
+                                user=user,
+                                embeddings=embedding,
+                                raw=entry.raw,
+                                compiled=entry.compiled,
+                                heading=entry.heading,
+                                file_path=entry.file,
+                                file_type=file_type,
+                                hashed_value=hashed_val,
+                            )
+                        )
+                    Embeddings.objects.bulk_create(embeddings_to_create)
+
+        with timer("Identify hashes for removed entries", logger):
+            for file in hashes_by_file:
+                existing_entry_hashes = EmbeddingsAdapters.get_existing_entry_hashes_by_file(user, file)
+                to_delete_entry_hashes = set(existing_entry_hashes) - hashes_by_file[file]
+                for entry_hash in to_delete_entry_hashes:
+                    EmbeddingsAdapters.delete_embedding_by_hash(user, entry_hash)
+
+        with timer("Identify hashes for deleting entries", logger):
+            if deletion_filenames is not None:
+                for file_path in deletion_filenames:
+                    EmbeddingsAdapters.delete_embedding_by_file(user, file_path)
+
     @staticmethod
     def mark_entries_for_update(
         current_entries: List[Entry],
@@ -72,11 +139,11 @@ class TextToJsonl(ABC):
     ):
         # Hash all current and previous entries to identify new entries
         with timer("Hash previous, current entries", logger):
-            current_entry_hashes = list(map(TextToJsonl.hash_func(key), current_entries))
-            previous_entry_hashes = list(map(TextToJsonl.hash_func(key), previous_entries))
+            current_entry_hashes = list(map(TextEmbeddings.hash_func(key), current_entries))
+            previous_entry_hashes = list(map(TextEmbeddings.hash_func(key), previous_entries))
             if deletion_filenames is not None:
                 deletion_entries = [entry for entry in previous_entries if entry.file in deletion_filenames]
-                deletion_entry_hashes = list(map(TextToJsonl.hash_func(key), deletion_entries))
+                deletion_entry_hashes = list(map(TextEmbeddings.hash_func(key), deletion_entries))
             else:
                 deletion_entry_hashes = []
 

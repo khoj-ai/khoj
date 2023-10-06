@@ -12,15 +12,16 @@ from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry, GithubContentConfig, GithubRepoConfig
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
-from khoj.processor.text_to_jsonl import TextToJsonl
+from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry
+from database.models import Embeddings
 
 
 logger = logging.getLogger(__name__)
 
 
-class GithubToJsonl(TextToJsonl):
+class GithubToJsonl(TextEmbeddings):
     def __init__(self, config: GithubContentConfig):
         super().__init__(config)
         self.config = config
@@ -80,24 +81,16 @@ class GithubToJsonl(TextToJsonl):
             current_entries += issue_entries
 
         with timer(f"Split entries by max token size supported by model {repo_shorthand}", logger):
-            current_entries = TextToJsonl.split_entries_by_max_tokens(current_entries, max_tokens=256)
+            current_entries = TextEmbeddings.split_entries_by_max_tokens(current_entries, max_tokens=256)
 
         return current_entries
 
     def update_entries_with_ids(self, current_entries, previous_entries):
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
-            entries_with_ids = TextToJsonl.mark_entries_for_update(
-                current_entries, previous_entries, key="compiled", logger=logger
+            entries_with_ids = self.update_embeddings(
+                current_entries, Embeddings.EmbeddingsType.GITHUB, key="compiled", logger=logger
             )
-
-        with timer("Write github entries to JSONL file", logger):
-            # Process Each Entry from All Notes Files
-            entries = list(map(lambda entry: entry[1], entries_with_ids))
-            jsonl_data = MarkdownToJsonl.convert_markdown_maps_to_jsonl(entries)
-
-            # Compress JSONL formatted Data
-            compress_jsonl_data(jsonl_data, self.config.compressed_jsonl)
 
         return entries_with_ids
 
