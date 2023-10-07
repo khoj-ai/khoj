@@ -7,7 +7,7 @@ from typing import List, Tuple
 from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry
-from database.models import Embeddings
+from database.models import Embeddings, KhojUser
 
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class PlaintextToJsonl(TextEmbeddings):
     # Define Functions
     def process(
-        self, previous_entries: List[Entry] = [], files: dict[str, str] = None, full_corpus: bool = True
+        self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None
     ) -> List[Tuple[int, Entry]]:
         if not full_corpus:
             deletion_file_names = set([file for file in files if files[file] == ""])
@@ -41,6 +41,7 @@ class PlaintextToJsonl(TextEmbeddings):
                 key="compiled",
                 logger=logger,
                 deletion_filenames=deletion_file_names,
+                user=user,
             )
 
         return entries_with_ids

@@ -11,7 +11,7 @@ from khoj.utils.helpers import timer
 from khoj.utils.constants import empty_escape_sequences
 from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry, TextContentConfig
-from database.models import Embeddings
+from database.models import Embeddings, KhojUser
 
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ class MarkdownToJsonl(TextEmbeddings):
         self.config = config
 
     # Define Functions
-    def process(self, previous_entries=[], files=None, full_corpus: bool = True):
+    def process(self, previous_entries=[], files=None, full_corpus: bool = True, user: KhojUser = None):
         # Extract required fields from config
         output_file = self.config.compressed_jsonl
 
@@ -47,7 +47,7 @@ class MarkdownToJsonl(TextEmbeddings):
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
             entries_with_ids = self.update_embeddings(
-                current_entries, Embeddings.EmbeddingsType.MARKDOWN, "compiled", logger, deletion_file_names
+                current_entries, Embeddings.EmbeddingsType.MARKDOWN, "compiled", logger, deletion_file_names, user
             )
 
         return entries_with_ids

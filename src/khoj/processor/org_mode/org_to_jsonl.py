@@ -10,7 +10,7 @@ from khoj.utils.helpers import timer
 from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry, TextContentConfig
 from khoj.utils import state
-from database.models import Embeddings
+from database.models import Embeddings, KhojUser
 
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ class OrgToJsonl(TextEmbeddings):
 
     # Define Functions
     def process(
-        self, previous_entries: List[Entry] = [], files: dict[str, str] = None, full_corpus: bool = True
+        self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None
     ) -> List[Tuple[int, Entry]]:
         # Extract required fields from config
         output_file = self.config.compressed_jsonl
@@ -49,7 +49,7 @@ class OrgToJsonl(TextEmbeddings):
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
             entries_with_ids = self.update_embeddings(
-                current_entries, Embeddings.EmbeddingsType.ORG, "compiled", logger, deletion_file_names
+                current_entries, Embeddings.EmbeddingsType.ORG, "compiled", logger, deletion_file_names, user
             )
 
         return entries_with_ids

@@ -15,16 +15,29 @@ from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry
-from database.models import Embeddings
+from database.models import Embeddings, GithubConfig, KhojUser
 
 
 logger = logging.getLogger(__name__)
 
 
 class GithubToJsonl(TextEmbeddings):
-    def __init__(self, config: GithubContentConfig):
+    def __init__(self, config: GithubConfig):
         super().__init__(config)
-        self.config = config
+        raw_repos = config.githubrepoconfig.all()
+        repos = []
+        for repo in raw_repos:
+            repos.append(
+                GithubRepoConfig(
+                    name=repo.name,
+                    owner=repo.owner,
+                    branch=repo.branch,
+                )
+            )
+        self.config = GithubContentConfig(
+            pat_token=config.pat_token,
+            repos=repos,
+        )
         self.session = requests.Session()
         self.session.headers.update({"Authorization": f"token {self.config.pat_token}"})
 
@@ -38,7 +51,7 @@ class GithubToJsonl(TextEmbeddings):
         else:
             return
 
-    def process(self, previous_entries=[], files=None, full_corpus=True):
+    def process(self, files=None, full_corpus=True, user: KhojUser = None):
         if self.config.pat_token is None or self.config.pat_token == "":
             logger.error(f"Github PAT token is not set. Skipping github content")
             raise ValueError("Github PAT token is not set. Skipping github content")
@@ -46,7 +59,7 @@ class GithubToJsonl(TextEmbeddings):
         for repo in self.config.repos:
             current_entries += self.process_repo(repo)
 
-        return self.update_entries_with_ids(current_entries, previous_entries)
+        return self.update_entries_with_ids(current_entries, user=user)
 
     def process_repo(self, repo: GithubRepoConfig):
         repo_url = f"https://api.github.com/repos/{repo.owner}/{repo.name}"
@@ -85,11 +98,11 @@ class GithubToJsonl(TextEmbeddings):
 
         return current_entries
 
-    def update_entries_with_ids(self, current_entries, previous_entries):
+    def update_entries_with_ids(self, current_entries, user: KhojUser = None):
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
             entries_with_ids = self.update_embeddings(
-                current_entries, Embeddings.EmbeddingsType.GITHUB, key="compiled", logger=logger
+                current_entries, Embeddings.EmbeddingsType.GITHUB, key="compiled", logger=logger, user=user
             )
 
         return entries_with_ids

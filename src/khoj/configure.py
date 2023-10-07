@@ -30,6 +30,7 @@ from khoj.utils.helpers import resolve_absolute_path, merge_dicts
 from khoj.utils.fs_syncer import collect_files
 from khoj.utils.rawconfig import FullConfig, ProcessorConfig, ConversationProcessorConfig
 from khoj.routers.indexer import configure_content, load_content, configure_search
+from database.models import KhojUser
 
 
 logger = logging.getLogger(__name__)
@@ -93,7 +94,11 @@ def initialize_server(config: Optional[FullConfig]):
 
 
 def configure_server(
-    config: FullConfig, regenerate: bool = False, search_type: Optional[SearchType] = None, init=False
+    config: FullConfig,
+    regenerate: bool = False,
+    search_type: Optional[SearchType] = None,
+    init=False,
+    user: KhojUser = None,
 ):
     # Update Config
     state.config = config
@@ -110,7 +115,7 @@ def configure_server(
         state.config_lock.acquire()
         state.SearchType = configure_search_types(state.config)
         state.search_models = configure_search(state.search_models, state.config.search_type)
-        initialize_content(regenerate, search_type, init)
+        initialize_content(regenerate, search_type, init, user)
     except Exception as e:
         logger.error(f"🚨 Failed to configure search models", exc_info=True)
         raise e
@@ -118,7 +123,7 @@ def configure_server(
         state.config_lock.release()
 
 
-def initialize_content(regenerate: bool, search_type: Optional[SearchType] = None, init=False):
+def initialize_content(regenerate: bool, search_type: Optional[SearchType] = None, init=False, user: KhojUser = None):
     # Initialize Content from Config
     if state.search_models:
         try:
@@ -135,6 +140,7 @@ def initialize_content(regenerate: bool, search_type: Optional[SearchType] = Non
                     state.search_models,
                     regenerate,
                     search_type,
+                    user=user,
                 )
         except Exception as e:
             logger.error(f"🚨 Failed to index content", exc_info=True)

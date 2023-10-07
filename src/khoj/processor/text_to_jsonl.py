@@ -24,7 +24,7 @@ class TextEmbeddings(ABC):
 
     @abstractmethod
     def process(
-        self, previous_entries: List[Entry] = [], files: dict[str, str] = None, full_corpus: bool = True
+        self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None
     ) -> List[Tuple[int, Entry]]:
         ...
 

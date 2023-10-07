@@ -9,7 +9,6 @@ from pydantic import BaseModel
 
 # Internal Packages
 from khoj.utils import state, constants
-from khoj.processor.jsonl.jsonl_to_jsonl import JsonlToJsonl
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.pdf.pdf_to_jsonl import PdfToJsonl
@@ -147,6 +146,7 @@ async def index_batch(
             regenerate=regenerate,
             t=search_type,
             full_corpus=False,
+            user=user,
         )
 
     except Exception as e:
@@ -344,10 +344,14 @@ def configure_content(
         logger.error(f"🚨 Failed to setup images: {e}", exc_info=True)
 
     try:
-        if (t == None or t == state.SearchType.Github.value) and content_config.github and search_models.text_search:
+        github_config = GithubConfig.objects.filter(user=user).prefetch_related("githubrepoconfig").first()
+        if (
+            (t == None or t == state.SearchType.Github.value)
+            and github_config is not None
+            and search_models.text_search
+        ):
             logger.info("🐙 Setting up search for github")
             # Extract Entries, Generate Github Embeddings
-            github_config = GithubConfig.objects.filter(user=user).prefetch_related("githubrepoconfig").first()
             content_index.github = text_search.setup(
                 GithubToJsonl,
                 None,

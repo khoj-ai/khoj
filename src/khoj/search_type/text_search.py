@@ -222,11 +222,7 @@ def setup(
     user: KhojUser = None,
 ) -> TextContent:
     # Map notes in text files to (compressed) JSONL formatted file
-    config.compressed_jsonl = resolve_absolute_path(config.compressed_jsonl)
-    previous_entries = []
-    if config.compressed_jsonl.exists() and not regenerate:
-        previous_entries = extract_entries(config.compressed_jsonl)
-    text_to_jsonl(config).process(previous_entries=previous_entries, files=files, full_corpus=full_corpus)
+    text_to_jsonl(config).process(files=files, full_corpus=full_corpus, user=user)
 
     # TODO: Update the way filters are applied
     # for filter in filters:

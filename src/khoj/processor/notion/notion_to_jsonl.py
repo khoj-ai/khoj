@@ -10,7 +10,7 @@ from khoj.utils.rawconfig import Entry, NotionContentConfig
 from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry
-from database.models import Embeddings
+from database.models import Embeddings, KhojUser
 
 from enum import Enum
 
@@ -81,7 +81,7 @@ class NotionToJsonl(TextEmbeddings):
 
         self.body_params = {"page_size": 100}
 
-    def process(self, previous_entries=[], files=None, full_corpus=True):
+    def process(self, files=None, full_corpus=True, user: KhojUser = None):
         current_entries = []
 
         # Get all pages
@@ -113,7 +113,7 @@ class NotionToJsonl(TextEmbeddings):
                             page_entries = self.process_page(p_or_d)
                             current_entries.extend(page_entries)
 
-        return self.update_entries_with_ids(current_entries, previous_entries)
+        return self.update_entries_with_ids(current_entries, user)
 
     def process_page(self, page):
         page_id = page["id"]
@@ -242,11 +242,11 @@ class NotionToJsonl(TextEmbeddings):
             title = None
         return title, content
 
-    def update_entries_with_ids(self, current_entries, previous_entries):
+    def update_entries_with_ids(self, current_entries, user: KhojUser = None):
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
             entries_with_ids = self.update_embeddings(
-                current_entries, Embeddings.EmbeddingsType.NOTION, key="compiled", logger=logger
+                current_entries, Embeddings.EmbeddingsType.NOTION, key="compiled", logger=logger, user=user
             )
 
         return entries_with_ids

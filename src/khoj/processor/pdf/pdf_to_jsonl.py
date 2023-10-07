@@ -12,7 +12,7 @@ from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.helpers import timer
 from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry
-from database.models import Embeddings
+from database.models import Embeddings, KhojUser
 
 
 logger = logging.getLogger(__name__)
@@ -20,10 +20,8 @@ logger = logging.getLogger(__name__)
 
 class PdfToJsonl(TextEmbeddings):
     # Define Functions
-    def process(self, previous_entries=[], files: dict[str, str] = None, full_corpus: bool = True):
+    def process(self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None):
         # Extract required fields from config
-        output_file = self.config.compressed_jsonl
-
         if not full_corpus:
             deletion_file_names = set([file for file in files if files[file] == ""])
             files_to_process = set(files) - deletion_file_names
@@ -42,16 +40,8 @@ class PdfToJsonl(TextEmbeddings):
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
             entries_with_ids = self.update_embeddings(
-                current_entries, Embeddings.EmbeddingsType.MARKDOWN, "compiled", logger, deletion_file_names
+                current_entries, Embeddings.EmbeddingsType.MARKDOWN, "compiled", logger, deletion_file_names, user
             )
-
-        with timer("Write PDF entries to JSONL file", logger):
-            # Process Each Entry from All Notes Files
-            entries = list(map(lambda entry: entry[1], entries_with_ids))
-            jsonl_data = PdfToJsonl.convert_pdf_maps_to_jsonl(entries)
-
-            # Compress JSONL formatted Data
-            compress_jsonl_data(jsonl_data, output_file)
 
         return entries_with_ids
 

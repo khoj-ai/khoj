@@ -112,7 +112,7 @@ if not state.demo:
         return state.config
 
     @api.post("/config/data/content_type/github", status_code=200)
-    # @requires("authenticated")
+    @requires("authenticated")
     async def set_content_config_github_data(
         request: Request,
         updated_config: Union[GithubContentConfig, None],
@@ -135,6 +135,8 @@ if not state.demo:
             client=client,
             metadata={"content_type": "github"},
         )
+
+        return {"status": "ok"}
 
     @api.post("/config/data/content_type/notion", status_code=200)
     async def set_content_config_notion_data(
@@ -509,12 +511,13 @@ def update(
     referer: Optional[str] = Header(None),
     host: Optional[str] = Header(None),
 ):
+    user = request.user.object if request.user.is_authenticated else None
     if not state.config:
         error_msg = f"🚨 Khoj is not configured.\nConfigure it via http://localhost:42110/config, plugins or by editing {state.config_file}."
         logger.warning(error_msg)
         raise HTTPException(status_code=500, detail=error_msg)
     try:
-        configure_server(state.config, regenerate=force, search_type=t)
+        configure_server(state.config, regenerate=force, search_type=t, user=user)
     except Exception as e:
         error_msg = f"🚨 Failed to update server via API: {e}"
         logger.error(error_msg, exc_info=True)
