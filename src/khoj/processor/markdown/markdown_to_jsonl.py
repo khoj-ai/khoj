@@ -9,7 +9,6 @@ from typing import List
 from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.helpers import timer
 from khoj.utils.constants import empty_escape_sequences
-from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry, TextContentConfig
 from database.models import Embeddings, KhojUser
 
@@ -25,8 +24,6 @@ class MarkdownToJsonl(TextEmbeddings):
     # Define Functions
     def process(self, previous_entries=[], files=None, full_corpus: bool = True, user: KhojUser = None):
         # Extract required fields from config
-        output_file = self.config.compressed_jsonl
-
         if not full_corpus:
             deletion_file_names = set([file for file in files if files[file] == ""])
             files_to_process = set(files) - deletion_file_names

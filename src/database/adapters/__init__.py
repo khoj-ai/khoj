@@ -88,6 +88,23 @@ def get_user_github_config(user: KhojUser):
     return config
 
 
+def get_user_notion_config(user: KhojUser):
+    config = NotionConfig.objects.filter(user=user).first()
+    if not config:
+        return None
+    return config
+
+
+async def set_text_content_config(user: KhojUser, object: Type[models.Model], updated_config):
+    await object.objects.filter(user=user).adelete()
+    await object.objects.acreate(
+        input_files=updated_config.input_files,
+        input_filter=updated_config.input_filter,
+        index_heading_entries=updated_config.index_heading_entries,
+        user=user,
+    )
+
+
 async def set_user_github_config(user: KhojUser, pat_token: str, repos: list):
     config = await GithubConfig.objects.filter(user=user).afirst()
 

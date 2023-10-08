@@ -20,24 +20,6 @@
                     </td>
                 </tr>
             </table>
-            <table style="display: none;" >
-                <tr>
-                    <td>
-                        <label for="compressed-jsonl">Compressed JSONL (Output)</label>
-                    </td>
-                    <td>
-                        <input type="text" id="compressed-jsonl" name="compressed-jsonl" value="{{ current_config['compressed_jsonl'] }}">
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <label for="embeddings-file">Embeddings File (Output)</label>
-                    </td>
-                    <td>
-                        <input type="text" id="embeddings-file" name="embeddings-file" value="{{ current_config['embeddings_file'] }}">
-                    </td>
-                </tr>
-            </table>
             <div class="section">
                 <div id="success" style="display: none;"></div>
                 <button id="submit" type="submit">Save</button>
@@ -51,8 +33,6 @@
     submit.addEventListener("click", function(event) {
         event.preventDefault();
 
-        const compressed_jsonl = document.getElementById("compressed-jsonl").value;
-        const embeddings_file = document.getElementById("embeddings-file").value;
         const token = document.getElementById("token").value;
 
         if (token == "") {
@@ -70,8 +50,6 @@
             },
             body: JSON.stringify({
                 "token": token,
-                "compressed_jsonl": compressed_jsonl,
-                "embeddings_file": embeddings_file,
             })
         })
         .then(response => response.json())

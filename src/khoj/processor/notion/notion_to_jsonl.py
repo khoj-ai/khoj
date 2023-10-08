@@ -8,9 +8,8 @@ import requests
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry, NotionContentConfig
 from khoj.processor.text_to_jsonl import TextEmbeddings
-from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry
-from database.models import Embeddings, KhojUser
+from database.models import Embeddings, KhojUser, NotionConfig
 
 from enum import Enum
 
@@ -51,9 +50,11 @@ class NotionBlockType(Enum):
 
 
 class NotionToJsonl(TextEmbeddings):
-    def __init__(self, config: NotionContentConfig):
+    def __init__(self, config: NotionConfig):
         super().__init__(config)
-        self.config = config
+        self.config = NotionContentConfig(
+            token=config.token,
+        )
         self.session = requests.Session()
         self.session.headers.update({"Authorization": f"Bearer {config.token}", "Notion-Version": "2022-02-22"})
         self.unsupported_block_types = [

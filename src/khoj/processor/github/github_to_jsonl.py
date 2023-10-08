@@ -13,7 +13,6 @@ from khoj.utils.rawconfig import Entry, GithubContentConfig, GithubRepoConfig
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.text_to_jsonl import TextEmbeddings
-from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry
 from database.models import Embeddings, GithubConfig, KhojUser
 

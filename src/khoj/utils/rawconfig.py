@@ -27,7 +27,7 @@ class TextConfigBase(ConfigBase):
     embeddings_file: Path
 
 
-class TextContentConfig(TextConfigBase):
+class TextContentConfig(ConfigBase):
     input_files: Optional[List[Path]]
     input_filter: Optional[List[str]]
     index_heading_entries: Optional[bool] = False
@@ -44,7 +44,7 @@ class GithubContentConfig(ConfigBase):
     repos: List[GithubRepoConfig]
 
 
-class NotionContentConfig(TextConfigBase):
+class NotionContentConfig(ConfigBase):
     token: str
 
 

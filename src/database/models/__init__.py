@@ -42,15 +42,15 @@ class GithubRepoConfig(models.Model):
 
 
 class LocalOrgConfig(models.Model):
-    input_files = models.JSONField(default=list)
-    input_filter = models.JSONField(default=list)
+    input_files = models.JSONField(default=list, null=True)
+    input_filter = models.JSONField(default=list, null=True)
     index_heading_entries = models.BooleanField(default=False)
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
 
 
 class LocalMarkdownConfig(models.Model):
-    input_files = models.JSONField(default=list)
-    input_filter = models.JSONField(default=list)
+    input_files = models.JSONField(default=list, null=True)
+    input_filter = models.JSONField(default=list, null=True)
     index_heading_entries = models.BooleanField(default=False)
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
 

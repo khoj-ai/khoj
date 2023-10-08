@@ -33,7 +33,7 @@ from khoj.utils.config import (
     ContentIndex,
     SearchModels,
 )
-from database.models import KhojUser, GithubConfig
+from database.models import KhojUser, GithubConfig, NotionConfig
 
 logger = logging.getLogger(__name__)
 
@@ -368,6 +368,7 @@ def configure_content(
 
     try:
         # Initialize Notion Search
+        notion_config = NotionConfig.objects.filter(user=user).first()
         if (t == None or t in state.SearchType.Notion.value) and content_config.notion and search_models.text_search:
             logger.info("🔌 Setting up search for notion")
             content_index.notion = text_search.setup(

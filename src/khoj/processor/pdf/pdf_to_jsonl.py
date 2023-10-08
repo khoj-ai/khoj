@@ -10,7 +10,6 @@ from langchain.document_loaders import PyMuPDFLoader
 # Internal Packages
 from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.helpers import timer
-from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry
 from database.models import Embeddings, KhojUser
 

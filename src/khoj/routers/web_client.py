@@ -10,11 +10,13 @@ from khoj.utils.rawconfig import (
     FullConfig,
     GithubContentConfig,
     GithubRepoConfig,
+    NotionContentConfig,
 )
 
 # Internal Packages
 from khoj.utils import constants, state
-from database.adapters import EmbeddingsAdapters, get_user_github_config
+from database.adapters import EmbeddingsAdapters, get_user_github_config, get_user_notion_config
+from database.models import KhojUser, LocalOrgConfig, LocalMarkdownConfig, LocalPdfConfig, LocalPlaintextConfig
 
 import json
 
@@ -35,6 +37,17 @@ def index(request: Request):
 @web_client.get("/chat", response_class=FileResponse)
 def chat_page(request: Request):
     return templates.TemplateResponse("chat.html", context={"request": request, "demo": state.demo})
+
+
+def map_config_to_object(content_type: str):
+    if content_type == "org":
+        return LocalOrgConfig
+    if content_type == "markdown":
+        return LocalMarkdownConfig
+    if content_type == "pdf":
+        return LocalPdfConfig
+    if content_type == "plaintext":
+        return LocalPlaintextConfig
 
 
 if not state.demo:
@@ -118,18 +131,11 @@ if not state.demo:
 
     @web_client.get("/config/content_type/notion", response_class=HTMLResponse)
     def notion_config_page(request: Request):
-        default_copy = constants.default_config.copy()
-        default_notion = default_copy["content-type"]["notion"]  # type: ignore
+        user = request.user.object if request.user.is_authenticated else None
+        current_notion_config = get_user_notion_config(user)
 
-        default_config = TextContentConfig(
-            compressed_jsonl=default_notion["compressed-jsonl"],
-            embeddings_file=default_notion["embeddings-file"],
-        )
-
-        current_config = (
-            state.config.content_type.notion
-            if state.config and state.config.content_type and state.config.content_type.notion
-            else default_config
+        current_config = NotionContentConfig(
+            token=current_notion_config.token if current_notion_config else "",
         )
 
         current_config = json.loads(current_config.json())
@@ -143,18 +149,16 @@ if not state.demo:
         if content_type not in VALID_TEXT_CONTENT_TYPES:
             return templates.TemplateResponse("config.html", context={"request": request})
 
-        default_copy = constants.default_config.copy()
-        default_content_type = default_copy["content-type"][content_type]  # type: ignore
+        object = map_config_to_object(content_type)
+        user = request.user.object if request.user.is_authenticated else None
+        config = object.objects.filter(user=user).first()
+        if config == None:
+            config = object.objects.create(user=user)
 
-        default_config = TextContentConfig(
-            compressed_jsonl=default_content_type["compressed-jsonl"],
-            embeddings_file=default_content_type["embeddings-file"],
-        )
-
-        current_config = (
-            state.config.content_type[content_type]
-            if state.config and state.config.content_type and state.config.content_type[content_type]  # type: ignore
-            else default_config
+        current_config = TextContentConfig(
+            input_files=config.input_files,
+            input_filter=config.input_filter,
+            index_heading_entries=config.index_heading_entries,
         )
         current_config = json.loads(current_config.json())
 

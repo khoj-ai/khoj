@@ -2,14 +2,12 @@
 import concurrent.futures
 import math
 import time
-import yaml
 import logging
 import json
 from typing import List, Optional, Union, Any
 
 # External Packages
 from fastapi import APIRouter, HTTPException, Header, Request, Depends
-from sentence_transformers import util
 from starlette.authentication import requires
 from asgiref.sync import sync_to_async
 
@@ -22,7 +20,6 @@ from khoj.search_filter.word_filter import WordFilter
 from khoj.utils.config import TextSearchModel
 from khoj.utils.helpers import ConversationCommand, is_none_or_empty, timer, command_descriptions
 from khoj.utils.rawconfig import (
-    ContentConfig,
     FullConfig,
     ProcessorConfig,
     SearchConfig,
@@ -52,12 +49,72 @@ from fastapi.requests import Request
 
 from database import adapters
 from database.adapters import EmbeddingsAdapters
+from database.models import LocalMarkdownConfig, LocalOrgConfig, LocalPdfConfig, LocalPlaintextConfig, KhojUser
 
 
 # Initialize Router
 api = APIRouter()
 logger = logging.getLogger(__name__)
 embeddings_model = EmbeddingsModel()
+
+
+def map_config_to_object(content_type: str):
+    if content_type == "org":
+        return LocalOrgConfig
+    if content_type == "markdown":
+        return LocalMarkdownConfig
+    if content_type == "pdf":
+        return LocalPdfConfig
+    if content_type == "plaintext":
+        return LocalPlaintextConfig
+
+
+def map_config_to_db(config: FullConfig, user: KhojUser):
+    if config.content_type:
+        if config.content_type.org:
+            LocalOrgConfig.objects.filter(user=user).delete()
+            LocalOrgConfig.objects.create(
+                input_files=config.content_type.org.input_files,
+                input_filter=config.content_type.org.input_filter,
+                index_heading_entries=config.content_type.org.index_heading_entries,
+                user=user,
+            )
+        if config.content_type.markdown:
+            LocalMarkdownConfig.objects.filter(user=user).delete()
+            LocalMarkdownConfig.objects.create(
+                input_files=config.content_type.markdown.input_files,
+                input_filter=config.content_type.markdown.input_filter,
+                index_heading_entries=config.content_type.markdown.index_heading_entries,
+                user=user,
+            )
+        if config.content_type.pdf:
+            LocalPdfConfig.objects.filter(user=user).delete()
+            LocalPdfConfig.objects.create(
+                input_files=config.content_type.pdf.input_files,
+                input_filter=config.content_type.pdf.input_filter,
+                index_heading_entries=config.content_type.pdf.index_heading_entries,
+                user=user,
+            )
+        if config.content_type.plaintext:
+            LocalPlaintextConfig.objects.filter(user=user).delete()
+            LocalPlaintextConfig.objects.create(
+                input_files=config.content_type.plaintext.input_files,
+                input_filter=config.content_type.plaintext.input_filter,
+                index_heading_entries=config.content_type.plaintext.index_heading_entries,
+                user=user,
+            )
+        if config.content_type.github:
+            adapters.set_user_github_config(
+                user=user,
+                pat_token=config.content_type.github.pat_token,
+                repos=config.content_type.github.repos,
+            )
+        if config.content_type.notion:
+            adapters.set_notion_config(
+                user=user,
+                token=config.content_type.notion.token,
+            )
+
 
 # If it's a demo instance, prevent updating any of the configuration.
 if not state.demo:
@@ -83,12 +140,9 @@ if not state.demo:
         client: Optional[str] = None,
     ):
         user = request.user.object if request.user.is_authenticated else None
-        state.config = updated_config
-        with open(state.config_file, "w") as outfile:
-            yaml.dump(yaml.safe_load(state.config.json(by_alias=True)), outfile)
-            outfile.close()
+        map_config_to_db(updated_config, user)
 
-        configuration_update_metadata = dict()
+        configuration_update_metadata = {}
 
         enabled_content = await sync_to_async(EmbeddingsAdapters.get_unique_file_types)(user)
 
@@ -146,10 +200,12 @@ if not state.demo:
     ):
         _initialize_config()
 
-        if not state.config.content_type:
-            state.config.content_type = ContentConfig(**{"notion": updated_config})
-        else:
-            state.config.content_type.notion = updated_config
+        user = request.user.object if request.user.is_authenticated else None
+
+        await adapters.set_notion_config(
+            user=user,
+            token=updated_config.token,
+        )
 
         update_telemetry_state(
             request=request,
@@ -159,11 +215,7 @@ if not state.demo:
             metadata={"content_type": "notion"},
         )
 
-        try:
-            save_config_to_file_updated_state()
-            return {"status": "ok"}
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
+        return {"status": "ok"}
 
     @api.post("/delete/config/data/content_type/{content_type}", status_code=200)
     async def remove_content_config_data(
@@ -183,8 +235,8 @@ if not state.demo:
             metadata={"content_type": content_type},
         )
 
-        if state.config.content_type:
-            state.config.content_type[content_type] = None
+        content_object = map_config_to_object(content_type)
+        await content_object.objects.filter(user=user).adelete()
 
         enabled_content = await sync_to_async(EmbeddingsAdapters.get_unique_file_types)(user)
 
@@ -202,11 +254,7 @@ if not state.demo:
         elif content_type == "org":
             state.content_index.org = None
 
-        try:
-            save_config_to_file_updated_state()
-            return {"status": "ok"}
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
+        return {"status": "ok"}
 
     @api.post("/delete/config/data/processor/conversation/openai", status_code=200)
     async def remove_processor_conversation_config_data(
@@ -250,10 +298,8 @@ if not state.demo:
 
         user = request.user.object if request.user.is_authenticated else None
 
-        if not state.config.content_type:
-            state.config.content_type = ContentConfig(**{content_type: updated_config})
-        else:
-            state.config.content_type[content_type] = updated_config
+        content_object = map_config_to_object(content_type)
+        await adapters.set_text_content_config(user, content_object, updated_config)
 
         update_telemetry_state(
             request=request,
@@ -263,11 +309,7 @@ if not state.demo:
             metadata={"content_type": content_type},
         )
 
-        try:
-            save_config_to_file_updated_state()
-            return {"status": "ok"}
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
+        return {"status": "ok"}
 
     @api.post("/config/data/processor/conversation/openai", status_code=200)
     async def set_processor_openai_config_data(
