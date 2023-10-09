@@ -33,7 +33,15 @@ from khoj.utils.config import (
     ContentIndex,
     SearchModels,
 )
-from database.models import KhojUser, GithubConfig, NotionConfig
+from database.models import (
+    KhojUser,
+    GithubConfig,
+    NotionConfig,
+    LocalOrgConfig,
+    LocalMarkdownConfig,
+    LocalPdfConfig,
+    LocalPlaintextConfig,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -186,9 +194,6 @@ def configure_content(
     full_corpus: bool = True,
     user: KhojUser = None,
 ) -> Optional[ContentIndex]:
-    def has_valid_text_config(config: TextContentConfig):
-        return config.input_files or config.input_filter
-
     # Run Validation Checks
     if content_config is None:
         logger.warning("🚨 No Content configuration available.")
@@ -207,25 +212,12 @@ def configure_content(
 
     try:
         # Initialize Org Notes Search
-        if (
-            (t == None or t == state.SearchType.Org.value)
-            and ((content_config.org and has_valid_text_config(content_config.org)) or files["org"])
-            and search_models.text_search
-        ):
-            if content_config.org == None:
-                logger.info("🦄 No configuration for orgmode notes. Using default configuration.")
-                default_configuration = default_config["content-type"]["org"]  # type: ignore
-                content_config.org = TextContentConfig(
-                    compressed_jsonl=default_configuration["compressed-jsonl"],
-                    embeddings_file=default_configuration["embeddings-file"],
-                )
-
+        if (t == None or t == state.SearchType.Org.value) and files["org"] and search_models.text_search:
             logger.info("🦄 Setting up search for orgmode notes")
             # Extract Entries, Generate Notes Embeddings
             content_index.org = text_search.setup(
                 OrgToJsonl,
                 files.get("org"),
-                content_config.org,
                 search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
@@ -237,26 +229,12 @@ def configure_content(
 
     try:
         # Initialize Markdown Search
-        if (
-            (t == None or t == state.SearchType.Markdown.value)
-            and ((content_config.markdown and has_valid_text_config(content_config.markdown)) or files["markdown"])
-            and search_models.text_search
-            and files["markdown"]
-        ):
-            if content_config.markdown == None:
-                logger.info("💎 No configuration for markdown notes. Using default configuration.")
-                default_configuration = default_config["content-type"]["markdown"]  # type: ignore
-                content_config.markdown = TextContentConfig(
-                    compressed_jsonl=default_configuration["compressed-jsonl"],
-                    embeddings_file=default_configuration["embeddings-file"],
-                )
-
+        if (t == None or t == state.SearchType.Markdown.value) and files["markdown"] and search_models.text_search:
             logger.info("💎 Setting up search for markdown notes")
             # Extract Entries, Generate Markdown Embeddings
             content_index.markdown = text_search.setup(
                 MarkdownToJsonl,
                 files.get("markdown"),
-                content_config.markdown,
                 search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
@@ -269,26 +247,12 @@ def configure_content(
 
     try:
         # Initialize PDF Search
-        if (
-            (t == None or t == state.SearchType.Pdf.value)
-            and ((content_config.pdf and has_valid_text_config(content_config.pdf)) or files["pdf"])
-            and search_models.text_search
-            and files["pdf"]
-        ):
-            if content_config.pdf == None:
-                logger.info("🖨️ No configuration for pdf notes. Using default configuration.")
-                default_configuration = default_config["content-type"]["pdf"]  # type: ignore
-                content_config.pdf = TextContentConfig(
-                    compressed_jsonl=default_configuration["compressed-jsonl"],
-                    embeddings_file=default_configuration["embeddings-file"],
-                )
-
+        if (t == None or t == state.SearchType.Pdf.value) and files["pdf"] and search_models.text_search:
             logger.info("🖨️ Setting up search for pdf")
             # Extract Entries, Generate PDF Embeddings
             content_index.pdf = text_search.setup(
                 PdfToJsonl,
                 files.get("pdf"),
-                content_config.pdf,
                 search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
@@ -301,26 +265,12 @@ def configure_content(
 
     try:
         # Initialize Plaintext Search
-        if (
-            (t == None or t == state.SearchType.Plaintext.value)
-            and ((content_config.plaintext and has_valid_text_config(content_config.plaintext)) or files["plaintext"])
-            and search_models.text_search
-            and files["plaintext"]
-        ):
-            if content_config.plaintext == None:
-                logger.info("📄 No configuration for plaintext notes. Using default configuration.")
-                default_configuration = default_config["content-type"]["plaintext"]  # type: ignore
-                content_config.plaintext = TextContentConfig(
-                    compressed_jsonl=default_configuration["compressed-jsonl"],
-                    embeddings_file=default_configuration["embeddings-file"],
-                )
-
+        if (t == None or t == state.SearchType.Plaintext.value) and files["plaintext"] and search_models.text_search:
             logger.info("📄 Setting up search for plaintext")
             # Extract Entries, Generate Plaintext Embeddings
             content_index.plaintext = text_search.setup(
                 PlaintextToJsonl,
                 files.get("plaintext"),
-                content_config.plaintext,
                 search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
@@ -355,12 +305,12 @@ def configure_content(
             content_index.github = text_search.setup(
                 GithubToJsonl,
                 None,
-                github_config,
                 search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
                 full_corpus=full_corpus,
                 user=user,
+                config=github_config,
             )
 
     except Exception as e:
@@ -369,17 +319,17 @@ def configure_content(
     try:
         # Initialize Notion Search
         notion_config = NotionConfig.objects.filter(user=user).first()
-        if (t == None or t in state.SearchType.Notion.value) and content_config.notion and search_models.text_search:
+        if (t == None or t in state.SearchType.Notion.value) and notion_config and search_models.text_search:
             logger.info("🔌 Setting up search for notion")
             content_index.notion = text_search.setup(
                 NotionToJsonl,
                 None,
-                content_config.notion,
                 search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
                 full_corpus=full_corpus,
                 user=user,
+                config=notion_config,
             )
 
     except Exception as e:

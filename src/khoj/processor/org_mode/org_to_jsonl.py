@@ -7,8 +7,7 @@ from typing import Iterable, List, Tuple
 from khoj.processor.org_mode import orgnode
 from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.helpers import timer
-from khoj.utils.jsonl import compress_jsonl_data
-from khoj.utils.rawconfig import Entry, TextContentConfig
+from khoj.utils.rawconfig import Entry
 from khoj.utils import state
 from database.models import Embeddings, KhojUser
 
@@ -17,17 +16,15 @@ logger = logging.getLogger(__name__)
 
 
 class OrgToJsonl(TextEmbeddings):
-    def __init__(self, config: TextContentConfig):
-        super().__init__(config)
-        self.config = config
+    def __init__(self):
+        super().__init__()
 
     # Define Functions
     def process(
         self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None
     ) -> List[Tuple[int, Entry]]:
         # Extract required fields from config
-        output_file = self.config.compressed_jsonl
-        index_heading_entries = self.config.index_heading_entries
+        index_heading_entries = True
 
         if not full_corpus:
             deletion_file_names = set([file for file in files if files[file] == ""])

@@ -34,7 +34,7 @@
                             <input type="text" id="input-filter" name="input-filter" placeholder="~/Documents/{{content_type}}">
                         {% else %}
                             {% for input_filter in current_config['input_filter'] %}
-                                <input type="text" id="input-filter" name="input-filter" placeholder="~/Documents/{{content_type}}" value="{{ input_filter.split('/*')[0] }}">
+                                <input type="text" id="input-filter" name="input-filter" placeholder="~/Documents/{{content_type}}" value="{{ input_filter }}">
                             {% endfor %}
                         {% endif %}
                     </td>

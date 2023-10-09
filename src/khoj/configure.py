@@ -132,7 +132,7 @@ def initialize_content(regenerate: bool, search_type: Optional[SearchType] = Non
                 state.content_index = load_content(state.config.content_type, state.content_index, state.search_models)
             else:
                 logger.info("📬 Updating content index...")
-                all_files = collect_files(state.config.content_type)
+                all_files = collect_files(user=user)
                 state.content_index = configure_content(
                     state.content_index,
                     state.config.content_type,
@@ -173,7 +173,7 @@ if not state.demo:
     def update_search_index():
         try:
             logger.info("📬 Updating content index via Scheduler")
-            all_files = collect_files(state.config.content_type)
+            all_files = collect_files()
             state.content_index = configure_content(
                 state.content_index, state.config.content_type, all_files, state.search_models
             )

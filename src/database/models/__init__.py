@@ -56,15 +56,15 @@ class LocalMarkdownConfig(models.Model):
 
 
 class LocalPdfConfig(models.Model):
-    input_files = models.JSONField(default=list)
-    input_filter = models.JSONField(default=list)
+    input_files = models.JSONField(default=list, null=True)
+    input_filter = models.JSONField(default=list, null=True)
     index_heading_entries = models.BooleanField(default=False)
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
 
 
 class LocalPlaintextConfig(models.Model):
-    input_files = models.JSONField(default=list)
-    input_filter = models.JSONField(default=list)
+    input_files = models.JSONField(default=list, null=True)
+    input_filter = models.JSONField(default=list, null=True)
     index_heading_entries = models.BooleanField(default=False)
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
 
@@ -89,14 +89,9 @@ class Embeddings(models.Model):
     embeddings = VectorField(dimensions=384)
     raw = models.TextField()
     compiled = models.TextField()
-    heading = models.CharField(max_length=400, default=None, null=True, blank=True)
+    heading = models.CharField(max_length=1000, default=None, null=True, blank=True)
     file_type = models.CharField(max_length=30, choices=EmbeddingsType.choices, default=EmbeddingsType.PLAINTEXT)
     file_path = models.CharField(max_length=400, default=None, null=True, blank=True)
     file_name = models.CharField(max_length=400, default=None, null=True, blank=True)
     url = models.URLField(max_length=400, default=None, null=True, blank=True)
     hashed_value = models.CharField(max_length=100)
-
-    # class Meta:
-    #     indexes = [
-    #         IvfflatIndex(fields=["embeddings"], name="embeddings_idx", lists=512, opclasses=["vector_cosine_ops"])
-    #     ]

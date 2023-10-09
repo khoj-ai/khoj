@@ -96,10 +96,12 @@ def get_user_notion_config(user: KhojUser):
 
 
 async def set_text_content_config(user: KhojUser, object: Type[models.Model], updated_config):
+    deduped_files = list(set(updated_config.input_files)) if updated_config.input_files else None
+    deduped_filters = list(set(updated_config.input_filter)) if updated_config.input_filter else None
     await object.objects.filter(user=user).adelete()
     await object.objects.acreate(
-        input_files=updated_config.input_files,
-        input_filter=updated_config.input_filter,
+        input_files=deduped_files,
+        input_filter=deduped_filters,
         index_heading_entries=updated_config.index_heading_entries,
         user=user,
     )

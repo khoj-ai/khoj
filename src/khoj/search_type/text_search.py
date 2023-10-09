@@ -213,16 +213,18 @@ def collate_results(hits) -> List[SearchResponse]:
 def setup(
     text_to_jsonl: Type[TextEmbeddings],
     files: dict[str, str],
-    config: TextConfigBase,
     bi_encoder: BaseEncoder,
     regenerate: bool,
     filters: List[BaseFilter] = [],
     normalize: bool = True,
     full_corpus: bool = True,
     user: KhojUser = None,
+    config=None,
 ) -> TextContent:
-    # Map notes in text files to (compressed) JSONL formatted file
-    text_to_jsonl(config).process(files=files, full_corpus=full_corpus, user=user)
+    if config:
+        text_to_jsonl(config).process(files=files, full_corpus=full_corpus, user=user)
+    else:
+        text_to_jsonl().process(files=files, full_corpus=full_corpus, user=user)
 
     # TODO: Update the way filters are applied
     # for filter in filters:

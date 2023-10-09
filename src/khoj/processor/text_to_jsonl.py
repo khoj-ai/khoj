@@ -3,12 +3,12 @@ from abc import ABC, abstractmethod
 import hashlib
 import logging
 from tqdm import tqdm
-from typing import Callable, List, Tuple, Set
+from typing import Callable, List, Tuple, Set, Any
 from khoj.utils.helpers import timer
 
 
 # Internal Packages
-from khoj.utils.rawconfig import Entry, TextConfigBase
+from khoj.utils.rawconfig import Entry
 from khoj.processor.embeddings import EmbeddingsModel
 from database.models import KhojUser, Embeddings
 from database.adapters import EmbeddingsAdapters
@@ -18,9 +18,9 @@ logger = logging.getLogger(__name__)
 
 
 class TextEmbeddings(ABC):
-    def __init__(self, config: TextConfigBase):
-        self.config = config
+    def __init__(self, config: Any = None):
         self.embeddings_model = EmbeddingsModel()
+        self.config = config
 
     @abstractmethod
     def process(

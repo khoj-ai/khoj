@@ -10,16 +10,15 @@ from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.helpers import timer
 from khoj.utils.constants import empty_escape_sequences
 from khoj.utils.rawconfig import Entry, TextContentConfig
-from database.models import Embeddings, KhojUser
+from database.models import Embeddings, KhojUser, LocalMarkdownConfig
 
 
 logger = logging.getLogger(__name__)
 
 
 class MarkdownToJsonl(TextEmbeddings):
-    def __init__(self, config: TextContentConfig):
-        super().__init__(config)
-        self.config = config
+    def __init__(self):
+        super().__init__()
 
     # Define Functions
     def process(self, previous_entries=[], files=None, full_corpus: bool = True, user: KhojUser = None):
