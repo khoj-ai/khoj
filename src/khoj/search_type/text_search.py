@@ -135,7 +135,7 @@ async def query(
     user: KhojUser,
     raw_query: str,
     search_model: TextSearchModel,
-    type: SearchType,
+    type: SearchType = SearchType.All,
     question_embedding: Union[torch.Tensor, None] = None,
     rank_results: bool = False,
     score_threshold: float = -math.inf,
@@ -161,7 +161,7 @@ async def query(
     # Encode the query using the bi-encoder
     if question_embedding is None:
         with timer("Query Encode Time", logger, state.device):
-            question_embedding = search_model.bi_encoder.encode([query], convert_to_tensor=True, device=state.device)
+            question_embedding = search_model.bi_encoder.encode([query], convert_to_tensor=True, device=state.device)[0]
 
     # Find relevant entries for the query
     top_k = min(20, search_model.top_k or 10)  # top_k hits can't be more than the total entries in corpus
@@ -222,9 +222,17 @@ def setup(
     config=None,
 ) -> TextContent:
     if config:
-        text_to_jsonl(config).process(files=files, full_corpus=full_corpus, user=user)
+        num_new_embeddings, num_deleted_embeddings = text_to_jsonl(config).process(
+            files=files, full_corpus=full_corpus, user=user, regenerate=regenerate
+        )
     else:
-        text_to_jsonl().process(files=files, full_corpus=full_corpus, user=user)
+        num_new_embeddings, num_deleted_embeddings = text_to_jsonl().process(
+            files=files, full_corpus=full_corpus, user=user, regenerate=regenerate
+        )
+
+    logger.info(
+        f"Created {num_new_embeddings} new embeddings. Deleted {num_deleted_embeddings} embeddings for user {user} and files {files}"
+    )
 
     # TODO: Update the way filters are applied
     # for filter in filters:
