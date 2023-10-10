@@ -169,7 +169,7 @@ function pushDataToKhoj (regenerate = false) {
 
     const hostURL = store.get('hostURL') || KHOJ_URL;
 
-    axios.post(`${hostURL}/v1/indexer/batch?regenerate=${regenerate}`, stream, { headers })
+    axios.post(`${hostURL}/api/v1/indexer/batch?regenerate=${regenerate}`, stream, { headers })
         .then(response => {
             console.log(response.data);
             const win = BrowserWindow.getAllWindows()[0];
