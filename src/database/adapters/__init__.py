@@ -1,4 +1,4 @@
-from typing import Type, TypeVar
+from typing import Type, TypeVar, List
 import uuid
 
 from django.db import models
@@ -131,15 +131,21 @@ class EmbeddingsAdapters:
 
     @staticmethod
     def delete_embedding_by_file(user: KhojUser, file_path: str):
-        Embeddings.objects.filter(user=user, file_path=file_path).delete()
+        deleted_count, _ = Embeddings.objects.filter(user=user, file_path=file_path).delete()
+        return deleted_count
+
+    @staticmethod
+    def delete_all_embeddings(user: KhojUser, file_type: Embeddings.EmbeddingsType):
+        deleted_count, _ = Embeddings.objects.filter(user=user, file_type=file_type).delete()
+        return deleted_count
 
     @staticmethod
     def get_existing_entry_hashes_by_file(user: KhojUser, file_path: str):
         return Embeddings.objects.filter(user=user, file_path=file_path).values_list("hashed_value", flat=True)
 
     @staticmethod
-    def delete_embedding_by_hash(user: KhojUser, hashed_value: str):
-        Embeddings.objects.filter(user=user, hashed_value=hashed_value).delete()
+    def delete_embedding_by_hash(user: KhojUser, hashed_values: List[str]):
+        Embeddings.objects.filter(user=user, hashed_value__in=hashed_values).delete()
 
     @staticmethod
     def search_with_embeddings(

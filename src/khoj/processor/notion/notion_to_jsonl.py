@@ -246,8 +246,8 @@ class NotionToJsonl(TextEmbeddings):
     def update_entries_with_ids(self, current_entries, user: KhojUser = None):
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
-            entries_with_ids = self.update_embeddings(
+            num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
                 current_entries, Embeddings.EmbeddingsType.NOTION, key="compiled", logger=logger, user=user
             )
 
-        return entries_with_ids
+        return num_new_embeddings, num_deleted_embeddings

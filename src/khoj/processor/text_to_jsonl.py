@@ -24,7 +24,7 @@ class TextEmbeddings(ABC):
 
     @abstractmethod
     def process(
-        self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None
+        self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None, regenerate: bool = False
     ) -> List[Tuple[int, Entry]]:
         ...
 
@@ -76,6 +76,7 @@ class TextEmbeddings(ABC):
         logger: logging.Logger = None,
         deletion_filenames: Set[str] = None,
         user: KhojUser = None,
+        regenerate: bool = False,
     ):
         with timer("Construct current entry hashes", logger):
             hashes_by_file = dict[str, set[str]]()
@@ -84,6 +85,13 @@ class TextEmbeddings(ABC):
             for entry in tqdm(current_entries, desc="Hashing Entries"):
                 hashes_by_file.setdefault(entry.file, set()).add(TextEmbeddings.hash_func(key)(entry))
 
+        num_deleted_embeddings = 0
+        with timer("Preparing dataset for regeneration", logger):
+            if regenerate:
+                logger.info(f"Deleting all embeddings for file type {file_type}")
+                num_deleted_embeddings = EmbeddingsAdapters.delete_all_embeddings(user, file_type)
+
+        num_new_embeddings = 0
         with timer("Identify hashes for adding new entries", logger):
             for file in tqdm(hashes_by_file, desc="Processing file with hashed values"):
                 hashes_for_file = hashes_by_file[file]
@@ -115,19 +123,23 @@ class TextEmbeddings(ABC):
                                 hashed_value=hashed_val,
                             )
                         )
-                    Embeddings.objects.bulk_create(embeddings_to_create)
+                    new_embeddings = Embeddings.objects.bulk_create(embeddings_to_create)
+                    num_new_embeddings += len(new_embeddings)
 
         with timer("Identify hashes for removed entries", logger):
             for file in hashes_by_file:
                 existing_entry_hashes = EmbeddingsAdapters.get_existing_entry_hashes_by_file(user, file)
                 to_delete_entry_hashes = set(existing_entry_hashes) - hashes_by_file[file]
-                for entry_hash in to_delete_entry_hashes:
-                    EmbeddingsAdapters.delete_embedding_by_hash(user, entry_hash)
+                num_deleted_embeddings += len(to_delete_entry_hashes)
+                EmbeddingsAdapters.delete_embedding_by_hash(user, hashed_values=list(to_delete_entry_hashes))
 
         with timer("Identify hashes for deleting entries", logger):
             if deletion_filenames is not None:
                 for file_path in deletion_filenames:
-                    EmbeddingsAdapters.delete_embedding_by_file(user, file_path)
+                    deleted_count = EmbeddingsAdapters.delete_embedding_by_file(user, file_path)
+                    num_deleted_embeddings += deleted_count
+
+        return num_new_embeddings, num_deleted_embeddings
 
     @staticmethod
     def mark_entries_for_update(

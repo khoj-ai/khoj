@@ -21,8 +21,8 @@ class OrgToJsonl(TextEmbeddings):
 
     # Define Functions
     def process(
-        self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None
-    ) -> List[Tuple[int, Entry]]:
+        self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None, regenerate: bool = False
+    ) -> Tuple[int, int]:
         # Extract required fields from config
         index_heading_entries = True
 
@@ -45,11 +45,17 @@ class OrgToJsonl(TextEmbeddings):
 
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
-            entries_with_ids = self.update_embeddings(
-                current_entries, Embeddings.EmbeddingsType.ORG, "compiled", logger, deletion_file_names, user
+            num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
+                current_entries,
+                Embeddings.EmbeddingsType.ORG,
+                "compiled",
+                logger,
+                deletion_file_names,
+                user,
+                regenerate=regenerate,
             )
 
-        return entries_with_ids
+        return num_new_embeddings, num_deleted_embeddings
 
     @staticmethod
     def extract_org_entries(org_files: dict[str, str]):

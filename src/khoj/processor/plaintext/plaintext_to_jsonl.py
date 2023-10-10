@@ -19,7 +19,7 @@ class PlaintextToJsonl(TextEmbeddings):
 
     # Define Functions
     def process(
-        self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None
+        self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None, regenerate: bool = False
     ) -> List[Tuple[int, Entry]]:
         if not full_corpus:
             deletion_file_names = set([file for file in files if files[file] == ""])
@@ -38,16 +38,17 @@ class PlaintextToJsonl(TextEmbeddings):
 
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
-            entries_with_ids = self.update_embeddings(
+            num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
                 current_entries,
                 Embeddings.EmbeddingsType.PLAINTEXT,
                 key="compiled",
                 logger=logger,
                 deletion_filenames=deletion_file_names,
                 user=user,
+                regenerate=regenerate,
             )
 
-        return entries_with_ids
+        return num_new_embeddings, num_deleted_embeddings
 
     @staticmethod
     def convert_plaintext_entries_to_maps(entry_to_file_map: dict) -> List[Entry]:

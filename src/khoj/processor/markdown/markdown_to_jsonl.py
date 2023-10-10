@@ -21,7 +21,9 @@ class MarkdownToJsonl(TextEmbeddings):
         super().__init__()
 
     # Define Functions
-    def process(self, previous_entries=[], files=None, full_corpus: bool = True, user: KhojUser = None):
+    def process(
+        self, previous_entries=[], files=None, full_corpus: bool = True, user: KhojUser = None, regenerate: bool = False
+    ):
         # Extract required fields from config
         if not full_corpus:
             deletion_file_names = set([file for file in files if files[file] == ""])
@@ -42,11 +44,17 @@ class MarkdownToJsonl(TextEmbeddings):
 
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
-            entries_with_ids = self.update_embeddings(
-                current_entries, Embeddings.EmbeddingsType.MARKDOWN, "compiled", logger, deletion_file_names, user
+            num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
+                current_entries,
+                Embeddings.EmbeddingsType.MARKDOWN,
+                "compiled",
+                logger,
+                deletion_file_names,
+                user,
+                regenerate=regenerate,
             )
 
-        return entries_with_ids
+        return num_new_embeddings, num_deleted_embeddings
 
     @staticmethod
     def extract_markdown_entries(markdown_files):

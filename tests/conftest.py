@@ -1,15 +1,16 @@
 # External Packages
 import os
+from uuid import uuid4
 from copy import deepcopy
 from fastapi.testclient import TestClient
 from pathlib import Path
 import pytest
 from fastapi.staticfiles import StaticFiles
+import factory
 
 # Internal Packages
 from app.main import app
 from khoj.configure import configure_processor, configure_routes, configure_search_types, configure_middleware
-from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.plaintext.plaintext_to_jsonl import PlaintextToJsonl
 from khoj.search_type import image_search, text_search
 from khoj.utils.config import SearchModels
@@ -21,8 +22,6 @@ from khoj.utils.rawconfig import (
     OpenAIProcessorConfig,
     ProcessorConfig,
     TextContentConfig,
-    GithubContentConfig,
-    GithubRepoConfig,
     ImageContentConfig,
     SearchConfig,
     TextSearchConfig,
@@ -30,11 +29,31 @@ from khoj.utils.rawconfig import (
 )
 from khoj.utils import state, fs_syncer
 from khoj.routers.indexer import configure_content
-from khoj.processor.jsonl.jsonl_to_jsonl import JsonlToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
-from khoj.search_filter.date_filter import DateFilter
-from khoj.search_filter.word_filter import WordFilter
-from khoj.search_filter.file_filter import FileFilter
+from database.models import (
+    LocalOrgConfig,
+    LocalMarkdownConfig,
+    LocalPlaintextConfig,
+    LocalPdfConfig,
+    GithubConfig,
+    KhojUser,
+    GithubRepoConfig,
+)
+
+
+@pytest.fixture(autouse=True)
+def enable_db_access_for_all_tests(db):
+    pass
+
+
+class UserFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = KhojUser
+
+    username = factory.Faker("name")
+    email = factory.Faker("email")
+    password = factory.Faker("password")
+    uuid = factory.Faker("uuid4")
 
 
 @pytest.fixture(scope="session")
@@ -66,6 +85,12 @@ def search_config() -> SearchConfig:
     return search_config
 
 
+@pytest.mark.django_db
+@pytest.fixture
+def default_user():
+    return UserFactory()
+
+
 @pytest.fixture(scope="session")
 def search_models(search_config: SearchConfig):
     search_models = SearchModels()
@@ -75,8 +100,14 @@ def search_models(search_config: SearchConfig):
     return search_models
 
 
-@pytest.fixture(scope="session")
-def content_config(tmp_path_factory, search_models: SearchModels, search_config: SearchConfig):
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
+
+
+@pytest.mark.django_db
+@pytest.fixture(scope="function")
+def content_config(tmp_path_factory, search_models: SearchModels, default_user: KhojUser):
     content_dir = tmp_path_factory.mktemp("content")
 
     # Generate Image Embeddings from Test Images
@@ -91,75 +122,37 @@ def content_config(tmp_path_factory, search_models: SearchModels, search_config:
 
     image_search.setup(content_config.image, search_models.image_search.image_encoder, regenerate=False)
 
-    # Generate Notes Embeddings from Test Notes
-    content_config.org = TextContentConfig(
+    LocalOrgConfig.objects.create(
         input_files=None,
         input_filter=["tests/data/org/*.org"],
-        compressed_jsonl=content_dir.joinpath("notes.jsonl.gz"),
-        embeddings_file=content_dir.joinpath("note_embeddings.pt"),
+        index_heading_entries=False,
+        user=default_user,
     )
 
-    filters = [DateFilter(), WordFilter(), FileFilter()]
     text_search.setup(
         OrgToJsonl,
         get_sample_data("org"),
-        content_config.org,
         search_models.text_search.bi_encoder,
         regenerate=False,
-        filters=filters,
     )
-
-    content_config.plugins = {
-        "plugin1": TextContentConfig(
-            input_files=[content_dir.joinpath("notes.jsonl.gz")],
-            input_filter=None,
-            compressed_jsonl=content_dir.joinpath("plugin.jsonl.gz"),
-            embeddings_file=content_dir.joinpath("plugin_embeddings.pt"),
-        )
-    }
 
     if os.getenv("GITHUB_PAT_TOKEN"):
-        content_config.github = GithubContentConfig(
-            pat_token=os.getenv("GITHUB_PAT_TOKEN", ""),
-            repos=[
-                GithubRepoConfig(
-                    owner="khoj-ai",
-                    name="lantern",
-                    branch="master",
-                )
-            ],
-            compressed_jsonl=content_dir.joinpath("github.jsonl.gz"),
-            embeddings_file=content_dir.joinpath("github_embeddings.pt"),
+        GithubConfig.objects.create(
+            pat_token=os["GITHUB_PAT_TOKEN"],
+            user=default_user,
         )
 
-    content_config.plaintext = TextContentConfig(
+        GithubRepoConfig.objects.create(
+            owner="khoj-ai",
+            name="lantern",
+            branch="master",
+            github_config=GithubConfig.objects.get(user=default_user),
+        )
+
+    LocalPlaintextConfig.objects.create(
         input_files=None,
         input_filter=["tests/data/plaintext/*.txt", "tests/data/plaintext/*.md", "tests/data/plaintext/*.html"],
-        compressed_jsonl=content_dir.joinpath("plaintext.jsonl.gz"),
-        embeddings_file=content_dir.joinpath("plaintext_embeddings.pt"),
-    )
-
-    content_config.github = GithubContentConfig(
-        pat_token=os.getenv("GITHUB_PAT_TOKEN", ""),
-        repos=[
-            GithubRepoConfig(
-                owner="khoj-ai",
-                name="lantern",
-                branch="master",
-            )
-        ],
-        compressed_jsonl=content_dir.joinpath("github.jsonl.gz"),
-        embeddings_file=content_dir.joinpath("github_embeddings.pt"),
-    )
-
-    filters = [DateFilter(), WordFilter(), FileFilter()]
-    text_search.setup(
-        JsonlToJsonl,
-        None,
-        content_config.plugins["plugin1"],
-        search_models.text_search.bi_encoder,
-        regenerate=False,
-        filters=filters,
+        user=default_user,
     )
 
     return content_config
@@ -304,9 +297,11 @@ def client_offline_chat(
 
 
 @pytest.fixture(scope="function")
-def new_org_file(content_config: ContentConfig):
+def new_org_file(default_user: KhojUser, content_config: ContentConfig):
     # Setup
-    new_org_file = Path(content_config.org.input_filter[0]).parent / "new_file.org"
+    org_config = LocalOrgConfig.objects.filter(user=default_user).first()
+    input_filters = org_config.input_filter
+    new_org_file = Path(input_filters[0]).parent / "new_file.org"
     new_org_file.touch()
 
     yield new_org_file
@@ -317,11 +312,9 @@ def new_org_file(content_config: ContentConfig):
 
 
 @pytest.fixture(scope="function")
-def org_config_with_only_new_file(content_config: ContentConfig, new_org_file: Path):
-    new_org_config = deepcopy(content_config.org)
-    new_org_config.input_files = [f"{new_org_file}"]
-    new_org_config.input_filter = None
-    return new_org_config
+def org_config_with_only_new_file(new_org_file: Path, default_user: KhojUser):
+    LocalOrgConfig.objects.update(input_files=[str(new_org_file)], input_filter=None)
+    return LocalOrgConfig.objects.filter(user=default_user).first()
 
 
 @pytest.fixture(scope="function")
