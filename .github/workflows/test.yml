@@ -62,7 +62,7 @@ jobs:
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          apt update && apt install -y libegl1 sqlite3 libsqlite3-dev libsqlite3-0 && apt install -y postgresql postgresql-client && apt install -y postgresql-server-dev-14 && git clone https://github.com/ankane/pgvector.git && cd pg vector && make && make install
+          apt update && apt install -y libegl1 sqlite3 libsqlite3-dev libsqlite3-0 && apt install -y postgresql postgresql-client && apt install -y postgresql-server-dev-14 && git clone https://github.com/ankane/pgvector.git && cd pgvector && make && make install
 
       - name: ⬇️ Install pip
         run: |
