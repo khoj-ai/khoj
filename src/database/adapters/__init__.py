@@ -4,6 +4,7 @@ import uuid
 from django.db import models
 from django.contrib.sessions.backends.db import SessionStore
 from pgvector.django import CosineDistance
+from torch import Tensor
 
 # Import sync_to_async from Django Channels
 from asgiref.sync import sync_to_async
@@ -135,7 +136,7 @@ class EmbeddingsAdapters:
         return deleted_count
 
     @staticmethod
-    def delete_all_embeddings(user: KhojUser, file_type: Embeddings.EmbeddingsType):
+    def delete_all_embeddings(user: KhojUser, file_type: str):
         deleted_count, _ = Embeddings.objects.filter(user=user, file_type=file_type).delete()
         return deleted_count
 
@@ -148,9 +149,7 @@ class EmbeddingsAdapters:
         Embeddings.objects.filter(user=user, hashed_value__in=hashed_values).delete()
 
     @staticmethod
-    def search_with_embeddings(
-        user: KhojUser, embeddings: list, max_results: int = 10, file_filter: Embeddings.EmbeddingsType = None
-    ):
+    def search_with_embeddings(user: KhojUser, embeddings: Tensor, max_results: int = 10, file_filter: str = None):
         relevant_embeddings = Embeddings.objects.filter(user=user).annotate(
             distance=CosineDistance("embeddings", embeddings)
         )

@@ -5,6 +5,7 @@ import time
 import logging
 import json
 from typing import List, Optional, Union, Any
+import asyncio
 
 # External Packages
 from fastapi import APIRouter, HTTPException, Header, Request, Depends
@@ -104,15 +105,19 @@ def map_config_to_db(config: FullConfig, user: KhojUser):
                 user=user,
             )
         if config.content_type.github:
-            adapters.set_user_github_config(
-                user=user,
-                pat_token=config.content_type.github.pat_token,
-                repos=config.content_type.github.repos,
+            asyncio.run(
+                adapters.set_user_github_config(
+                    user=user,
+                    pat_token=config.content_type.github.pat_token,
+                    repos=config.content_type.github.repos,
+                )
             )
         if config.content_type.notion:
-            adapters.set_notion_config(
-                user=user,
-                token=config.content_type.notion.token,
+            asyncio.run(
+                adapters.set_notion_config(
+                    user=user,
+                    token=config.content_type.notion.token,
+                )
             )
 
 

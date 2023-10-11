@@ -171,8 +171,8 @@ async def query(
             embeddings=question_embedding,
             max_results=top_k,
             file_filter=file_type,
-        )
-        hits = await sync_to_async(list)(hits.all())
+        ).all()
+        hits = await sync_to_async(list)(hits)  # type: ignore[call-arg]
         # hits = util.semantic_search(question_embedding, corpus_embeddings, top_k, score_function=util.dot_score)[0]
 
     # Score all retrieved entries using the cross-encoder
@@ -192,7 +192,7 @@ async def query(
     return hits
 
 
-def collate_results(hits) -> List[SearchResponse]:
+def collate_results(hits):
     hit_ids = set()
     for hit in hits:
         if hit.id not in hit_ids:
@@ -240,17 +240,6 @@ def setup(
     return TextContent(enabled=True)
 
 
-def load(
-    config: TextConfigBase,
-    filters: List[BaseFilter] = [],
-) -> TextContent:
-    # TODO: Update the way filters are applied
-    # for filter in filters:
-    #     filter.load(entries, regenerate=False)
-
-    return TextContent(enabled=True)
-
-
 def apply_filters(
     query: str, entries: List[Entry], corpus_embeddings: torch.Tensor, filters: List[BaseFilter]
 ) -> Tuple[str, List[Entry], torch.Tensor]:
@@ -273,19 +262,6 @@ def apply_filters(
             )
 
     return query, entries, corpus_embeddings
-
-
-def cross_encoder_score(cross_encoder: CrossEncoder, query: str, hits: List[dict]) -> List[dict]:
-    """Score all retrieved entries using the cross-encoder"""
-    with timer("Cross-Encoder Predict Time", logger, state.device):
-        cross_inp = [[query, hit.compiled] for hit in hits]
-        cross_scores = cross_encoder.predict(cross_inp)
-
-    # Store cross-encoder scores in results dictionary for ranking
-    for idx in range(len(cross_scores)):
-        hits[idx]["cross-score"] = cross_scores[idx]
-
-    return hits
 
 
 def sort_results(rank_results: bool, hits: List[dict]) -> List[dict]:

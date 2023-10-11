@@ -1,5 +1,6 @@
 # Standard Packages
 import logging
+from typing import Tuple
 
 # External Packages
 import requests
@@ -82,7 +83,9 @@ class NotionToJsonl(TextEmbeddings):
 
         self.body_params = {"page_size": 100}
 
-    def process(self, files=None, full_corpus=True, user: KhojUser = None):
+    def process(
+        self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None, regenerate: bool = False
+    ) -> Tuple[int, int]:
         current_entries = []
 
         # Get all pages

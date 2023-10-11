@@ -2,7 +2,7 @@
 import logging
 import time
 from datetime import datetime
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Tuple
 
 # External Packages
 import requests
@@ -50,7 +50,9 @@ class GithubToJsonl(TextEmbeddings):
         else:
             return
 
-    def process(self, files=None, full_corpus=True, user: KhojUser = None, regenerate: bool = True):
+    def process(
+        self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None, regenerate: bool = False
+    ) -> Tuple[int, int]:
         if self.config.pat_token is None or self.config.pat_token == "":
             logger.error(f"Github PAT token is not set. Skipping github content")
             raise ValueError("Github PAT token is not set. Skipping github content")

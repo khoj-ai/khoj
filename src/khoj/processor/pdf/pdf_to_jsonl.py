@@ -1,7 +1,7 @@
 # Standard Packages
 import os
 import logging
-from typing import List
+from typing import List, Tuple
 import base64
 
 # External Packages
@@ -24,7 +24,7 @@ class PdfToJsonl(TextEmbeddings):
     # Define Functions
     def process(
         self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None, regenerate: bool = False
-    ):
+    ) -> Tuple[int, int]:
         # Extract required fields from config
         if not full_corpus:
             deletion_file_names = set([file for file in files if files[file] == ""])

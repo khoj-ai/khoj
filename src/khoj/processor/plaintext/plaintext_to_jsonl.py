@@ -20,7 +20,7 @@ class PlaintextToJsonl(TextEmbeddings):
     # Define Functions
     def process(
         self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None, regenerate: bool = False
-    ) -> List[Tuple[int, Entry]]:
+    ) -> Tuple[int, int]:
         if not full_corpus:
             deletion_file_names = set([file for file in files if files[file] == ""])
             files_to_process = set(files) - deletion_file_names

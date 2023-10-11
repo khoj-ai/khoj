@@ -25,7 +25,7 @@ class TextEmbeddings(ABC):
     @abstractmethod
     def process(
         self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None, regenerate: bool = False
-    ) -> List[Tuple[int, Entry]]:
+    ) -> Tuple[int, int]:
         ...
 
     @staticmethod
@@ -71,7 +71,7 @@ class TextEmbeddings(ABC):
     def update_embeddings(
         self,
         current_entries: List[Entry],
-        file_type: Embeddings.EmbeddingsType,
+        file_type: str,
         key="compiled",
         logger: logging.Logger = None,
         deletion_filenames: Set[str] = None,

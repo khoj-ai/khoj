@@ -3,14 +3,14 @@ import logging
 import re
 import urllib3
 from pathlib import Path
-from typing import List
+from typing import Tuple, List
 
 # Internal Packages
 from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.helpers import timer
 from khoj.utils.constants import empty_escape_sequences
-from khoj.utils.rawconfig import Entry, TextContentConfig
-from database.models import Embeddings, KhojUser, LocalMarkdownConfig
+from khoj.utils.rawconfig import Entry
+from database.models import Embeddings, KhojUser
 
 
 logger = logging.getLogger(__name__)
@@ -22,8 +22,8 @@ class MarkdownToJsonl(TextEmbeddings):
 
     # Define Functions
     def process(
-        self, previous_entries=[], files=None, full_corpus: bool = True, user: KhojUser = None, regenerate: bool = False
-    ):
+        self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None, regenerate: bool = False
+    ) -> Tuple[int, int]:
         # Extract required fields from config
         if not full_corpus:
             deletion_file_names = set([file for file in files if files[file] == ""])

@@ -4,7 +4,7 @@ import sys
 from typing import Optional, Union, Dict
 
 # External Packages
-from fastapi import APIRouter, HTTPException, Header, Request, Body, Response
+from fastapi import APIRouter, HTTPException, Header, Request, Response
 from pydantic import BaseModel
 
 # Internal Packages
@@ -15,11 +15,9 @@ from khoj.processor.pdf.pdf_to_jsonl import PdfToJsonl
 from khoj.processor.github.github_to_jsonl import GithubToJsonl
 from khoj.processor.notion.notion_to_jsonl import NotionToJsonl
 from khoj.processor.plaintext.plaintext_to_jsonl import PlaintextToJsonl
-from khoj.utils.rawconfig import ContentConfig, TextContentConfig
 from khoj.search_type import text_search, image_search
 from khoj.utils.yaml import save_config_to_file_updated_state
-from khoj.utils.config import SearchModels
-from khoj.utils.constants import default_config
+from khoj.utils.config import SearchModels, TextContent
 from khoj.utils.helpers import LRU, get_file_type
 from khoj.utils.rawconfig import (
     ContentConfig,
@@ -37,10 +35,6 @@ from database.models import (
     KhojUser,
     GithubConfig,
     NotionConfig,
-    LocalOrgConfig,
-    LocalMarkdownConfig,
-    LocalPdfConfig,
-    LocalPlaintextConfig,
 )
 
 logger = logging.getLogger(__name__)
@@ -96,7 +90,7 @@ async def index_batch(
 
         org_files: Dict[str, str] = {}
         markdown_files: Dict[str, str] = {}
-        pdf_files: Dict[str, str] = {}
+        pdf_files: Dict[str, bytes] = {}
         plaintext_files: Dict[str, str] = {}
 
         for file in index_batch_request.files:
@@ -107,12 +101,12 @@ async def index_batch(
             elif file_type == "markdown":
                 dict_to_update = markdown_files
             elif file_type == "pdf":
-                dict_to_update = pdf_files
+                dict_to_update = pdf_files  # type: ignore
             elif file_type == "plaintext":
                 dict_to_update = plaintext_files
 
             if dict_to_update is not None:
-                dict_to_update[file.path] = file.content
+                dict_to_update[file.path] = file.content  # type: ignore
             else:
                 logger.info(f"Skipping unsupported streamed file: {file.path}")
 
@@ -355,20 +349,16 @@ def load_content(
 
     if content_config.org:
         logger.info("🦄 Loading orgmode notes")
-        content_index.org = text_search.load(content_config.org, filters=[DateFilter(), WordFilter(), FileFilter()])
+        content_index.org = TextContent(enabled=True)
     if content_config.markdown:
         logger.info("💎 Loading markdown notes")
-        content_index.markdown = text_search.load(
-            content_config.markdown, filters=[DateFilter(), WordFilter(), FileFilter()]
-        )
+        content_index.markdown = TextContent(enabled=True)
     if content_config.pdf:
         logger.info("🖨️ Loading pdf")
-        content_index.pdf = text_search.load(content_config.pdf, filters=[DateFilter(), WordFilter(), FileFilter()])
+        content_index.pdf = TextContent(enabled=True)
     if content_config.plaintext:
         logger.info("📄 Loading plaintext")
-        content_index.plaintext = text_search.load(
-            content_config.plaintext, filters=[DateFilter(), WordFilter(), FileFilter()]
-        )
+        content_index.plaintext = TextContent(enabled=True)
     if content_config.image:
         logger.info("🌄 Loading images")
         content_index.image = image_search.setup(
@@ -376,21 +366,9 @@ def load_content(
         )
     if content_config.github:
         logger.info("🐙 Loading github")
-        content_index.github = text_search.load(
-            content_config.github, filters=[DateFilter(), WordFilter(), FileFilter()]
-        )
+        content_index.github = TextContent(enabled=True)
     if content_config.notion:
         logger.info("🔌 Loading notion")
-        content_index.notion = text_search.load(
-            content_config.notion, filters=[DateFilter(), WordFilter(), FileFilter()]
-        )
-    if content_config.plugins:
-        logger.info("🔌 Loading plugins")
-        content_index.plugins = {}
-        for plugin_type, plugin_config in content_config.plugins.items():
-            content_index.plugins[plugin_type] = text_search.load(
-                plugin_config, filters=[DateFilter(), WordFilter(), FileFilter()]
-            )
-
+        content_index.notion = TextContent(enabled=True)
     state.query_cache = LRU()
     return content_index

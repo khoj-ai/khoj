@@ -123,7 +123,7 @@ if not state.demo:
             )
             current_config = json.loads(current_config.json())
         else:
-            current_config = {}
+            current_config = {}  # type: ignore
 
         return templates.TemplateResponse(
             "content_type_github_input.html", context={"request": request, "current_config": current_config}
