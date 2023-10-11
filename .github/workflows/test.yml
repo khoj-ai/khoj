@@ -60,7 +60,7 @@ jobs:
 
       - name: Install Make
         run: |
-          apt install -y make
+          apt install -y make build-essential
 
       - name: ⏬️ Install Dependencies
         env:
