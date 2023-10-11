@@ -54,6 +54,10 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
 
+      - name: Install Git
+        run: |
+          apt update && apt install -y git
+
       - name: ⏬️ Install Dependencies
         env:
           DEBIAN_FRONTEND: noninteractive
