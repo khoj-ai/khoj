@@ -24,6 +24,7 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    container: ubuntu:jammy
     strategy:
       fail-fast: false
       matrix:
@@ -31,6 +32,18 @@ jobs:
           - '3.9'
           - '3.10'
           - '3.11'
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: khoj
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
     steps:
       - uses: actions/checkout@v3
         with:
@@ -53,5 +66,11 @@ jobs:
         run: pre-commit run --hook-stage manual --all
 
       - name: 🧪 Test Application
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: khoj
         run: pytest
         timeout-minutes: 10
