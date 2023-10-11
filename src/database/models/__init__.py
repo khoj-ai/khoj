@@ -5,8 +5,21 @@ from django.contrib.auth.models import AbstractUser
 from pgvector.django import VectorField, IvfflatIndex
 
 
+class BaseModel(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+
+
 class KhojUser(AbstractUser):
     uuid = models.UUIDField(models.UUIDField(default=uuid.uuid4, editable=False))
+
+    def save(self, *args, **kwargs):
+        if not self.uuid:
+            self.uuid = uuid.uuid4()
+        super().save(*args, **kwargs)
 
 
 class GoogleUser(models.Model):
@@ -24,57 +37,57 @@ class GoogleUser(models.Model):
         return self.name
 
 
-class NotionConfig(models.Model):
+class NotionConfig(BaseModel):
     token = models.CharField(max_length=200)
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
 
 
-class GithubConfig(models.Model):
+class GithubConfig(BaseModel):
     pat_token = models.CharField(max_length=200)
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
 
 
-class GithubRepoConfig(models.Model):
+class GithubRepoConfig(BaseModel):
     name = models.CharField(max_length=200)
     owner = models.CharField(max_length=200)
     branch = models.CharField(max_length=200)
     github_config = models.ForeignKey(GithubConfig, on_delete=models.CASCADE, related_name="githubrepoconfig")
 
 
-class LocalOrgConfig(models.Model):
+class LocalOrgConfig(BaseModel):
     input_files = models.JSONField(default=list, null=True)
     input_filter = models.JSONField(default=list, null=True)
     index_heading_entries = models.BooleanField(default=False)
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
 
 
-class LocalMarkdownConfig(models.Model):
+class LocalMarkdownConfig(BaseModel):
     input_files = models.JSONField(default=list, null=True)
     input_filter = models.JSONField(default=list, null=True)
     index_heading_entries = models.BooleanField(default=False)
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
 
 
-class LocalPdfConfig(models.Model):
+class LocalPdfConfig(BaseModel):
     input_files = models.JSONField(default=list, null=True)
     input_filter = models.JSONField(default=list, null=True)
     index_heading_entries = models.BooleanField(default=False)
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
 
 
-class LocalPlaintextConfig(models.Model):
+class LocalPlaintextConfig(BaseModel):
     input_files = models.JSONField(default=list, null=True)
     input_filter = models.JSONField(default=list, null=True)
     index_heading_entries = models.BooleanField(default=False)
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
 
 
-class ConversationProcessorConfig(models.Model):
+class ConversationProcessorConfig(BaseModel):
     conversation = models.JSONField()
     enable_offline_chat = models.BooleanField(default=False)
 
 
-class Embeddings(models.Model):
+class Embeddings(BaseModel):
     class EmbeddingsType(models.TextChoices):
         IMAGE = "image"
         PDF = "pdf"

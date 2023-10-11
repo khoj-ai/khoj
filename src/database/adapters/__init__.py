@@ -44,9 +44,7 @@ async def get_or_create_user(token: dict) -> KhojUser:
 
 async def create_google_user(token: dict) -> KhojUser:
     user_info = token.get("userinfo")
-    user = await KhojUser.objects.acreate(
-        username=user_info.get("email"), email=user_info.get("email"), uuid=uuid.uuid4()
-    )
+    user = await KhojUser.objects.acreate(username=user_info.get("email"), email=user_info.get("email"))
     await user.asave()
     await GoogleUser.objects.acreate(
         sub=user_info.get("sub"),
