@@ -76,9 +76,6 @@ jobs:
       - name: ⬇️ Install Application
         run: sed -i 's/dynamic = \["version"\]/version = "0.0.0"/' pyproject.toml && pip install --upgrade .[dev]
 
-      - name: 🌡️ Validate Application
-        run: pre-commit run --hook-stage manual --all
-
       - name: 🧪 Test Application
         env:
           POSTGRES_HOST: localhost

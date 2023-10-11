@@ -1,0 +1,38 @@
+name: pre-commit
+
+on:
+  pull_request:
+    paths:
+      - src/**
+      - tests/**
+      - config/**
+      - pyproject.toml
+      - .pre-commit-config.yml
+      - .github/workflows/test.yml
+  push:
+    branches:
+      - 'master'
+    paths:
+      - src/khoj/**
+      - tests/**
+      - config/**
+      - pyproject.toml
+      - .pre-commit-config.yml
+      - .github/workflows/test.yml
+
+jobs:
+  test:
+    name: Run Pre-Commit hooks
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install Git
+        run: |
+          apt update && apt install -y git
+
+      - name: 🌡️ Validate Application
+        run: pre-commit run --hook-stage manual --all
