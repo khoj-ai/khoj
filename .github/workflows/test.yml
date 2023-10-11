@@ -43,7 +43,7 @@ jobs:
 
       - name: ⏬️ Install Dependencies
         run: |
-          sudo apt update && sudo apt install -y libegl1 && sudo apt install postgresql-15-pgvector
+          sudo apt update && sudo apt install -y libegl1 && sudo apt install -y postgresql-common && sudo apt install postgresql-15-pgvector
           python -m pip install --upgrade pip
 
       - name: ⬇️ Install Application
