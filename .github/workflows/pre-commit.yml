@@ -30,9 +30,5 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Git
-        run: |
-          apt update && apt install -y git
-
       - name: 🌡️ Validate Application
         run: pre-commit run --hook-stage manual --all
