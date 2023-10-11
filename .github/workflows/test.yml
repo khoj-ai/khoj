@@ -58,6 +58,10 @@ jobs:
         run: |
           apt update && apt install -y git
 
+      - name: Install Make
+        run: |
+          apt install -y make
+
       - name: ⏬️ Install Dependencies
         env:
           DEBIAN_FRONTEND: noninteractive
