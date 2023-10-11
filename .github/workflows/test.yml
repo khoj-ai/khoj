@@ -58,7 +58,7 @@ jobs:
         run: |
           apt update && apt install -y git
 
-      - name: Install Make
+      - name: Install Make, GCC
         run: |
           apt install -y make build-essential
 
@@ -70,6 +70,7 @@ jobs:
 
       - name: ⬇️ Install pip
         run: |
+          apt install -y python3-pip
           python -m ensurepip --upgrade
           python -m pip install --upgrade pip
 
