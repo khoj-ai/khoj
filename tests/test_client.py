@@ -143,6 +143,8 @@ def test_get_api_config_types(client, search_config: SearchConfig, sample_org_da
 def test_get_configured_types_with_no_content_config(fastapi_app: FastAPI):
     # Arrange
     state.SearchType = configure_search_types(config)
+    original_config = state.config.content_type
+    state.config.content_type = None
 
     configure_routes(fastapi_app)
     client = TestClient(fastapi_app)
@@ -153,6 +155,9 @@ def test_get_configured_types_with_no_content_config(fastapi_app: FastAPI):
     # Assert
     assert response.status_code == 200
     assert response.json() == ["all"]
+
+    # Restore
+    state.config.content_type = original_config
 
 
 # ----------------------------------------------------------------------------------------------------

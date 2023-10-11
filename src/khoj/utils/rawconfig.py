@@ -63,7 +63,6 @@ class ContentConfig(ConfigBase):
     pdf: Optional[TextContentConfig]
     plaintext: Optional[TextContentConfig]
     github: Optional[GithubContentConfig]
-    plugins: Optional[Dict[str, TextContentConfig]]
     notion: Optional[NotionContentConfig]
 
 
