@@ -60,7 +60,7 @@ jobs:
           python -m pip install --upgrade pip
 
       - name: ⬇️ Install Application
-        run: pip install --no-use-pep517 --upgrade .[dev]
+        run: sed -i 's/dynamic = \["version"\]/version = "0.0.0"/' pyproject.toml && pip install --upgrade .[dev]
 
       - name: 🌡️ Validate Application
         run: pre-commit run --hook-stage manual --all
