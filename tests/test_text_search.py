@@ -2,15 +2,12 @@
 import logging
 from pathlib import Path
 import os
-from uuid import uuid4
 import asyncio
 
 # External Packages
 import pytest
-from khoj.utils.config import SearchModels
 
 # Internal Packages
-from khoj.utils.state import search_models
 from khoj.search_type import text_search
 from khoj.utils.rawconfig import ContentConfig, SearchConfig
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
@@ -56,12 +53,12 @@ def test_text_search_setup_with_empty_file_raises_error(
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_text_search_setup(content_config, search_models: SearchModels, default_user: KhojUser, caplog):
+def test_text_search_setup(content_config, default_user: KhojUser, caplog):
     # Arrange
     org_config = LocalOrgConfig.objects.filter(user=default_user).first()
     data = get_org_files(org_config)
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=True, user=default_user)
+        text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
 
     # Assert
     assert "Deleting all embeddings for file type org" in caplog.records[1].message
@@ -70,9 +67,7 @@ def test_text_search_setup(content_config, search_models: SearchModels, default_
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_text_index_same_if_content_unchanged(
-    content_config: ContentConfig, search_models: SearchModels, default_user: KhojUser, caplog
-):
+def test_text_index_same_if_content_unchanged(content_config: ContentConfig, default_user: KhojUser, caplog):
     # Arrange
     org_config = LocalOrgConfig.objects.filter(user=default_user).first()
     data = get_org_files(org_config)
@@ -80,13 +75,13 @@ def test_text_index_same_if_content_unchanged(
     # Act
     # Generate initial notes embeddings during asymmetric setup
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=True, user=default_user)
+        text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
     initial_logs = caplog.text
     caplog.clear()  # Clear logs
 
     # Run asymmetric setup again with no changes to data source. Ensure index is not updated
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=False, user=default_user)
+        text_search.setup(OrgToJsonl, data, regenerate=False, user=default_user)
     final_logs = caplog.text
 
     # Assert
@@ -100,10 +95,8 @@ def test_text_index_same_if_content_unchanged(
 # @pytest.mark.asyncio
 async def test_text_search(search_config: SearchConfig):
     # Arrange
-    uuid = uuid4()
-
     default_user = await KhojUser.objects.acreate(
-        username="test_user", password="test_password", email="test@example.com", uuid=uuid
+        username="test_user", password="test_password", email="test@example.com"
     )
     # Arrange
     org_config = await LocalOrgConfig.objects.acreate(
@@ -114,14 +107,12 @@ async def test_text_search(search_config: SearchConfig):
     )
     data = get_org_files(org_config)
 
-    search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(
         None,
         text_search.setup,
         OrgToJsonl,
         data,
-        search_models.text_search.bi_encoder,
         True,
         [],
         True,
@@ -132,7 +123,7 @@ async def test_text_search(search_config: SearchConfig):
     query = "How to git install application?"
 
     # Act
-    hits = await text_search.query(default_user, query, search_models.text_search)
+    hits = await text_search.query(default_user, query)
 
     # Assert
     results = text_search.collate_results(hits)
@@ -144,9 +135,7 @@ async def test_text_search(search_config: SearchConfig):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_entry_chunking_by_max_tokens(
-    org_config_with_only_new_file: LocalOrgConfig, search_models: SearchModels, default_user: KhojUser, caplog
-):
+def test_entry_chunking_by_max_tokens(org_config_with_only_new_file: LocalOrgConfig, default_user: KhojUser, caplog):
     # Arrange
     # Insert org-mode entry with size exceeding max token limit to new org file
     max_tokens = 256
@@ -161,7 +150,7 @@ def test_entry_chunking_by_max_tokens(
     # Act
     # reload embeddings, entries, notes model after adding new org-mode file
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=False, user=default_user)
+        text_search.setup(OrgToJsonl, data, regenerate=False, user=default_user)
 
     # Assert
     # verify newly added org-mode entry is split by max tokens
@@ -173,7 +162,7 @@ def test_entry_chunking_by_max_tokens(
 # @pytest.mark.skip(reason="Flaky due to compressed_jsonl file being rewritten by other tests")
 @pytest.mark.django_db
 def test_entry_chunking_by_max_tokens_not_full_corpus(
-    org_config_with_only_new_file: LocalOrgConfig, search_models: SearchModels, default_user: KhojUser, caplog
+    org_config_with_only_new_file: LocalOrgConfig, default_user: KhojUser, caplog
 ):
     # Arrange
     # Insert org-mode entry with size exceeding max token limit to new org file
@@ -198,7 +187,6 @@ conda activate khoj
     text_search.setup(
         OrgToJsonl,
         data,
-        search_models.text_search.bi_encoder,
         regenerate=False,
         user=default_user,
     )
@@ -218,7 +206,6 @@ conda activate khoj
         text_search.setup(
             OrgToJsonl,
             data,
-            search_models.text_search.bi_encoder,
             regenerate=False,
             full_corpus=False,
             user=default_user,
@@ -234,14 +221,14 @@ conda activate khoj
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
 def test_regenerate_index_with_new_entry(
-    content_config: ContentConfig, search_models: SearchModels, new_org_file: Path, default_user: KhojUser, caplog
+    content_config: ContentConfig, new_org_file: Path, default_user: KhojUser, caplog
 ):
     # Arrange
     org_config = LocalOrgConfig.objects.filter(user=default_user).first()
     data = get_org_files(org_config)
 
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=True, user=default_user)
+        text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
 
     assert "Created 10 new embeddings. Deleted 3 embeddings for user " in caplog.records[2].message
 
@@ -255,7 +242,7 @@ def test_regenerate_index_with_new_entry(
     # Act
     # regenerate notes jsonl, model embeddings and model to include entry from new file
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=True, user=default_user)
+        text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
 
     # Assert
     assert "Created 11 new embeddings. Deleted 10 embeddings for user " in caplog.records[-1].message
@@ -265,7 +252,7 @@ def test_regenerate_index_with_new_entry(
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
 def test_update_index_with_duplicate_entries_in_stable_order(
-    org_config_with_only_new_file: LocalOrgConfig, search_models: SearchModels, default_user: KhojUser, caplog
+    org_config_with_only_new_file: LocalOrgConfig, default_user: KhojUser, caplog
 ):
     # Arrange
     new_file_to_index = Path(org_config_with_only_new_file.input_files[0])
@@ -280,13 +267,13 @@ def test_update_index_with_duplicate_entries_in_stable_order(
     # Act
     # load embeddings, entries, notes model after adding new org-mode file
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=True, user=default_user)
+        text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
 
     data = get_org_files(org_config_with_only_new_file)
 
     # update embeddings, entries, notes model after adding new org-mode file
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=False, user=default_user)
+        text_search.setup(OrgToJsonl, data, regenerate=False, user=default_user)
 
     # Assert
     # verify only 1 entry added even if there are multiple duplicate entries
@@ -298,9 +285,7 @@ def test_update_index_with_duplicate_entries_in_stable_order(
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_update_index_with_deleted_entry(
-    org_config_with_only_new_file: LocalOrgConfig, search_models: SearchModels, default_user: KhojUser, caplog
-):
+def test_update_index_with_deleted_entry(org_config_with_only_new_file: LocalOrgConfig, default_user: KhojUser, caplog):
     # Arrange
     new_file_to_index = Path(org_config_with_only_new_file.input_files[0])
 
@@ -312,7 +297,7 @@ def test_update_index_with_deleted_entry(
 
     # load embeddings, entries, notes model after adding new org file with 2 entries
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=True, user=default_user)
+        text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
 
     # update embeddings, entries, notes model after removing an entry from the org file
     with open(new_file_to_index, "w") as f:
@@ -322,7 +307,7 @@ def test_update_index_with_deleted_entry(
 
     # Act
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=False, user=default_user)
+        text_search.setup(OrgToJsonl, data, regenerate=False, user=default_user)
 
     # Assert
     # verify only 1 entry added even if there are multiple duplicate entries
@@ -334,16 +319,12 @@ def test_update_index_with_deleted_entry(
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_update_index_with_new_entry(
-    content_config: ContentConfig, search_models: SearchModels, new_org_file: Path, default_user: KhojUser, caplog
-):
+def test_update_index_with_new_entry(content_config: ContentConfig, new_org_file: Path, default_user: KhojUser, caplog):
     # Arrange
     org_config = LocalOrgConfig.objects.filter(user=default_user).first()
     data = get_org_files(org_config)
     with caplog.at_level(logging.INFO):
-        text_search.setup(
-            OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=True, normalize=False, user=default_user
-        )
+        text_search.setup(OrgToJsonl, data, regenerate=True, normalize=False, user=default_user)
 
     # append org-mode entry to first org input file in config
     with open(new_org_file, "w") as f:
@@ -355,9 +336,7 @@ def test_update_index_with_new_entry(
     # Act
     # update embeddings, entries with the newly added note
     with caplog.at_level(logging.INFO):
-        text_search.setup(
-            OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=False, normalize=False, user=default_user
-        )
+        text_search.setup(OrgToJsonl, data, regenerate=False, normalize=False, user=default_user)
 
     # Assert
     assert "Created 10 new embeddings. Deleted 3 embeddings for user " in caplog.records[2].message
@@ -368,7 +347,7 @@ def test_update_index_with_new_entry(
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.skipif(os.getenv("GITHUB_PAT_TOKEN") is None, reason="GITHUB_PAT_TOKEN not set")
-def test_text_search_setup_github(content_config: ContentConfig, search_models: SearchModels, default_user: KhojUser):
+def test_text_search_setup_github(content_config: ContentConfig, default_user: KhojUser):
     # Arrange
     github_config = GithubConfig.objects.filter(user=default_user).first()
     # Act
@@ -376,7 +355,6 @@ def test_text_search_setup_github(content_config: ContentConfig, search_models: 
     text_search.setup(
         GithubToJsonl,
         {},
-        search_models.text_search.bi_encoder,
         regenerate=True,
         user=default_user,
         config=github_config,

@@ -134,7 +134,6 @@ def load_embeddings(
 async def query(
     user: KhojUser,
     raw_query: str,
-    search_model: TextSearchModel,
     type: SearchType = SearchType.All,
     question_embedding: Union[torch.Tensor, None] = None,
     rank_results: bool = False,
@@ -161,10 +160,10 @@ async def query(
     # Encode the query using the bi-encoder
     if question_embedding is None:
         with timer("Query Encode Time", logger, state.device):
-            question_embedding = search_model.bi_encoder.encode([query], convert_to_tensor=True, device=state.device)[0]
+            question_embedding = state.embeddings_model.embed_query(query)
 
     # Find relevant entries for the query
-    top_k = min(20, search_model.top_k or 10)  # top_k hits can't be more than the total entries in corpus
+    top_k = 10
     with timer("Search Time", logger, state.device):
         hits = EmbeddingsAdapters.search_with_embeddings(
             user=user,
@@ -213,14 +212,13 @@ def collate_results(hits):
 def setup(
     text_to_jsonl: Type[TextEmbeddings],
     files: dict[str, str],
-    bi_encoder: BaseEncoder,
     regenerate: bool,
     filters: List[BaseFilter] = [],
     normalize: bool = True,
     full_corpus: bool = True,
     user: KhojUser = None,
     config=None,
-) -> TextContent:
+) -> None:
     if config:
         num_new_embeddings, num_deleted_embeddings = text_to_jsonl(config).process(
             files=files, full_corpus=full_corpus, user=user, regenerate=regenerate
@@ -237,7 +235,6 @@ def setup(
     # TODO: Update the way filters are applied
     # for filter in filters:
     #     filter.load(entries, regenerate=regenerate)
-    return TextContent(enabled=True)
 
 
 def apply_filters(

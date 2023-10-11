@@ -63,13 +63,7 @@ class ImageSearchModel:
 
 @dataclass
 class ContentIndex:
-    org: Optional[TextContent] = None
-    markdown: Optional[TextContent] = None
-    pdf: Optional[TextContent] = None
-    github: Optional[TextContent] = None
-    notion: Optional[TextContent] = None
     image: Optional[ImageContent] = None
-    plaintext: Optional[TextContent] = None
 
 
 @dataclass

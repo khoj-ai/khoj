@@ -85,6 +85,8 @@ def run():
 
     #  Mount Django and Static Files
     app.mount("/django", django_app, name="django")
+    if not os.path.exists("static"):
+        os.mkdir("static")
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
     # Configure Middleware

@@ -114,7 +114,7 @@ def test_regenerate_with_github_fails_without_pat(client):
 @pytest.mark.django_db
 def test_get_configured_types_via_api(client, sample_org_data):
     # Act
-    text_search.setup(OrgToJsonl, sample_org_data, search_models.text_search.bi_encoder, regenerate=False)
+    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False)
 
     enabled_types = EmbeddingsAdapters.get_unique_file_types(user=None).all().values_list("file_type", flat=True)
 
@@ -126,8 +126,7 @@ def test_get_configured_types_via_api(client, sample_org_data):
 @pytest.mark.django_db(transaction=True)
 def test_get_api_config_types(client, search_config: SearchConfig, sample_org_data):
     # Arrange
-    search_models.text_search = text_search.initialize_model(search_config.asymmetric)
-    text_search.setup(OrgToJsonl, sample_org_data, search_models.text_search.bi_encoder, regenerate=False)
+    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False)
 
     # Act
     response = client.get(f"/api/config/types")
@@ -190,8 +189,7 @@ def test_image_search(client, content_config: ContentConfig, search_config: Sear
 @pytest.mark.django_db(transaction=True)
 def test_notes_search(client, search_config: SearchConfig, sample_org_data):
     # Arrange
-    search_models.text_search = text_search.initialize_model(search_config.asymmetric)
-    text_search.setup(OrgToJsonl, sample_org_data, search_models.text_search.bi_encoder, regenerate=False)
+    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False)
     user_query = quote("How to git install application?")
 
     # Act
@@ -210,11 +208,9 @@ def test_notes_search_with_only_filters(
 ):
     # Arrange
     filters = [WordFilter(), FileFilter()]
-    search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     text_search.setup(
         OrgToJsonl,
         sample_org_data,
-        search_models.text_search.bi_encoder,
         regenerate=False,
         filters=filters,
         user=default_user,
@@ -237,10 +233,7 @@ def test_notes_search_with_include_filter(
 ):
     # Arrange
     filters = [WordFilter()]
-    search_models.text_search = text_search.initialize_model(search_config.asymmetric)
-    text_search.setup(
-        OrgToJsonl, sample_org_data, search_models.text_search, regenerate=False, filters=filters, user=default_user
-    )
+    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False, filters=filters, user=default_user)
     user_query = quote('How to git install application? +"Emacs"')
 
     # Act
@@ -259,11 +252,9 @@ def test_notes_search_with_exclude_filter(
 ):
     # Arrange
     filters = [WordFilter()]
-    search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     text_search.setup(
         OrgToJsonl,
         sample_org_data,
-        search_models.text_search.bi_encoder,
         regenerate=False,
         filters=filters,
         user=default_user,

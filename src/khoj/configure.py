@@ -2,7 +2,6 @@
 import sys
 import logging
 import json
-import uuid
 from enum import Enum
 from typing import Optional
 import requests
@@ -58,7 +57,6 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 username="default",
                 email="default@example.com",
                 password="default",
-                uuid=uuid.uuid4(),
             )
 
     async def authenticate(self, request):

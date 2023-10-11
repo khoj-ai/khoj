@@ -68,7 +68,6 @@ async def index_batch(
     user = request.user.object if request.user.is_authenticated else None
     if x_api_key != "secret":
         raise HTTPException(status_code=401, detail="Invalid API Key")
-    state.config_lock.acquire()
     try:
         logger.info(f"Received batch indexing request")
         index_batch_request_acc = b""
@@ -152,8 +151,6 @@ async def index_batch(
 
     except Exception as e:
         logger.error(f"Failed to process batch indexing request: {e}", exc_info=True)
-    finally:
-        state.config_lock.release()
     return Response(content="OK", status_code=200)
 
 
@@ -164,11 +161,6 @@ def configure_search(search_models: SearchModels, search_config: Optional[Search
         return None
     if search_models is None:
         search_models = SearchModels()
-
-    # Initialize Search Models
-    if search_config.asymmetric:
-        logger.info("🔍 📜 Setting up text search model")
-        search_models.text_search = text_search.initialize_model(search_config.asymmetric)
 
     if search_config.image:
         logger.info("🔍 🌄 Setting up image search model")
@@ -205,13 +197,12 @@ def configure_content(
 
     try:
         # Initialize Org Notes Search
-        if (t == None or t == state.SearchType.Org.value) and files["org"] and search_models.text_search:
+        if (t == None or t == state.SearchType.Org.value) and files["org"]:
             logger.info("🦄 Setting up search for orgmode notes")
             # Extract Entries, Generate Notes Embeddings
-            content_index.org = text_search.setup(
+            text_search.setup(
                 OrgToJsonl,
                 files.get("org"),
-                search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
                 full_corpus=full_corpus,
@@ -222,13 +213,12 @@ def configure_content(
 
     try:
         # Initialize Markdown Search
-        if (t == None or t == state.SearchType.Markdown.value) and files["markdown"] and search_models.text_search:
+        if (t == None or t == state.SearchType.Markdown.value) and files["markdown"]:
             logger.info("💎 Setting up search for markdown notes")
             # Extract Entries, Generate Markdown Embeddings
-            content_index.markdown = text_search.setup(
+            text_search.setup(
                 MarkdownToJsonl,
                 files.get("markdown"),
-                search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
                 full_corpus=full_corpus,
@@ -240,13 +230,12 @@ def configure_content(
 
     try:
         # Initialize PDF Search
-        if (t == None or t == state.SearchType.Pdf.value) and files["pdf"] and search_models.text_search:
+        if (t == None or t == state.SearchType.Pdf.value) and files["pdf"]:
             logger.info("🖨️ Setting up search for pdf")
             # Extract Entries, Generate PDF Embeddings
-            content_index.pdf = text_search.setup(
+            text_search.setup(
                 PdfToJsonl,
                 files.get("pdf"),
-                search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
                 full_corpus=full_corpus,
@@ -258,13 +247,12 @@ def configure_content(
 
     try:
         # Initialize Plaintext Search
-        if (t == None or t == state.SearchType.Plaintext.value) and files["plaintext"] and search_models.text_search:
+        if (t == None or t == state.SearchType.Plaintext.value) and files["plaintext"]:
             logger.info("📄 Setting up search for plaintext")
             # Extract Entries, Generate Plaintext Embeddings
-            content_index.plaintext = text_search.setup(
+            text_search.setup(
                 PlaintextToJsonl,
                 files.get("plaintext"),
-                search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
                 full_corpus=full_corpus,
@@ -288,17 +276,12 @@ def configure_content(
 
     try:
         github_config = GithubConfig.objects.filter(user=user).prefetch_related("githubrepoconfig").first()
-        if (
-            (t == None or t == state.SearchType.Github.value)
-            and github_config is not None
-            and search_models.text_search
-        ):
+        if (t == None or t == state.SearchType.Github.value) and github_config is not None:
             logger.info("🐙 Setting up search for github")
             # Extract Entries, Generate Github Embeddings
-            content_index.github = text_search.setup(
+            text_search.setup(
                 GithubToJsonl,
                 None,
-                search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
                 full_corpus=full_corpus,
@@ -312,12 +295,11 @@ def configure_content(
     try:
         # Initialize Notion Search
         notion_config = NotionConfig.objects.filter(user=user).first()
-        if (t == None or t in state.SearchType.Notion.value) and notion_config and search_models.text_search:
+        if (t == None or t in state.SearchType.Notion.value) and notion_config:
             logger.info("🔌 Setting up search for notion")
-            content_index.notion = text_search.setup(
+            text_search.setup(
                 NotionToJsonl,
                 None,
-                search_models.text_search.bi_encoder,
                 regenerate=regenerate,
                 filters=[DateFilter(), WordFilter(), FileFilter()],
                 full_corpus=full_corpus,
@@ -346,28 +328,10 @@ def load_content(
     if content_index is None:
         content_index = ContentIndex()
 
-    if content_config.org:
-        logger.info("🦄 Loading orgmode notes")
-        content_index.org = TextContent(enabled=True)
-    if content_config.markdown:
-        logger.info("💎 Loading markdown notes")
-        content_index.markdown = TextContent(enabled=True)
-    if content_config.pdf:
-        logger.info("🖨️ Loading pdf")
-        content_index.pdf = TextContent(enabled=True)
-    if content_config.plaintext:
-        logger.info("📄 Loading plaintext")
-        content_index.plaintext = TextContent(enabled=True)
     if content_config.image:
         logger.info("🌄 Loading images")
         content_index.image = image_search.setup(
             content_config.image, search_models.image_search.image_encoder, regenerate=False
         )
-    if content_config.github:
-        logger.info("🐙 Loading github")
-        content_index.github = TextContent(enabled=True)
-    if content_config.notion:
-        logger.info("🔌 Loading notion")
-        content_index.notion = TextContent(enabled=True)
     state.query_cache = LRU()
     return content_index

@@ -35,7 +35,6 @@ from khoj.utils.helpers import resolve_absolute_path
 from khoj.utils.state import SearchType
 from khoj.utils import state, constants
 from khoj.utils.yaml import save_config_to_file_updated_state
-from khoj.processor.embeddings import EmbeddingsModel
 from fastapi.responses import StreamingResponse, Response
 from khoj.routers.helpers import (
     get_conversation_command,
@@ -56,7 +55,6 @@ from database.models import LocalMarkdownConfig, LocalOrgConfig, LocalPdfConfig,
 # Initialize Router
 api = APIRouter()
 logger = logging.getLogger(__name__)
-embeddings_model = EmbeddingsModel()
 
 
 def map_config_to_object(content_type: str):
@@ -244,18 +242,6 @@ if not state.demo:
         await content_object.objects.filter(user=user).adelete()
 
         enabled_content = await sync_to_async(EmbeddingsAdapters.get_unique_file_types)(user)
-
-        # TODO: Add logic here to delete the embeddings for the content type
-        if content_type == "github":
-            state.content_index.github = None
-        elif content_type == "notion":
-            state.content_index.notion = None
-        elif content_type == "pdf":
-            state.content_index.pdf = None
-        elif content_type == "markdown":
-            state.content_index.markdown = None
-        elif content_type == "org":
-            state.content_index.org = None
 
         return {"status": "ok"}
 
@@ -460,27 +446,23 @@ async def search(
         ]
         if text_search_models:
             with timer("Encoding query took", logger=logger):
-                encoded_asymmetric_query = embeddings_model.embed_query(defiltered_query)
+                encoded_asymmetric_query = state.embeddings_model.embed_query(defiltered_query)
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        if (
-            t
-            in [
-                SearchType.All,
-                SearchType.Org,
-                SearchType.Markdown,
-                SearchType.Github,
-                SearchType.Notion,
-                SearchType.Plaintext,
-            ]
-        ) and state.search_models.text_search:
+        if t in [
+            SearchType.All,
+            SearchType.Org,
+            SearchType.Markdown,
+            SearchType.Github,
+            SearchType.Notion,
+            SearchType.Plaintext,
+        ]:
             # query markdown notes
             search_futures += [
                 executor.submit(
                     text_search.query,
                     user,
                     user_query,
-                    state.search_models.text_search,
                     t,
                     question_embedding=encoded_asymmetric_query,
                     rank_results=r or False,

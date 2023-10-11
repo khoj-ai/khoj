@@ -97,7 +97,6 @@ def default_user():
 @pytest.fixture(scope="session")
 def search_models(search_config: SearchConfig):
     search_models = SearchModels()
-    search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     search_models.image_search = image_search.initialize_model(search_config.image)
 
     return search_models
@@ -132,9 +131,7 @@ def content_config(tmp_path_factory, search_models: SearchModels, default_user: 
         user=default_user,
     )
 
-    text_search.setup(
-        OrgToJsonl, get_sample_data("org"), search_models.text_search.bi_encoder, regenerate=False, user=default_user
-    )
+    text_search.setup(OrgToJsonl, get_sample_data("org"), regenerate=False, user=default_user)
 
     if os.getenv("GITHUB_PAT_TOKEN"):
         GithubConfig.objects.create(
@@ -159,19 +156,13 @@ def content_config(tmp_path_factory, search_models: SearchModels, default_user: 
 
 
 @pytest.fixture(scope="session")
-def md_content_config(tmp_path_factory):
-    content_dir = tmp_path_factory.mktemp("content")
-
-    # Generate Embeddings for Markdown Content
-    content_config = ContentConfig()
-    content_config.markdown = TextContentConfig(
+def md_content_config():
+    markdown_config = LocalMarkdownConfig.objects.create(
         input_files=None,
         input_filter=["tests/data/markdown/*.markdown"],
-        compressed_jsonl=content_dir.joinpath("markdown.jsonl.gz"),
-        embeddings_file=content_dir.joinpath("markdown_embeddings.pt"),
     )
 
-    return content_config
+    return markdown_config
 
 
 @pytest.fixture(scope="session")
@@ -211,13 +202,11 @@ def processor_config_offline_chat(tmp_path_factory):
 @pytest.fixture(scope="session")
 def chat_client(md_content_config: ContentConfig, search_config: SearchConfig, processor_config: ProcessorConfig):
     # Initialize app state
-    state.config.content_type = md_content_config
     state.config.search_type = search_config
     state.SearchType = configure_search_types(state.config)
 
     # Index Markdown Content for Search
-    state.search_models.text_search = text_search.initialize_model(search_config.asymmetric)
-    all_files = fs_syncer.collect_files(state.config.content_type)
+    all_files = fs_syncer.collect_files()
     state.content_index = configure_content(
         state.content_index, state.config.content_type, all_files, state.search_models
     )
@@ -255,12 +244,10 @@ def client(
     state.SearchType = configure_search_types(state.config)
 
     # These lines help us Mock the Search models for these search types
-    state.search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     state.search_models.image_search = image_search.initialize_model(search_config.image)
     text_search.setup(
         OrgToJsonl,
         get_sample_data("org"),
-        state.search_models.text_search.bi_encoder,
         regenerate=False,
         user=default_user,
     )
@@ -270,7 +257,6 @@ def client(
     text_search.setup(
         PlaintextToJsonl,
         get_sample_data("plaintext"),
-        state.search_models.text_search.bi_encoder,
         regenerate=False,
         user=default_user,
     )
@@ -297,7 +283,6 @@ def client_offline_chat(
     state.SearchType = configure_search_types(state.config)
 
     # Index Markdown Content for Search
-    state.search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     state.search_models.image_search = image_search.initialize_model(search_config.image)
 
     all_files = fs_syncer.collect_files(state.config.content_type)

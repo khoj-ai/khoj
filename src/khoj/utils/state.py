@@ -12,10 +12,12 @@ from khoj.utils import config as utils_config
 from khoj.utils.config import ContentIndex, SearchModels, ProcessorConfigModel
 from khoj.utils.helpers import LRU
 from khoj.utils.rawconfig import FullConfig
+from khoj.processor.embeddings import EmbeddingsModel
 
 # Application Global State
 config = FullConfig()
 search_models = SearchModels()
+embeddings_model = EmbeddingsModel()
 content_index = ContentIndex()
 processor_config = ProcessorConfigModel()
 config_file: Path = None
