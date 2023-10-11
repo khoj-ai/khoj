@@ -60,7 +60,7 @@ jobs:
           python -m pip install --upgrade pip
 
       - name: ⬇️ Install Application
-        run: pip install --upgrade .[dev]
+        run: pip install --no-use-pep517 --upgrade .[dev]
 
       - name: 🌡️ Validate Application
         run: pre-commit run --hook-stage manual --all
