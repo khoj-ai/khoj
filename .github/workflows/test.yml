@@ -55,6 +55,8 @@ jobs:
           python-version: ${{ matrix.python_version }}
 
       - name: ⏬️ Install Dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
           apt update && apt install -y libegl1 sqlite3 libsqlite3-dev libsqlite3-0 && apt install -y postgresql postgresql-client && apt install postgresql-server-dev-14 && git clone https://github.com/ankane/pgvector.git && cd pg vector && make && make install
 
