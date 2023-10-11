@@ -10,8 +10,6 @@ on:
       - .pre-commit-config.yml
       - .github/workflows/test.yml
   push:
-    branches:
-      - 'master'
     paths:
       - src/khoj/**
       - tests/**
@@ -35,7 +33,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:14
+        image: ankane/pgvector
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
@@ -67,9 +65,11 @@ jobs:
         run: |
           apt update && apt install -y libegl1 sqlite3 libsqlite3-dev libsqlite3-0
 
-      - name: ⬇️ Install PG Vector
+      - name: ⬇️ Install Postgres
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run : |
-          apt install -y postgresql postgresql-client && apt install -y postgresql-server-dev-14 && git clone https://github.com/ankane/pgvector.git && cd pgvector && make && make install && psql -U postgres -c "CREATE EXTENSION vector;"
+          apt install -y postgresql postgresql-client && apt install -y postgresql-server-dev-14
 
       - name: ⬇️ Install pip
         run: |

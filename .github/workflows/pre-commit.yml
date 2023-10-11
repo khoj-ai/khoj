@@ -10,8 +10,6 @@ on:
       - .pre-commit-config.yml
       - .github/workflows/test.yml
   push:
-    branches:
-      - 'master'
     paths:
       - src/khoj/**
       - tests/**
@@ -22,13 +20,27 @@ on:
 
 jobs:
   test:
-    name: Run Pre-Commit hooks
+    name: Run Tests
     runs-on: ubuntu-latest
-
+    strategy:
+      fail-fast: false
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: ⏬️ Install Dependencies
+        run: |
+          sudo apt update && sudo apt install -y libegl1
+          python -m pip install --upgrade pip
+
+      - name: ⬇️ Install Application
+        run: pip install --upgrade .[dev]
 
       - name: 🌡️ Validate Application
         run: pre-commit run --hook-stage manual --all
