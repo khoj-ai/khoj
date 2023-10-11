@@ -387,24 +387,23 @@ def get_default_config_data():
 
 
 @api.get("/config/types", response_model=List[str])
-def get_config_types():
-    """Get configured content types"""
-    if state.config is None or state.config.content_type is None:
-        raise HTTPException(
-            status_code=500,
-            detail="Content types not configured. Configure at least one content type on server and restart it.",
-        )
+def get_config_types(
+    request: Request,
+):
+    user = request.user.object if request.user.is_authenticated else None
 
-    configured_content_types = state.config.content_type.dict(exclude_none=True)
+    enabled_file_types = EmbeddingsAdapters.get_unique_file_types(user)
+
+    configured_content_types = list(enabled_file_types)
+
+    if state.config and state.config.content_type:
+        for ctype in state.config.content_type.dict(exclude_none=True):
+            configured_content_types.append(ctype)
+
     return [
         search_type.value
         for search_type in SearchType
-        if (
-            search_type.value in configured_content_types
-            and getattr(state.content_index, search_type.value) is not None
-        )
-        or ("plugins" in configured_content_types and search_type.name in configured_content_types["plugins"])
-        or search_type == SearchType.All
+        if (search_type.value in configured_content_types) or search_type == SearchType.All
     ]
 
 

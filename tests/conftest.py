@@ -1,15 +1,18 @@
 # External Packages
 import os
-from uuid import uuid4
-from copy import deepcopy
 from fastapi.testclient import TestClient
 from pathlib import Path
 import pytest
 from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI
 import factory
+import os
+from fastapi import FastAPI
+
+app = FastAPI()
+
 
 # Internal Packages
-from app.main import app
 from khoj.configure import configure_processor, configure_routes, configure_search_types, configure_middleware
 from khoj.processor.plaintext.plaintext_to_jsonl import PlaintextToJsonl
 from khoj.search_type import image_search, text_search
@@ -130,15 +133,12 @@ def content_config(tmp_path_factory, search_models: SearchModels, default_user: 
     )
 
     text_search.setup(
-        OrgToJsonl,
-        get_sample_data("org"),
-        search_models.text_search.bi_encoder,
-        regenerate=False,
+        OrgToJsonl, get_sample_data("org"), search_models.text_search.bi_encoder, regenerate=False, user=default_user
     )
 
     if os.getenv("GITHUB_PAT_TOKEN"):
         GithubConfig.objects.create(
-            pat_token=os["GITHUB_PAT_TOKEN"],
+            pat_token=os.getenv("GITHUB_PAT_TOKEN"),
             user=default_user,
         )
 
@@ -224,6 +224,9 @@ def chat_client(md_content_config: ContentConfig, search_config: SearchConfig, p
 
     # Initialize Processor from Config
     state.processor_config = configure_processor(processor_config)
+    state.anonymous_mode = True
+
+    app = FastAPI()
 
     configure_routes(app)
     configure_middleware(app)
@@ -232,7 +235,21 @@ def chat_client(md_content_config: ContentConfig, search_config: SearchConfig, p
 
 
 @pytest.fixture(scope="function")
-def client(content_config: ContentConfig, search_config: SearchConfig, processor_config: ProcessorConfig):
+def fastapi_app():
+    app = FastAPI()
+    configure_routes(app)
+    configure_middleware(app)
+    app.mount("/static", StaticFiles(directory=web_directory), name="static")
+    return app
+
+
+@pytest.fixture(scope="function")
+def client(
+    content_config: ContentConfig,
+    search_config: SearchConfig,
+    processor_config: ProcessorConfig,
+    default_user: KhojUser,
+):
     state.config.content_type = content_config
     state.config.search_type = search_config
     state.SearchType = configure_search_types(state.config)
@@ -240,25 +257,26 @@ def client(content_config: ContentConfig, search_config: SearchConfig, processor
     # These lines help us Mock the Search models for these search types
     state.search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     state.search_models.image_search = image_search.initialize_model(search_config.image)
-    state.content_index.org = text_search.setup(
+    text_search.setup(
         OrgToJsonl,
         get_sample_data("org"),
-        content_config.org,
         state.search_models.text_search.bi_encoder,
         regenerate=False,
+        user=default_user,
     )
     state.content_index.image = image_search.setup(
         content_config.image, state.search_models.image_search, regenerate=False
     )
-    state.content_index.plaintext = text_search.setup(
+    text_search.setup(
         PlaintextToJsonl,
         get_sample_data("plaintext"),
-        content_config.plaintext,
         state.search_models.text_search.bi_encoder,
         regenerate=False,
+        user=default_user,
     )
 
     state.processor_config = configure_processor(processor_config)
+    state.anonymous_mode = True
 
     configure_routes(app)
     configure_middleware(app)
@@ -289,6 +307,7 @@ def client_offline_chat(
 
     # Initialize Processor from Config
     state.processor_config = configure_processor(processor_config_offline_chat)
+    state.anonymous_mode = True
 
     configure_routes(app)
     configure_middleware(app)

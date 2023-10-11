@@ -2,13 +2,19 @@
 from io import BytesIO
 from PIL import Image
 from urllib.parse import quote
-
+import pytest
+import os
+import django
 
 # External Packages
 from fastapi.testclient import TestClient
+from fastapi import FastAPI
+
+# os.environ.setdefault("DJANGO_SETTINGS_MODULE", "app.settings")
+# django.setup()
+# app = FastAPI()
 
 # Internal Packages
-from app.main import app
 from khoj.configure import configure_routes, configure_search_types
 from khoj.utils import state
 from khoj.utils.state import search_models, content_index, config
@@ -17,6 +23,8 @@ from khoj.utils.rawconfig import ContentConfig, SearchConfig
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.search_filter.word_filter import WordFilter
 from khoj.search_filter.file_filter import FileFilter
+from database.models import KhojUser, Embeddings
+from database.adapters import EmbeddingsAdapters
 
 
 # Test
@@ -34,7 +42,7 @@ def test_search_with_invalid_content_type(client):
 
 # ----------------------------------------------------------------------------------------------------
 def test_search_with_valid_content_type(client):
-    for content_type in ["all", "org", "markdown", "image", "pdf", "github", "notion", "plugin1"]:
+    for content_type in ["all", "org", "markdown", "image", "pdf", "github", "notion"]:
         # Act
         response = client.get(f"/api/search?q=random&t={content_type}")
         # Assert
@@ -103,59 +111,41 @@ def test_regenerate_with_github_fails_without_pat(client):
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_get_configured_types_via_api(client):
+@pytest.mark.django_db
+def test_get_configured_types_via_api(client, sample_org_data):
     # Act
-    response = client.get(f"/api/config/types")
+    text_search.setup(OrgToJsonl, sample_org_data, search_models.text_search.bi_encoder, regenerate=False)
+
+    enabled_types = EmbeddingsAdapters.get_unique_file_types(user=None).all().values_list("file_type", flat=True)
 
     # Assert
-    assert response.status_code == 200
-    assert response.json() == ["all", "org", "image", "plaintext", "plugin1"]
+    assert list(enabled_types) == ["org"]
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_get_configured_types_with_only_plugin_content_config(content_config):
+@pytest.mark.django_db(transaction=True)
+def test_get_api_config_types(client, search_config: SearchConfig, sample_org_data):
     # Arrange
-    config.content_type = ContentConfig()
-    config.content_type.plugins = content_config.plugins
-    state.SearchType = configure_search_types(config)
-
-    configure_routes(app)
-    client = TestClient(app)
-
-    # Act
-    response = client.get(f"/api/config/types")
-
-    # Assert
-    assert response.status_code == 200
-    assert response.json() == ["all", "plugin1"]
-
-
-# ----------------------------------------------------------------------------------------------------
-def test_get_configured_types_with_no_plugin_content_config(content_config):
-    # Arrange
-    config.content_type = content_config
-    config.content_type.plugins = None
-    state.SearchType = configure_search_types(config)
-
-    configure_routes(app)
-    client = TestClient(app)
+    search_models.text_search = text_search.initialize_model(search_config.asymmetric)
+    text_search.setup(OrgToJsonl, sample_org_data, search_models.text_search.bi_encoder, regenerate=False)
 
     # Act
     response = client.get(f"/api/config/types")
 
     # Assert
     assert response.status_code == 200
-    assert "plugin1" not in response.json()
+    # assert actual response is ["org", "image", "all"]
+    assert response.json() == ["all", "org", "image"]
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_get_configured_types_with_no_content_config():
+@pytest.mark.django_db(transaction=True)
+def test_get_configured_types_with_no_content_config(fastapi_app: FastAPI):
     # Arrange
-    config.content_type = ContentConfig()
     state.SearchType = configure_search_types(config)
 
-    configure_routes(app)
-    client = TestClient(app)
+    configure_routes(fastapi_app)
+    client = TestClient(fastapi_app)
 
     # Act
     response = client.get(f"/api/config/types")
@@ -192,12 +182,11 @@ def test_image_search(client, content_config: ContentConfig, search_config: Sear
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_notes_search(client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data):
+@pytest.mark.django_db(transaction=True)
+def test_notes_search(client, search_config: SearchConfig, sample_org_data):
     # Arrange
     search_models.text_search = text_search.initialize_model(search_config.asymmetric)
-    content_index.org = text_search.setup(
-        OrgToJsonl, sample_org_data, content_config.org, search_models.text_search.bi_encoder, regenerate=False
-    )
+    text_search.setup(OrgToJsonl, sample_org_data, search_models.text_search.bi_encoder, regenerate=False)
     user_query = quote("How to git install application?")
 
     # Act
@@ -212,18 +201,18 @@ def test_notes_search(client, content_config: ContentConfig, search_config: Sear
 
 # ----------------------------------------------------------------------------------------------------
 def test_notes_search_with_only_filters(
-    client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data
+    client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data, default_user: KhojUser
 ):
     # Arrange
     filters = [WordFilter(), FileFilter()]
     search_models.text_search = text_search.initialize_model(search_config.asymmetric)
-    content_index.org = text_search.setup(
+    text_search.setup(
         OrgToJsonl,
         sample_org_data,
-        content_config.org,
         search_models.text_search.bi_encoder,
         regenerate=False,
         filters=filters,
+        user=default_user,
     )
     user_query = quote('+"Emacs" file:"*.org"')
 
@@ -239,13 +228,13 @@ def test_notes_search_with_only_filters(
 
 # ----------------------------------------------------------------------------------------------------
 def test_notes_search_with_include_filter(
-    client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data
+    client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data, default_user: KhojUser
 ):
     # Arrange
     filters = [WordFilter()]
     search_models.text_search = text_search.initialize_model(search_config.asymmetric)
-    content_index.org = text_search.setup(
-        OrgToJsonl, sample_org_data, content_config.org, search_models.text_search, regenerate=False, filters=filters
+    text_search.setup(
+        OrgToJsonl, sample_org_data, search_models.text_search, regenerate=False, filters=filters, user=default_user
     )
     user_query = quote('How to git install application? +"Emacs"')
 
@@ -261,18 +250,18 @@ def test_notes_search_with_include_filter(
 
 # ----------------------------------------------------------------------------------------------------
 def test_notes_search_with_exclude_filter(
-    client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data
+    client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data, default_user: KhojUser
 ):
     # Arrange
     filters = [WordFilter()]
     search_models.text_search = text_search.initialize_model(search_config.asymmetric)
-    content_index.org = text_search.setup(
+    text_search.setup(
         OrgToJsonl,
         sample_org_data,
-        content_config.org,
         search_models.text_search.bi_encoder,
         regenerate=False,
         filters=filters,
+        user=default_user,
     )
     user_query = quote('How to git install application? -"clone"')
 

@@ -16,7 +16,7 @@ from khoj.utils.rawconfig import ContentConfig, SearchConfig
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.github.github_to_jsonl import GithubToJsonl
 from khoj.utils.fs_syncer import get_org_files
-from database.models import LocalOrgConfig, KhojUser
+from database.models import LocalOrgConfig, KhojUser, Embeddings, GithubConfig
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +50,8 @@ def test_text_search_setup_with_empty_file_raises_error(
     with caplog.at_level(logging.INFO):
         text_search.setup(OrgToJsonl, data, search_config.asymmetric, regenerate=True, user=default_user)
 
-    record = caplog.records[1]
-    assert "Created 0 new embeddings. Deleted 0 embeddings for user " in record.message
+    assert "Created 0 new embeddings. Deleted 3 embeddings for user " in caplog.records[2].message
+    verify_embeddings(0, default_user)
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -64,8 +64,8 @@ def test_text_search_setup(content_config, search_models: SearchModels, default_
         text_search.setup(OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=True, user=default_user)
 
     # Assert
-    record = caplog.records[1]
-    assert "Created 10 new embeddings. Deleted 0 embeddings for user " in record.message
+    assert "Deleting all embeddings for file type org" in caplog.records[1].message
+    assert "Created 10 new embeddings. Deleted 3 embeddings for user " in caplog.records[2].message
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -79,12 +79,14 @@ def test_text_index_same_if_content_unchanged(
 
     # Act
     # Generate initial notes embeddings during asymmetric setup
-    text_search.setup(OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=True, user=default_user)
+    with caplog.at_level(logging.INFO):
+        text_search.setup(OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=True, user=default_user)
     initial_logs = caplog.text
     caplog.clear()  # Clear logs
 
     # Run asymmetric setup again with no changes to data source. Ensure index is not updated
-    text_search.setup(OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=False, user=default_user)
+    with caplog.at_level(logging.INFO):
+        text_search.setup(OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=False, user=default_user)
     final_logs = caplog.text
 
     # Assert
@@ -241,7 +243,7 @@ def test_regenerate_index_with_new_entry(
     with caplog.at_level(logging.INFO):
         text_search.setup(OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=True, user=default_user)
 
-    assert "Created 10 new embeddings. Deleted 0 embeddings for user " in caplog.records[2].message
+    assert "Created 10 new embeddings. Deleted 3 embeddings for user " in caplog.records[2].message
 
     # append org-mode entry to first org input file in config
     org_config.input_files = [f"{new_org_file}"]
@@ -257,21 +259,13 @@ def test_regenerate_index_with_new_entry(
 
     # Assert
     assert "Created 11 new embeddings. Deleted 10 embeddings for user " in caplog.records[-1].message
-
-    # verify new entry appended to index, without disrupting order or content of existing entries
-    # error_details = compare_index(initial_notes_model, regenerated_notes_model)
-    # if error_details:
-    #     pytest.fail(error_details, False)
-
-    # Cleanup
-    # reset input_files in config to empty list
-    # content_config.org.input_files = []
+    verify_embeddings(11, default_user)
 
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
 def test_update_index_with_duplicate_entries_in_stable_order(
-    org_config_with_only_new_file: LocalOrgConfig, search_models: SearchModels
+    org_config_with_only_new_file: LocalOrgConfig, search_models: SearchModels, default_user: KhojUser, caplog
 ):
     # Arrange
     new_file_to_index = Path(org_config_with_only_new_file.input_files[0])
@@ -285,31 +279,28 @@ def test_update_index_with_duplicate_entries_in_stable_order(
 
     # Act
     # load embeddings, entries, notes model after adding new org-mode file
-    initial_index = text_search.setup(
-        OrgToJsonl, data, org_config_with_only_new_file, search_models.text_search.bi_encoder, regenerate=True
-    )
+    with caplog.at_level(logging.INFO):
+        text_search.setup(OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=True, user=default_user)
 
     data = get_org_files(org_config_with_only_new_file)
 
     # update embeddings, entries, notes model after adding new org-mode file
-    updated_index = text_search.setup(
-        OrgToJsonl, data, org_config_with_only_new_file, search_models.text_search.bi_encoder, regenerate=False
-    )
+    with caplog.at_level(logging.INFO):
+        text_search.setup(OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=False, user=default_user)
 
     # Assert
     # verify only 1 entry added even if there are multiple duplicate entries
-    assert len(initial_index.entries) == len(updated_index.entries) == 1
-    assert len(initial_index.corpus_embeddings) == len(updated_index.corpus_embeddings) == 1
+    assert "Created 1 new embeddings. Deleted 3 embeddings for user " in caplog.records[2].message
+    assert "Created 0 new embeddings. Deleted 0 embeddings for user " in caplog.records[4].message
 
-    # verify the same entry is added even when there are multiple duplicate entries
-    error_details = compare_index(initial_index, updated_index)
-    if error_details:
-        pytest.fail(error_details)
+    verify_embeddings(1, default_user)
 
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_update_index_with_deleted_entry(org_config_with_only_new_file: LocalOrgConfig, search_models: SearchModels):
+def test_update_index_with_deleted_entry(
+    org_config_with_only_new_file: LocalOrgConfig, search_models: SearchModels, default_user: KhojUser, caplog
+):
     # Arrange
     new_file_to_index = Path(org_config_with_only_new_file.input_files[0])
 
@@ -320,9 +311,8 @@ def test_update_index_with_deleted_entry(org_config_with_only_new_file: LocalOrg
     data = get_org_files(org_config_with_only_new_file)
 
     # load embeddings, entries, notes model after adding new org file with 2 entries
-    initial_index = text_search.setup(
-        OrgToJsonl, data, org_config_with_only_new_file, search_models.text_search.bi_encoder, regenerate=True
-    )
+    with caplog.at_level(logging.INFO):
+        text_search.setup(OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=True, user=default_user)
 
     # update embeddings, entries, notes model after removing an entry from the org file
     with open(new_file_to_index, "w") as f:
@@ -331,88 +321,72 @@ def test_update_index_with_deleted_entry(org_config_with_only_new_file: LocalOrg
     data = get_org_files(org_config_with_only_new_file)
 
     # Act
-    updated_index = text_search.setup(
-        OrgToJsonl, data, org_config_with_only_new_file, search_models.text_search.bi_encoder, regenerate=False
-    )
+    with caplog.at_level(logging.INFO):
+        text_search.setup(OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=False, user=default_user)
 
     # Assert
     # verify only 1 entry added even if there are multiple duplicate entries
-    assert len(initial_index.entries) == len(updated_index.entries) + 1
-    assert len(initial_index.corpus_embeddings) == len(updated_index.corpus_embeddings) + 1
+    assert "Created 2 new embeddings. Deleted 3 embeddings for user " in caplog.records[2].message
+    assert "Created 0 new embeddings. Deleted 1 embeddings for user " in caplog.records[4].message
 
-    # verify the same entry is added even when there are multiple duplicate entries
-    error_details = compare_index(updated_index, initial_index)
-    if error_details:
-        pytest.fail(error_details)
+    verify_embeddings(1, default_user)
 
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_update_index_with_new_entry(content_config: ContentConfig, search_models: SearchModels, new_org_file: Path):
+def test_update_index_with_new_entry(
+    content_config: ContentConfig, search_models: SearchModels, new_org_file: Path, default_user: KhojUser, caplog
+):
     # Arrange
-    data = get_org_files(content_config.org)
-    initial_notes_model = text_search.setup(
-        OrgToJsonl, data, content_config.org, search_models.text_search.bi_encoder, regenerate=True, normalize=False
-    )
+    org_config = LocalOrgConfig.objects.filter(user=default_user).first()
+    data = get_org_files(org_config)
+    with caplog.at_level(logging.INFO):
+        text_search.setup(
+            OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=True, normalize=False, user=default_user
+        )
 
     # append org-mode entry to first org input file in config
     with open(new_org_file, "w") as f:
         new_entry = "\n* A Chihuahua doing Tango\n- Saw a super cute video of a chihuahua doing the Tango on Youtube\n"
         f.write(new_entry)
 
-    data = get_org_files(content_config.org)
+    data = get_org_files(org_config)
 
     # Act
     # update embeddings, entries with the newly added note
-    content_config.org.input_files = [f"{new_org_file}"]
-    final_notes_model = text_search.setup(
-        OrgToJsonl, data, content_config.org, search_models.text_search.bi_encoder, regenerate=False, normalize=False
-    )
+    with caplog.at_level(logging.INFO):
+        text_search.setup(
+            OrgToJsonl, data, search_models.text_search.bi_encoder, regenerate=False, normalize=False, user=default_user
+        )
 
     # Assert
-    assert len(final_notes_model.entries) == len(initial_notes_model.entries) + 1
-    assert len(final_notes_model.corpus_embeddings) == len(initial_notes_model.corpus_embeddings) + 1
+    assert "Created 10 new embeddings. Deleted 3 embeddings for user " in caplog.records[2].message
+    assert "Created 1 new embeddings. Deleted 0 embeddings for user " in caplog.records[4].message
 
-    # verify new entry appended to index, without disrupting order or content of existing entries
-    error_details = compare_index(initial_notes_model, final_notes_model)
-    if error_details:
-        pytest.fail(error_details, False)
-
-    # Cleanup
-    # reset input_files in config to empty list
-    content_config.org.input_files = []
+    verify_embeddings(11, default_user)
 
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.skipif(os.getenv("GITHUB_PAT_TOKEN") is None, reason="GITHUB_PAT_TOKEN not set")
-def test_text_search_setup_github(content_config: ContentConfig, search_models: SearchModels):
+def test_text_search_setup_github(content_config: ContentConfig, search_models: SearchModels, default_user: KhojUser):
+    # Arrange
+    github_config = GithubConfig.objects.filter(user=default_user).first()
     # Act
     # Regenerate github embeddings to test asymmetric setup without caching
-    github_model = text_search.setup(
-        GithubToJsonl, content_config.github, search_models.text_search.bi_encoder, regenerate=True
+    text_search.setup(
+        GithubToJsonl,
+        {},
+        search_models.text_search.bi_encoder,
+        regenerate=True,
+        user=default_user,
+        config=github_config,
     )
 
     # Assert
-    assert len(github_model.entries) > 1
+    embeddings = Embeddings.objects.filter(user=default_user, file_type="github").count()
+    assert embeddings > 1
 
 
-def compare_index(initial_notes_model, final_notes_model):
-    mismatched_entries, mismatched_embeddings = [], []
-    for index in range(len(initial_notes_model.entries)):
-        if initial_notes_model.entries[index].to_json() != final_notes_model.entries[index].to_json():
-            mismatched_entries.append(index)
-
-    # verify new entry embedding appended to embeddings tensor, without disrupting order or content of existing embeddings
-    for index in range(len(initial_notes_model.corpus_embeddings)):
-        if not initial_notes_model.corpus_embeddings[index].allclose(final_notes_model.corpus_embeddings[index]):
-            mismatched_embeddings.append(index)
-
-    error_details = ""
-    if mismatched_entries:
-        mismatched_entries_str = ",".join(map(str, mismatched_entries))
-        error_details += f"Entries at {mismatched_entries_str} not equal\n"
-    if mismatched_embeddings:
-        mismatched_embeddings_str = ", ".join(map(str, mismatched_embeddings))
-        error_details += f"Embeddings at {mismatched_embeddings_str} not equal\n"
-
-    return error_details
+def verify_embeddings(expected_count, user):
+    embeddings = Embeddings.objects.filter(user=user, file_type="org").count()
+    assert embeddings == expected_count

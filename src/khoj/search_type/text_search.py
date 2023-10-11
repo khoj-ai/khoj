@@ -27,13 +27,13 @@ from database.models import KhojUser, Embeddings
 logger = logging.getLogger(__name__)
 
 search_type_to_embeddings_type = {
-    SearchType.Org: Embeddings.EmbeddingsType.ORG,
-    SearchType.Markdown: Embeddings.EmbeddingsType.MARKDOWN,
-    SearchType.Plaintext: Embeddings.EmbeddingsType.PLAINTEXT,
-    SearchType.Pdf: Embeddings.EmbeddingsType.PDF,
-    SearchType.Github: Embeddings.EmbeddingsType.GITHUB,
-    SearchType.Notion: Embeddings.EmbeddingsType.NOTION,
-    SearchType.All: None,
+    SearchType.Org.value: Embeddings.EmbeddingsType.ORG,
+    SearchType.Markdown.value: Embeddings.EmbeddingsType.MARKDOWN,
+    SearchType.Plaintext.value: Embeddings.EmbeddingsType.PLAINTEXT,
+    SearchType.Pdf.value: Embeddings.EmbeddingsType.PDF,
+    SearchType.Github.value: Embeddings.EmbeddingsType.GITHUB,
+    SearchType.Notion.value: Embeddings.EmbeddingsType.NOTION,
+    SearchType.All.value: None,
 }
 
 
@@ -143,7 +143,7 @@ async def query(
 ) -> Tuple[List[dict], List[Entry]]:
     "Search for entries that answer the query"
 
-    file_type = search_type_to_embeddings_type[type]
+    file_type = search_type_to_embeddings_type[type.value]
 
     query = raw_query
 
