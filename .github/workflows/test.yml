@@ -10,6 +10,8 @@ on:
       - .pre-commit-config.yml
       - .github/workflows/test.yml
   push:
+    branches:
+      - master
     paths:
       - src/khoj/**
       - tests/**
@@ -50,6 +52,16 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python_version }}
+
+      - name: Install Git
+        run: |
+          apt update && apt install -y git
+
+      - name: ⏬️ Install Dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt update && apt install -y libegl1 sqlite3 libsqlite3-dev libsqlite3-0
 
       - name: ⬇️ Install Postgres
         env:
