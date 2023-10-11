@@ -56,7 +56,7 @@ jobs:
 
       - name: ⏬️ Install Dependencies
         run: |
-          sudo apt update && sudo apt install -y libegl1 sqlite3 libsqlite3-0 && sudo apt install -y postgresql postgresql-client && sudo apt install postgresql-server-dev-14 && git clone https://github.com/ankane/pgvector.git && cd pg vector && make && sudo make install
+          sudo apt update && sudo apt install -y libegl1 sqlite3 libsqlite3-dev libsqlite3-0 && sudo apt install -y postgresql postgresql-client && sudo apt install postgresql-server-dev-14 && git clone https://github.com/ankane/pgvector.git && cd pg vector && make && sudo make install
 
       - name: ⬇️ Install pip
         run: |
