@@ -250,8 +250,6 @@ if not state.demo:
             state.content_index.github = None
         elif content_type == "notion":
             state.content_index.notion = None
-        elif content_type == "plugins":
-            state.content_index.plugins = None
         elif content_type == "pdf":
             state.content_index.pdf = None
         elif content_type == "markdown":

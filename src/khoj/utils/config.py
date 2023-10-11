@@ -70,14 +70,12 @@ class ContentIndex:
     notion: Optional[TextContent] = None
     image: Optional[ImageContent] = None
     plaintext: Optional[TextContent] = None
-    plugins: Optional[Dict[str, TextContent]] = None
 
 
 @dataclass
 class SearchModels:
     text_search: Optional[TextSearchModel] = None
     image_search: Optional[ImageSearchModel] = None
-    plugin_search: Optional[Dict[str, TextSearchModel]] = None
 
 
 @dataclass

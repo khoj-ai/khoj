@@ -133,7 +133,6 @@ async def index_batch(
                 github=None,
                 notion=None,
                 plaintext=None,
-                plugins=None,
             )
             state.config.content_type = default_content_config
             save_config_to_file_updated_state()

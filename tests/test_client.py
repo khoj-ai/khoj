@@ -82,7 +82,7 @@ def test_index_batch(client):
 
 # ----------------------------------------------------------------------------------------------------
 def test_regenerate_with_valid_content_type(client):
-    for content_type in ["all", "org", "markdown", "image", "pdf", "notion", "plugin1"]:
+    for content_type in ["all", "org", "markdown", "image", "pdf", "notion"]:
         # Arrange
         request_body = get_sample_files_data()
 
