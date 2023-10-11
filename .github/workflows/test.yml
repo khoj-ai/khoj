@@ -51,20 +51,6 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
 
-      - name: Install Git
-        run: |
-          apt update && apt install -y git
-
-      - name: Install Make, GCC
-        run: |
-          apt install -y make build-essential
-
-      - name: ⏬️ Install Dependencies
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: |
-          apt update && apt install -y libegl1 sqlite3 libsqlite3-dev libsqlite3-0
-
       - name: ⬇️ Install Postgres
         env:
           DEBIAN_FRONTEND: noninteractive
