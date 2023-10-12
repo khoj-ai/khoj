@@ -38,14 +38,14 @@ def test_text_search_setup_with_missing_file_raises_error(
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
 def test_text_search_setup_with_empty_file_raises_error(
-    org_config_with_only_new_file: LocalOrgConfig, search_config: SearchConfig, default_user: KhojUser, caplog
+    org_config_with_only_new_file: LocalOrgConfig, default_user: KhojUser, caplog
 ):
     # Arrange
     data = get_org_files(org_config_with_only_new_file)
     # Act
     # Generate notes embeddings during asymmetric setup
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, search_config.asymmetric, regenerate=True, user=default_user)
+        text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
 
     assert "Created 0 new embeddings. Deleted 3 embeddings for user " in caplog.records[2].message
     verify_embeddings(0, default_user)
