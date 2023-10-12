@@ -92,6 +92,10 @@
   :group 'khoj
   :type 'number)
 
+(defcustom khoj-server-api-key "secret"
+  "API Key to Khoj server."
+  :group 'khoj
+  :type 'string)
 
 (defcustom khoj-default-content-type "org"
   "The default content type to perform search on."
@@ -374,7 +378,7 @@ CONFIG is json obtained from Khoj config API."
           (string-join "/"))))
 
 (defun khoj--server-configure ()
-  "Configure the the Khoj server for search and chat."
+  "Configure the Khoj server for search and chat."
   (interactive)
   (let* ((org-directory-regexes (or (mapcar (lambda (dir) (format "%s/**/*.org" dir)) khoj-org-directories) json-null))
          (current-config
@@ -388,7 +392,6 @@ CONFIG is json obtained from Khoj config API."
          (default-index-dir (khoj--get-directory-from-config default-config '(content-type org embeddings-file)))
          (default-chat-dir (khoj--get-directory-from-config default-config '(processor conversation conversation-logfile)))
          (chat-model (or khoj-chat-model (alist-get 'chat-model (alist-get 'openai (alist-get 'conversation (alist-get 'processor default-config))))))
-         (default-model (alist-get 'model (alist-get 'conversation (alist-get 'processor default-config))))
          (enable-offline-chat (or khoj-chat-offline (alist-get 'enable-offline-chat (alist-get 'conversation (alist-get 'processor default-config)))))
          (config (or current-config default-config)))
 
@@ -516,6 +519,45 @@ CONFIG is json obtained from Khoj config API."
 
       ;; Configure server once it's ready
       (khoj--server-configure))))
+
+
+;; -------------------
+;; Khoj Index Content
+;; -------------------
+
+(defun khoj--server-index-files (&optional file-paths)
+  "Send files to the Khoj server to index for search and chat."
+  (interactive)
+  (let ((boundary (format "-------------------------%d" (random (expt 10 10))))
+        (files-to-index (or file-paths
+                            (append (mapcan (lambda (dir) (directory-files-recursively dir "\\.org$")) khoj-org-directories) khoj-org-files))))
+
+    (let* ((url-request-method "POST")
+           (url-request-extra-headers `(("content-type" . ,(format "multipart/form-data; boundary=%s" boundary))
+                                        ("x-api-key" . ,khoj-server-api-key)))
+           ;; add files to index as form data
+           (url-request-data (with-temp-buffer
+                               (set-buffer-multibyte t)
+                               (insert "\n")
+                               (dolist (file-to-index files-to-index)
+                                 (insert (format "--%s\r\n" boundary))
+                                 (insert (format "Content-Disposition: form-data; name=\"files\"; filename=\"%s\"\r\n" file-to-index))
+                                 (insert "Content-Type: text/org\r\n\r\n")
+                                 (insert (with-temp-buffer
+                                           (insert-file-contents-literally file-to-index)
+                                           (buffer-string)))
+                                 (insert "\r\n"))
+                               (insert (format "--%s--\r\n" boundary))
+                               (buffer-string))))
+      (with-current-buffer
+          (url-retrieve (format "%s/api/v1/indexer/batch" khoj-server-url)
+                        ;; render response from indexing API endpoint on server
+                        (lambda (status)
+                          (with-current-buffer (current-buffer)
+                            (goto-char url-http-end-of-headers)
+                            (message "khoj.el: status: %s. response: %s" status (string-trim (buffer-substring-no-properties (point) (point-max))))))
+                        nil t t)))))
+
 
 
 ;; -----------------------------------------------
