@@ -85,6 +85,7 @@ async def index_batch(
         index_batch_request = IndexBatchRequest.parse_raw(index_batch_request_acc)
         logger.info(f"Received {len(index_batch_request.files)} files")
 
+        logger.info("📬 Updating content index via API")
         org_files: Dict[str, str] = {}
         markdown_files: Dict[str, str] = {}
         pdf_files: Dict[str, str] = {}
@@ -115,7 +116,7 @@ async def index_batch(
         )
 
         if state.config == None:
-            logger.info("First run, initializing state.")
+            logger.info("📬 Initializing content index on first run.")
             default_full_config = FullConfig(
                 content_type=None,
                 search_type=SearchConfig.parse_obj(constants.default_config["search-type"]),
@@ -148,9 +149,10 @@ async def index_batch(
         )
 
     except Exception as e:
-        logger.error(f"Failed to process batch indexing request: {e}", exc_info=True)
+        logger.error(f"🚨 Failed to update content index via API: {e}", exc_info=True)
     finally:
         state.config_lock.release()
+    logger.info("📪 Content index updated via API")
     return Response(content="OK", status_code=200)
 
 

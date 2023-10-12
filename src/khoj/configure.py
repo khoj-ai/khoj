@@ -117,7 +117,7 @@ if not state.demo:
             state.content_index = configure_content(
                 state.content_index, state.config.content_type, all_files, state.search_models
             )
-            logger.info("📬 Content index updated via Scheduler")
+            logger.info("📪 Content index updated via Scheduler")
         except Exception as e:
             logger.error(f"🚨 Error updating content index via Scheduler: {e}", exc_info=True)
 
