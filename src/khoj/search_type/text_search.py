@@ -228,8 +228,10 @@ def setup(
             files=files, full_corpus=full_corpus, user=user, regenerate=regenerate
         )
 
+    file_names = [file_name for file_name in files]
+
     logger.info(
-        f"Created {num_new_embeddings} new embeddings. Deleted {num_deleted_embeddings} embeddings for user {user} and files {files}"
+        f"Created {num_new_embeddings} new embeddings. Deleted {num_deleted_embeddings} embeddings for user {user} and files {file_names}"
     )
 
     # TODO: Update the way filters are applied

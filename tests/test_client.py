@@ -3,16 +3,11 @@ from io import BytesIO
 from PIL import Image
 from urllib.parse import quote
 import pytest
-import os
-import django
 
 # External Packages
 from fastapi.testclient import TestClient
 from fastapi import FastAPI
 
-# os.environ.setdefault("DJANGO_SETTINGS_MODULE", "app.settings")
-# django.setup()
-# app = FastAPI()
 
 # Internal Packages
 from khoj.configure import configure_routes, configure_search_types
@@ -23,7 +18,7 @@ from khoj.utils.rawconfig import ContentConfig, SearchConfig
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.search_filter.word_filter import WordFilter
 from khoj.search_filter.file_filter import FileFilter
-from database.models import KhojUser, Embeddings
+from database.models import KhojUser
 from database.adapters import EmbeddingsAdapters
 
 

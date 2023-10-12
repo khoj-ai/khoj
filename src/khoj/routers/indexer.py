@@ -2,6 +2,7 @@
 import logging
 import sys
 from typing import Optional, Union, Dict
+import asyncio
 
 # External Packages
 from fastapi import APIRouter, HTTPException, Header, Request, Response
@@ -138,17 +139,20 @@ async def index_batch(
             configure_search(state.search_models, state.config.search_type)
 
         # Extract required fields from config
-        state.content_index = configure_content(
+        loop = asyncio.get_event_loop()
+        state.content_index = await loop.run_in_executor(
+            None,
+            configure_content,
             state.content_index,
             state.config.content_type,
             indexer_input.dict(),
             state.search_models,
-            regenerate=regenerate,
-            t=search_type,
-            full_corpus=False,
-            user=user,
+            regenerate,
+            search_type,
+            False,
+            user,
         )
-
+        logger.info(f"Finished processing batch indexing request")
     except Exception as e:
         logger.error(f"Failed to process batch indexing request: {e}", exc_info=True)
     return Response(content="OK", status_code=200)
