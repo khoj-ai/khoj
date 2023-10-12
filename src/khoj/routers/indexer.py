@@ -1,10 +1,9 @@
 # Standard Packages
 import logging
-import sys
 from typing import Optional, Union, Dict
 
 # External Packages
-from fastapi import APIRouter, HTTPException, Header, Request, Body, Response
+from fastapi import APIRouter, HTTPException, Header, Response, UploadFile
 from pydantic import BaseModel
 
 # Internal Packages
@@ -58,7 +57,7 @@ class IndexerInput(BaseModel):
 
 @indexer.post("/batch")
 async def index_batch(
-    request: Request,
+    files: list[UploadFile],
     x_api_key: str = Header(None),
     regenerate: bool = False,
     search_type: Optional[Union[state.SearchType, str]] = None,
@@ -67,32 +66,14 @@ async def index_batch(
         raise HTTPException(status_code=401, detail="Invalid API Key")
     state.config_lock.acquire()
     try:
-        logger.info(f"Received batch indexing request")
-        index_batch_request_acc = b""
-        async for chunk in request.stream():
-            index_batch_request_acc += chunk
-        data_bytes = sys.getsizeof(index_batch_request_acc)
-        unit = "KB"
-        data_size = data_bytes / 1024
-        if data_size > 1000:
-            unit = "MB"
-            data_size = data_size / 1024
-        if data_size > 1000:
-            unit = "GB"
-            data_size = data_size / 1024
-        data_size_metric = f"{data_size:.2f} {unit}"
-        logger.info(f"Received {data_size_metric} of data")
-        index_batch_request = IndexBatchRequest.parse_raw(index_batch_request_acc)
-        logger.info(f"Received {len(index_batch_request.files)} files")
-
         logger.info("📬 Updating content index via API")
         org_files: Dict[str, str] = {}
         markdown_files: Dict[str, str] = {}
         pdf_files: Dict[str, str] = {}
         plaintext_files: Dict[str, str] = {}
 
-        for file in index_batch_request.files:
-            file_type = get_file_type(file.path)
+        for file in files:
+            file_type = get_file_type(file.content_type)
             dict_to_update = None
             if file_type == "org":
                 dict_to_update = org_files
@@ -104,9 +85,9 @@ async def index_batch(
                 dict_to_update = plaintext_files
 
             if dict_to_update is not None:
-                dict_to_update[file.path] = file.content
+                dict_to_update[file.filename] = file.file.read().decode("utf-8")
             else:
-                logger.info(f"Skipping unsupported streamed file: {file.path}")
+                logger.warning(f"Skipped indexing unsupported file type sent by client: {file.filename}")
 
         indexer_input = IndexerInput(
             org=org_files,

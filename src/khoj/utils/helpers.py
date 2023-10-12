@@ -66,20 +66,24 @@ def merge_dicts(priority_dict: dict, default_dict: dict):
     return merged_dict
 
 
-def get_file_type(filepath: str) -> str:
-    "Get file type from file path"
-    file_type = Path(filepath).suffix[1:]
+def get_file_type(file_type: str) -> str:
+    "Get file type from file mime type"
 
-    if file_type in ["md", "markdown"]:
+    file_type = file_type.split(";")[0].strip() if ";" in file_type else file_type
+    if file_type in ["text/markdown"]:
         return "markdown"
-    elif file_type in ["org", "orgmode"]:
+    elif file_type in ["text/org"]:
         return "org"
-    elif file_type in ["txt", "text", "html", "xml", "htm", "rst"]:
-        return "plaintext"
-    elif file_type in ["pdf"]:
+    elif file_type in ["application/pdf"]:
         return "pdf"
-
-    return file_type
+    elif file_type in ["image/jpeg"]:
+        return "jpeg"
+    elif file_type in ["image/png"]:
+        return "png"
+    elif file_type in ["text/plain", "text/html", "application/xml", "text/x-rst"]:
+        return "plaintext"
+    else:
+        return "other"
 
 
 def load_model(
