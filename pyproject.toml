@@ -79,6 +79,7 @@ test = [
     "freezegun >= 1.2.0",
     "factory-boy >= 3.2.1",
     "trio >= 0.22.0",
+    "pytest-xdist",
 ]
 dev = [
     "khoj-assistant[test]",
@@ -111,7 +112,7 @@ warn_unused_ignores = false
 line-length = 120
 
 [tool.pytest.ini_options]
-addopts = "--strict-markers"
+addopts = "--strict-markers -n 4"
 markers = [
     "chatquality: Evaluate chatbot capabilities and quality",
 ]
