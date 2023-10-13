@@ -4,7 +4,7 @@ import uuid
 from django.db import models
 from django.contrib.sessions.backends.db import SessionStore
 from pgvector.django import CosineDistance
-from django.contrib.postgres.search import SearchQuery, SearchVector, SearchRank
+from django.db.models import Q
 from torch import Tensor
 
 # Import sync_to_async from Django Channels

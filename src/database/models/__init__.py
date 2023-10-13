@@ -3,7 +3,6 @@ import uuid
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from pgvector.django import VectorField, IvfflatIndex
-from django.contrib.postgres.indexes import GinIndex
 
 
 class BaseModel(models.Model):
@@ -110,8 +109,3 @@ class Embeddings(BaseModel):
     url = models.URLField(max_length=400, default=None, null=True, blank=True)
     hashed_value = models.CharField(max_length=100)
     corpus_id = models.UUIDField(default=uuid.uuid4, editable=False)
-
-    # class Meta:
-    #     indexes = [
-    #         GinIndex(fields=["raw"], name="raw_gin_idx", opclasses=["btree_gin"]),
-    #     ]
