@@ -60,7 +60,7 @@ def test_get_word_filter_terms():
     filter_terms = word_filter.get_filter_terms(query_with_include_and_exclude_filter)
 
     # Assert
-    assert filter_terms == (["include_word"], ["exclude_word"])
+    assert filter_terms == ["+include_word", "-exclude_word"]
 
 
 def arrange_content():

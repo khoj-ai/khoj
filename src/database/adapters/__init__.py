@@ -155,16 +155,17 @@ class EmbeddingsAdapters:
     def apply_filters(user: KhojUser, query: str, file_type_filter: str = None):
         q_filter_terms = Q()
 
-        required_terms, blocked_terms = EmbeddingsAdapters.word_filer.get_filter_terms(query)
+        explicit_word_terms = EmbeddingsAdapters.word_filer.get_filter_terms(query)
         file_filters = EmbeddingsAdapters.file_filter.get_filter_terms(query)
 
-        if len(required_terms) == 0 and len(blocked_terms) == 0 and len(file_filters) == 0:
+        if len(explicit_word_terms) == 0 and len(file_filters) == 0:
             return Embeddings.objects.filter(user=user)
 
-        for term in required_terms:
-            q_filter_terms &= Q(raw__icontains=term)
-        for term in blocked_terms:
-            q_filter_terms &= ~Q(raw__icontains=term)
+        for term in explicit_word_terms:
+            if term.startswith("+"):
+                q_filter_terms &= Q(raw__icontains=term[1:])
+            elif term.startswith("-"):
+                q_filter_terms &= ~Q(raw__icontains=term[1:])
 
         # if len(file_filters) > 0:
         #     q_filter_terms &= Q(file_name__regex=f"({'|'.join(file_filters)})")
