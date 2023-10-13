@@ -387,7 +387,7 @@ async def search(
     # Encode query with filter terms removed
     defiltered_query = user_query
     for filter in [DateFilter(), WordFilter(), FileFilter()]:
-        defiltered_query = filter.defilter(user_query)
+        defiltered_query = filter.defilter(defiltered_query)
 
     encoded_asymmetric_query = None
     if t == SearchType.All or t != SearchType.Image:
