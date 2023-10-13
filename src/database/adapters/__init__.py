@@ -1,5 +1,6 @@
 from typing import Type, TypeVar, List
 import uuid
+from datetime import date
 
 from django.db import models
 from django.contrib.sessions.backends.db import SessionStore
@@ -13,9 +14,18 @@ from asgiref.sync import sync_to_async
 
 from fastapi import HTTPException
 
-from database.models import KhojUser, GoogleUser, NotionConfig, GithubConfig, Embeddings, GithubRepoConfig
+from database.models import (
+    KhojUser,
+    GoogleUser,
+    NotionConfig,
+    GithubConfig,
+    Embeddings,
+    GithubRepoConfig,
+    EmbeddingsDates,
+)
 from khoj.search_filter.word_filter import WordFilter
 from khoj.search_filter.file_filter import FileFilter
+from khoj.search_filter.date_filter import DateFilter
 
 ModelType = TypeVar("ModelType", bound=models.Model)
 
@@ -128,6 +138,7 @@ async def set_user_github_config(user: KhojUser, pat_token: str, repos: list):
 class EmbeddingsAdapters:
     word_filer = WordFilter()
     file_filter = FileFilter()
+    date_filter = DateFilter()
 
     @staticmethod
     def does_embedding_exist(user: KhojUser, hashed_value: str) -> bool:
@@ -152,13 +163,21 @@ class EmbeddingsAdapters:
         Embeddings.objects.filter(user=user, hashed_value__in=hashed_values).delete()
 
     @staticmethod
+    def get_embeddings_by_date_filter(embeddings: BaseManager[Embeddings], start_date: date, end_date: date):
+        return embeddings.filter(
+            embeddingsdates__date__gte=start_date,
+            embeddingsdates__date__lte=end_date,
+        )
+
+    @staticmethod
     def apply_filters(user: KhojUser, query: str, file_type_filter: str = None):
         q_filter_terms = Q()
 
         explicit_word_terms = EmbeddingsAdapters.word_filer.get_filter_terms(query)
         file_filters = EmbeddingsAdapters.file_filter.get_filter_terms(query)
+        date_filters = EmbeddingsAdapters.date_filter.get_query_date_range(query)
 
-        if len(explicit_word_terms) == 0 and len(file_filters) == 0:
+        if len(explicit_word_terms) == 0 and len(file_filters) == 0 and len(date_filters) == 0:
             return Embeddings.objects.filter(user=user)
 
         for term in explicit_word_terms:
@@ -179,6 +198,17 @@ class EmbeddingsAdapters:
                 q_file_filter_terms |= Q(file_path__regex=term)
 
             q_filter_terms &= q_file_filter_terms
+
+        if len(date_filters) > 0:
+            min_date, max_date = date_filters
+            if min_date is not None:
+                # Convert the min_date timestamp to yyyy-mm-dd format
+                formatted_min_date = date.fromtimestamp(min_date).strftime("%Y-%m-%d")
+                q_filter_terms &= Q(embeddings_dates__date__gte=formatted_min_date)
+            if max_date is not None:
+                # Convert the max_date timestamp to yyyy-mm-dd format
+                formatted_max_date = date.fromtimestamp(max_date).strftime("%Y-%m-%d")
+                q_filter_terms &= Q(embeddings_dates__date__lte=formatted_max_date)
 
         relevant_embeddings = Embeddings.objects.filter(user=user).filter(
             q_filter_terms,

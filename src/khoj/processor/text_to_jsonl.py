@@ -11,7 +11,8 @@ from khoj.utils.helpers import timer
 # Internal Packages
 from khoj.utils.rawconfig import Entry
 from khoj.processor.embeddings import EmbeddingsModel
-from database.models import KhojUser, Embeddings
+from khoj.search_filter.date_filter import DateFilter
+from database.models import KhojUser, Embeddings, EmbeddingsDates
 from database.adapters import EmbeddingsAdapters
 
 
@@ -22,6 +23,7 @@ class TextEmbeddings(ABC):
     def __init__(self, config: Any = None):
         self.embeddings_model = EmbeddingsModel()
         self.config = config
+        self.date_filter = DateFilter()
 
     @abstractmethod
     def process(
@@ -129,6 +131,20 @@ class TextEmbeddings(ABC):
                         )
                     new_embeddings = Embeddings.objects.bulk_create(embeddings_to_create)
                     num_new_embeddings += len(new_embeddings)
+
+                    dates_to_create = []
+                    with timer("Create new date associations for new embeddings", logger):
+                        for embedding in new_embeddings:
+                            dates = self.date_filter.extract_dates(embedding.raw)
+                            for date in dates:
+                                dates_to_create.append(
+                                    EmbeddingsDates(
+                                        date=date,
+                                        embeddings=embedding,
+                                    )
+                                )
+                        new_dates = EmbeddingsDates.objects.bulk_create(dates_to_create)
+                        logger.info(f"Created {len(new_dates)} new date entries")
 
         with timer("Identify hashes for removed entries", logger):
             for file in hashes_by_file:

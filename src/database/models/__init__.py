@@ -109,3 +109,13 @@ class Embeddings(BaseModel):
     url = models.URLField(max_length=400, default=None, null=True, blank=True)
     hashed_value = models.CharField(max_length=100)
     corpus_id = models.UUIDField(default=uuid.uuid4, editable=False)
+
+
+class EmbeddingsDates(BaseModel):
+    date = models.DateField()
+    embeddings = models.ForeignKey(Embeddings, on_delete=models.CASCADE, related_name="embeddings_dates")
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["date"]),
+        ]
