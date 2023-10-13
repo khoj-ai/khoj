@@ -389,6 +389,7 @@ CONFIG is json obtained from Khoj config API."
   "Configure the Khoj server for search and chat."
   (interactive)
   (let* ((org-directory-regexes (or (mapcar (lambda (dir) (format "%s/**/*.org" dir)) khoj-org-directories) json-null))
+         (url-request-method "GET")
          (current-config
           (with-temp-buffer
             (url-insert-file-contents (format "%s/api/config/data" khoj-server-url))
@@ -573,9 +574,9 @@ CONFIG is json obtained from Khoj config API."
       (run-with-timer 60 khoj-index-interval 'khoj--server-index-files))
 
 
-;; -----------------------------------------------
-;; Extract and Render Entries of each Content Type
-;; -----------------------------------------------
+;; -------------------------------------------
+;; Render Response from Khoj server for Emacs
+;; -------------------------------------------
 
 (defun khoj--extract-entries-as-markdown (json-response query)
   "Convert JSON-RESPONSE, QUERY from API to markdown entries."
