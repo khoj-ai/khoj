@@ -92,6 +92,10 @@ async def retrieve_user(session_id: str) -> KhojUser:
     return user
 
 
+def get_all_users() -> BaseManager[KhojUser]:
+    return KhojUser.objects.all()
+
+
 def get_user_github_config(user: KhojUser):
     config = GithubConfig.objects.filter(user=user).prefetch_related("githubrepoconfig").first()
     if not config:

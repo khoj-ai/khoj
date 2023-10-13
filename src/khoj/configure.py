@@ -30,6 +30,7 @@ from khoj.utils.fs_syncer import collect_files
 from khoj.utils.rawconfig import FullConfig, ProcessorConfig, ConversationProcessorConfig
 from khoj.routers.indexer import configure_content, load_content, configure_search
 from database.models import KhojUser
+from database.adapters import get_all_users
 
 
 logger = logging.getLogger(__name__)
@@ -171,9 +172,14 @@ if not state.demo:
     def update_search_index():
         try:
             logger.info("📬 Updating content index via Scheduler")
-            all_files = collect_files()
+            for user in get_all_users():
+                all_files = collect_files(user=user)
+                state.content_index = configure_content(
+                    state.content_index, state.config.content_type, all_files, state.search_models, user=user
+                )
+            all_files = collect_files(user=None)
             state.content_index = configure_content(
-                state.content_index, state.config.content_type, all_files, state.search_models
+                state.content_index, state.config.content_type, all_files, state.search_models, user=None
             )
             logger.info("📬 Content index updated via Scheduler")
         except Exception as e:

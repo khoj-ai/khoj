@@ -16,8 +16,6 @@ from khoj.utils.state import search_models, content_index, config
 from khoj.search_type import text_search, image_search
 from khoj.utils.rawconfig import ContentConfig, SearchConfig
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
-from khoj.search_filter.word_filter import WordFilter
-from khoj.search_filter.file_filter import FileFilter
 from database.models import KhojUser
 from database.adapters import EmbeddingsAdapters
 
@@ -203,12 +201,10 @@ def test_notes_search_with_only_filters(
     client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data
 ):
     # Arrange
-    filters = [WordFilter(), FileFilter()]
     text_search.setup(
         OrgToJsonl,
         sample_org_data,
         regenerate=False,
-        filters=filters,
     )
     user_query = quote('+"Emacs" file:"*.org"')
 
@@ -226,8 +222,7 @@ def test_notes_search_with_only_filters(
 @pytest.mark.django_db(transaction=True)
 def test_notes_search_with_include_filter(client, sample_org_data):
     # Arrange
-    filters = [WordFilter()]
-    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False, filters=filters)
+    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False)
     user_query = quote('How to git install application? +"Emacs"')
 
     # Act
@@ -244,12 +239,10 @@ def test_notes_search_with_include_filter(client, sample_org_data):
 @pytest.mark.django_db(transaction=True)
 def test_notes_search_with_exclude_filter(client, sample_org_data):
     # Arrange
-    filters = [WordFilter()]
     text_search.setup(
         OrgToJsonl,
         sample_org_data,
         regenerate=False,
-        filters=filters,
     )
     user_query = quote('How to git install application? -"clone"')
 
@@ -267,8 +260,7 @@ def test_notes_search_with_exclude_filter(client, sample_org_data):
 @pytest.mark.django_db(transaction=True)
 def test_different_user_data_not_accessed(client, sample_org_data, default_user: KhojUser):
     # Arrange
-    filters = [WordFilter()]
-    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False, filters=filters, user=default_user)
+    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False, user=default_user)
     user_query = quote("How to git install application?")
 
     # Act

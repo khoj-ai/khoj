@@ -208,7 +208,6 @@ def configure_content(
                 OrgToJsonl,
                 files.get("org"),
                 regenerate=regenerate,
-                filters=[DateFilter(), WordFilter(), FileFilter()],
                 full_corpus=full_corpus,
                 user=user,
             )
@@ -224,7 +223,6 @@ def configure_content(
                 MarkdownToJsonl,
                 files.get("markdown"),
                 regenerate=regenerate,
-                filters=[DateFilter(), WordFilter(), FileFilter()],
                 full_corpus=full_corpus,
                 user=user,
             )
@@ -241,7 +239,6 @@ def configure_content(
                 PdfToJsonl,
                 files.get("pdf"),
                 regenerate=regenerate,
-                filters=[DateFilter(), WordFilter(), FileFilter()],
                 full_corpus=full_corpus,
                 user=user,
             )
@@ -258,7 +255,6 @@ def configure_content(
                 PlaintextToJsonl,
                 files.get("plaintext"),
                 regenerate=regenerate,
-                filters=[DateFilter(), WordFilter(), FileFilter()],
                 full_corpus=full_corpus,
                 user=user,
             )
@@ -287,7 +283,6 @@ def configure_content(
                 GithubToJsonl,
                 None,
                 regenerate=regenerate,
-                filters=[DateFilter(), WordFilter(), FileFilter()],
                 full_corpus=full_corpus,
                 user=user,
                 config=github_config,
@@ -305,7 +300,6 @@ def configure_content(
                 NotionToJsonl,
                 None,
                 regenerate=regenerate,
-                filters=[DateFilter(), WordFilter(), FileFilter()],
                 full_corpus=full_corpus,
                 user=user,
                 config=notion_config,
@@ -315,7 +309,8 @@ def configure_content(
         logger.error(f"🚨 Failed to setup GitHub: {e}", exc_info=True)
 
     # Invalidate Query Cache
-    state.query_cache = LRU()
+    if user:
+        state.query_cache[user.uuid] = LRU()
 
     return content_index
 
@@ -337,5 +332,4 @@ def load_content(
         content_index.image = image_search.setup(
             content_config.image, search_models.image_search.image_encoder, regenerate=False
         )
-    state.query_cache = LRU()
     return content_index

@@ -1,53 +1,12 @@
 # Standard Packages
 import re
 from datetime import datetime
-from math import inf
 
 # External Packages
 import pytest
 
 # Internal Packages
 from khoj.search_filter.date_filter import DateFilter
-from khoj.utils.rawconfig import Entry
-
-
-@pytest.mark.filterwarnings("ignore:The localize method is no longer necessary.")
-def test_date_filter():
-    entries = [
-        Entry(compiled="Entry with no date", raw="Entry with no date"),
-        Entry(compiled="April Fools entry: 1984-04-01", raw="April Fools entry: 1984-04-01"),
-        Entry(compiled="Entry with date:1984-04-02", raw="Entry with date:1984-04-02"),
-    ]
-
-    q_with_no_date_filter = "head tail"
-    ret_query, entry_indices = DateFilter().apply(q_with_no_date_filter, entries)
-    assert ret_query == "head tail"
-    assert entry_indices == {0, 1, 2}
-
-    q_with_dtrange_non_overlapping_at_boundary = 'head dt>"1984-04-01" dt<"1984-04-02" tail'
-    ret_query, entry_indices = DateFilter().apply(q_with_dtrange_non_overlapping_at_boundary, entries)
-    assert ret_query == "head tail"
-    assert entry_indices == set()
-
-    query_with_overlapping_dtrange = 'head dt>"1984-04-01" dt<"1984-04-03" tail'
-    ret_query, entry_indices = DateFilter().apply(query_with_overlapping_dtrange, entries)
-    assert ret_query == "head tail"
-    assert entry_indices == {2}
-
-    query_with_overlapping_dtrange = 'head dt>="1984-04-01" dt<"1984-04-02" tail'
-    ret_query, entry_indices = DateFilter().apply(query_with_overlapping_dtrange, entries)
-    assert ret_query == "head tail"
-    assert entry_indices == {1}
-
-    query_with_overlapping_dtrange = 'head dt>"1984-04-01" dt<="1984-04-02" tail'
-    ret_query, entry_indices = DateFilter().apply(query_with_overlapping_dtrange, entries)
-    assert ret_query == "head tail"
-    assert entry_indices == {2}
-
-    query_with_overlapping_dtrange = 'head dt>="1984-04-01" dt<="1984-04-02" tail'
-    ret_query, entry_indices = DateFilter().apply(query_with_overlapping_dtrange, entries)
-    assert ret_query == "head tail"
-    assert entry_indices == {1, 2}
 
 
 @pytest.mark.filterwarnings("ignore:The localize method is no longer necessary.")

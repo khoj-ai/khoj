@@ -114,8 +114,6 @@ async def test_text_search(search_config: SearchConfig):
         OrgToJsonl,
         data,
         True,
-        [],
-        True,
         True,
         default_user,
     )
@@ -324,7 +322,7 @@ def test_update_index_with_new_entry(content_config: ContentConfig, new_org_file
     org_config = LocalOrgConfig.objects.filter(user=default_user).first()
     data = get_org_files(org_config)
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, regenerate=True, normalize=False, user=default_user)
+        text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
 
     # append org-mode entry to first org input file in config
     with open(new_org_file, "w") as f:
@@ -336,7 +334,7 @@ def test_update_index_with_new_entry(content_config: ContentConfig, new_org_file
     # Act
     # update embeddings, entries with the newly added note
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, regenerate=False, normalize=False, user=default_user)
+        text_search.setup(OrgToJsonl, data, regenerate=False, user=default_user)
 
     # Assert
     assert "Created 10 new embeddings. Deleted 3 embeddings for user " in caplog.records[2].message

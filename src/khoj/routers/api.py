@@ -430,10 +430,11 @@ async def search(
     search_futures: List[concurrent.futures.Future] = []
 
     # return cached results, if available
-    query_cache_key = f"{user_query}-{n}-{t}-{r}-{score_threshold}-{dedupe}"
-    if query_cache_key in state.query_cache:
-        logger.debug(f"Return response from query cache")
-        return state.query_cache[query_cache_key]
+    if user:
+        query_cache_key = f"{user_query}-{n}-{t}-{r}-{score_threshold}-{dedupe}"
+        if query_cache_key in state.query_cache[user.uuid]:
+            logger.debug(f"Return response from query cache")
+            return state.query_cache[user.uuid][query_cache_key]
 
     # Encode query with filter terms removed
     defiltered_query = user_query
@@ -468,7 +469,6 @@ async def search(
                     question_embedding=encoded_asymmetric_query,
                     rank_results=r or False,
                     score_threshold=score_threshold,
-                    dedupe=dedupe or True,
                 )
             ]
 
@@ -502,13 +502,14 @@ async def search(
                 else:
                     hits = await search_future.result()
                     # Collate results
-                    results += text_search.collate_results(hits)
+                    results += text_search.collate_results(hits, dedupe=dedupe)
 
             # Sort results across all content types and take top results
             results = sorted(results, key=lambda x: float(x.score))[:results_count]
 
     # Cache results
-    state.query_cache[query_cache_key] = results
+    if user:
+        state.query_cache[user.uuid][query_cache_key] = results
 
     update_telemetry_state(
         request=request,
@@ -519,8 +520,6 @@ async def search(
         referer=referer,
         host=host,
     )
-
-    state.previous_query = user_query
 
     end_time = time.time()
     logger.debug(f"🔍 Search took: {end_time - start_time:.3f} seconds")

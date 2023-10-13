@@ -138,24 +138,12 @@ async def query(
     question_embedding: Union[torch.Tensor, None] = None,
     rank_results: bool = False,
     score_threshold: float = -math.inf,
-    dedupe: bool = True,
 ) -> Tuple[List[dict], List[Entry]]:
     "Search for entries that answer the query"
 
     file_type = search_type_to_embeddings_type[type.value]
 
     query = raw_query
-
-    # Filter query, entries and embeddings before semantic search
-    # query, entries, corpus_embeddings = apply_filters(query, entries, corpus_embeddings, content.filters)
-
-    # If no entries left after filtering, return empty results
-    # if entries is None or len(entries) == 0:
-    #     return [], []
-    # # If query only had filters it'll be empty now. So short-circuit and return results.
-    # if query.strip() == "":
-    #     hits = [{"corpus_id": id, "score": 1.0} for id, _ in enumerate(entries)]
-    #     return hits, entries
 
     # Encode the query using the bi-encoder
     if question_embedding is None:
@@ -173,29 +161,17 @@ async def query(
             raw_query=raw_query,
         ).all()
         hits = await sync_to_async(list)(hits)  # type: ignore[call-arg]
-        # hits = util.semantic_search(question_embedding, corpus_embeddings, top_k, score_function=util.dot_score)[0]
-
-    # Score all retrieved entries using the cross-encoder
-    # if rank_results and search_model.cross_encoder:
-    #     hits = cross_encoder_score(search_model.cross_encoder, query, entries, hits)
-
-    # Filter results by score threshold
-    # hits = [hit for hit in hits if hit.get("cross-score", hit.get("score")) >= score_threshold]
-
-    # Order results by cross-encoder score followed by bi-encoder score
-    # hits = sort_results(rank_results, hits)
-
-    # Deduplicate entries by raw entry text before showing to users
-    # if dedupe:
-    # hits = deduplicate_results(entries, hits)
 
     return hits
 
 
-def collate_results(hits):
+def collate_results(hits, dedupe=True):
     hit_ids = set()
     for hit in hits:
-        if hit.corpus_id not in hit_ids:
+        if dedupe and hit.corpus_id in hit_ids:
+            continue
+
+        else:
             hit_ids.add(hit.corpus_id)
             yield SearchResponse.parse_obj(
                 {
@@ -214,8 +190,6 @@ def setup(
     text_to_jsonl: Type[TextEmbeddings],
     files: dict[str, str],
     regenerate: bool,
-    filters: List[BaseFilter] = [],
-    normalize: bool = True,
     full_corpus: bool = True,
     user: KhojUser = None,
     config=None,
@@ -234,58 +208,3 @@ def setup(
     logger.info(
         f"Created {num_new_embeddings} new embeddings. Deleted {num_deleted_embeddings} embeddings for user {user} and files {file_names}"
     )
-
-    # TODO: Update the way filters are applied
-    # for filter in filters:
-    #     filter.load(entries, regenerate=regenerate)
-
-
-def apply_filters(
-    query: str, entries: List[Entry], corpus_embeddings: torch.Tensor, filters: List[BaseFilter]
-) -> Tuple[str, List[Entry], torch.Tensor]:
-    """Filter query, entries and embeddings before semantic search"""
-
-    with timer("Total Filter Time", logger, state.device):
-        included_entry_indices = set(range(len(entries)))
-        filters_in_query = [filter for filter in filters if filter.can_filter(query)]
-        for filter in filters_in_query:
-            query, included_entry_indices_by_filter = filter.apply(query, entries)
-            included_entry_indices.intersection_update(included_entry_indices_by_filter)
-
-        # Get entries (and associated embeddings) satisfying all filters
-        if not included_entry_indices:
-            return "", [], torch.tensor([], device=state.device)
-        else:
-            entries = [entries[id] for id in included_entry_indices]
-            corpus_embeddings = torch.index_select(
-                corpus_embeddings, 0, torch.tensor(list(included_entry_indices), device=state.device)
-            )
-
-    return query, entries, corpus_embeddings
-
-
-def sort_results(rank_results: bool, hits: List[dict]) -> List[dict]:
-    """Order results by cross-encoder score followed by bi-encoder score"""
-    with timer("Rank Time", logger, state.device):
-        hits.sort(key=lambda x: x["score"], reverse=True)  # sort by bi-encoder score
-        if rank_results:
-            hits.sort(key=lambda x: x["cross-score"], reverse=True)  # sort by cross-encoder score
-    return hits
-
-
-def deduplicate_results(entries: List[Entry], hits: List[dict]) -> List[dict]:
-    """Deduplicate entries by raw entry text before showing to users
-    Compiled entries are split by max tokens supported by ML models.
-    This can result in duplicate hits, entries shown to user."""
-
-    with timer("Deduplication Time", logger, state.device):
-        seen, original_hits_count = set(), len(hits)
-        hits = [
-            hit
-            for hit in hits
-            if entries[hit["corpus_id"]].raw not in seen and not seen.add(entries[hit["corpus_id"]].raw)  # type: ignore[func-returns-value]
-        ]
-        duplicate_hits = original_hits_count - len(hits)
-
-    logger.debug(f"Removed {duplicate_hits} duplicates")
-    return hits

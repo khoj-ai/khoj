@@ -2,6 +2,7 @@
 import threading
 from typing import List, Dict
 from packaging import version
+from collections import defaultdict
 
 # External Packages
 import torch
@@ -25,12 +26,11 @@ verbose: int = 0
 host: str = None
 port: int = None
 cli_args: List[str] = None
-query_cache = LRU()
+query_cache = defaultdict(LRU)
 config_lock = threading.Lock()
 chat_lock = threading.Lock()
 SearchType = utils_config.SearchType
 telemetry: List[Dict[str, str]] = []
-previous_query: str = None
 demo: bool = False
 khoj_version: str = None
 anonymous_mode: bool = False

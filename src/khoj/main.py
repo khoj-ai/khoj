@@ -106,6 +106,7 @@ def set_state(args):
     state.host = args.host
     state.port = args.port
     state.demo = args.demo
+    state.anonymous_mode = args.anonymous_mode
     state.khoj_version = version("khoj-assistant")
 
 
