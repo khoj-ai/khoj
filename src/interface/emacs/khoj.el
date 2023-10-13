@@ -97,6 +97,11 @@
   :group 'khoj
   :type 'string)
 
+(defcustom khoj-index-interval 3600
+  "Interval (in seconds) to wait before updating content index."
+  :group 'khoj
+  :type 'number)
+
 (defcustom khoj-default-content-type "org"
   "The default content type to perform search on."
   :group 'khoj
@@ -127,6 +132,9 @@
 
 (defvar khoj--search-on-idle-timer nil
   "Idle timer to trigger incremental search.")
+
+(defvar khoj--index-timer nil
+  "Timer to trigger content indexing.")
 
 (declare-function org-element-property "org-mode" (PROPERTY ELEMENT))
 (declare-function org-element-type "org-mode" (ELEMENT))
@@ -531,7 +539,6 @@ CONFIG is json obtained from Khoj config API."
   (let ((boundary (format "-------------------------%d" (random (expt 10 10))))
         (files-to-index (or file-paths
                             (append (mapcan (lambda (dir) (directory-files-recursively dir "\\.org$")) khoj-org-directories) khoj-org-files))))
-
     (let* ((url-request-method "POST")
            (url-request-extra-headers `(("content-type" . ,(format "multipart/form-data; boundary=%s" boundary))
                                         ("x-api-key" . ,khoj-server-api-key)))
@@ -555,9 +562,15 @@ CONFIG is json obtained from Khoj config API."
                         (lambda (status)
                           (with-current-buffer (current-buffer)
                             (goto-char url-http-end-of-headers)
-                            (message "khoj.el: status: %s. response: %s" status (string-trim (buffer-substring-no-properties (point) (point-max))))))
+                            (message "khoj.el: Update Content Index. Status: %s. response: %s" status (string-trim (buffer-substring-no-properties (point) (point-max))))))
                         nil t t)))))
 
+;; Cancel any running indexing timer
+(when khoj--index-timer
+    (cancel-timer khoj--index-timer))
+;; Send files to index on server every `khoj-index-interval' seconds
+(setq khoj--index-timer
+      (run-with-timer 60 khoj-index-interval 'khoj--server-index-files))
 
 
 ;; -----------------------------------------------
