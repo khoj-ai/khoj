@@ -144,7 +144,8 @@ class TextEmbeddings(ABC):
                                     )
                                 )
                         new_dates = EmbeddingsDates.objects.bulk_create(dates_to_create)
-                        logger.info(f"Created {len(new_dates)} new date entries")
+                        if len(new_dates) > 0:
+                            logger.info(f"Created {len(new_dates)} new date entries")
 
         with timer("Identify hashes for removed entries", logger):
             for file in hashes_by_file:
