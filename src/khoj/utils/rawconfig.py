@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 from typing import List, Dict, Optional
+import uuid
 
 # External Packages
 from pydantic import BaseModel
@@ -131,13 +132,13 @@ class Entry:
         compiled: str = None,
         heading: Optional[str] = None,
         file: Optional[str] = None,
-        corpus_id: str = None,
+        corpus_id: uuid.UUID = None,
     ):
         self.raw = raw
         self.compiled = compiled
         self.heading = heading
         self.file = file
-        self.corpus_id = corpus_id
+        self.corpus_id = str(corpus_id)
 
     def to_json(self) -> str:
         return json.dumps(self.__dict__, ensure_ascii=False)

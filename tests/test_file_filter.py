@@ -108,7 +108,7 @@ def test_get_file_filter_terms():
     filter_terms = file_filter.get_filter_terms(q_with_filter_terms)
 
     # Assert
-    assert filter_terms == ['file:"file 1.org"', 'file:"/path/to/dir/*.org"']
+    assert filter_terms == ["file 1\\.org", "/path/to/dir/.*\\.org"]
 
 
 def arrange_content():

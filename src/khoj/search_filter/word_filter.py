@@ -2,7 +2,7 @@
 import re
 import logging
 from collections import defaultdict
-from typing import List
+from typing import List, Tuple
 
 # Internal Packages
 from khoj.search_filter.base_filter import BaseFilter
@@ -37,7 +37,7 @@ class WordFilter(BaseFilter):
 
         return self.word_to_entry_index
 
-    def get_filter_terms(self, query: str) -> List[str]:
+    def get_filter_terms(self, query: str) -> Tuple[List[str], List[str]]:
         "Get all filter terms in query"
         required_terms = [f"{required_term}" for required_term in re.findall(self.required_regex, query)]
         blocked_terms = [f"{blocked_term}" for blocked_term in re.findall(self.blocked_regex, query)]
