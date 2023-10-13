@@ -157,10 +157,14 @@ class EmbeddingsAdapters:
         formatted_query = " & ".join(required_terms)
         formatted_query += " & !".join(blocked_terms)
 
-        relevant_embeddings = (
-            Embeddings.objects.filter(user=user)
-            .annotate(search=SearchVector("raw", "compiled"))
-            .filter(search=formatted_query)
+        q_filter_terms = Q()
+        for term in required_terms:
+            q_filter_terms &= Q(raw__icontains=term)
+        for term in blocked_terms:
+            q_filter_terms &= ~Q(raw__icontains=term)
+
+        relevant_embeddings = Embeddings.objects.filter(user=user).filter(
+            q_filter_terms,
         )
         if file_type_filter:
             relevant_embeddings = relevant_embeddings.filter(file_type=file_type_filter)
@@ -178,11 +182,11 @@ class EmbeddingsAdapters:
             relevant_embeddings = relevant_embeddings.filter(file_type=file_type_filter)
 
         # results = relevant_embeddings.values("corpus_id").annotate(distance=models.Min("distance")).order_by("distance").values("corpus_id", "raw", "file_path", "compiled", "heading", "id")[:max_results]
-        results = (
-            relevant_embeddings.values("corpus_id")
-            .annotate(distance=models.Min("distance"))
-            .order_by("distance")[:max_results]
-        )
+        # results = (
+        #     relevant_embeddings.values("corpus_id")
+        #     .annotate(distance=models.Min("distance"))
+        #     .order_by("distance")[:max_results]
+        # )
         # target_embeddings = relevant_embeddings.order_by("distance")[:50]
         # results = Embeddings.objects.filter(id__in=target_embeddings).distinct("corpus_id")
         # # relevant_embeddings = relevant_embeddings.order_by("distance", "corpus_id").distinct("distance", "corpus_id")
