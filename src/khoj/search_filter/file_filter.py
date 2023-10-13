@@ -28,7 +28,11 @@ class FileFilter(BaseFilter):
 
     def get_filter_terms(self, query: str) -> List[str]:
         "Get all filter terms in query"
-        return [f'file:"{term}"' for term in re.findall(self.file_filter_regex, query)]
+        return [f"{self.convert_to_regex(term)}" for term in re.findall(self.file_filter_regex, query)]
+
+    def convert_to_regex(self, file_filter: str) -> str:
+        "Convert file filter to regex"
+        return file_filter.replace(".", r"\.").replace("*", r".*")
 
     def defilter(self, query: str) -> str:
         return re.sub(self.file_filter_regex, "", query).strip()

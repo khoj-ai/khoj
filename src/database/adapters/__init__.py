@@ -4,6 +4,7 @@ import uuid
 from django.db import models
 from django.contrib.sessions.backends.db import SessionStore
 from pgvector.django import CosineDistance
+from django.db.models.manager import BaseManager
 from django.db.models import Q
 from torch import Tensor
 
@@ -126,6 +127,7 @@ async def set_user_github_config(user: KhojUser, pat_token: str, repos: list):
 
 class EmbeddingsAdapters:
     word_filer = WordFilter()
+    file_filter = FileFilter()
 
     @staticmethod
     def does_embedding_exist(user: KhojUser, hashed_value: str) -> bool:
@@ -150,18 +152,32 @@ class EmbeddingsAdapters:
         Embeddings.objects.filter(user=user, hashed_value__in=hashed_values).delete()
 
     @staticmethod
-    def explicit_word_search(user: KhojUser, query: str, file_type_filter: str = None):
-        required_terms, blocked_terms = EmbeddingsAdapters.word_filer.get_filter_terms(query)
-        if len(required_terms) == 0 and len(blocked_terms) == 0:
-            return Embeddings.objects.filter(user=user)
-        formatted_query = " & ".join(required_terms)
-        formatted_query += " & !".join(blocked_terms)
-
+    def apply_filters(user: KhojUser, query: str, file_type_filter: str = None):
         q_filter_terms = Q()
+
+        required_terms, blocked_terms = EmbeddingsAdapters.word_filer.get_filter_terms(query)
+        file_filters = EmbeddingsAdapters.file_filter.get_filter_terms(query)
+
+        if len(required_terms) == 0 and len(blocked_terms) == 0 and len(file_filters) == 0:
+            return Embeddings.objects.filter(user=user)
+
         for term in required_terms:
             q_filter_terms &= Q(raw__icontains=term)
         for term in blocked_terms:
             q_filter_terms &= ~Q(raw__icontains=term)
+
+        # if len(file_filters) > 0:
+        #     q_filter_terms &= Q(file_name__regex=f"({'|'.join(file_filters)})")
+
+        q_file_filter_terms = Q()
+
+        if len(file_filters) > 0:
+            for term in file_filters:
+                # Escape the * character in the file filter term
+                # term = term.replace("*", r"\*")
+                q_file_filter_terms |= Q(file_path__regex=term)
+
+            q_filter_terms &= q_file_filter_terms
 
         relevant_embeddings = Embeddings.objects.filter(user=user).filter(
             q_filter_terms,
@@ -174,7 +190,7 @@ class EmbeddingsAdapters:
     def search_with_embeddings(
         user: KhojUser, embeddings: Tensor, max_results: int = 10, file_type_filter: str = None, raw_query: str = None
     ):
-        relevant_embeddings = EmbeddingsAdapters.explicit_word_search(user, raw_query, file_type_filter)
+        relevant_embeddings = EmbeddingsAdapters.apply_filters(user, raw_query, file_type_filter)
         relevant_embeddings = relevant_embeddings.filter(user=user).annotate(
             distance=CosineDistance("embeddings", embeddings)
         )

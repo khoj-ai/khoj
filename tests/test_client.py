@@ -198,8 +198,9 @@ def test_notes_search(client, search_config: SearchConfig, sample_org_data):
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.django_db(transaction=True)
 def test_notes_search_with_only_filters(
-    client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data, default_user: KhojUser
+    client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data
 ):
     # Arrange
     filters = [WordFilter(), FileFilter()]
@@ -208,7 +209,6 @@ def test_notes_search_with_only_filters(
         sample_org_data,
         regenerate=False,
         filters=filters,
-        user=default_user,
     )
     user_query = quote('+"Emacs" file:"*.org"')
 
@@ -223,12 +223,11 @@ def test_notes_search_with_only_filters(
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_notes_search_with_include_filter(
-    client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data, default_user: KhojUser
-):
+@pytest.mark.django_db(transaction=True)
+def test_notes_search_with_include_filter(client, sample_org_data):
     # Arrange
     filters = [WordFilter()]
-    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False, filters=filters, user=default_user)
+    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False, filters=filters)
     user_query = quote('How to git install application? +"Emacs"')
 
     # Act
@@ -242,9 +241,8 @@ def test_notes_search_with_include_filter(
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_notes_search_with_exclude_filter(
-    client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data, default_user: KhojUser
-):
+@pytest.mark.django_db(transaction=True)
+def test_notes_search_with_exclude_filter(client, sample_org_data):
     # Arrange
     filters = [WordFilter()]
     text_search.setup(
@@ -252,7 +250,6 @@ def test_notes_search_with_exclude_filter(
         sample_org_data,
         regenerate=False,
         filters=filters,
-        user=default_user,
     )
     user_query = quote('How to git install application? -"clone"')
 
@@ -264,6 +261,23 @@ def test_notes_search_with_exclude_filter(
     # assert actual_data does not contains word "clone"
     search_result = response.json()[0]["entry"]
     assert "clone" not in search_result
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.django_db(transaction=True)
+def test_different_user_data_not_accessed(client, sample_org_data, default_user: KhojUser):
+    # Arrange
+    filters = [WordFilter()]
+    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False, filters=filters, user=default_user)
+    user_query = quote("How to git install application?")
+
+    # Act
+    response = client.get(f"/api/search?q={user_query}&n=1&t=org")
+
+    # Assert
+    assert response.status_code == 200
+    # assert actual response has no data as the default_user is different from the user making the query (anonymous)
+    assert len(response.json()) == 0
 
 
 def get_sample_files_data():
