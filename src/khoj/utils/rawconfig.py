@@ -123,14 +123,21 @@ class Entry:
     compiled: str
     heading: Optional[str]
     file: Optional[str]
+    corpus_id: str
 
     def __init__(
-        self, raw: str = None, compiled: str = None, heading: Optional[str] = None, file: Optional[str] = None
+        self,
+        raw: str = None,
+        compiled: str = None,
+        heading: Optional[str] = None,
+        file: Optional[str] = None,
+        corpus_id: str = None,
     ):
         self.raw = raw
         self.compiled = compiled
         self.heading = heading
         self.file = file
+        self.corpus_id = corpus_id
 
     def to_json(self) -> str:
         return json.dumps(self.__dict__, ensure_ascii=False)
@@ -145,4 +152,5 @@ class Entry:
             compiled=dictionary["compiled"],
             file=dictionary.get("file", None),
             heading=dictionary.get("heading", None),
+            corpus_id=dictionary.get("corpus_id", None),
         )

@@ -30,6 +30,9 @@ django.setup()
 # Initialize Django Database
 call_command("migrate", "--noinput")
 
+# Initialize Django Static Files
+call_command("collectstatic", "--noinput")
+
 # Initialize the Application Server
 app = FastAPI()
 

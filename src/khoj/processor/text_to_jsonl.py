@@ -2,6 +2,7 @@
 from abc import ABC, abstractmethod
 import hashlib
 import logging
+import uuid
 from tqdm import tqdm
 from typing import Callable, List, Tuple, Set, Any
 from khoj.utils.helpers import timer
@@ -44,6 +45,7 @@ class TextEmbeddings(ABC):
 
             # Drop long words instead of having entry truncated to maintain quality of entry processed by models
             compiled_entry_words = [word for word in compiled_entry_words if len(word) <= max_word_length]
+            corpus_id = uuid.uuid4()
 
             # Split entry into chunks of max tokens
             for chunk_index in range(0, len(compiled_entry_words), max_tokens):
@@ -63,6 +65,7 @@ class TextEmbeddings(ABC):
                         raw=entry.raw,
                         heading=entry.heading,
                         file=entry.file,
+                        corpus_id=corpus_id,
                     )
                 )
 
@@ -121,6 +124,7 @@ class TextEmbeddings(ABC):
                                 file_path=entry.file,
                                 file_type=file_type,
                                 hashed_value=hashed_val,
+                                corpus_id=entry.corpus_id,
                             )
                         )
                     new_embeddings = Embeddings.objects.bulk_create(embeddings_to_create)

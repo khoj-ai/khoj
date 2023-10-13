@@ -169,7 +169,8 @@ async def query(
             user=user,
             embeddings=question_embedding,
             max_results=top_k,
-            file_filter=file_type,
+            file_type_filter=file_type,
+            raw_query=raw_query,
         ).all()
         hits = await sync_to_async(list)(hits)  # type: ignore[call-arg]
         # hits = util.semantic_search(question_embedding, corpus_embeddings, top_k, score_function=util.dot_score)[0]
@@ -194,8 +195,8 @@ async def query(
 def collate_results(hits):
     hit_ids = set()
     for hit in hits:
-        if hit.id not in hit_ids:
-            hit_ids.add(hit.id)
+        if hit.corpus_id not in hit_ids:
+            hit_ids.add(hit.corpus_id)
             yield SearchResponse.parse_obj(
                 {
                     "entry": hit.raw,

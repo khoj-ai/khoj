@@ -39,9 +39,9 @@ class WordFilter(BaseFilter):
 
     def get_filter_terms(self, query: str) -> List[str]:
         "Get all filter terms in query"
-        required_terms = [f"+{required_term}" for required_term in re.findall(self.required_regex, query)]
-        blocked_terms = [f"-{blocked_term}" for blocked_term in re.findall(self.blocked_regex, query)]
-        return required_terms + blocked_terms
+        required_terms = [f"{required_term}" for required_term in re.findall(self.required_regex, query)]
+        blocked_terms = [f"{blocked_term}" for blocked_term in re.findall(self.blocked_regex, query)]
+        return required_terms, blocked_terms
 
     def defilter(self, query: str) -> str:
         return re.sub(self.blocked_regex, "", re.sub(self.required_regex, "", query)).strip()

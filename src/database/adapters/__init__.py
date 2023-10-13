@@ -4,6 +4,7 @@ import uuid
 from django.db import models
 from django.contrib.sessions.backends.db import SessionStore
 from pgvector.django import CosineDistance
+from django.contrib.postgres.search import SearchQuery, SearchVector, SearchRank
 from torch import Tensor
 
 # Import sync_to_async from Django Channels
@@ -12,8 +13,8 @@ from asgiref.sync import sync_to_async
 from fastapi import HTTPException
 
 from database.models import KhojUser, GoogleUser, NotionConfig, GithubConfig, Embeddings, GithubRepoConfig
-
-from khoj.utils.constants import content_directory
+from khoj.search_filter.word_filter import WordFilter
+from khoj.search_filter.file_filter import FileFilter
 
 ModelType = TypeVar("ModelType", bound=models.Model)
 
@@ -124,6 +125,8 @@ async def set_user_github_config(user: KhojUser, pat_token: str, repos: list):
 
 
 class EmbeddingsAdapters:
+    word_filer = WordFilter()
+
     @staticmethod
     def does_embedding_exist(user: KhojUser, hashed_value: str) -> bool:
         return Embeddings.objects.filter(user=user, hashed_value=hashed_value).exists()
@@ -147,13 +150,45 @@ class EmbeddingsAdapters:
         Embeddings.objects.filter(user=user, hashed_value__in=hashed_values).delete()
 
     @staticmethod
-    def search_with_embeddings(user: KhojUser, embeddings: Tensor, max_results: int = 10, file_filter: str = None):
-        relevant_embeddings = Embeddings.objects.filter(user=user).annotate(
+    def explicit_word_search(user: KhojUser, query: str, file_type_filter: str = None):
+        required_terms, blocked_terms = EmbeddingsAdapters.word_filer.get_filter_terms(query)
+        if len(required_terms) == 0 and len(blocked_terms) == 0:
+            return Embeddings.objects.filter(user=user)
+        formatted_query = " & ".join(required_terms)
+        formatted_query += " & !".join(blocked_terms)
+
+        relevant_embeddings = (
+            Embeddings.objects.filter(user=user)
+            .annotate(search=SearchVector("raw", "compiled"))
+            .filter(search=formatted_query)
+        )
+        if file_type_filter:
+            relevant_embeddings = relevant_embeddings.filter(file_type=file_type_filter)
+        return relevant_embeddings
+
+    @staticmethod
+    def search_with_embeddings(
+        user: KhojUser, embeddings: Tensor, max_results: int = 10, file_type_filter: str = None, raw_query: str = None
+    ):
+        relevant_embeddings = EmbeddingsAdapters.explicit_word_search(user, raw_query, file_type_filter)
+        relevant_embeddings = relevant_embeddings.filter(user=user).annotate(
             distance=CosineDistance("embeddings", embeddings)
         )
-        if file_filter:
-            relevant_embeddings = relevant_embeddings.filter(file_type=file_filter)
-        return relevant_embeddings.order_by("distance")[:max_results]
+        if file_type_filter:
+            relevant_embeddings = relevant_embeddings.filter(file_type=file_type_filter)
+
+        # results = relevant_embeddings.values("corpus_id").annotate(distance=models.Min("distance")).order_by("distance").values("corpus_id", "raw", "file_path", "compiled", "heading", "id")[:max_results]
+        results = (
+            relevant_embeddings.values("corpus_id")
+            .annotate(distance=models.Min("distance"))
+            .order_by("distance")[:max_results]
+        )
+        # target_embeddings = relevant_embeddings.order_by("distance")[:50]
+        # results = Embeddings.objects.filter(id__in=target_embeddings).distinct("corpus_id")
+        # # relevant_embeddings = relevant_embeddings.order_by("distance", "corpus_id").distinct("distance", "corpus_id")
+        relevant_embeddings = relevant_embeddings.order_by("distance")
+        # return results
+        return relevant_embeddings[:max_results]
 
     @staticmethod
     def get_unique_file_types(user: KhojUser):
