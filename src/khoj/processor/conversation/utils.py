@@ -19,8 +19,12 @@ max_prompt_size = {
     "gpt-4": 8192,
     "llama-2-7b-chat.ggmlv3.q4_0.bin": 1548,
     "gpt-3.5-turbo-16k": 15000,
+    "default": 1600,
 }
-tokenizer = {"llama-2-7b-chat.ggmlv3.q4_0.bin": "hf-internal-testing/llama-tokenizer"}
+tokenizer = {
+    "llama-2-7b-chat.ggmlv3.q4_0.bin": "hf-internal-testing/llama-tokenizer",
+    "default": "hf-internal-testing/llama-tokenizer",
+}
 
 
 class ThreadedGenerator:
@@ -105,7 +109,7 @@ def generate_chatml_messages_with_context(
     messages = user_chatml_message + rest_backnforths + system_chatml_message
 
     # Truncate oldest messages from conversation history until under max supported prompt size by model
-    messages = truncate_messages(messages, max_prompt_size[model_name], model_name)
+    messages = truncate_messages(messages, max_prompt_size.get(model_name, max_prompt_size["default"]), model_name)
 
     # Return message in chronological order
     return messages[::-1]
@@ -116,8 +120,10 @@ def truncate_messages(messages: list[ChatMessage], max_prompt_size, model_name) 
 
     if "llama" in model_name:
         encoder = LlamaTokenizerFast.from_pretrained(tokenizer[model_name])
-    else:
+    elif "gpt" in model_name:
         encoder = tiktoken.encoding_for_model(model_name)
+    else:
+        encoder = LlamaTokenizerFast.from_pretrained(tokenizer["default"])
 
     system_message = messages.pop()
     system_message_tokens = len(encoder.encode(system_message.content))
