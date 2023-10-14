@@ -112,7 +112,7 @@ warn_unused_ignores = false
 line-length = 120
 
 [tool.pytest.ini_options]
-addopts = "--strict-markers -n 4"
+addopts = "--strict-markers"
 markers = [
     "chatquality: Evaluate chatbot capabilities and quality",
 ]
