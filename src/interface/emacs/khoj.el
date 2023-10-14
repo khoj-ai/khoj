@@ -535,38 +535,46 @@ CONFIG is json obtained from Khoj config API."
 ;; -------------------
 
 (defun khoj--server-index-files (&optional file-paths)
-  "Send files to the Khoj server to index for search and chat."
+  "Send files at `FILE-PATHS' to the Khoj server to index for search and chat."
   (interactive)
   (let ((boundary (format "-------------------------%d" (random (expt 10 10))))
         (files-to-index (or file-paths
-                            (append (mapcan (lambda (dir) (directory-files-recursively dir "\\.org$")) khoj-org-directories) khoj-org-files))))
-    (let* ((url-request-method "POST")
-           (url-request-extra-headers `(("content-type" . ,(format "multipart/form-data; boundary=%s" boundary))
-                                        ("x-api-key" . ,khoj-server-api-key)))
-           ;; add files to index as form data
-           (url-request-data (with-temp-buffer
-                               (set-buffer-multibyte t)
-                               (insert "\n")
-                               (dolist (file-to-index files-to-index)
-                                 (insert (format "--%s\r\n" boundary))
-                                 (insert (format "Content-Disposition: form-data; name=\"files\"; filename=\"%s\"\r\n" file-to-index))
-                                 (insert "Content-Type: text/org\r\n\r\n")
-                                 (insert (with-temp-buffer
-                                           (insert-file-contents-literally file-to-index)
-                                           (buffer-string)))
-                                 (insert "\r\n"))
-                               (insert (format "--%s--\r\n" boundary))
-                               (buffer-string))))
+                            (append (mapcan (lambda (dir) (directory-files-recursively dir "\\.org$")) khoj-org-directories) khoj-org-files)))
+        (inhibit-message t)
+        (message-log-max nil))
+    (let ((url-request-method "POST")
+          (url-request-data (khoj--render-files-as-request-body files-to-index boundary))
+          (url-request-extra-headers `(("content-type" . ,(format "multipart/form-data; boundary=%s" boundary))
+                                       ("x-api-key" . ,khoj-server-api-key))))
       (with-current-buffer
           (url-retrieve (format "%s/api/v1/indexer/batch" khoj-server-url)
                         ;; render response from indexing API endpoint on server
                         (lambda (status)
-                          (with-current-buffer (current-buffer)
-                            (goto-char url-http-end-of-headers)
-                            (message "khoj.el: Update Content Index. Status: %s. response: %s" status (string-trim (buffer-substring-no-properties (point) (point-max))))))
+                          (if (not status)
+                              (message "khoj.el: Updated Content Index")
+                            (with-current-buffer (current-buffer)
+                              (goto-char "\n\n")
+                              (message "khoj.el: Failed to update Content Index. Status: %s. Response: %s" status (string-trim (buffer-substring-no-properties (point) (point-max)))))))
                         nil t t)))))
 
-;; Cancel any running indexing timer
+(defun khoj--render-files-as-request-body (files-to-index boundary)
+  "Render `FILES-TO-INDEX' as multi-part form body using `BOUNDARY'.
+This is sent to Khoj server as a POST request."
+  (with-temp-buffer
+    (set-buffer-multibyte nil)
+    (insert "\n")
+    (dolist (file-to-index files-to-index)
+      (insert (format "--%s\r\n" boundary))
+      (insert (format "Content-Disposition: form-data; name=\"files\"; filename=\"%s\"\r\n" file-to-index))
+      (insert "Content-Type: text/org\r\n\r\n")
+      (insert (with-temp-buffer
+                (insert-file-contents-literally file-to-index)
+                (buffer-string)))
+      (insert "\r\n"))
+    (insert (format "--%s--\r\n" boundary))
+    (buffer-string)))
+
+;; Cancel any running indexing timer, first
 (when khoj--index-timer
     (cancel-timer khoj--index-timer))
 ;; Send files to index on server every `khoj-index-interval' seconds
