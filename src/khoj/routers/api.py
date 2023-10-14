@@ -774,7 +774,7 @@ async def extract_references_and_questions(
         logger.warning(
             "No content index loaded, so cannot extract references from knowledge base. Please configure your data sources and update the index to chat with your notes."
         )
-        return compiled_references, inferred_queries
+        return compiled_references, inferred_queries, q
 
     if conversation_type == ConversationCommand.General:
         return compiled_references, inferred_queries, q
