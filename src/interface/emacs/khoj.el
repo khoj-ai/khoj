@@ -1,9 +1,10 @@
-;;; khoj.el --- AI personal assistant for your digital brain -*- lexical-binding: t -*-
+;;; khoj.el --- AI copilot for your Second Brain -*- lexical-binding: t -*-
 
-;; Copyright (C) 2021-2022 Debanjum Singh Solanky
+;; Copyright (C) 2021-2023 Khoj Inc.
 
-;; Author: Debanjum Singh Solanky <debanjum@gmail.com>
-;; Description: An AI personal assistant for your digital brain
+;; Author: Debanjum Singh Solanky <debanjum@khoj.dev>
+;;         Saba Imran <saba@khoj.dev>
+;; Description: An AI copilot for your Second Brain
 ;; Keywords: search, chat, org-mode, outlines, markdown, pdf, image
 ;; Version: 0.12.3
 ;; Package-Requires: ((emacs "27.1") (transient "0.3.0") (dash "2.19.1"))
@@ -28,8 +29,8 @@
 
 ;;; Commentary:
 
-;; Create an AI personal assistant for your `org-mode', `markdown' notes,
-;; PDFs and images. The assistant exposes 2 modes, search and chat:
+;; Create an AI copilot to your `org-mode', `markdown' notes,
+;; PDFs and images. The copilot exposes 2 modes, search and chat:
 ;;
 ;; Chat provides faster answers, iterative discovery and assisted
 ;; creativity. It requires your OpenAI API key to access GPT models
