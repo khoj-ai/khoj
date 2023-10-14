@@ -1092,17 +1092,20 @@ Paragraph only starts at first text after blank line."
 ;; Khoj Menu
 ;; ---------
 
-(transient-define-argument khoj--content-type-switch ()
-  :class 'transient-switches
-  :argument-format "--content-type=%s"
-  :argument-regexp ".+"
-  ;; set content type to: last used > based on current buffer > default type
-  :init-value (lambda (obj) (oset obj value (format "--content-type=%s" (or khoj--content-type (khoj--buffer-name-to-content-type (buffer-name))))))
-  ;; dynamically set choices to content types enabled on khoj backend
-  :choices (or (ignore-errors (mapcar #'symbol-name (khoj--get-enabled-content-types))) '("all" "org" "markdown" "pdf" "image")))
+(defun khoj--setup-and-show-menu ()
+  "Create Transient menu for khoj and show it."
+  ;; Create the Khoj Transient menu
+  (transient-define-argument khoj--content-type-switch ()
+    :class 'transient-switches
+    :argument-format "--content-type=%s"
+    :argument-regexp ".+"
+    ;; set content type to: last used > based on current buffer > default type
+    :init-value (lambda (obj) (oset obj value (format "--content-type=%s" (or khoj--content-type (khoj--buffer-name-to-content-type (buffer-name))))))
+    ;; dynamically set choices to content types enabled on khoj backend
+    :choices (or (ignore-errors (mapcar #'symbol-name (khoj--get-enabled-content-types))) '("all" "org" "markdown" "pdf" "image")))
 
-(transient-define-suffix khoj--search-command (&optional args)
-  (interactive (list (transient-args transient-current-command)))
+  (transient-define-suffix khoj--search-command (&optional args)
+    (interactive (list (transient-args transient-current-command)))
     (progn
       ;; set content type to: specified > last used > based on current buffer > default type
       (setq khoj--content-type (or (transient-arg-value "--content-type=" args) (khoj--buffer-name-to-content-type (buffer-name))))
@@ -1111,9 +1114,9 @@ Paragraph only starts at first text after blank line."
       ;; trigger incremental search
       (call-interactively #'khoj-incremental)))
 
-(transient-define-suffix khoj--find-similar-command (&optional args)
-  "Find items similar to current item at point."
-  (interactive (list (transient-args transient-current-command)))
+  (transient-define-suffix khoj--find-similar-command (&optional args)
+    "Find items similar to current item at point."
+    (interactive (list (transient-args transient-current-command)))
     (progn
       ;; set content type to: specified > last used > based on current buffer > default type
       (setq khoj--content-type (or (transient-arg-value "--content-type=" args) (khoj--buffer-name-to-content-type (buffer-name))))
@@ -1121,37 +1124,40 @@ Paragraph only starts at first text after blank line."
       (setq khoj-results-count (or (transient-arg-value "--results-count=" args) khoj-results-count))
       (khoj--find-similar khoj--content-type)))
 
-(transient-define-suffix khoj--update-command (&optional args)
-  "Call khoj API to update index of specified content type."
-  (interactive (list (transient-args transient-current-command)))
-  (let* ((force-update (if (member "--force-update" args) "true" "false"))
-         ;; set content type to: specified > last used > based on current buffer > default type
-         (content-type (or (transient-arg-value "--content-type=" args) (khoj--buffer-name-to-content-type (buffer-name))))
-         (type-query (if (equal content-type "all") "" (format "t=%s" content-type)))
-         (update-url (format "%s/api/update?%s&force=%s&client=emacs" khoj-server-url type-query force-update))
-         (url-request-method "GET"))
-    (progn
-      (setq khoj--content-type content-type)
-      (url-retrieve update-url (lambda (_) (message "khoj.el: %s index %supdated!" content-type (if (member "--force-update" args) "force " "")))))))
+  (transient-define-suffix khoj--update-command (&optional args)
+    "Call khoj API to update index of specified content type."
+    (interactive (list (transient-args transient-current-command)))
+    (let* ((force-update (if (member "--force-update" args) "true" "false"))
+           ;; set content type to: specified > last used > based on current buffer > default type
+           (content-type (or (transient-arg-value "--content-type=" args) (khoj--buffer-name-to-content-type (buffer-name))))
+           (type-query (if (equal content-type "all") "" (format "t=%s" content-type)))
+           (update-url (format "%s/api/update?%s&force=%s&client=emacs" khoj-server-url type-query force-update))
+           (url-request-method "GET"))
+      (progn
+        (setq khoj--content-type content-type)
+        (url-retrieve update-url (lambda (_) (message "khoj.el: %s index %supdated!" content-type (if (member "--force-update" args) "force " "")))))))
 
-(transient-define-suffix khoj--chat-command (&optional _)
-  "Command to Chat with Khoj."
-  (interactive (list (transient-args transient-current-command)))
-  (khoj--chat))
+  (transient-define-suffix khoj--chat-command (&optional _)
+    "Command to Chat with Khoj."
+    (interactive (list (transient-args transient-current-command)))
+    (khoj--chat))
 
-(transient-define-prefix khoj--menu ()
-  "Create Khoj Menu to Configure and Execute Commands."
-  [["Configure Search"
-    ("n" "Results Count" "--results-count=" :init-value (lambda (obj) (oset obj value (format "%s" khoj-results-count))))
-    ("t" "Content Type" khoj--content-type-switch)]
-   ["Configure Update"
-    ("-f" "Force Update" "--force-update")]]
-  [["Act"
-    ("c" "Chat" khoj--chat-command)
-    ("s" "Search" khoj--search-command)
-    ("f" "Find Similar" khoj--find-similar-command)
-    ("u" "Update" khoj--update-command)
-    ("q" "Quit" transient-quit-one)]])
+  (transient-define-prefix khoj--menu ()
+    "Create Khoj Menu to Configure and Execute Commands."
+    [["Configure Search"
+      ("n" "Results Count" "--results-count=" :init-value (lambda (obj) (oset obj value (format "%s" khoj-results-count))))
+      ("t" "Content Type" khoj--content-type-switch)]
+     ["Configure Update"
+      ("-f" "Force Update" "--force-update")]]
+    [["Act"
+      ("c" "Chat" khoj--chat-command)
+      ("s" "Search" khoj--search-command)
+      ("f" "Find Similar" khoj--find-similar-command)
+      ("u" "Update" khoj--update-command)
+      ("q" "Quit" transient-quit-one)]])
+
+  ;; Show the Khoj Transient menu
+  (khoj--menu))
 
 
 ;; ----------
@@ -1164,7 +1170,7 @@ Paragraph only starts at first text after blank line."
   (interactive)
   (when khoj-auto-setup
     (khoj-setup t))
-  (khoj--menu))
+  (khoj--setup-and-show-menu))
 
 (provide 'khoj)
 
