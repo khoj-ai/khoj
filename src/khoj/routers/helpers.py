@@ -41,7 +41,7 @@ def update_telemetry_state(
     host: Optional[str] = None,
     metadata: Optional[dict] = None,
 ):
-    user: KhojUser = request.user.object if request.user else None
+    user: KhojUser = request.user.object if request.user.is_authenticated else None
     user_state = {
         "client_host": request.client.host if request.client else None,
         "user_agent": user_agent or "unknown",
