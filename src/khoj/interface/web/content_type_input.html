@@ -116,8 +116,8 @@
             suffixes = [".pdf"]
         else if ('{{content_type}}' === "plaintext")
             suffixes = ['*', '*.*']
-        //
-        let globs = suffixes.map(x => `${globformat}${x}`)
+
+        let globs = suffixes.map(x => `${globFormat}${x}`)
         var inputFileNodes = document.getElementsByName("input-files");
         var inputFiles = getValidInputNodes(inputFileNodes).map(node => node.value);
 
