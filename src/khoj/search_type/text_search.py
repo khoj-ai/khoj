@@ -219,7 +219,7 @@ def setup(
     )
 
 
-def cross_encoder_score(query: str, hits: List[SearchResponse]) -> List[dict]:
+def cross_encoder_score(query: str, hits: List[SearchResponse]) -> List[SearchResponse]:
     """Score all retrieved entries using the cross-encoder"""
     with timer("Cross-Encoder Predict Time", logger, state.device):
         cross_scores = state.cross_encoder_model.predict(query, hits)

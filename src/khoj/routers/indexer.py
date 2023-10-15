@@ -180,10 +180,6 @@ def configure_content(
     full_corpus: bool = True,
     user: KhojUser = None,
 ) -> Optional[ContentIndex]:
-    if content_config is None:
-        logger.warning("🚨 No Content configuration available.")
-        content_config = ContentConfig()
-
     content_index = ContentIndex()
 
     if t in [type.value for type in state.SearchType]:
@@ -260,7 +256,12 @@ def configure_content(
 
     try:
         # Initialize Image Search
-        if (t == None or t == state.SearchType.Image.value) and content_config.image and search_models.image_search:
+        if (
+            (t == None or t == state.SearchType.Image.value)
+            and content_config
+            and content_config.image
+            and search_models.image_search
+        ):
             logger.info("🌄 Setting up search for images")
             # Extract Entries, Generate Image Embeddings
             content_index.image = image_search.setup(
