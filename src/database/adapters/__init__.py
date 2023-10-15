@@ -21,7 +21,6 @@ from database.models import (
     GithubConfig,
     Embeddings,
     GithubRepoConfig,
-    EmbeddingsDates,
 )
 from khoj.search_filter.word_filter import WordFilter
 from khoj.search_filter.file_filter import FileFilter
@@ -174,6 +173,10 @@ class EmbeddingsAdapters:
         )
 
     @staticmethod
+    async def user_has_embeddings(user: KhojUser):
+        return await Embeddings.objects.filter(user=user).aexists()
+
+    @staticmethod
     def apply_filters(user: KhojUser, query: str, file_type_filter: str = None):
         q_filter_terms = Q()
 
@@ -190,15 +193,10 @@ class EmbeddingsAdapters:
             elif term.startswith("-"):
                 q_filter_terms &= ~Q(raw__icontains=term[1:])
 
-        # if len(file_filters) > 0:
-        #     q_filter_terms &= Q(file_name__regex=f"({'|'.join(file_filters)})")
-
         q_file_filter_terms = Q()
 
         if len(file_filters) > 0:
             for term in file_filters:
-                # Escape the * character in the file filter term
-                # term = term.replace("*", r"\*")
                 q_file_filter_terms |= Q(file_path__regex=term)
 
             q_filter_terms &= q_file_filter_terms
@@ -231,18 +229,7 @@ class EmbeddingsAdapters:
         )
         if file_type_filter:
             relevant_embeddings = relevant_embeddings.filter(file_type=file_type_filter)
-
-        # results = relevant_embeddings.values("corpus_id").annotate(distance=models.Min("distance")).order_by("distance").values("corpus_id", "raw", "file_path", "compiled", "heading", "id")[:max_results]
-        # results = (
-        #     relevant_embeddings.values("corpus_id")
-        #     .annotate(distance=models.Min("distance"))
-        #     .order_by("distance")[:max_results]
-        # )
-        # target_embeddings = relevant_embeddings.order_by("distance")[:50]
-        # results = Embeddings.objects.filter(id__in=target_embeddings).distinct("corpus_id")
-        # # relevant_embeddings = relevant_embeddings.order_by("distance", "corpus_id").distinct("distance", "corpus_id")
         relevant_embeddings = relevant_embeddings.order_by("distance")
-        # return results
         return relevant_embeddings[:max_results]
 
     @staticmethod

@@ -18,16 +18,13 @@ from khoj.processor.notion.notion_to_jsonl import NotionToJsonl
 from khoj.processor.plaintext.plaintext_to_jsonl import PlaintextToJsonl
 from khoj.search_type import text_search, image_search
 from khoj.utils.yaml import save_config_to_file_updated_state
-from khoj.utils.config import SearchModels, TextContent
+from khoj.utils.config import SearchModels
 from khoj.utils.helpers import LRU, get_file_type
 from khoj.utils.rawconfig import (
     ContentConfig,
     FullConfig,
     SearchConfig,
 )
-from khoj.search_filter.date_filter import DateFilter
-from khoj.search_filter.word_filter import WordFilter
-from khoj.search_filter.file_filter import FileFilter
 from khoj.utils.config import (
     ContentIndex,
     SearchModels,
@@ -184,11 +181,7 @@ def configure_content(
     user: KhojUser = None,
 ) -> Optional[ContentIndex]:
     # Run Validation Checks
-    if content_config is None:
-        logger.warning("🚨 No Content configuration available.")
-        return None
-    if content_index is None:
-        content_index = ContentIndex()
+    content_index = ContentIndex()
 
     if t in [type.value for type in state.SearchType]:
         t = state.SearchType(t).value

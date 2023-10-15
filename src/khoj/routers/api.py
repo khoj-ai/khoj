@@ -504,8 +504,11 @@ async def search(
                     # Collate results
                     results += text_search.collate_results(hits, dedupe=dedupe)
 
-            # Sort results across all content types and take top results
-            results = sorted(results, key=lambda x: float(x.score))[:results_count]
+            if r:
+                results = text_search.rerank_and_sort_results(results, query=defiltered_query)[:results_count]
+            else:
+                # Sort results across all content types and take top results
+                results = sorted(results, key=lambda x: float(x.score))[:results_count]
 
     # Cache results
     if user:
@@ -692,6 +695,7 @@ async def extract_references_and_questions(
     n: int,
     conversation_type: ConversationCommand = ConversationCommand.Default,
 ):
+    user = request.user.object if request.user.is_authenticated else None
     # Load Conversation History
     meta_log = state.processor_config.conversation.meta_log
 
@@ -699,11 +703,11 @@ async def extract_references_and_questions(
     compiled_references: List[Any] = []
     inferred_queries: List[str] = []
 
-    if state.content_index is None:
+    if not EmbeddingsAdapters.user_has_embeddings(user=user):
         logger.warning(
             "No content index loaded, so cannot extract references from knowledge base. Please configure your data sources and update the index to chat with your notes."
         )
-        return compiled_references, inferred_queries
+        return compiled_references, inferred_queries, q
 
     if conversation_type == ConversationCommand.General:
         return compiled_references, inferred_queries, q

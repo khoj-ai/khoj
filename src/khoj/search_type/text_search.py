@@ -2,7 +2,7 @@
 import logging
 import math
 from pathlib import Path
-from typing import List, Tuple, Type, Union
+from typing import List, Tuple, Type, Union, Dict
 
 # External Packages
 import torch
@@ -14,13 +14,12 @@ from asgiref.sync import sync_to_async
 # Internal Packages
 from khoj.utils import state
 from khoj.utils.helpers import get_absolute_path, resolve_absolute_path, load_model, timer
-from khoj.utils.config import TextContent, TextSearchModel
+from khoj.utils.config import TextSearchModel
 from khoj.utils.models import BaseEncoder
 from khoj.utils.state import SearchType
-from khoj.utils.rawconfig import SearchResponse, TextSearchConfig, TextConfigBase, Entry
+from khoj.utils.rawconfig import SearchResponse, TextSearchConfig, Entry
 from khoj.utils.jsonl import load_jsonl
 from khoj.processor.text_to_jsonl import TextEmbeddings
-from khoj.search_filter.base_filter import BaseFilter
 from database.adapters import EmbeddingsAdapters
 from database.models import KhojUser, Embeddings
 
@@ -186,6 +185,16 @@ def collate_results(hits, dedupe=True):
             )
 
 
+def rerank_and_sort_results(hits, query):
+    # Score all retrieved entries using the cross-encoder
+    hits = cross_encoder_score(query, hits)
+
+    # Sort results by cross-encoder score followed by bi-encoder score
+    hits = sort_results(rank_results=True, hits=hits)
+
+    return hits
+
+
 def setup(
     text_to_jsonl: Type[TextEmbeddings],
     files: dict[str, str],
@@ -208,3 +217,24 @@ def setup(
     logger.info(
         f"Created {num_new_embeddings} new embeddings. Deleted {num_deleted_embeddings} embeddings for user {user} and files {file_names}"
     )
+
+
+def cross_encoder_score(query: str, hits: List[SearchResponse]) -> List[dict]:
+    """Score all retrieved entries using the cross-encoder"""
+    with timer("Cross-Encoder Predict Time", logger, state.device):
+        cross_scores = state.cross_encoder_model.predict(query, hits)
+
+    # Store cross-encoder scores in results dictionary for ranking
+    for idx in range(len(cross_scores)):
+        hits[idx]["cross_score"] = cross_scores[idx]
+
+    return hits
+
+
+def sort_results(rank_results: bool, hits: List[dict]) -> List[dict]:
+    """Order results by cross-encoder score followed by bi-encoder score"""
+    with timer("Rank Time", logger, state.device):
+        hits.sort(key=lambda x: x["score"], reverse=True)  # sort by bi-encoder score
+        if rank_results:
+            hits.sort(key=lambda x: x["cross_score"], reverse=True)  # sort by cross-encoder score
+    return hits
