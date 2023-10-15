@@ -288,6 +288,7 @@ if not state.demo:
     async def set_processor_enable_offline_chat_config_data(
         request: Request,
         enable_offline_chat: bool,
+        offline_chat_model: Optional[str] = None,
         client: Optional[str] = None,
     ):
         _initialize_config()
@@ -302,6 +303,8 @@ if not state.demo:
 
         assert state.config.processor.conversation is not None
         state.config.processor.conversation.offline_chat.enable_offline_chat = enable_offline_chat
+        if offline_chat_model is not None:
+            state.config.processor.conversation.offline_chat.chat_model = offline_chat_model
         state.processor_config = configure_processor(state.config.processor, state.processor_config)
 
         update_telemetry_state(

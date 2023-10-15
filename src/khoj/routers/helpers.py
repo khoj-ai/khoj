@@ -122,7 +122,7 @@ def generate_chat_response(
                 conversation_log=meta_log,
                 completion_func=partial_completion,
                 conversation_command=conversation_command,
-                model=state.processor_config.conversation.gpt4all_model.chat_model,
+                model=state.processor_config.conversation.offline_chat.chat_model,
             )
 
         elif state.processor_config.conversation.openai_model:
