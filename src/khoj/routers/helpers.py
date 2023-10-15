@@ -123,6 +123,8 @@ def generate_chat_response(
                 completion_func=partial_completion,
                 conversation_command=conversation_command,
                 model=state.processor_config.conversation.offline_chat.chat_model,
+                max_prompt_size=state.processor_config.conversation.max_prompt_size,
+                tokenizer_name=state.processor_config.conversation.tokenizer,
             )
 
         elif state.processor_config.conversation.openai_model:
@@ -136,6 +138,8 @@ def generate_chat_response(
                 api_key=api_key,
                 completion_func=partial_completion,
                 conversation_command=conversation_command,
+                max_prompt_size=state.processor_config.conversation.max_prompt_size,
+                tokenizer_name=state.processor_config.conversation.tokenizer,
             )
 
     except Exception as e:

@@ -127,6 +127,8 @@ def converse_offline(
     loaded_model: Union[Any, None] = None,
     completion_func=None,
     conversation_command=ConversationCommand.Default,
+    max_prompt_size=None,
+    tokenizer_name=None,
 ) -> Union[ThreadedGenerator, Iterator[str]]:
     """
     Converse with user using Llama
@@ -158,6 +160,8 @@ def converse_offline(
         prompts.system_prompt_message_llamav2,
         conversation_log,
         model_name=model,
+        max_prompt_size=max_prompt_size,
+        tokenizer_name=tokenizer_name,
     )
 
     g = ThreadedGenerator(references, completion_func=completion_func)

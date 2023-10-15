@@ -13,17 +13,16 @@ from transformers import AutoTokenizer
 import queue
 from khoj.utils.helpers import merge_dicts
 
+
 logger = logging.getLogger(__name__)
-max_prompt_size = {
+model_to_prompt_size = {
     "gpt-3.5-turbo": 4096,
     "gpt-4": 8192,
     "llama-2-7b-chat.ggmlv3.q4_0.bin": 1548,
     "gpt-3.5-turbo-16k": 15000,
-    "default": 1600,
 }
-tokenizer = {
+model_to_tokenizer = {
     "llama-2-7b-chat.ggmlv3.q4_0.bin": "hf-internal-testing/llama-tokenizer",
-    "default": "hf-internal-testing/llama-tokenizer",
 }
 
 
@@ -86,7 +85,13 @@ def message_to_log(
 
 
 def generate_chatml_messages_with_context(
-    user_message, system_message, conversation_log={}, model_name="gpt-3.5-turbo", lookback_turns=2
+    user_message,
+    system_message,
+    conversation_log={},
+    model_name="gpt-3.5-turbo",
+    lookback_turns=2,
+    max_prompt_size=None,
+    tokenizer_name=None,
 ):
     """Generate messages for ChatGPT with context from previous conversation"""
     # Extract Chat History for Context
@@ -108,20 +113,38 @@ def generate_chatml_messages_with_context(
 
     messages = user_chatml_message + rest_backnforths + system_chatml_message
 
+    # Set max prompt size from user config, pre-configured for model or to default prompt size
+    try:
+        max_prompt_size = max_prompt_size or model_to_prompt_size[model_name]
+    except:
+        max_prompt_size = 2000
+        logger.warning(
+            f"Fallback to default prompt size: {max_prompt_size}.\nConfigure max_prompt_size for unsupported model: {model_name} in Khoj settings to longer context window."
+        )
+
     # Truncate oldest messages from conversation history until under max supported prompt size by model
-    messages = truncate_messages(messages, max_prompt_size.get(model_name, max_prompt_size["default"]), model_name)
+    messages = truncate_messages(messages, max_prompt_size, model_name, tokenizer_name)
 
     # Return message in chronological order
     return messages[::-1]
 
 
-def truncate_messages(messages: list[ChatMessage], max_prompt_size, model_name: str) -> list[ChatMessage]:
+def truncate_messages(
+    messages: list[ChatMessage], max_prompt_size, model_name: str, tokenizer_name=None
+) -> list[ChatMessage]:
     """Truncate messages to fit within max prompt size supported by model"""
 
-    if model_name.startswith("gpt-"):
-        encoder = tiktoken.encoding_for_model(model_name)
-    else:
-        encoder = AutoTokenizer.from_pretrained(tokenizer.get(model_name, tokenizer["default"]))
+    try:
+        if model_name.startswith("gpt-"):
+            encoder = tiktoken.encoding_for_model(model_name)
+        else:
+            encoder = AutoTokenizer.from_pretrained(tokenizer_name or model_to_tokenizer[model_name])
+    except:
+        default_tokenizer = "hf-internal-testing/llama-tokenizer"
+        encoder = AutoTokenizer.from_pretrained(default_tokenizer)
+        logger.warning(
+            f"Fallback to default chat model tokenizer: {default_tokenizer}.\nConfigure tokenizer for unsupported model: {model_name} in Khoj settings to improve context stuffing."
+        )
 
     system_message = messages.pop()
     system_message_tokens = len(encoder.encode(system_message.content))

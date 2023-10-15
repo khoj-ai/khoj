@@ -95,6 +95,8 @@ class ConversationProcessorConfigModel:
         self.openai_model = conversation_config.openai
         self.gpt4all_model = GPT4AllProcessorConfig()
         self.offline_chat = conversation_config.offline_chat
+        self.max_prompt_size = conversation_config.max_prompt_size
+        self.tokenizer = conversation_config.tokenizer
         self.conversation_logfile = Path(conversation_config.conversation_logfile)
         self.chat_session: List[str] = []
         self.meta_log: dict = {}
