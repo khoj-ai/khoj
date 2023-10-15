@@ -91,11 +91,17 @@ class OpenAIProcessorConfig(ConfigBase):
     chat_model: Optional[str] = "gpt-3.5-turbo"
 
 
+class OfflineChatProcessorConfig(ConfigBase):
+    enable_offline_chat: Optional[bool] = False
+    chat_model: Optional[str] = "llama-2-7b-chat.ggmlv3.q4_0.bin"
+
+
 class ConversationProcessorConfig(ConfigBase):
     conversation_logfile: Path
     openai: Optional[OpenAIProcessorConfig]
-    enable_offline_chat: Optional[bool] = False
-    offline_chat_model: Optional[str] = "llama-2-7b-chat.ggmlv3.q4_0.bin"
+    offline_chat: Optional[OfflineChatProcessorConfig]
+    max_prompt_size: Optional[int]
+    tokenizer: Optional[str]
 
 
 class ProcessorConfig(ConfigBase):

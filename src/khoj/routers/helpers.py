@@ -113,7 +113,7 @@ def generate_chat_response(
             meta_log=meta_log,
         )
 
-        if state.processor_config.conversation.enable_offline_chat:
+        if state.processor_config.conversation.offline_chat.enable_offline_chat:
             loaded_model = state.processor_config.conversation.gpt4all_model.loaded_model
             chat_response = converse_offline(
                 references=compiled_references,
