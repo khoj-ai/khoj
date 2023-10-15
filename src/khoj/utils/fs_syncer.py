@@ -15,9 +15,6 @@ logger = logging.getLogger(__name__)
 def collect_files(search_type: Optional[SearchType] = SearchType.All, user=None) -> dict:
     files = {}
 
-    if config is None:
-        return files
-
     if search_type == SearchType.All or search_type == SearchType.Org:
         org_config = LocalOrgConfig.objects.filter(user=user).first()
         files["org"] = get_org_files(construct_config_from_db(org_config)) if org_config else {}

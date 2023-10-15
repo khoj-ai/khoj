@@ -180,7 +180,10 @@ def configure_content(
     full_corpus: bool = True,
     user: KhojUser = None,
 ) -> Optional[ContentIndex]:
-    # Run Validation Checks
+    if content_config is None:
+        logger.warning("🚨 No Content configuration available.")
+        content_config = ContentConfig()
+
     content_index = ContentIndex()
 
     if t in [type.value for type in state.SearchType]:
