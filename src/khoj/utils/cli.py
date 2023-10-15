@@ -2,6 +2,7 @@
 import argparse
 import pathlib
 from importlib.metadata import version
+import os
 
 # Internal Packages
 from khoj.utils.helpers import resolve_absolute_path
@@ -56,6 +57,8 @@ def cli(args=None):
     else:
         args = run_migrations(args)
         args.config = parse_config_from_file(args.config_file)
+        if os.environ.get("DEBUG"):
+            args.config.app.should_log_telemetry = False
 
     return args
 
