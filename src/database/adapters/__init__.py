@@ -9,9 +9,7 @@ from asgiref.sync import sync_to_async
 
 from fastapi import HTTPException
 
-from database.models import KhojUser, GoogleUser, NotionConfig, GithubConfig
-
-from khoj.utils.constants import content_directory
+from database.models import KhojUser, GoogleUser, NotionConfig
 
 ModelType = TypeVar("ModelType", bound=models.Model)
 

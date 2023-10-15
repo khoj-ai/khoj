@@ -13,6 +13,10 @@ logger = logging.getLogger(__name__)
 
 def collect_files(config: ContentConfig, search_type: Optional[SearchType] = SearchType.All):
     files = {}
+
+    if config is None:
+        return files
+
     if search_type == SearchType.All or search_type == SearchType.Org:
         files["org"] = get_org_files(config.org) if config.org else {}
     if search_type == SearchType.All or search_type == SearchType.Markdown:

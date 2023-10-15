@@ -5,6 +5,7 @@ import json
 from enum import Enum
 from typing import Optional
 import requests
+import os
 
 # External Packages
 import schedule
@@ -142,7 +143,7 @@ def configure_routes(app):
 
 def configure_middleware(app):
     app.add_middleware(AuthenticationMiddleware, backend=UserAuthenticationBackend())
-    app.add_middleware(SessionMiddleware, secret_key="!secret")
+    app.add_middleware(SessionMiddleware, secret_key=os.environ.get("KHOJ_DJANGO_SECRET_KEY", "!secret"))
 
 
 if not state.demo:

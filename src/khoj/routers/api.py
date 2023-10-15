@@ -8,7 +8,7 @@ import json
 from typing import List, Optional, Union, Any
 
 # External Packages
-from fastapi import APIRouter, HTTPException, Header, Request, Depends
+from fastapi import APIRouter, HTTPException, Header, Request
 from sentence_transformers import util
 
 # Internal Packages
@@ -46,8 +46,6 @@ from khoj.processor.conversation.prompts import help_message
 from khoj.processor.conversation.openai.gpt import extract_questions
 from khoj.processor.conversation.gpt4all.chat_model import extract_questions_offline
 from fastapi.requests import Request
-
-from database import adapters
 
 
 # Initialize Router
@@ -363,7 +361,6 @@ async def search(
     referer: Optional[str] = Header(None),
     host: Optional[str] = Header(None),
 ):
-    user = request.user
     start_time = time.time()
 
     # Run validation checks
