@@ -170,7 +170,11 @@
 
             // Execute Search and Render Results
             url = createRequestUrl(query, type, results_count || 5, rerank);
-            fetch(url)
+            fetch(url, {
+                headers: {
+                    "X-CSRFToken": csrfToken
+                }
+            })
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
