@@ -7,6 +7,9 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse, RedirectResponse
 from authlib.integrations.starlette_client import OAuth, OAuthError
 
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+
 from database.adapters import get_or_create_user
 
 logger = logging.getLogger(__name__)
@@ -40,6 +43,12 @@ async def login(request: Request):
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 
+@auth_router.post("/login")
+async def login(request: Request):
+    redirect_uri = request.url_for("auth")
+    return await oauth.google.authorize_redirect(request, redirect_uri)
+
+
 @auth_router.get("/redirect")
 async def auth(request: Request):
     try:
@@ -48,6 +57,21 @@ async def auth(request: Request):
         return HTMLResponse(f"<h1>{error.error}</h1>")
     khoj_user = await get_or_create_user(token)
     user = token.get("userinfo")
+    if user:
+        request.session["user"] = dict(user)
+    return RedirectResponse(url="/")
+
+
+@auth_router.post("/redirect")
+async def auth(request: Request):
+    form = await request.form()
+    credential = form.get("credential")
+    try:
+        idinfo = id_token.verify_oauth2_token(credential, google_requests.Request(), os.environ["GOOGLE_CLIENT_ID"])
+    except OAuthError as error:
+        return HTMLResponse(f"<h1>{error.error}</h1>")
+    khoj_user = await get_or_create_user(idinfo)
+    user = idinfo.get("userinfo")
     if user:
         request.session["user"] = dict(user)
     return RedirectResponse(url="/")

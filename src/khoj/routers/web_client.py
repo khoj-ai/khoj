@@ -34,9 +34,19 @@ def index(request: Request):
     return templates.TemplateResponse("index.html", context={"request": request, "demo": state.demo})
 
 
+@web_client.post("/", response_class=FileResponse)
+def index_post(request: Request):
+    return templates.TemplateResponse("index.html", context={"request": request, "demo": state.demo})
+
+
 @web_client.get("/chat", response_class=FileResponse)
 def chat_page(request: Request):
     return templates.TemplateResponse("chat.html", context={"request": request, "demo": state.demo})
+
+
+@web_client.get("/login", response_class=FileResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse("login.html", context={"request": request, "demo": state.demo})
 
 
 def map_config_to_object(content_type: str):
