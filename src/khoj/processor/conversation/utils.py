@@ -3,6 +3,7 @@ import logging
 from time import perf_counter
 import json
 from datetime import datetime
+import queue
 import tiktoken
 
 # External packages
@@ -10,7 +11,6 @@ from langchain.schema import ChatMessage
 from transformers import AutoTokenizer
 
 # Internal Packages
-import queue
 from khoj.utils.helpers import merge_dicts
 
 
@@ -89,11 +89,22 @@ def generate_chatml_messages_with_context(
     system_message,
     conversation_log={},
     model_name="gpt-3.5-turbo",
-    lookback_turns=2,
     max_prompt_size=None,
     tokenizer_name=None,
 ):
     """Generate messages for ChatGPT with context from previous conversation"""
+    # Set max prompt size from user config, pre-configured for model or to default prompt size
+    try:
+        max_prompt_size = max_prompt_size or model_to_prompt_size[model_name]
+    except:
+        max_prompt_size = 2000
+        logger.warning(
+            f"Fallback to default prompt size: {max_prompt_size}.\nConfigure max_prompt_size for unsupported model: {model_name} in Khoj settings to longer context window."
+        )
+
+    # Scale lookback turns proportional to max prompt size supported by model
+    lookback_turns = max_prompt_size // 750
+
     # Extract Chat History for Context
     chat_logs = []
     for chat in conversation_log.get("chat", []):
@@ -112,15 +123,6 @@ def generate_chatml_messages_with_context(
     user_chatml_message = [ChatMessage(content=user_message, role="user")]
 
     messages = user_chatml_message + rest_backnforths + system_chatml_message
-
-    # Set max prompt size from user config, pre-configured for model or to default prompt size
-    try:
-        max_prompt_size = max_prompt_size or model_to_prompt_size[model_name]
-    except:
-        max_prompt_size = 2000
-        logger.warning(
-            f"Fallback to default prompt size: {max_prompt_size}.\nConfigure max_prompt_size for unsupported model: {model_name} in Khoj settings to longer context window."
-        )
 
     # Truncate oldest messages from conversation history until under max supported prompt size by model
     messages = truncate_messages(messages, max_prompt_size, model_name, tokenizer_name)
