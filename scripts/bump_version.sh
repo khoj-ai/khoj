@@ -9,6 +9,10 @@ do
             # Get current project version
             current_version=$OPTARG
 
+            # Bump Desktop app to current version
+            cd $project_root/src/interface/desktop
+            sed -E -i.bak "s/version\": \"(.*)\",/version\": \"$current_version\",/" package.json
+
             # Bump Obsidian plugin to current version
             cd $project_root/src/interface/obsidian
             sed -E -i.bak "s/version\": \"(.*)\",/version\": \"$current_version\",/" package.json

@@ -10,8 +10,8 @@ from langchain.document_loaders import PyMuPDFLoader
 # Internal Packages
 from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.helpers import timer
-from khoj.utils.rawconfig import Entry, TextContentConfig
-from database.models import Embeddings, KhojUser, LocalPdfConfig
+from khoj.utils.rawconfig import Entry
+from database.models import Embeddings, KhojUser
 
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ class PdfToJsonl(TextEmbeddings):
         with timer("Identify new or updated entries", logger):
             num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
                 current_entries,
-                Embeddings.EmbeddingsType.MARKDOWN,
+                Embeddings.EmbeddingsType.PDF,
                 "compiled",
                 logger,
                 deletion_file_names,
@@ -63,7 +63,7 @@ class PdfToJsonl(TextEmbeddings):
         entry_to_location_map = []
         for pdf_file in pdf_files:
             try:
-                # Write the PDF file to a temporary file, as it is stored in byte format in the pdf_file object and the PyPDFLoader expects a file path
+                # Write the PDF file to a temporary file, as it is stored in byte format in the pdf_file object and the PDF Loader expects a file path
                 tmp_file = f"tmp_pdf_file.pdf"
                 with open(f"{tmp_file}", "wb") as f:
                     bytes = base64.b64decode(pdf_files[pdf_file])

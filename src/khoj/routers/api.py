@@ -68,54 +68,50 @@ def map_config_to_object(content_type: str):
         return LocalPlaintextConfig
 
 
-def map_config_to_db(config: FullConfig, user: KhojUser):
+async def map_config_to_db(config: FullConfig, user: KhojUser):
     if config.content_type:
         if config.content_type.org:
-            LocalOrgConfig.objects.filter(user=user).delete()
-            LocalOrgConfig.objects.create(
+            await LocalOrgConfig.objects.filter(user=user).adelete()
+            await LocalOrgConfig.objects.acreate(
                 input_files=config.content_type.org.input_files,
                 input_filter=config.content_type.org.input_filter,
                 index_heading_entries=config.content_type.org.index_heading_entries,
                 user=user,
             )
         if config.content_type.markdown:
-            LocalMarkdownConfig.objects.filter(user=user).delete()
-            LocalMarkdownConfig.objects.create(
+            await LocalMarkdownConfig.objects.filter(user=user).adelete()
+            await LocalMarkdownConfig.objects.acreate(
                 input_files=config.content_type.markdown.input_files,
                 input_filter=config.content_type.markdown.input_filter,
                 index_heading_entries=config.content_type.markdown.index_heading_entries,
                 user=user,
             )
         if config.content_type.pdf:
-            LocalPdfConfig.objects.filter(user=user).delete()
-            LocalPdfConfig.objects.create(
+            await LocalPdfConfig.objects.filter(user=user).adelete()
+            await LocalPdfConfig.objects.acreate(
                 input_files=config.content_type.pdf.input_files,
                 input_filter=config.content_type.pdf.input_filter,
                 index_heading_entries=config.content_type.pdf.index_heading_entries,
                 user=user,
             )
         if config.content_type.plaintext:
-            LocalPlaintextConfig.objects.filter(user=user).delete()
-            LocalPlaintextConfig.objects.create(
+            await LocalPlaintextConfig.objects.filter(user=user).adelete()
+            await LocalPlaintextConfig.objects.acreate(
                 input_files=config.content_type.plaintext.input_files,
                 input_filter=config.content_type.plaintext.input_filter,
                 index_heading_entries=config.content_type.plaintext.index_heading_entries,
                 user=user,
             )
         if config.content_type.github:
-            asyncio.run(
-                adapters.set_user_github_config(
-                    user=user,
-                    pat_token=config.content_type.github.pat_token,
-                    repos=config.content_type.github.repos,
-                )
+            await adapters.set_user_github_config(
+                user=user,
+                pat_token=config.content_type.github.pat_token,
+                repos=config.content_type.github.repos,
             )
         if config.content_type.notion:
-            asyncio.run(
-                adapters.set_notion_config(
-                    user=user,
-                    token=config.content_type.notion.token,
-                )
+            await adapters.set_notion_config(
+                user=user,
+                token=config.content_type.notion.token,
             )
 
 
@@ -143,7 +139,7 @@ if not state.demo:
         client: Optional[str] = None,
     ):
         user = request.user.object if request.user.is_authenticated else None
-        map_config_to_db(updated_config, user)
+        await map_config_to_db(updated_config, user)
 
         configuration_update_metadata = {}
 
@@ -227,8 +223,6 @@ if not state.demo:
         client: Optional[str] = None,
     ):
         user = request.user.object if request.user.is_authenticated else None
-        if not state.config or not state.config.content_type:
-            return {"status": "ok"}
 
         update_telemetry_state(
             request=request,
@@ -373,7 +367,7 @@ if not state.demo:
 # Create Routes
 @api.get("/config/data/default")
 def get_default_config_data():
-    return constants.default_config
+    return constants.empty_config
 
 
 @api.get("/config/types", response_model=List[str])
@@ -640,10 +634,16 @@ async def chat(
 ) -> Response:
     perform_chat_checks()
     conversation_command = get_conversation_command(query=q, any_references=True)
+
+    q = q.replace(f"/{conversation_command.value}", "").strip()
+
     compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
         request, q, (n or 5), conversation_command
     )
-    conversation_command = get_conversation_command(query=q, any_references=not is_none_or_empty(compiled_references))
+
+    if conversation_command == ConversationCommand.Default and is_none_or_empty(compiled_references):
+        conversation_command = ConversationCommand.General
+
     if conversation_command == ConversationCommand.Help:
         model_type = "offline" if state.processor_config.conversation.enable_offline_chat else "openai"
         formatted_help = help_message.format(model=model_type, version=state.khoj_version)
@@ -714,11 +714,9 @@ async def extract_references_and_questions(
 
     # Extract filter terms from user message
     defiltered_query = q
-    filter_terms = []
     for filter in [DateFilter(), WordFilter(), FileFilter()]:
-        filter_terms += filter.get_filter_terms(q)
-        defiltered_query = filter.defilter(q)
-    filters_in_query = " ".join(filter_terms)
+        defiltered_query = filter.defilter(defiltered_query)
+    filters_in_query = q.replace(defiltered_query, "").strip()
 
     # Infer search queries from user message
     with timer("Extracting search queries took", logger):

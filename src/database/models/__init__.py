@@ -2,7 +2,7 @@ import uuid
 
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from pgvector.django import VectorField, IvfflatIndex
+from pgvector.django import VectorField
 
 
 class BaseModel(models.Model):
