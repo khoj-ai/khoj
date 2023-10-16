@@ -10,8 +10,8 @@ from langchain.document_loaders import PyMuPDFLoader
 # Internal Packages
 from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.helpers import timer
-from khoj.utils.rawconfig import Entry, TextContentConfig
-from database.models import Embeddings, KhojUser, LocalPdfConfig
+from khoj.utils.rawconfig import Entry
+from database.models import Embeddings, KhojUser
 
 
 logger = logging.getLogger(__name__)
@@ -63,13 +63,13 @@ class PdfToJsonl(TextEmbeddings):
         entry_to_location_map = []
         for pdf_file in pdf_files:
             try:
-                # Write the PDF file to a temporary file, as it is stored in byte format in the pdf_file object and the PyPDFLoader expects a file path
+                # Write the PDF file to a temporary file, as it is stored in byte format in the pdf_file object and the PDF Loader expects a file path
                 tmp_file = f"tmp_pdf_file.pdf"
                 with open(f"{tmp_file}", "wb") as f:
                     bytes = base64.b64decode(pdf_files[pdf_file])
                     f.write(bytes)
                 loader = PyMuPDFLoader(f"{tmp_file}")
-                pdf_entries_per_file = [page.page_content for page in loader.load()]
+                pdf_entries_per_file = [page.page_content.encode("utf-8") for page in loader.load()]
                 entry_to_location_map += zip(pdf_entries_per_file, [pdf_file] * len(pdf_entries_per_file))
                 entries.extend(pdf_entries_per_file)
             except Exception as e:
