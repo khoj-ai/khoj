@@ -223,8 +223,6 @@ if not state.demo:
         client: Optional[str] = None,
     ):
         user = request.user.object if request.user.is_authenticated else None
-        if not state.config or not state.config.content_type:
-            return {"status": "ok"}
 
         update_telemetry_state(
             request=request,

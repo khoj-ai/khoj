@@ -101,7 +101,9 @@ class TextEmbeddings(ABC):
             for file in tqdm(hashes_by_file, desc="Processing file with hashed values"):
                 hashes_for_file = hashes_by_file[file]
                 hashes_to_process = set()
-                existing_entries = Embeddings.objects.filter(user=user, hashed_value__in=hashes_for_file)
+                existing_entries = Embeddings.objects.filter(
+                    user=user, hashed_value__in=hashes_for_file, file_type=file_type
+                )
                 existing_entry_hashes = set([entry.hashed_value for entry in existing_entries])
                 hashes_to_process = hashes_for_file - existing_entry_hashes
                 # for hashed_val in hashes_for_file:

@@ -45,7 +45,7 @@ class PdfToJsonl(TextEmbeddings):
         with timer("Identify new or updated entries", logger):
             num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
                 current_entries,
-                Embeddings.EmbeddingsType.MARKDOWN,
+                Embeddings.EmbeddingsType.PDF,
                 "compiled",
                 logger,
                 deletion_file_names,
@@ -69,7 +69,7 @@ class PdfToJsonl(TextEmbeddings):
                     bytes = base64.b64decode(pdf_files[pdf_file])
                     f.write(bytes)
                 loader = PyMuPDFLoader(f"{tmp_file}")
-                pdf_entries_per_file = [page.page_content.encode("utf-8") for page in loader.load()]
+                pdf_entries_per_file = [page.page_content for page in loader.load()]
                 entry_to_location_map += zip(pdf_entries_per_file, [pdf_file] * len(pdf_entries_per_file))
                 entries.extend(pdf_entries_per_file)
             except Exception as e:
