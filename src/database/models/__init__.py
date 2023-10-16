@@ -2,7 +2,7 @@ import uuid
 
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from pgvector.django import VectorField, IvfflatIndex
+from pgvector.django import VectorField, HnswIndex
 
 
 class BaseModel(models.Model):
@@ -109,6 +109,13 @@ class Embeddings(BaseModel):
     url = models.URLField(max_length=400, default=None, null=True, blank=True)
     hashed_value = models.CharField(max_length=100)
     corpus_id = models.UUIDField(default=uuid.uuid4, editable=False)
+
+    class Meta:
+        indexes = [
+            HnswIndex(
+                name="embeddings_idx", fields=["embeddings"], m=16, ef_construction=64, opclasses=["vector_cosine_ops"]
+            )
+        ]
 
 
 class EmbeddingsDates(BaseModel):
