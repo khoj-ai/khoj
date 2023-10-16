@@ -88,7 +88,7 @@ def get_plaintext_files(config: TextContentConfig) -> dict[str, str]:
                 plaintext_content = f.read()
                 if file.endswith(("html", "htm", "xml")):
                     plaintext_content = extract_html_content(plaintext_content)
-                filename_to_content_map[file] = f.read()
+                filename_to_content_map[file] = plaintext_content
             except Exception as e:
                 logger.warning(f"Unable to read file: {file} as plaintext. Skipping file.")
                 logger.warning(e, exc_info=True)

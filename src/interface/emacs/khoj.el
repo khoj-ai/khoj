@@ -1,9 +1,10 @@
-;;; khoj.el --- AI personal assistant for your digital brain -*- lexical-binding: t -*-
+;;; khoj.el --- AI copilot for your Second Brain -*- lexical-binding: t -*-
 
-;; Copyright (C) 2021-2022 Debanjum Singh Solanky
+;; Copyright (C) 2021-2023 Khoj Inc.
 
-;; Author: Debanjum Singh Solanky <debanjum@gmail.com>
-;; Description: An AI personal assistant for your digital brain
+;; Author: Debanjum Singh Solanky <debanjum@khoj.dev>
+;;         Saba Imran <saba@khoj.dev>
+;; Description: An AI copilot for your Second Brain
 ;; Keywords: search, chat, org-mode, outlines, markdown, pdf, image
 ;; Version: 0.12.3
 ;; Package-Requires: ((emacs "27.1") (transient "0.3.0") (dash "2.19.1"))
@@ -28,8 +29,8 @@
 
 ;;; Commentary:
 
-;; Create an AI personal assistant for your `org-mode', `markdown' notes,
-;; PDFs and images. The assistant exposes 2 modes, search and chat:
+;; Create an AI copilot to your `org-mode', `markdown' notes,
+;; PDFs and images. The copilot exposes 2 modes, search and chat:
 ;;
 ;; Chat provides faster answers, iterative discovery and assisted
 ;; creativity. It requires your OpenAI API key to access GPT models
@@ -87,6 +88,12 @@
   :group 'khoj
   :type 'integer)
 
+(defcustom khoj-search-on-idle-time 0.3
+  "Idle time (in seconds) to wait before triggering search."
+  :group 'khoj
+  :type 'number)
+
+
 (defcustom khoj-default-content-type "org"
   "The default content type to perform search on."
   :group 'khoj
@@ -114,6 +121,9 @@
 
 (defvar khoj--content-type "org"
   "The type of content to perform search on.")
+
+(defvar khoj--search-on-idle-timer nil
+  "Idle timer to trigger incremental search.")
 
 (declare-function org-element-property "org-mode" (PROPERTY ELEMENT))
 (declare-function org-element-type "org-mode" (ELEMENT))
@@ -920,6 +930,9 @@ RECEIVE-DATE is the message receive date."
   (message "khoj.el: Teardown Incremental Search")
   ;; unset khoj minibuffer window
   (setq khoj--minibuffer-window nil)
+  (when (and khoj--search-on-idle-timer
+             (timerp khoj--search-on-idle-timer))
+    (cancel-timer khoj--search-on-idle-timer))
   ;; delete open connections to khoj server
   (khoj--delete-open-network-connections-to-server)
   ;; remove hooks for khoj incremental query and self
@@ -942,8 +955,10 @@ RECEIVE-DATE is the message receive date."
           ;; set current (mini-)buffer entered as khoj minibuffer
           ;; used to query khoj API only when user in khoj minibuffer
           (setq khoj--minibuffer-window (current-buffer))
-          (add-hook 'post-command-hook #'khoj--incremental-search) ; do khoj incremental search after every user action
-          (add-hook 'minibuffer-exit-hook #'khoj--teardown-incremental-search)) ; teardown khoj incremental search on minibuffer exit
+          ; do khoj incremental search after idle time
+          (setq khoj--search-on-idle-timer (run-with-idle-timer khoj-search-on-idle-time t #'khoj--incremental-search))
+          ; teardown khoj incremental search on minibuffer exit
+          (add-hook 'minibuffer-exit-hook #'khoj--teardown-incremental-search))
       (read-string khoj--query-prompt))))
 
 
