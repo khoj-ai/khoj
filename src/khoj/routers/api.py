@@ -68,54 +68,50 @@ def map_config_to_object(content_type: str):
         return LocalPlaintextConfig
 
 
-def map_config_to_db(config: FullConfig, user: KhojUser):
+async def map_config_to_db(config: FullConfig, user: KhojUser):
     if config.content_type:
         if config.content_type.org:
-            LocalOrgConfig.objects.filter(user=user).delete()
-            LocalOrgConfig.objects.create(
+            await LocalOrgConfig.objects.filter(user=user).adelete()
+            await LocalOrgConfig.objects.acreate(
                 input_files=config.content_type.org.input_files,
                 input_filter=config.content_type.org.input_filter,
                 index_heading_entries=config.content_type.org.index_heading_entries,
                 user=user,
             )
         if config.content_type.markdown:
-            LocalMarkdownConfig.objects.filter(user=user).delete()
-            LocalMarkdownConfig.objects.create(
+            await LocalMarkdownConfig.objects.filter(user=user).adelete()
+            await LocalMarkdownConfig.objects.acreate(
                 input_files=config.content_type.markdown.input_files,
                 input_filter=config.content_type.markdown.input_filter,
                 index_heading_entries=config.content_type.markdown.index_heading_entries,
                 user=user,
             )
         if config.content_type.pdf:
-            LocalPdfConfig.objects.filter(user=user).delete()
-            LocalPdfConfig.objects.create(
+            await LocalPdfConfig.objects.filter(user=user).adelete()
+            await LocalPdfConfig.objects.acreate(
                 input_files=config.content_type.pdf.input_files,
                 input_filter=config.content_type.pdf.input_filter,
                 index_heading_entries=config.content_type.pdf.index_heading_entries,
                 user=user,
             )
         if config.content_type.plaintext:
-            LocalPlaintextConfig.objects.filter(user=user).delete()
-            LocalPlaintextConfig.objects.create(
+            await LocalPlaintextConfig.objects.filter(user=user).adelete()
+            await LocalPlaintextConfig.objects.acreate(
                 input_files=config.content_type.plaintext.input_files,
                 input_filter=config.content_type.plaintext.input_filter,
                 index_heading_entries=config.content_type.plaintext.index_heading_entries,
                 user=user,
             )
         if config.content_type.github:
-            asyncio.run(
-                adapters.set_user_github_config(
-                    user=user,
-                    pat_token=config.content_type.github.pat_token,
-                    repos=config.content_type.github.repos,
-                )
+            await adapters.set_user_github_config(
+                user=user,
+                pat_token=config.content_type.github.pat_token,
+                repos=config.content_type.github.repos,
             )
         if config.content_type.notion:
-            asyncio.run(
-                adapters.set_notion_config(
-                    user=user,
-                    token=config.content_type.notion.token,
-                )
+            await adapters.set_notion_config(
+                user=user,
+                token=config.content_type.notion.token,
             )
 
 
@@ -143,7 +139,7 @@ if not state.demo:
         client: Optional[str] = None,
     ):
         user = request.user.object if request.user.is_authenticated else None
-        map_config_to_db(updated_config, user)
+        await map_config_to_db(updated_config, user)
 
         configuration_update_metadata = {}
 
