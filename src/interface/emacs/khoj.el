@@ -136,6 +136,9 @@
 (defvar khoj--index-timer nil
   "Timer to trigger content indexing.")
 
+(defvar khoj--indexed-files '()
+  "Files that were indexed in previous content indexing run.")
+
 (declare-function org-element-property "org-mode" (PROPERTY ELEMENT))
 (declare-function org-element-type "org-mode" (ELEMENT))
 (declare-function markdown-mode "markdown-mode" ())
@@ -543,7 +546,7 @@ CONFIG is json obtained from Khoj config API."
         (inhibit-message t)
         (message-log-max nil))
     (let ((url-request-method "POST")
-          (url-request-data (khoj--render-files-as-request-body files-to-index boundary))
+          (url-request-data (khoj--render-files-as-request-body files-to-index khoj--indexed-files boundary))
           (url-request-extra-headers `(("content-type" . ,(format "multipart/form-data; boundary=%s" boundary))
                                        ("x-api-key" . ,khoj-server-api-key))))
       (with-current-buffer
@@ -555,11 +558,12 @@ CONFIG is json obtained from Khoj config API."
                             (with-current-buffer (current-buffer)
                               (goto-char "\n\n")
                               (message "khoj.el: Failed to update Content Index. Status: %s. Response: %s" status (string-trim (buffer-substring-no-properties (point) (point-max)))))))
-                        nil t t)))))
+                        nil t t)))
+    (setq khoj--indexed-files files-to-index)))
 
-(defun khoj--render-files-as-request-body (files-to-index boundary)
-  "Render `FILES-TO-INDEX' as multi-part form body using `BOUNDARY'.
-This is sent to Khoj server as a POST request."
+(defun khoj--render-files-as-request-body (files-to-index previously-indexed-files boundary)
+  "Render `FILES-TO-INDEX', `PREVIOUSLY-INDEXED-FILES' as multi-part form body.
+Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request."
   (with-temp-buffer
     (set-buffer-multibyte nil)
     (insert "\n")
@@ -571,6 +575,13 @@ This is sent to Khoj server as a POST request."
                 (insert-file-contents-literally file-to-index)
                 (buffer-string)))
       (insert "\r\n"))
+    (dolist (file-to-index previously-indexed-files)
+      (when (not (member file-to-index files-to-index))
+        (insert (format "--%s\r\n" boundary))
+        (insert (format "Content-Disposition: form-data; name=\"files\"; filename=\"%s\"\r\n" file-to-index))
+        (insert "Content-Type: text/org\r\n\r\n")
+        (insert "")
+        (insert "\r\n")))
     (insert (format "--%s--\r\n" boundary))
     (buffer-string)))
 
