@@ -284,10 +284,11 @@ if not state.demo:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
-    @api.post("/config/data/processor/conversation/enable_offline_chat", status_code=200)
+    @api.post("/config/data/processor/conversation/offline_chat", status_code=200)
     async def set_processor_enable_offline_chat_config_data(
         request: Request,
         enable_offline_chat: bool,
+        offline_chat_model: Optional[str] = None,
         client: Optional[str] = None,
     ):
         _initialize_config()
@@ -301,7 +302,9 @@ if not state.demo:
             state.config.processor = ProcessorConfig(conversation=ConversationProcessorConfig(conversation_logfile=conversation_logfile))  # type: ignore
 
         assert state.config.processor.conversation is not None
-        state.config.processor.conversation.enable_offline_chat = enable_offline_chat
+        state.config.processor.conversation.offline_chat.enable_offline_chat = enable_offline_chat
+        if offline_chat_model is not None:
+            state.config.processor.conversation.offline_chat.chat_model = offline_chat_model
         state.processor_config = configure_processor(state.config.processor, state.processor_config)
 
         update_telemetry_state(
@@ -713,7 +716,7 @@ async def chat(
         conversation_command = ConversationCommand.General
 
     if conversation_command == ConversationCommand.Help:
-        model_type = "offline" if state.processor_config.conversation.enable_offline_chat else "openai"
+        model_type = "offline" if state.processor_config.conversation.offline_chat.enable_offline_chat else "openai"
         formatted_help = help_message.format(model=model_type, version=state.khoj_version)
         return StreamingResponse(iter([formatted_help]), media_type="text/event-stream", status_code=200)
 
@@ -788,7 +791,7 @@ async def extract_references_and_questions(
     # Infer search queries from user message
     with timer("Extracting search queries took", logger):
         # If we've reached here, either the user has enabled offline chat or the openai model is enabled.
-        if state.processor_config.conversation.enable_offline_chat:
+        if state.processor_config.conversation.offline_chat.enable_offline_chat:
             loaded_model = state.processor_config.conversation.gpt4all_model.loaded_model
             inferred_queries = extract_questions_offline(
                 defiltered_query, loaded_model=loaded_model, conversation_log=meta_log, should_extract_questions=False
@@ -804,7 +807,7 @@ async def extract_references_and_questions(
     with timer("Searching knowledge base took", logger):
         result_list = []
         for query in inferred_queries:
-            n_items = min(n, 3) if state.processor_config.conversation.enable_offline_chat else n
+            n_items = min(n, 3) if state.processor_config.conversation.offline_chat.enable_offline_chat else n
             result_list.extend(
                 await search(
                     f"{query} {filters_in_query}",

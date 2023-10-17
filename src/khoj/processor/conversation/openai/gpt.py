@@ -116,6 +116,8 @@ def converse(
     temperature: float = 0.2,
     completion_func=None,
     conversation_command=ConversationCommand.Default,
+    max_prompt_size=None,
+    tokenizer_name=None,
 ):
     """
     Converse with user using OpenAI's ChatGPT
@@ -141,6 +143,8 @@ def converse(
         prompts.personality.format(),
         conversation_log,
         model,
+        max_prompt_size,
+        tokenizer_name,
     )
     truncated_messages = "\n".join({f"{message.content[:40]}..." for message in messages})
     logger.debug(f"Conversation Context for GPT: {truncated_messages}")
