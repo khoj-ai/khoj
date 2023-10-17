@@ -80,7 +80,7 @@ def test_regenerate_with_valid_content_type(client):
         headers = {"x-api-key": "secret"}
 
         # Act
-        response = client.post(f"/api/v1/index/update?search_type={content_type}", files=files, headers=headers)
+        response = client.post(f"/api/v1/index/update?t={content_type}", files=files, headers=headers)
         # Assert
         assert response.status_code == 200, f"Returned status: {response.status_code} for content type: {content_type}"
 
@@ -95,7 +95,7 @@ def test_regenerate_with_github_fails_without_pat(client):
     headers = {"x-api-key": "secret"}
 
     # Act
-    response = client.post(f"/api/v1/index/update?search_type=github", files=files, headers=headers)
+    response = client.post(f"/api/v1/index/update?t=github", files=files, headers=headers)
     # Assert
     assert response.status_code == 200, f"Returned status: {response.status_code} for content type: github"
 

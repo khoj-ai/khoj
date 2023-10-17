@@ -163,7 +163,7 @@ function pushDataToKhoj (regenerate = false) {
         const headers = {
             'x-api-key': 'secret'
         };
-        axios.post(`${hostURL}/api/v1/index/update?regenerate=${regenerate}`, formData, { headers })
+        axios.post(`${hostURL}/api/v1/index/update?force=${regenerate}&client=desktop`, formData, { headers })
             .then(response => {
                 console.log(response.data);
                 const win = BrowserWindow.getAllWindows()[0];

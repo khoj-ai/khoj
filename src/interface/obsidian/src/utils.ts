@@ -68,7 +68,7 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
     }
 
     // Call Khoj backend to update index with all markdown, pdf files
-    const response = await fetch(`${setting.khojUrl}/api/v1/index/update?regenerate=${regenerate}`, {
+    const response = await fetch(`${setting.khojUrl}/api/v1/index/update?force=${regenerate}&client=obsidian`, {
         method: 'POST',
         headers: {
             'x-api-key': 'secret',

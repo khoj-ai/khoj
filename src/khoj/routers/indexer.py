@@ -61,8 +61,8 @@ async def update(
     request: Request,
     files: list[UploadFile],
     x_api_key: str = Header(None),
-    regenerate: bool = False,
-    search_type: Optional[Union[state.SearchType, str]] = None,
+    force: bool = False,
+    t: Optional[Union[state.SearchType, str]] = None,
     client: Optional[str] = None,
     user_agent: Optional[str] = Header(None),
     referer: Optional[str] = Header(None),
@@ -132,8 +132,8 @@ async def update(
             state.config.content_type,
             indexer_input.dict(),
             state.search_models,
-            regenerate=regenerate,
-            t=search_type,
+            regenerate=force,
+            t=t,
             full_corpus=False,
         )
 
