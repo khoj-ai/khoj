@@ -74,7 +74,6 @@ class SearchModels:
 
 @dataclass
 class GPT4AllProcessorConfig:
-    chat_model: Optional[str] = "llama-2-7b-chat.ggmlv3.q4_K_S.bin"
     loaded_model: Union[Any, None] = None
 
 
@@ -85,18 +84,20 @@ class ConversationProcessorConfigModel:
     ):
         self.openai_model = conversation_config.openai
         self.gpt4all_model = GPT4AllProcessorConfig()
-        self.enable_offline_chat = conversation_config.enable_offline_chat
+        self.offline_chat = conversation_config.offline_chat
+        self.max_prompt_size = conversation_config.max_prompt_size
+        self.tokenizer = conversation_config.tokenizer
         self.conversation_logfile = Path(conversation_config.conversation_logfile)
         self.chat_session: List[str] = []
         self.meta_log: dict = {}
 
-        if self.enable_offline_chat:
+        if self.offline_chat.enable_offline_chat:
             try:
-                self.gpt4all_model.loaded_model = download_model(self.gpt4all_model.chat_model)
+                self.gpt4all_model.loaded_model = download_model(self.offline_chat.chat_model)
             except ValueError as e:
+                self.offline_chat.enable_offline_chat = False
                 self.gpt4all_model.loaded_model = None
                 logger.error(f"Error while loading offline chat model: {e}", exc_info=True)
-                self.enable_offline_chat = False
         else:
             self.gpt4all_model.loaded_model = None
 
