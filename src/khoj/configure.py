@@ -67,7 +67,7 @@ class UserAuthenticationBackend(AuthenticationBackend):
             user = await self.khojuser_manager.filter(email=current_user.get("email")).afirst()
             if user:
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
-        elif not state.anonymous_mode:
+        elif state.anonymous_mode:
             user = await self.khojuser_manager.filter(username="default").afirst()
             if user:
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)

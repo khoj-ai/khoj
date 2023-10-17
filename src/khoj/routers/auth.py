@@ -4,7 +4,7 @@ import os
 from fastapi import APIRouter
 from starlette.config import Config
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, RedirectResponse
+from starlette.responses import HTMLResponse, RedirectResponse, Response
 from authlib.integrations.starlette_client import OAuth, OAuthError
 
 from google.oauth2 import id_token
@@ -25,16 +25,6 @@ else:
 
     CONF_URL = "https://accounts.google.com/.well-known/openid-configuration"
     oauth.register(name="google", server_metadata_url=CONF_URL, client_kwargs={"scope": "openid email profile"})
-
-
-@auth_router.get("/")
-async def homepage(request: Request):
-    user = request.session.get("user")
-    if user:
-        data = json.dumps(user)
-        html = f"<pre>{data}</pre>" '<a href="/logout">logout</a>'
-        return HTMLResponse(html)
-    return HTMLResponse('<a href="/login">login</a>')
 
 
 @auth_router.get("/login")
@@ -66,14 +56,24 @@ async def auth(request: Request):
 async def auth(request: Request):
     form = await request.form()
     credential = form.get("credential")
+
+    csrf_token_cookie = request.cookies.get("g_csrf_token")
+    if not csrf_token_cookie:
+        return Response("Missing CSRF token", status_code=400)
+    csrf_token_body = form.get("g_csrf_token")
+    if not csrf_token_body:
+        return Response("Missing CSRF token", status_code=400)
+    if csrf_token_cookie != csrf_token_body:
+        return Response("Invalid CSRF token", status_code=400)
+
     try:
         idinfo = id_token.verify_oauth2_token(credential, google_requests.Request(), os.environ["GOOGLE_CLIENT_ID"])
     except OAuthError as error:
         return HTMLResponse(f"<h1>{error.error}</h1>")
     khoj_user = await get_or_create_user(idinfo)
-    user = idinfo.get("userinfo")
-    if user:
-        request.session["user"] = dict(user)
+    if khoj_user:
+        request.session["user"] = dict(idinfo)
+
     return RedirectResponse(url="/")
 
 

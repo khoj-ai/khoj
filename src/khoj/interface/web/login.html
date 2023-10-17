@@ -2,7 +2,6 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
-        <!-- <meta name="google-signin-client_id" content="576861459788-1atrfif8p3s1khtl8pdk6k3k9r6309qf.apps.googleusercontent.com"> -->
         <title>Khoj - Search</title>
 
         <link rel="icon" type="image/png" sizes="128x128" href="/static/assets/icons/favicon-128x128.png">
@@ -36,16 +35,24 @@
             {% endif %}
         </div>
 
-        <!-- Add in a Sign Up button for Google OAuth -->
-        <button>
-            <a href="/auth/login">Sign Up</a>
-        </button>
+        <!-- Sign Up button for Google OAuth -->
+        <div id="login-modal">
+            <h1 class="login-modal-title">Become superhuman with your personal knowledge base copilot</h1>
+            <div
+                class="g_id_signin"
+                data-shape="circle"
+                data-text="continue_with"
+                data-logo_alignment="center"
+                data-size="large"
+                data-width="300"
+                data-type="standard">
+            </div>
+        </div>
         <div id="g_id_onload"
-            data-client_id="576861459788-1atrfif8p3s1khtl8pdk6k3k9r6309qf"
+            data-client_id="{{ google_client_id }}"
             data-ux_mode="redirect"
-            data-login_uri="http://localhost:42110/auth/redirect">
+            data-login_uri="{{ redirect_uri }}">
    </div>
-   <div class="g_id_signin" data-type="standard"></div>
 
 
     </body>
@@ -117,12 +124,42 @@
             box-shadow: 0 0 11px #aaa;
         }
 
+        div#login-modal {
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr auto auto auto;
+            gap: 10px;
+            padding: 10px;
+            margin: 10px;
+            background: #fff;
+            border-radius: 5px;
+            border: 1px solid #475569;
+            box-shadow: 0 0 11px #aaa;
+            margin-left: 25%;
+            margin-right: 25%;
+        }
+
+        div.g_id_signin {
+            margin: 0 auto;
+            display: block;
+        }
+
+        h1.login-modal-title {
+            text-align: center;
+            line-height: 28px;
+            font-size: x-large;
+        }
+
         @media only screen and (max-width: 600px) {
             a.khoj-banner {
                 display: block;
             }
             p.khoj-banner {
                 padding: 0;
+            }
+            div#login-modal {
+                margin-left: 10%;
+                margin-right: 10%;
             }
         }
 
