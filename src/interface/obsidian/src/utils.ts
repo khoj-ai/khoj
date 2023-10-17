@@ -41,19 +41,30 @@ function fileExtensionToMimeType (extension: string): string {
     }
 }
 
-export async function updateContentIndex(vault: Vault, setting: KhojSetting): Promise<TFile[]> {
+export async function updateContentIndex(vault: Vault, setting: KhojSetting, lastSyncedFiles: TFile[]): Promise<TFile[]> {
     // Get all markdown, pdf files in the vault
     console.log(`Khoj: Updating Khoj content index...`)
     const files = vault.getFiles().filter(file => file.extension === 'md' || file.extension === 'pdf');
     const binaryFileTypes = ['pdf', 'png', 'jpg', 'jpeg']
+    let countOfFilesToIndex = 0;
+    let countOfFilesToDelete = 0;
 
-    // Create multipart form data with all markdown, pdf files
+    // Add all files to index as multipart form data
     const formData = new FormData();
     for (const file of files) {
+        countOfFilesToIndex++;
         const encoding = binaryFileTypes.includes(file.extension) ? "binary" : "utf8";
         const mimeType = fileExtensionToMimeType(file.extension) + (encoding === "utf8" ? "; charset=UTF-8" : "");
         const fileContent = await vault.read(file);
         formData.append('files', new Blob([fileContent], { type: mimeType }), file.path);
+    }
+
+    // Add any previously synced files to be deleted to multipart form data
+    for (const lastSyncedFile of lastSyncedFiles) {
+        if (!files.includes(lastSyncedFile)) {
+            countOfFilesToDelete++;
+            formData.append('files', new Blob([]), lastSyncedFile.path);
+        }
     }
 
     // Call Khoj backend to update index with all markdown, pdf files
@@ -68,7 +79,7 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting): Pr
     if (!response.ok) {
         new Notice(`❗️Failed to update Khoj content index. Ensure Khoj server connected or raise issue on Khoj Discord/Github\nError: ${response.statusText}`);
     } else {
-        console.log(`✅ Refreshed Khoj content index.`);
+        console.log(`✅ Refreshed Khoj content index. Updated: ${countOfFilesToIndex} files, Deleted: ${countOfFilesToDelete} files.`);
     }
 
     return files;

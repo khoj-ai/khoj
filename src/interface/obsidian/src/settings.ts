@@ -1,4 +1,4 @@
-import { App, Notice, PluginSettingTab, request, Setting } from 'obsidian';
+import { App, Notice, PluginSettingTab, request, Setting, TFile } from 'obsidian';
 import Khoj from 'src/main';
 
 export interface KhojSetting {
@@ -8,6 +8,7 @@ export interface KhojSetting {
     khojUrl: string;
     connectedToBackend: boolean;
     autoConfigure: boolean;
+    lastSyncedFiles: TFile[];
 }
 
 export const DEFAULT_SETTINGS: KhojSetting = {
@@ -17,6 +18,7 @@ export const DEFAULT_SETTINGS: KhojSetting = {
     connectedToBackend: false,
     autoConfigure: true,
     openaiApiKey: '',
+    lastSyncedFiles: []
 }
 
 export class KhojSettingTab extends PluginSettingTab {

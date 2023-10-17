@@ -59,7 +59,9 @@ export default class Khoj extends Plugin {
         // Add scheduled job to update index every 60 minutes
         this.indexingTimer = setInterval(async () => {
             if (this.settings.autoConfigure) {
-                this.lastSyncedFiles = await updateContentIndex(this.app.vault, this.settings);
+                this.settings.lastSyncedFiles = await updateContentIndex(
+                    this.app.vault, this.settings, this.settings.lastSyncedFiles
+                );
             }
         }, 60 * 60 * 1000);
     }
