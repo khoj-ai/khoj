@@ -72,7 +72,7 @@ async def update(
         raise HTTPException(status_code=401, detail="Invalid API Key")
     state.config_lock.acquire()
     try:
-        logger.info("📬 Updating content index via API")
+        logger.info(f"📬 Updating content index via API call by {client}")
         org_files: Dict[str, str] = {}
         markdown_files: Dict[str, str] = {}
         pdf_files: Dict[str, str] = {}
@@ -95,7 +95,7 @@ async def update(
                     file.file.read().decode("utf-8") if encoding == "utf-8" else file.file.read()
                 )
             else:
-                logger.warning(f"Skipped indexing unsupported file type sent by client: {file.filename}")
+                logger.warning(f"Skipped indexing unsupported file type sent by {client} client: {file.filename}")
 
         indexer_input = IndexerInput(
             org=org_files,
@@ -138,7 +138,9 @@ async def update(
         )
 
     except Exception as e:
-        logger.error(f"🚨 Failed to update content index via API: {e}", exc_info=True)
+        logger.error(
+            f"🚨 Failed to {force} update {t} content index triggered via API call by {client}: {e}", exc_info=True
+        )
     finally:
         state.config_lock.release()
 
@@ -152,7 +154,7 @@ async def update(
         host=host,
     )
 
-    logger.info("📪 Content index updated via API")
+    logger.info(f"📪 Content index updated via API call by {client}")
     return Response(content="OK", status_code=200)
 
 
