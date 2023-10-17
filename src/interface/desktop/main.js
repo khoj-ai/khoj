@@ -135,9 +135,10 @@ function pushDataToKhoj (regenerate = false) {
         }
 
         try {
-            encoding = binaryFileTypes.includes(file.split('.').pop()) ? "binary" : "utf8";
-            mimeType = filenameToMimeType(file) + (encoding === "utf8" ? "; charset=UTF-8" : "");
-            fileObj = new Blob([fs.createReadStream(file, encoding)], { type: mimeType });
+            let encoding = binaryFileTypes.includes(file.split('.').pop()) ? "binary" : "utf8";
+            let mimeType = filenameToMimeType(file) + (encoding === "utf8" ? "; charset=UTF-8" : "");
+            let fileContent = Buffer.from(fs.readFileSync(file, { encoding: encoding }), encoding);
+            let fileObj = new Blob([fileContent], { type: mimeType });
             formData.append('files', fileObj, file);
             state[file] = {
                 success: true,
