@@ -14,11 +14,18 @@ type OpenAIType = null | {
     "api-key": string;
 };
 
+type OfflineChatType = null | {
+    "chat-model": string;
+    "enable-offline-chat": boolean;
+};
+
 interface ProcessorData {
     conversation: {
       "conversation-logfile": string;
       openai: OpenAIType;
-      "enable-offline-chat": boolean;
+      "offline-chat": OfflineChatType;
+      "tokenizer": null | string;
+      "max-prompt-size": null | number;
     };
 }
 
@@ -106,7 +113,8 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
     // Get default config fields from khoj backend
     let defaultConfig = await request(`${khojConfigUrl}/default`).then(response => JSON.parse(response));
     let khojDefaultChatDirectory = getIndexDirectoryFromBackendConfig(defaultConfig["processor"]["conversation"]["conversation-logfile"]);
-    let khojDefaultChatModelName = defaultConfig["processor"]["conversation"]["openai"]["chat-model"];
+    let khojDefaultOpenAIChatModelName = defaultConfig["processor"]["conversation"]["openai"]["chat-model"];
+    let khojDefaultOfflineChatModelName = defaultConfig["processor"]["conversation"]["offline-chat"]["chat-model"];
 
     // Get current config if khoj backend configured, else get default config from khoj backend
     await request(khoj_already_configured ? khojConfigUrl : `${khojConfigUrl}/default`)
@@ -117,13 +125,18 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
                 "conversation": {
                     "conversation-logfile": conversationLogFile,
                     "openai": null,
-                    "enable-offline-chat": setting.enableOfflineChat,
+                    "offline-chat": {
+                        "chat-model": khojDefaultOfflineChatModelName,
+                        "enable-offline-chat": setting.enableOfflineChat,
+                    },
+                    "tokenizer": null,
+                    "max-prompt-size": null,
                 }
             }
 
             // If the Open AI API Key was configured in the plugin settings
             if (!!setting.openaiApiKey) {
-                let openAIChatModel = data?.["processor"]?.["conversation"]?.["openai"]?.["chat-model"] ?? khojDefaultChatModelName;
+                let openAIChatModel = data?.["processor"]?.["conversation"]?.["openai"]?.["chat-model"] ?? khojDefaultOpenAIChatModelName;
                 processorData = {
                     "conversation": {
                         "conversation-logfile": conversationLogFile,
@@ -131,7 +144,12 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
                             "chat-model": openAIChatModel,
                             "api-key": setting.openaiApiKey,
                         },
-                        "enable-offline-chat": setting.enableOfflineChat,
+                        "offline-chat": {
+                            "chat-model": khojDefaultOfflineChatModelName,
+                            "enable-offline-chat": setting.enableOfflineChat,
+                        },
+                        "tokenizer": null,
+                        "max-prompt-size": null,
                     },
                 }
             }

@@ -261,6 +261,11 @@ for example), set this to the full interpreter path."
   :type 'boolean
   :group 'khoj)
 
+(defcustom khoj-offline-chat-model nil
+  "Specify chat model to use for offline chat with khoj."
+  :type 'string
+  :group 'khoj)
+
 (defcustom khoj-auto-setup t
   "Automate install, configure and start of khoj server.
 Auto invokes setup steps on calling main entrypoint."
@@ -405,7 +410,8 @@ CONFIG is json obtained from Khoj config API."
          (default-index-dir (khoj--get-directory-from-config default-config '(content-type org embeddings-file)))
          (default-chat-dir (khoj--get-directory-from-config default-config '(processor conversation conversation-logfile)))
          (chat-model (or khoj-chat-model (alist-get 'chat-model (alist-get 'openai (alist-get 'conversation (alist-get 'processor default-config))))))
-         (enable-offline-chat (or khoj-chat-offline (alist-get 'enable-offline-chat (alist-get 'conversation (alist-get 'processor default-config)))))
+         (enable-offline-chat (or khoj-chat-offline (alist-get 'enable-offline-chat (alist-get 'offline-chat (alist-get 'conversation (alist-get 'processor default-config))))))
+         (offline-chat-model (or khoj-offline-chat-model (alist-get 'chat-model (alist-get 'offline-chat (alist-get 'conversation (alist-get 'processor default-config))))))
          (config (or current-config default-config)))
 
     ;; Configure content types
@@ -469,7 +475,8 @@ CONFIG is json obtained from Khoj config API."
       (message "khoj.el: Chat not configured yet.")
       (setq config (delq (assoc 'processor config) config))
       (cl-pushnew `(processor . ((conversation . ((conversation-logfile . ,(format "%s/conversation.json" default-chat-dir))
-                                                  (enable-offline-chat . ,enable-offline-chat)
+                                                  (offline-chat . ((enable-offline-chat . ,enable-offline-chat)
+                                                                   (chat-model . ,offline-chat-model)))
                                                   (openai . ((chat-model . ,chat-model)
                                                              (api-key . ,khoj-openai-api-key)))))))
                   config))
@@ -480,7 +487,8 @@ CONFIG is json obtained from Khoj config API."
        (let ((new-processor-type (alist-get 'processor config)))
          (setq new-processor-type (delq (assoc 'conversation new-processor-type) new-processor-type))
          (cl-pushnew `(conversation . ((conversation-logfile . ,(format "%s/conversation.json" default-chat-dir))
-                                       (enable-offline-chat . ,enable-offline-chat)
+                                       (offline-chat . ((enable-offline-chat . ,enable-offline-chat)
+                                                        (chat-model . ,offline-chat-model)))
                                        (openai . ((chat-model . ,chat-model)
                                                   (api-key . ,khoj-openai-api-key)))))
                      new-processor-type)
@@ -490,13 +498,15 @@ CONFIG is json obtained from Khoj config API."
      ;; Else if chat configuration in khoj backend has gone stale
      ((not (and (equal (alist-get 'api-key (alist-get 'openai (alist-get 'conversation (alist-get 'processor config)))) khoj-openai-api-key)
                 (equal (alist-get 'chat-model (alist-get 'openai (alist-get 'conversation (alist-get 'processor config)))) khoj-chat-model)
-                (equal (alist-get 'enable-offline-chat (alist-get 'conversation (alist-get 'processor config))) enable-offline-chat)))
+                (equal (alist-get 'enable-offline-chat (alist-get 'offline-chat (alist-get 'conversation (alist-get 'processor config)))) enable-offline-chat)
+                (equal (alist-get 'chat-model (alist-get 'offline-chat (alist-get 'conversation (alist-get 'processor config)))) offline-chat-model)))
       (message "khoj.el: Chat configuration has gone stale.")
       (let* ((chat-directory (khoj--get-directory-from-config config '(processor conversation conversation-logfile)))
              (new-processor-type (alist-get 'processor config)))
         (setq new-processor-type (delq (assoc 'conversation new-processor-type) new-processor-type))
         (cl-pushnew `(conversation . ((conversation-logfile . ,(format "%s/conversation.json" chat-directory))
-                                      (enable-offline-chat . ,enable-offline-chat)
+                                      (offline-chat . ((enable-offline-chat . ,enable-offline-chat)
+                                                       (chat-model . ,offline-chat-model)))
                                       (openai . ((chat-model . ,khoj-chat-model)
                                                  (api-key . ,khoj-openai-api-key)))))
                     new-processor-type)
