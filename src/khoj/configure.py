@@ -230,6 +230,8 @@ def configure_conversation_processor(
                 conversation_logfile=conversation_logfile,
                 openai=(conversation_config.openai if (conversation_config is not None) else None),
                 offline_chat=conversation_config.offline_chat if conversation_config else OfflineChatProcessorConfig(),
+                max_prompt_size=conversation_config.max_prompt_size if conversation_config else None,
+                tokenizer=conversation_config.tokenizer if conversation_config else None,
             )
         )
     else:

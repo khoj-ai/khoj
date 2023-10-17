@@ -28,7 +28,7 @@ else:
 
 
 @auth_router.get("/login")
-async def login(request: Request):
+async def login_get(request: Request):
     redirect_uri = request.url_for("auth")
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
@@ -37,19 +37,6 @@ async def login(request: Request):
 async def login(request: Request):
     redirect_uri = request.url_for("auth")
     return await oauth.google.authorize_redirect(request, redirect_uri)
-
-
-@auth_router.get("/redirect")
-async def auth(request: Request):
-    try:
-        token = await oauth.google.authorize_access_token(request)
-    except OAuthError as error:
-        return HTMLResponse(f"<h1>{error.error}</h1>")
-    khoj_user = await get_or_create_user(token)
-    user = token.get("userinfo")
-    if user:
-        request.session["user"] = dict(user)
-    return RedirectResponse(url="/")
 
 
 @auth_router.post("/redirect")
