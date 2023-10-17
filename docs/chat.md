@@ -7,18 +7,21 @@
 
 ### Setup
 #### Offline Chat
-Offline chat works without internet but it is slower, lower quality and more compute intensive.
+Offline chat stays completely private and works without internet. But it is slower, lower quality and more compute intensive.
 
-!> **Warning**: This will download a 3Gb+ Llama v2 chat model which can take some time
+> **System Requirements**:
+>  - You need at least **16 GB of RAM** and **4 GB of Disk**
+>  - A CPU supporting [AVX or AVX2 instructions](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions) is required
+>  - A Mac M1+ or [Vulcan supported GPU](https://vulkan.gpuinfo.org/) should significantly speed up chat response times
 
-- Open your [Khoj settings](http://localhost:42110/config/), click *Enable* on the Offline Chat card
+- Open your [Khoj settings](http://localhost:42110/config/) and click *Enable* on the Offline Chat card
 
 ![Configure offline chat](https://user-images.githubusercontent.com/6413477/257021364-8a2029f5-dc21-4de8-9af9-9ba6100d695c.mp4 ':include :type=mp4')
 
 #### Online Chat
 Online chat requires internet to use ChatGPT but is faster, higher quality and less compute intensive.
 
-!> **Warning**: This will enable Khoj to send your chat queries and notes to OpenAI for processing
+!> **Warning**: This will enable Khoj to send your chat queries and query relevant notes to OpenAI for processing
 
 1. Get your [OpenAI API Key](https://platform.openai.com/account/api-keys)
 2. Open your [Khoj Online Chat settings](http://localhost:42110/config/processor/conversation), add your OpenAI API key, and click *Save*. Then go to your [Khoj settings](http://localhost:42110/config) and click `Configure`. This will refresh Khoj with your OpenAI API key.
