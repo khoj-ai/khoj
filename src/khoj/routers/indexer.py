@@ -3,8 +3,9 @@ import logging
 from typing import Optional, Union, Dict
 
 # External Packages
-from fastapi import APIRouter, HTTPException, Header, Response, UploadFile
+from fastapi import APIRouter, HTTPException, Header, Request, Response, UploadFile
 from pydantic import BaseModel
+from khoj.routers.helpers import update_telemetry_state
 
 # Internal Packages
 from khoj.utils import state, constants
@@ -57,10 +58,15 @@ class IndexerInput(BaseModel):
 
 @indexer.post("/batch")
 async def index_batch(
+    request: Request,
     files: list[UploadFile],
     x_api_key: str = Header(None),
     regenerate: bool = False,
     search_type: Optional[Union[state.SearchType, str]] = None,
+    client: Optional[str] = None,
+    user_agent: Optional[str] = Header(None),
+    referer: Optional[str] = Header(None),
+    host: Optional[str] = Header(None),
 ):
     if x_api_key != "secret":
         raise HTTPException(status_code=401, detail="Invalid API Key")
@@ -135,6 +141,17 @@ async def index_batch(
         logger.error(f"🚨 Failed to update content index via API: {e}", exc_info=True)
     finally:
         state.config_lock.release()
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="index/update",
+        client=client,
+        user_agent=user_agent,
+        referer=referer,
+        host=host,
+    )
+
     logger.info("📪 Content index updated via API")
     return Response(content="OK", status_code=200)
 
