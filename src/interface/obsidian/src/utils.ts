@@ -41,7 +41,7 @@ function fileExtensionToMimeType (extension: string): string {
     }
 }
 
-export async function updateContentIndex(vault: Vault, setting: KhojSetting, lastSyncedFiles: TFile[]): Promise<TFile[]> {
+export async function updateContentIndex(vault: Vault, setting: KhojSetting, lastSyncedFiles: TFile[], regenerate: boolean = false): Promise<TFile[]> {
     // Get all markdown, pdf files in the vault
     console.log(`Khoj: Updating Khoj content index...`)
     const files = vault.getFiles().filter(file => file.extension === 'md' || file.extension === 'pdf');
@@ -68,7 +68,7 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
     }
 
     // Call Khoj backend to update index with all markdown, pdf files
-    const response = await fetch(`${setting.khojUrl}/api/v1/indexer/batch`, {
+    const response = await fetch(`${setting.khojUrl}/api/v1/indexer/batch?regenerate=${regenerate}`, {
         method: 'POST',
         headers: {
             'x-api-key': 'secret',
@@ -86,9 +86,6 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
 }
 
 export async function configureKhojBackend(vault: Vault, setting: KhojSetting, notify: boolean = true) {
-    let vaultPath = getVaultAbsolutePath(vault);
-    let mdInVault = `${vaultPath}/**/*.md`;
-    let pdfInVault = `${vaultPath}/**/*.pdf`;
     let khojConfigUrl = `${setting.khojUrl}/api/config/data`;
 
     // Check if khoj backend is configured, note if cannot connect to backend
@@ -106,11 +103,8 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
     if (!setting.connectedToBackend) return;
 
     // Set index name from the path of the current vault
-    let indexName = vaultPath.replace(/\//g, '_').replace(/\\/g, '_').replace(/ /g, '_').replace(/:/g, '_');
     // Get default config fields from khoj backend
     let defaultConfig = await request(`${khojConfigUrl}/default`).then(response => JSON.parse(response));
-    let khojDefaultMdIndexDirectory = getIndexDirectoryFromBackendConfig(defaultConfig["content-type"]["markdown"]["embeddings-file"]);
-    let khojDefaultPdfIndexDirectory = getIndexDirectoryFromBackendConfig(defaultConfig["content-type"]["pdf"]["embeddings-file"]);
     let khojDefaultChatDirectory = getIndexDirectoryFromBackendConfig(defaultConfig["processor"]["conversation"]["conversation-logfile"]);
     let khojDefaultChatModelName = defaultConfig["processor"]["conversation"]["openai"]["chat-model"];
 
@@ -118,99 +112,7 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
     await request(khoj_already_configured ? khojConfigUrl : `${khojConfigUrl}/default`)
         .then(response => JSON.parse(response))
         .then(data => {
-            khoj_already_configured = data["content-type"] != null;
-            // If khoj backend not configured yet
-            if (!khoj_already_configured) {
-                // Create khoj content-type config with only markdown configured
-                data["content-type"] = {
-                    "markdown": {
-                        "input-filter": [mdInVault],
-                        "input-files": null,
-                        "embeddings-file": `${khojDefaultMdIndexDirectory}/${indexName}.pt`,
-                        "compressed-jsonl": `${khojDefaultMdIndexDirectory}/${indexName}.jsonl.gz`,
-                    }
-                }
-
-                const hasPdfFiles = app.vault.getFiles().some(file => file.extension === 'pdf');
-
-                if (hasPdfFiles) {
-                    data["content-type"]["pdf"] = {
-                        "input-filter": [pdfInVault],
-                        "input-files": null,
-                        "embeddings-file": `${khojDefaultPdfIndexDirectory}/${indexName}.pt`,
-                        "compressed-jsonl": `${khojDefaultPdfIndexDirectory}/${indexName}.jsonl.gz`,
-                    }
-                }
-            }
-            // Else if khoj config has no markdown content config
-            else if (!data["content-type"]["markdown"]) {
-                // Add markdown config to khoj content-type config
-                // Set markdown config to index markdown files in configured obsidian vault
-                data["content-type"]["markdown"] = {
-                    "input-filter": [mdInVault],
-                    "input-files": null,
-                    "embeddings-file": `${khojDefaultMdIndexDirectory}/${indexName}.pt`,
-                    "compressed-jsonl": `${khojDefaultMdIndexDirectory}/${indexName}.jsonl.gz`,
-                }
-            }
-            // Else if khoj is not configured to index markdown files in configured obsidian vault
-            else if (
-                data["content-type"]["markdown"]["input-files"] != null ||
-                data["content-type"]["markdown"]["input-filter"] == null ||
-                data["content-type"]["markdown"]["input-filter"].length != 1 ||
-                data["content-type"]["markdown"]["input-filter"][0] !== mdInVault) {
-                    // Update markdown config in khoj content-type config
-                    // Set markdown config to only index markdown files in configured obsidian vault
-                    let khojMdIndexDirectory = getIndexDirectoryFromBackendConfig(data["content-type"]["markdown"]["embeddings-file"]);
-                    data["content-type"]["markdown"] = {
-                        "input-filter": [mdInVault],
-                        "input-files": null,
-                        "embeddings-file": `${khojMdIndexDirectory}/${indexName}.pt`,
-                        "compressed-jsonl": `${khojMdIndexDirectory}/${indexName}.jsonl.gz`,
-                    }
-            }
-
-            if (khoj_already_configured && !data["content-type"]["pdf"]) {
-                const hasPdfFiles = app.vault.getFiles().some(file => file.extension === 'pdf');
-
-                if (hasPdfFiles) {
-                    data["content-type"]["pdf"] = {
-                        "input-filter": [pdfInVault],
-                        "input-files": null,
-                        "embeddings-file": `${khojDefaultPdfIndexDirectory}/${indexName}.pt`,
-                        "compressed-jsonl": `${khojDefaultPdfIndexDirectory}/${indexName}.jsonl.gz`,
-                    }
-                } else {
-                    data["content-type"]["pdf"] = null;
-                }
-            }
-            // Else if khoj is not configured to index pdf files in configured obsidian vault
-            else if (khoj_already_configured &&
-                (
-                    data["content-type"]["pdf"]["input-files"] != null ||
-                    data["content-type"]["pdf"]["input-filter"] == null ||
-                    data["content-type"]["pdf"]["input-filter"].length != 1 ||
-                    data["content-type"]["pdf"]["input-filter"][0] !== pdfInVault)) {
-
-                let hasPdfFiles = app.vault.getFiles().some(file => file.extension === 'pdf');
-
-                if (hasPdfFiles) {
-                    // Update pdf config in khoj content-type config
-                    // Set pdf config to only index pdf files in configured obsidian vault
-                    let khojPdfIndexDirectory = getIndexDirectoryFromBackendConfig(data["content-type"]["pdf"]["embeddings-file"]);
-                    data["content-type"]["pdf"] = {
-                        "input-filter": [pdfInVault],
-                        "input-files": null,
-                        "embeddings-file": `${khojPdfIndexDirectory}/${indexName}.pt`,
-                        "compressed-jsonl": `${khojPdfIndexDirectory}/${indexName}.jsonl.gz`,
-                    }
-                } else {
-                    data["content-type"]["pdf"] = null;
-                }
-            }
-
             let conversationLogFile = data?.["processor"]?.["conversation"]?.["conversation-logfile"] ?? `${khojDefaultChatDirectory}/conversation.json`;
-
             let processorData: ProcessorData = {
                 "conversation": {
                     "conversation-logfile": conversationLogFile,
@@ -221,9 +123,7 @@ export async function configureKhojBackend(vault: Vault, setting: KhojSetting, n
 
             // If the Open AI API Key was configured in the plugin settings
             if (!!setting.openaiApiKey) {
-
                 let openAIChatModel = data?.["processor"]?.["conversation"]?.["openai"]?.["chat-model"] ?? khojDefaultChatModelName;
-
                 processorData = {
                     "conversation": {
                         "conversation-logfile": conversationLogFile,
