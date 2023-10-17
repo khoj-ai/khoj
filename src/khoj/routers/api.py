@@ -30,6 +30,7 @@ from khoj.utils.rawconfig import (
     GithubContentConfig,
     NotionContentConfig,
     ConversationProcessorConfig,
+    OfflineChatProcessorConfig,
 )
 from khoj.utils.helpers import resolve_absolute_path
 from khoj.utils.state import SearchType
@@ -284,10 +285,11 @@ if not state.demo:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
-    @api.post("/config/data/processor/conversation/enable_offline_chat", status_code=200)
+    @api.post("/config/data/processor/conversation/offline_chat", status_code=200)
     async def set_processor_enable_offline_chat_config_data(
         request: Request,
         enable_offline_chat: bool,
+        offline_chat_model: Optional[str] = None,
         client: Optional[str] = None,
     ):
         _initialize_config()
@@ -301,7 +303,12 @@ if not state.demo:
             state.config.processor = ProcessorConfig(conversation=ConversationProcessorConfig(conversation_logfile=conversation_logfile))  # type: ignore
 
         assert state.config.processor.conversation is not None
-        state.config.processor.conversation.enable_offline_chat = enable_offline_chat
+        if state.config.processor.conversation.offline_chat is None:
+            state.config.processor.conversation.offline_chat = OfflineChatProcessorConfig()
+
+        state.config.processor.conversation.offline_chat.enable_offline_chat = enable_offline_chat
+        if offline_chat_model is not None:
+            state.config.processor.conversation.offline_chat.chat_model = offline_chat_model
         state.processor_config = configure_processor(state.config.processor, state.processor_config)
 
         update_telemetry_state(
@@ -387,7 +394,7 @@ async def search(
     # Encode query with filter terms removed
     defiltered_query = user_query
     for filter in [DateFilter(), WordFilter(), FileFilter()]:
-        defiltered_query = filter.defilter(user_query)
+        defiltered_query = filter.defilter(defiltered_query)
 
     encoded_asymmetric_query = None
     if t == SearchType.All or t != SearchType.Image:
@@ -622,7 +629,7 @@ def update(
         if state.processor_config:
             components.append("Conversation processor")
         components_msg = ", ".join(components)
-        logger.info(f"📬 {components_msg} updated via API")
+        logger.info(f"📪 {components_msg} updated via API")
 
     update_telemetry_state(
         request=request,
@@ -702,12 +709,18 @@ async def chat(
 ) -> Response:
     perform_chat_checks()
     conversation_command = get_conversation_command(query=q, any_references=True)
+
+    q = q.replace(f"/{conversation_command.value}", "").strip()
+
     compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
         request, q, (n or 5), conversation_command
     )
-    conversation_command = get_conversation_command(query=q, any_references=not is_none_or_empty(compiled_references))
+
+    if conversation_command == ConversationCommand.Default and is_none_or_empty(compiled_references):
+        conversation_command = ConversationCommand.General
+
     if conversation_command == ConversationCommand.Help:
-        model_type = "offline" if state.processor_config.conversation.enable_offline_chat else "openai"
+        model_type = "offline" if state.processor_config.conversation.offline_chat.enable_offline_chat else "openai"
         formatted_help = help_message.format(model=model_type, version=state.khoj_version)
         return StreamingResponse(iter([formatted_help]), media_type="text/event-stream", status_code=200)
 
@@ -768,23 +781,21 @@ async def extract_references_and_questions(
         logger.warning(
             "No content index loaded, so cannot extract references from knowledge base. Please configure your data sources and update the index to chat with your notes."
         )
-        return compiled_references, inferred_queries
+        return compiled_references, inferred_queries, q
 
     if conversation_type == ConversationCommand.General:
         return compiled_references, inferred_queries, q
 
     # Extract filter terms from user message
     defiltered_query = q
-    filter_terms = []
     for filter in [DateFilter(), WordFilter(), FileFilter()]:
-        filter_terms += filter.get_filter_terms(q)
-        defiltered_query = filter.defilter(q)
-    filters_in_query = " ".join(filter_terms)
+        defiltered_query = filter.defilter(defiltered_query)
+    filters_in_query = q.replace(defiltered_query, "").strip()
 
     # Infer search queries from user message
     with timer("Extracting search queries took", logger):
         # If we've reached here, either the user has enabled offline chat or the openai model is enabled.
-        if state.processor_config.conversation.enable_offline_chat:
+        if state.processor_config.conversation.offline_chat.enable_offline_chat:
             loaded_model = state.processor_config.conversation.gpt4all_model.loaded_model
             inferred_queries = extract_questions_offline(
                 defiltered_query, loaded_model=loaded_model, conversation_log=meta_log, should_extract_questions=False
@@ -800,7 +811,7 @@ async def extract_references_and_questions(
     with timer("Searching knowledge base took", logger):
         result_list = []
         for query in inferred_queries:
-            n_items = min(n, 3) if state.processor_config.conversation.enable_offline_chat else n
+            n_items = min(n, 3) if state.processor_config.conversation.offline_chat.enable_offline_chat else n
             result_list.extend(
                 await search(
                     f"{query} {filters_in_query}",

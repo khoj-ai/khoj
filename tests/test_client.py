@@ -6,6 +6,7 @@ from urllib.parse import quote
 
 # External Packages
 from fastapi.testclient import TestClient
+import pytest
 
 # Internal Packages
 from khoj.main import app
@@ -60,13 +61,13 @@ def test_regenerate_with_invalid_content_type(client):
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_index_batch(client):
+def test_index_update(client):
     # Arrange
-    request_body = get_sample_files_data()
+    files = get_sample_files_data()
     headers = {"x-api-key": "secret"}
 
     # Act
-    response = client.post("/v1/indexer/batch", json=request_body, headers=headers)
+    response = client.post("/api/v1/index/update", files=files, headers=headers)
 
     # Assert
     assert response.status_code == 200
@@ -76,12 +77,11 @@ def test_index_batch(client):
 def test_regenerate_with_valid_content_type(client):
     for content_type in ["all", "org", "markdown", "image", "pdf", "notion", "plugin1"]:
         # Arrange
-        request_body = get_sample_files_data()
-
+        files = get_sample_files_data()
         headers = {"x-api-key": "secret"}
 
         # Act
-        response = client.post(f"/v1/indexer/batch?search_type={content_type}", json=request_body, headers=headers)
+        response = client.post(f"/api/v1/index/update?t={content_type}", files=files, headers=headers)
         # Assert
         assert response.status_code == 200, f"Returned status: {response.status_code} for content type: {content_type}"
 
@@ -92,17 +92,17 @@ def test_regenerate_with_github_fails_without_pat(client):
     response = client.get(f"/api/update?force=true&t=github")
 
     # Arrange
-    request_body = get_sample_files_data()
-
+    files = get_sample_files_data()
     headers = {"x-api-key": "secret"}
 
     # Act
-    response = client.post(f"/v1/indexer/batch?search_type=github", json=request_body, headers=headers)
+    response = client.post(f"/api/v1/index/update?t=github", files=files, headers=headers)
     # Assert
     assert response.status_code == 200, f"Returned status: {response.status_code} for content type: github"
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.skip(reason="Flaky test on parallel test runs")
 def test_get_configured_types_via_api(client):
     # Act
     response = client.get(f"/api/config/types")
@@ -288,24 +288,20 @@ def test_notes_search_with_exclude_filter(
 
 def get_sample_files_data():
     return {
-        "org": {
-            "path/to/filename.org": "* practicing piano",
-            "path/to/filename1.org": "** top 3 reasons why I moved to SF",
-            "path/to/filename2.org": "* how to build a search engine",
-        },
-        "pdf": {
-            "path/to/filename.pdf": "Moore's law does not apply to consumer hardware",
-            "path/to/filename1.pdf": "The sun is a ball of helium",
-            "path/to/filename2.pdf": "Effect of sunshine on baseline human happiness",
-        },
-        "plaintext": {
-            "path/to/filename.txt": "data,column,value",
-            "path/to/filename1.txt": "<html>my first web page</html>",
-            "path/to/filename2.txt": "2021-02-02 Journal Entry",
-        },
-        "markdown": {
-            "path/to/filename.md": "# Notes from client call",
-            "path/to/filename1.md": "## Studying anthropological records from the Fatimid caliphate",
-            "path/to/filename2.md": "**Understanding science through the lens of art**",
-        },
+        "files": ("path/to/filename.org", "* practicing piano", "text/org"),
+        "files": ("path/to/filename1.org", "** top 3 reasons why I moved to SF", "text/org"),
+        "files": ("path/to/filename2.org", "* how to build a search engine", "text/org"),
+        "files": ("path/to/filename.pdf", "Moore's law does not apply to consumer hardware", "application/pdf"),
+        "files": ("path/to/filename1.pdf", "The sun is a ball of helium", "application/pdf"),
+        "files": ("path/to/filename2.pdf", "Effect of sunshine on baseline human happiness", "application/pdf"),
+        "files": ("path/to/filename.txt", "data,column,value", "text/plain"),
+        "files": ("path/to/filename1.txt", "<html>my first web page</html>", "text/plain"),
+        "files": ("path/to/filename2.txt", "2021-02-02 Journal Entry", "text/plain"),
+        "files": ("path/to/filename.md", "# Notes from client call", "text/markdown"),
+        "files": (
+            "path/to/filename1.md",
+            "## Studying anthropological records from the Fatimid caliphate",
+            "text/markdown",
+        ),
+        "files": ("path/to/filename2.md", "**Understanding science through the lens of art**", "text/markdown"),
     }

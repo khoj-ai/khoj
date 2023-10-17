@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "khoj-assistant"
-description = "An AI personal assistant for your Digital Brain"
+description = "An AI copilot for your Second Brain"
 readme = "README.md"
 license = "GPL-3.0-or-later"
 requires-python = ">=3.8"
@@ -40,8 +40,9 @@ dependencies = [
     "dateparser >= 1.1.1",
     "defusedxml == 0.7.1",
     "fastapi == 0.77.1",
+    "python-multipart >= 0.0.5",
     "jinja2 == 3.1.2",
-    "openai >= 0.27.0",
+    "openai >= 0.27.0, < 1.0.0",
     "tiktoken >= 0.3.2",
     "tenacity >= 8.2.2",
     "pillow == 9.3.0",
@@ -79,6 +80,7 @@ test = [
     "freezegun >= 1.2.0",
     "factory-boy >= 3.2.1",
     "trio >= 0.22.0",
+    "pytest-xdist",
 ]
 dev = [
     "khoj-assistant[test]",

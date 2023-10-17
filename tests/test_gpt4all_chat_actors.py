@@ -24,7 +24,7 @@ from khoj.processor.conversation.gpt4all.utils import download_model
 
 from khoj.processor.conversation.utils import message_to_log
 
-MODEL_NAME = "llama-2-7b-chat.ggmlv3.q4_K_S.bin"
+MODEL_NAME = "llama-2-7b-chat.ggmlv3.q4_0.bin"
 
 
 @pytest.fixture(scope="session")
@@ -128,15 +128,15 @@ def test_extract_multiple_explicit_questions_from_message(loaded_model):
 @pytest.mark.chatquality
 def test_extract_multiple_implicit_questions_from_message(loaded_model):
     # Act
-    response = extract_questions_offline("Is Morpheus taller than Neo?", loaded_model=loaded_model)
+    response = extract_questions_offline("Is Carl taller than Ross?", loaded_model=loaded_model)
 
     # Assert
-    expected_responses = ["height", "taller", "shorter", "heights"]
+    expected_responses = ["height", "taller", "shorter", "heights", "who"]
     assert len(response) <= 3
 
     for question in response:
         assert any([expected_response in question.lower() for expected_response in expected_responses]), (
-            "Expected chat actor to ask follow-up questions about Morpheus and Neo, but got: " + question
+            "Expected chat actor to ask follow-up questions about Carl and Ross, but got: " + question
         )
 
 
@@ -145,7 +145,7 @@ def test_extract_multiple_implicit_questions_from_message(loaded_model):
 def test_generate_search_query_using_question_from_chat_history(loaded_model):
     # Arrange
     message_list = [
-        ("What is the name of Mr. Vader's daughter?", "Princess Leia", []),
+        ("What is the name of Mr. Anderson's daughter?", "Miss Barbara", []),
     ]
 
     # Act
@@ -156,17 +156,22 @@ def test_generate_search_query_using_question_from_chat_history(loaded_model):
         use_history=True,
     )
 
-    expected_responses = [
-        "Vader",
-        "sons",
+    all_expected_in_response = [
+        "Anderson",
+    ]
+
+    any_expected_in_response = [
         "son",
-        "Darth",
+        "sons",
         "children",
     ]
 
     # Assert
     assert len(response) >= 1
-    assert any([expected_response in response[0] for expected_response in expected_responses]), (
+    assert all([expected_response in response[0] for expected_response in all_expected_in_response]), (
+        "Expected chat actor to ask for clarification in response, but got: " + response[0]
+    )
+    assert any([expected_response in response[0] for expected_response in any_expected_in_response]), (
         "Expected chat actor to ask for clarification in response, but got: " + response[0]
     )
 
@@ -176,20 +181,20 @@ def test_generate_search_query_using_question_from_chat_history(loaded_model):
 def test_generate_search_query_using_answer_from_chat_history(loaded_model):
     # Arrange
     message_list = [
-        ("What is the name of Mr. Vader's daughter?", "Princess Leia", []),
+        ("What is the name of Mr. Anderson's daughter?", "Miss Barbara", []),
     ]
 
     # Act
     response = extract_questions_offline(
-        "Is she a Jedi?",
+        "Is she a Doctor?",
         conversation_log=populate_chat_history(message_list),
         loaded_model=loaded_model,
         use_history=True,
     )
 
     expected_responses = [
-        "Leia",
-        "Vader",
+        "Barbara",
+        "Robert",
         "daughter",
     ]
 

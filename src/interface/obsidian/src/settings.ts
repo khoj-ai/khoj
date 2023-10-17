@@ -1,5 +1,6 @@
-import { App, Notice, PluginSettingTab, request, Setting } from 'obsidian';
+import { App, Notice, PluginSettingTab, request, Setting, TFile } from 'obsidian';
 import Khoj from 'src/main';
+import { updateContentIndex } from './utils';
 
 export interface KhojSetting {
     enableOfflineChat: boolean;
@@ -8,6 +9,7 @@ export interface KhojSetting {
     khojUrl: string;
     connectedToBackend: boolean;
     autoConfigure: boolean;
+    lastSyncedFiles: TFile[];
 }
 
 export const DEFAULT_SETTINGS: KhojSetting = {
@@ -17,6 +19,7 @@ export const DEFAULT_SETTINGS: KhojSetting = {
     connectedToBackend: false,
     autoConfigure: true,
     openaiApiKey: '',
+    lastSyncedFiles: []
 }
 
 export class KhojSettingTab extends PluginSettingTab {
@@ -118,8 +121,9 @@ export class KhojSettingTab extends PluginSettingTab {
                     }, 300);
                     this.plugin.registerInterval(progress_indicator);
 
-                    await request(`${this.plugin.settings.khojUrl}/api/update?t=markdown&force=true&client=obsidian`);
-                    await request(`${this.plugin.settings.khojUrl}/api/update?t=pdf&force=true&client=obsidian`);
+                    this.plugin.settings.lastSyncedFiles = await updateContentIndex(
+                        this.app.vault, this.plugin.settings, this.plugin.settings.lastSyncedFiles, true
+                    );
                     new Notice('✅ Updated Khoj index.');
 
                     // Reset button once index is updated
