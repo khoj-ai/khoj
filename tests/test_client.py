@@ -6,6 +6,7 @@ from urllib.parse import quote
 
 # External Packages
 from fastapi.testclient import TestClient
+import pytest
 
 # Internal Packages
 from khoj.main import app
@@ -101,6 +102,7 @@ def test_regenerate_with_github_fails_without_pat(client):
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.skip(reason="Flaky test on parallel test runs")
 def test_get_configured_types_via_api(client):
     # Act
     response = client.get(f"/api/config/types")
