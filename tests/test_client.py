@@ -60,13 +60,13 @@ def test_regenerate_with_invalid_content_type(client):
 
 
 # ----------------------------------------------------------------------------------------------------
-def test_index_batch(client):
+def test_index_update(client):
     # Arrange
     files = get_sample_files_data()
     headers = {"x-api-key": "secret"}
 
     # Act
-    response = client.post("/api/v1/indexer/batch", files=files, headers=headers)
+    response = client.post("/api/v1/index/update", files=files, headers=headers)
 
     # Assert
     assert response.status_code == 200
@@ -80,7 +80,7 @@ def test_regenerate_with_valid_content_type(client):
         headers = {"x-api-key": "secret"}
 
         # Act
-        response = client.post(f"/api/v1/indexer/batch?search_type={content_type}", files=files, headers=headers)
+        response = client.post(f"/api/v1/index/update?search_type={content_type}", files=files, headers=headers)
         # Assert
         assert response.status_code == 200, f"Returned status: {response.status_code} for content type: {content_type}"
 
@@ -95,7 +95,7 @@ def test_regenerate_with_github_fails_without_pat(client):
     headers = {"x-api-key": "secret"}
 
     # Act
-    response = client.post(f"/api/v1/indexer/batch?search_type=github", files=files, headers=headers)
+    response = client.post(f"/api/v1/index/update?search_type=github", files=files, headers=headers)
     # Assert
     assert response.status_code == 200, f"Returned status: {response.status_code} for content type: github"
 

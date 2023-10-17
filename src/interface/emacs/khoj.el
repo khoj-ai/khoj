@@ -550,7 +550,7 @@ CONFIG is json obtained from Khoj config API."
           (url-request-extra-headers `(("content-type" . ,(format "multipart/form-data; boundary=%s" boundary))
                                        ("x-api-key" . ,khoj-server-api-key))))
       (with-current-buffer
-          (url-retrieve (format "%s/api/v1/indexer/batch" khoj-server-url)
+          (url-retrieve (format "%s/api/v1/index/update" khoj-server-url)
                         ;; render response from indexing API endpoint on server
                         (lambda (status)
                           (if (not status)

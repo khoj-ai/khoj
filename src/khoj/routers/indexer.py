@@ -56,8 +56,8 @@ class IndexerInput(BaseModel):
     plaintext: Optional[dict[str, str]] = None
 
 
-@indexer.post("/batch")
-async def index_batch(
+@indexer.post("/update")
+async def update(
     request: Request,
     files: list[UploadFile],
     x_api_key: str = Header(None),
