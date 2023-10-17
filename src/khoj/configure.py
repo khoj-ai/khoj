@@ -157,7 +157,7 @@ def configure_routes(app):
 
     app.include_router(api, prefix="/api")
     app.include_router(api_beta, prefix="/api/beta")
-    app.include_router(indexer, prefix="/v1/indexer")
+    app.include_router(indexer, prefix="/api/v1/index")
     app.include_router(web_client)
     app.include_router(auth_router, prefix="/auth")
 
@@ -182,7 +182,7 @@ if not state.demo:
             state.content_index = configure_content(
                 state.content_index, state.config.content_type, all_files, state.search_models, user=None
             )
-            logger.info("📬 Content index updated via Scheduler")
+            logger.info("📪 Content index updated via Scheduler")
         except Exception as e:
             logger.error(f"🚨 Error updating content index via Scheduler: {e}", exc_info=True)
 

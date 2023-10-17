@@ -79,17 +79,18 @@
 
     submit.addEventListener("click", function(event) {
         event.preventDefault();
-        let globFormat = "**/*."
+        let globFormat = "**/*"
         let suffixes = [];
         if ('{{content_type}}' == "markdown")
-            suffixes = ["md", "markdown"]
+            suffixes = [".md", ".markdown"]
         else if ('{{content_type}}' == "org")
-            suffixes = ["org"]
+            suffixes = [".org"]
         else if ('{{content_type}}' === "pdf")
-            suffixes = ["pdf"]
+            suffixes = [".pdf"]
         else if ('{{content_type}}' === "plaintext")
-            suffixes = ['*']
+            suffixes = ['.*']
 
+        let globs = suffixes.map(x => `${globFormat}${x}`)
         var inputFileNodes = document.getElementsByName("input-files");
         var inputFiles = getValidInputNodes(inputFileNodes).map(node => node.value);
 
@@ -97,10 +98,19 @@
 
         var inputFilter = [];
         var nodes = getValidInputNodes(inputFilterNodes);
+
+        // A regex that checks for globs in the path.  If they exist,
+        // we are going to just not add our own globing.  If they don't,
+        // then we will assume globbing should be done.
+        const glob_regex = /([*?\[\]])/;
         if (nodes.length > 0) {
             for (var i = 0; i < nodes.length; i++) {
-                for (var j = 0; j < suffixes.length; j++) {
-                    inputFilter.push(nodes[i].value + globFormat + suffixes[j]);
+                for (var j = 0; j < globs.length; j++) {
+                    if (glob_regex.test(nodes[i].value)) {
+                        inputFilter.push(nodes[i].value);
+                    } else {
+                        inputFilter.push(nodes[i].value + globs[j]);
+                    }
                 }
             }
         }

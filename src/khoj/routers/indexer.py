@@ -1,12 +1,12 @@
 # Standard Packages
 import logging
-import sys
 from typing import Optional, Union, Dict
 import asyncio
 
 # External Packages
-from fastapi import APIRouter, HTTPException, Header, Request, Response
+from fastapi import APIRouter, HTTPException, Header, Request, Response, UploadFile
 from pydantic import BaseModel
+from khoj.routers.helpers import update_telemetry_state
 
 # Internal Packages
 from khoj.utils import state, constants
@@ -56,42 +56,30 @@ class IndexerInput(BaseModel):
     plaintext: Optional[dict[str, str]] = None
 
 
-@indexer.post("/batch")
-async def index_batch(
+@indexer.post("/update")
+async def update(
     request: Request,
+    files: list[UploadFile],
     x_api_key: str = Header(None),
-    regenerate: bool = False,
-    search_type: Optional[Union[state.SearchType, str]] = None,
+    force: bool = False,
+    t: Optional[Union[state.SearchType, str]] = None,
+    client: Optional[str] = None,
+    user_agent: Optional[str] = Header(None),
+    referer: Optional[str] = Header(None),
+    host: Optional[str] = Header(None),
 ):
     user = request.user.object if request.user.is_authenticated else None
     if x_api_key != "secret":
         raise HTTPException(status_code=401, detail="Invalid API Key")
     try:
-        logger.info(f"Received batch indexing request")
-        index_batch_request_acc = b""
-        async for chunk in request.stream():
-            index_batch_request_acc += chunk
-        data_bytes = sys.getsizeof(index_batch_request_acc)
-        unit = "KB"
-        data_size = data_bytes / 1024
-        if data_size > 1000:
-            unit = "MB"
-            data_size = data_size / 1024
-        if data_size > 1000:
-            unit = "GB"
-            data_size = data_size / 1024
-        data_size_metric = f"{data_size:.2f} {unit}"
-        logger.info(f"Received {data_size_metric} of data")
-        index_batch_request = IndexBatchRequest.parse_raw(index_batch_request_acc)
-        logger.info(f"Received {len(index_batch_request.files)} files")
-
+        logger.info(f"📬 Updating content index via API call by {client}")
         org_files: Dict[str, str] = {}
         markdown_files: Dict[str, str] = {}
         pdf_files: Dict[str, bytes] = {}
         plaintext_files: Dict[str, str] = {}
 
-        for file in index_batch_request.files:
-            file_type = get_file_type(file.path)
+        for file in files:
+            file_type, encoding = get_file_type(file.content_type)
             dict_to_update = None
             if file_type == "org":
                 dict_to_update = org_files
@@ -103,9 +91,11 @@ async def index_batch(
                 dict_to_update = plaintext_files
 
             if dict_to_update is not None:
-                dict_to_update[file.path] = file.content  # type: ignore
+                dict_to_update[file.filename] = (
+                    file.file.read().decode("utf-8") if encoding == "utf-8" else file.file.read()
+                )
             else:
-                logger.info(f"Skipping unsupported streamed file: {file.path}")
+                logger.warning(f"Skipped indexing unsupported file type sent by {client} client: {file.filename}")
 
         indexer_input = IndexerInput(
             org=org_files,
@@ -115,7 +105,7 @@ async def index_batch(
         )
 
         if state.config == None:
-            logger.info("First run, initializing state.")
+            logger.info("📬 Initializing content index on first run.")
             default_full_config = FullConfig(
                 content_type=None,
                 search_type=SearchConfig.parse_obj(constants.default_config["search-type"]),
@@ -144,14 +134,29 @@ async def index_batch(
             state.config.content_type,
             indexer_input.dict(),
             state.search_models,
-            regenerate,
-            search_type,
-            False,
-            user,
+            regenerate=force,
+            search_type=t,
+            full_corpus=False,
+            user=user,
         )
         logger.info(f"Finished processing batch indexing request")
     except Exception as e:
         logger.error(f"Failed to process batch indexing request: {e}", exc_info=True)
+        logger.error(
+            f"🚨 Failed to {force} update {t} content index triggered via API call by {client}: {e}", exc_info=True
+        )
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="index/update",
+        client=client,
+        user_agent=user_agent,
+        referer=referer,
+        host=host,
+    )
+
+    logger.info(f"📪 Content index updated via API call by {client}")
     return Response(content="OK", status_code=200)
 
 

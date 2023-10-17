@@ -1,12 +1,13 @@
-import { Notice, Plugin } from 'obsidian';
+import { Notice, Plugin, TFile } from 'obsidian';
 import { KhojSetting, KhojSettingTab, DEFAULT_SETTINGS } from 'src/settings'
 import { KhojSearchModal } from 'src/search_modal'
 import { KhojChatModal } from 'src/chat_modal'
-import { configureKhojBackend } from './utils';
+import { configureKhojBackend, updateContentIndex } from './utils';
 
 
 export default class Khoj extends Plugin {
     settings: KhojSetting;
+    indexingTimer: NodeJS.Timeout;
 
     async onload() {
         await this.loadSettings();
@@ -54,6 +55,15 @@ export default class Khoj extends Plugin {
 
         // Add a settings tab so the user can configure khoj
         this.addSettingTab(new KhojSettingTab(this.app, this));
+
+        // Add scheduled job to update index every 60 minutes
+        this.indexingTimer = setInterval(async () => {
+            if (this.settings.autoConfigure) {
+                this.settings.lastSyncedFiles = await updateContentIndex(
+                    this.app.vault, this.settings, this.settings.lastSyncedFiles
+                );
+            }
+        }, 60 * 60 * 1000);
     }
 
     async loadSettings() {
@@ -71,5 +81,13 @@ export default class Khoj extends Plugin {
             await configureKhojBackend(this.app.vault, this.settings, false);
         }
         this.saveData(this.settings);
+    }
+
+    async onunload() {
+        // Remove scheduled job to update index at regular cadence
+        if (this.indexingTimer)
+            clearInterval(this.indexingTimer);
+
+        this.unload();
     }
 }
