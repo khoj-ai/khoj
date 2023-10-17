@@ -625,7 +625,7 @@ def update(
         if state.processor_config:
             components.append("Conversation processor")
         components_msg = ", ".join(components)
-        logger.info(f"📬 {components_msg} updated via API")
+        logger.info(f"📪 {components_msg} updated via API")
 
     update_telemetry_state(
         request=request,

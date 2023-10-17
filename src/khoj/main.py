@@ -20,6 +20,7 @@ warnings.filterwarnings("ignore", message=r"legacy way to download files from th
 # External Packages
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from rich.logging import RichHandler
 import schedule
 
@@ -30,6 +31,15 @@ from khoj.utils.cli import cli
 
 # Initialize the Application Server
 app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["app://obsidian.md", "http://localhost:*", "https://app.khoj.dev/*", "app://khoj.dev"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Set Locale
 locale.setlocale(locale.LC_ALL, "")
