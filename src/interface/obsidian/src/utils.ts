@@ -1,4 +1,4 @@
-import { FileSystemAdapter, Notice, RequestUrlParam, request, Vault, Modal } from 'obsidian';
+import { FileSystemAdapter, Notice, RequestUrlParam, request, Vault, Modal, TFile } from 'obsidian';
 import { KhojSetting } from 'src/settings'
 
 export function getVaultAbsolutePath(vault: Vault): string {
@@ -20,6 +20,58 @@ interface ProcessorData {
       openai: OpenAIType;
       "enable-offline-chat": boolean;
     };
+}
+
+function fileExtensionToMimeType (extension: string): string {
+    switch (extension) {
+        case 'pdf':
+            return 'application/pdf';
+        case 'png':
+            return 'image/png';
+        case 'jpg':
+        case 'jpeg':
+            return 'image/jpeg';
+        case 'md':
+        case 'markdown':
+            return 'text/markdown';
+        case 'org':
+            return 'text/org';
+        default:
+            return 'text/plain';
+    }
+}
+
+export async function updateContentIndex(vault: Vault, setting: KhojSetting): Promise<TFile[]> {
+    // Get all markdown, pdf files in the vault
+    console.log(`Khoj: Updating Khoj content index...`)
+    const files = vault.getFiles().filter(file => file.extension === 'md' || file.extension === 'pdf');
+    const binaryFileTypes = ['pdf', 'png', 'jpg', 'jpeg']
+
+    // Create multipart form data with all markdown, pdf files
+    const formData = new FormData();
+    for (const file of files) {
+        const encoding = binaryFileTypes.includes(file.extension) ? "binary" : "utf8";
+        const mimeType = fileExtensionToMimeType(file.extension) + (encoding === "utf8" ? "; charset=UTF-8" : "");
+        const fileContent = await vault.read(file);
+        formData.append('files', new Blob([fileContent], { type: mimeType }), file.path);
+    }
+
+    // Call Khoj backend to update index with all markdown, pdf files
+    const response = await fetch(`${setting.khojUrl}/api/v1/indexer/batch`, {
+        method: 'POST',
+        headers: {
+            'x-api-key': 'secret',
+        },
+        body: formData,
+    });
+
+    if (!response.ok) {
+        new Notice(`❗️Failed to update Khoj content index. Ensure Khoj server connected or raise issue on Khoj Discord/Github\nError: ${response.statusText}`);
+    } else {
+        console.log(`✅ Refreshed Khoj content index.`);
+    }
+
+    return files;
 }
 
 export async function configureKhojBackend(vault: Vault, setting: KhojSetting, notify: boolean = true) {
