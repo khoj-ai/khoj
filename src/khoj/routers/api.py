@@ -30,6 +30,7 @@ from khoj.utils.rawconfig import (
     GithubContentConfig,
     NotionContentConfig,
     ConversationProcessorConfig,
+    OfflineChatProcessorConfig,
 )
 from khoj.utils.helpers import resolve_absolute_path
 from khoj.utils.state import SearchType
@@ -302,6 +303,9 @@ if not state.demo:
             state.config.processor = ProcessorConfig(conversation=ConversationProcessorConfig(conversation_logfile=conversation_logfile))  # type: ignore
 
         assert state.config.processor.conversation is not None
+        if state.config.processor.conversation.offline_chat is None:
+            state.config.processor.conversation.offline_chat = OfflineChatProcessorConfig()
+
         state.config.processor.conversation.offline_chat.enable_offline_chat = enable_offline_chat
         if offline_chat_model is not None:
             state.config.processor.conversation.offline_chat.chat_model = offline_chat_model
