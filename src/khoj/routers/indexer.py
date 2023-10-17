@@ -73,7 +73,7 @@ async def index_batch(
         plaintext_files: Dict[str, str] = {}
 
         for file in files:
-            file_type = get_file_type(file.content_type)
+            file_type, encoding = get_file_type(file.content_type)
             dict_to_update = None
             if file_type == "org":
                 dict_to_update = org_files
@@ -85,7 +85,9 @@ async def index_batch(
                 dict_to_update = plaintext_files
 
             if dict_to_update is not None:
-                dict_to_update[file.filename] = file.file.read().decode("utf-8")
+                dict_to_update[file.filename] = (
+                    file.file.read().decode("utf-8") if encoding == "utf-8" else file.file.read()
+                )
             else:
                 logger.warning(f"Skipped indexing unsupported file type sent by client: {file.filename}")
 

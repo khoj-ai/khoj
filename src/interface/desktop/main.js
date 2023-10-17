@@ -93,9 +93,9 @@ function filenameToMimeType (filename) {
         case 'png':
             return 'image/png';
         case 'jpg':
-            return 'image/jpeg';
         case 'jpeg':
             return 'image/jpeg';
+        case 'md':
         case 'markdown':
             return 'text/markdown';
         case 'org':
