@@ -62,7 +62,7 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
         countOfFilesToIndex++;
         const encoding = binaryFileTypes.includes(file.extension) ? "binary" : "utf8";
         const mimeType = fileExtensionToMimeType(file.extension) + (encoding === "utf8" ? "; charset=UTF-8" : "");
-        const fileContent = await vault.read(file);
+        const fileContent = encoding == 'binary' ? await vault.readBinary(file) : await vault.read(file);
         formData.append('files', new Blob([fileContent], { type: mimeType }), file.path);
     }
 
