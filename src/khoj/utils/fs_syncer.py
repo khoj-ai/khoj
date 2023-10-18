@@ -35,13 +35,13 @@ def get_plaintext_files(config: TextContentConfig) -> dict[str, str]:
         return soup.get_text(strip=True, separator="\n")
 
     # Extract required fields from config
-    input_files, input_filter = (
+    input_files, input_filters = (
         config.input_files,
         config.input_filter,
     )
 
     # Input Validation
-    if is_none_or_empty(input_files) and is_none_or_empty(input_filter):
+    if is_none_or_empty(input_files) and is_none_or_empty(input_filters):
         logger.debug("At least one of input-files or input-file-filter is required to be specified")
         return {}
 
@@ -49,11 +49,11 @@ def get_plaintext_files(config: TextContentConfig) -> dict[str, str]:
     absolute_plaintext_files, filtered_plaintext_files = set(), set()
     if input_files:
         absolute_plaintext_files = {get_absolute_path(jsonl_file) for jsonl_file in input_files}
-    if input_filter:
+    if input_filters:
         filtered_plaintext_files = {
             filtered_file
-            for jsonl_file_filter in input_filter
-            for filtered_file in glob.glob(get_absolute_path(jsonl_file_filter), recursive=True)
+            for plaintext_file_filter in input_filters
+            for filtered_file in glob.glob(get_absolute_path(plaintext_file_filter), recursive=True)
             if os.path.isfile(filtered_file)
         }
 
@@ -85,13 +85,13 @@ def get_plaintext_files(config: TextContentConfig) -> dict[str, str]:
 
 def get_org_files(config: TextContentConfig):
     # Extract required fields from config
-    org_files, org_file_filter = (
+    org_files, org_file_filters = (
         config.input_files,
         config.input_filter,
     )
 
     # Input Validation
-    if is_none_or_empty(org_files) and is_none_or_empty(org_file_filter):
+    if is_none_or_empty(org_files) and is_none_or_empty(org_file_filters):
         logger.debug("At least one of org-files or org-file-filter is required to be specified")
         return {}
 
@@ -99,10 +99,10 @@ def get_org_files(config: TextContentConfig):
     absolute_org_files, filtered_org_files = set(), set()
     if org_files:
         absolute_org_files = {get_absolute_path(org_file) for org_file in org_files}
-    if org_file_filter:
+    if org_file_filters:
         filtered_org_files = {
             filtered_file
-            for org_file_filter in org_file_filter
+            for org_file_filter in org_file_filters
             for filtered_file in glob.glob(get_absolute_path(org_file_filter), recursive=True)
             if os.path.isfile(filtered_file)
         }
@@ -129,13 +129,13 @@ def get_org_files(config: TextContentConfig):
 
 def get_markdown_files(config: TextContentConfig):
     # Extract required fields from config
-    markdown_files, markdown_file_filter = (
+    markdown_files, markdown_file_filters = (
         config.input_files,
         config.input_filter,
     )
 
     # Input Validation
-    if is_none_or_empty(markdown_files) and is_none_or_empty(markdown_file_filter):
+    if is_none_or_empty(markdown_files) and is_none_or_empty(markdown_file_filters):
         logger.debug("At least one of markdown-files or markdown-file-filter is required to be specified")
         return {}
 
@@ -144,10 +144,10 @@ def get_markdown_files(config: TextContentConfig):
     if markdown_files:
         absolute_markdown_files = {get_absolute_path(markdown_file) for markdown_file in markdown_files}
 
-    if markdown_file_filter:
+    if markdown_file_filters:
         filtered_markdown_files = {
             filtered_file
-            for markdown_file_filter in markdown_file_filter
+            for markdown_file_filter in markdown_file_filters
             for filtered_file in glob.glob(get_absolute_path(markdown_file_filter), recursive=True)
             if os.path.isfile(filtered_file)
         }
@@ -179,13 +179,13 @@ def get_markdown_files(config: TextContentConfig):
 
 def get_pdf_files(config: TextContentConfig):
     # Extract required fields from config
-    pdf_files, pdf_file_filter = (
+    pdf_files, pdf_file_filters = (
         config.input_files,
         config.input_filter,
     )
 
     # Input Validation
-    if is_none_or_empty(pdf_files) and is_none_or_empty(pdf_file_filter):
+    if is_none_or_empty(pdf_files) and is_none_or_empty(pdf_file_filters):
         logger.debug("At least one of pdf-files or pdf-file-filter is required to be specified")
         return {}
 
@@ -193,10 +193,10 @@ def get_pdf_files(config: TextContentConfig):
     absolute_pdf_files, filtered_pdf_files = set(), set()
     if pdf_files:
         absolute_pdf_files = {get_absolute_path(pdf_file) for pdf_file in pdf_files}
-    if pdf_file_filter:
+    if pdf_file_filters:
         filtered_pdf_files = {
             filtered_file
-            for pdf_file_filter in pdf_file_filter
+            for pdf_file_filter in pdf_file_filters
             for filtered_file in glob.glob(get_absolute_path(pdf_file_filter), recursive=True)
             if os.path.isfile(filtered_file)
         }
