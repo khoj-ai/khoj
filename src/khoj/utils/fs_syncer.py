@@ -1,5 +1,6 @@
 import logging
 import glob
+import os
 from typing import Optional
 from bs4 import BeautifulSoup
 
@@ -53,6 +54,7 @@ def get_plaintext_files(config: TextContentConfig) -> dict[str, str]:
             filtered_file
             for jsonl_file_filter in input_filter
             for filtered_file in glob.glob(get_absolute_path(jsonl_file_filter), recursive=True)
+            if os.path.isfile(filtered_file)
         }
 
     all_target_files = sorted(absolute_plaintext_files | filtered_plaintext_files)
@@ -102,6 +104,7 @@ def get_org_files(config: TextContentConfig):
             filtered_file
             for org_file_filter in org_file_filter
             for filtered_file in glob.glob(get_absolute_path(org_file_filter), recursive=True)
+            if os.path.isfile(filtered_file)
         }
 
     all_org_files = sorted(absolute_org_files | filtered_org_files)
@@ -146,6 +149,7 @@ def get_markdown_files(config: TextContentConfig):
             filtered_file
             for markdown_file_filter in markdown_file_filter
             for filtered_file in glob.glob(get_absolute_path(markdown_file_filter), recursive=True)
+            if os.path.isfile(filtered_file)
         }
 
     all_markdown_files = sorted(absolute_markdown_files | filtered_markdown_files)
@@ -194,6 +198,7 @@ def get_pdf_files(config: TextContentConfig):
             filtered_file
             for pdf_file_filter in pdf_file_filter
             for filtered_file in glob.glob(get_absolute_path(pdf_file_filter), recursive=True)
+            if os.path.isfile(filtered_file)
         }
 
     all_pdf_files = sorted(absolute_pdf_files | filtered_pdf_files)

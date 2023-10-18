@@ -32,6 +32,22 @@ def test_text_search_setup_with_missing_file_raises_error(org_config_with_only_n
 
 
 # ----------------------------------------------------------------------------------------------------
+def test_get_org_files_with_org_suffixed_dir_doesnt_raise_error(tmp_path: Path):
+    # Arrange
+    orgfile = tmp_path / "directory.org" / "file.org"
+    orgfile.parent.mkdir()
+    with open(orgfile, "w") as f:
+        f.write("* Heading\n- List item\n")
+    org_content_config = TextContentConfig(
+        input_filter=[f"{tmp_path}/**/*"], compressed_jsonl="test.jsonl", embeddings_file="test.pt"
+    )
+
+    # Act
+    # should not raise IsADirectoryError and return orgfile
+    assert get_org_files(org_content_config) == {f"{orgfile}": "* Heading\n- List item\n"}
+
+
+# ----------------------------------------------------------------------------------------------------
 def test_text_search_setup_with_empty_file_raises_error(
     org_config_with_only_new_file: TextContentConfig, search_config: SearchConfig
 ):
