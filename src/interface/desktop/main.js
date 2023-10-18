@@ -111,10 +111,12 @@ function pushDataToKhoj (regenerate = false) {
     const folders = store.get('folders') || [];
     state = { completed: true }
 
+    // Collect paths of all configured files to index
     for (const file of files) {
         filesToPush.push(file.path);
     }
 
+    // Collect paths of all indexable files in configured folders
     for (const folder of folders) {
         const files = fs.readdirSync(folder.path, { withFileTypes: true });
         for (const file of files) {
@@ -129,11 +131,13 @@ function pushDataToKhoj (regenerate = false) {
     for (const file of filesToPush) {
         const stats = fs.statSync(file);
         if (!regenerate) {
+            // Only push files that have been modified since last sync
             if (stats.mtime.toISOString() < lastSync.find((syncedFile) => syncedFile.path === file)?.datetime) {
                 continue;
             }
         }
 
+        // Collect all updated or newly created files since last sync to index on Khoj server
         try {
             let encoding = binaryFileTypes.includes(file.split('.').pop()) ? "binary" : "utf8";
             let mimeType = filenameToMimeType(file) + (encoding === "utf8" ? "; charset=UTF-8" : "");
@@ -152,6 +156,7 @@ function pushDataToKhoj (regenerate = false) {
         }
     }
 
+    // Mark deleted files for removal from index on Khoj server
     for (const syncedFile of lastSync) {
         if (!filesToPush.includes(syncedFile.path)) {
             fileObj = new Blob([""], { type: filenameToMimeType(syncedFile.path) });
@@ -159,6 +164,7 @@ function pushDataToKhoj (regenerate = false) {
         }
     }
 
+    // Send collected files to Khoj server for indexing
     if (!!formData?.entries()?.next().value) {
         const hostURL = store.get('hostURL') || KHOJ_URL;
         const headers = {
@@ -167,8 +173,6 @@ function pushDataToKhoj (regenerate = false) {
         axios.post(`${hostURL}/api/v1/index/update?force=${regenerate}&client=desktop`, formData, { headers })
             .then(response => {
                 console.log(response.data);
-                const win = BrowserWindow.getAllWindows()[0];
-                win.webContents.send('update-state', state);
                 let lastSync = [];
                 for (const file of filesToPush) {
                     lastSync.push({
@@ -181,9 +185,16 @@ function pushDataToKhoj (regenerate = false) {
             .catch(error => {
                 console.error(error);
                 state['completed'] = false
+            })
+            .finally(() => {
+                // Syncing complete
                 const win = BrowserWindow.getAllWindows()[0];
-                win.webContents.send('update-state', state);
+                if (win) win.webContents.send('update-state', state);
             });
+    } else {
+        // Syncing complete
+        const win = BrowserWindow.getAllWindows()[0];
+        if (win) win.webContents.send('update-state', state);
     }
 }
 
