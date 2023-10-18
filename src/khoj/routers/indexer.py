@@ -72,7 +72,7 @@ async def update(
         raise HTTPException(status_code=401, detail="Invalid API Key")
     state.config_lock.acquire()
     try:
-        logger.info(f"📬 Updating content index via API call by {client}")
+        logger.info(f"📬 Updating content index via API call by {client} client")
         org_files: Dict[str, str] = {}
         markdown_files: Dict[str, str] = {}
         pdf_files: Dict[str, str] = {}
@@ -139,7 +139,8 @@ async def update(
 
     except Exception as e:
         logger.error(
-            f"🚨 Failed to {force} update {t} content index triggered via API call by {client}: {e}", exc_info=True
+            f"🚨 Failed to {force} update {t} content index triggered via API call by {client} client: {e}",
+            exc_info=True,
         )
     finally:
         state.config_lock.release()
@@ -154,7 +155,7 @@ async def update(
         host=host,
     )
 
-    logger.info(f"📪 Content index updated via API call by {client}")
+    logger.info(f"📪 Content index updated via API call by {client} client")
     return Response(content="OK", status_code=200)
 
 

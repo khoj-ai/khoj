@@ -1,6 +1,5 @@
 import logging
 import glob
-import base64
 from typing import Optional
 from bs4 import BeautifulSoup
 
@@ -69,7 +68,7 @@ def get_plaintext_files(config: TextContentConfig) -> dict[str, str]:
 
     filename_to_content_map = {}
     for file in all_target_files:
-        with open(file, "r") as f:
+        with open(file, "r", encoding="utf8") as f:
             try:
                 plaintext_content = f.read()
                 if file.endswith(("html", "htm", "xml")):
@@ -115,7 +114,7 @@ def get_org_files(config: TextContentConfig):
 
     filename_to_content_map = {}
     for file in all_org_files:
-        with open(file, "r") as f:
+        with open(file, "r", encoding="utf8") as f:
             try:
                 filename_to_content_map[file] = f.read()
             except Exception as e:
@@ -137,7 +136,7 @@ def get_markdown_files(config: TextContentConfig):
         logger.debug("At least one of markdown-files or markdown-file-filter is required to be specified")
         return {}
 
-    "Get Markdown files to process"
+    # Get markdown files to process
     absolute_markdown_files, filtered_markdown_files = set(), set()
     if markdown_files:
         absolute_markdown_files = {get_absolute_path(markdown_file) for markdown_file in markdown_files}
@@ -164,7 +163,7 @@ def get_markdown_files(config: TextContentConfig):
 
     filename_to_content_map = {}
     for file in all_markdown_files:
-        with open(file, "r") as f:
+        with open(file, "r", encoding="utf8") as f:
             try:
                 filename_to_content_map[file] = f.read()
             except Exception as e:
