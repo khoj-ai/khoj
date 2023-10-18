@@ -186,6 +186,10 @@ if not state.demo:
             state.content_index.markdown = None
         elif content_type == "org":
             state.content_index.org = None
+        elif content_type == "plaintext":
+            state.content_index.plaintext = None
+        else:
+            logger.warning(f"Request to delete unknown content type: {content_type} via API")
 
         try:
             save_config_to_file_updated_state()

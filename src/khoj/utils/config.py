@@ -106,7 +106,7 @@ class ConversationProcessorConfigModel:
         if self.offline_chat.enable_offline_chat:
             try:
                 self.gpt4all_model.loaded_model = download_model(self.offline_chat.chat_model)
-            except ValueError as e:
+            except Exception as e:
                 self.offline_chat.enable_offline_chat = False
                 self.gpt4all_model.loaded_model = None
                 logger.error(f"Error while loading offline chat model: {e}", exc_info=True)
