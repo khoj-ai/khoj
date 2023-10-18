@@ -6,7 +6,7 @@
 ;;         Saba Imran <saba@khoj.dev>
 ;; Description: An AI copilot for your Second Brain
 ;; Keywords: search, chat, org-mode, outlines, markdown, pdf, image
-;; Version: 0.12.3
+;; Version: 0.13.0
 ;; Package-Requires: ((emacs "27.1") (transient "0.3.0") (dash "2.19.1"))
 ;; URL: https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs
 
