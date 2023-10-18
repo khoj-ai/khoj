@@ -397,8 +397,7 @@ CONFIG is json obtained from Khoj config API."
 (defun khoj--server-configure ()
   "Configure the Khoj server for search and chat."
   (interactive)
-  (let* ((org-directory-regexes (or (mapcar (lambda (dir) (format "%s/**/*.org" dir)) khoj-org-directories) json-null))
-         (url-request-method "GET")
+  (let* ((url-request-method "GET")
          (current-config
           (with-temp-buffer
             (url-insert-file-contents (format "%s/api/config/data" khoj-server-url))
@@ -407,55 +406,11 @@ CONFIG is json obtained from Khoj config API."
            (with-temp-buffer
              (url-insert-file-contents (format "%s/api/config/data/default" khoj-server-url))
              (ignore-error json-end-of-file (json-parse-buffer :object-type 'alist :array-type 'list :null-object json-null :false-object json-false))))
-         (default-index-dir (khoj--get-directory-from-config default-config '(content-type org embeddings-file)))
          (default-chat-dir (khoj--get-directory-from-config default-config '(processor conversation conversation-logfile)))
          (chat-model (or khoj-chat-model (alist-get 'chat-model (alist-get 'openai (alist-get 'conversation (alist-get 'processor default-config))))))
          (enable-offline-chat (or khoj-chat-offline (alist-get 'enable-offline-chat (alist-get 'offline-chat (alist-get 'conversation (alist-get 'processor default-config))))))
          (offline-chat-model (or khoj-offline-chat-model (alist-get 'chat-model (alist-get 'offline-chat (alist-get 'conversation (alist-get 'processor default-config))))))
          (config (or current-config default-config)))
-
-    ;; Configure content types
-    (cond
-     ;; If khoj backend is not configured yet
-     ((not current-config)
-      (message "khoj.el: Server not configured yet.")
-      (setq config (delq (assoc 'content-type config) config))
-      (cl-pushnew `(content-type . ((org . ((input-files . ,khoj-org-files)
-                                            (input-filter . ,org-directory-regexes)
-                                            (compressed-jsonl . ,(format "%s/org.jsonl.gz" default-index-dir))
-                                            (embeddings-file . ,(format "%s/org.pt" default-index-dir))
-                                            (index-heading-entries . ,json-false)))))
-                  config))
-
-     ;; Else if khoj config has no org content config
-     ((not (alist-get 'org (alist-get 'content-type config)))
-      (message "khoj.el: Org-mode content on server not configured yet.")
-     (let ((new-content-type (alist-get 'content-type config)))
-        (setq new-content-type (delq (assoc 'org new-content-type) new-content-type))
-        (cl-pushnew `(org . ((input-files . ,khoj-org-files)
-                             (input-filter . ,org-directory-regexes)
-                             (compressed-jsonl . ,(format "%s/org.jsonl.gz" default-index-dir))
-                             (embeddings-file . ,(format "%s/org.pt" default-index-dir))
-                             (index-heading-entries . ,json-false)))
-                    new-content-type)
-        (setq config (delq (assoc 'content-type config) config))
-        (cl-pushnew `(content-type . ,new-content-type) config)))
-
-     ;; Else if khoj is not configured to index specified org files
-     ((not (and (equal (alist-get 'input-files (alist-get 'org (alist-get 'content-type config))) khoj-org-files)
-                (equal (alist-get 'input-filter (alist-get 'org (alist-get 'content-type config))) org-directory-regexes)))
-      (message "khoj.el: Org-mode content on server is stale.")
-      (let* ((index-directory (khoj--get-directory-from-config config '(content-type org embeddings-file)))
-             (new-content-type (alist-get 'content-type config)))
-        (setq new-content-type (delq (assoc 'org new-content-type) new-content-type))
-        (cl-pushnew `(org . ((input-files . ,khoj-org-files)
-                             (input-filter . ,org-directory-regexes)
-                             (compressed-jsonl . ,(format "%s/org.jsonl.gz" index-directory))
-                             (embeddings-file . ,(format "%s/org.pt" index-directory))
-                             (index-heading-entries . ,json-false)))
-                    new-content-type)
-        (setq config (delq (assoc 'content-type config) config))
-        (cl-pushnew `(content-type . ,new-content-type) config))))
 
     ;; Configure processors
     (cond
@@ -472,7 +427,7 @@ CONFIG is json obtained from Khoj config API."
 
      ;; If khoj backend isn't configured yet
      ((not current-config)
-      (message "khoj.el: Chat not configured yet.")
+      (message "khoj.el: Khoj not configured yet.")
       (setq config (delq (assoc 'processor config) config))
       (cl-pushnew `(processor . ((conversation . ((conversation-logfile . ,(format "%s/conversation.json" default-chat-dir))
                                                   (offline-chat . ((enable-offline-chat . ,enable-offline-chat)

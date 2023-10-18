@@ -178,12 +178,8 @@ export async function updateKhojBackend(khojUrl: string, khojConfig: Object) {
         method: 'POST',
         contentType: 'application/json',
     };
-
     // Save khojConfig on khoj backend at khojConfigUrl
-    await request(requestContent)
-        // Refresh khoj search index after updating config
-        .then(_ => request(`${khojUrl}/api/update?t=markdown`))
-        .then(_ => request(`${khojUrl}/api/update?t=pdf`));
+    request(requestContent);
 }
 
 function getIndexDirectoryFromBackendConfig(filepath: string) {
