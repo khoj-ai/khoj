@@ -236,6 +236,7 @@ def collate_results(hits, image_names, output_directory, image_files_url, count=
                         "image_score": f"{hit['image_score']:.9f}",
                         "metadata_score": f"{hit['metadata_score']:.9f}",
                     },
+                    "corpus_id": hit["corpus_id"],
                 }
             )
         ]
