@@ -10,7 +10,7 @@ from pathlib import Path
 
 # Internal Packages
 from khoj.utils import config as utils_config
-from khoj.utils.config import ContentIndex, SearchModels, GPT4AllProcessorConfig
+from khoj.utils.config import ContentIndex, SearchModels, GPT4AllProcessorModel
 from khoj.utils.helpers import LRU
 from khoj.utils.rawconfig import FullConfig
 from khoj.processor.embeddings import EmbeddingsModel, CrossEncoderModel
@@ -21,7 +21,7 @@ search_models = SearchModels()
 embeddings_model = EmbeddingsModel()
 cross_encoder_model = CrossEncoderModel()
 content_index = ContentIndex()
-gpt4all_processor_config: GPT4AllProcessorConfig = None
+gpt4all_processor_config: GPT4AllProcessorModel = None
 config_file: Path = None
 verbose: int = 0
 host: str = None

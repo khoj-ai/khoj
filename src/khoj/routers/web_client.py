@@ -115,8 +115,9 @@ if not state.demo:
             {
                 "conversation_openai": enabled_chat_config["openai"],
                 "enable_offline_model": enabled_chat_config["offline_chat"],
-                "conversation_gpt4all": state.gpt4all_processor_config
-                and state.gpt4all_processor_config.loaded_model is not None,
+                "conversation_gpt4all": state.gpt4all_processor_config.loaded_model is not None
+                if state.gpt4all_processor_config
+                else False,
             }
         )
 

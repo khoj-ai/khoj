@@ -88,10 +88,10 @@ class OfflineChatProcessorConfig(ConfigBase):
 
 
 class ConversationProcessorConfig(ConfigBase):
-    openai: Optional[OpenAIProcessorConfig]
-    offline_chat: Optional[OfflineChatProcessorConfig]
-    max_prompt_size: Optional[int]
-    tokenizer: Optional[str]
+    openai: Optional[OpenAIProcessorConfig] = None
+    offline_chat: Optional[OfflineChatProcessorConfig] = None
+    max_prompt_size: Optional[int] = None
+    tokenizer: Optional[str] = None
 
 
 class ProcessorConfig(ConfigBase):

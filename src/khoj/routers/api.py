@@ -636,7 +636,7 @@ async def chat(
         conversation_command = ConversationCommand.General
 
     if conversation_command == ConversationCommand.Help:
-        model_type = "offline" if state.processor_config.conversation.offline_chat.enable_offline_chat else "openai"
+        model_type = "offline" if await ConversationAdapters.has_offline_chat(user) else "openai"
         formatted_help = help_message.format(model=model_type, version=state.khoj_version)
         return StreamingResponse(iter([formatted_help]), media_type="text/event-stream", status_code=200)
 
