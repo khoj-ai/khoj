@@ -46,7 +46,7 @@ Indexes your org-agenda files, by default.
   (use-package khoj
     :ensure t
     :pin melpa-stable
-    :bind ("C-c s" . 'khoj)
+    :bind ("C-c s" . 'khoj))
 ```
 
 - Note: Install `khoj.el` from MELPA (instead of MELPA Stable) if you installed the pre-release version of khoj
