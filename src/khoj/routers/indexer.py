@@ -134,10 +134,10 @@ async def update(
             state.config.content_type,
             indexer_input.dict(),
             state.search_models,
-            regenerate=force,
-            search_type=t,
-            full_corpus=False,
-            user=user,
+            force,
+            t,
+            False,
+            user,
         )
         logger.info(f"Finished processing batch indexing request")
     except Exception as e:
