@@ -1,13 +1,13 @@
 {
   "name": "Khoj",
-  "homepage": ".",
-  "productName": "Khoj",
-  "version": "1.0.2",
-  "description": "Scaffolding for the desktop entrypoint to Khoj",
-  "main": "main.js",
+  "version": "0.13.0",
+  "description": "An AI copilot for your Second Brain",
+  "author": "Saba Imran, Debanjum Singh Solanky <team@khoj.dev>",
+  "license": "GPL-3.0-or-later",
+  "homepage": "https://khoj.dev",
   "repository": "\"https://github.com/khoj-ai/khoj\"",
-  "author": "Khoj <team@khoj.dev>",
-  "license": "MIT",
+  "productName": "Khoj",
+  "main": "main.js",
   "private": false,
   "devDependencies": {
     "electron": "25.8.1"

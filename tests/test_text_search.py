@@ -1,26 +1,25 @@
 # System Packages
 import logging
+import locale
 from pathlib import Path
 import os
 
 # External Packages
 import pytest
-from khoj.utils.config import SearchModels
 
 # Internal Packages
 from khoj.utils.state import content_index, search_models
 from khoj.search_type import text_search
-from khoj.utils.rawconfig import ContentConfig, SearchConfig, TextContentConfig
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.github.github_to_jsonl import GithubToJsonl
+from khoj.utils.config import SearchModels
 from khoj.utils.fs_syncer import get_org_files
+from khoj.utils.rawconfig import ContentConfig, SearchConfig, TextContentConfig
 
 
 # Test
 # ----------------------------------------------------------------------------------------------------
-def test_text_search_setup_with_missing_file_raises_error(
-    org_config_with_only_new_file: TextContentConfig, search_config: SearchConfig
-):
+def test_text_search_setup_with_missing_file_raises_error(org_config_with_only_new_file: TextContentConfig):
     # Arrange
     # Ensure file mentioned in org.input-files is missing
     single_new_file = Path(org_config_with_only_new_file.input_files[0])
@@ -29,7 +28,23 @@ def test_text_search_setup_with_missing_file_raises_error(
     # Act
     # Generate notes embeddings during asymmetric setup
     with pytest.raises(FileNotFoundError):
-        data = get_org_files(org_config_with_only_new_file)
+        get_org_files(org_config_with_only_new_file)
+
+
+# ----------------------------------------------------------------------------------------------------
+def test_get_org_files_with_org_suffixed_dir_doesnt_raise_error(tmp_path: Path):
+    # Arrange
+    orgfile = tmp_path / "directory.org" / "file.org"
+    orgfile.parent.mkdir()
+    with open(orgfile, "w") as f:
+        f.write("* Heading\n- List item\n")
+    org_content_config = TextContentConfig(
+        input_filter=[f"{tmp_path}/**/*"], compressed_jsonl="test.jsonl", embeddings_file="test.pt"
+    )
+
+    # Act
+    # should not raise IsADirectoryError and return orgfile
+    assert get_org_files(org_content_config) == {f"{orgfile}": "* Heading\n- List item\n"}
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -48,6 +63,7 @@ def test_text_search_setup_with_empty_file_raises_error(
 def test_text_search_setup(content_config: ContentConfig, search_models: SearchModels):
     # Arrange
     data = get_org_files(content_config.org)
+
     # Act
     # Regenerate notes embeddings during asymmetric setup
     notes_model = text_search.setup(

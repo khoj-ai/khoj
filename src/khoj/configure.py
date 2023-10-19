@@ -28,7 +28,7 @@ from khoj.utils.config import (
 )
 from khoj.utils.helpers import resolve_absolute_path, merge_dicts
 from khoj.utils.fs_syncer import collect_files
-from khoj.utils.rawconfig import FullConfig, ProcessorConfig, ConversationProcessorConfig
+from khoj.utils.rawconfig import FullConfig, OfflineChatProcessorConfig, ProcessorConfig, ConversationProcessorConfig
 from khoj.routers.indexer import configure_content, load_content, configure_search
 
 
@@ -136,7 +136,7 @@ def configure_routes(app):
 
     app.include_router(api, prefix="/api")
     app.include_router(api_beta, prefix="/api/beta")
-    app.include_router(indexer, prefix="/v1/indexer")
+    app.include_router(indexer, prefix="/api/v1/index")
     app.include_router(web_client)
     app.include_router(auth_router, prefix="/auth")
 
@@ -156,7 +156,7 @@ if not state.demo:
             state.content_index = configure_content(
                 state.content_index, state.config.content_type, all_files, state.search_models
             )
-            logger.info("📬 Content index updated via Scheduler")
+            logger.info("📪 Content index updated via Scheduler")
         except Exception as e:
             logger.error(f"🚨 Error updating content index via Scheduler: {e}", exc_info=True)
 
@@ -207,9 +207,7 @@ def configure_conversation_processor(
             conversation_config=ConversationProcessorConfig(
                 conversation_logfile=conversation_logfile,
                 openai=(conversation_config.openai if (conversation_config is not None) else None),
-                enable_offline_chat=(
-                    conversation_config.enable_offline_chat if (conversation_config is not None) else False
-                ),
+                offline_chat=conversation_config.offline_chat if conversation_config else OfflineChatProcessorConfig(),
             )
         )
     else:

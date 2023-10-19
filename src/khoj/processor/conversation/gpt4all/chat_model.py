@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 def extract_questions_offline(
     text: str,
-    model: str = "llama-2-7b-chat.ggmlv3.q4_K_S.bin",
+    model: str = "llama-2-7b-chat.ggmlv3.q4_0.bin",
     loaded_model: Union[Any, None] = None,
     conversation_log={},
     use_history: bool = True,
@@ -113,7 +113,7 @@ def filter_questions(questions: List[str]):
     ]
     filtered_questions = []
     for q in questions:
-        if not any([word in q.lower() for word in hint_words]):
+        if not any([word in q.lower() for word in hint_words]) and not is_none_or_empty(q):
             filtered_questions.append(q)
 
     return filtered_questions
@@ -123,10 +123,12 @@ def converse_offline(
     references,
     user_query,
     conversation_log={},
-    model: str = "llama-2-7b-chat.ggmlv3.q4_K_S.bin",
+    model: str = "llama-2-7b-chat.ggmlv3.q4_0.bin",
     loaded_model: Union[Any, None] = None,
     completion_func=None,
     conversation_command=ConversationCommand.Default,
+    max_prompt_size=None,
+    tokenizer_name=None,
 ) -> Union[ThreadedGenerator, Iterator[str]]:
     """
     Converse with user using Llama
@@ -158,6 +160,8 @@ def converse_offline(
         prompts.system_prompt_message_llamav2,
         conversation_log,
         model_name=model,
+        max_prompt_size=max_prompt_size,
+        tokenizer_name=tokenizer_name,
     )
 
     g = ThreadedGenerator(references, completion_func=completion_func)

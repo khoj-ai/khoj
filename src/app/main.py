@@ -14,10 +14,11 @@ warnings.filterwarnings("ignore", message=r"legacy way to download files from th
 
 # External Packages
 import uvicorn
-import django
-import schedule
-
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import schedule
+import django
+
 from fastapi.staticfiles import StaticFiles
 from rich.logging import RichHandler
 from django.core.asgi import get_asgi_application
@@ -40,6 +41,15 @@ app = FastAPI()
 
 # Get Django Application
 django_app = get_asgi_application()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["app://obsidian.md", "http://localhost:*", "https://app.khoj.dev/*", "app://khoj.dev"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Set Locale
 locale.setlocale(locale.LC_ALL, "")

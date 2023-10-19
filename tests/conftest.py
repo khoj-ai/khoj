@@ -18,6 +18,7 @@ from khoj.utils.helpers import resolve_absolute_path
 from khoj.utils.rawconfig import (
     ContentConfig,
     ConversationProcessorConfig,
+    OfflineChatProcessorConfig,
     OpenAIProcessorConfig,
     ProcessorConfig,
     TextContentConfig,
@@ -207,8 +208,9 @@ def processor_config_offline_chat(tmp_path_factory):
 
     # Setup conversation processor
     processor_config = ProcessorConfig()
+    offline_chat = OfflineChatProcessorConfig(enable_offline_chat=True)
     processor_config.conversation = ConversationProcessorConfig(
-        enable_offline_chat=True,
+        offline_chat=offline_chat,
         conversation_logfile=processor_dir.joinpath("conversation_logs.json"),
     )
 
