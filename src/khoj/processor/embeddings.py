@@ -9,7 +9,7 @@ from khoj.utils.rawconfig import SearchResponse
 
 class EmbeddingsModel:
     def __init__(self):
-        self.model_name = "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"
+        self.model_name = "thenlper/gte-small"
         encode_kwargs = {"normalize_embeddings": True, "show_progress_bar": True}
 
         if torch.cuda.is_available():
