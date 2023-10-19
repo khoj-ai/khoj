@@ -242,6 +242,7 @@ if not state.demo:
         await content_object.objects.filter(user=user).adelete()
         await sync_to_async(EmbeddingsAdapters.delete_all_embeddings)(user, content_type)
 
+        enabled_content = await sync_to_async(EmbeddingsAdapters.get_unique_file_types)(user)
         return {"status": "ok"}
 
     @api.post("/delete/config/data/processor/conversation/openai", status_code=200)

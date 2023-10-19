@@ -5,8 +5,8 @@ from urllib.parse import quote
 import pytest
 
 # External Packages
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from fastapi import FastAPI
 import pytest
 
 # Internal Packages
@@ -125,7 +125,6 @@ def test_get_api_config_types(client, search_config: SearchConfig, sample_org_da
 
     # Assert
     assert response.status_code == 200
-    # assert actual response is ["org", "image", "all"]
     assert response.json() == ["all", "org", "image"]
 
 
