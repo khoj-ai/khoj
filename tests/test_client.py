@@ -125,7 +125,7 @@ def test_get_api_config_types(client, search_config: SearchConfig, sample_org_da
 
     # Assert
     assert response.status_code == 200
-    assert response.json() == ["all", "org", "markdown", "image"]
+    assert response.json() == ["all", "org", "image"]
 
 
 # ----------------------------------------------------------------------------------------------------
