@@ -232,7 +232,7 @@
                     </h3>
                 </div>
                 <div class="card-description-row">
-                <p class="card-description">Setup chat using OpenAI</p>
+                <p class="card-description">Setup online chat using OpenAI</p>
                 </div>
                 <div class="card-action-row">
                     <a class="card-button" href="/config/processor/conversation/openai">
@@ -257,21 +257,21 @@
                     <img class="card-icon" src="/static/assets/icons/chat.svg" alt="Chat">
                     <h3 class="card-title">
                         Offline Chat
-                        <img id="configured-icon-conversation-enable-offline-chat" class="configured-icon {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.enable_offline_chat and current_model_state.conversation_gpt4all %}enabled{% else %}disabled{% endif %}" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
-                        {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.enable_offline_chat and not current_model_state.conversation_gpt4all %}
+                        <img id="configured-icon-conversation-enable-offline-chat" class="configured-icon {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.offline_chat.enable_offline_chat and current_model_state.conversation_gpt4all %}enabled{% else %}disabled{% endif %}" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                        {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.offline_chat.enable_offline_chat and not current_model_state.conversation_gpt4all %}
                             <img id="misconfigured-icon-conversation-enable-offline-chat" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="The model was not downloaded as expected.">
                         {% endif %}
                     </h3>
                 </div>
                 <div class="card-description-row">
-                <p class="card-description">Setup offline chat (Llama V2)</p>
+                <p class="card-description">Setup offline chat</p>
                 </div>
-                <div id="clear-enable-offline-chat" class="card-action-row {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.enable_offline_chat %}enabled{% else %}disabled{% endif %}">
+                <div id="clear-enable-offline-chat" class="card-action-row {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.offline_chat.enable_offline_chat %}enabled{% else %}disabled{% endif %}">
                     <button class="card-button" onclick="toggleEnableLocalLLLM(false)">
                         Disable
                     </button>
                 </div>
-                <div id="set-enable-offline-chat" class="card-action-row {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.enable_offline_chat %}disabled{% else %}enabled{% endif %}">
+                <div id="set-enable-offline-chat" class="card-action-row {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.offline_chat.enable_offline_chat %}disabled{% else %}enabled{% endif %}">
                     <button class="card-button happy" onclick="toggleEnableLocalLLLM(true)">
                         Enable
                     </button>
@@ -342,7 +342,7 @@
             featuresHintText.classList.add("show");
         }
 
-        fetch('/api/config/data/processor/conversation/enable_offline_chat' + '?enable_offline_chat=' + enable, {
+        fetch('/api/config/data/processor/conversation/offline_chat' + '?enable_offline_chat=' + enable, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

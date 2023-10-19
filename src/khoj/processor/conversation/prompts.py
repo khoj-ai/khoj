@@ -23,7 +23,7 @@ no_notes_found = PromptTemplate.from_template(
     """.strip()
 )
 
-system_prompt_message_llamav2 = f"""You are Khoj, a friendly, smart and helpful personal assistant.
+system_prompt_message_llamav2 = f"""You are Khoj, a smart, inquisitive and helpful personal assistant.
 Using your general knowledge and our past conversations as context, answer the following question.
 If you do not know the answer, say 'I don't know.'"""
 
@@ -51,13 +51,13 @@ extract_questions_system_prompt_llamav2 = PromptTemplate.from_template(
 
 general_conversation_llamav2 = PromptTemplate.from_template(
     """
-<s>[INST]{query}[/INST]
+<s>[INST] {query} [/INST]
 """.strip()
 )
 
 chat_history_llamav2_from_user = PromptTemplate.from_template(
     """
-<s>[INST]{message}[/INST]
+<s>[INST] {message} [/INST]
 """.strip()
 )
 
@@ -69,7 +69,7 @@ chat_history_llamav2_from_assistant = PromptTemplate.from_template(
 
 conversation_llamav2 = PromptTemplate.from_template(
     """
-<s>[INST]{query}[/INST]
+<s>[INST] {query} [/INST]
 """.strip()
 )
 
@@ -91,7 +91,7 @@ Question: {query}
 
 notes_conversation_llamav2 = PromptTemplate.from_template(
     """
-Notes:
+User's Notes:
 {references}
 Question: {query}
 """.strip()
@@ -134,19 +134,25 @@ Answer (in second person):"""
 
 extract_questions_llamav2_sample = PromptTemplate.from_template(
     """
-<s>[INST]<<SYS>>Current Date: {current_date}<</SYS>>[/INST]</s>
-<s>[INST]How was my trip to Cambodia?[/INST][]</s>
-<s>[INST]Who did I visit the temple with on that trip?[/INST]Who did I visit the temple with in Cambodia?</s>
-<s>[INST]How should I take care of my plants?[/INST]What kind of plants do I have? What issues do my plants have?</s>
-<s>[INST]How many tennis balls fit in the back of a 2002 Honda Civic?[/INST]What is the size of a tennis ball? What is the trunk size of a 2002 Honda Civic?</s>
-<s>[INST]What did I do for Christmas last year?[/INST]What did I do for Christmas {last_year} dt>='{last_christmas_date}' dt<'{next_christmas_date}'</s>
-<s>[INST]How are you feeling today?[/INST]</s>
-<s>[INST]Is Alice older than Bob?[/INST]When was Alice born? What is Bob's age?</s>
-<s>[INST]<<SYS>>
+<s>[INST] <<SYS>>Current Date: {current_date}<</SYS>> [/INST]</s>
+<s>[INST] How was my trip to Cambodia? [/INST]
+How was my trip to Cambodia?</s>
+<s>[INST] Who did I visit the temple with on that trip? [/INST]
+Who did I visit the temple with in Cambodia?</s>
+<s>[INST] How should I take care of my plants? [/INST]
+What kind of plants do I have? What issues do my plants have?</s>
+<s>[INST] How many tennis balls fit in the back of a 2002 Honda Civic? [/INST]
+What is the size of a tennis ball? What is the trunk size of a 2002 Honda Civic?</s>
+<s>[INST] What did I do for Christmas last year? [/INST]
+What did I do for Christmas {last_year} dt>='{last_christmas_date}' dt<'{next_christmas_date}'</s>
+<s>[INST] How are you feeling today? [/INST]</s>
+<s>[INST] Is Alice older than Bob? [/INST]
+When was Alice born? What is Bob's age?</s>
+<s>[INST] <<SYS>>
 Use these notes from the user's previous conversations to provide a response:
 {chat_history}
-<</SYS>>[/INST]</s>
-<s>[INST]{query}[/INST]
+<</SYS>> [/INST]</s>
+<s>[INST] {query} [/INST]
 """
 )
 

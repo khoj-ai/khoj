@@ -8,7 +8,6 @@ const {dialog} = require('electron');
 
 const cron = require('cron').CronJob;
 const axios = require('axios');
-const { Readable } = require('stream');
 
 const KHOJ_URL = 'http://127.0.0.1:42110'
 
@@ -65,7 +64,7 @@ const schema = {
 
 var state = {}
 
-const store = new Store({schema});
+const store = new Store({ schema });
 
 console.log(store);
 
@@ -86,57 +85,65 @@ function handleSetTitle (event, title) {
     });
 }
 
+function filenameToMimeType (filename) {
+    const extension = filename.split('.').pop();
+    switch (extension) {
+        case 'pdf':
+            return 'application/pdf';
+        case 'png':
+            return 'image/png';
+        case 'jpg':
+        case 'jpeg':
+            return 'image/jpeg';
+        case 'md':
+        case 'markdown':
+            return 'text/markdown';
+        case 'org':
+            return 'text/org';
+        default:
+            return 'text/plain';
+    }
+}
+
 function pushDataToKhoj (regenerate = false) {
     let filesToPush = [];
-    const files = store.get('files');
-    const folders = store.get('folders');
-    state = {
-        completed: true
+    const files = store.get('files') || [];
+    const folders = store.get('folders') || [];
+    state = { completed: true }
+
+    // Collect paths of all configured files to index
+    for (const file of files) {
+        filesToPush.push(file.path);
     }
 
-    if (files) {
-        for (file of files) {
-            filesToPush.push(file.path);
-        }
-    }
-    if (folders) {
-        for (folder of folders) {
-            const files = fs.readdirSync(folder.path, { withFileTypes: true });
-            for (file of files) {
-                if (file.isFile() && validFileTypes.includes(file.name.split('.').pop())) {
-                    filesToPush.push(path.join(folder.path, file.name));
-                }
+    // Collect paths of all indexable files in configured folders
+    for (const folder of folders) {
+        const files = fs.readdirSync(folder.path, { withFileTypes: true });
+        for (const file of files) {
+            if (file.isFile() && validFileTypes.includes(file.name.split('.').pop())) {
+                filesToPush.push(path.join(folder.path, file.name));
             }
         }
     }
 
-    let data = {
-        files: []
-    }
-
     const lastSync = store.get('lastSync') || [];
-
-    for (file of filesToPush) {
+    const formData = new FormData();
+    for (const file of filesToPush) {
         const stats = fs.statSync(file);
         if (!regenerate) {
+            // Only push files that have been modified since last sync
             if (stats.mtime.toISOString() < lastSync.find((syncedFile) => syncedFile.path === file)?.datetime) {
                 continue;
             }
         }
 
+        // Collect all updated or newly created files since last sync to index on Khoj server
         try {
-            let rawData;
-            // If the file is a PDF or IMG file, read it as a binary file
-            if (binaryFileTypes.includes(file.split('.').pop())) {
-                rawData = fs.readFileSync(file).toString('base64');
-            } else {
-                rawData = fs.readFileSync(file, 'utf8');
-            }
-
-            data.files.push({
-                path: file,
-                content: rawData
-            });
+            let encoding = binaryFileTypes.includes(file.split('.').pop()) ? "binary" : "utf8";
+            let mimeType = filenameToMimeType(file) + (encoding === "utf8" ? "; charset=UTF-8" : "");
+            let fileContent = Buffer.from(fs.readFileSync(file, { encoding: encoding }), encoding);
+            let fileObj = new Blob([fileContent], { type: mimeType });
+            formData.append('files', fileObj, file);
             state[file] = {
                 success: true,
             }
@@ -149,46 +156,46 @@ function pushDataToKhoj (regenerate = false) {
         }
     }
 
+    // Mark deleted files for removal from index on Khoj server
     for (const syncedFile of lastSync) {
         if (!filesToPush.includes(syncedFile.path)) {
-            data.files.push({
-                path: syncedFile.path,
-                content: ""
-            });
+            fileObj = new Blob([""], { type: filenameToMimeType(syncedFile.path) });
+            formData.append('files', fileObj, syncedFile.path);
         }
     }
 
-    const headers = { 'x-api-key': 'secret', 'Content-Type': 'application/json' };
-
-    const stream = new Readable({
-        read() {
-            this.push(JSON.stringify(data));
-            this.push(null);
-        }
-    });
-
-    const hostURL = store.get('hostURL') || KHOJ_URL;
-
-    axios.post(`${hostURL}/v1/indexer/batch?regenerate=${regenerate}`, stream, { headers })
-        .then(response => {
-            console.log(response.data);
-            const win = BrowserWindow.getAllWindows()[0];
-            win.webContents.send('update-state', state);
-            let lastSync = [];
-            for (const file of filesToPush) {
-                lastSync.push({
-                    path: file,
-                    datetime: new Date().toISOString()
-                });
-            }
-            store.set('lastSync', lastSync);
-        })
-        .catch(error => {
-            console.error(error);
-            state['completed'] = false
-            const win = BrowserWindow.getAllWindows()[0];
-            win.webContents.send('update-state', state);
-        });
+    // Send collected files to Khoj server for indexing
+    if (!!formData?.entries()?.next().value) {
+        const hostURL = store.get('hostURL') || KHOJ_URL;
+        const headers = {
+            'x-api-key': 'secret'
+        };
+        axios.post(`${hostURL}/api/v1/index/update?force=${regenerate}&client=desktop`, formData, { headers })
+            .then(response => {
+                console.log(response.data);
+                let lastSync = [];
+                for (const file of filesToPush) {
+                    lastSync.push({
+                        path: file,
+                        datetime: new Date().toISOString()
+                    });
+                }
+                store.set('lastSync', lastSync);
+            })
+            .catch(error => {
+                console.error(error);
+                state['completed'] = false
+            })
+            .finally(() => {
+                // Syncing complete
+                const win = BrowserWindow.getAllWindows()[0];
+                if (win) win.webContents.send('update-state', state);
+            });
+    } else {
+        // Syncing complete
+        const win = BrowserWindow.getAllWindows()[0];
+        if (win) win.webContents.send('update-state', state);
+    }
 }
 
 pushDataToKhoj();
