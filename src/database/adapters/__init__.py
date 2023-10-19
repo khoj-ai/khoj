@@ -207,7 +207,7 @@ class ConversationAdapters:
 
         if new_config.offline_chat:
             default_values = {
-                "enable_offline_chat": new_config.offline_chat.enable_offline_chat,
+                "enable_offline_chat": str(new_config.offline_chat.enable_offline_chat),
             }
 
             if new_config.offline_chat.chat_model:
