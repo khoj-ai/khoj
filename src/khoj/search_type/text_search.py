@@ -14,10 +14,9 @@ from asgiref.sync import sync_to_async
 # Internal Packages
 from khoj.utils import state
 from khoj.utils.helpers import get_absolute_path, resolve_absolute_path, load_model, timer
-from khoj.utils.config import TextSearchModel
 from khoj.utils.models import BaseEncoder
 from khoj.utils.state import SearchType
-from khoj.utils.rawconfig import SearchResponse, TextSearchConfig, Entry
+from khoj.utils.rawconfig import SearchResponse, Entry
 from khoj.utils.jsonl import load_jsonl
 from khoj.processor.text_to_jsonl import TextEmbeddings
 from database.adapters import EmbeddingsAdapters
@@ -34,36 +33,6 @@ search_type_to_embeddings_type = {
     SearchType.Notion.value: Embeddings.EmbeddingsType.NOTION,
     SearchType.All.value: None,
 }
-
-
-def initialize_model(search_config: TextSearchConfig):
-    "Initialize model for semantic search on text"
-    torch.set_num_threads(4)
-
-    # If model directory is configured
-    if search_config.model_directory:
-        # Convert model directory to absolute path
-        search_config.model_directory = resolve_absolute_path(search_config.model_directory)
-        # Create model directory if it doesn't exist
-        search_config.model_directory.parent.mkdir(parents=True, exist_ok=True)
-
-    # The bi-encoder encodes all entries to use for semantic search
-    bi_encoder = load_model(
-        model_dir=search_config.model_directory,
-        model_name=search_config.encoder,
-        model_type=search_config.encoder_type or SentenceTransformer,
-        device=f"{state.device}",
-    )
-
-    # The cross-encoder re-ranks the results to improve quality
-    cross_encoder = load_model(
-        model_dir=search_config.model_directory,
-        model_name=search_config.cross_encoder,
-        model_type=CrossEncoder,
-        device=f"{state.device}",
-    )
-
-    return TextSearchModel(bi_encoder, cross_encoder)
 
 
 def extract_entries(jsonl_file) -> List[Entry]:
@@ -176,10 +145,33 @@ def collate_results(hits, dedupe=True):
                 {
                     "entry": hit.raw,
                     "score": hit.distance,
+                    "corpus_id": str(hit.corpus_id),
                     "additional": {
                         "file": hit.file_path,
                         "compiled": hit.compiled,
                         "heading": hit.heading,
+                    },
+                }
+            )
+
+
+def deduplicated_search_responses(hits: List[SearchResponse]):
+    hit_ids = set()
+    for hit in hits:
+        if hit.corpus_id in hit_ids:
+            continue
+
+        else:
+            hit_ids.add(hit.corpus_id)
+            yield SearchResponse.parse_obj(
+                {
+                    "entry": hit.entry,
+                    "score": hit.score,
+                    "corpus_id": hit.corpus_id,
+                    "additional": {
+                        "file": hit.additional["file"],
+                        "compiled": hit.additional["compiled"],
+                        "heading": hit.additional["heading"],
                     },
                 }
             )

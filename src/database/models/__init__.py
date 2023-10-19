@@ -82,9 +82,27 @@ class LocalPlaintextConfig(BaseModel):
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
 
 
-class ConversationProcessorConfig(BaseModel):
-    conversation = models.JSONField()
+class OpenAIProcessorConversationConfig(BaseModel):
+    api_key = models.CharField(max_length=200)
+    chat_model = models.CharField(max_length=200)
+    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
+
+
+class OfflineChatProcessorConversationConfig(BaseModel):
     enable_offline_chat = models.BooleanField(default=False)
+    chat_model = models.CharField(max_length=200, default="llama-2-7b-chat.ggmlv3.q4_0.bin")
+    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
+
+
+class ConversationProcessorConfig(BaseModel):
+    max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
+    tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)
+    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
+
+
+class Conversation(BaseModel):
+    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
+    conversation_log = models.JSONField(default=dict)
 
 
 class Embeddings(BaseModel):

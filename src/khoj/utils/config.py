@@ -5,8 +5,7 @@ from enum import Enum
 import logging
 
 from dataclasses import dataclass
-from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Union, Any
+from typing import TYPE_CHECKING, List, Optional, Union, Any
 from khoj.processor.conversation.gpt4all.utils import download_model
 
 # External Packages
@@ -17,9 +16,7 @@ logger = logging.getLogger(__name__)
 # Internal Packages
 if TYPE_CHECKING:
     from sentence_transformers import CrossEncoder
-    from khoj.search_filter.base_filter import BaseFilter
     from khoj.utils.models import BaseEncoder
-    from khoj.utils.rawconfig import ConversationProcessorConfig, Entry, OpenAIProcessorConfig
 
 
 class SearchType(str, Enum):
@@ -77,31 +74,15 @@ class GPT4AllProcessorConfig:
     loaded_model: Union[Any, None] = None
 
 
-class ConversationProcessorConfigModel:
+class GPT4AllProcessorModel:
     def __init__(
         self,
-        conversation_config: ConversationProcessorConfig,
+        chat_model: str = "llama-2-7b-chat.ggmlv3.q4_0.bin",
     ):
-        self.openai_model = conversation_config.openai
-        self.gpt4all_model = GPT4AllProcessorConfig()
-        self.offline_chat = conversation_config.offline_chat
-        self.max_prompt_size = conversation_config.max_prompt_size
-        self.tokenizer = conversation_config.tokenizer
-        self.conversation_logfile = Path(conversation_config.conversation_logfile)
-        self.chat_session: List[str] = []
-        self.meta_log: dict = {}
-
-        if self.offline_chat.enable_offline_chat:
-            try:
-                self.gpt4all_model.loaded_model = download_model(self.offline_chat.chat_model)
-            except ValueError as e:
-                self.offline_chat.enable_offline_chat = False
-                self.gpt4all_model.loaded_model = None
-                logger.error(f"Error while loading offline chat model: {e}", exc_info=True)
-        else:
-            self.gpt4all_model.loaded_model = None
-
-
-@dataclass
-class ProcessorConfigModel:
-    conversation: Union[ConversationProcessorConfigModel, None] = None
+        self.chat_model = chat_model
+        self.loaded_model = None
+        try:
+            self.loaded_model = download_model(self.chat_model)
+        except ValueError as e:
+            self.loaded_model = None
+            logger.error(f"Error while loading offline chat model: {e}", exc_info=True)

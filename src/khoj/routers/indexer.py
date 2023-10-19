@@ -134,10 +134,10 @@ async def update(
             state.config.content_type,
             indexer_input.dict(),
             state.search_models,
-            regenerate=force,
-            search_type=t,
-            full_corpus=False,
-            user=user,
+            force,
+            t,
+            False,
+            user,
         )
         logger.info(f"Finished processing batch indexing request")
     except Exception as e:
@@ -187,10 +187,11 @@ def configure_content(
 ) -> Optional[ContentIndex]:
     content_index = ContentIndex()
 
-    if t in [type.value for type in state.SearchType]:
-        t = state.SearchType(t).value
+    if t is not None and not t.value in [type.value for type in state.SearchType]:
+        logger.warning(f"🚨 Invalid search type: {t}")
+        return None
 
-    assert type(t) == str or t == None, f"Invalid search type: {t}"
+    t = t.value if t else None
 
     if files is None:
         logger.warning(f"🚨 No files to process for {t} search.")

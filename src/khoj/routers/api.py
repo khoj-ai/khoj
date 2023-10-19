@@ -5,24 +5,22 @@ import time
 import logging
 import json
 from typing import List, Optional, Union, Any
-import asyncio
 
 # External Packages
-from fastapi import APIRouter, HTTPException, Header, Request, Depends
+from fastapi import APIRouter, HTTPException, Header, Request
 from starlette.authentication import requires
 from asgiref.sync import sync_to_async
 
 # Internal Packages
-from khoj.configure import configure_processor, configure_server
+from khoj.configure import configure_server
 from khoj.search_type import image_search, text_search
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
-from khoj.utils.config import TextSearchModel
+from khoj.utils.config import TextSearchModel, GPT4AllProcessorModel
 from khoj.utils.helpers import ConversationCommand, is_none_or_empty, timer, command_descriptions
 from khoj.utils.rawconfig import (
     FullConfig,
-    ProcessorConfig,
     SearchConfig,
     SearchResponse,
     TextContentConfig,
@@ -32,16 +30,16 @@ from khoj.utils.rawconfig import (
     ConversationProcessorConfig,
     OfflineChatProcessorConfig,
 )
-from khoj.utils.helpers import resolve_absolute_path
 from khoj.utils.state import SearchType
 from khoj.utils import state, constants
-from khoj.utils.yaml import save_config_to_file_updated_state
+from khoj.utils.helpers import AsyncIteratorWrapper
 from fastapi.responses import StreamingResponse, Response
 from khoj.routers.helpers import (
     get_conversation_command,
     perform_chat_checks,
-    generate_chat_response,
+    agenerate_chat_response,
     update_telemetry_state,
+    is_ready_to_chat,
 )
 from khoj.processor.conversation.prompts import help_message
 from khoj.processor.conversation.openai.gpt import extract_questions
@@ -49,7 +47,7 @@ from khoj.processor.conversation.gpt4all.chat_model import extract_questions_off
 from fastapi.requests import Request
 
 from database import adapters
-from database.adapters import EmbeddingsAdapters
+from database.adapters import EmbeddingsAdapters, ConversationAdapters
 from database.models import LocalMarkdownConfig, LocalOrgConfig, LocalPdfConfig, LocalPlaintextConfig, KhojUser
 
 
@@ -114,6 +112,8 @@ async def map_config_to_db(config: FullConfig, user: KhojUser):
                 user=user,
                 token=config.content_type.notion.token,
             )
+    if config.processor and config.processor.conversation:
+        ConversationAdapters.set_conversation_processor_config(user, config.processor.conversation)
 
 
 # If it's a demo instance, prevent updating any of the configuration.
@@ -123,8 +123,6 @@ if not state.demo:
         if state.config is None:
             state.config = FullConfig()
             state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
-        if state.processor_config is None:
-            state.processor_config = configure_processor(state.config.processor)
 
     @api.get("/config/data", response_model=FullConfig)
     @requires(["authenticated"], redirect="login_page")
@@ -246,20 +244,14 @@ if not state.demo:
         return {"status": "ok"}
 
     @api.post("/delete/config/data/processor/conversation/openai", status_code=200)
+    @requires(["authenticated"], redirect="login_page")
     async def remove_processor_conversation_config_data(
         request: Request,
         client: Optional[str] = None,
     ):
-        if (
-            not state.config
-            or not state.config.processor
-            or not state.config.processor.conversation
-            or not state.config.processor.conversation.openai
-        ):
-            return {"status": "ok"}
+        user = request.user.object
 
-        state.config.processor.conversation.openai = None
-        state.processor_config = configure_processor(state.config.processor, state.processor_config)
+        await sync_to_async(ConversationAdapters.clear_openai_conversation_config)(user)
 
         update_telemetry_state(
             request=request,
@@ -269,11 +261,7 @@ if not state.demo:
             metadata={"processor_conversation_type": "openai"},
         )
 
-        try:
-            save_config_to_file_updated_state()
-            return {"status": "ok"}
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
+        return {"status": "ok"}
 
     @api.post("/config/data/content_type/{content_type}", status_code=200)
     @requires(["authenticated"], redirect="login_page")
@@ -301,24 +289,17 @@ if not state.demo:
         return {"status": "ok"}
 
     @api.post("/config/data/processor/conversation/openai", status_code=200)
+    @requires(["authenticated"], redirect="login_page")
     async def set_processor_openai_config_data(
         request: Request,
         updated_config: Union[OpenAIProcessorConfig, None],
         client: Optional[str] = None,
     ):
-        _initialize_config()
+        user = request.user.object
 
-        if not state.config.processor or not state.config.processor.conversation:
-            default_config = constants.default_config
-            default_conversation_logfile = resolve_absolute_path(
-                default_config["processor"]["conversation"]["conversation-logfile"]  # type: ignore
-            )
-            conversation_logfile = resolve_absolute_path(default_conversation_logfile)
-            state.config.processor = ProcessorConfig(conversation=ConversationProcessorConfig(conversation_logfile=conversation_logfile))  # type: ignore
+        conversation_config = ConversationProcessorConfig(openai=updated_config)
 
-        assert state.config.processor.conversation is not None
-        state.config.processor.conversation.openai = updated_config
-        state.processor_config = configure_processor(state.config.processor, state.processor_config)
+        await sync_to_async(ConversationAdapters.set_conversation_processor_config)(user, conversation_config)
 
         update_telemetry_state(
             request=request,
@@ -328,11 +309,7 @@ if not state.demo:
             metadata={"processor_conversation_type": "conversation"},
         )
 
-        try:
-            save_config_to_file_updated_state()
-            return {"status": "ok"}
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
+        return {"status": "ok"}
 
     @api.post("/config/data/processor/conversation/offline_chat", status_code=200)
     async def set_processor_enable_offline_chat_config_data(
@@ -341,24 +318,26 @@ if not state.demo:
         offline_chat_model: Optional[str] = None,
         client: Optional[str] = None,
     ):
-        _initialize_config()
+        user = request.user.object
 
-        if not state.config.processor or not state.config.processor.conversation:
-            default_config = constants.default_config
-            default_conversation_logfile = resolve_absolute_path(
-                default_config["processor"]["conversation"]["conversation-logfile"]  # type: ignore
+        if enable_offline_chat:
+            conversation_config = ConversationProcessorConfig(
+                offline_chat=OfflineChatProcessorConfig(
+                    enable_offline_chat=enable_offline_chat,
+                    chat_model=offline_chat_model,
+                )
             )
-            conversation_logfile = resolve_absolute_path(default_conversation_logfile)
-            state.config.processor = ProcessorConfig(conversation=ConversationProcessorConfig(conversation_logfile=conversation_logfile))  # type: ignore
 
-        assert state.config.processor.conversation is not None
-        if state.config.processor.conversation.offline_chat is None:
-            state.config.processor.conversation.offline_chat = OfflineChatProcessorConfig()
+            await sync_to_async(ConversationAdapters.set_conversation_processor_config)(user, conversation_config)
 
-        state.config.processor.conversation.offline_chat.enable_offline_chat = enable_offline_chat
-        if offline_chat_model is not None:
-            state.config.processor.conversation.offline_chat.chat_model = offline_chat_model
-        state.processor_config = configure_processor(state.config.processor, state.processor_config)
+            offline_chat = await ConversationAdapters.get_offline_chat(user)
+            chat_model = offline_chat.chat_model
+            if state.gpt4all_processor_config is None:
+                state.gpt4all_processor_config = GPT4AllProcessorModel(chat_model=chat_model)
+
+        else:
+            await sync_to_async(ConversationAdapters.clear_offline_chat_conversation_config)(user)
+            state.gpt4all_processor_config = None
 
         update_telemetry_state(
             request=request,
@@ -368,11 +347,7 @@ if not state.demo:
             metadata={"processor_conversation_type": f"{'enable' if enable_offline_chat else 'disable'}_local_llm"},
         )
 
-        try:
-            save_config_to_file_updated_state()
-            return {"status": "ok"}
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
+        return {"status": "ok"}
 
 
 # Create Routes
@@ -425,9 +400,6 @@ async def search(
     results: List[SearchResponse] = []
     if q is None or q == "":
         logger.warning(f"No query param (q) passed in API call to initiate search")
-        return results
-    if not state.search_models or not any(state.search_models.__dict__.values()):
-        logger.warning(f"No search models loaded. Configure a search model before initiating search")
         return results
 
     # initialize variables
@@ -565,8 +537,6 @@ def update(
             components.append("Search models")
         if state.content_index:
             components.append("Content index")
-        if state.processor_config:
-            components.append("Conversation processor")
         components_msg = ", ".join(components)
         logger.info(f"📪 {components_msg} updated via API")
 
@@ -592,12 +562,11 @@ def chat_history(
     referer: Optional[str] = Header(None),
     host: Optional[str] = Header(None),
 ):
-    perform_chat_checks()
+    user = request.user.object
+    perform_chat_checks(user)
 
     # Load Conversation History
-    meta_log = {}
-    if state.processor_config.conversation:
-        meta_log = state.processor_config.conversation.meta_log
+    meta_log = ConversationAdapters.get_conversation_by_user(user=user).conversation_log
 
     update_telemetry_state(
         request=request,
@@ -649,13 +618,17 @@ async def chat(
     referer: Optional[str] = Header(None),
     host: Optional[str] = Header(None),
 ) -> Response:
-    perform_chat_checks()
+    user = request.user.object
+
+    await is_ready_to_chat(user)
     conversation_command = get_conversation_command(query=q, any_references=True)
 
     q = q.replace(f"/{conversation_command.value}", "").strip()
 
+    meta_log = (await ConversationAdapters.aget_conversation_by_user(user)).conversation_log
+
     compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
-        request, q, (n or 5), conversation_command
+        request, meta_log, q, (n or 5), conversation_command
     )
 
     if conversation_command == ConversationCommand.Default and is_none_or_empty(compiled_references):
@@ -667,12 +640,13 @@ async def chat(
         return StreamingResponse(iter([formatted_help]), media_type="text/event-stream", status_code=200)
 
     # Get the (streamed) chat response from the LLM of choice.
-    llm_response = generate_chat_response(
+    llm_response = await agenerate_chat_response(
         defiltered_query,
-        meta_log=state.processor_config.conversation.meta_log,
-        compiled_references=compiled_references,
-        inferred_queries=inferred_queries,
-        conversation_command=conversation_command,
+        meta_log,
+        compiled_references,
+        inferred_queries,
+        conversation_command,
+        user,
     )
 
     if llm_response is None:
@@ -681,13 +655,14 @@ async def chat(
     if stream:
         return StreamingResponse(llm_response, media_type="text/event-stream", status_code=200)
 
+    iterator = AsyncIteratorWrapper(llm_response)
+
     # Get the full response from the generator if the stream is not requested.
     aggregated_gpt_response = ""
-    while True:
-        try:
-            aggregated_gpt_response += next(llm_response)
-        except StopIteration:
+    async for item in iterator:
+        if item is None:
             break
+        aggregated_gpt_response += item
 
     actual_response = aggregated_gpt_response.split("### compiled references:")[0]
 
@@ -708,25 +683,24 @@ async def chat(
 
 async def extract_references_and_questions(
     request: Request,
+    meta_log: dict,
     q: str,
     n: int,
     conversation_type: ConversationCommand = ConversationCommand.Default,
 ):
     user = request.user.object if request.user.is_authenticated else None
-    # Load Conversation History
-    meta_log = state.processor_config.conversation.meta_log
 
     # Initialize Variables
     compiled_references: List[Any] = []
     inferred_queries: List[str] = []
 
-    if not EmbeddingsAdapters.user_has_embeddings(user=user):
+    if conversation_type == ConversationCommand.General:
+        return compiled_references, inferred_queries, q
+
+    if not await EmbeddingsAdapters.user_has_embeddings(user=user):
         logger.warning(
             "No content index loaded, so cannot extract references from knowledge base. Please configure your data sources and update the index to chat with your notes."
         )
-        return compiled_references, inferred_queries, q
-
-    if conversation_type == ConversationCommand.General:
         return compiled_references, inferred_queries, q
 
     # Extract filter terms from user message
@@ -735,17 +709,27 @@ async def extract_references_and_questions(
         defiltered_query = filter.defilter(defiltered_query)
     filters_in_query = q.replace(defiltered_query, "").strip()
 
+    using_offline_chat = False
+
     # Infer search queries from user message
     with timer("Extracting search queries took", logger):
         # If we've reached here, either the user has enabled offline chat or the openai model is enabled.
-        if state.processor_config.conversation.offline_chat.enable_offline_chat:
-            loaded_model = state.processor_config.conversation.gpt4all_model.loaded_model
+        if await ConversationAdapters.has_offline_chat(user):
+            using_offline_chat = True
+            offline_chat = await ConversationAdapters.get_offline_chat(user)
+            chat_model = offline_chat.chat_model
+            if state.gpt4all_processor_config is None:
+                state.gpt4all_processor_config = GPT4AllProcessorModel(chat_model=chat_model)
+
+            loaded_model = state.gpt4all_processor_config.loaded_model
+
             inferred_queries = extract_questions_offline(
                 defiltered_query, loaded_model=loaded_model, conversation_log=meta_log, should_extract_questions=False
             )
-        elif state.processor_config.conversation.openai_model:
-            api_key = state.processor_config.conversation.openai_model.api_key
-            chat_model = state.processor_config.conversation.openai_model.chat_model
+        elif await ConversationAdapters.has_openai_chat(user):
+            openai_chat = await ConversationAdapters.get_openai_chat(user)
+            api_key = openai_chat.api_key
+            chat_model = openai_chat.chat_model
             inferred_queries = extract_questions(
                 defiltered_query, model=chat_model, api_key=api_key, conversation_log=meta_log
             )
@@ -754,7 +738,7 @@ async def extract_references_and_questions(
     with timer("Searching knowledge base took", logger):
         result_list = []
         for query in inferred_queries:
-            n_items = min(n, 3) if state.processor_config.conversation.offline_chat.enable_offline_chat else n
+            n_items = min(n, 3) if using_offline_chat else n
             result_list.extend(
                 await search(
                     f"{query} {filters_in_query}",
@@ -765,6 +749,8 @@ async def extract_references_and_questions(
                     dedupe=False,
                 )
             )
+        # Dedupe the results again, as duplicates may be returned across queries.
+        result_list = text_search.deduplicated_search_responses(result_list)
         compiled_references = [item.additional["compiled"] for item in result_list]
 
     return compiled_references, inferred_queries, defiltered_query

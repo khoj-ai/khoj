@@ -67,13 +67,6 @@ class ContentConfig(ConfigBase):
     notion: Optional[NotionContentConfig]
 
 
-class TextSearchConfig(ConfigBase):
-    encoder: str
-    cross_encoder: str
-    encoder_type: Optional[str]
-    model_directory: Optional[Path]
-
-
 class ImageSearchConfig(ConfigBase):
     encoder: str
     encoder_type: Optional[str]
@@ -81,8 +74,6 @@ class ImageSearchConfig(ConfigBase):
 
 
 class SearchConfig(ConfigBase):
-    asymmetric: Optional[TextSearchConfig]
-    symmetric: Optional[TextSearchConfig]
     image: Optional[ImageSearchConfig]
 
 
@@ -97,7 +88,6 @@ class OfflineChatProcessorConfig(ConfigBase):
 
 
 class ConversationProcessorConfig(ConfigBase):
-    conversation_logfile: Path
     openai: Optional[OpenAIProcessorConfig]
     offline_chat: Optional[OfflineChatProcessorConfig]
     max_prompt_size: Optional[int]
@@ -125,6 +115,7 @@ class SearchResponse(ConfigBase):
     score: float
     cross_score: Optional[float]
     additional: Optional[dict]
+    corpus_id: str
 
 
 class Entry:
