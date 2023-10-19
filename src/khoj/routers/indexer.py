@@ -72,7 +72,7 @@ async def update(
     if x_api_key != "secret":
         raise HTTPException(status_code=401, detail="Invalid API Key")
     try:
-        logger.info(f"📬 Updating content index via API call by {client}")
+        logger.info(f"📬 Updating content index via API call by {client} client")
         org_files: Dict[str, str] = {}
         markdown_files: Dict[str, str] = {}
         pdf_files: Dict[str, bytes] = {}
@@ -143,7 +143,8 @@ async def update(
     except Exception as e:
         logger.error(f"Failed to process batch indexing request: {e}", exc_info=True)
         logger.error(
-            f"🚨 Failed to {force} update {t} content index triggered via API call by {client}: {e}", exc_info=True
+            f"🚨 Failed to {force} update {t} content index triggered via API call by {client} client: {e}",
+            exc_info=True,
         )
 
     update_telemetry_state(
@@ -156,7 +157,6 @@ async def update(
         host=host,
     )
 
-    logger.info(f"📪 Content index updated via API call by {client}")
     return Response(content="OK", status_code=200)
 
 

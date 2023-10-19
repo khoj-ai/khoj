@@ -17,6 +17,9 @@ import uvicorn
 import django
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from rich.logging import RichHandler
+import schedule
+
 from fastapi.staticfiles import StaticFiles
 from rich.logging import RichHandler
 import schedule
@@ -33,13 +36,6 @@ call_command("migrate", "--noinput")
 
 # Initialize Django Static Files
 call_command("collectstatic", "--noinput")
-
-# Initialize Django
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "app.settings")
-django.setup()
-
-# Initialize Django Database
-call_command("migrate", "--noinput")
 
 # Initialize the Application Server
 app = FastAPI()

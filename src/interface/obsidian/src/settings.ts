@@ -1,4 +1,4 @@
-import { App, Notice, PluginSettingTab, request, Setting, TFile } from 'obsidian';
+import { App, Notice, PluginSettingTab, Setting, TFile } from 'obsidian';
 import Khoj from 'src/main';
 import { updateContentIndex } from './utils';
 

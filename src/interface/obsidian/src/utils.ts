@@ -62,7 +62,7 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
         countOfFilesToIndex++;
         const encoding = binaryFileTypes.includes(file.extension) ? "binary" : "utf8";
         const mimeType = fileExtensionToMimeType(file.extension) + (encoding === "utf8" ? "; charset=UTF-8" : "");
-        const fileContent = await vault.read(file);
+        const fileContent = encoding == 'binary' ? await vault.readBinary(file) : await vault.read(file);
         formData.append('files', new Blob([fileContent], { type: mimeType }), file.path);
     }
 
@@ -178,12 +178,8 @@ export async function updateKhojBackend(khojUrl: string, khojConfig: Object) {
         method: 'POST',
         contentType: 'application/json',
     };
-
     // Save khojConfig on khoj backend at khojConfigUrl
-    await request(requestContent)
-        // Refresh khoj search index after updating config
-        .then(_ => request(`${khojUrl}/api/update?t=markdown`))
-        .then(_ => request(`${khojUrl}/api/update?t=pdf`));
+    request(requestContent);
 }
 
 function getIndexDirectoryFromBackendConfig(filepath: string) {

@@ -10,7 +10,7 @@
 Offline chat stays completely private and works without internet. But it is slower, lower quality and more compute intensive.
 
 > **System Requirements**:
->  - You need at least **16 GB of RAM** and **4 GB of Disk**
+>  - Machine with at least **6 GB of RAM** and **4 GB of Disk** available
 >  - A CPU supporting [AVX or AVX2 instructions](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions) is required
 >  - A Mac M1+ or [Vulcan supported GPU](https://vulkan.gpuinfo.org/) should significantly speed up chat response times
 
