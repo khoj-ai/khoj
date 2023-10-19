@@ -1,5 +1,6 @@
 # System Packages
 import logging
+import locale
 from pathlib import Path
 import os
 import asyncio
@@ -12,7 +13,7 @@ from khoj.search_type import text_search
 from khoj.utils.rawconfig import ContentConfig, SearchConfig
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.github.github_to_jsonl import GithubToJsonl
-from khoj.utils.fs_syncer import get_org_files
+from khoj.utils.fs_syncer import collect_files
 from database.models import LocalOrgConfig, KhojUser, Embeddings, GithubConfig
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,29 @@ def test_text_search_setup_with_missing_file_raises_error(
     # Act
     # Generate notes embeddings during asymmetric setup
     with pytest.raises(FileNotFoundError):
-        data = get_org_files(org_config_with_only_new_file)
+        get_org_files(org_config_with_only_new_file)
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.django_db
+def test_get_org_files_with_org_suffixed_dir_doesnt_raise_error(tmp_path, default_user: KhojUser):
+    # Arrange
+    orgfile = tmp_path / "directory.org" / "file.org"
+    orgfile.parent.mkdir()
+    with open(orgfile, "w") as f:
+        f.write("* Heading\n- List item\n")
+
+    LocalOrgConfig.objects.create(
+        input_filter=[f"{tmp_path}/**/*"],
+        input_files=None,
+        user=default_user,
+    )
+
+    org_files = collect_files(user=default_user)["org"]
+
+    # Act
+    # should not raise IsADirectoryError and return orgfile
+    assert org_files == {f"{orgfile}": "* Heading\n- List item\n"}
 
 
 # ----------------------------------------------------------------------------------------------------

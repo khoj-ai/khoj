@@ -11,6 +11,8 @@ from khoj.processor.conversation.gpt4all.utils import download_model
 # External Packages
 import torch
 
+from khoj.utils.rawconfig import OfflineChatProcessorConfig
+
 logger = logging.getLogger(__name__)
 
 # Internal Packages
