@@ -37,6 +37,12 @@ make install # may need sudo
 ```
 3. Create a database
 
+### Create the khoj database
+
+```bash
+createdb khoj -U postgres
+```
+
 ### Make migrations
 
 This command will create the migrations for the database app. This command should be run whenever a new model is added to the database app or an existing model is modified (updated or deleted).
