@@ -25,9 +25,11 @@ services:
       - ./tests/data/embeddings/:/root/.khoj/content/
       - ./tests/data/models/:/root/.khoj/search/
       - khoj_config:/root/.khoj/
+      - sentence_tranformer_models:/root/.cache/torch/sentence_transformers
     # Use 0.0.0.0 to explicitly set the host ip for the service on the container. https://pythonspeed.com/articles/docker-connection-refused/
     command: --host="0.0.0.0" --port=42110 -vv
 
 
 volumes:
   khoj_config:
+  sentence_tranformer_models:
