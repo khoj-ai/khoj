@@ -322,24 +322,29 @@ if not state.demo:
     ):
         user = request.user.object
 
-        if enable_offline_chat:
-            conversation_config = ConversationProcessorConfig(
-                offline_chat=OfflineChatProcessorConfig(
-                    enable_offline_chat=enable_offline_chat,
-                    chat_model=offline_chat_model,
+        try:
+            if enable_offline_chat:
+                conversation_config = ConversationProcessorConfig(
+                    offline_chat=OfflineChatProcessorConfig(
+                        enable_offline_chat=enable_offline_chat,
+                        chat_model=offline_chat_model,
+                    )
                 )
-            )
 
-            await sync_to_async(ConversationAdapters.set_conversation_processor_config)(user, conversation_config)
+                await sync_to_async(ConversationAdapters.set_conversation_processor_config)(user, conversation_config)
 
-            offline_chat = await ConversationAdapters.get_offline_chat(user)
-            chat_model = offline_chat.chat_model
-            if state.gpt4all_processor_config is None:
-                state.gpt4all_processor_config = GPT4AllProcessorModel(chat_model=chat_model)
+                offline_chat = await ConversationAdapters.get_offline_chat(user)
+                chat_model = offline_chat.chat_model
+                if state.gpt4all_processor_config is None:
+                    state.gpt4all_processor_config = GPT4AllProcessorModel(chat_model=chat_model)
 
-        else:
-            await sync_to_async(ConversationAdapters.clear_offline_chat_conversation_config)(user)
-            state.gpt4all_processor_config = None
+            else:
+                await sync_to_async(ConversationAdapters.clear_offline_chat_conversation_config)(user)
+                state.gpt4all_processor_config = None
+
+        except Exception as e:
+            logger.error(f"Error updating offline chat config: {e}", exc_info=True)
+            return {"status": "error", "message": str(e)}
 
         update_telemetry_state(
             request=request,

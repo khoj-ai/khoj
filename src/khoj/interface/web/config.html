@@ -361,39 +361,41 @@
         })
         .then(response => response.json())
         .then(data => {
-            if (data.status == "ok") {
-                // Toggle the Enabled/Disabled UI based on the action/response.
-                var enableLocalLLLMButton = document.getElementById("set-enable-offline-chat");
-                var disableLocalLLLMButton = document.getElementById("clear-enable-offline-chat");
-                var configuredIcon = document.getElementById("configured-icon-conversation-enable-offline-chat");
-                var toggleEnableLocalLLLMButton = document.getElementById("toggle-enable-offline-chat");
-
-                toggleEnableLocalLLLMButton.classList.remove("enabled");
-                toggleEnableLocalLLLMButton.classList.add("disabled");
-
-
-                if (enable) {
-                    enableLocalLLLMButton.classList.add("disabled");
-                    enableLocalLLLMButton.classList.remove("enabled");
-
-                    configuredIcon.classList.add("enabled");
-                    configuredIcon.classList.remove("disabled");
-
-                    disableLocalLLLMButton.classList.remove("disabled");
-                    disableLocalLLLMButton.classList.add("enabled");
-                } else {
-                    enableLocalLLLMButton.classList.remove("disabled");
-                    enableLocalLLLMButton.classList.add("enabled");
-
-                    configuredIcon.classList.remove("enabled");
-                    configuredIcon.classList.add("disabled");
-
-                    disableLocalLLLMButton.classList.add("disabled");
-                    disableLocalLLLMButton.classList.remove("enabled");
-                }
-
+            if (data.status != "ok") {
+                featuresHintText.innerHTML = `🚨 Failed to ${enable ? "enable": "disable"} offline chat model! Inform server admins.`;
+                enable = !enable;
+            } else {
                 featuresHintText.classList.remove("show");
                 featuresHintText.innerHTML = "";
+            }
+
+            // Toggle the Enabled/Disabled UI based on the action/response.
+            var enableLocalLLLMButton = document.getElementById("set-enable-offline-chat");
+            var disableLocalLLLMButton = document.getElementById("clear-enable-offline-chat");
+            var configuredIcon = document.getElementById("configured-icon-conversation-enable-offline-chat");
+            var toggleEnableLocalLLLMButton = document.getElementById("toggle-enable-offline-chat");
+
+            toggleEnableLocalLLLMButton.classList.remove("enabled");
+            toggleEnableLocalLLLMButton.classList.add("disabled");
+
+            if (enable) {
+                enableLocalLLLMButton.classList.add("disabled");
+                enableLocalLLLMButton.classList.remove("enabled");
+
+                configuredIcon.classList.add("enabled");
+                configuredIcon.classList.remove("disabled");
+
+                disableLocalLLLMButton.classList.remove("disabled");
+                disableLocalLLLMButton.classList.add("enabled");
+            } else {
+                enableLocalLLLMButton.classList.remove("disabled");
+                enableLocalLLLMButton.classList.add("enabled");
+
+                configuredIcon.classList.remove("enabled");
+                configuredIcon.classList.add("disabled");
+
+                disableLocalLLLMButton.classList.add("disabled");
+                disableLocalLLLMButton.classList.remove("enabled");
             }
         })
     }
