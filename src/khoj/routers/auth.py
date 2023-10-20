@@ -1,5 +1,4 @@
 import logging
-import json
 import os
 from fastapi import APIRouter
 from starlette.config import Config
@@ -11,12 +10,14 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 
 from database.adapters import get_or_create_user
+from khoj.utils import state
+
 
 logger = logging.getLogger(__name__)
 
 auth_router = APIRouter()
 
-if not os.environ.get("GOOGLE_CLIENT_ID") or not os.environ.get("GOOGLE_CLIENT_SECRET"):
+if not state.anonymous_mode and not (os.environ.get("GOOGLE_CLIENT_ID") and not os.environ.get("GOOGLE_CLIENT_SECRET")):
     logger.info("Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables to use Google OAuth")
 else:
     config = Config(environ=os.environ)
