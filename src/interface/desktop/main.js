@@ -168,7 +168,7 @@ function pushDataToKhoj (regenerate = false) {
     if (!!formData?.entries()?.next().value) {
         const hostURL = store.get('hostURL') || KHOJ_URL;
         const headers = {
-            'x-api-key': 'secret'
+            'Authorization': `Bearer: ${store.get("khoj-api-token")}`
         };
         axios.post(`${hostURL}/api/v1/index/update?force=${regenerate}&client=desktop`, formData, { headers })
             .then(response => {

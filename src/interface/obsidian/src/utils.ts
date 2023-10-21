@@ -78,7 +78,7 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
     const response = await fetch(`${setting.khojUrl}/api/v1/index/update?force=${regenerate}&client=obsidian`, {
         method: 'POST',
         headers: {
-            'x-api-key': 'secret',
+            'Authorization': `Bearer ${setting.khojApiKey}`,
         },
         body: formData,
     });

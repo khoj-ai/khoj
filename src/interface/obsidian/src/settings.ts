@@ -7,6 +7,7 @@ export interface KhojSetting {
     openaiApiKey: string;
     resultsCount: number;
     khojUrl: string;
+    khojApiKey: string;
     connectedToBackend: boolean;
     autoConfigure: boolean;
     lastSyncedFiles: TFile[];
@@ -16,6 +17,7 @@ export const DEFAULT_SETTINGS: KhojSetting = {
     enableOfflineChat: false,
     resultsCount: 6,
     khojUrl: 'http://127.0.0.1:42110',
+    khojApiKey: '',
     connectedToBackend: false,
     autoConfigure: true,
     openaiApiKey: '',
@@ -49,8 +51,17 @@ export class KhojSettingTab extends PluginSettingTab {
                     containerEl.firstElementChild?.setText(this.getBackendStatusMessage());
                 }));
         new Setting(containerEl)
+            .setName('Khoj API Key')
+            .setDesc('Use Khoj Cloud with your Khoj API Key')
+            .addText(text => text
+                .setValue(`${this.plugin.settings.khojApiKey}`)
+                .onChange(async (value) => {
+                    this.plugin.settings.khojApiKey = value.trim();
+                    await this.plugin.saveSettings();
+                }));
+        new Setting(containerEl)
             .setName('OpenAI API Key')
-            .setDesc('Use OpenAI for Khoj Chat with your API key.')
+            .setDesc('Use OpenAI for Khoj Chat with your OpenAI API key.')
             .addText(text => text
                 .setValue(`${this.plugin.settings.openaiApiKey}`)
                 .onChange(async (value) => {

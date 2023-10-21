@@ -93,7 +93,7 @@
   :group 'khoj
   :type 'number)
 
-(defcustom khoj-server-api-key "secret"
+(defcustom khoj-api-key nil
   "API Key to Khoj server."
   :group 'khoj
   :type 'string)
@@ -516,7 +516,7 @@ CONFIG is json obtained from Khoj config API."
     (let ((url-request-method "POST")
           (url-request-data (khoj--render-files-as-request-body files-to-index khoj--indexed-files boundary))
           (url-request-extra-headers `(("content-type" . ,(format "multipart/form-data; boundary=%s" boundary))
-                                       ("x-api-key" . ,khoj-server-api-key))))
+                                       ("Authorization" . ,(format "Bearer %s" khoj-api-key)))))
       (with-current-buffer
           (url-retrieve (format "%s/api/v1/index/update?%s&force=%s&client=emacs" khoj-server-url type-query (or force "false"))
                         ;; render response from indexing API endpoint on server
