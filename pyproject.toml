@@ -70,6 +70,7 @@ dependencies = [
     "psycopg2-binary == 2.9.9",
     "google-auth == 2.23.3",
     "python-multipart == 0.0.6",
+    "gunicorn == 21.2.0",
 ]
 dynamic = ["version"]
 

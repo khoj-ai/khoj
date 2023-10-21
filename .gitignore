@@ -21,7 +21,7 @@ todesktop.json
 khoj_assistant.egg-info
 /config/khoj*.yml
 .pytest_cache
-khoj.log
+*.log
 static
 
 # Obsidian plugin artifacts
