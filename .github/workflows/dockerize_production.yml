@@ -1,6 +1,9 @@
 name: dockerize-prod
 
 on:
+  pull_request:
+    branches:
+      - master
   push:
     tags:
       - "*"
