@@ -26,4 +26,4 @@ ENV PYTHONPATH=/app/src:$PYTHONPATH
 # but these should be passed in through the docker-compose.yml file.
 ARG PORT
 EXPOSE ${PORT}
-ENTRYPOINT ["gunicorn", "--bind", "0.0.0.0:42110", "src.khoj.main:app", "--workers", "3", "-k", "uvicorn.workers.UvicornWorker", "--timeout", "600", "--keep-alive", "120", "--log-level", "info"]
+ENTRYPOINT [ "gunicorn", "-c", "gunicorn-config.py", "src.khoj.main:app" ]

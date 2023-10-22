@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 auth_router = APIRouter()
 
-if not state.anonymous_mode and not (os.environ.get("GOOGLE_CLIENT_ID") and not os.environ.get("GOOGLE_CLIENT_SECRET")):
+if not state.anonymous_mode and not (os.environ.get("GOOGLE_CLIENT_ID") and os.environ.get("GOOGLE_CLIENT_SECRET")):
     logger.info("Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables to use Google OAuth")
 else:
     config = Config(environ=os.environ)
