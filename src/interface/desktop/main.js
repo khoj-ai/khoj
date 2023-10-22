@@ -42,6 +42,10 @@ const schema = {
         },
         default: []
     },
+    khojToken: {
+        type: 'string',
+        default: ''
+    },
     hostURL: {
         type: 'string',
         default: KHOJ_URL
@@ -168,7 +172,7 @@ function pushDataToKhoj (regenerate = false) {
     if (!!formData?.entries()?.next().value) {
         const hostURL = store.get('hostURL') || KHOJ_URL;
         const headers = {
-            'Authorization': `Bearer: ${store.get("khoj-api-token")}`
+            'Authorization': `Bearer ${store.get("khojToken")}`
         };
         axios.post(`${hostURL}/api/v1/index/update?force=${regenerate}&client=desktop`, formData, { headers })
             .then(response => {
@@ -244,6 +248,15 @@ async function handleFileOpen (type) {
             folders: store.get('folders')
         }
     }
+}
+
+async function getToken () {
+    return store.get('khojToken');
+}
+
+async function setToken (event, token) {
+    store.set('khojToken', token);
+    return store.get('khojToken');
 }
 
 async function getFiles () {
@@ -339,6 +352,9 @@ app.whenReady().then(() => {
 
     ipcMain.handle('setURL', setURL);
     ipcMain.handle('getURL', getURL);
+
+    ipcMain.handle('setToken', setToken);
+    ipcMain.handle('getToken', getToken);
 
     ipcMain.handle('syncData', (event, regenerate) => {
         syncData(regenerate);
