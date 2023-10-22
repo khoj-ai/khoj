@@ -1,9 +1,9 @@
 from typing import List
 
-import torch
 from langchain.embeddings import HuggingFaceEmbeddings
 from sentence_transformers import CrossEncoder
 
+from khoj.utils.helpers import get_device
 from khoj.utils.rawconfig import SearchResponse
 
 
@@ -11,17 +11,7 @@ class EmbeddingsModel:
     def __init__(self):
         self.model_name = "thenlper/gte-small"
         encode_kwargs = {"normalize_embeddings": True, "show_progress_bar": True}
-
-        if torch.cuda.is_available():
-            # Use CUDA GPU
-            device = torch.device("cuda:0")
-        elif torch.backends.mps.is_available():
-            # Use Apple M1 Metal Acceleration
-            device = torch.device("mps")
-        else:
-            device = torch.device("cpu")
-
-        model_kwargs = {"device": device}
+        model_kwargs = {"device": get_device()}
         self.embeddings_model = HuggingFaceEmbeddings(
             model_name=self.model_name, encode_kwargs=encode_kwargs, model_kwargs=model_kwargs
         )
@@ -36,19 +26,7 @@ class EmbeddingsModel:
 class CrossEncoderModel:
     def __init__(self):
         self.model_name = "cross-encoder/ms-marco-MiniLM-L-6-v2"
-
-        if torch.cuda.is_available():
-            # Use CUDA GPU
-            device = torch.device("cuda:0")
-
-        elif torch.backends.mps.is_available():
-            # Use Apple M1 Metal Acceleration
-            device = torch.device("mps")
-
-        else:
-            device = torch.device("cpu")
-
-        self.cross_encoder_model = CrossEncoder(model_name=self.model_name, device=device)
+        self.cross_encoder_model = CrossEncoder(model_name=self.model_name, device=get_device())
 
     def predict(self, query, hits: List[SearchResponse]):
         cross__inp = [[query, hit.additional["compiled"]] for hit in hits]
