@@ -101,9 +101,10 @@ def run(should_start_server=True):
 
     #  Mount Django and Static Files
     app.mount("/django", django_app, name="django")
-    if not os.path.exists("static"):
-        os.mkdir("static")
-    app.mount("/static", StaticFiles(directory="static"), name="static")
+    static_dir = "static"
+    if not os.path.exists(static_dir):
+        os.mkdir(static_dir)
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
     # Configure Middleware
     configure_middleware(app)

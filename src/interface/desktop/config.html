@@ -12,66 +12,85 @@
     <script type="text/javascript" src="./assets/markdown-it.min.js"></script>
 
     <body>
-        <div class="page">
-            <!--Add Header Logo and Nav Pane-->
-            <div class="khoj-header">
-                <a class="khoj-logo" href="./index.html">
-                    <img class="khoj-logo" src="./assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
-                </a>
-                <nav class="khoj-nav">
-                    <a class="khoj-nav" href="./chat.html">Chat</a>
-                    <a class="khoj-nav" href="./index.html">Search</a>
-                    <a class="khoj-nav khoj-nav-selected" href="./config.html">⚙️</a>
-                </nav>
-            </div>
+        <!--Add Header Logo and Nav Pane-->
+        <div class="khoj-header">
+            <a class="khoj-logo" href="./index.html">
+                <img class="khoj-logo" src="./assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
+            </a>
+            <nav class="khoj-nav">
+                <a class="khoj-nav" href="./chat.html">💬 Chat</a>
+                <a class="khoj-nav" href="./index.html">🔎 Search</a>
+                <a class="khoj-nav khoj-nav-selected" href="./config.html">⚙️ Settings</a>
+            </nav>
         </div>
         <div class="section-cards">
-            <div class="card configuration">
-                <div class="card-title-row">
-                    <img class="card-icon" src="./assets/icons/link.svg" alt="File">
-                    <h3 class="card-title">
-                        Host
-                    </h3>
+            <div class="card-description-row">
+                <div class="card configuration">
+                    <div class="card-title-row">
+                        <img class="card-icon" src="./assets/icons/link.svg" alt="Khoj Server URL">
+                        <h3 class="card-title">
+                            Server URL
+                        </h3>
+                    </div>
+                    <div class="card-description-row">
+                        <input id="khoj-host-url" class="card-input" type="text">
+                    </div>
+                    <div class="card-title-row">
+                        <img class="card-icon" src="./assets/icons/key.svg" alt="Khoj Access Key">
+                        <h3 class="card-title">
+                            Access Key
+                        </h3>
+                    </div>
+                    <div class="card-description-row">
+                        <input id="khoj-access-key" class="card-input" type="text" placeholder="Enter key to access your Khoj">
+                    </div>
                 </div>
-                <div class="card-description-row">
-                    <input id="khoj-host-url" class="card-input" type="text">
-                </div>
-                <div class="card-title-row">
-                    <img class="card-icon" src="./assets/icons/plaintext.svg" alt="File">
-                    <h3 class="card-title">
-                        Files
-                        <button id="toggle-files" class="card-button">
-                            <svg id="toggle-files-svg" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"></path></svg>
+            </div>
+            <div class="card-description-row">
+                <div class="card configuration">
+                    <div class="card-title-row">
+                        <img class="card-icon" src="./assets/icons/plaintext.svg" alt="File">
+                        <h3 class="card-title">
+                            Files
+                            <button id="toggle-files" class="card-button">
+                                <svg id="toggle-files-svg" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"></path></svg>
+                            </button>
+                        </h3>
+                    </div>
+                    <div class="card-description-row">
+                        <div id="current-files"></div>
+                    </div>
+                    <div class="card-action-row">
+                        <button id="update-file" class="card-button">
+                            Add
+                            <img class="add-files-icon" src="./assets/icons/circular-add.svg" alt="Add">
                         </button>
-                    </h3>
+                    </div>
                 </div>
-                <div class="card-description-row">
-                    <div id="current-files"></div>
-                </div>
-                <div class="card-action-row">
-                    <button id="update-file" class="card-button">
-                        Add
-                        <img class="add-files-icon" src="./assets/icons/circular-add.svg" alt="Add">
-                    </button>
-                </div>
-                <div class="card-title-row">
-                    <img class="card-icon" src="./assets/icons/folder.svg" alt="Folder">
-                    <h3 class="card-title">
-                        Folders
-                        <button id="toggle-folders" class="card-button">
-                            <svg id="toggle-folders-svg" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"></path></svg>
+            </div>
+            <div class="card-description-row">
+                <div class="card configuration">
+                    <div class="card-title-row">
+                        <img class="card-icon" src="./assets/icons/folder.svg" alt="Folder">
+                        <h3 class="card-title">
+                            Folders
+                            <button id="toggle-folders" class="card-button">
+                                <svg id="toggle-folders-svg" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"></path></svg>
+                            </button>
+                        </h3>
+                    </div>
+                    <div class="card-description-row">
+                        <div id="current-folders"></div>
+                    </div>
+                    <div class="card-action-row">
+                        <button id="update-folder" class="card-button">
+                            Add
+                            <img class="add-files-icon" src="./assets/icons/circular-add.svg" alt="Add">
                         </button>
-                    </h3>
+                    </div>
                 </div>
-                <div class="card-description-row">
-                    <div id="current-folders"></div>
-                </div>
-                <div class="card-action-row">
-                    <button id="update-folder" class="card-button">
-                        Add
-                        <img class="add-files-icon" src="./assets/icons/circular-add.svg" alt="Add">
-                    </button>
-                </div>
+            </div>
+            <div class="section-action-row">
                 <div class="card-description-row">
                     <button id="sync-data">Sync</button>
                 </div>
@@ -79,11 +98,10 @@
                     <input id="sync-force" type="checkbox" name="sync-force" value="force">
                     <label for="sync-force">Force Sync</label>
                 </div>
-                <div id="loading-bar" style="display: none;">
-                </div>
-                <div class="card-description-row">
-                    <div id="sync-status"></div>
-                </div>
+            </div>
+            <div id="loading-bar" style="display: none;"></div>
+            <div class="card-description-row">
+                <div id="sync-status"></div>
             </div>
         </div>
     </body>
@@ -93,7 +111,7 @@
             body {
                 display: grid;
                 grid-template-columns: 1fr;
-                grid-template-rows: 1fr auto auto auto minmax(80px, 100%);
+                grid-template-rows: 1fr auto;
                 font-size: small!important;
             }
             body > * {
@@ -104,8 +122,7 @@
             body {
                 display: grid;
                 grid-template-columns: 1fr min(70vw, 100%) 1fr;
-                grid-template-rows: 1fr auto auto auto minmax(80px, 100%);
-                padding-top: 60vw;
+                grid-template-rows: 80px auto;
             }
             body > * {
                 grid-column: 2;
@@ -124,11 +141,6 @@
         body > * {
             padding: 10px;
             margin: 10px;
-        }
-
-        div.page {
-            padding: 0px;
-            margin: 0px;
         }
 
         svg {
@@ -167,18 +179,18 @@
             }
         }
 
-        #khoj-host-url {
+        .card-input {
             padding: 4px;
             box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.2);
             border: none;
+            width: 450px;
         }
 
         .card {
             display: grid;
-            /* grid-template-rows: repeat(3, 1fr); */
             gap: 8px;
             padding: 24px 16px;
-            width: 100%;
+            width: 450px;
             background: white;
             border: 1px solid rgb(229, 229, 229);
             border-radius: 4px;
@@ -188,15 +200,15 @@
 
         .section-cards {
             display: grid;
-            grid-template-columns: repeat(1, 1fr);
             gap: 16px;
-            justify-items: start;
+            justify-items: center;
             margin: 0;
-            width: auto;
         }
-
-        div.configuration {
-            width: auto;
+        .section-action-row {
+            display: grid;
+            grid-auto-flow: column;
+            gap: 16px;
+            height: fit-content;
         }
 
         .card-title-row {
@@ -302,7 +314,6 @@
         }
 
         div.content-name {
-            width: 500px;
             overflow-wrap: break-word;
         }
 
@@ -346,6 +357,12 @@
         #sync-data:hover {
             background-color: #ffcc00;
             box-shadow: 0px 3px 0px #f9f5de;
+        }
+        .sync-force-toggle {
+            align-content: center;
+            display: grid;
+            grid-auto-flow: column;
+            gap: 4px;
         }
     </style>
     <script>

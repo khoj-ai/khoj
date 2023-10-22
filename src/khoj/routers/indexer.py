@@ -60,7 +60,6 @@ class IndexerInput(BaseModel):
 async def update(
     request: Request,
     files: list[UploadFile],
-    x_api_key: str = Header(None),
     force: bool = False,
     t: Optional[Union[state.SearchType, str]] = None,
     client: Optional[str] = None,
@@ -69,8 +68,8 @@ async def update(
     host: Optional[str] = Header(None),
 ):
     user = request.user.object if request.user.is_authenticated else None
-    if x_api_key != "secret":
-        raise HTTPException(status_code=401, detail="Invalid API Key")
+    if user is None:
+        raise HTTPException(status_code=401, detail="Authenticated user required.")
     try:
         logger.info(f"📬 Updating content index via API call by {client} client")
         org_files: Dict[str, str] = {}

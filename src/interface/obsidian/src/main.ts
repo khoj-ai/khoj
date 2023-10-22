@@ -1,8 +1,8 @@
-import { Notice, Plugin, TFile } from 'obsidian';
+import { Notice, Plugin } from 'obsidian';
 import { KhojSetting, KhojSettingTab, DEFAULT_SETTINGS } from 'src/settings'
 import { KhojSearchModal } from 'src/search_modal'
 import { KhojChatModal } from 'src/chat_modal'
-import { configureKhojBackend, updateContentIndex } from './utils';
+import { updateContentIndex } from './utils';
 
 
 export default class Khoj extends Plugin {
@@ -39,9 +39,9 @@ export default class Khoj extends Plugin {
             id: 'chat',
             name: 'Chat',
             checkCallback: (checking) => {
-                if (!checking && this.settings.connectedToBackend && (!!this.settings.openaiApiKey || this.settings.enableOfflineChat))
+                if (!checking && this.settings.connectedToBackend)
                     new KhojChatModal(this.app, this.settings).open();
-                return !!this.settings.openaiApiKey || this.settings.enableOfflineChat;
+                return this.settings.connectedToBackend;
             }
         });
 
@@ -69,17 +69,9 @@ export default class Khoj extends Plugin {
     async loadSettings() {
         // Load khoj obsidian plugin settings
         this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-
-        if (this.settings.autoConfigure) {
-            // Load, configure khoj server settings
-            await configureKhojBackend(this.app.vault, this.settings);
-        }
     }
 
     async saveSettings() {
-        if (this.settings.autoConfigure) {
-            await configureKhojBackend(this.app.vault, this.settings, false);
-        }
         this.saveData(this.settings);
     }
 

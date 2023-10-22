@@ -288,6 +288,10 @@
         </div>
     </div>
     <div class="section general-settings">
+        <div id="khoj-api-key-section" title="Use Khoj cloud with your Khoj API Key">
+            <button id="generate-api-key" onclick="generateAPIKey()">Generate API Key</button>
+            <div id="api-key-list"></div>
+        </div>
         <div id="results-count" title="Number of items to show in search and use for chat response">
             <label for="results-count-slider">Results Count: <span id="results-count-value">5</span></label>
             <input type="range" id="results-count-slider" name="results-count-slider" min="1" max="10" step="1" value="5">
@@ -311,6 +315,7 @@
     </div>
 </div>
 <script>
+
     function clearContentType(content_type) {
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
         fetch('/api/delete/config/data/content_type/' + content_type, {
@@ -361,39 +366,41 @@
         })
         .then(response => response.json())
         .then(data => {
-            if (data.status == "ok") {
-                // Toggle the Enabled/Disabled UI based on the action/response.
-                var enableLocalLLLMButton = document.getElementById("set-enable-offline-chat");
-                var disableLocalLLLMButton = document.getElementById("clear-enable-offline-chat");
-                var configuredIcon = document.getElementById("configured-icon-conversation-enable-offline-chat");
-                var toggleEnableLocalLLLMButton = document.getElementById("toggle-enable-offline-chat");
-
-                toggleEnableLocalLLLMButton.classList.remove("enabled");
-                toggleEnableLocalLLLMButton.classList.add("disabled");
-
-
-                if (enable) {
-                    enableLocalLLLMButton.classList.add("disabled");
-                    enableLocalLLLMButton.classList.remove("enabled");
-
-                    configuredIcon.classList.add("enabled");
-                    configuredIcon.classList.remove("disabled");
-
-                    disableLocalLLLMButton.classList.remove("disabled");
-                    disableLocalLLLMButton.classList.add("enabled");
-                } else {
-                    enableLocalLLLMButton.classList.remove("disabled");
-                    enableLocalLLLMButton.classList.add("enabled");
-
-                    configuredIcon.classList.remove("enabled");
-                    configuredIcon.classList.add("disabled");
-
-                    disableLocalLLLMButton.classList.add("disabled");
-                    disableLocalLLLMButton.classList.remove("enabled");
-                }
-
+            if (data.status != "ok") {
+                featuresHintText.innerHTML = `🚨 Failed to ${enable ? "enable": "disable"} offline chat model! Inform server admins.`;
+                enable = !enable;
+            } else {
                 featuresHintText.classList.remove("show");
                 featuresHintText.innerHTML = "";
+            }
+
+            // Toggle the Enabled/Disabled UI based on the action/response.
+            var enableLocalLLLMButton = document.getElementById("set-enable-offline-chat");
+            var disableLocalLLLMButton = document.getElementById("clear-enable-offline-chat");
+            var configuredIcon = document.getElementById("configured-icon-conversation-enable-offline-chat");
+            var toggleEnableLocalLLLMButton = document.getElementById("toggle-enable-offline-chat");
+
+            toggleEnableLocalLLLMButton.classList.remove("enabled");
+            toggleEnableLocalLLLMButton.classList.add("disabled");
+
+            if (enable) {
+                enableLocalLLLMButton.classList.add("disabled");
+                enableLocalLLLMButton.classList.remove("enabled");
+
+                configuredIcon.classList.add("enabled");
+                configuredIcon.classList.remove("disabled");
+
+                disableLocalLLLMButton.classList.remove("disabled");
+                disableLocalLLLMButton.classList.add("enabled");
+            } else {
+                enableLocalLLLMButton.classList.remove("disabled");
+                enableLocalLLLMButton.classList.add("enabled");
+
+                configuredIcon.classList.remove("enabled");
+                configuredIcon.classList.add("disabled");
+
+                disableLocalLLLMButton.classList.add("disabled");
+                disableLocalLLLMButton.classList.remove("enabled");
             }
         })
     }
@@ -501,5 +508,59 @@
         resultsCountSlider.value = storedResultsCount;
         resultsCountValue.textContent = storedResultsCount;
     }
+
+    function generateAPIKey() {
+        const apiKeyList = document.getElementById("api-key-list");
+        const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
+        fetch('/auth/token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+        })
+        .then(response => response.json())
+        .then(tokenObj => {
+            apiKeyList.innerHTML += `
+                <div id="api-key-item-${tokenObj.token}" class="api-key-item">
+                    <span class="api-key">${tokenObj.token}</span>
+                    <button class="delete-api-key" onclick="deleteAPIKey('${tokenObj.token}')">Delete</button>
+                </div>
+            `;
+        });
+    }
+
+    function deleteAPIKey(token) {
+        const apiKeyList = document.getElementById("api-key-list");
+        fetch(`/auth/token?token=${token}`, {
+            method: 'DELETE',
+        })
+        .then(response => {
+            if (response.ok) {
+                const apiKeyItem = document.getElementById(`api-key-item-${token}`);
+                apiKeyList.removeChild(apiKeyItem);
+            }
+        });
+    }
+
+    function listApiKeys() {
+        const apiKeyList = document.getElementById("api-key-list");
+        fetch('/auth/token')
+            .then(response => response.json())
+            .then(tokens => {
+                apiKeyList.innerHTML = tokens.map(tokenObj =>
+                    `
+                        <div id="api-key-item-${tokenObj.token}" class="api-key-item">
+                            <span class="api-key">${tokenObj.token}</span>
+                            <button class="delete-api-key" onclick="deleteAPIKey('${tokenObj.token}')">Delete</button>
+                        </div>
+                    `)
+                    .join("");
+            });
+    }
+
+    // List user's API keys on page load
+    listApiKeys();
+
 </script>
 {% endblock %}

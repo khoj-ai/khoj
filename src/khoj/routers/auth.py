@@ -1,22 +1,29 @@
+# Standard Packages
 import logging
-import json
 import os
-from fastapi import APIRouter
+from typing import Optional
+
+# External Packages
+from fastapi import APIRouter, HTTPException
 from starlette.config import Config
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, RedirectResponse, Response
+from starlette.authentication import requires
 from authlib.integrations.starlette_client import OAuth, OAuthError
 
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 
-from database.adapters import get_or_create_user
+# Internal Packages
+from database.adapters import get_khoj_tokens, get_or_create_user, create_khoj_token, delete_khoj_token
+from khoj.utils import state
+
 
 logger = logging.getLogger(__name__)
 
 auth_router = APIRouter()
 
-if not os.environ.get("GOOGLE_CLIENT_ID") or not os.environ.get("GOOGLE_CLIENT_SECRET"):
+if not state.anonymous_mode and not (os.environ.get("GOOGLE_CLIENT_ID") and not os.environ.get("GOOGLE_CLIENT_SECRET")):
     logger.info("Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables to use Google OAuth")
 else:
     config = Config(environ=os.environ)
@@ -37,6 +44,37 @@ async def login_get(request: Request):
 async def login(request: Request):
     redirect_uri = request.url_for("auth")
     return await oauth.google.authorize_redirect(request, redirect_uri)
+
+
+@auth_router.post("/token")
+@requires(["authenticated"], redirect="login_page")
+async def generate_token(request: Request, token_name: Optional[str] = None) -> str:
+    "Generate API token for given user"
+    if not request.user.is_authenticated:
+        raise HTTPException(status_code=401, detail="Authenticated user required.")
+    if token_name:
+        return await create_khoj_token(user=request.user.object, name=token_name)
+    else:
+        return await create_khoj_token(user=request.user.object)
+
+
+@auth_router.get("/token")
+@requires(["authenticated"], redirect="login_page")
+def get_tokens(request: Request):
+    "Get API tokens enabled for given user"
+    if not request.user.is_authenticated:
+        raise HTTPException(status_code=401, detail="Authenticated user required.")
+    tokens = get_khoj_tokens(user=request.user.object)
+    return tokens
+
+
+@auth_router.delete("/token")
+@requires(["authenticated"], redirect="login_page")
+async def delete_token(request: Request, token: str) -> str:
+    "Delete API token for given user"
+    if not request.user.is_authenticated:
+        raise HTTPException(status_code=401, detail="Authenticated user required.")
+    return await delete_khoj_token(user=request.user.object, token=token)
 
 
 @auth_router.post("/redirect")

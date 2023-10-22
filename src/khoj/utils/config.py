@@ -6,12 +6,13 @@ import logging
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, List, Optional, Union, Any
-from khoj.processor.conversation.gpt4all.utils import download_model
 
 # External Packages
 import torch
 
-from khoj.utils.rawconfig import OfflineChatProcessorConfig
+# Internal Packages
+from khoj.processor.conversation.gpt4all.utils import download_model
+
 
 logger = logging.getLogger(__name__)
 
@@ -88,3 +89,4 @@ class GPT4AllProcessorModel:
         except ValueError as e:
             self.loaded_model = None
             logger.error(f"Error while loading offline chat model: {e}", exc_info=True)
+            raise e
