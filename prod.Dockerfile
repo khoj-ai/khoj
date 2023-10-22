@@ -16,6 +16,8 @@ RUN sed -i 's/dynamic = \["version"\]/version = "0.0.0"/' pyproject.toml && \
 # Copy Source Code
 COPY . .
 
+RUN apt install vim -y
+
 # Set the PYTHONPATH environment variable in order for it to find the Django app.
 ENV PYTHONPATH=/app/src:$PYTHONPATH
 
@@ -24,4 +26,4 @@ ENV PYTHONPATH=/app/src:$PYTHONPATH
 # but these should be passed in through the docker-compose.yml file.
 ARG PORT
 EXPOSE ${PORT}
-ENTRYPOINT ["gunicorn", "-c", "gunicorn.py", "src.khoj.main:app"]
+ENTRYPOINT ["gunicorn", "--bind", "0.0.0.0:42110", "src.khoj.main:app", "--workers", "3", "-k", "uvicorn.workers.UvicornWorker", "--timeout", "600", "--keep-alive", "120", "--log-level", "info"]
