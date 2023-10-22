@@ -246,26 +246,6 @@ for example), set this to the full interpreter path."
   :type '(repeat string)
   :group 'khoj)
 
-(defcustom khoj-chat-model "gpt-3.5-turbo"
-  "Specify chat model to use for chat with khoj."
-  :type 'string
-  :group 'khoj)
-
-(defcustom khoj-openai-api-key nil
-  "OpenAI API key used to configure chat on khoj server."
-  :type 'string
-  :group 'khoj)
-
-(defcustom khoj-chat-offline nil
-  "Use offline model to chat with khoj."
-  :type 'boolean
-  :group 'khoj)
-
-(defcustom khoj-offline-chat-model nil
-  "Specify chat model to use for offline chat with khoj."
-  :type 'string
-  :group 'khoj)
-
 (defcustom khoj-auto-setup t
   "Automate install, configure and start of khoj server.
 Auto invokes setup steps on calling main entrypoint."
@@ -319,8 +299,7 @@ Auto invokes setup steps on calling main entrypoint."
            :filter (lambda (process msg)
                      (cond ((string-match (format "Uvicorn running on %s" khoj-server-url) msg)
                             (progn
-                              (setq khoj--server-ready? t)
-                              (khoj--server-configure)))
+                              (setq khoj--server-ready? t)))
                            ((string-match "Batches:  " msg)
                             (when (string-match "\\([0-9]+\\.[0-9]+\\|\\([0-9]+\\)\\)%?" msg)
                               (message "khoj.el: %s updating index %s"
@@ -383,106 +362,13 @@ Auto invokes setup steps on calling main entrypoint."
   (when (not (khoj--server-started?))
     (khoj--server-start)))
 
-(defun khoj--get-directory-from-config (config keys &optional level)
-  "Extract directory under specified KEYS in CONFIG and trim it to LEVEL.
-CONFIG is json obtained from Khoj config API."
-  (let ((item config))
-    (dolist (key keys)
-      (setq item (cdr (assoc key item))))
-      (-> item
-          (split-string "/")
-          (butlast (or level nil))
-          (string-join "/"))))
-
-(defun khoj--server-configure ()
-  "Configure the Khoj server for search and chat."
-  (interactive)
-  (let* ((url-request-method "GET")
-         (current-config
-          (with-temp-buffer
-            (url-insert-file-contents (format "%s/api/config/data" khoj-server-url))
-            (ignore-error json-end-of-file (json-parse-buffer :object-type 'alist :array-type 'list :null-object json-null :false-object json-false))))
-         (default-config
-           (with-temp-buffer
-             (url-insert-file-contents (format "%s/api/config/data/default" khoj-server-url))
-             (ignore-error json-end-of-file (json-parse-buffer :object-type 'alist :array-type 'list :null-object json-null :false-object json-false))))
-         (default-chat-dir (khoj--get-directory-from-config default-config '(processor conversation conversation-logfile)))
-         (chat-model (or khoj-chat-model (alist-get 'chat-model (alist-get 'openai (alist-get 'conversation (alist-get 'processor default-config))))))
-         (enable-offline-chat (or khoj-chat-offline (alist-get 'enable-offline-chat (alist-get 'offline-chat (alist-get 'conversation (alist-get 'processor default-config))))))
-         (offline-chat-model (or khoj-offline-chat-model (alist-get 'chat-model (alist-get 'offline-chat (alist-get 'conversation (alist-get 'processor default-config))))))
-         (config (or current-config default-config)))
-
-    ;; Configure processors
-    (cond
-     ((not khoj-openai-api-key)
-      (let* ((processor (assoc 'processor config))
-             (conversation (assoc 'conversation processor))
-             (openai (assoc 'openai conversation)))
-        (when openai
-          ;; Unset the `openai' field in the khoj conversation processor config
-          (message "khoj.el: Disable Chat using OpenAI as your OpenAI API key got removed from config")
-          (setcdr conversation (delq openai (cdr conversation)))
-          (push conversation (cdr processor))
-          (push processor config))))
-
-     ;; If khoj backend isn't configured yet
-     ((not current-config)
-      (message "khoj.el: Khoj not configured yet.")
-      (setq config (delq (assoc 'processor config) config))
-      (cl-pushnew `(processor . ((conversation . ((conversation-logfile . ,(format "%s/conversation.json" default-chat-dir))
-                                                  (offline-chat . ((enable-offline-chat . ,enable-offline-chat)
-                                                                   (chat-model . ,offline-chat-model)))
-                                                  (openai . ((chat-model . ,chat-model)
-                                                             (api-key . ,khoj-openai-api-key)))))))
-                  config))
-
-     ;; Else if chat isn't configured in khoj backend
-     ((not (alist-get 'conversation (alist-get 'processor config)))
-      (message "khoj.el: Chat not configured yet.")
-       (let ((new-processor-type (alist-get 'processor config)))
-         (setq new-processor-type (delq (assoc 'conversation new-processor-type) new-processor-type))
-         (cl-pushnew `(conversation . ((conversation-logfile . ,(format "%s/conversation.json" default-chat-dir))
-                                       (offline-chat . ((enable-offline-chat . ,enable-offline-chat)
-                                                        (chat-model . ,offline-chat-model)))
-                                       (openai . ((chat-model . ,chat-model)
-                                                  (api-key . ,khoj-openai-api-key)))))
-                     new-processor-type)
-        (setq config (delq (assoc 'processor config) config))
-        (cl-pushnew `(processor . ,new-processor-type) config)))
-
-     ;; Else if chat configuration in khoj backend has gone stale
-     ((not (and (equal (alist-get 'api-key (alist-get 'openai (alist-get 'conversation (alist-get 'processor config)))) khoj-openai-api-key)
-                (equal (alist-get 'chat-model (alist-get 'openai (alist-get 'conversation (alist-get 'processor config)))) khoj-chat-model)
-                (equal (alist-get 'enable-offline-chat (alist-get 'offline-chat (alist-get 'conversation (alist-get 'processor config)))) enable-offline-chat)
-                (equal (alist-get 'chat-model (alist-get 'offline-chat (alist-get 'conversation (alist-get 'processor config)))) offline-chat-model)))
-      (message "khoj.el: Chat configuration has gone stale.")
-      (let* ((chat-directory (khoj--get-directory-from-config config '(processor conversation conversation-logfile)))
-             (new-processor-type (alist-get 'processor config)))
-        (setq new-processor-type (delq (assoc 'conversation new-processor-type) new-processor-type))
-        (cl-pushnew `(conversation . ((conversation-logfile . ,(format "%s/conversation.json" chat-directory))
-                                      (offline-chat . ((enable-offline-chat . ,enable-offline-chat)
-                                                       (chat-model . ,offline-chat-model)))
-                                      (openai . ((chat-model . ,khoj-chat-model)
-                                                 (api-key . ,khoj-openai-api-key)))))
-                    new-processor-type)
-        (setq config (delq (assoc 'processor config) config))
-        (cl-pushnew `(processor . ,new-processor-type) config))))
-
-      ;; Update server with latest configuration, if required
-      (cond ((not current-config)
-            (khoj--post-new-config config)
-            (message "khoj.el: ⚙️ Generated new khoj server configuration."))
-           ((not (equal config current-config))
-            (khoj--post-new-config config)
-            (message "khoj.el: ⚙️ Updated khoj server configuration.")))))
-
 (defun khoj-setup (&optional interact)
-  "Install, start and configure Khoj server. Get permission if INTERACT is non-nil."
+  "Install and start Khoj server. Get permission if INTERACT is non-nil."
   (interactive "p")
   ;; Setup khoj server if not running
   (let* ((not-started (not (khoj--server-started?)))
          (permitted (if (and not-started interact)
-                        (y-or-n-p "Could not connect to Khoj server. Should I install, start and configure it for you?")
+                        (y-or-n-p "Could not connect to Khoj server. Should I install, start it for you?")
                       t)))
     ;; If user permits setup of khoj server from khoj.el
     (when permitted
@@ -491,12 +377,9 @@ CONFIG is json obtained from Khoj config API."
         (khoj--server-setup))
 
       ;; Wait until server is ready
-      ;; As server can be started but not ready to use/configure
+      ;; As server can be started but not ready to use
       (while (not khoj--server-ready?)
-        (sit-for 0.5))
-
-      ;; Configure server once it's ready
-      (khoj--server-configure))))
+        (sit-for 0.5)))))
 
 
 ;; -------------------

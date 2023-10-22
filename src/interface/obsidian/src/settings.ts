@@ -3,8 +3,6 @@ import Khoj from 'src/main';
 import { updateContentIndex } from './utils';
 
 export interface KhojSetting {
-    enableOfflineChat: boolean;
-    openaiApiKey: string;
     resultsCount: number;
     khojUrl: string;
     khojApiKey: string;
@@ -14,13 +12,11 @@ export interface KhojSetting {
 }
 
 export const DEFAULT_SETTINGS: KhojSetting = {
-    enableOfflineChat: false,
     resultsCount: 6,
     khojUrl: 'http://127.0.0.1:42110',
     khojApiKey: '',
     connectedToBackend: false,
     autoConfigure: true,
-    openaiApiKey: '',
     lastSyncedFiles: []
 }
 
@@ -60,24 +56,6 @@ export class KhojSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
         new Setting(containerEl)
-            .setName('OpenAI API Key')
-            .setDesc('Use OpenAI for Khoj Chat with your OpenAI API key.')
-            .addText(text => text
-                .setValue(`${this.plugin.settings.openaiApiKey}`)
-                .onChange(async (value) => {
-                    this.plugin.settings.openaiApiKey = value.trim();
-                    await this.plugin.saveSettings();
-                }));
-        new Setting(containerEl)
-            .setName('Enable Offline Chat')
-            .setDesc('Chat privately without an internet connection. Enabling this will use offline chat even if OpenAI is configured.')
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.enableOfflineChat)
-                .onChange(async (value) => {
-                    this.plugin.settings.enableOfflineChat = value;
-                    await this.plugin.saveSettings();
-                }));
-        new Setting(containerEl)
             .setName('Results Count')
             .setDesc('The number of results to show in search and use for chat.')
             .addSlider(slider => slider
@@ -89,8 +67,8 @@ export class KhojSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
         new Setting(containerEl)
-            .setName('Auto Configure')
-            .setDesc('Automatically configure the Khoj backend.')
+            .setName('Auto Sync')
+            .setDesc('Automatically index your vault with Khoj.')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.autoConfigure)
                 .onChange(async (value) => {
@@ -99,7 +77,7 @@ export class KhojSettingTab extends PluginSettingTab {
                 }));
         let indexVaultSetting = new Setting(containerEl);
         indexVaultSetting
-            .setName('Index Vault')
+            .setName('Force Sync')
             .setDesc('Manually force Khoj to re-index your Obsidian Vault.')
             .addButton(button => button
                 .setButtonText('Update')

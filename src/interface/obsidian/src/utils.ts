@@ -9,26 +9,6 @@ export function getVaultAbsolutePath(vault: Vault): string {
     return '';
 }
 
-type OpenAIType = null | {
-    "chat-model": string;
-    "api-key": string;
-};
-
-type OfflineChatType = null | {
-    "chat-model": string;
-    "enable-offline-chat": boolean;
-};
-
-interface ProcessorData {
-    conversation: {
-      "conversation-logfile": string;
-      openai: OpenAIType;
-      "offline-chat": OfflineChatType;
-      "tokenizer": null | string;
-      "max-prompt-size": null | number;
-    };
-}
-
 function fileExtensionToMimeType (extension: string): string {
     switch (extension) {
         case 'pdf':
@@ -90,100 +70,6 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
     }
 
     return files;
-}
-
-export async function configureKhojBackend(vault: Vault, setting: KhojSetting, notify: boolean = true) {
-    let khojConfigUrl = `${setting.khojUrl}/api/config/data`;
-
-    // Check if khoj backend is configured, note if cannot connect to backend
-    let khoj_already_configured = await request(khojConfigUrl)
-        .then(response => {
-            setting.connectedToBackend = true;
-            return response !== "null"
-        })
-        .catch(error => {
-            setting.connectedToBackend = false;
-            if (notify)
-                new Notice(`❗️Ensure Khoj backend is running and Khoj URL is pointing to it in the plugin settings.\n\n${error}`);
-        })
-    // Short-circuit configuring khoj if unable to connect to khoj backend
-    if (!setting.connectedToBackend) return;
-
-    // Set index name from the path of the current vault
-    // Get default config fields from khoj backend
-    let defaultConfig = await request(`${khojConfigUrl}/default`).then(response => JSON.parse(response));
-    let khojDefaultChatDirectory = getIndexDirectoryFromBackendConfig(defaultConfig["processor"]["conversation"]["conversation-logfile"]);
-    let khojDefaultOpenAIChatModelName = defaultConfig["processor"]["conversation"]["openai"]["chat-model"];
-    let khojDefaultOfflineChatModelName = defaultConfig["processor"]["conversation"]["offline-chat"]["chat-model"];
-
-    // Get current config if khoj backend configured, else get default config from khoj backend
-    await request(khoj_already_configured ? khojConfigUrl : `${khojConfigUrl}/default`)
-        .then(response => JSON.parse(response))
-        .then(data => {
-            let conversationLogFile = data?.["processor"]?.["conversation"]?.["conversation-logfile"] ?? `${khojDefaultChatDirectory}/conversation.json`;
-            let processorData: ProcessorData = {
-                "conversation": {
-                    "conversation-logfile": conversationLogFile,
-                    "openai": null,
-                    "offline-chat": {
-                        "chat-model": khojDefaultOfflineChatModelName,
-                        "enable-offline-chat": setting.enableOfflineChat,
-                    },
-                    "tokenizer": null,
-                    "max-prompt-size": null,
-                }
-            }
-
-            // If the Open AI API Key was configured in the plugin settings
-            if (!!setting.openaiApiKey) {
-                let openAIChatModel = data?.["processor"]?.["conversation"]?.["openai"]?.["chat-model"] ?? khojDefaultOpenAIChatModelName;
-                processorData = {
-                    "conversation": {
-                        "conversation-logfile": conversationLogFile,
-                        "openai": {
-                            "chat-model": openAIChatModel,
-                            "api-key": setting.openaiApiKey,
-                        },
-                        "offline-chat": {
-                            "chat-model": khojDefaultOfflineChatModelName,
-                            "enable-offline-chat": setting.enableOfflineChat,
-                        },
-                        "tokenizer": null,
-                        "max-prompt-size": null,
-                    },
-                }
-            }
-
-            // Set khoj processor config to conversation processor config
-            data["processor"] = processorData;
-
-            // Save updated config and refresh index on khoj backend
-            updateKhojBackend(setting.khojUrl, data);
-            if (!khoj_already_configured)
-                console.log(`Khoj: Created khoj backend config:\n${JSON.stringify(data)}`)
-            else
-                console.log(`Khoj: Updated khoj backend config:\n${JSON.stringify(data)}`)
-        })
-        .catch(error => {
-            if (notify)
-                new Notice(`❗️Failed to configure Khoj backend. Contact developer on Github.\n\nError: ${error}`);
-        })
-}
-
-export async function updateKhojBackend(khojUrl: string, khojConfig: Object) {
-    // POST khojConfig to khojConfigUrl
-    let requestContent: RequestUrlParam = {
-        url: `${khojUrl}/api/config/data`,
-        body: JSON.stringify(khojConfig),
-        method: 'POST',
-        contentType: 'application/json',
-    };
-    // Save khojConfig on khoj backend at khojConfigUrl
-    request(requestContent);
-}
-
-function getIndexDirectoryFromBackendConfig(filepath: string) {
-    return filepath.split("/").slice(0, -1).join("/");
 }
 
 export async function createNote(name: string, newLeaf = false): Promise<void> {
