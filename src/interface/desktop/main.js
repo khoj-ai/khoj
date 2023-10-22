@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage } = require('electron');
 const todesktop = require("@todesktop/runtime");
 
 todesktop.init();
@@ -300,8 +300,9 @@ async function syncData (regenerate = false) {
     }
 }
 
-const createWindow = () => {
-    const win = new BrowserWindow({
+let win = null;
+const createWindow = (tab = 'index.html') => {
+    win = new BrowserWindow({
       width: 800,
       height: 800,
     //   titleBarStyle: 'hidden',
@@ -329,7 +330,7 @@ const createWindow = () => {
 
     job.start();
 
-    win.loadFile('index.html')
+    win.loadFile(tab)
 }
 
 app.whenReady().then(() => {
@@ -390,4 +391,34 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
+})
+
+/*
+**  System Tray Icon
+*/
+
+let tray
+
+openWindow = (page) => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow(page);
+    } else {
+        win.loadFile(page); win.show();
+    }
+}
+
+app.whenReady().then(() => {
+    const icon = nativeImage.createFromPath('assets/icons/favicon-20x20.png')
+    tray = new Tray(icon)
+
+    const contextMenu = Menu.buildFromTemplate([
+        { label: 'Chat', type: 'normal', click: () => { openWindow('chat.html'); }},
+        { label: 'Search', type: 'normal', click: () => { openWindow('index.html') }},
+        { label: 'Configure', type: 'normal', click: () => { openWindow('config.html') }},
+        { type: 'separator' },
+        { label: 'Quit', type: 'normal', click: () => { app.quit() } }
+    ])
+
+    tray.setToolTip('Khoj')
+    tray.setContextMenu(contextMenu)
 })
