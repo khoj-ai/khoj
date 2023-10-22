@@ -67,7 +67,7 @@ class UserAuthenticationBackend(AuthenticationBackend):
             user = await self.khojuser_manager.filter(email=current_user.get("email")).afirst()
             if user:
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
-        elif "Bearer" in request.headers.get("Authorization", ""):
+        elif len(request.headers.get("Authorization", "").split("Bearer ")) == 2:
             # Get bearer token from header
             bearer_token = request.headers["Authorization"].split("Bearer ")[1]
             # Get user owning token
