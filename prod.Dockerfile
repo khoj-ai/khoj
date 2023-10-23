@@ -12,7 +12,7 @@ WORKDIR /app
 COPY pyproject.toml .
 COPY README.md .
 RUN sed -i 's/dynamic = \["version"\]/version = "0.0.0"/' pyproject.toml && \
-    pip install --no-cache-dir .
+    TMPDIR=/home/cache/ pip install --cache-dir=/home/cache/ -e .
 
 # Copy Source Code
 COPY . .
