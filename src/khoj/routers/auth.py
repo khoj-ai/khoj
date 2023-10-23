@@ -36,13 +36,13 @@ else:
 
 @auth_router.get("/login")
 async def login_get(request: Request):
-    redirect_uri = request.url_for("auth")
+    redirect_uri = str(request.app.url_path_for("auth"))
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 
 @auth_router.post("/login")
 async def login(request: Request):
-    redirect_uri = request.url_for("auth")
+    redirect_uri = str(request.app.url_path_for("auth"))
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 

@@ -55,7 +55,7 @@ def login_page(request: Request):
         next_url = request.query_params.get("next", "/")
         return RedirectResponse(url=next_url)
     google_client_id = os.environ.get("GOOGLE_CLIENT_ID")
-    redirect_uri = request.url_for("auth")
+    redirect_uri = str(request.app.url_path_for("auth"))
     return templates.TemplateResponse(
         "login.html",
         context={
