@@ -89,6 +89,8 @@
 
             // Generate backend API URL to execute query
             let url = `${hostURL}/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true`;
+            const khojToken = await window.tokenAPI.getToken();
+            const headers = { 'Authorization': `Bearer ${khojToken}` };
 
             let chat_body = document.getElementById("chat-body");
             let new_response = document.createElement("div");
@@ -113,7 +115,7 @@
             chatInput.classList.remove("option-enabled");
 
             // Call specified Khoj API which returns a streamed response of type text/plain
-            fetch(url)
+            fetch(url, { headers })
                 .then(response => {
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
@@ -217,7 +219,10 @@
 
         async function loadChat() {
             const hostURL = await window.hostURLAPI.getURL();
-            fetch(`${hostURL}/api/chat/history?client=web`)
+            const khojToken = await window.tokenAPI.getToken();
+            const headers = { 'Authorization': `Bearer ${khojToken}` };
+
+            fetch(`${hostURL}/api/chat/history?client=web`, { headers })
                 .then(response => response.json())
                 .then(data => {
                     if (data.detail) {
@@ -243,7 +248,7 @@
                     return;
                 });
 
-            fetch(`${hostURL}/api/chat/options`)
+            fetch(`${hostURL}/api/chat/options`, { headers })
                 .then(response => response.json())
                 .then(data => {
                     // Render chat options, if any

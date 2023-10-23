@@ -67,7 +67,6 @@ const schema = {
 };
 
 var state = {}
-
 const store = new Store({ schema });
 
 console.log(store);
