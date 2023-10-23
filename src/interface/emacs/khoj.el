@@ -573,19 +573,22 @@ Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request.
   "Configure khoj server with provided CONFIG."
   ;; POST provided config to khoj server
   (let ((url-request-method "POST")
-        (url-request-extra-headers '(("Content-Type" . "application/json")))
+        (url-request-extra-headers `(("Content-Type" . "application/json")
+                                     ("Authorization" . ,(format "Bearer %s" khoj-api-key))))
         (url-request-data (encode-coding-string (json-encode-alist config) 'utf-8))
         (config-url (format "%s/api/config/data" khoj-server-url)))
     (with-current-buffer (url-retrieve-synchronously config-url)
       (buffer-string)))
   ;; Update index on khoj server after configuration update
-  (let ((khoj--server-ready? nil))
+  (let ((khoj--server-ready? nil)
+        (url-request-extra-headers `(("Authorization" . ,(format "\"Bearer %s\"" khoj-api-key)))))
     (url-retrieve (format "%s/api/update?client=emacs" khoj-server-url) #'identity)))
 
 (defun khoj--get-enabled-content-types ()
   "Get content types enabled for search from API."
   (let ((config-url (format "%s/api/config/types" khoj-server-url))
-        (url-request-method "GET"))
+        (url-request-method "GET")
+        (url-request-extra-headers `(("Authorization" . ,(format "Bearer %s" khoj-api-key)))))
     (with-temp-buffer
       (url-insert-file-contents config-url)
       (thread-last
@@ -605,7 +608,8 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
   ;; get json response from api
   (with-current-buffer buffer-name
     (let ((inhibit-read-only t)
-          (url-request-method "GET"))
+          (url-request-method "GET")
+          (url-request-extra-headers `(("Authorization" . ,(format "Bearer %s" khoj-api-key)))))
       (erase-buffer)
       (url-insert-file-contents query-url)))
   ;; render json response into formatted entries
@@ -731,6 +735,7 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
   "Send QUERY to Khoj Chat API."
   (let* ((url-request-method "GET")
          (encoded-query (url-hexify-string query))
+         (url-request-extra-headers `(("Authorization" . ,(format "Bearer %s" khoj-api-key))))
          (query-url (format "%s/api/chat?q=%s&n=%s&client=emacs" khoj-server-url encoded-query khoj-results-count)))
     (with-temp-buffer
       (condition-case ex
@@ -745,6 +750,7 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
 (defun khoj--get-chat-history-api ()
   "Send QUERY to Khoj Chat History API."
   (let* ((url-request-method "GET")
+         (url-request-extra-headers `(("Authorization" . ,(format "Bearer %s" khoj-api-key))))
          (query-url (format "%s/api/chat/history?client=emacs" khoj-server-url)))
     (with-temp-buffer
       (condition-case ex
