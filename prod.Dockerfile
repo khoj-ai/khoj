@@ -1,5 +1,6 @@
-# syntax=docker/dockerfile:1
-FROM ubuntu:jammy
+# Use Nvidia's latest Ubuntu 22.04 image as the base image
+FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
+
 LABEL org.opencontainers.image.source https://github.com/khoj-ai/khoj
 
 # Install System Dependencies
