@@ -648,6 +648,31 @@ def update(
     return {"status": "ok", "message": "khoj reloaded"}
 
 
+@api.post("/chat/cancel")
+def cancel_chat(
+    request: Request,
+    client: Optional[str] = None,
+    user_agent: Optional[str] = Header(None),
+    referer: Optional[str] = Header(None),
+    host: Optional[str] = Header(None),
+):
+    perform_chat_checks()
+
+    state.should_cancel_chat = True
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="cancel_chat",
+        client=client,
+        user_agent=user_agent,
+        referer=referer,
+        host=host,
+    )
+
+    return Response(content=json.dumps({"status": "ok"}), media_type="application/json", status_code=200)
+
+
 @api.get("/chat/history")
 def chat_history(
     request: Request,

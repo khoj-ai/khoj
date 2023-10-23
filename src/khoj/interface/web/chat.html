@@ -72,6 +72,9 @@
         function chat() {
             // Extract required fields for search from form
             let query = document.getElementById("chat-input").value.trim();
+            const abortButton = document.getElementById("abort-button");
+            let controller = new AbortController();
+            let signal = controller.signal;
             let resultsCount = localStorage.getItem("khojResultsCount") || 5;
             console.log(`Query: ${query}`);
 
@@ -111,17 +114,32 @@
             chatInput.classList.remove("option-enabled");
 
             // Call specified Khoj API which returns a streamed response of type text/plain
-            fetch(url)
+            fetch(url, { signal })
                 .then(response => {
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
 
+                    abortButton.addEventListener("click", () => {
+                        controller.abort();
+                        console.log("Download aborted");
+                        if (newResponseText.getElementsByClassName("spinner").length > 0) {
+                            newResponseText.removeChild(loadingSpinner);
+                        }
+                        newResponseText.innerHTML += "<b>Aborted.</b>";
+                        document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+                        document.getElementById("chat-input").removeAttribute("disabled");
+                        abortButton.style.display = "none";
+                    });
+
                     function readStream() {
                         reader.read().then(({ done, value }) => {
+
                             if (done) {
                                 // Evaluate the contents of new_response_text.innerHTML after all the data has been streamed
                                 const currentHTML = newResponseText.innerHTML;
                                 newResponseText.innerHTML = formatHTMLMessage(currentHTML);
+
+                                abortButton.style.display = "none";
 
                                 return;
                             }
@@ -145,6 +163,7 @@
                                 // Display response from Khoj
                                 if (newResponseText.getElementsByClassName("spinner").length > 0) {
                                     newResponseText.removeChild(loadingSpinner);
+                                    abortButton.style.display = "block";
                                 }
 
                                 newResponseText.innerHTML += chunk;
@@ -153,10 +172,32 @@
 
                             // Scroll to bottom of chat window as chat response is streamed
                             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+                        }).catch(error => {
+                            if (error.name === 'AbortError') {
+                                abortButton.style.display = "none";
+
+                                const cancelUrl = `/api/chat/cancel?client=web`;
+
+                                console.log('Fetch aborted');
+                                abortController = new AbortController();
+                                signal = abortController.signal;
+                                fetch(cancelUrl, { method: 'POST'})
+                                    .then(response => {
+                                        return response.json();
+                                    })
+                                    .then(data => {
+                                        console.log(data);
+                                    });
+                            } else {
+                                console.error('Fetch error:', error);
+                            }
                         });
                     }
                     readStream();
                     document.getElementById("chat-input").removeAttribute("disabled");
+                })
+                .catch(error => {
+                    console.error('Fetch error:', error);
                 });
         }
 
@@ -297,6 +338,7 @@
             <div id="chat-tooltip" style="display: none;"></div>
             <textarea id="chat-input" class="option" oninput="onChatInput()" onkeyup=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands, or just type your questions and hit enter.">
             </textarea>
+            <button id="abort-button" class="option">Abort</button>
         </div>
     </body>
 
@@ -388,6 +430,9 @@
             border-top-color: var(--primary);
             border-bottom: 0;
             transform: rotate(-60deg);
+        }
+        button#abort-button {
+            display: none;
         }
         /* color chat bubble by you dark grey */
         .chat-message-text.you {

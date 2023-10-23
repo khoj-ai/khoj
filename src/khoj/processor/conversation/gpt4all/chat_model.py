@@ -178,6 +178,14 @@ def llm_thread(g, messages: List[ChatMessage], model: Any):
         raise e
 
     assert isinstance(model, GPT4All), "model should be of type GPT4All"
+
+    def callback_fn(token_id, token_string):
+        if state.should_cancel_chat:
+            logger.debug(f"Canceling chat as cancel_chat is set to {state.should_cancel_chat}")
+            state.should_cancel_chat = False
+            return False
+        return True
+
     user_message = messages[-1]
     system_message = messages[0]
     conversation_history = messages[1:-1]
@@ -196,7 +204,9 @@ def llm_thread(g, messages: List[ChatMessage], model: Any):
     prompted_message = templated_system_message + chat_history + templated_user_message
 
     state.chat_lock.acquire()
-    response_iterator = model.generate(prompted_message, streaming=True, max_tokens=500, n_batch=512)
+    response_iterator = model.generate(
+        prompted_message, streaming=True, max_tokens=500, n_batch=512, callback=callback_fn
+    )
     try:
         for response in response_iterator:
             if any(stop_word in response.strip() for stop_word in stop_words):

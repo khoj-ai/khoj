@@ -13,7 +13,7 @@ def download_model(model_name: str):
 
     # Use GPU for Chat Model, if available
     try:
-        model = GPT4All(model_name=model_name, device="gpu")
+        model = GPT4All(model_name=model_name, device="gpu", allow_download=True)
         logger.debug(f"Loaded {model_name} chat model to GPU.")
     except ValueError:
         model = GPT4All(model_name=model_name)
