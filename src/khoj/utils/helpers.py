@@ -10,7 +10,6 @@ from os import path
 import os
 from pathlib import Path
 import platform
-import sys
 from time import perf_counter
 import torch
 from typing import Optional, Union, TYPE_CHECKING
@@ -252,6 +251,18 @@ def log_telemetry(
 
     # Log telemetry data to telemetry endpoint
     return request_body
+
+
+def get_device() -> torch.device:
+    """Get device to run model on"""
+    if torch.cuda.is_available():
+        # Use CUDA GPU
+        return torch.device("cuda:0")
+    elif torch.backends.mps.is_available():
+        # Use Apple M1 Metal Acceleration
+        return torch.device("mps")
+    else:
+        return torch.device("cpu")
 
 
 class ConversationCommand(str, Enum):

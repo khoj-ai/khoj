@@ -6,7 +6,7 @@ import asyncio
 # External Packages
 from fastapi import APIRouter, HTTPException, Header, Request, Response, UploadFile
 from pydantic import BaseModel
-from khoj.routers.helpers import update_telemetry_state
+from starlette.authentication import requires
 
 # Internal Packages
 from khoj.utils import state, constants
@@ -17,6 +17,7 @@ from khoj.processor.github.github_to_jsonl import GithubToJsonl
 from khoj.processor.notion.notion_to_jsonl import NotionToJsonl
 from khoj.processor.plaintext.plaintext_to_jsonl import PlaintextToJsonl
 from khoj.search_type import text_search, image_search
+from khoj.routers.helpers import update_telemetry_state
 from khoj.utils.yaml import save_config_to_file_updated_state
 from khoj.utils.config import SearchModels
 from khoj.utils.helpers import LRU, get_file_type
@@ -57,6 +58,7 @@ class IndexerInput(BaseModel):
 
 
 @indexer.post("/update")
+@requires(["authenticated"])
 async def update(
     request: Request,
     files: list[UploadFile],
