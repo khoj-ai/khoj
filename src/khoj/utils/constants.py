@@ -55,7 +55,7 @@ empty_config = {
             },
             "offline-chat": {
                 "enable-offline-chat": False,
-                "chat-model": "llama-2-7b-chat.ggmlv3.q4_0.bin",
+                "chat-model": "mistral-7b-instruct-v0.1.Q4_0.gguf",
             },
             "tokenizer": None,
             "max-prompt-size": None,
@@ -132,7 +132,7 @@ default_config = {
             },
             "offline-chat": {
                 "enable-offline-chat": False,
-                "chat-model": "llama-2-7b-chat.ggmlv3.q4_0.bin",
+                "chat-model": "mistral-7b-instruct-v0.1.Q4_0.gguf",
             },
             "tokenizer": None,
             "max-prompt-size": None,

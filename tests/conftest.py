@@ -206,7 +206,7 @@ def processor_config_offline_chat(tmp_path_factory):
 
     # Setup conversation processor
     processor_config = ProcessorConfig()
-    offline_chat = OfflineChatProcessorConfig(enable_offline_chat=True)
+    offline_chat = OfflineChatProcessorConfig(enable_offline_chat=True, chat_model="mistral-7b-instruct-v0.1.Q4_0.gguf")
     processor_config.conversation = ConversationProcessorConfig(
         offline_chat=offline_chat,
         conversation_logfile=processor_dir.joinpath("conversation_logs.json"),
