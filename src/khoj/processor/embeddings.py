@@ -13,7 +13,9 @@ class EmbeddingsModel:
         self.model_name = "thenlper/gte-small"
         encode_kwargs = {"normalize_embeddings": True, "show_progress_bar": True}
         model_kwargs = {"device": get_device()}
-        torch.multiprocessing.set_start_method("spawn")
+        # Check if the start method has already been set
+        if not torch.multiprocessing.get_start_method(allow_none=True):
+            torch.multiprocessing.set_start_method("spawn")
         self.embeddings_model = HuggingFaceEmbeddings(
             model_name=self.model_name, encode_kwargs=encode_kwargs, model_kwargs=model_kwargs
         )
