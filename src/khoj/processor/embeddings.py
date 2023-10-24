@@ -1,5 +1,4 @@
 from typing import List
-import torch
 
 from langchain.embeddings import HuggingFaceEmbeddings
 from sentence_transformers import CrossEncoder
