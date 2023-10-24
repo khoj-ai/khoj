@@ -1,4 +1,5 @@
 from typing import List
+import torch
 
 from langchain.embeddings import HuggingFaceEmbeddings
 from sentence_transformers import CrossEncoder
@@ -12,6 +13,7 @@ class EmbeddingsModel:
         self.model_name = "thenlper/gte-small"
         encode_kwargs = {"normalize_embeddings": True, "show_progress_bar": True}
         model_kwargs = {"device": get_device()}
+        torch.multiprocessing.set_start_method("spawn")
         self.embeddings_model = HuggingFaceEmbeddings(
             model_name=self.model_name, encode_kwargs=encode_kwargs, model_kwargs=model_kwargs
         )
