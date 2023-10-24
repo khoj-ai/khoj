@@ -430,12 +430,8 @@ async def search(
 
     encoded_asymmetric_query = None
     if t == SearchType.All or t != SearchType.Image:
-        text_search_models: List[TextSearchModel] = [
-            model for model in state.search_models.__dict__.values() if isinstance(model, TextSearchModel)
-        ]
-        if text_search_models:
-            with timer("Encoding query took", logger=logger):
-                encoded_asymmetric_query = state.embeddings_model.embed_query(defiltered_query)
+        with timer("Encoding query took", logger=logger):
+            encoded_asymmetric_query = state.embeddings_model.embed_query(defiltered_query)
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         if t in [

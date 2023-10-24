@@ -83,12 +83,6 @@ class UserAuthenticationBackend(AuthenticationBackend):
 
 
 def initialize_server(config: Optional[FullConfig]):
-    if config is None:
-        logger.warning(
-            f"🚨 Khoj is not configured.\nConfigure it via http://{state.host}:{state.port}/config, plugins or by editing {state.config_file}."
-        )
-        return None
-
     try:
         configure_server(config, init=True)
     except Exception as e:
@@ -103,6 +97,9 @@ def configure_server(
     user: KhojUser = None,
 ):
     # Update Config
+    if config == None:
+        logger.info(f"🚨 Khoj is not configured.\nInitializing it with a default config.")
+        config = FullConfig()
     state.config = config
 
     # Initialize Search Models from Config and initialize content
