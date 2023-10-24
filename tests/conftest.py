@@ -28,6 +28,7 @@ from khoj.utils import state, fs_syncer
 from khoj.routers.indexer import configure_content
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from database.models import (
+    KhojApiUser,
     LocalOrgConfig,
     LocalMarkdownConfig,
     LocalPlaintextConfig,
@@ -76,10 +77,23 @@ def default_user2():
     if KhojUser.objects.filter(username="default").exists():
         return KhojUser.objects.get(username="default")
 
-    return UserFactory(
+    return KhojUser.objects.create(
         username="default",
         email="default@example.com",
         password="default",
+    )
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def api_user(default_user):
+    if KhojApiUser.objects.filter(user=default_user).exists():
+        return KhojApiUser.objects.get(user=default_user)
+
+    return KhojApiUser.objects.create(
+        user=default_user,
+        name="api-key",
+        token="kk-secret",
     )
 
 
@@ -176,7 +190,7 @@ def chat_client(search_config: SearchConfig, default_user2: KhojUser):
     if os.getenv("OPENAI_API_KEY"):
         OpenAIProcessorConversationConfigFactory(user=default_user2)
 
-    state.anonymous_mode = True
+    state.anonymous_mode = False
 
     app = FastAPI()
 
@@ -219,7 +233,7 @@ def fastapi_app():
 def client(
     content_config: ContentConfig,
     search_config: SearchConfig,
-    default_user: KhojUser,
+    api_user: KhojApiUser,
 ):
     state.config.content_type = content_config
     state.config.search_type = search_config
@@ -231,7 +245,7 @@ def client(
         OrgToJsonl,
         get_sample_data("org"),
         regenerate=False,
-        user=default_user,
+        user=api_user.user,
     )
     state.content_index.image = image_search.setup(
         content_config.image, state.search_models.image_search, regenerate=False
@@ -240,11 +254,11 @@ def client(
         PlaintextToJsonl,
         get_sample_data("plaintext"),
         regenerate=False,
-        user=default_user,
+        user=api_user.user,
     )
 
-    ConversationProcessorConfigFactory(user=default_user)
-    state.anonymous_mode = True
+    ConversationProcessorConfigFactory(user=api_user.user)
+    state.anonymous_mode = False
 
     configure_routes(app)
     configure_middleware(app)
@@ -253,13 +267,8 @@ def client(
 
 
 @pytest.fixture(scope="function")
-def client_offline_chat(
-    search_config: SearchConfig,
-    content_config: ContentConfig,
-    default_user2: KhojUser,
-):
+def client_offline_chat(search_config: SearchConfig, default_user2: KhojUser):
     # Initialize app state
-    state.config.content_type = md_content_config
     state.config.search_type = search_config
     state.SearchType = configure_search_types(state.config)
 
@@ -268,9 +277,6 @@ def client_offline_chat(
         input_filter=["tests/data/markdown/*.markdown"],
         user=default_user2,
     )
-
-    # Index Markdown Content for Search
-    state.search_models.image_search = image_search.initialize_model(search_config.image)
 
     all_files = fs_syncer.collect_files(user=default_user2)
     configure_content(
@@ -282,6 +288,8 @@ def client_offline_chat(
     OfflineChatProcessorConversationConfigFactory(user=default_user2)
 
     state.anonymous_mode = True
+
+    app = FastAPI()
 
     configure_routes(app)
     configure_middleware(app)

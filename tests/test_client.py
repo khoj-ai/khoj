@@ -22,49 +22,115 @@ from database.adapters import EmbeddingsAdapters
 
 # Test
 # ----------------------------------------------------------------------------------------------------
-def test_search_with_invalid_content_type(client):
+@pytest.mark.django_db(transaction=True)
+def test_search_with_no_auth_key(client):
     # Arrange
     user_query = quote("How to call Khoj from Emacs?")
 
     # Act
-    response = client.get(f"/api/search?q={user_query}&t=invalid_content_type")
+    response = client.get(f"/api/search?q={user_query}")
+
+    # Assert
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db(transaction=True)
+def test_search_with_invalid_auth_key(client):
+    # Arrange
+    headers = {"Authorization": "Bearer invalid-token"}
+    user_query = quote("How to call Khoj from Emacs?")
+
+    # Act
+    response = client.get(f"/api/search?q={user_query}", headers=headers)
+
+    # Assert
+    assert response.status_code == 403
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.django_db(transaction=True)
+def test_search_with_invalid_content_type(client):
+    # Arrange
+    headers = {"Authorization": "Bearer kk-secret"}
+    user_query = quote("How to call Khoj from Emacs?")
+
+    # Act
+    response = client.get(f"/api/search?q={user_query}&t=invalid_content_type", headers=headers)
 
     # Assert
     assert response.status_code == 422
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.django_db(transaction=True)
 def test_search_with_valid_content_type(client):
-    for content_type in ["all", "org", "markdown", "image", "pdf", "github", "notion"]:
+    headers = {"Authorization": "Bearer kk-secret"}
+    for content_type in ["all", "org", "markdown", "image", "pdf", "github", "notion", "plaintext"]:
         # Act
-        response = client.get(f"/api/search?q=random&t={content_type}")
+        response = client.get(f"/api/search?q=random&t={content_type}", headers=headers)
         # Assert
         assert response.status_code == 200, f"Returned status: {response.status_code} for content type: {content_type}"
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.django_db(transaction=True)
+def test_index_update_with_no_auth_key(client):
+    # Arrange
+    files = get_sample_files_data()
+
+    # Act
+    response = client.post("/api/v1/index/update", files=files)
+
+    # Assert
+    assert response.status_code == 403
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.django_db(transaction=True)
+def test_index_update_with_invalid_auth_key(client):
+    # Arrange
+    files = get_sample_files_data()
+    headers = {"Authorization": "Bearer kk-invalid-token"}
+
+    # Act
+    response = client.post("/api/v1/index/update", files=files, headers=headers)
+
+    # Assert
+    assert response.status_code == 403
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.django_db(transaction=True)
 def test_update_with_invalid_content_type(client):
+    # Arrange
+    headers = {"Authorization": "Bearer kk-secret"}
+
     # Act
-    response = client.get(f"/api/update?t=invalid_content_type")
+    response = client.get(f"/api/update?t=invalid_content_type", headers=headers)
 
     # Assert
     assert response.status_code == 422
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.django_db(transaction=True)
 def test_regenerate_with_invalid_content_type(client):
+    # Arrange
+    headers = {"Authorization": "Bearer kk-secret"}
+
     # Act
-    response = client.get(f"/api/update?force=true&t=invalid_content_type")
+    response = client.get(f"/api/update?force=true&t=invalid_content_type", headers=headers)
 
     # Assert
     assert response.status_code == 422
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.django_db(transaction=True)
 def test_index_update(client):
     # Arrange
     files = get_sample_files_data()
-    headers = {"x-api-key": "secret"}
+    headers = {"Authorization": "Bearer kk-secret"}
 
     # Act
     response = client.post("/api/v1/index/update", files=files, headers=headers)
@@ -74,29 +140,33 @@ def test_index_update(client):
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.django_db(transaction=True)
 def test_regenerate_with_valid_content_type(client):
     for content_type in ["all", "org", "markdown", "image", "pdf", "notion"]:
         # Arrange
         files = get_sample_files_data()
-        headers = {"x-api-key": "secret"}
+        headers = {"Authorization": "Bearer kk-secret"}
 
         # Act
         response = client.post(f"/api/v1/index/update?t={content_type}", files=files, headers=headers)
+
         # Assert
         assert response.status_code == 200, f"Returned status: {response.status_code} for content type: {content_type}"
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.django_db(transaction=True)
 def test_regenerate_with_github_fails_without_pat(client):
     # Act
-    response = client.get(f"/api/update?force=true&t=github")
+    headers = {"Authorization": "Bearer kk-secret"}
+    response = client.get(f"/api/update?force=true&t=github", headers=headers)
 
     # Arrange
     files = get_sample_files_data()
-    headers = {"x-api-key": "secret"}
 
     # Act
     response = client.post(f"/api/v1/index/update?t=github", files=files, headers=headers)
+
     # Assert
     assert response.status_code == 200, f"Returned status: {response.status_code} for content type: github"
 
@@ -116,16 +186,17 @@ def test_get_configured_types_via_api(client, sample_org_data):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_get_api_config_types(client, search_config: SearchConfig, sample_org_data, default_user2: KhojUser):
+def test_get_api_config_types(client, sample_org_data, default_user: KhojUser):
     # Arrange
-    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False, user=default_user2)
+    headers = {"Authorization": "Bearer kk-secret"}
+    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False, user=default_user)
 
     # Act
-    response = client.get(f"/api/config/types")
+    response = client.get(f"/api/config/types", headers=headers)
 
     # Assert
     assert response.status_code == 200
-    assert response.json() == ["all", "org", "image"]
+    assert response.json() == ["all", "org", "image", "plaintext"]
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -135,6 +206,7 @@ def test_get_configured_types_with_no_content_config(fastapi_app: FastAPI):
     state.SearchType = configure_search_types(config)
     original_config = state.config.content_type
     state.config.content_type = None
+    state.anonymous_mode = True
 
     configure_routes(fastapi_app)
     client = TestClient(fastapi_app)
@@ -154,6 +226,7 @@ def test_get_configured_types_with_no_content_config(fastapi_app: FastAPI):
 @pytest.mark.django_db(transaction=True)
 def test_image_search(client, content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
+    headers = {"Authorization": "Bearer kk-secret"}
     search_models.image_search = image_search.initialize_model(search_config.image)
     content_index.image = image_search.setup(
         content_config.image, search_models.image_search.image_encoder, regenerate=False
@@ -166,7 +239,7 @@ def test_image_search(client, content_config: ContentConfig, search_config: Sear
 
     for query, expected_image_name in query_expected_image_pairs:
         # Act
-        response = client.get(f"/api/search?q={query}&n=1&t=image")
+        response = client.get(f"/api/search?q={query}&n=1&t=image", headers=headers)
 
         # Assert
         assert response.status_code == 200
@@ -179,13 +252,14 @@ def test_image_search(client, content_config: ContentConfig, search_config: Sear
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_notes_search(client, search_config: SearchConfig, sample_org_data, default_user2: KhojUser):
+def test_notes_search(client, search_config: SearchConfig, sample_org_data, default_user: KhojUser):
     # Arrange
-    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False, user=default_user2)
+    headers = {"Authorization": "Bearer kk-secret"}
+    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False, user=default_user)
     user_query = quote("How to git install application?")
 
     # Act
-    response = client.get(f"/api/search?q={user_query}&n=1&t=org&r=true")
+    response = client.get(f"/api/search?q={user_query}&n=1&t=org&r=true", headers=headers)
 
     # Assert
     assert response.status_code == 200
@@ -197,19 +271,20 @@ def test_notes_search(client, search_config: SearchConfig, sample_org_data, defa
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
 def test_notes_search_with_only_filters(
-    client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data, default_user2: KhojUser
+    client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data, default_user: KhojUser
 ):
     # Arrange
+    headers = {"Authorization": "Bearer kk-secret"}
     text_search.setup(
         OrgToJsonl,
         sample_org_data,
         regenerate=False,
-        user=default_user2,
+        user=default_user,
     )
     user_query = quote('+"Emacs" file:"*.org"')
 
     # Act
-    response = client.get(f"/api/search?q={user_query}&n=1&t=org")
+    response = client.get(f"/api/search?q={user_query}&n=1&t=org", headers=headers)
 
     # Assert
     assert response.status_code == 200
@@ -220,13 +295,14 @@ def test_notes_search_with_only_filters(
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_notes_search_with_include_filter(client, sample_org_data, default_user2: KhojUser):
+def test_notes_search_with_include_filter(client, sample_org_data, default_user: KhojUser):
     # Arrange
-    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False, user=default_user2)
+    headers = {"Authorization": "Bearer kk-secret"}
+    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False, user=default_user)
     user_query = quote('How to git install application? +"Emacs"')
 
     # Act
-    response = client.get(f"/api/search?q={user_query}&n=1&t=org")
+    response = client.get(f"/api/search?q={user_query}&n=1&t=org", headers=headers)
 
     # Assert
     assert response.status_code == 200
@@ -237,18 +313,19 @@ def test_notes_search_with_include_filter(client, sample_org_data, default_user2
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_notes_search_with_exclude_filter(client, sample_org_data, default_user2: KhojUser):
+def test_notes_search_with_exclude_filter(client, sample_org_data, default_user: KhojUser):
     # Arrange
+    headers = {"Authorization": "Bearer kk-secret"}
     text_search.setup(
         OrgToJsonl,
         sample_org_data,
         regenerate=False,
-        user=default_user2,
+        user=default_user,
     )
     user_query = quote('How to git install application? -"clone"')
 
     # Act
-    response = client.get(f"/api/search?q={user_query}&n=1&t=org")
+    response = client.get(f"/api/search?q={user_query}&n=1&t=org", headers=headers)
 
     # Assert
     assert response.status_code == 200
@@ -261,16 +338,17 @@ def test_notes_search_with_exclude_filter(client, sample_org_data, default_user2
 @pytest.mark.django_db(transaction=True)
 def test_different_user_data_not_accessed(client, sample_org_data, default_user: KhojUser):
     # Arrange
+    headers = {"Authorization": "Bearer kk-token"}  # Token for default_user2
     text_search.setup(OrgToJsonl, sample_org_data, regenerate=False, user=default_user)
     user_query = quote("How to git install application?")
 
     # Act
-    response = client.get(f"/api/search?q={user_query}&n=1&t=org")
+    response = client.get(f"/api/search?q={user_query}&n=1&t=org", headers=headers)
 
     # Assert
-    assert response.status_code == 200
+    assert response.status_code == 403
     # assert actual response has no data as the default_user is different from the user making the query (anonymous)
-    assert len(response.json()) == 0
+    assert len(response.json()) == 1 and response.json()["detail"] == "Forbidden"
 
 
 def get_sample_files_data():
