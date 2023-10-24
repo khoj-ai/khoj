@@ -3,6 +3,7 @@ import os
 
 from database.models import (
     KhojUser,
+    KhojApiUser,
     ConversationProcessorConfig,
     OfflineChatProcessorConversationConfig,
     OpenAIProcessorConversationConfig,
@@ -18,6 +19,15 @@ class UserFactory(factory.django.DjangoModelFactory):
     email = factory.Faker("email")
     password = factory.Faker("password")
     uuid = factory.Faker("uuid4")
+
+
+class ApiUserFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = KhojApiUser
+
+    user = None
+    name = factory.Faker("name")
+    token = factory.Faker("password")
 
 
 class ConversationProcessorConfigFactory(factory.django.DjangoModelFactory):
