@@ -67,14 +67,14 @@ class UserAuthenticationBackend(AuthenticationBackend):
             user = await self.khojuser_manager.filter(email=current_user.get("email")).afirst()
             if user:
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
-        elif len(request.headers.get("Authorization", "").split("Bearer ")) == 2:
+        if len(request.headers.get("Authorization", "").split("Bearer ")) == 2:
             # Get bearer token from header
             bearer_token = request.headers["Authorization"].split("Bearer ")[1]
             # Get user owning token
             user_with_token = await self.khojapiuser_manager.filter(token=bearer_token).select_related("user").afirst()
             if user_with_token:
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user_with_token.user)
-        elif state.anonymous_mode:
+        if state.anonymous_mode:
             user = await self.khojuser_manager.filter(username="default").afirst()
             if user:
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
