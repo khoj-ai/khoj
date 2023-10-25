@@ -127,14 +127,18 @@ class DateFilter(BaseFilter):
         clean_date_str = re.sub("|".join(future_strings), "", date_str)
 
         # parse date passed in query date filter
-        parsed_date = dtparse.parse(
-            clean_date_str,
-            settings={
-                "RELATIVE_BASE": relative_base or datetime.now(),
-                "PREFER_DAY_OF_MONTH": "first",
-                "PREFER_DATES_FROM": prefer_dates_from,
-            },
-        )
+        try:
+            parsed_date = dtparse.parse(
+                clean_date_str,
+                settings={
+                    "RELATIVE_BASE": relative_base or datetime.now(),
+                    "PREFER_DAY_OF_MONTH": "first",
+                    "PREFER_DATES_FROM": prefer_dates_from,
+                },
+            )
+        except Exception as e:
+            logger.error(f"Failed to parse date string: {date_str} with error: {e}")
+            return None
 
         if parsed_date is None:
             return None
