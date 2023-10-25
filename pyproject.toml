@@ -71,6 +71,7 @@ dependencies = [
     "google-auth == 2.23.3",
     "python-multipart == 0.0.6",
     "gunicorn == 21.2.0",
+    "lxml == 4.9.3",
 ]
 dynamic = ["version"]
 
