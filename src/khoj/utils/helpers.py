@@ -15,6 +15,7 @@ from time import perf_counter
 import torch
 from typing import Optional, Union, TYPE_CHECKING
 import uuid
+from asgiref.sync import sync_to_async
 
 # Internal Packages
 from khoj.utils import constants
@@ -27,6 +28,28 @@ if TYPE_CHECKING:
     # Internal Packages
     from khoj.utils.models import BaseEncoder
     from khoj.utils.rawconfig import AppConfig
+
+
+class AsyncIteratorWrapper:
+    def __init__(self, obj):
+        self._it = iter(obj)
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        try:
+            value = await self.next_async()
+        except StopAsyncIteration:
+            return
+        return value
+
+    @sync_to_async
+    def next_async(self):
+        try:
+            return next(self._it)
+        except StopIteration:
+            raise StopAsyncIteration
 
 
 def is_none_or_empty(item):

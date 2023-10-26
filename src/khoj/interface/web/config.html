@@ -3,6 +3,11 @@
 
 <div class="page">
     <div class="section">
+        {% if anonymous_mode == False %}
+            <div>
+                Logged in as {{ username }}
+            </div>
+        {% endif %}
         <h2 class="section-title">Plugins</h2>
         <div class="section-cards">
             <div class="card">
@@ -257,8 +262,8 @@
                     <img class="card-icon" src="/static/assets/icons/chat.svg" alt="Chat">
                     <h3 class="card-title">
                         Offline Chat
-                        <img id="configured-icon-conversation-enable-offline-chat" class="configured-icon {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.offline_chat.enable_offline_chat and current_model_state.conversation_gpt4all %}enabled{% else %}disabled{% endif %}" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
-                        {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.offline_chat.enable_offline_chat and not current_model_state.conversation_gpt4all %}
+                        <img id="configured-icon-conversation-enable-offline-chat" class="configured-icon {% if current_model_state.enable_offline_model and current_model_state.conversation_gpt4all %}enabled{% else %}disabled{% endif %}" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                        {% if current_model_state.enable_offline_model and not current_model_state.conversation_gpt4all %}
                             <img id="misconfigured-icon-conversation-enable-offline-chat" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="The model was not downloaded as expected.">
                         {% endif %}
                     </h3>
@@ -266,12 +271,12 @@
                 <div class="card-description-row">
                 <p class="card-description">Setup offline chat</p>
                 </div>
-                <div id="clear-enable-offline-chat" class="card-action-row {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.offline_chat.enable_offline_chat %}enabled{% else %}disabled{% endif %}">
+                <div id="clear-enable-offline-chat" class="card-action-row {% if current_model_state.enable_offline_model %}enabled{% else %}disabled{% endif %}">
                     <button class="card-button" onclick="toggleEnableLocalLLLM(false)">
                         Disable
                     </button>
                 </div>
-                <div id="set-enable-offline-chat" class="card-action-row {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.offline_chat.enable_offline_chat %}disabled{% else %}enabled{% endif %}">
+                <div id="set-enable-offline-chat" class="card-action-row {% if current_model_state.enable_offline_model %}disabled{% else %}enabled{% endif %}">
                     <button class="card-button happy" onclick="toggleEnableLocalLLLM(true)">
                         Enable
                     </button>

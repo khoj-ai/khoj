@@ -19,7 +19,7 @@ from khoj.utils.rawconfig import (
 
 # Internal Packages
 from khoj.utils import constants, state
-from database.adapters import EmbeddingsAdapters, get_user_github_config, get_user_notion_config
+from database.adapters import EmbeddingsAdapters, get_user_github_config, get_user_notion_config, ConversationAdapters
 from database.models import LocalOrgConfig, LocalMarkdownConfig, LocalPdfConfig, LocalPlaintextConfig
 
 
@@ -83,7 +83,7 @@ if not state.demo:
     @web_client.get("/config", response_class=HTMLResponse)
     @requires(["authenticated"], redirect="login_page")
     def config_page(request: Request):
-        user = request.user.object if request.user.is_authenticated else None
+        user = request.user.object
         enabled_content = set(EmbeddingsAdapters.get_unique_file_types(user).all())
         default_full_config = FullConfig(
             content_type=None,
@@ -100,9 +100,6 @@ if not state.demo:
             "github": ("github" in enabled_content),
             "notion": ("notion" in enabled_content),
             "plaintext": ("plaintext" in enabled_content),
-            "enable_offline_model": False,
-            "conversation_openai": False,
-            "conversation_gpt4all": False,
         }
 
         if state.content_index:
@@ -112,13 +109,17 @@ if not state.demo:
                 }
             )
 
-        if state.processor_config and state.processor_config.conversation:
-            successfully_configured.update(
-                {
-                    "conversation_openai": state.processor_config.conversation.openai_model is not None,
-                    "conversation_gpt4all": state.processor_config.conversation.gpt4all_model.loaded_model is not None,
-                }
-            )
+        enabled_chat_config = ConversationAdapters.get_enabled_conversation_settings(user)
+
+        successfully_configured.update(
+            {
+                "conversation_openai": enabled_chat_config["openai"],
+                "enable_offline_model": enabled_chat_config["offline_chat"],
+                "conversation_gpt4all": state.gpt4all_processor_config.loaded_model is not None
+                if state.gpt4all_processor_config
+                else False,
+            }
+        )
 
         return templates.TemplateResponse(
             "config.html",
@@ -127,6 +128,7 @@ if not state.demo:
                 "current_config": current_config,
                 "current_model_state": successfully_configured,
                 "anonymous_mode": state.anonymous_mode,
+                "username": user.username if user else None,
             },
         )
 
@@ -204,22 +206,22 @@ if not state.demo:
         )
 
     @web_client.get("/config/processor/conversation/openai", response_class=HTMLResponse)
+    @requires(["authenticated"], redirect="login_page")
     def conversation_processor_config_page(request: Request):
-        default_copy = constants.default_config.copy()
-        default_processor_config = default_copy["processor"]["conversation"]["openai"]  # type: ignore
-        default_openai_config = OpenAIProcessorConfig(
-            api_key="",
-            chat_model=default_processor_config["chat-model"],
-        )
+        user = request.user.object
+        openai_config = ConversationAdapters.get_openai_conversation_config(user)
 
-        current_processor_openai_config = (
-            state.config.processor.conversation.openai
-            if state.config
-            and state.config.processor
-            and state.config.processor.conversation
-            and state.config.processor.conversation.openai
-            else default_openai_config
-        )
+        if openai_config:
+            current_processor_openai_config = OpenAIProcessorConfig(
+                api_key=openai_config.api_key,
+                chat_model=openai_config.chat_model,
+            )
+        else:
+            current_processor_openai_config = OpenAIProcessorConfig(
+                api_key="",
+                chat_model="gpt-3.5-turbo",
+            )
+
         current_processor_openai_config = json.loads(current_processor_openai_config.json())
 
         return templates.TemplateResponse(

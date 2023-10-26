@@ -92,7 +92,7 @@ async def update(
 
             if dict_to_update is not None:
                 dict_to_update[file.filename] = (
-                    file.file.read().decode("utf-8") if encoding == "utf-8" else file.file.read()
+                    file.file.read().decode("utf-8") if encoding == "utf-8" else file.file.read()  # type: ignore
                 )
             else:
                 logger.warning(f"Skipped indexing unsupported file type sent by {client} client: {file.filename}")
@@ -181,24 +181,25 @@ def configure_content(
     files: Optional[dict[str, dict[str, str]]],
     search_models: SearchModels,
     regenerate: bool = False,
-    t: Optional[Union[state.SearchType, str]] = None,
+    t: Optional[state.SearchType] = None,
     full_corpus: bool = True,
     user: KhojUser = None,
 ) -> Optional[ContentIndex]:
     content_index = ContentIndex()
 
-    if t in [type.value for type in state.SearchType]:
-        t = state.SearchType(t).value
+    if t is not None and not t.value in [type.value for type in state.SearchType]:
+        logger.warning(f"🚨 Invalid search type: {t}")
+        return None
 
-    assert type(t) == str or t == None, f"Invalid search type: {t}"
+    search_type = t.value if t else None
 
     if files is None:
-        logger.warning(f"🚨 No files to process for {t} search.")
+        logger.warning(f"🚨 No files to process for {search_type} search.")
         return None
 
     try:
         # Initialize Org Notes Search
-        if (t == None or t == state.SearchType.Org.value) and files["org"]:
+        if (search_type == None or search_type == state.SearchType.Org.value) and files["org"]:
             logger.info("🦄 Setting up search for orgmode notes")
             # Extract Entries, Generate Notes Embeddings
             text_search.setup(
@@ -213,7 +214,7 @@ def configure_content(
 
     try:
         # Initialize Markdown Search
-        if (t == None or t == state.SearchType.Markdown.value) and files["markdown"]:
+        if (search_type == None or search_type == state.SearchType.Markdown.value) and files["markdown"]:
             logger.info("💎 Setting up search for markdown notes")
             # Extract Entries, Generate Markdown Embeddings
             text_search.setup(
@@ -229,7 +230,7 @@ def configure_content(
 
     try:
         # Initialize PDF Search
-        if (t == None or t == state.SearchType.Pdf.value) and files["pdf"]:
+        if (search_type == None or search_type == state.SearchType.Pdf.value) and files["pdf"]:
             logger.info("🖨️ Setting up search for pdf")
             # Extract Entries, Generate PDF Embeddings
             text_search.setup(
@@ -245,7 +246,7 @@ def configure_content(
 
     try:
         # Initialize Plaintext Search
-        if (t == None or t == state.SearchType.Plaintext.value) and files["plaintext"]:
+        if (search_type == None or search_type == state.SearchType.Plaintext.value) and files["plaintext"]:
             logger.info("📄 Setting up search for plaintext")
             # Extract Entries, Generate Plaintext Embeddings
             text_search.setup(
@@ -262,7 +263,7 @@ def configure_content(
     try:
         # Initialize Image Search
         if (
-            (t == None or t == state.SearchType.Image.value)
+            (search_type == None or search_type == state.SearchType.Image.value)
             and content_config
             and content_config.image
             and search_models.image_search
@@ -278,7 +279,7 @@ def configure_content(
 
     try:
         github_config = GithubConfig.objects.filter(user=user).prefetch_related("githubrepoconfig").first()
-        if (t == None or t == state.SearchType.Github.value) and github_config is not None:
+        if (search_type == None or search_type == state.SearchType.Github.value) and github_config is not None:
             logger.info("🐙 Setting up search for github")
             # Extract Entries, Generate Github Embeddings
             text_search.setup(
@@ -296,7 +297,7 @@ def configure_content(
     try:
         # Initialize Notion Search
         notion_config = NotionConfig.objects.filter(user=user).first()
-        if (t == None or t in state.SearchType.Notion.value) and notion_config:
+        if (search_type == None or search_type in state.SearchType.Notion.value) and notion_config:
             logger.info("🔌 Setting up search for notion")
             text_search.setup(
                 NotionToJsonl,
