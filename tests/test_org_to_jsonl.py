@@ -4,7 +4,7 @@ import os
 
 # Internal Packages
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
-from khoj.processor.text_to_jsonl import TextToJsonl
+from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.helpers import is_none_or_empty
 from khoj.utils.rawconfig import Entry
 from khoj.utils.fs_syncer import get_org_files
@@ -63,7 +63,7 @@ def test_entry_split_when_exceeds_max_words(tmp_path):
 
     # Split each entry from specified Org files by max words
     jsonl_string = OrgToJsonl.convert_org_entries_to_jsonl(
-        TextToJsonl.split_entries_by_max_tokens(
+        TextEmbeddings.split_entries_by_max_tokens(
             OrgToJsonl.convert_org_nodes_to_entries(entries, entry_to_file_map), max_tokens=4
         )
     )
@@ -86,7 +86,7 @@ def test_entry_split_drops_large_words():
 
     # Act
     # Split entry by max words and drop words larger than max word length
-    processed_entry = TextToJsonl.split_entries_by_max_tokens([entry], max_word_length=5)[0]
+    processed_entry = TextEmbeddings.split_entries_by_max_tokens([entry], max_word_length=5)[0]
 
     # Assert
     # "Heading" dropped from compiled version because its over the set max word limit

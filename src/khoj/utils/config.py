@@ -41,9 +41,7 @@ class ProcessorType(str, Enum):
 
 @dataclass
 class TextContent:
-    entries: List[Entry]
-    corpus_embeddings: torch.Tensor
-    filters: List[BaseFilter]
+    enabled: bool
 
 
 @dataclass
@@ -67,21 +65,13 @@ class ImageSearchModel:
 
 @dataclass
 class ContentIndex:
-    org: Optional[TextContent] = None
-    markdown: Optional[TextContent] = None
-    pdf: Optional[TextContent] = None
-    github: Optional[TextContent] = None
-    notion: Optional[TextContent] = None
     image: Optional[ImageContent] = None
-    plaintext: Optional[TextContent] = None
-    plugins: Optional[Dict[str, TextContent]] = None
 
 
 @dataclass
 class SearchModels:
     text_search: Optional[TextSearchModel] = None
     image_search: Optional[ImageSearchModel] = None
-    plugin_search: Optional[Dict[str, TextSearchModel]] = None
 
 
 @dataclass

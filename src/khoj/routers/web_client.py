@@ -3,10 +3,20 @@ from fastapi import APIRouter
 from fastapi import Request
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
-from khoj.utils.rawconfig import TextContentConfig, OpenAIProcessorConfig, FullConfig
+from starlette.authentication import requires
+from khoj.utils.rawconfig import (
+    TextContentConfig,
+    OpenAIProcessorConfig,
+    FullConfig,
+    GithubContentConfig,
+    GithubRepoConfig,
+    NotionContentConfig,
+)
 
 # Internal Packages
 from khoj.utils import constants, state
+from database.adapters import EmbeddingsAdapters, get_user_github_config, get_user_notion_config
+from database.models import KhojUser, LocalOrgConfig, LocalMarkdownConfig, LocalPdfConfig, LocalPlaintextConfig
 
 import json
 
@@ -29,10 +39,23 @@ def chat_page(request: Request):
     return templates.TemplateResponse("chat.html", context={"request": request, "demo": state.demo})
 
 
+def map_config_to_object(content_type: str):
+    if content_type == "org":
+        return LocalOrgConfig
+    if content_type == "markdown":
+        return LocalMarkdownConfig
+    if content_type == "pdf":
+        return LocalPdfConfig
+    if content_type == "plaintext":
+        return LocalPlaintextConfig
+
+
 if not state.demo:
 
     @web_client.get("/config", response_class=HTMLResponse)
     def config_page(request: Request):
+        user = request.user.object if request.user.is_authenticated else None
+        enabled_content = set(EmbeddingsAdapters.get_unique_file_types(user).all())
         default_full_config = FullConfig(
             content_type=None,
             search_type=None,
@@ -41,13 +64,13 @@ if not state.demo:
         current_config = state.config or json.loads(default_full_config.json())
 
         successfully_configured = {
-            "pdf": False,
-            "markdown": False,
-            "org": False,
+            "pdf": ("pdf" in enabled_content),
+            "markdown": ("markdown" in enabled_content),
+            "org": ("org" in enabled_content),
             "image": False,
-            "github": False,
-            "notion": False,
-            "plaintext": False,
+            "github": ("github" in enabled_content),
+            "notion": ("notion" in enabled_content),
+            "plaintext": ("plaintext" in enabled_content),
             "enable_offline_model": False,
             "conversation_openai": False,
             "conversation_gpt4all": False,
@@ -56,13 +79,7 @@ if not state.demo:
         if state.content_index:
             successfully_configured.update(
                 {
-                    "pdf": state.content_index.pdf is not None,
-                    "markdown": state.content_index.markdown is not None,
-                    "org": state.content_index.org is not None,
                     "image": state.content_index.image is not None,
-                    "github": state.content_index.github is not None,
-                    "notion": state.content_index.notion is not None,
-                    "plaintext": state.content_index.plaintext is not None,
                 }
             )
 
@@ -84,22 +101,29 @@ if not state.demo:
         )
 
     @web_client.get("/config/content_type/github", response_class=HTMLResponse)
+    @requires(["authenticated"])
     def github_config_page(request: Request):
-        default_copy = constants.default_config.copy()
-        default_github = default_copy["content-type"]["github"]  # type: ignore
+        user = request.user.object if request.user.is_authenticated else None
+        current_github_config = get_user_github_config(user)
 
-        default_config = TextContentConfig(
-            compressed_jsonl=default_github["compressed-jsonl"],
-            embeddings_file=default_github["embeddings-file"],
-        )
-
-        current_config = (
-            state.config.content_type.github
-            if state.config and state.config.content_type and state.config.content_type.github
-            else default_config
-        )
-
-        current_config = json.loads(current_config.json())
+        if current_github_config:
+            raw_repos = current_github_config.githubrepoconfig.all()
+            repos = []
+            for repo in raw_repos:
+                repos.append(
+                    GithubRepoConfig(
+                        name=repo.name,
+                        owner=repo.owner,
+                        branch=repo.branch,
+                    )
+                )
+            current_config = GithubContentConfig(
+                pat_token=current_github_config.pat_token,
+                repos=repos,
+            )
+            current_config = json.loads(current_config.json())
+        else:
+            current_config = {}  # type: ignore
 
         return templates.TemplateResponse(
             "content_type_github_input.html", context={"request": request, "current_config": current_config}
@@ -107,18 +131,11 @@ if not state.demo:
 
     @web_client.get("/config/content_type/notion", response_class=HTMLResponse)
     def notion_config_page(request: Request):
-        default_copy = constants.default_config.copy()
-        default_notion = default_copy["content-type"]["notion"]  # type: ignore
+        user = request.user.object if request.user.is_authenticated else None
+        current_notion_config = get_user_notion_config(user)
 
-        default_config = TextContentConfig(
-            compressed_jsonl=default_notion["compressed-jsonl"],
-            embeddings_file=default_notion["embeddings-file"],
-        )
-
-        current_config = (
-            state.config.content_type.notion
-            if state.config and state.config.content_type and state.config.content_type.notion
-            else default_config
+        current_config = NotionContentConfig(
+            token=current_notion_config.token if current_notion_config else "",
         )
 
         current_config = json.loads(current_config.json())
@@ -132,18 +149,16 @@ if not state.demo:
         if content_type not in VALID_TEXT_CONTENT_TYPES:
             return templates.TemplateResponse("config.html", context={"request": request})
 
-        default_copy = constants.default_config.copy()
-        default_content_type = default_copy["content-type"][content_type]  # type: ignore
+        object = map_config_to_object(content_type)
+        user = request.user.object if request.user.is_authenticated else None
+        config = object.objects.filter(user=user).first()
+        if config == None:
+            config = object.objects.create(user=user)
 
-        default_config = TextContentConfig(
-            compressed_jsonl=default_content_type["compressed-jsonl"],
-            embeddings_file=default_content_type["embeddings-file"],
-        )
-
-        current_config = (
-            state.config.content_type[content_type]
-            if state.config and state.config.content_type and state.config.content_type[content_type]  # type: ignore
-            else default_config
+        current_config = TextContentConfig(
+            input_files=config.input_files,
+            input_filter=config.input_filter,
+            index_heading_entries=config.index_heading_entries,
         )
         current_config = json.loads(current_config.json())
 

@@ -43,33 +43,6 @@
                     </td>
                 </tr>
             </table>
-
-            <table style="display: none;" >
-                <tr>
-                    <td>
-                        <label for="compressed-jsonl">Compressed JSONL (Output)</label>
-                    </td>
-                    <td>
-                        <input type="text" id="compressed-jsonl" name="compressed-jsonl" value="{{ current_config['compressed_jsonl'] }}">
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <label for="embeddings-file">Embeddings File (Output)</label>
-                    </td>
-                    <td>
-                        <input type="text" id="embeddings-file" name="embeddings-file" value="{{ current_config['embeddings_file'] }}">
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <label for="index-heading-entries">Index Heading Entries</label>
-                    </td>
-                    <td>
-                        <input type="text" id="index-heading-entries" name="index-heading-entries" value="{{ current_config['index_heading_entries'] }}">
-                    </td>
-                </tr>
-            </table>
             <div class="section">
                 <div id="success" style="display: none;" ></div>
                 <button id="submit" type="submit">Save</button>
@@ -155,9 +128,8 @@
             inputFilter = null;
         }
 
-        var compressed_jsonl = document.getElementById("compressed-jsonl").value;
-        var embeddings_file = document.getElementById("embeddings-file").value;
-        var index_heading_entries = document.getElementById("index-heading-entries").value;
+        // var index_heading_entries = document.getElementById("index-heading-entries").value;
+        var index_heading_entries = true;
 
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
         fetch('/api/config/data/content_type/{{ content_type }}', {
@@ -169,8 +141,6 @@
             body: JSON.stringify({
                 "input_files": inputFiles,
                 "input_filter": inputFilter,
-                "compressed_jsonl": compressed_jsonl,
-                "embeddings_file": embeddings_file,
                 "index_heading_entries": index_heading_entries
             })
         })

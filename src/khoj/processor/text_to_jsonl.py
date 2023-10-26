@@ -2,24 +2,33 @@
 from abc import ABC, abstractmethod
 import hashlib
 import logging
-from typing import Callable, List, Tuple, Set
+import uuid
+from tqdm import tqdm
+from typing import Callable, List, Tuple, Set, Any
 from khoj.utils.helpers import timer
 
+
 # Internal Packages
-from khoj.utils.rawconfig import Entry, TextConfigBase
+from khoj.utils.rawconfig import Entry
+from khoj.processor.embeddings import EmbeddingsModel
+from khoj.search_filter.date_filter import DateFilter
+from database.models import KhojUser, Embeddings, EmbeddingsDates
+from database.adapters import EmbeddingsAdapters
 
 
 logger = logging.getLogger(__name__)
 
 
-class TextToJsonl(ABC):
-    def __init__(self, config: TextConfigBase):
+class TextEmbeddings(ABC):
+    def __init__(self, config: Any = None):
+        self.embeddings_model = EmbeddingsModel()
         self.config = config
+        self.date_filter = DateFilter()
 
     @abstractmethod
     def process(
-        self, previous_entries: List[Entry] = [], files: dict[str, str] = None, full_corpus: bool = True
-    ) -> List[Tuple[int, Entry]]:
+        self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None, regenerate: bool = False
+    ) -> Tuple[int, int]:
         ...
 
     @staticmethod
@@ -38,6 +47,7 @@ class TextToJsonl(ABC):
 
             # Drop long words instead of having entry truncated to maintain quality of entry processed by models
             compiled_entry_words = [word for word in compiled_entry_words if len(word) <= max_word_length]
+            corpus_id = uuid.uuid4()
 
             # Split entry into chunks of max tokens
             for chunk_index in range(0, len(compiled_entry_words), max_tokens):
@@ -57,10 +67,102 @@ class TextToJsonl(ABC):
                         raw=entry.raw,
                         heading=entry.heading,
                         file=entry.file,
+                        corpus_id=corpus_id,
                     )
                 )
 
         return chunked_entries
+
+    def update_embeddings(
+        self,
+        current_entries: List[Entry],
+        file_type: str,
+        key="compiled",
+        logger: logging.Logger = None,
+        deletion_filenames: Set[str] = None,
+        user: KhojUser = None,
+        regenerate: bool = False,
+    ):
+        with timer("Construct current entry hashes", logger):
+            hashes_by_file = dict[str, set[str]]()
+            current_entry_hashes = list(map(TextEmbeddings.hash_func(key), current_entries))
+            hash_to_current_entries = dict(zip(current_entry_hashes, current_entries))
+            for entry in tqdm(current_entries, desc="Hashing Entries"):
+                hashes_by_file.setdefault(entry.file, set()).add(TextEmbeddings.hash_func(key)(entry))
+
+        num_deleted_embeddings = 0
+        with timer("Preparing dataset for regeneration", logger):
+            if regenerate:
+                logger.info(f"Deleting all embeddings for file type {file_type}")
+                num_deleted_embeddings = EmbeddingsAdapters.delete_all_embeddings(user, file_type)
+
+        num_new_embeddings = 0
+        with timer("Identify hashes for adding new entries", logger):
+            for file in tqdm(hashes_by_file, desc="Processing file with hashed values"):
+                hashes_for_file = hashes_by_file[file]
+                hashes_to_process = set()
+                existing_entries = Embeddings.objects.filter(
+                    user=user, hashed_value__in=hashes_for_file, file_type=file_type
+                )
+                existing_entry_hashes = set([entry.hashed_value for entry in existing_entries])
+                hashes_to_process = hashes_for_file - existing_entry_hashes
+                # for hashed_val in hashes_for_file:
+                #     if not EmbeddingsAdapters.does_embedding_exist(user, hashed_val):
+                #         hashes_to_process.add(hashed_val)
+
+                entries_to_process = [hash_to_current_entries[hashed_val] for hashed_val in hashes_to_process]
+                data_to_embed = [getattr(entry, key) for entry in entries_to_process]
+                embeddings = self.embeddings_model.embed_documents(data_to_embed)
+
+                with timer("Update the database with new vector embeddings", logger):
+                    embeddings_to_create = []
+                    for hashed_val, embedding in zip(hashes_to_process, embeddings):
+                        entry = hash_to_current_entries[hashed_val]
+                        embeddings_to_create.append(
+                            Embeddings(
+                                user=user,
+                                embeddings=embedding,
+                                raw=entry.raw,
+                                compiled=entry.compiled,
+                                heading=entry.heading,
+                                file_path=entry.file,
+                                file_type=file_type,
+                                hashed_value=hashed_val,
+                                corpus_id=entry.corpus_id,
+                            )
+                        )
+                    new_embeddings = Embeddings.objects.bulk_create(embeddings_to_create)
+                    num_new_embeddings += len(new_embeddings)
+
+                    dates_to_create = []
+                    with timer("Create new date associations for new embeddings", logger):
+                        for embedding in new_embeddings:
+                            dates = self.date_filter.extract_dates(embedding.raw)
+                            for date in dates:
+                                dates_to_create.append(
+                                    EmbeddingsDates(
+                                        date=date,
+                                        embeddings=embedding,
+                                    )
+                                )
+                        new_dates = EmbeddingsDates.objects.bulk_create(dates_to_create)
+                        if len(new_dates) > 0:
+                            logger.info(f"Created {len(new_dates)} new date entries")
+
+        with timer("Identify hashes for removed entries", logger):
+            for file in hashes_by_file:
+                existing_entry_hashes = EmbeddingsAdapters.get_existing_entry_hashes_by_file(user, file)
+                to_delete_entry_hashes = set(existing_entry_hashes) - hashes_by_file[file]
+                num_deleted_embeddings += len(to_delete_entry_hashes)
+                EmbeddingsAdapters.delete_embedding_by_hash(user, hashed_values=list(to_delete_entry_hashes))
+
+        with timer("Identify hashes for deleting entries", logger):
+            if deletion_filenames is not None:
+                for file_path in deletion_filenames:
+                    deleted_count = EmbeddingsAdapters.delete_embedding_by_file(user, file_path)
+                    num_deleted_embeddings += deleted_count
+
+        return num_new_embeddings, num_deleted_embeddings
 
     @staticmethod
     def mark_entries_for_update(
@@ -72,11 +174,11 @@ class TextToJsonl(ABC):
     ):
         # Hash all current and previous entries to identify new entries
         with timer("Hash previous, current entries", logger):
-            current_entry_hashes = list(map(TextToJsonl.hash_func(key), current_entries))
-            previous_entry_hashes = list(map(TextToJsonl.hash_func(key), previous_entries))
+            current_entry_hashes = list(map(TextEmbeddings.hash_func(key), current_entries))
+            previous_entry_hashes = list(map(TextEmbeddings.hash_func(key), previous_entries))
             if deletion_filenames is not None:
                 deletion_entries = [entry for entry in previous_entries if entry.file in deletion_filenames]
-                deletion_entry_hashes = list(map(TextToJsonl.hash_func(key), deletion_entries))
+                deletion_entry_hashes = list(map(TextEmbeddings.hash_func(key), deletion_entries))
             else:
                 deletion_entry_hashes = []
 

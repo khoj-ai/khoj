@@ -2,6 +2,7 @@
 import argparse
 import pathlib
 from importlib.metadata import version
+import os
 
 # Internal Packages
 from khoj.utils.helpers import resolve_absolute_path
@@ -34,6 +35,12 @@ def cli(args=None):
     )
     parser.add_argument("--version", "-V", action="store_true", help="Print the installed Khoj version and exit")
     parser.add_argument("--demo", action="store_true", default=False, help="Run Khoj in demo mode")
+    parser.add_argument(
+        "--anonymous-mode",
+        action="store_true",
+        default=False,
+        help="Run Khoj in anonymous mode. This does not require any login for connecting users.",
+    )
 
     args = parser.parse_args(args)
 
@@ -51,6 +58,8 @@ def cli(args=None):
     else:
         args = run_migrations(args)
         args.config = parse_config_from_file(args.config_file)
+        if os.environ.get("DEBUG"):
+            args.config.app.should_log_telemetry = False
 
     return args
 

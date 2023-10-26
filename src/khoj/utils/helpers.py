@@ -209,10 +209,12 @@ def log_telemetry(
     if not app_config or not app_config.should_log_telemetry:
         return []
 
+    if properties.get("server_id") is None:
+        properties["server_id"] = get_server_id()
+
     # Populate telemetry data to log
     request_body = {
         "telemetry_type": telemetry_type,
-        "server_id": get_server_id(),
         "server_version": version("khoj-assistant"),
         "os": platform.system(),
         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),

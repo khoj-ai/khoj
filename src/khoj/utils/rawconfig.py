@@ -1,13 +1,14 @@
 # System Packages
 import json
 from pathlib import Path
-from typing import List, Dict, Optional, Union, Any
+from typing import List, Dict, Optional
+import uuid
 
 # External Packages
-from pydantic import BaseModel, validator
+from pydantic import BaseModel
 
 # Internal Packages
-from khoj.utils.helpers import to_snake_case_from_dash, is_none_or_empty
+from khoj.utils.helpers import to_snake_case_from_dash
 
 
 class ConfigBase(BaseModel):
@@ -27,7 +28,7 @@ class TextConfigBase(ConfigBase):
     embeddings_file: Path
 
 
-class TextContentConfig(TextConfigBase):
+class TextContentConfig(ConfigBase):
     input_files: Optional[List[Path]]
     input_filter: Optional[List[str]]
     index_heading_entries: Optional[bool] = False
@@ -39,12 +40,12 @@ class GithubRepoConfig(ConfigBase):
     branch: Optional[str] = "master"
 
 
-class GithubContentConfig(TextConfigBase):
+class GithubContentConfig(ConfigBase):
     pat_token: str
     repos: List[GithubRepoConfig]
 
 
-class NotionContentConfig(TextConfigBase):
+class NotionContentConfig(ConfigBase):
     token: str
 
 
@@ -63,7 +64,6 @@ class ContentConfig(ConfigBase):
     pdf: Optional[TextContentConfig]
     plaintext: Optional[TextContentConfig]
     github: Optional[GithubContentConfig]
-    plugins: Optional[Dict[str, TextContentConfig]]
     notion: Optional[NotionContentConfig]
 
 
@@ -122,7 +122,8 @@ class FullConfig(ConfigBase):
 
 class SearchResponse(ConfigBase):
     entry: str
-    score: str
+    score: float
+    cross_score: Optional[float]
     additional: Optional[dict]
 
 
@@ -131,14 +132,21 @@ class Entry:
     compiled: str
     heading: Optional[str]
     file: Optional[str]
+    corpus_id: str
 
     def __init__(
-        self, raw: str = None, compiled: str = None, heading: Optional[str] = None, file: Optional[str] = None
+        self,
+        raw: str = None,
+        compiled: str = None,
+        heading: Optional[str] = None,
+        file: Optional[str] = None,
+        corpus_id: uuid.UUID = None,
     ):
         self.raw = raw
         self.compiled = compiled
         self.heading = heading
         self.file = file
+        self.corpus_id = str(corpus_id)
 
     def to_json(self) -> str:
         return json.dumps(self.__dict__, ensure_ascii=False)
@@ -153,4 +161,5 @@ class Entry:
             compiled=dictionary["compiled"],
             file=dictionary.get("file", None),
             heading=dictionary.get("heading", None),
+            corpus_id=dictionary.get("corpus_id", None),
         )

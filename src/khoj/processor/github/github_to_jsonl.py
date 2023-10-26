@@ -2,7 +2,7 @@
 import logging
 import time
 from datetime import datetime
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Tuple
 
 # External Packages
 import requests
@@ -12,18 +12,31 @@ from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry, GithubContentConfig, GithubRepoConfig
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
-from khoj.processor.text_to_jsonl import TextToJsonl
-from khoj.utils.jsonl import compress_jsonl_data
+from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.rawconfig import Entry
+from database.models import Embeddings, GithubConfig, KhojUser
 
 
 logger = logging.getLogger(__name__)
 
 
-class GithubToJsonl(TextToJsonl):
-    def __init__(self, config: GithubContentConfig):
+class GithubToJsonl(TextEmbeddings):
+    def __init__(self, config: GithubConfig):
         super().__init__(config)
-        self.config = config
+        raw_repos = config.githubrepoconfig.all()
+        repos = []
+        for repo in raw_repos:
+            repos.append(
+                GithubRepoConfig(
+                    name=repo.name,
+                    owner=repo.owner,
+                    branch=repo.branch,
+                )
+            )
+        self.config = GithubContentConfig(
+            pat_token=config.pat_token,
+            repos=repos,
+        )
         self.session = requests.Session()
         self.session.headers.update({"Authorization": f"token {self.config.pat_token}"})
 
@@ -37,7 +50,9 @@ class GithubToJsonl(TextToJsonl):
         else:
             return
 
-    def process(self, previous_entries=[], files=None, full_corpus=True):
+    def process(
+        self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None, regenerate: bool = False
+    ) -> Tuple[int, int]:
         if self.config.pat_token is None or self.config.pat_token == "":
             logger.error(f"Github PAT token is not set. Skipping github content")
             raise ValueError("Github PAT token is not set. Skipping github content")
@@ -45,7 +60,7 @@ class GithubToJsonl(TextToJsonl):
         for repo in self.config.repos:
             current_entries += self.process_repo(repo)
 
-        return self.update_entries_with_ids(current_entries, previous_entries)
+        return self.update_entries_with_ids(current_entries, user=user)
 
     def process_repo(self, repo: GithubRepoConfig):
         repo_url = f"https://api.github.com/repos/{repo.owner}/{repo.name}"
@@ -80,26 +95,18 @@ class GithubToJsonl(TextToJsonl):
             current_entries += issue_entries
 
         with timer(f"Split entries by max token size supported by model {repo_shorthand}", logger):
-            current_entries = TextToJsonl.split_entries_by_max_tokens(current_entries, max_tokens=256)
+            current_entries = TextEmbeddings.split_entries_by_max_tokens(current_entries, max_tokens=256)
 
         return current_entries
 
-    def update_entries_with_ids(self, current_entries, previous_entries):
+    def update_entries_with_ids(self, current_entries, user: KhojUser = None):
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
-            entries_with_ids = TextToJsonl.mark_entries_for_update(
-                current_entries, previous_entries, key="compiled", logger=logger
+            num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
+                current_entries, Embeddings.EmbeddingsType.GITHUB, key="compiled", logger=logger, user=user
             )
 
-        with timer("Write github entries to JSONL file", logger):
-            # Process Each Entry from All Notes Files
-            entries = list(map(lambda entry: entry[1], entries_with_ids))
-            jsonl_data = MarkdownToJsonl.convert_markdown_maps_to_jsonl(entries)
-
-            # Compress JSONL formatted Data
-            compress_jsonl_data(jsonl_data, self.config.compressed_jsonl)
-
-        return entries_with_ids
+        return num_new_embeddings, num_deleted_embeddings
 
     def get_files(self, repo_url: str, repo: GithubRepoConfig):
         # Get the contents of the repository

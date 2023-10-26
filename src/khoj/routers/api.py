@@ -2,14 +2,15 @@
 import concurrent.futures
 import math
 import time
-import yaml
 import logging
 import json
 from typing import List, Optional, Union, Any
+import asyncio
 
 # External Packages
-from fastapi import APIRouter, HTTPException, Header, Request
-from sentence_transformers import util
+from fastapi import APIRouter, HTTPException, Header, Request, Depends
+from starlette.authentication import requires
+from asgiref.sync import sync_to_async
 
 # Internal Packages
 from khoj.configure import configure_processor, configure_server
@@ -20,7 +21,6 @@ from khoj.search_filter.word_filter import WordFilter
 from khoj.utils.config import TextSearchModel
 from khoj.utils.helpers import ConversationCommand, is_none_or_empty, timer, command_descriptions
 from khoj.utils.rawconfig import (
-    ContentConfig,
     FullConfig,
     ProcessorConfig,
     SearchConfig,
@@ -48,10 +48,73 @@ from khoj.processor.conversation.openai.gpt import extract_questions
 from khoj.processor.conversation.gpt4all.chat_model import extract_questions_offline
 from fastapi.requests import Request
 
+from database import adapters
+from database.adapters import EmbeddingsAdapters
+from database.models import LocalMarkdownConfig, LocalOrgConfig, LocalPdfConfig, LocalPlaintextConfig, KhojUser
+
 
 # Initialize Router
 api = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+def map_config_to_object(content_type: str):
+    if content_type == "org":
+        return LocalOrgConfig
+    if content_type == "markdown":
+        return LocalMarkdownConfig
+    if content_type == "pdf":
+        return LocalPdfConfig
+    if content_type == "plaintext":
+        return LocalPlaintextConfig
+
+
+async def map_config_to_db(config: FullConfig, user: KhojUser):
+    if config.content_type:
+        if config.content_type.org:
+            await LocalOrgConfig.objects.filter(user=user).adelete()
+            await LocalOrgConfig.objects.acreate(
+                input_files=config.content_type.org.input_files,
+                input_filter=config.content_type.org.input_filter,
+                index_heading_entries=config.content_type.org.index_heading_entries,
+                user=user,
+            )
+        if config.content_type.markdown:
+            await LocalMarkdownConfig.objects.filter(user=user).adelete()
+            await LocalMarkdownConfig.objects.acreate(
+                input_files=config.content_type.markdown.input_files,
+                input_filter=config.content_type.markdown.input_filter,
+                index_heading_entries=config.content_type.markdown.index_heading_entries,
+                user=user,
+            )
+        if config.content_type.pdf:
+            await LocalPdfConfig.objects.filter(user=user).adelete()
+            await LocalPdfConfig.objects.acreate(
+                input_files=config.content_type.pdf.input_files,
+                input_filter=config.content_type.pdf.input_filter,
+                index_heading_entries=config.content_type.pdf.index_heading_entries,
+                user=user,
+            )
+        if config.content_type.plaintext:
+            await LocalPlaintextConfig.objects.filter(user=user).adelete()
+            await LocalPlaintextConfig.objects.acreate(
+                input_files=config.content_type.plaintext.input_files,
+                input_filter=config.content_type.plaintext.input_filter,
+                index_heading_entries=config.content_type.plaintext.index_heading_entries,
+                user=user,
+            )
+        if config.content_type.github:
+            await adapters.set_user_github_config(
+                user=user,
+                pat_token=config.content_type.github.pat_token,
+                repos=config.content_type.github.repos,
+            )
+        if config.content_type.notion:
+            await adapters.set_notion_config(
+                user=user,
+                token=config.content_type.notion.token,
+            )
+
 
 # If it's a demo instance, prevent updating any of the configuration.
 if not state.demo:
@@ -64,7 +127,10 @@ if not state.demo:
             state.processor_config = configure_processor(state.config.processor)
 
     @api.get("/config/data", response_model=FullConfig)
-    def get_config_data():
+    def get_config_data(request: Request):
+        user = request.user.object if request.user.is_authenticated else None
+        enabled_content = EmbeddingsAdapters.get_unique_file_types(user)
+
         return state.config
 
     @api.post("/config/data")
@@ -73,20 +139,19 @@ if not state.demo:
         updated_config: FullConfig,
         client: Optional[str] = None,
     ):
-        state.config = updated_config
-        with open(state.config_file, "w") as outfile:
-            yaml.dump(yaml.safe_load(state.config.json(by_alias=True)), outfile)
-            outfile.close()
+        user = request.user.object if request.user.is_authenticated else None
+        await map_config_to_db(updated_config, user)
 
-        configuration_update_metadata = dict()
+        configuration_update_metadata = {}
+
+        enabled_content = await sync_to_async(EmbeddingsAdapters.get_unique_file_types)(user)
 
         if state.config.content_type is not None:
-            configuration_update_metadata["github"] = state.config.content_type.github is not None
-            configuration_update_metadata["notion"] = state.config.content_type.notion is not None
-            configuration_update_metadata["org"] = state.config.content_type.org is not None
-            configuration_update_metadata["pdf"] = state.config.content_type.pdf is not None
-            configuration_update_metadata["markdown"] = state.config.content_type.markdown is not None
-            configuration_update_metadata["plugins"] = state.config.content_type.plugins is not None
+            configuration_update_metadata["github"] = "github" in enabled_content
+            configuration_update_metadata["notion"] = "notion" in enabled_content
+            configuration_update_metadata["org"] = "org" in enabled_content
+            configuration_update_metadata["pdf"] = "pdf" in enabled_content
+            configuration_update_metadata["markdown"] = "markdown" in enabled_content
 
         if state.config.processor is not None:
             configuration_update_metadata["conversation_processor"] = state.config.processor.conversation is not None
@@ -101,6 +166,7 @@ if not state.demo:
         return state.config
 
     @api.post("/config/data/content_type/github", status_code=200)
+    @requires("authenticated")
     async def set_content_config_github_data(
         request: Request,
         updated_config: Union[GithubContentConfig, None],
@@ -108,10 +174,13 @@ if not state.demo:
     ):
         _initialize_config()
 
-        if not state.config.content_type:
-            state.config.content_type = ContentConfig(**{"github": updated_config})
-        else:
-            state.config.content_type.github = updated_config
+        user = request.user.object if request.user.is_authenticated else None
+
+        await adapters.set_user_github_config(
+            user=user,
+            pat_token=updated_config.pat_token,
+            repos=updated_config.repos,
+        )
 
         update_telemetry_state(
             request=request,
@@ -121,11 +190,7 @@ if not state.demo:
             metadata={"content_type": "github"},
         )
 
-        try:
-            save_config_to_file_updated_state()
-            return {"status": "ok"}
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
+        return {"status": "ok"}
 
     @api.post("/config/data/content_type/notion", status_code=200)
     async def set_content_config_notion_data(
@@ -135,10 +200,12 @@ if not state.demo:
     ):
         _initialize_config()
 
-        if not state.config.content_type:
-            state.config.content_type = ContentConfig(**{"notion": updated_config})
-        else:
-            state.config.content_type.notion = updated_config
+        user = request.user.object if request.user.is_authenticated else None
+
+        await adapters.set_notion_config(
+            user=user,
+            token=updated_config.token,
+        )
 
         update_telemetry_state(
             request=request,
@@ -148,11 +215,7 @@ if not state.demo:
             metadata={"content_type": "notion"},
         )
 
-        try:
-            save_config_to_file_updated_state()
-            return {"status": "ok"}
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
+        return {"status": "ok"}
 
     @api.post("/delete/config/data/content_type/{content_type}", status_code=200)
     async def remove_content_config_data(
@@ -160,8 +223,7 @@ if not state.demo:
         content_type: str,
         client: Optional[str] = None,
     ):
-        if not state.config or not state.config.content_type:
-            return {"status": "ok"}
+        user = request.user.object if request.user.is_authenticated else None
 
         update_telemetry_state(
             request=request,
@@ -171,31 +233,13 @@ if not state.demo:
             metadata={"content_type": content_type},
         )
 
-        if state.config.content_type:
-            state.config.content_type[content_type] = None
+        content_object = map_config_to_object(content_type)
+        await content_object.objects.filter(user=user).adelete()
+        await sync_to_async(EmbeddingsAdapters.delete_all_embeddings)(user, content_type)
 
-        if content_type == "github":
-            state.content_index.github = None
-        elif content_type == "notion":
-            state.content_index.notion = None
-        elif content_type == "plugins":
-            state.content_index.plugins = None
-        elif content_type == "pdf":
-            state.content_index.pdf = None
-        elif content_type == "markdown":
-            state.content_index.markdown = None
-        elif content_type == "org":
-            state.content_index.org = None
-        elif content_type == "plaintext":
-            state.content_index.plaintext = None
-        else:
-            logger.warning(f"Request to delete unknown content type: {content_type} via API")
+        enabled_content = await sync_to_async(EmbeddingsAdapters.get_unique_file_types)(user)
 
-        try:
-            save_config_to_file_updated_state()
-            return {"status": "ok"}
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
+        return {"status": "ok"}
 
     @api.post("/delete/config/data/processor/conversation/openai", status_code=200)
     async def remove_processor_conversation_config_data(
@@ -228,6 +272,7 @@ if not state.demo:
             return {"status": "error", "message": str(e)}
 
     @api.post("/config/data/content_type/{content_type}", status_code=200)
+    # @requires("authenticated")
     async def set_content_config_data(
         request: Request,
         content_type: str,
@@ -236,10 +281,10 @@ if not state.demo:
     ):
         _initialize_config()
 
-        if not state.config.content_type:
-            state.config.content_type = ContentConfig(**{content_type: updated_config})
-        else:
-            state.config.content_type[content_type] = updated_config
+        user = request.user.object if request.user.is_authenticated else None
+
+        content_object = map_config_to_object(content_type)
+        await adapters.set_text_content_config(user, content_object, updated_config)
 
         update_telemetry_state(
             request=request,
@@ -249,11 +294,7 @@ if not state.demo:
             metadata={"content_type": content_type},
         )
 
-        try:
-            save_config_to_file_updated_state()
-            return {"status": "ok"}
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
+        return {"status": "ok"}
 
     @api.post("/config/data/processor/conversation/openai", status_code=200)
     async def set_processor_openai_config_data(
@@ -337,24 +378,23 @@ def get_default_config_data():
 
 
 @api.get("/config/types", response_model=List[str])
-def get_config_types():
-    """Get configured content types"""
-    if state.config is None or state.config.content_type is None:
-        raise HTTPException(
-            status_code=500,
-            detail="Content types not configured. Configure at least one content type on server and restart it.",
-        )
+def get_config_types(
+    request: Request,
+):
+    user = request.user.object if request.user.is_authenticated else None
 
-    configured_content_types = state.config.content_type.dict(exclude_none=True)
+    enabled_file_types = EmbeddingsAdapters.get_unique_file_types(user)
+
+    configured_content_types = list(enabled_file_types)
+
+    if state.config and state.config.content_type:
+        for ctype in state.config.content_type.dict(exclude_none=True):
+            configured_content_types.append(ctype)
+
     return [
         search_type.value
         for search_type in SearchType
-        if (
-            search_type.value in configured_content_types
-            and getattr(state.content_index, search_type.value) is not None
-        )
-        or ("plugins" in configured_content_types and search_type.name in configured_content_types["plugins"])
-        or search_type == SearchType.All
+        if (search_type.value in configured_content_types) or search_type == SearchType.All
     ]
 
 
@@ -372,6 +412,7 @@ async def search(
     referer: Optional[str] = Header(None),
     host: Optional[str] = Header(None),
 ):
+    user = request.user.object if request.user.is_authenticated else None
     start_time = time.time()
 
     # Run validation checks
@@ -390,10 +431,11 @@ async def search(
     search_futures: List[concurrent.futures.Future] = []
 
     # return cached results, if available
-    query_cache_key = f"{user_query}-{n}-{t}-{r}-{score_threshold}-{dedupe}"
-    if query_cache_key in state.query_cache:
-        logger.debug(f"Return response from query cache")
-        return state.query_cache[query_cache_key]
+    if user:
+        query_cache_key = f"{user_query}-{n}-{t}-{r}-{score_threshold}-{dedupe}"
+        if query_cache_key in state.query_cache[user.uuid]:
+            logger.debug(f"Return response from query cache")
+            return state.query_cache[user.uuid][query_cache_key]
 
     # Encode query with filter terms removed
     defiltered_query = user_query
@@ -407,84 +449,31 @@ async def search(
         ]
         if text_search_models:
             with timer("Encoding query took", logger=logger):
-                encoded_asymmetric_query = util.normalize_embeddings(
-                    text_search_models[0].bi_encoder.encode(
-                        [defiltered_query],
-                        convert_to_tensor=True,
-                        device=state.device,
-                    )
-                )
+                encoded_asymmetric_query = state.embeddings_model.embed_query(defiltered_query)
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        if (t == SearchType.Org or t == SearchType.All) and state.content_index.org and state.search_models.text_search:
-            # query org-mode notes
-            search_futures += [
-                executor.submit(
-                    text_search.query,
-                    user_query,
-                    state.search_models.text_search,
-                    state.content_index.org,
-                    question_embedding=encoded_asymmetric_query,
-                    rank_results=r or False,
-                    score_threshold=score_threshold,
-                    dedupe=dedupe or True,
-                )
-            ]
-
-        if (
-            (t == SearchType.Markdown or t == SearchType.All)
-            and state.content_index.markdown
-            and state.search_models.text_search
-        ):
+        if t in [
+            SearchType.All,
+            SearchType.Org,
+            SearchType.Markdown,
+            SearchType.Github,
+            SearchType.Notion,
+            SearchType.Plaintext,
+        ]:
             # query markdown notes
             search_futures += [
                 executor.submit(
                     text_search.query,
+                    user,
                     user_query,
-                    state.search_models.text_search,
-                    state.content_index.markdown,
+                    t,
                     question_embedding=encoded_asymmetric_query,
                     rank_results=r or False,
                     score_threshold=score_threshold,
-                    dedupe=dedupe or True,
                 )
             ]
 
-        if (
-            (t == SearchType.Github or t == SearchType.All)
-            and state.content_index.github
-            and state.search_models.text_search
-        ):
-            # query github issues
-            search_futures += [
-                executor.submit(
-                    text_search.query,
-                    user_query,
-                    state.search_models.text_search,
-                    state.content_index.github,
-                    question_embedding=encoded_asymmetric_query,
-                    rank_results=r or False,
-                    score_threshold=score_threshold,
-                    dedupe=dedupe or True,
-                )
-            ]
-
-        if (t == SearchType.Pdf or t == SearchType.All) and state.content_index.pdf and state.search_models.text_search:
-            # query pdf files
-            search_futures += [
-                executor.submit(
-                    text_search.query,
-                    user_query,
-                    state.search_models.text_search,
-                    state.content_index.pdf,
-                    question_embedding=encoded_asymmetric_query,
-                    rank_results=r or False,
-                    score_threshold=score_threshold,
-                    dedupe=dedupe or True,
-                )
-            ]
-
-        if (t == SearchType.Image) and state.content_index.image and state.search_models.image_search:
+        elif (t == SearchType.Image) and state.content_index.image and state.search_models.image_search:
             # query images
             search_futures += [
                 executor.submit(
@@ -494,70 +483,6 @@ async def search(
                     state.search_models.image_search,
                     state.content_index.image,
                     score_threshold=score_threshold,
-                )
-            ]
-
-        if (
-            (t == SearchType.All or t in SearchType)
-            and state.content_index.plugins
-            and state.search_models.plugin_search
-        ):
-            # query specified plugin type
-            # Get plugin content, search model for specified search type, or the first one if none specified
-            plugin_search = state.search_models.plugin_search.get(t.value) or next(
-                iter(state.search_models.plugin_search.values())
-            )
-            plugin_content = state.content_index.plugins.get(t.value) or next(
-                iter(state.content_index.plugins.values())
-            )
-            search_futures += [
-                executor.submit(
-                    text_search.query,
-                    user_query,
-                    plugin_search,
-                    plugin_content,
-                    question_embedding=encoded_asymmetric_query,
-                    rank_results=r or False,
-                    score_threshold=score_threshold,
-                    dedupe=dedupe or True,
-                )
-            ]
-
-        if (
-            (t == SearchType.Notion or t == SearchType.All)
-            and state.content_index.notion
-            and state.search_models.text_search
-        ):
-            # query notion pages
-            search_futures += [
-                executor.submit(
-                    text_search.query,
-                    user_query,
-                    state.search_models.text_search,
-                    state.content_index.notion,
-                    question_embedding=encoded_asymmetric_query,
-                    rank_results=r or False,
-                    score_threshold=score_threshold,
-                    dedupe=dedupe or True,
-                )
-            ]
-
-        if (
-            (t == SearchType.Plaintext or t == SearchType.All)
-            and state.content_index.plaintext
-            and state.search_models.text_search
-        ):
-            # query plaintext files
-            search_futures += [
-                executor.submit(
-                    text_search.query,
-                    user_query,
-                    state.search_models.text_search,
-                    state.content_index.plaintext,
-                    question_embedding=encoded_asymmetric_query,
-                    rank_results=r or False,
-                    score_threshold=score_threshold,
-                    dedupe=dedupe or True,
                 )
             ]
 
@@ -576,15 +501,19 @@ async def search(
                         count=results_count,
                     )
                 else:
-                    hits, entries = await search_future.result()
+                    hits = await search_future.result()
                     # Collate results
-                    results += text_search.collate_results(hits, entries, results_count)
+                    results += text_search.collate_results(hits, dedupe=dedupe)
 
-            # Sort results across all content types and take top results
-            results = sorted(results, key=lambda x: float(x.score), reverse=True)[:results_count]
+            if r:
+                results = text_search.rerank_and_sort_results(results, query=defiltered_query)[:results_count]
+            else:
+                # Sort results across all content types and take top results
+                results = sorted(results, key=lambda x: float(x.score))[:results_count]
 
     # Cache results
-    state.query_cache[query_cache_key] = results
+    if user:
+        state.query_cache[user.uuid][query_cache_key] = results
 
     update_telemetry_state(
         request=request,
@@ -595,8 +524,6 @@ async def search(
         referer=referer,
         host=host,
     )
-
-    state.previous_query = user_query
 
     end_time = time.time()
     logger.debug(f"🔍 Search took: {end_time - start_time:.3f} seconds")
@@ -614,12 +541,13 @@ def update(
     referer: Optional[str] = Header(None),
     host: Optional[str] = Header(None),
 ):
+    user = request.user.object if request.user.is_authenticated else None
     if not state.config:
         error_msg = f"🚨 Khoj is not configured.\nConfigure it via http://localhost:42110/config, plugins or by editing {state.config_file}."
         logger.warning(error_msg)
         raise HTTPException(status_code=500, detail=error_msg)
     try:
-        configure_server(state.config, regenerate=force, search_type=t)
+        configure_server(state.config, regenerate=force, search_type=t, user=user)
     except Exception as e:
         error_msg = f"🚨 Failed to update server via API: {e}"
         logger.error(error_msg, exc_info=True)
@@ -774,6 +702,7 @@ async def extract_references_and_questions(
     n: int,
     conversation_type: ConversationCommand = ConversationCommand.Default,
 ):
+    user = request.user.object if request.user.is_authenticated else None
     # Load Conversation History
     meta_log = state.processor_config.conversation.meta_log
 
@@ -781,7 +710,7 @@ async def extract_references_and_questions(
     compiled_references: List[Any] = []
     inferred_queries: List[str] = []
 
-    if state.content_index is None:
+    if not EmbeddingsAdapters.user_has_embeddings(user=user):
         logger.warning(
             "No content index loaded, so cannot extract references from knowledge base. Please configure your data sources and update the index to chat with your notes."
         )

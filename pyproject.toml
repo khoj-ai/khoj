@@ -59,13 +59,15 @@ dependencies = [
     "requests >= 2.26.0",
     "bs4 >= 0.0.1",
     "anyio == 3.7.1",
-    "pymupdf >= 1.23.3",
+    "pymupdf >= 1.23.5",
     "django == 4.2.5",
     "authlib == 1.2.1",
     "gpt4all == 1.0.12; platform_system == 'Linux' and platform_machine == 'x86_64'",
     "gpt4all == 1.0.12; platform_system == 'Windows' or platform_system == 'Darwin'",
     "itsdangerous == 2.1.2",
     "httpx == 0.25.0",
+    "pgvector == 0.2.3",
+    "psycopg2-binary == 2.9.9",
 ]
 dynamic = ["version"]
 
@@ -91,6 +93,8 @@ dev = [
     "mypy >= 1.0.1",
     "black >= 23.1.0",
     "pre-commit >= 3.0.4",
+    "pytest-django == 4.5.2",
+    "pytest-asyncio == 0.21.1",
 ]
 
 [tool.hatch.version]

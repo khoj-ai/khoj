@@ -10,6 +10,7 @@ from khoj.utils.helpers import ConversationCommand, timer, log_telemetry
 from khoj.processor.conversation.openai.gpt import converse
 from khoj.processor.conversation.gpt4all.chat_model import converse_offline
 from khoj.processor.conversation.utils import reciprocal_conversation_to_chatml, message_to_log, ThreadedGenerator
+from database.models import KhojUser
 
 logger = logging.getLogger(__name__)
 
@@ -40,11 +41,13 @@ def update_telemetry_state(
     host: Optional[str] = None,
     metadata: Optional[dict] = None,
 ):
+    user: KhojUser = request.user.object if request.user.is_authenticated else None
     user_state = {
         "client_host": request.client.host if request.client else None,
         "user_agent": user_agent or "unknown",
         "referer": referer or "unknown",
         "host": host or "unknown",
+        "server_id": str(user.uuid) if user else None,
     }
 
     if metadata:

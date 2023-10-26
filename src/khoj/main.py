@@ -24,10 +24,15 @@ from rich.logging import RichHandler
 from django.core.asgi import get_asgi_application
 from django.core.management import call_command
 
-# Internal Packages
-from khoj.configure import configure_routes, initialize_server, configure_middleware
-from khoj.utils import state
-from khoj.utils.cli import cli
+# Initialize Django
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "app.settings")
+django.setup()
+
+# Initialize Django Database
+call_command("migrate", "--noinput")
+
+# Initialize Django Static Files
+call_command("collectstatic", "--noinput")
 
 # Initialize Django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "app.settings")
@@ -53,6 +58,11 @@ app.add_middleware(
 
 # Set Locale
 locale.setlocale(locale.LC_ALL, "")
+
+# Internal Packages. We do this after setting up Django so that Django features are accessible to the app.
+from khoj.configure import configure_routes, initialize_server, configure_middleware
+from khoj.utils import state
+from khoj.utils.cli import cli
 
 # Setup Logger
 rich_handler = RichHandler(rich_tracebacks=True)
@@ -95,6 +105,8 @@ def run():
 
     #  Mount Django and Static Files
     app.mount("/django", django_app, name="django")
+    if not os.path.exists("static"):
+        os.mkdir("static")
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
     # Configure Middleware
@@ -111,6 +123,7 @@ def set_state(args):
     state.host = args.host
     state.port = args.port
     state.demo = args.demo
+    state.anonymous_mode = args.anonymous_mode
     state.khoj_version = version("khoj-assistant")
 
 

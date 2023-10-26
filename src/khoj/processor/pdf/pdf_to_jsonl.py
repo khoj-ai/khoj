@@ -1,28 +1,31 @@
 # Standard Packages
 import os
 import logging
-from typing import List
+from typing import List, Tuple
 import base64
 
 # External Packages
 from langchain.document_loaders import PyMuPDFLoader
 
 # Internal Packages
-from khoj.processor.text_to_jsonl import TextToJsonl
+from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.helpers import timer
-from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry
+from database.models import Embeddings, KhojUser
 
 
 logger = logging.getLogger(__name__)
 
 
-class PdfToJsonl(TextToJsonl):
-    # Define Functions
-    def process(self, previous_entries=[], files: dict[str, str] = None, full_corpus: bool = True):
-        # Extract required fields from config
-        output_file = self.config.compressed_jsonl
+class PdfToJsonl(TextEmbeddings):
+    def __init__(self):
+        super().__init__()
 
+    # Define Functions
+    def process(
+        self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None, regenerate: bool = False
+    ) -> Tuple[int, int]:
+        # Extract required fields from config
         if not full_corpus:
             deletion_file_names = set([file for file in files if files[file] == ""])
             files_to_process = set(files) - deletion_file_names
@@ -40,19 +43,17 @@ class PdfToJsonl(TextToJsonl):
 
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
-            entries_with_ids = TextToJsonl.mark_entries_for_update(
-                current_entries, previous_entries, key="compiled", logger=logger, deletion_filenames=deletion_file_names
+            num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
+                current_entries,
+                Embeddings.EmbeddingsType.PDF,
+                "compiled",
+                logger,
+                deletion_file_names,
+                user,
+                regenerate=regenerate,
             )
 
-        with timer("Write PDF entries to JSONL file", logger):
-            # Process Each Entry from All Notes Files
-            entries = list(map(lambda entry: entry[1], entries_with_ids))
-            jsonl_data = PdfToJsonl.convert_pdf_maps_to_jsonl(entries)
-
-            # Compress JSONL formatted Data
-            compress_jsonl_data(jsonl_data, output_file)
-
-        return entries_with_ids
+        return num_new_embeddings, num_deleted_embeddings
 
     @staticmethod
     def extract_pdf_entries(pdf_files):
@@ -62,7 +63,7 @@ class PdfToJsonl(TextToJsonl):
         entry_to_location_map = []
         for pdf_file in pdf_files:
             try:
-                # Write the PDF file to a temporary file, as it is stored in byte format in the pdf_file object and the PyPDFLoader expects a file path
+                # Write the PDF file to a temporary file, as it is stored in byte format in the pdf_file object and the PDF Loader expects a file path
                 tmp_file = f"tmp_pdf_file.pdf"
                 with open(f"{tmp_file}", "wb") as f:
                     bytes = pdf_files[pdf_file]

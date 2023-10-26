@@ -5,28 +5,26 @@ from typing import Iterable, List, Tuple
 
 # Internal Packages
 from khoj.processor.org_mode import orgnode
-from khoj.processor.text_to_jsonl import TextToJsonl
+from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.helpers import timer
-from khoj.utils.jsonl import compress_jsonl_data
-from khoj.utils.rawconfig import Entry, TextContentConfig
+from khoj.utils.rawconfig import Entry
 from khoj.utils import state
+from database.models import Embeddings, KhojUser
 
 
 logger = logging.getLogger(__name__)
 
 
-class OrgToJsonl(TextToJsonl):
-    def __init__(self, config: TextContentConfig):
-        super().__init__(config)
-        self.config = config
+class OrgToJsonl(TextEmbeddings):
+    def __init__(self):
+        super().__init__()
 
     # Define Functions
     def process(
-        self, previous_entries: List[Entry] = [], files: dict[str, str] = None, full_corpus: bool = True
-    ) -> List[Tuple[int, Entry]]:
+        self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None, regenerate: bool = False
+    ) -> Tuple[int, int]:
         # Extract required fields from config
-        output_file = self.config.compressed_jsonl
-        index_heading_entries = self.config.index_heading_entries
+        index_heading_entries = True
 
         if not full_corpus:
             deletion_file_names = set([file for file in files if files[file] == ""])
@@ -47,19 +45,17 @@ class OrgToJsonl(TextToJsonl):
 
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
-            entries_with_ids = TextToJsonl.mark_entries_for_update(
-                current_entries, previous_entries, key="compiled", logger=logger, deletion_filenames=deletion_file_names
+            num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
+                current_entries,
+                Embeddings.EmbeddingsType.ORG,
+                "compiled",
+                logger,
+                deletion_file_names,
+                user,
+                regenerate=regenerate,
             )
 
-        # Process Each Entry from All Notes Files
-        with timer("Write org entries to JSONL file", logger):
-            entries = map(lambda entry: entry[1], entries_with_ids)
-            jsonl_data = self.convert_org_entries_to_jsonl(entries)
-
-            # Compress JSONL formatted Data
-            compress_jsonl_data(jsonl_data, output_file)
-
-        return entries_with_ids
+        return num_new_embeddings, num_deleted_embeddings
 
     @staticmethod
     def extract_org_entries(org_files: dict[str, str]):

@@ -1,5 +1,6 @@
 # Standard Packages
 import logging
+from typing import Tuple
 
 # External Packages
 import requests
@@ -7,9 +8,9 @@ import requests
 # Internal Packages
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry, NotionContentConfig
-from khoj.processor.text_to_jsonl import TextToJsonl
-from khoj.utils.jsonl import compress_jsonl_data
+from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.rawconfig import Entry
+from database.models import Embeddings, KhojUser, NotionConfig
 
 from enum import Enum
 
@@ -49,10 +50,12 @@ class NotionBlockType(Enum):
     CALLOUT = "callout"
 
 
-class NotionToJsonl(TextToJsonl):
-    def __init__(self, config: NotionContentConfig):
+class NotionToJsonl(TextEmbeddings):
+    def __init__(self, config: NotionConfig):
         super().__init__(config)
-        self.config = config
+        self.config = NotionContentConfig(
+            token=config.token,
+        )
         self.session = requests.Session()
         self.session.headers.update({"Authorization": f"Bearer {config.token}", "Notion-Version": "2022-02-22"})
         self.unsupported_block_types = [
@@ -80,7 +83,9 @@ class NotionToJsonl(TextToJsonl):
 
         self.body_params = {"page_size": 100}
 
-    def process(self, previous_entries=[], files=None, full_corpus=True):
+    def process(
+        self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None, regenerate: bool = False
+    ) -> Tuple[int, int]:
         current_entries = []
 
         # Get all pages
@@ -112,7 +117,7 @@ class NotionToJsonl(TextToJsonl):
                             page_entries = self.process_page(p_or_d)
                             current_entries.extend(page_entries)
 
-        return self.update_entries_with_ids(current_entries, previous_entries)
+        return self.update_entries_with_ids(current_entries, user)
 
     def process_page(self, page):
         page_id = page["id"]
@@ -241,19 +246,11 @@ class NotionToJsonl(TextToJsonl):
             title = None
         return title, content
 
-    def update_entries_with_ids(self, current_entries, previous_entries):
+    def update_entries_with_ids(self, current_entries, user: KhojUser = None):
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
-            entries_with_ids = TextToJsonl.mark_entries_for_update(
-                current_entries, previous_entries, key="compiled", logger=logger
+            num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
+                current_entries, Embeddings.EmbeddingsType.NOTION, key="compiled", logger=logger, user=user
             )
 
-        with timer("Write Notion entries to JSONL file", logger):
-            # Process Each Entry from all Notion entries
-            entries = list(map(lambda entry: entry[1], entries_with_ids))
-            jsonl_data = TextToJsonl.convert_text_maps_to_jsonl(entries)
-
-            # Compress JSONL formatted Data
-            compress_jsonl_data(jsonl_data, self.config.compressed_jsonl)
-
-        return entries_with_ids
+        return num_new_embeddings, num_deleted_embeddings

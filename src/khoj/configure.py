@@ -30,6 +30,8 @@ from khoj.utils.helpers import resolve_absolute_path, merge_dicts
 from khoj.utils.fs_syncer import collect_files
 from khoj.utils.rawconfig import FullConfig, OfflineChatProcessorConfig, ProcessorConfig, ConversationProcessorConfig
 from khoj.routers.indexer import configure_content, load_content, configure_search
+from database.models import KhojUser
+from database.adapters import get_all_users
 
 
 logger = logging.getLogger(__name__)
@@ -48,7 +50,16 @@ class UserAuthenticationBackend(AuthenticationBackend):
         from database.models import KhojUser
 
         self.khojuser_manager = KhojUser.objects
+        self._initialize_default_user()
         super().__init__()
+
+    def _initialize_default_user(self):
+        if not self.khojuser_manager.filter(username="default").exists():
+            self.khojuser_manager.create_user(
+                username="default",
+                email="default@example.com",
+                password="default",
+            )
 
     async def authenticate(self, request):
         current_user = request.session.get("user")
@@ -56,6 +67,11 @@ class UserAuthenticationBackend(AuthenticationBackend):
             user = await self.khojuser_manager.filter(email=current_user.get("email")).afirst()
             if user:
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
+        elif not state.anonymous_mode:
+            user = await self.khojuser_manager.filter(username="default").afirst()
+            if user:
+                return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
+
         return AuthCredentials(), UnauthenticatedUser()
 
 
@@ -78,7 +94,11 @@ def initialize_server(config: Optional[FullConfig]):
 
 
 def configure_server(
-    config: FullConfig, regenerate: bool = False, search_type: Optional[SearchType] = None, init=False
+    config: FullConfig,
+    regenerate: bool = False,
+    search_type: Optional[SearchType] = None,
+    init=False,
+    user: KhojUser = None,
 ):
     # Update Config
     state.config = config
@@ -95,7 +115,7 @@ def configure_server(
         state.config_lock.acquire()
         state.SearchType = configure_search_types(state.config)
         state.search_models = configure_search(state.search_models, state.config.search_type)
-        initialize_content(regenerate, search_type, init)
+        initialize_content(regenerate, search_type, init, user)
     except Exception as e:
         logger.error(f"🚨 Failed to configure search models", exc_info=True)
         raise e
@@ -103,7 +123,7 @@ def configure_server(
         state.config_lock.release()
 
 
-def initialize_content(regenerate: bool, search_type: Optional[SearchType] = None, init=False):
+def initialize_content(regenerate: bool, search_type: Optional[SearchType] = None, init=False, user: KhojUser = None):
     # Initialize Content from Config
     if state.search_models:
         try:
@@ -112,7 +132,7 @@ def initialize_content(regenerate: bool, search_type: Optional[SearchType] = Non
                 state.content_index = load_content(state.config.content_type, state.content_index, state.search_models)
             else:
                 logger.info("📬 Updating content index...")
-                all_files = collect_files(state.config.content_type)
+                all_files = collect_files(user=user)
                 state.content_index = configure_content(
                     state.content_index,
                     state.config.content_type,
@@ -120,6 +140,7 @@ def initialize_content(regenerate: bool, search_type: Optional[SearchType] = Non
                     state.search_models,
                     regenerate,
                     search_type,
+                    user=user,
                 )
         except Exception as e:
             logger.error(f"🚨 Failed to index content", exc_info=True)
@@ -152,9 +173,14 @@ if not state.demo:
     def update_search_index():
         try:
             logger.info("📬 Updating content index via Scheduler")
-            all_files = collect_files(state.config.content_type)
+            for user in get_all_users():
+                all_files = collect_files(user=user)
+                state.content_index = configure_content(
+                    state.content_index, state.config.content_type, all_files, state.search_models, user=user
+                )
+            all_files = collect_files(user=None)
             state.content_index = configure_content(
-                state.content_index, state.config.content_type, all_files, state.search_models
+                state.content_index, state.config.content_type, all_files, state.search_models, user=None
             )
             logger.info("📪 Content index updated via Scheduler")
         except Exception as e:
@@ -164,13 +190,9 @@ if not state.demo:
 def configure_search_types(config: FullConfig):
     # Extract core search types
     core_search_types = {e.name: e.value for e in SearchType}
-    # Extract configured plugin search types
-    plugin_search_types = {}
-    if config.content_type and config.content_type.plugins:
-        plugin_search_types = {plugin_type: plugin_type for plugin_type in config.content_type.plugins.keys()}
 
     # Dynamically generate search type enum by merging core search types with configured plugin search types
-    return Enum("SearchType", merge_dicts(core_search_types, plugin_search_types))
+    return Enum("SearchType", merge_dicts(core_search_types, {}))
 
 
 def configure_processor(
