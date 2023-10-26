@@ -15,14 +15,11 @@ warnings.filterwarnings("ignore", message=r"legacy way to download files from th
 # External Packages
 import uvicorn
 import django
+import schedule
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from rich.logging import RichHandler
-import schedule
-
 from fastapi.staticfiles import StaticFiles
 from rich.logging import RichHandler
-import schedule
 
 from django.core.asgi import get_asgi_application
 from django.core.management import call_command

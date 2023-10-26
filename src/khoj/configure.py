@@ -25,7 +25,6 @@ from khoj.utils import constants, state
 from khoj.utils.config import (
     SearchType,
 )
-from khoj.utils.helpers import merge_dicts
 from khoj.utils.fs_syncer import collect_files
 from khoj.utils.rawconfig import FullConfig
 from khoj.routers.indexer import configure_content, load_content, configure_search
@@ -184,7 +183,7 @@ def configure_search_types(config: FullConfig):
     core_search_types = {e.name: e.value for e in SearchType}
 
     # Dynamically generate search type enum by merging core search types with configured plugin search types
-    return Enum("SearchType", merge_dicts(core_search_types, {}))
+    return Enum("SearchType", core_search_types)
 
 
 @schedule.repeat(schedule.every(59).minutes)

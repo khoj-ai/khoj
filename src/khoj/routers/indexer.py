@@ -158,6 +158,8 @@ async def update(
         host=host,
     )
 
+    logger.info(f"📪 Content index updated via API call by {client} client")
+
     return Response(content="OK", status_code=200)
 
 

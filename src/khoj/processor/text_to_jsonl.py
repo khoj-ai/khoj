@@ -144,7 +144,7 @@ class TextEmbeddings(ABC):
                                 )
                             )
                         new_embeddings = Embeddings.objects.bulk_create(batch_embeddings_to_create)
-                        logger.info(f"Created {new_embeddings.count()} new embeddings")
+                        logger.info(f"Created {len(new_embeddings)} new embeddings")
                         num_new_embeddings += len(new_embeddings)
 
                         dates_to_create = []
@@ -160,7 +160,7 @@ class TextEmbeddings(ABC):
                                     )
                             new_dates = EmbeddingsDates.objects.bulk_create(dates_to_create)
                             if len(new_dates) > 0:
-                                logger.info(f"Created {new_dates.count()} new date entries")
+                                logger.info(f"Created {len(new_dates)} new date entries")
 
         with timer("Identify hashes for removed entries", logger):
             for file in hashes_by_file:
