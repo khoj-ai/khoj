@@ -4,7 +4,7 @@ import os
 from typing import Optional
 
 # External Packages
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from starlette.config import Config
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, RedirectResponse, Response
@@ -50,8 +50,6 @@ async def login(request: Request):
 @requires(["authenticated"], redirect="login_page")
 async def generate_token(request: Request, token_name: Optional[str] = None) -> str:
     "Generate API token for given user"
-    if not request.user.is_authenticated:
-        raise HTTPException(status_code=401, detail="Authenticated user required.")
     if token_name:
         return await create_khoj_token(user=request.user.object, name=token_name)
     else:
@@ -62,8 +60,6 @@ async def generate_token(request: Request, token_name: Optional[str] = None) -> 
 @requires(["authenticated"], redirect="login_page")
 def get_tokens(request: Request):
     "Get API tokens enabled for given user"
-    if not request.user.is_authenticated:
-        raise HTTPException(status_code=401, detail="Authenticated user required.")
     tokens = get_khoj_tokens(user=request.user.object)
     return tokens
 
@@ -72,8 +68,6 @@ def get_tokens(request: Request):
 @requires(["authenticated"], redirect="login_page")
 async def delete_token(request: Request, token: str) -> str:
     "Delete API token for given user"
-    if not request.user.is_authenticated:
-        raise HTTPException(status_code=401, detail="Authenticated user required.")
     return await delete_khoj_token(user=request.user.object, token=token)
 
 

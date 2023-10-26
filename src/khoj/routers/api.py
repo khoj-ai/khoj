@@ -127,8 +127,8 @@ if not state.demo:
     @api.get("/config/data", response_model=FullConfig)
     @requires(["authenticated"])
     def get_config_data(request: Request):
-        user = request.user.object if request.user.is_authenticated else None
-        enabled_content = EmbeddingsAdapters.get_unique_file_types(user)
+        user = request.user.object
+        EmbeddingsAdapters.get_unique_file_types(user)
 
         return state.config
 
@@ -139,7 +139,7 @@ if not state.demo:
         updated_config: FullConfig,
         client: Optional[str] = None,
     ):
-        user = request.user.object if request.user.is_authenticated else None
+        user = request.user.object
         await map_config_to_db(updated_config, user)
 
         configuration_update_metadata = {}
@@ -174,7 +174,7 @@ if not state.demo:
     ):
         _initialize_config()
 
-        user = request.user.object if request.user.is_authenticated else None
+        user = request.user.object
 
         await adapters.set_user_github_config(
             user=user,
@@ -201,7 +201,7 @@ if not state.demo:
     ):
         _initialize_config()
 
-        user = request.user.object if request.user.is_authenticated else None
+        user = request.user.object
 
         await adapters.set_notion_config(
             user=user,
@@ -225,7 +225,7 @@ if not state.demo:
         content_type: str,
         client: Optional[str] = None,
     ):
-        user = request.user.object if request.user.is_authenticated else None
+        user = request.user.object
 
         update_telemetry_state(
             request=request,
@@ -275,7 +275,7 @@ if not state.demo:
     ):
         _initialize_config()
 
-        user = request.user.object if request.user.is_authenticated else None
+        user = request.user.object
 
         content_object = map_config_to_object(content_type)
         await adapters.set_text_content_config(user, content_object, updated_config)
@@ -369,7 +369,7 @@ def get_default_config_data():
 def get_config_types(
     request: Request,
 ):
-    user = request.user.object if request.user.is_authenticated else None
+    user = request.user.object
 
     enabled_file_types = EmbeddingsAdapters.get_unique_file_types(user)
 
@@ -401,7 +401,7 @@ async def search(
     referer: Optional[str] = Header(None),
     host: Optional[str] = Header(None),
 ):
-    user = request.user.object if request.user.is_authenticated else None
+    user = request.user.object
     start_time = time.time()
 
     # Run validation checks
@@ -528,7 +528,7 @@ def update(
     referer: Optional[str] = Header(None),
     host: Optional[str] = Header(None),
 ):
-    user = request.user.object if request.user.is_authenticated else None
+    user = request.user.object
     if not state.config:
         error_msg = f"🚨 Khoj is not configured.\nConfigure it via http://localhost:42110/config, plugins or by editing {state.config_file}."
         logger.warning(error_msg)
