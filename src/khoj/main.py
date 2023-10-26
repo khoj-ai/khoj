@@ -17,9 +17,6 @@ import uvicorn
 import django
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from rich.logging import RichHandler
-import schedule
-
 from fastapi.staticfiles import StaticFiles
 from rich.logging import RichHandler
 import schedule

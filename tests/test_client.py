@@ -119,12 +119,7 @@ def test_get_configured_types_via_api(client, sample_org_data):
 def test_get_api_config_types(client, search_config: SearchConfig, sample_org_data, default_user2: KhojUser):
     # Arrange
     text_search.setup(OrgToJsonl, sample_org_data, regenerate=False, user=default_user2)
-
-    # Act
     response = client.get(f"/api/config/types")
-
-    # Assert
-    assert response.status_code == 200
     assert response.json() == ["all", "org", "image"]
 
 
