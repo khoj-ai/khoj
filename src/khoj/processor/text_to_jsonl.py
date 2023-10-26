@@ -4,9 +4,8 @@ import hashlib
 import logging
 import uuid
 from tqdm import tqdm
-from itertools import zip_longest
 from typing import Callable, List, Tuple, Set, Any
-from khoj.utils.helpers import timer
+from khoj.utils.helpers import timer, batcher
 
 
 # Internal Packages
@@ -84,13 +83,6 @@ class TextEmbeddings(ABC):
         user: KhojUser = None,
         regenerate: bool = False,
     ):
-        # Define the grouper function to split the list into batches
-        def grouper(iterable, max_n, fillvalue=None):
-            "Split an iterable into chunks of size max_n"
-            args = [iter(iterable)] * max_n
-            for chunk in zip_longest(*args, fillvalue=fillvalue):
-                yield list(filter(lambda x: x is not None, chunk))
-
         with timer("Construct current entry hashes", logger):
             hashes_by_file = dict[str, set[str]]()
             current_entry_hashes = list(map(TextEmbeddings.hash_func(key), current_entries))
@@ -122,14 +114,15 @@ class TextEmbeddings(ABC):
                 with timer("Update the database with new vector embeddings", logger):
                     num_items = len(hashes_to_process)
                     assert num_items == len(embeddings)
-                    zipped_vals = zip(hashes_to_process, embeddings)
+                    batch_size = min(200, num_items)
+                    entry_batches = zip(hashes_to_process, embeddings)
 
-                    for batch_zipped_vals in tqdm(
-                        grouper(zipped_vals, min(200, num_items)), desc="Processing embeddings in batches"
+                    for entry_batch in tqdm(
+                        batcher(entry_batches, batch_size), desc="Processing embeddings in batches"
                     ):
                         batch_embeddings_to_create = []
-                        for hashed_val, embedding in batch_zipped_vals:
-                            entry = hash_to_current_entries[hashed_val]
+                        for entry_hash, embedding in entry_batch:
+                            entry = hash_to_current_entries[entry_hash]
                             batch_embeddings_to_create.append(
                                 Embeddings(
                                     user=user,
@@ -139,7 +132,7 @@ class TextEmbeddings(ABC):
                                     heading=entry.heading[:1000],  # Truncate to max chars of field allowed
                                     file_path=entry.file,
                                     file_type=file_type,
-                                    hashed_value=hashed_val,
+                                    hashed_value=entry_hash,
                                     corpus_id=entry.corpus_id,
                                 )
                             )

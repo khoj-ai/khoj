@@ -5,6 +5,7 @@ import datetime
 from enum import Enum
 from importlib import import_module
 from importlib.metadata import version
+from itertools import islice
 import logging
 from os import path
 import os
@@ -305,3 +306,13 @@ def generate_random_name():
     name = f"{adjective} {noun}"
 
     return name
+
+
+def batcher(iterable, max_n):
+    "Split an iterable into chunks of size max_n"
+    it = iter(iterable)
+    while True:
+        chunk = list(islice(it, max_n))
+        if not chunk:
+            return
+        yield (x for x in chunk if x is not None)
