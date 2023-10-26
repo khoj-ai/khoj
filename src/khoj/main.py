@@ -94,6 +94,7 @@ def set_state(args):
     state.port = args.port
     state.demo = args.demo
     state.khoj_version = version("khoj-assistant")
+    state.chat_on_gpu = args.chat_on_gpu
 
 
 def start_server(app, host=None, port=None, socket=None):

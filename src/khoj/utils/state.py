@@ -31,6 +31,8 @@ telemetry: List[Dict[str, str]] = []
 previous_query: str = None
 demo: bool = False
 khoj_version: str = None
+chat_on_gpu: bool = True
+
 
 if torch.cuda.is_available():
     # Use CUDA GPU
