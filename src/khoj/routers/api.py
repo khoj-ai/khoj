@@ -639,7 +639,7 @@ async def chat(
         conversation_command = ConversationCommand.General
 
     if conversation_command == ConversationCommand.Help:
-        model_type = "offline" if await ConversationAdapters.has_offline_chat(user) else "openai"
+        model_type = "offline" if await ConversationAdapters.ahas_offline_chat(user) else "openai"
         formatted_help = help_message.format(model=model_type, version=state.khoj_version)
         return StreamingResponse(iter([formatted_help]), media_type="text/event-stream", status_code=200)
 
@@ -718,7 +718,7 @@ async def extract_references_and_questions(
     # Infer search queries from user message
     with timer("Extracting search queries took", logger):
         # If we've reached here, either the user has enabled offline chat or the openai model is enabled.
-        if await ConversationAdapters.has_offline_chat(user):
+        if await ConversationAdapters.ahas_offline_chat(user):
             using_offline_chat = True
             offline_chat = await ConversationAdapters.get_offline_chat(user)
             chat_model = offline_chat.chat_model

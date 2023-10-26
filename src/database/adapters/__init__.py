@@ -234,13 +234,10 @@ class ConversationAdapters:
     @staticmethod
     def get_enabled_conversation_settings(user: KhojUser):
         openai_config = ConversationAdapters.get_openai_conversation_config(user)
-        offline_chat_config = ConversationAdapters.get_offline_chat_conversation_config(user)
 
         return {
             "openai": True if openai_config is not None else False,
-            "offline_chat": True
-            if (offline_chat_config is not None and offline_chat_config.enable_offline_chat)
-            else False,
+            "offline_chat": ConversationAdapters.has_offline_chat(user),
         }
 
     @staticmethod
@@ -258,7 +255,11 @@ class ConversationAdapters:
         OfflineChatProcessorConversationConfig.objects.filter(user=user).delete()
 
     @staticmethod
-    async def has_offline_chat(user: KhojUser):
+    def has_offline_chat(user: KhojUser):
+        return OfflineChatProcessorConversationConfig.objects.filter(user=user, enable_offline_chat=True).exists()
+
+    @staticmethod
+    async def ahas_offline_chat(user: KhojUser):
         return await OfflineChatProcessorConversationConfig.objects.filter(
             user=user, enable_offline_chat=True
         ).aexists()
