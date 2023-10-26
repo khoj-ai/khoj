@@ -47,7 +47,7 @@ def cli(args=None):
 
     args, remaining_args = parser.parse_known_args(args)
 
-    logger.debug(f"Ignoring unknown args: {remaining_args}")
+    logger.debug(f"Ignoring unknown commandline args: {remaining_args}")
 
     args.version_no = version("khoj-assistant")
     if args.version:
