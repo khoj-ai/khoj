@@ -1,3 +1,4 @@
+import secrets
 from typing import Type, TypeVar, List
 from datetime import date
 
@@ -16,6 +17,7 @@ from fastapi import HTTPException
 from database.models import (
     KhojUser,
     GoogleUser,
+    KhojApiUser,
     NotionConfig,
     GithubConfig,
     Embeddings,
@@ -25,6 +27,7 @@ from database.models import (
     OpenAIProcessorConversationConfig,
     OfflineChatProcessorConversationConfig,
 )
+from khoj.utils.helpers import generate_random_name
 from khoj.utils.rawconfig import (
     ConversationProcessorConfig as UserConversationProcessorConfig,
 )
@@ -50,6 +53,25 @@ async def set_notion_config(token: str, user: KhojUser):
         notion_config.token = token
         await notion_config.asave()
     return notion_config
+
+
+async def create_khoj_token(user: KhojUser, name=None):
+    "Create Khoj API key for user"
+    token = f"kk-{secrets.token_urlsafe(32)}"
+    name = name or f"{generate_random_name().title()}'s Secret Key"
+    api_config = await KhojApiUser.objects.acreate(token=token, user=user, name=name)
+    await api_config.asave()
+    return api_config
+
+
+def get_khoj_tokens(user: KhojUser):
+    "Get all Khoj API keys for user"
+    return list(KhojApiUser.objects.filter(user=user))
+
+
+async def delete_khoj_token(user: KhojUser, token: str):
+    "Delete Khoj API Key for user"
+    await KhojApiUser.objects.filter(token=token, user=user).adelete()
 
 
 async def get_or_create_user(token: dict) -> KhojUser:

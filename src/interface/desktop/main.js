@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage } = require('electron');
 const todesktop = require("@todesktop/runtime");
 
 todesktop.init();
@@ -42,6 +42,10 @@ const schema = {
         },
         default: []
     },
+    khojToken: {
+        type: 'string',
+        default: ''
+    },
     hostURL: {
         type: 'string',
         default: KHOJ_URL
@@ -63,7 +67,6 @@ const schema = {
 };
 
 var state = {}
-
 const store = new Store({ schema });
 
 console.log(store);
@@ -168,7 +171,7 @@ function pushDataToKhoj (regenerate = false) {
     if (!!formData?.entries()?.next().value) {
         const hostURL = store.get('hostURL') || KHOJ_URL;
         const headers = {
-            'x-api-key': 'secret'
+            'Authorization': `Bearer ${store.get("khojToken")}`
         };
         axios.post(`${hostURL}/api/v1/index/update?force=${regenerate}&client=desktop`, formData, { headers })
             .then(response => {
@@ -246,6 +249,15 @@ async function handleFileOpen (type) {
     }
 }
 
+async function getToken () {
+    return store.get('khojToken');
+}
+
+async function setToken (event, token) {
+    store.set('khojToken', token);
+    return store.get('khojToken');
+}
+
 async function getFiles () {
     return store.get('files');
 }
@@ -287,8 +299,9 @@ async function syncData (regenerate = false) {
     }
 }
 
-const createWindow = () => {
-    const win = new BrowserWindow({
+let win = null;
+const createWindow = (tab = 'index.html') => {
+    win = new BrowserWindow({
       width: 800,
       height: 800,
     //   titleBarStyle: 'hidden',
@@ -316,7 +329,7 @@ const createWindow = () => {
 
     job.start();
 
-    win.loadFile('index.html')
+    win.loadFile(tab)
 }
 
 app.whenReady().then(() => {
@@ -339,6 +352,9 @@ app.whenReady().then(() => {
 
     ipcMain.handle('setURL', setURL);
     ipcMain.handle('getURL', getURL);
+
+    ipcMain.handle('setToken', setToken);
+    ipcMain.handle('getToken', getToken);
 
     ipcMain.handle('syncData', (event, regenerate) => {
         syncData(regenerate);
@@ -374,4 +390,34 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
+})
+
+/*
+**  System Tray Icon
+*/
+
+let tray
+
+openWindow = (page) => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow(page);
+    } else {
+        win.loadFile(page); win.show();
+    }
+}
+
+app.whenReady().then(() => {
+    const icon = nativeImage.createFromPath('assets/icons/favicon-20x20.png')
+    tray = new Tray(icon)
+
+    const contextMenu = Menu.buildFromTemplate([
+        { label: 'Chat', type: 'normal', click: () => { openWindow('chat.html'); }},
+        { label: 'Search', type: 'normal', click: () => { openWindow('index.html') }},
+        { label: 'Configure', type: 'normal', click: () => { openWindow('config.html') }},
+        { type: 'separator' },
+        { label: 'Quit', type: 'normal', click: () => { app.quit() } }
+    ])
+
+    tray.setToolTip('Khoj')
+    tray.setContextMenu(contextMenu)
 })

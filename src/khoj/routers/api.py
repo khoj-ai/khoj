@@ -126,21 +126,21 @@ if not state.demo:
             state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
 
     @api.get("/config/data", response_model=FullConfig)
-    @requires(["authenticated"], redirect="login_page")
+    @requires(["authenticated"])
     def get_config_data(request: Request):
-        user = request.user.object if request.user.is_authenticated else None
-        enabled_content = EmbeddingsAdapters.get_unique_file_types(user)
+        user = request.user.object
+        EmbeddingsAdapters.get_unique_file_types(user)
 
         return state.config
 
     @api.post("/config/data")
-    @requires(["authenticated"], redirect="login_page")
+    @requires(["authenticated"])
     async def set_config_data(
         request: Request,
         updated_config: FullConfig,
         client: Optional[str] = None,
     ):
-        user = request.user.object if request.user.is_authenticated else None
+        user = request.user.object
         await map_config_to_db(updated_config, user)
 
         configuration_update_metadata = {}
@@ -167,7 +167,7 @@ if not state.demo:
         return state.config
 
     @api.post("/config/data/content_type/github", status_code=200)
-    @requires(["authenticated"], redirect="login_page")
+    @requires(["authenticated"])
     async def set_content_config_github_data(
         request: Request,
         updated_config: Union[GithubContentConfig, None],
@@ -175,7 +175,7 @@ if not state.demo:
     ):
         _initialize_config()
 
-        user = request.user.object if request.user.is_authenticated else None
+        user = request.user.object
 
         await adapters.set_user_github_config(
             user=user,
@@ -194,7 +194,7 @@ if not state.demo:
         return {"status": "ok"}
 
     @api.post("/config/data/content_type/notion", status_code=200)
-    @requires(["authenticated"], redirect="login_page")
+    @requires(["authenticated"])
     async def set_content_config_notion_data(
         request: Request,
         updated_config: Union[NotionContentConfig, None],
@@ -202,7 +202,7 @@ if not state.demo:
     ):
         _initialize_config()
 
-        user = request.user.object if request.user.is_authenticated else None
+        user = request.user.object
 
         await adapters.set_notion_config(
             user=user,
@@ -220,13 +220,13 @@ if not state.demo:
         return {"status": "ok"}
 
     @api.post("/delete/config/data/content_type/{content_type}", status_code=200)
-    @requires(["authenticated"], redirect="login_page")
+    @requires(["authenticated"])
     async def remove_content_config_data(
         request: Request,
         content_type: str,
         client: Optional[str] = None,
     ):
-        user = request.user.object if request.user.is_authenticated else None
+        user = request.user.object
 
         update_telemetry_state(
             request=request,
@@ -247,7 +247,7 @@ if not state.demo:
         return {"status": "ok"}
 
     @api.post("/delete/config/data/processor/conversation/openai", status_code=200)
-    @requires(["authenticated"], redirect="login_page")
+    @requires(["authenticated"])
     async def remove_processor_conversation_config_data(
         request: Request,
         client: Optional[str] = None,
@@ -267,7 +267,7 @@ if not state.demo:
         return {"status": "ok"}
 
     @api.post("/config/data/content_type/{content_type}", status_code=200)
-    @requires(["authenticated"], redirect="login_page")
+    @requires(["authenticated"])
     async def set_content_config_data(
         request: Request,
         content_type: str,
@@ -276,7 +276,7 @@ if not state.demo:
     ):
         _initialize_config()
 
-        user = request.user.object if request.user.is_authenticated else None
+        user = request.user.object
 
         content_object = map_config_to_object(content_type)
         await adapters.set_text_content_config(user, content_object, updated_config)
@@ -292,7 +292,7 @@ if not state.demo:
         return {"status": "ok"}
 
     @api.post("/config/data/processor/conversation/openai", status_code=200)
-    @requires(["authenticated"], redirect="login_page")
+    @requires(["authenticated"])
     async def set_processor_openai_config_data(
         request: Request,
         updated_config: Union[OpenAIProcessorConfig, None],
@@ -315,6 +315,7 @@ if not state.demo:
         return {"status": "ok"}
 
     @api.post("/config/data/processor/conversation/offline_chat", status_code=200)
+    @requires(["authenticated"])
     async def set_processor_enable_offline_chat_config_data(
         request: Request,
         enable_offline_chat: bool,
@@ -323,24 +324,29 @@ if not state.demo:
     ):
         user = request.user.object
 
-        if enable_offline_chat:
-            conversation_config = ConversationProcessorConfig(
-                offline_chat=OfflineChatProcessorConfig(
-                    enable_offline_chat=enable_offline_chat,
-                    chat_model=offline_chat_model,
+        try:
+            if enable_offline_chat:
+                conversation_config = ConversationProcessorConfig(
+                    offline_chat=OfflineChatProcessorConfig(
+                        enable_offline_chat=enable_offline_chat,
+                        chat_model=offline_chat_model,
+                    )
                 )
-            )
 
-            await sync_to_async(ConversationAdapters.set_conversation_processor_config)(user, conversation_config)
+                await sync_to_async(ConversationAdapters.set_conversation_processor_config)(user, conversation_config)
 
-            offline_chat = await ConversationAdapters.get_offline_chat(user)
-            chat_model = offline_chat.chat_model
-            if state.gpt4all_processor_config is None:
-                state.gpt4all_processor_config = GPT4AllProcessorModel(chat_model=chat_model)
+                offline_chat = await ConversationAdapters.get_offline_chat(user)
+                chat_model = offline_chat.chat_model
+                if state.gpt4all_processor_config is None:
+                    state.gpt4all_processor_config = GPT4AllProcessorModel(chat_model=chat_model)
 
-        else:
-            await sync_to_async(ConversationAdapters.clear_offline_chat_conversation_config)(user)
-            state.gpt4all_processor_config = None
+            else:
+                await sync_to_async(ConversationAdapters.clear_offline_chat_conversation_config)(user)
+                state.gpt4all_processor_config = None
+
+        except Exception as e:
+            logger.error(f"Error updating offline chat config: {e}", exc_info=True)
+            return {"status": "error", "message": str(e)}
 
         update_telemetry_state(
             request=request,
@@ -360,11 +366,11 @@ def get_default_config_data():
 
 
 @api.get("/config/types", response_model=List[str])
-@requires(["authenticated"], redirect="login_page")
+@requires(["authenticated"])
 def get_config_types(
     request: Request,
 ):
-    user = request.user.object if request.user.is_authenticated else None
+    user = request.user.object
 
     enabled_file_types = EmbeddingsAdapters.get_unique_file_types(user)
 
@@ -382,7 +388,7 @@ def get_config_types(
 
 
 @api.get("/search", response_model=List[SearchResponse])
-@requires(["authenticated"], redirect="login_page")
+@requires(["authenticated"])
 async def search(
     q: str,
     request: Request,
@@ -396,7 +402,7 @@ async def search(
     referer: Optional[str] = Header(None),
     host: Optional[str] = Header(None),
 ):
-    user = request.user.object if request.user.is_authenticated else None
+    user = request.user.object
     start_time = time.time()
 
     # Run validation checks
@@ -513,7 +519,7 @@ async def search(
 
 
 @api.get("/update")
-@requires(["authenticated"], redirect="login_page")
+@requires(["authenticated"])
 def update(
     request: Request,
     t: Optional[SearchType] = None,
@@ -523,7 +529,7 @@ def update(
     referer: Optional[str] = Header(None),
     host: Optional[str] = Header(None),
 ):
-    user = request.user.object if request.user.is_authenticated else None
+    user = request.user.object
     if not state.config:
         error_msg = f"🚨 Khoj is not configured.\nConfigure it via http://localhost:42110/config, plugins or by editing {state.config_file}."
         logger.warning(error_msg)
@@ -557,7 +563,7 @@ def update(
 
 
 @api.get("/chat/history")
-@requires(["authenticated"], redirect="login_page")
+@requires(["authenticated"])
 def chat_history(
     request: Request,
     client: Optional[str] = None,
@@ -585,7 +591,7 @@ def chat_history(
 
 
 @api.get("/chat/options", response_class=Response)
-@requires(["authenticated"], redirect="login_page")
+@requires(["authenticated"])
 async def chat_options(
     request: Request,
     client: Optional[str] = None,
@@ -610,7 +616,7 @@ async def chat_options(
 
 
 @api.get("/chat", response_class=Response)
-@requires(["authenticated"], redirect="login_page")
+@requires(["authenticated"])
 async def chat(
     request: Request,
     q: str,

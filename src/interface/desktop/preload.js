@@ -47,3 +47,8 @@ contextBridge.exposeInMainWorld('hostURLAPI', {
 contextBridge.exposeInMainWorld('syncDataAPI', {
     syncData: (regenerate) => ipcRenderer.invoke('syncData', regenerate)
 })
+
+contextBridge.exposeInMainWorld('tokenAPI', {
+    setToken: (token) => ipcRenderer.invoke('setToken', token),
+    getToken: () => ipcRenderer.invoke('getToken')
+})

@@ -170,7 +170,10 @@
 
             // Execute Search and Render Results
             url = await createRequestUrl(query, type, results_count || 5, rerank);
-            fetch(url)
+            const khojToken = await window.tokenAPI.getToken();
+            const headers = { 'Authorization': `Bearer ${khojToken}` };
+
+            fetch(url, { headers })
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
@@ -192,9 +195,11 @@
 
         async function populate_type_dropdown() {
             const hostURL = await window.hostURLAPI.getURL();
+            const khojToken = await window.tokenAPI.getToken();
+            const headers = { 'Authorization': `Bearer ${khojToken}` };
 
             // Populate type dropdown field with enabled content types only
-            fetch(`${hostURL}/api/config/types`)
+            fetch(`${hostURL}/api/config/types`, { headers })
                 .then(response => response.json())
                 .then(enabled_types => {
                     // Show warning if no content types are enabled
@@ -247,9 +252,9 @@
                 <img class="khoj-logo" src="./assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
             </a>
             <nav class="khoj-nav">
-                <a class="khoj-nav" href="./chat.html">Chat</a>
-                <a class="khoj-nav khoj-nav-selected" href="./index.html">Search</a>
-                <a class="khoj-nav" href="./config.html">⚙️</a>
+                <a class="khoj-nav" href="./chat.html">💬 Chat</a>
+                <a class="khoj-nav khoj-nav-selected" href="./index.html">🔎 Search</a>
+                <a class="khoj-nav" href="./config.html">⚙️ Settings</a>
             </nav>
         </div>
 

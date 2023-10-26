@@ -10,7 +10,7 @@ from os import path
 import os
 from pathlib import Path
 import platform
-import sys
+import random
 from time import perf_counter
 import torch
 from typing import Optional, Union, TYPE_CHECKING
@@ -254,6 +254,18 @@ def log_telemetry(
     return request_body
 
 
+def get_device() -> torch.device:
+    """Get device to run model on"""
+    if torch.cuda.is_available():
+        # Use CUDA GPU
+        return torch.device("cuda:0")
+    elif torch.backends.mps.is_available():
+        # Use Apple M1 Metal Acceleration
+        return torch.device("mps")
+    else:
+        return torch.device("cpu")
+
+
 class ConversationCommand(str, Enum):
     Default = "default"
     General = "general"
@@ -267,3 +279,29 @@ command_descriptions = {
     ConversationCommand.Default: "The default command when no command specified. It intelligently auto-switches between general and notes mode.",
     ConversationCommand.Help: "Display a help message with all available commands and other metadata.",
 }
+
+
+def generate_random_name():
+    # List of adjectives and nouns to choose from
+    adjectives = [
+        "happy",
+        "irritated",
+        "annoyed",
+        "calm",
+        "brave",
+        "scared",
+        "energetic",
+        "chivalrous",
+        "kind",
+        "grumpy",
+    ]
+    nouns = ["dog", "cat", "falcon", "whale", "turtle", "rabbit", "hamster", "snake", "spider", "elephant"]
+
+    # Select two random words from the lists
+    adjective = random.choice(adjectives)
+    noun = random.choice(nouns)
+
+    # Combine the words to form a name
+    name = f"{adjective} {noun}"
+
+    return name

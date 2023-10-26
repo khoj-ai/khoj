@@ -181,6 +181,17 @@ urlInput.addEventListener('blur', async () => {
     urlInput.value = url;
 });
 
+const khojKeyInput = document.getElementById('khoj-access-key');
+(async function() {
+    const token = await window.tokenAPI.getToken();
+    khojKeyInput.value = token;
+})();
+
+khojKeyInput.addEventListener('blur', async () => {
+    const token = await window.tokenAPI.setToken(khojKeyInput.value.trim());
+    khojKeyInput.value = token;
+});
+
 const syncButton = document.getElementById('sync-data');
 const syncForceToggle = document.getElementById('sync-force');
 syncButton.addEventListener('click', async () => {

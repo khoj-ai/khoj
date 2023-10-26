@@ -37,6 +37,15 @@ class GoogleUser(models.Model):
         return self.name
 
 
+class KhojApiUser(models.Model):
+    """User issued API tokens to authenticate Khoj clients"""
+
+    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
+    token = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=50)
+    accessed_at = models.DateTimeField(null=True, default=None)
+
+
 class NotionConfig(BaseModel):
     token = models.CharField(max_length=200)
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)

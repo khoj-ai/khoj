@@ -4,6 +4,7 @@ import logging
 import json
 from enum import Enum
 from typing import Optional
+from fastapi import Request
 import requests
 import os
 
@@ -45,9 +46,10 @@ class UserAuthenticationBackend(AuthenticationBackend):
     def __init__(
         self,
     ):
-        from database.models import KhojUser
+        from database.models import KhojUser, KhojApiUser
 
         self.khojuser_manager = KhojUser.objects
+        self.khojapiuser_manager = KhojApiUser.objects
         self._initialize_default_user()
         super().__init__()
 
@@ -59,13 +61,20 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 password="default",
             )
 
-    async def authenticate(self, request):
+    async def authenticate(self, request: Request):
         current_user = request.session.get("user")
         if current_user and current_user.get("email"):
             user = await self.khojuser_manager.filter(email=current_user.get("email")).afirst()
             if user:
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
-        elif state.anonymous_mode:
+        if len(request.headers.get("Authorization", "").split("Bearer ")) == 2:
+            # Get bearer token from header
+            bearer_token = request.headers["Authorization"].split("Bearer ")[1]
+            # Get user owning token
+            user_with_token = await self.khojapiuser_manager.filter(token=bearer_token).select_related("user").afirst()
+            if user_with_token:
+                return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user_with_token.user)
+        if state.anonymous_mode:
             user = await self.khojuser_manager.filter(username="default").afirst()
             if user:
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
