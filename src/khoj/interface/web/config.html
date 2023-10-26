@@ -287,11 +287,33 @@
             </div>
         </div>
     </div>
-    <div class="section general-settings">
-        <div id="khoj-api-key-section" title="Use Khoj cloud with your Khoj API Key">
-            <button id="generate-api-key" onclick="generateAPIKey()">Generate API Key</button>
-            <div id="api-key-list"></div>
+    <div class="section">
+        <div class="api-settings">
+            <div class="card-title-row">
+                <img class="card-icon" src="/static/assets/icons/key.svg" alt="API Key">
+                <h3 class="card-title">API Keys</h3>
+            </div>
+            <div class="card-description-row">
+                <p id="api-settings-card-description" class="card-description">Manage access to your Khoj from client apps</p>
+            </div>
+            <table id="api-settings-keys-table">
+                <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Key</th>
+                    <th scope="col">Actions</th>
+                </tr>
+                </thead>
+                <tbody id="api-key-list"></tbody>
+            </table>
+            <div class="card-action-row">
+                <button class="card-button happy" id="generate-api-key" onclick="generateAPIKey()">
+                    Generate API Key
+                </button>
+            </div>
         </div>
+    </div>
+    <div class="section general-settings">
         <div id="results-count" title="Number of items to show in search and use for chat response">
             <label for="results-count-slider">Results Count: <span id="results-count-value">5</span></label>
             <input type="range" id="results-count-slider" name="results-count-slider" min="1" max="10" step="1" value="5">
@@ -520,12 +542,30 @@
         .then(response => response.json())
         .then(tokenObj => {
             apiKeyList.innerHTML += `
-                <div id="api-key-item-${tokenObj.token}" class="api-key-item">
-                    <span class="api-key">${tokenObj.token}</span>
-                    <button class="delete-api-key" onclick="deleteAPIKey('${tokenObj.token}')">Delete</button>
-                </div>
+                <tr id="api-key-item-${tokenObj.token}">
+                    <td><b>${tokenObj.name}</b></td>
+                    <td id="api-key-${tokenObj.token}">${tokenObj.token}</td>
+                    <td>
+                        <img id="api-key-copy-button-${tokenObj.token}" onclick="copyAPIKey('${tokenObj.token}')" class="configured-icon enabled" src="/static/assets/icons/copy-solid.svg" alt="Copy API Key">
+                        <img id="api-key-delete-button-${tokenObj.token}" onclick="deleteAPIKey('${tokenObj.token}')" class="configured-icon enabled" src="/static/assets/icons/trash-solid.svg" alt="Delete API Key">
+                    </td>
+                </tr>
             `;
         });
+    }
+
+    function copyAPIKey(token) {
+        // Copy API key to clipboard
+        navigator.clipboard.writeText(token);
+        // Flash the API key copied message
+        const copyApiKeyButton = document.getElementById(`api-key-${token}`);
+        original_html = copyApiKeyButton.innerHTML
+        setTimeout(function() {
+            copyApiKeyButton.innerHTML = "✅ Copied to your clipboard!";
+            setTimeout(function() {
+                copyApiKeyButton.innerHTML = original_html;
+            }, 1000);
+        }, 100);
     }
 
     function deleteAPIKey(token) {
@@ -548,10 +588,14 @@
             .then(tokens => {
                 apiKeyList.innerHTML = tokens.map(tokenObj =>
                     `
-                        <div id="api-key-item-${tokenObj.token}" class="api-key-item">
-                            <span class="api-key">${tokenObj.token}</span>
-                            <button class="delete-api-key" onclick="deleteAPIKey('${tokenObj.token}')">Delete</button>
-                        </div>
+                        <tr id="api-key-item-${tokenObj.token}">
+                            <td><b>${tokenObj.name}</b></td>
+                            <td id="api-key-${tokenObj.token}">${tokenObj.token}</td>
+                            <td>
+                                <img id="api-key-copy-button-${tokenObj.token}" onclick="copyAPIKey('${tokenObj.token}')" class="configured-icon enabled" src="/static/assets/icons/copy-solid.svg" alt="Copy API Key">
+                                <img id="api-key-delete-button-${tokenObj.token}" onclick="deleteAPIKey('${tokenObj.token}')" class="configured-icon enabled" src="/static/assets/icons/trash-solid.svg" alt="Delete API Key">
+                            </td>
+                        </tr>
                     `)
                     .join("");
             });
