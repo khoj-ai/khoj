@@ -511,12 +511,10 @@
 
     function generateAPIKey() {
         const apiKeyList = document.getElementById("api-key-list");
-        const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
         fetch('/auth/token', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
             },
         })
         .then(response => response.json())

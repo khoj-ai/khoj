@@ -104,7 +104,7 @@ def run():
     static_dir = "static"
     if not os.path.exists(static_dir):
         os.mkdir(static_dir)
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    app.mount(f"/{static_dir}", StaticFiles(directory=static_dir), name=static_dir)
 
     # Configure Middleware
     configure_middleware(app)
