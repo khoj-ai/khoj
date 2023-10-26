@@ -14,11 +14,9 @@ from khoj.utils.rawconfig import ContentConfig, SearchConfig
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.github.github_to_jsonl import GithubToJsonl
 from khoj.utils.fs_syncer import collect_files, get_org_files
-from khoj.utils.config import SearchModels
 from database.models import LocalOrgConfig, KhojUser, Embeddings, GithubConfig
 
 logger = logging.getLogger(__name__)
-from khoj.utils.rawconfig import ContentConfig, SearchConfig, TextContentConfig
 
 
 # Test

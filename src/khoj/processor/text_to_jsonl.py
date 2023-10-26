@@ -124,7 +124,7 @@ class TextEmbeddings(ABC):
                                 embeddings=embedding,
                                 raw=entry.raw,
                                 compiled=entry.compiled,
-                                heading=entry.heading[:1000],  # Truncate to max chars of field allowed
+                                heading=entry.heading,
                                 file_path=entry.file,
                                 file_type=file_type,
                                 hashed_value=hashed_val,
