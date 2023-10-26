@@ -82,6 +82,12 @@ class UserAuthenticationBackend(AuthenticationBackend):
 
 
 def initialize_server(config: Optional[FullConfig]):
+    if config is None:
+        logger.warning(
+            f"🚨 Khoj is not configured.\nConfigure it via http://{state.host}:{state.port}/config, plugins or by editing {state.config_file}."
+        )
+        return None
+
     try:
         configure_server(config, init=True)
     except Exception as e:

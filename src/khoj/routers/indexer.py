@@ -4,7 +4,7 @@ from typing import Optional, Union, Dict
 import asyncio
 
 # External Packages
-from fastapi import APIRouter, HTTPException, Header, Request, Response, UploadFile
+from fastapi import APIRouter, Header, Request, Response, UploadFile
 from pydantic import BaseModel
 from starlette.authentication import requires
 
@@ -69,9 +69,7 @@ async def update(
     referer: Optional[str] = Header(None),
     host: Optional[str] = Header(None),
 ):
-    user = request.user.object if request.user.is_authenticated else None
-    if user is None:
-        raise HTTPException(status_code=401, detail="Authenticated user required.")
+    user = request.user.object
     try:
         logger.info(f"📬 Updating content index via API call by {client} client")
         org_files: Dict[str, str] = {}

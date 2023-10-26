@@ -14,11 +14,9 @@ from khoj.utils.rawconfig import ContentConfig, SearchConfig
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.github.github_to_jsonl import GithubToJsonl
 from khoj.utils.fs_syncer import collect_files, get_org_files
-from khoj.utils.config import SearchModels
 from database.models import LocalOrgConfig, KhojUser, Embeddings, GithubConfig
 
 logger = logging.getLogger(__name__)
-from khoj.utils.rawconfig import ContentConfig, SearchConfig, TextContentConfig
 
 
 # Test
@@ -87,7 +85,10 @@ def test_text_search_setup(content_config, default_user: KhojUser, caplog):
 
     # Assert
     assert "Deleting all embeddings for file type org" in caplog.records[1].message
-    assert "Created 10 new embeddings. Deleted 3 embeddings for user " in caplog.records[2].message
+    assert len(caplog.records) == 5
+    assert "Created 4 new embeddings" in caplog.records[2].message
+    assert "Created 6 new embeddings" in caplog.records[3].message
+    assert "Created 10 new embeddings. Deleted 3 embeddings for user " in caplog.records[4].message
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -177,7 +178,7 @@ def test_entry_chunking_by_max_tokens(org_config_with_only_new_file: LocalOrgCon
 
     # Assert
     # verify newly added org-mode entry is split by max tokens
-    record = caplog.records[1]
+    record = caplog.records[2]
     assert "Created 2 new embeddings. Deleted 0 embeddings for user " in record.message
 
 
@@ -234,7 +235,7 @@ conda activate khoj
             user=default_user,
         )
 
-    record = caplog.records[1]
+    record = caplog.records[2]
 
     # Assert
     # verify newly added org-mode entry is split by max tokens
@@ -253,7 +254,7 @@ def test_regenerate_index_with_new_entry(
     with caplog.at_level(logging.INFO):
         text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
 
-    assert "Created 10 new embeddings. Deleted 3 embeddings for user " in caplog.records[2].message
+    assert "Created 10 new embeddings. Deleted 3 embeddings for user " in caplog.records[-1].message
 
     # append org-mode entry to first org input file in config
     org_config.input_files = [f"{new_org_file}"]
@@ -300,8 +301,8 @@ def test_update_index_with_duplicate_entries_in_stable_order(
 
     # Assert
     # verify only 1 entry added even if there are multiple duplicate entries
-    assert "Created 1 new embeddings. Deleted 3 embeddings for user " in caplog.records[2].message
-    assert "Created 0 new embeddings. Deleted 0 embeddings for user " in caplog.records[4].message
+    assert "Created 1 new embeddings. Deleted 3 embeddings for user " in caplog.records[3].message
+    assert "Created 0 new embeddings. Deleted 0 embeddings for user " in caplog.records[-1].message
 
     verify_embeddings(1, default_user)
 
@@ -334,8 +335,8 @@ def test_update_index_with_deleted_entry(org_config_with_only_new_file: LocalOrg
 
     # Assert
     # verify only 1 entry added even if there are multiple duplicate entries
-    assert "Created 2 new embeddings. Deleted 3 embeddings for user " in caplog.records[2].message
-    assert "Created 0 new embeddings. Deleted 1 embeddings for user " in caplog.records[4].message
+    assert "Created 2 new embeddings. Deleted 3 embeddings for user " in caplog.records[3].message
+    assert "Created 0 new embeddings. Deleted 1 embeddings for user " in caplog.records[-1].message
 
     verify_embeddings(1, default_user)
 
@@ -362,8 +363,8 @@ def test_update_index_with_new_entry(content_config: ContentConfig, new_org_file
         text_search.setup(OrgToJsonl, data, regenerate=False, user=default_user)
 
     # Assert
-    assert "Created 10 new embeddings. Deleted 3 embeddings for user " in caplog.records[2].message
-    assert "Created 1 new embeddings. Deleted 0 embeddings for user " in caplog.records[4].message
+    assert "Created 10 new embeddings. Deleted 3 embeddings for user " in caplog.records[4].message
+    assert "Created 1 new embeddings. Deleted 0 embeddings for user " in caplog.records[-1].message
 
     verify_embeddings(11, default_user)
 

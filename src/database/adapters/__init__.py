@@ -1,9 +1,16 @@
 import secrets
 from typing import Type, TypeVar, List
 from datetime import date
+import secrets
+from typing import Type, TypeVar, List
+from datetime import date
 
 from django.db import models
 from django.contrib.sessions.backends.db import SessionStore
+from pgvector.django import CosineDistance
+from django.db.models.manager import BaseManager
+from django.db.models import Q
+from torch import Tensor
 from pgvector.django import CosineDistance
 from django.db.models.manager import BaseManager
 from django.db.models import Q
@@ -27,6 +34,7 @@ from database.models import (
     OpenAIProcessorConversationConfig,
     OfflineChatProcessorConversationConfig,
 )
+from khoj.utils.helpers import generate_random_name
 from khoj.utils.rawconfig import (
     ConversationProcessorConfig as UserConversationProcessorConfig,
 )
@@ -54,9 +62,10 @@ async def set_notion_config(token: str, user: KhojUser):
     return notion_config
 
 
-async def create_khoj_token(user: KhojUser, name="Secret Key"):
+async def create_khoj_token(user: KhojUser, name=None):
     "Create Khoj API key for user"
     token = f"kk-{secrets.token_urlsafe(32)}"
+    name = name or f"{generate_random_name().title()}'s Secret Key"
     api_config = await KhojApiUser.objects.acreate(token=token, user=user, name=name)
     await api_config.asave()
     return api_config

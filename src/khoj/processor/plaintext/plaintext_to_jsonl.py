@@ -8,8 +8,8 @@ from bs4 import BeautifulSoup
 # Internal Packages
 from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.helpers import timer
-from khoj.utils.rawconfig import Entry, TextContentConfig
-from database.models import Embeddings, KhojUser, LocalPlaintextConfig
+from khoj.utils.rawconfig import Entry
+from database.models import Embeddings, KhojUser
 
 
 logger = logging.getLogger(__name__)

@@ -55,7 +55,7 @@ def login_page(request: Request):
         next_url = request.query_params.get("next", "/")
         return RedirectResponse(url=next_url)
     google_client_id = os.environ.get("GOOGLE_CLIENT_ID")
-    redirect_uri = str(request.app.url_path_for("auth"))
+    redirect_uri = request.url_for("auth")
     return templates.TemplateResponse(
         "login.html",
         context={
@@ -135,7 +135,7 @@ if not state.demo:
     @web_client.get("/config/content_type/github", response_class=HTMLResponse)
     @requires(["authenticated"], redirect="login_page")
     def github_config_page(request: Request):
-        user = request.user.object if request.user.is_authenticated else None
+        user = request.user.object
         current_github_config = get_user_github_config(user)
 
         if current_github_config:
@@ -164,7 +164,7 @@ if not state.demo:
     @web_client.get("/config/content_type/notion", response_class=HTMLResponse)
     @requires(["authenticated"], redirect="login_page")
     def notion_config_page(request: Request):
-        user = request.user.object if request.user.is_authenticated else None
+        user = request.user.object
         current_notion_config = get_user_notion_config(user)
 
         current_config = NotionContentConfig(
@@ -184,7 +184,7 @@ if not state.demo:
             return templates.TemplateResponse("config.html", context={"request": request})
 
         object = map_config_to_object(content_type)
-        user = request.user.object if request.user.is_authenticated else None
+        user = request.user.object
         config = object.objects.filter(user=user).first()
         if config == None:
             config = object.objects.create(user=user)

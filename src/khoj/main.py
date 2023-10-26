@@ -15,11 +15,11 @@ warnings.filterwarnings("ignore", message=r"legacy way to download files from th
 # External Packages
 import uvicorn
 import django
-import schedule
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from rich.logging import RichHandler
+import schedule
 
 from django.core.asgi import get_asgi_application
 from django.core.management import call_command
@@ -101,7 +101,7 @@ def run(should_start_server=True):
     static_dir = "static"
     if not os.path.exists(static_dir):
         os.mkdir(static_dir)
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    app.mount(f"/{static_dir}", StaticFiles(directory=static_dir), name=static_dir)
 
     # Configure Middleware
     configure_middleware(app)
