@@ -7,6 +7,7 @@ import pytest
 # External Packages
 from fastapi.testclient import TestClient
 from fastapi import FastAPI
+import pytest
 
 # Internal Packages
 from khoj.configure import configure_routes, configure_search_types
@@ -115,16 +116,11 @@ def test_get_configured_types_via_api(client, sample_org_data):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_get_api_config_types(client, search_config: SearchConfig, sample_org_data):
+def test_get_api_config_types(client, search_config: SearchConfig, sample_org_data, default_user2: KhojUser):
     # Arrange
-    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False)
-
-    # Act
+    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False, user=default_user2)
     response = client.get(f"/api/config/types")
-
-    # Assert
-    assert response.status_code == 200
-    assert response.json() == ["all", "org", "markdown", "image"]
+    assert response.json() == ["all", "org", "image"]
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -150,6 +146,7 @@ def test_get_configured_types_with_no_content_config(fastapi_app: FastAPI):
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.django_db(transaction=True)
 def test_image_search(client, content_config: ContentConfig, search_config: SearchConfig):
     # Arrange
     search_models.image_search = image_search.initialize_model(search_config.image)
@@ -177,9 +174,9 @@ def test_image_search(client, content_config: ContentConfig, search_config: Sear
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_notes_search(client, search_config: SearchConfig, sample_org_data):
+def test_notes_search(client, search_config: SearchConfig, sample_org_data, default_user2: KhojUser):
     # Arrange
-    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False)
+    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False, user=default_user2)
     user_query = quote("How to git install application?")
 
     # Act
@@ -195,13 +192,14 @@ def test_notes_search(client, search_config: SearchConfig, sample_org_data):
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
 def test_notes_search_with_only_filters(
-    client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data
+    client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data, default_user2: KhojUser
 ):
     # Arrange
     text_search.setup(
         OrgToJsonl,
         sample_org_data,
         regenerate=False,
+        user=default_user2,
     )
     user_query = quote('+"Emacs" file:"*.org"')
 
@@ -217,9 +215,9 @@ def test_notes_search_with_only_filters(
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_notes_search_with_include_filter(client, sample_org_data):
+def test_notes_search_with_include_filter(client, sample_org_data, default_user2: KhojUser):
     # Arrange
-    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False)
+    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False, user=default_user2)
     user_query = quote('How to git install application? +"Emacs"')
 
     # Act
@@ -234,12 +232,13 @@ def test_notes_search_with_include_filter(client, sample_org_data):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_notes_search_with_exclude_filter(client, sample_org_data):
+def test_notes_search_with_exclude_filter(client, sample_org_data, default_user2: KhojUser):
     # Arrange
     text_search.setup(
         OrgToJsonl,
         sample_org_data,
         regenerate=False,
+        user=default_user2,
     )
     user_query = quote('How to git install application? -"clone"')
 

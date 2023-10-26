@@ -1,0 +1,197 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
+        <title>Khoj - Search</title>
+
+        <link rel="icon" type="image/png" sizes="128x128" href="/static/assets/icons/favicon-128x128.png">
+        <link rel="manifest" href="/static/khoj.webmanifest">
+        <link rel="stylesheet" href="/static/assets/khoj.css">
+    </head>
+
+    <body>
+        {% if demo %}
+            <!-- Banner linking to https://khoj.dev -->
+            <div class="khoj-banner-container">
+                <a class="khoj-banner" href="https://khoj.dev" target="_blank">
+                    <p id="khoj-banner" class="khoj-banner">
+                        Enroll in Khoj cloud to get your own assistant
+                    </p>
+                </a>
+                <input type="text" id="khoj-banner-email" placeholder="email" class="khoj-banner-email"></input>
+                <button id="khoj-banner-submit" class="khoj-banner-button">Submit</button>
+            </div>
+        {% endif %}
+        <!--Add Header Logo and Nav Pane-->
+        <div class="khoj-header">
+            {% if demo %}
+                <a class="khoj-logo" href="https://khoj.dev" target="_blank">
+                    <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
+                </a>
+            {% else %}
+                <a class="khoj-logo" href="/">
+                    <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
+                </a>
+            {% endif %}
+        </div>
+
+        <!-- Sign Up button for Google OAuth -->
+        <div id="login-modal">
+            <h1 class="login-modal-title">Become superhuman with your personal knowledge base copilot</h1>
+            <div
+                class="g_id_signin"
+                data-shape="circle"
+                data-text="continue_with"
+                data-logo_alignment="center"
+                data-size="large"
+                data-width="300"
+                data-type="standard">
+            </div>
+        </div>
+        <div id="g_id_onload"
+            data-client_id="{{ google_client_id }}"
+            data-ux_mode="redirect"
+            data-login_uri="{{ redirect_uri }}">
+   </div>
+
+
+    </body>
+
+    <style>
+        @media only screen and (max-width: 600px) {
+            body {
+                display: grid;
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto auto auto minmax(80px, 100%);
+                font-size: small!important;
+            }
+            body > * {
+                grid-column: 1;
+            }
+        }
+        @media only screen and (min-width: 600px) {
+            body {
+                display: grid;
+                grid-template-columns: 1fr min(70vw, 100%) 1fr;
+                grid-template-rows: 1fr auto auto auto minmax(80px, 100%);
+                padding-top: 60vw;
+            }
+            body > * {
+                grid-column: 2;
+            }
+        }
+        body {
+            padding: 0px;
+            margin: 0px;
+            background: #fff;
+            color: #475569;
+            font-family: roboto, karma, segoe ui, sans-serif;
+            font-size: 20px;
+            font-weight: 300;
+            line-height: 1.5em;
+        }
+        body > * {
+            padding: 10px;
+            margin: 10px;
+        }
+
+        @keyframes gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        a.khoj-logo {
+            text-align: center;
+        }
+
+        button#khoj-banner-submit,
+        input#khoj-banner-email {
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #475569;
+            background: #f9fafc;
+        }
+
+        button#khoj-banner-submit:hover,
+        input#khoj-banner-email:hover {
+            box-shadow: 0 0 11px #aaa;
+        }
+
+        div#login-modal {
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr auto auto auto;
+            gap: 10px;
+            padding: 10px;
+            margin: 10px;
+            background: #fff;
+            border-radius: 5px;
+            border: 1px solid #475569;
+            box-shadow: 0 0 11px #aaa;
+            margin-left: 25%;
+            margin-right: 25%;
+        }
+
+        div.g_id_signin {
+            margin: 0 auto;
+            display: block;
+        }
+
+        h1.login-modal-title {
+            text-align: center;
+            line-height: 28px;
+            font-size: x-large;
+        }
+
+        @media only screen and (max-width: 600px) {
+            a.khoj-banner {
+                display: block;
+            }
+            p.khoj-banner {
+                padding: 0;
+            }
+            div#login-modal {
+                margin-left: 10%;
+                margin-right: 10%;
+            }
+        }
+
+    </style>
+    <script>
+        var khojBannerSubmit = document.getElementById("khoj-banner-submit");
+        khojBannerSubmit?.addEventListener("click", function(event) {
+            event.preventDefault();
+            var email = document.getElementById("khoj-banner-email").value;
+            fetch("https://app.khoj.dev/beta/users/", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        email: email
+                    }),
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                }).then(function(response) {
+                    return response.json();
+                }).then(function(data) {
+                    console.log(data);
+                    if (data.user != null) {
+                        document.getElementById("khoj-banner").innerHTML = "Thanks for signing up. We'll be in touch soon! 🚀";
+                        document.getElementById("khoj-banner-submit").remove();
+                    } else {
+                        document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
+                    }
+                }).catch(function(error) {
+                    console.log(error);
+                    document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
+                });
+            });
+    </script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</html>

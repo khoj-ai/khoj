@@ -141,6 +141,7 @@ async def update(
         )
         logger.info(f"Finished processing batch indexing request")
     except Exception as e:
+        logger.error(f"Failed to process batch indexing request: {e}", exc_info=True)
         logger.error(
             f"🚨 Failed to {force} update {t} content index triggered via API call by {client} client: {e}",
             exc_info=True,
@@ -156,7 +157,6 @@ async def update(
         host=host,
     )
 
-    logger.info(f"📪 Content index updated via API call by {client} client")
     return Response(content="OK", status_code=200)
 
 

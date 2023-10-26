@@ -25,7 +25,6 @@ from khoj.utils.rawconfig import (
     OfflineChatProcessorConfig,
     OpenAIProcessorConfig,
     ProcessorConfig,
-    TextContentConfig,
     ImageContentConfig,
     SearchConfig,
     TextSearchConfig,
@@ -38,7 +37,6 @@ from database.models import (
     LocalOrgConfig,
     LocalMarkdownConfig,
     LocalPlaintextConfig,
-    LocalPdfConfig,
     GithubConfig,
     KhojUser,
     GithubRepoConfig,
@@ -93,6 +91,19 @@ def search_config() -> SearchConfig:
 @pytest.fixture
 def default_user():
     return UserFactory()
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def default_user2():
+    if KhojUser.objects.filter(username="default").exists():
+        return KhojUser.objects.get(username="default")
+
+    return UserFactory(
+        username="default",
+        email="default@example.com",
+        password="default",
+    )
 
 
 @pytest.fixture(scope="session")

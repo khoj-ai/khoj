@@ -1,7 +1,11 @@
+# System Packages
+import json
+import os
+
 # External Packages
 from fastapi import APIRouter
 from fastapi import Request
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from starlette.authentication import requires
 from khoj.utils.rawconfig import (
@@ -16,9 +20,7 @@ from khoj.utils.rawconfig import (
 # Internal Packages
 from khoj.utils import constants, state
 from database.adapters import EmbeddingsAdapters, get_user_github_config, get_user_notion_config
-from database.models import KhojUser, LocalOrgConfig, LocalMarkdownConfig, LocalPdfConfig, LocalPlaintextConfig
-
-import json
+from database.models import LocalOrgConfig, LocalMarkdownConfig, LocalPdfConfig, LocalPlaintextConfig
 
 
 # Initialize Router
@@ -30,13 +32,39 @@ VALID_TEXT_CONTENT_TYPES = ["org", "markdown", "pdf", "plaintext"]
 
 # Create Routes
 @web_client.get("/", response_class=FileResponse)
+@requires(["authenticated"], redirect="login_page")
 def index(request: Request):
     return templates.TemplateResponse("index.html", context={"request": request, "demo": state.demo})
 
 
+@web_client.post("/", response_class=FileResponse)
+@requires(["authenticated"], redirect="login_page")
+def index_post(request: Request):
+    return templates.TemplateResponse("index.html", context={"request": request, "demo": state.demo})
+
+
 @web_client.get("/chat", response_class=FileResponse)
+@requires(["authenticated"], redirect="login_page")
 def chat_page(request: Request):
     return templates.TemplateResponse("chat.html", context={"request": request, "demo": state.demo})
+
+
+@web_client.get("/login", response_class=FileResponse)
+def login_page(request: Request):
+    if request.user.is_authenticated:
+        next_url = request.query_params.get("next", "/")
+        return RedirectResponse(url=next_url)
+    google_client_id = os.environ.get("GOOGLE_CLIENT_ID")
+    redirect_uri = request.url_for("auth")
+    return templates.TemplateResponse(
+        "login.html",
+        context={
+            "request": request,
+            "demo": state.demo,
+            "google_client_id": google_client_id,
+            "redirect_uri": redirect_uri,
+        },
+    )
 
 
 def map_config_to_object(content_type: str):
@@ -53,6 +81,7 @@ def map_config_to_object(content_type: str):
 if not state.demo:
 
     @web_client.get("/config", response_class=HTMLResponse)
+    @requires(["authenticated"], redirect="login_page")
     def config_page(request: Request):
         user = request.user.object if request.user.is_authenticated else None
         enabled_content = set(EmbeddingsAdapters.get_unique_file_types(user).all())
@@ -97,11 +126,12 @@ if not state.demo:
                 "request": request,
                 "current_config": current_config,
                 "current_model_state": successfully_configured,
+                "anonymous_mode": state.anonymous_mode,
             },
         )
 
     @web_client.get("/config/content_type/github", response_class=HTMLResponse)
-    @requires(["authenticated"])
+    @requires(["authenticated"], redirect="login_page")
     def github_config_page(request: Request):
         user = request.user.object if request.user.is_authenticated else None
         current_github_config = get_user_github_config(user)
@@ -130,6 +160,7 @@ if not state.demo:
         )
 
     @web_client.get("/config/content_type/notion", response_class=HTMLResponse)
+    @requires(["authenticated"], redirect="login_page")
     def notion_config_page(request: Request):
         user = request.user.object if request.user.is_authenticated else None
         current_notion_config = get_user_notion_config(user)
@@ -145,6 +176,7 @@ if not state.demo:
         )
 
     @web_client.get("/config/content_type/{content_type}", response_class=HTMLResponse)
+    @requires(["authenticated"], redirect="login_page")
     def content_config_page(request: Request, content_type: str):
         if content_type not in VALID_TEXT_CONTENT_TYPES:
             return templates.TemplateResponse("config.html", context={"request": request})

@@ -14,13 +14,13 @@ warnings.filterwarnings("ignore", message=r"legacy way to download files from th
 
 # External Packages
 import uvicorn
+import django
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import schedule
-import django
-
 from fastapi.staticfiles import StaticFiles
 from rich.logging import RichHandler
+import schedule
+
 from django.core.asgi import get_asgi_application
 from django.core.management import call_command
 
@@ -33,13 +33,6 @@ call_command("migrate", "--noinput")
 
 # Initialize Django Static Files
 call_command("collectstatic", "--noinput")
-
-# Initialize Django
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "app.settings")
-django.setup()
-
-# Initialize Django Database
-call_command("migrate", "--noinput")
 
 # Initialize the Application Server
 app = FastAPI()

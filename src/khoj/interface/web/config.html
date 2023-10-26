@@ -297,6 +297,11 @@
             <div class="finalize-buttons">
                 <button id="reinitialize" type="submit" title="Regenerate index from scratch">🔄 Reinitialize</button>
             </div>
+            {% if anonymous_mode == False %}
+                <div class="finalize-buttons">
+                    <button id="logout" class="logout" onclick="window.location.href='/auth/logout'">Logout</button>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>

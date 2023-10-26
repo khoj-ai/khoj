@@ -67,7 +67,7 @@ class UserAuthenticationBackend(AuthenticationBackend):
             user = await self.khojuser_manager.filter(email=current_user.get("email")).afirst()
             if user:
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
-        elif not state.anonymous_mode:
+        elif state.anonymous_mode:
             user = await self.khojuser_manager.filter(username="default").afirst()
             if user:
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
@@ -77,11 +77,6 @@ class UserAuthenticationBackend(AuthenticationBackend):
 
 def initialize_server(config: Optional[FullConfig]):
     if config is None:
-        logger.error(
-            f"🚨 Exiting as Khoj is not configured.\nConfigure it via http://{state.host}:{state.port}/config or by editing {state.config_file}."
-        )
-        sys.exit(1)
-    elif config is None:
         logger.warning(
             f"🚨 Khoj is not configured.\nConfigure it via http://{state.host}:{state.port}/config, plugins or by editing {state.config_file}."
         )
@@ -230,6 +225,8 @@ def configure_conversation_processor(
                 conversation_logfile=conversation_logfile,
                 openai=(conversation_config.openai if (conversation_config is not None) else None),
                 offline_chat=conversation_config.offline_chat if conversation_config else OfflineChatProcessorConfig(),
+                max_prompt_size=conversation_config.max_prompt_size if conversation_config else None,
+                tokenizer=conversation_config.tokenizer if conversation_config else None,
             )
         )
     else:

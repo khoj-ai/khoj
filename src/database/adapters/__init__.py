@@ -73,8 +73,7 @@ async def create_google_user(token: dict) -> KhojUser:
 
 
 async def get_user_by_token(token: dict) -> KhojUser:
-    user_info = token.get("userinfo")
-    google_user = await GoogleUser.objects.filter(sub=user_info.get("sub")).select_related("user").afirst()
+    google_user = await GoogleUser.objects.filter(sub=token.get("sub")).select_related("user").afirst()
     if not google_user:
         return None
     return google_user.user
