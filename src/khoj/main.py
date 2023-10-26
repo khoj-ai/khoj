@@ -65,7 +65,7 @@ logging.basicConfig(handlers=[rich_handler])
 logger = logging.getLogger("khoj")
 
 
-def run():
+def run(should_start_server=True):
     # Turn Tokenizers Parallelism Off. App does not support it.
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -107,7 +107,10 @@ def run():
     configure_middleware(app)
 
     initialize_server(args.config)
-    start_server(app, host=args.host, port=args.port, socket=args.socket)
+
+    # If the server is started through gunicorn (external to the script), don't start the server
+    if should_start_server:
+        start_server(app, host=args.host, port=args.port, socket=args.socket)
 
 
 def set_state(args):
@@ -139,3 +142,5 @@ def poll_task_scheduler():
 
 if __name__ == "__main__":
     run()
+else:
+    run(should_start_server=False)

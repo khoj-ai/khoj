@@ -52,7 +52,7 @@ dependencies = [
     "schedule == 1.1.0",
     "sentence-transformers == 2.2.2",
     "transformers >= 4.28.0",
-    "torch >= 2.0.1",
+    "torch == 2.0.1",
     "uvicorn == 0.17.6",
     "aiohttp == 3.8.5",
     "langchain >= 0.0.187",
@@ -70,6 +70,7 @@ dependencies = [
     "psycopg2-binary == 2.9.9",
     "google-auth == 2.23.3",
     "python-multipart == 0.0.6",
+    "gunicorn == 21.2.0",
 ]
 dynamic = ["version"]
 

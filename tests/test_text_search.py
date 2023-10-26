@@ -17,7 +17,6 @@ from khoj.utils.fs_syncer import collect_files, get_org_files
 from database.models import LocalOrgConfig, KhojUser, Embeddings, GithubConfig
 
 logger = logging.getLogger(__name__)
-from khoj.utils.rawconfig import ContentConfig, SearchConfig
 
 
 # Test

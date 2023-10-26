@@ -25,7 +25,7 @@ def test_cli_invalid_config_file_path():
     non_existent_config_file = f"non-existent-khoj-{random()}.yml"
 
     # Act
-    actual_args = cli([f"-c={non_existent_config_file}"])
+    actual_args = cli([f"--config-file={non_existent_config_file}"])
 
     # Assert
     assert actual_args.config_file == resolve_absolute_path(non_existent_config_file)
@@ -35,7 +35,7 @@ def test_cli_invalid_config_file_path():
 # ----------------------------------------------------------------------------------------------------
 def test_cli_config_from_file():
     # Act
-    actual_args = cli(["-c=tests/data/config.yml", "--regenerate", "-vvv"])
+    actual_args = cli(["--config-file=tests/data/config.yml", "--regenerate", "-vvv"])
 
     # Assert
     assert actual_args.config_file == resolve_absolute_path(Path("tests/data/config.yml"))

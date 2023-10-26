@@ -39,6 +39,7 @@ services:
       - ./tests/data/embeddings/:/root/.khoj/content/
       - ./tests/data/models/:/root/.khoj/search/
       - khoj_config:/root/.khoj/
+      - khoj_models:/root/.cache/torch/sentence_transformers
     # Use 0.0.0.0 to explicitly set the host ip for the service on the container. https://pythonspeed.com/articles/docker-connection-refused/
     environment:
       - POSTGRES_DB=postgres
@@ -46,9 +47,12 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_HOST=database
       - POSTGRES_PORT=5432
+      - GOOGLE_CLIENT_SECRET=bar
+      - GOOGLE_CLIENT_ID=foo
     command: --host="0.0.0.0" --port=42110 -vv
 
 
 volumes:
   khoj_config:
   khoj_db:
+  khoj_models:
