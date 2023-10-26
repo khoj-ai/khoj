@@ -121,15 +121,11 @@ def get_all_users() -> BaseManager[KhojUser]:
 
 def get_user_github_config(user: KhojUser):
     config = GithubConfig.objects.filter(user=user).prefetch_related("githubrepoconfig").first()
-    if not config:
-        return None
     return config
 
 
 def get_user_notion_config(user: KhojUser):
     config = NotionConfig.objects.filter(user=user).first()
-    if not config:
-        return None
     return config
 
 
