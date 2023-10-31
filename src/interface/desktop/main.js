@@ -267,6 +267,12 @@ async function getFolders () {
 }
 
 async function setURL (event, url) {
+    // Sanitize the URL. Remove trailing slash if present. Add http:// if not present.
+    url = url.replace(/\/$/, "");
+    if (!url.match(/^[a-zA-Z]+:\/\//)) {
+        url = `http://${url}`;
+    }
+
     store.set('hostURL', url);
     return store.get('hostURL');
 }

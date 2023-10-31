@@ -174,6 +174,7 @@ urlInput.addEventListener('blur', async () => {
         new URL(urlInputValue);
     } catch (e) {
         console.log(e);
+        alert('Please enter a valid URL');
         return;
     }
 
