@@ -93,20 +93,26 @@ class LocalPlaintextConfig(BaseModel):
 
 class OpenAIProcessorConversationConfig(BaseModel):
     api_key = models.CharField(max_length=200)
-    chat_model = models.CharField(max_length=200)
-    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
 
 
 class OfflineChatProcessorConversationConfig(BaseModel):
-    enable_offline_chat = models.BooleanField(default=False)
-    chat_model = models.CharField(max_length=200, default="llama-2-7b-chat.ggmlv3.q4_0.bin")
-    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
+    enabled = models.BooleanField(default=False)
 
 
-class ConversationProcessorConfig(BaseModel):
+class ChatModelOptions(BaseModel):
+    class ModelType(models.TextChoices):
+        OPENAI = "openai"
+        OFFLINE = "offline"
+
     max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
     tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)
-    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
+    chat_model = models.CharField(max_length=200, default=None, null=True, blank=True)
+    model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OPENAI)
+
+
+class UserConversationConfig(BaseModel):
+    user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
+    setting = models.ForeignKey(ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
 
 class Conversation(BaseModel):

@@ -30,7 +30,8 @@ from database.models import (
     Embeddings,
     GithubRepoConfig,
     Conversation,
-    ConversationProcessorConfig,
+    ChatModelOptions,
+    UserConversationConfig,
     OpenAIProcessorConversationConfig,
     OfflineChatProcessorConversationConfig,
 )
@@ -184,27 +185,42 @@ class ConversationAdapters:
 
     @staticmethod
     def has_any_conversation_config(user: KhojUser):
-        return ConversationProcessorConfig.objects.filter(user=user).exists()
+        return ChatModelOptions.objects.filter(user=user).exists()
 
     @staticmethod
-    def get_openai_conversation_config(user: KhojUser):
-        return OpenAIProcessorConversationConfig.objects.filter(user=user).first()
+    def get_openai_conversation_config():
+        return OpenAIProcessorConversationConfig.objects.filter().first()
 
     @staticmethod
-    def get_offline_chat_conversation_config(user: KhojUser):
-        return OfflineChatProcessorConversationConfig.objects.filter(user=user).first()
+    def get_offline_chat_conversation_config():
+        return OfflineChatProcessorConversationConfig.objects.filter().first()
 
     @staticmethod
-    def has_valid_offline_conversation_config(user: KhojUser):
-        return OfflineChatProcessorConversationConfig.objects.filter(user=user, enable_offline_chat=True).exists()
+    def has_valid_offline_conversation_config():
+        return OfflineChatProcessorConversationConfig.objects.filter(enabled=True).exists()
 
     @staticmethod
-    def has_valid_openai_conversation_config(user: KhojUser):
-        return OpenAIProcessorConversationConfig.objects.filter(user=user).exists()
+    def has_valid_openai_conversation_config():
+        return OpenAIProcessorConversationConfig.objects.filter().exists()
+
+    @staticmethod
+    async def aset_user_conversation_processor(user: KhojUser, conversation_processor_config_id: int):
+        config = await ChatModelOptions.objects.filter(id=conversation_processor_config_id).afirst()
+        if not config:
+            return None
+        new_config = await UserConversationConfig.objects.aupdate_or_create(user=user, defaults={"setting": config})
+        return new_config
 
     @staticmethod
     def get_conversation_config(user: KhojUser):
-        return ConversationProcessorConfig.objects.filter(user=user).first()
+        config = UserConversationConfig.objects.filter(user=user).first()
+        if not config:
+            return None
+        return config.setting
+
+    @staticmethod
+    def get_default_conversation_config():
+        return ChatModelOptions.objects.filter().first()
 
     @staticmethod
     def save_conversation(user: KhojUser, conversation_log: dict):
@@ -215,75 +231,45 @@ class ConversationAdapters:
             Conversation.objects.create(user=user, conversation_log=conversation_log)
 
     @staticmethod
-    def set_conversation_processor_config(user: KhojUser, new_config: UserConversationProcessorConfig):
-        conversation_config, _ = ConversationProcessorConfig.objects.get_or_create(user=user)
-        conversation_config.max_prompt_size = new_config.max_prompt_size
-        conversation_config.tokenizer = new_config.tokenizer
-        conversation_config.save()
-
-        if new_config.openai:
-            default_values = {
-                "api_key": new_config.openai.api_key,
-            }
-            if new_config.openai.chat_model:
-                default_values["chat_model"] = new_config.openai.chat_model
-
-            OpenAIProcessorConversationConfig.objects.update_or_create(user=user, defaults=default_values)
-
-        if new_config.offline_chat:
-            default_values = {
-                "enable_offline_chat": str(new_config.offline_chat.enable_offline_chat),
-            }
-
-            if new_config.offline_chat.chat_model:
-                default_values["chat_model"] = new_config.offline_chat.chat_model
-
-            OfflineChatProcessorConversationConfig.objects.update_or_create(user=user, defaults=default_values)
+    def get_conversation_processor_options():
+        return ChatModelOptions.objects.all()
 
     @staticmethod
-    def get_enabled_conversation_settings(user: KhojUser):
-        openai_config = ConversationAdapters.get_openai_conversation_config(user)
-
-        return {
-            "openai": True if openai_config is not None else False,
-            "offline_chat": ConversationAdapters.has_offline_chat(user),
-        }
+    def set_conversation_processor_config(user: KhojUser, new_config: ChatModelOptions):
+        user_conversation_config, _ = UserConversationConfig.objects.get_or_create(user=user)
+        user_conversation_config.setting = new_config
+        user_conversation_config.save()
 
     @staticmethod
-    def clear_conversation_config(user: KhojUser):
-        ConversationProcessorConfig.objects.filter(user=user).delete()
-        ConversationAdapters.clear_openai_conversation_config(user)
-        ConversationAdapters.clear_offline_chat_conversation_config(user)
+    def has_offline_chat():
+        return OfflineChatProcessorConversationConfig.objects.filter(enabled=True).exists()
 
     @staticmethod
-    def clear_openai_conversation_config(user: KhojUser):
-        OpenAIProcessorConversationConfig.objects.filter(user=user).delete()
+    async def ahas_offline_chat():
+        return await OfflineChatProcessorConversationConfig.objects.filter(enabled=True).aexists()
 
     @staticmethod
-    def clear_offline_chat_conversation_config(user: KhojUser):
-        OfflineChatProcessorConversationConfig.objects.filter(user=user).delete()
+    async def get_offline_chat():
+        return await ChatModelOptions.objects.filter(model_type="offline").afirst()
 
     @staticmethod
-    def has_offline_chat(user: KhojUser):
-        return OfflineChatProcessorConversationConfig.objects.filter(user=user, enable_offline_chat=True).exists()
+    async def aget_user_conversation_config(user: KhojUser):
+        config = await UserConversationConfig.objects.filter(user=user).prefetch_related("setting").afirst()
+        if not config:
+            return None
+        return config.setting
 
     @staticmethod
-    async def ahas_offline_chat(user: KhojUser):
-        return await OfflineChatProcessorConversationConfig.objects.filter(
-            user=user, enable_offline_chat=True
-        ).aexists()
+    async def has_openai_chat():
+        return await OpenAIProcessorConversationConfig.objects.filter().aexists()
 
     @staticmethod
-    async def get_offline_chat(user: KhojUser):
-        return await OfflineChatProcessorConversationConfig.objects.filter(user=user).afirst()
+    async def get_openai_chat():
+        return await OpenAIProcessorConversationConfig.objects.filter().afirst()
 
     @staticmethod
-    async def has_openai_chat(user: KhojUser):
-        return await OpenAIProcessorConversationConfig.objects.filter(user=user).aexists()
-
-    @staticmethod
-    async def get_openai_chat(user: KhojUser):
-        return await OpenAIProcessorConversationConfig.objects.filter(user=user).afirst()
+    async def aget_default_conversation_config():
+        return await ChatModelOptions.objects.filter().afirst()
 
 
 class EmbeddingsAdapters:

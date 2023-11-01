@@ -6,7 +6,7 @@ import uuid
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("database", "0004_conversationprocessorconfig_githubconfig_and_more"),
+        ("database", "0004_content_types_and_more"),
     ]
 
     operations = [
