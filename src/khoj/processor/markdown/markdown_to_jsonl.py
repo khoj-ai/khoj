@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Tuple, List
 
 # Internal Packages
-from khoj.processor.text_to_jsonl import TextEmbeddings
+from khoj.processor.text_to_jsonl import TextEntries
 from khoj.utils.helpers import timer
 from khoj.utils.constants import empty_escape_sequences
 from khoj.utils.rawconfig import Entry
@@ -16,7 +16,7 @@ from database.models import Entry as DbEntry, KhojUser
 logger = logging.getLogger(__name__)
 
 
-class MarkdownToJsonl(TextEmbeddings):
+class MarkdownToJsonl(TextEntries):
     def __init__(self):
         super().__init__()
 

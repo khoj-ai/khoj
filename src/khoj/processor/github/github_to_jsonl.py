@@ -12,14 +12,14 @@ from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry, GithubContentConfig, GithubRepoConfig
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
-from khoj.processor.text_to_jsonl import TextEmbeddings
+from khoj.processor.text_to_jsonl import TextEntries
 from database.models import Entry as DbEntry, GithubConfig, KhojUser
 
 
 logger = logging.getLogger(__name__)
 
 
-class GithubToJsonl(TextEmbeddings):
+class GithubToJsonl(TextEntries):
     def __init__(self, config: GithubConfig):
         super().__init__(config)
         raw_repos = config.githubrepoconfig.all()
@@ -94,7 +94,7 @@ class GithubToJsonl(TextEmbeddings):
             current_entries += issue_entries
 
         with timer(f"Split entries by max token size supported by model {repo_shorthand}", logger):
-            current_entries = TextEmbeddings.split_entries_by_max_tokens(current_entries, max_tokens=256)
+            current_entries = TextEntries.split_entries_by_max_tokens(current_entries, max_tokens=256)
 
         return current_entries
 

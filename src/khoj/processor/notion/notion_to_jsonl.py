@@ -8,7 +8,7 @@ import requests
 # Internal Packages
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry, NotionContentConfig
-from khoj.processor.text_to_jsonl import TextEmbeddings
+from khoj.processor.text_to_jsonl import TextEntries
 from khoj.utils.rawconfig import Entry
 from database.models import Entry as DbEntry, KhojUser, NotionConfig
 
@@ -50,7 +50,7 @@ class NotionBlockType(Enum):
     CALLOUT = "callout"
 
 
-class NotionToJsonl(TextEmbeddings):
+class NotionToJsonl(TextEntries):
     def __init__(self, config: NotionConfig):
         super().__init__(config)
         self.config = NotionContentConfig(

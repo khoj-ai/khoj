@@ -5,7 +5,7 @@ from typing import Iterable, List, Tuple
 
 # Internal Packages
 from khoj.processor.org_mode import orgnode
-from khoj.processor.text_to_jsonl import TextEmbeddings
+from khoj.processor.text_to_jsonl import TextEntries
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry
 from khoj.utils import state
@@ -15,7 +15,7 @@ from database.models import Entry as DbEntry, KhojUser
 logger = logging.getLogger(__name__)
 
 
-class OrgToJsonl(TextEmbeddings):
+class OrgToJsonl(TextEntries):
     def __init__(self):
         super().__init__()
 

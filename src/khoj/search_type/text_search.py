@@ -18,7 +18,7 @@ from khoj.utils.models import BaseEncoder
 from khoj.utils.state import SearchType
 from khoj.utils.rawconfig import SearchResponse, Entry
 from khoj.utils.jsonl import load_jsonl
-from khoj.processor.text_to_jsonl import TextEmbeddings
+from khoj.processor.text_to_jsonl import TextEntries
 from database.adapters import EntryAdapters
 from database.models import KhojUser, Entry as DbEntry
 
@@ -188,7 +188,7 @@ def rerank_and_sort_results(hits, query):
 
 
 def setup(
-    text_to_jsonl: Type[TextEmbeddings],
+    text_to_jsonl: Type[TextEntries],
     files: dict[str, str],
     regenerate: bool,
     full_corpus: bool = True,
