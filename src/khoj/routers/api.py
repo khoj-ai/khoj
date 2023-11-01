@@ -109,8 +109,6 @@ async def map_config_to_db(config: FullConfig, user: KhojUser):
                 user=user,
                 token=config.content_type.notion.token,
             )
-    if config.processor and config.processor.conversation:
-        ConversationAdapters.set_conversation_processor_config(user, config.processor.conversation)
 
 
 # If it's a demo instance, prevent updating any of the configuration.
@@ -276,7 +274,7 @@ if not state.demo:
     ):
         user = request.user.object
 
-        new_config = await ConversationAdapters.aset_user_conversation_processor(user, id)
+        new_config = await ConversationAdapters.aset_user_conversation_processor(user, int(id))
 
         update_telemetry_state(
             request=request,

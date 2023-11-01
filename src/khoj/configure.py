@@ -12,6 +12,7 @@ import os
 import schedule
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.authentication import AuthenticationMiddleware
+from starlette.requests import HTTPConnection
 
 from starlette.authentication import (
     AuthCredentials,
@@ -60,7 +61,7 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 password="default",
             )
 
-    async def authenticate(self, request: Request):
+    async def authenticate(self, request: HTTPConnection):
         current_user = request.session.get("user")
         if current_user and current_user.get("email"):
             user = await self.khojuser_manager.filter(email=current_user.get("email")).afirst()
