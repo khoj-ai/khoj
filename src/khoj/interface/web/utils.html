@@ -1,0 +1,20 @@
+{% macro heading_pane(user_photo="/static/assets/icons/anon.png", username="Anon") -%}
+    <div class="khoj-header">
+        <a class="khoj-logo" href="/" target="_blank">
+            <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
+        </a>
+        <nav class="khoj-nav">
+            <a class="khoj-nav" href="/chat">💬 Chat</a>
+            <a class="khoj-nav" href="/">🔎 Search</a>
+            <!-- Dropdown Menu -->
+            <div id="khoj-nav-menu-container" class="khoj-nav dropdown">
+                <img class="circle" src="{{ user_photo }}" alt="{{ username[0].upper() }}" onclick="toggleMenu()" referrerpolicy="no-referrer">
+                <div id="khoj-nav-menu" class="khoj-nav-dropdown-content">
+                    <div class="khoj-nav-username"> {{ username }} </div>
+                    <a class="khoj-nav khoj-nav-selected" href="/config">⚙️ Settings</a>
+                    <a class="khoj-nav" href="/auth/logout">🔑 Logout</a>
+                </div>
+            </div>
+        </nav>
+    </div>
+{%- endmacro %}

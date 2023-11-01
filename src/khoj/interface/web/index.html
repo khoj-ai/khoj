@@ -282,33 +282,10 @@
                 <button id="khoj-banner-submit" class="khoj-banner-button">Submit</button>
             </div>
         {% endif %}
+
         <!--Add Header Logo and Nav Pane-->
-        <div class="khoj-header">
-            {% if demo %}
-                <a class="khoj-logo" href="https://khoj.dev" target="_blank">
-                    <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
-                </a>
-            {% else %}
-                <a class="khoj-logo" href="/">
-                    <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
-                </a>
-            {% endif %}
-            <nav class="khoj-nav">
-                <a class="khoj-nav" href="/chat">💬 Chat</a>
-                <a class="khoj-nav khoj-nav-selected" href="/">🔎 Search</a>
-                {% if not demo %}
-                    <!-- Dropdown Menu -->
-                    <div id="khoj-nav-menu-container" class="khoj-nav dropdown">
-                        <img class="circle" src="{{ user_photo }}" alt="{{ username }}" onclick="toggleMenu()">
-                        <div id="khoj-nav-menu" class="khoj-nav-dropdown-content">
-                            <div class="khoj-nav-username"> {{ username }} </div>
-                            <a class="khoj-nav" href="/config">⚙️ Settings</a>
-                            <a class="khoj-nav" href="/auth/logout">🔑 Logout</a>
-                        </div>
-                    </div>
-                {% endif %}
-            </nav>
-        </div>
+        {% import 'utils.html' as utils %}
+        {{ utils.heading_pane(user_photo, username) }}
 
         <!--Add Text Box To Enter Query, Trigger Incremental Search OnChange -->
         <input type="text" id="query" class="option" onkeyup=incrementalSearch(event) autofocus="autofocus" placeholder="Search your knowledge base using natural language">

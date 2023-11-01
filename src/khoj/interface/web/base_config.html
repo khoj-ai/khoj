@@ -12,24 +12,11 @@
     <body class="khoj-configure">
         <div class="khoj-header-wrapper">
             <div class="filler"></div>
-            <div class="khoj-header">
-                <a class="khoj-logo" href="https://khoj.dev" target="_blank">
-                    <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
-                </a>
-                <nav class="khoj-nav">
-                    <a class="khoj-nav" href="/chat">💬 Chat</a>
-                    <a class="khoj-nav" href="/">🔎 Search</a>
-                    <!-- Dropdown Menu -->
-                    <div id="khoj-nav-menu-container" class="khoj-nav dropdown">
-                        <img class="circle" src="{{ user_photo }}" alt="{{ username }}" onclick="toggleMenu()">
-                        <div id="khoj-nav-menu" class="khoj-nav-dropdown-content">
-                            <div class="khoj-nav-username"> {{ username }} </div>
-                            <a class="khoj-nav khoj-nav-selected" href="/config">⚙️ Settings</a>
-                            <a class="khoj-nav" href="/auth/logout">🔑 Logout</a>
-                        </div>
-                    </div>
-                </nav>
-            </div>
+
+            <!--Add Header Logo and Nav Pane-->
+            {% import 'utils.html' as utils %}
+            {{ utils.heading_pane(user_photo, username) }}
+
             <div class="filler"></div>
         </div>
         <div class=”content”>
