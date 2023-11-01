@@ -8,6 +8,7 @@
         <link rel="manifest" href="/static/khoj_chat.webmanifest">
         <link rel="stylesheet" href="/static/assets/khoj.css">
     </head>
+    <script type="text/javascript" src="/static/assets/khoj.js"></script>
     <script>
         let chatOptions = [];
         function copyProgrammaticOutput(event) {
@@ -284,7 +285,14 @@
                 <a class="khoj-nav khoj-nav-selected" href="/chat">💬 Chat</a>
                 <a class="khoj-nav" href="/">🔎 Search</a>
                 {% if not demo %}
-                    <a class="khoj-nav" href="/config">⚙️ Settings</a>
+                    <!-- Dropdown Menu -->
+                    <div id="khoj-nav-menu-container" class="khoj-nav dropdown">
+                        <img class="circle" src="{{ user_photo }}" alt="{{ username }}" onclick="toggleMenu()">
+                        <div id="khoj-nav-menu" class="khoj-nav-dropdown-content">
+                            <div class="khoj-nav-username"> {{ username }} </div>
+                            <a class="khoj-nav khoj-nav-selected" href="/config">⚙️ Settings</a>
+                            <a class="khoj-nav" href="/auth/logout">🔑 Logout</a>
+                        </div>
                 {% endif %}
             </nav>
         </div>

@@ -3,11 +3,6 @@
 
 <div class="page">
     <div class="section">
-        {% if anonymous_mode == False %}
-            <div>
-                Logged in as {{ username }}
-            </div>
-        {% endif %}
         <h2 class="section-title">Plugins</h2>
         <div class="section-cards">
             <div class="card">
@@ -328,11 +323,6 @@
             <div class="finalize-buttons">
                 <button id="reinitialize" type="submit" title="Regenerate index from scratch">🔄 Reinitialize</button>
             </div>
-            {% if anonymous_mode == False %}
-                <div class="finalize-buttons">
-                    <button id="logout" class="logout" onclick="window.location.href='/auth/logout'">Logout</button>
-                </div>
-            {% endif %}
         </div>
     </div>
 </div>

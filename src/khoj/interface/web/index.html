@@ -10,6 +10,7 @@
     </head>
     <script type="text/javascript" src="/static/assets/org.min.js"></script>
     <script type="text/javascript" src="/static/assets/markdown-it.min.js"></script>
+    <script type="text/javascript" src="/static/assets/khoj.js"></script>
 
     <script>
         function render_image(item) {
@@ -296,7 +297,15 @@
                 <a class="khoj-nav" href="/chat">💬 Chat</a>
                 <a class="khoj-nav khoj-nav-selected" href="/">🔎 Search</a>
                 {% if not demo %}
-                    <a class="khoj-nav" href="/config">⚙️ Settings</a>
+                    <!-- Dropdown Menu -->
+                    <div id="khoj-nav-menu-container" class="khoj-nav dropdown">
+                        <img class="circle" src="{{ user_photo }}" alt="{{ username }}" onclick="toggleMenu()">
+                        <div id="khoj-nav-menu" class="khoj-nav-dropdown-content">
+                            <div class="khoj-nav-username"> {{ username }} </div>
+                            <a class="khoj-nav" href="/config">⚙️ Settings</a>
+                            <a class="khoj-nav" href="/auth/logout">🔑 Logout</a>
+                        </div>
+                    </div>
                 {% endif %}
             </nav>
         </div>
