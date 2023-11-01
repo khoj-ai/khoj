@@ -42,7 +42,7 @@ def index(request: Request):
         context={
             "request": request,
             "demo": state.demo,
-            "username": user.username if user else None,
+            "username": user.username,
             "user_photo": user_picture,
         },
     )
@@ -59,7 +59,7 @@ def index_post(request: Request):
         context={
             "request": request,
             "demo": state.demo,
-            "username": user.username if user else None,
+            "username": user.username,
             "user_photo": user_picture,
         },
     )
@@ -76,7 +76,7 @@ def chat_page(request: Request):
         context={
             "request": request,
             "demo": state.demo,
-            "username": user.username if user else None,
+            "username": user.username,
             "user_photo": user_picture,
         },
     )
@@ -162,7 +162,7 @@ if not state.demo:
                 "current_config": current_config,
                 "current_model_state": successfully_configured,
                 "anonymous_mode": state.anonymous_mode,
-                "username": user.username if user else None,
+                "username": user.username,
                 "user_photo": user_picture,
             },
         )
@@ -198,7 +198,7 @@ if not state.demo:
             context={
                 "request": request,
                 "current_config": current_config,
-                "username": user.username if user else None,
+                "username": user.username,
                 "user_photo": user_picture,
             },
         )
@@ -221,7 +221,7 @@ if not state.demo:
             context={
                 "request": request,
                 "current_config": current_config,
-                "username": user.username if user else None,
+                "username": user.username,
                 "user_photo": user_picture,
             },
         )
@@ -252,7 +252,7 @@ if not state.demo:
                 "request": request,
                 "current_config": current_config,
                 "content_type": content_type,
-                "username": user.username if user else None,
+                "username": user.username,
                 "user_photo": user_picture,
             },
         )
@@ -282,7 +282,7 @@ if not state.demo:
             context={
                 "request": request,
                 "current_config": current_processor_openai_config,
-                "username": user.username if user else None,
+                "username": user.username,
                 "user_photo": user_picture,
             },
         )
