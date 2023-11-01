@@ -146,8 +146,8 @@ img.circle {
     width: 40px;
     height: 40px;
     vertical-align: text-top;
+    padding: 3px;
 }
-
 
 @media screen and (max-width: 700px) {
     .khoj-nav-dropdown-content {
