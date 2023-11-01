@@ -255,7 +255,7 @@ help_message = PromptTemplate.from_template(
 **/default**: Chat using your knowledge base and Khoj's general knowledge for context.
 **/help**: Show this help message.
 
-You are using the **{model}** model.
+You are using the **{model}** model on the **{device}**.
 **version**: {version}
 """.strip()
 )
