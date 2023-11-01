@@ -4,9 +4,10 @@ import os
 from database.models import (
     KhojUser,
     KhojApiUser,
-    ConversationProcessorConfig,
+    ChatModelOptions,
     OfflineChatProcessorConversationConfig,
     OpenAIProcessorConversationConfig,
+    UserConversationConfig,
     Conversation,
 )
 
@@ -30,20 +31,29 @@ class ApiUserFactory(factory.django.DjangoModelFactory):
     token = factory.Faker("password")
 
 
-class ConversationProcessorConfigFactory(factory.django.DjangoModelFactory):
+class ChatModelOptionsFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = ConversationProcessorConfig
+        model = ChatModelOptions
 
     max_prompt_size = 2000
     tokenizer = None
+    chat_model = "llama-2-7b-chat.ggmlv3.q4_0.bin"
+    model_type = "offline"
+
+
+class UserConversationProcessorConfigFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = UserConversationConfig
+
+    user = factory.SubFactory(UserFactory)
+    setting = factory.SubFactory(ChatModelOptionsFactory)
 
 
 class OfflineChatProcessorConversationConfigFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = OfflineChatProcessorConversationConfig
 
-    enable_offline_chat = True
-    chat_model = "llama-2-7b-chat.ggmlv3.q4_0.bin"
+    enabled = True
 
 
 class OpenAIProcessorConversationConfigFactory(factory.django.DjangoModelFactory):
@@ -51,7 +61,6 @@ class OpenAIProcessorConversationConfigFactory(factory.django.DjangoModelFactory
         model = OpenAIProcessorConversationConfig
 
     api_key = os.getenv("OPENAI_API_KEY")
-    chat_model = "gpt-3.5-turbo"
 
 
 class ConversationFactory(factory.django.DjangoModelFactory):
