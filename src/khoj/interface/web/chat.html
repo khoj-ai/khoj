@@ -317,8 +317,8 @@
         }
         body {
             display: grid;
-            background: #fff;
-            color: #475569;
+            background: var(--background-color);
+            color: var(--main-text-color);
             text-align: center;
             font-family: roboto, karma, segoe ui, sans-serif;
             font-size: 20px;
@@ -340,7 +340,7 @@
             content: attr(data-meta);
             display: block;
             font-size: x-small;
-            color: #475569;
+            color: var(--main-text-color);
             margin: -8px 4px 0 -5px;
         }
         /* move message by khoj to left */
@@ -410,7 +410,7 @@
             top: 91%;
             right: -2px;
             border: 10px solid transparent;
-            border-left-color: #475569;
+            border-left-color: var(--main-text-color);
             border-right: 0;
             margin-top: -10px;
             transform: rotate(-60deg)
@@ -426,7 +426,7 @@
         #chat-footer > * {
             padding: 15px;
             border-radius: 5px;
-            border: 1px solid #475569;
+            border: 1px solid var(--main-text-color);
             background: #f9fafc
         }
         .option:hover {
@@ -459,9 +459,9 @@
         }
 
         a.inline-chat-link {
-            color: #475569;
+            color: var(--main-text-color);
             text-decoration: none;
-            border-bottom: 1px dotted #475569;
+            border-bottom: 1px dotted var(--main-text-color);
         }
 
         @media (pointer: coarse), (hover: none) {
@@ -550,7 +550,7 @@
         input#khoj-banner-email {
             padding: 10px;
             border-radius: 5px;
-            border: 1px solid #475569;
+            border: 1px solid var(--main-text-color);
             background: #f9fafc;
         }
 
