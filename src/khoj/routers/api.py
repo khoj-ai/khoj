@@ -723,7 +723,7 @@ async def extract_references_and_questions(
     # Infer search queries from user message
     with timer("Extracting search queries took", logger):
         # If we've reached here, either the user has enabled offline chat or the openai model is enabled.
-        if await ConversationAdapters.has_offline_chat(user):
+        if await ConversationAdapters.ahas_offline_chat(user):
             using_offline_chat = True
             offline_chat = await ConversationAdapters.get_offline_chat(user)
             chat_model = offline_chat.chat_model

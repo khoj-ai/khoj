@@ -94,6 +94,15 @@
             }).join("\n");
         }
 
+        function render_xml(query, data) {
+            return data.map(function (item) {
+                return `<div class="results-xml">` +
+                    `<b><a href="${item.additional.file}">${item.additional.heading}</a></b>` +
+                    `<xml>${item.entry}</xml>` +
+                    `</div>`
+            }).join("\n");
+        }
+
         function render_multiple(query, data, type) {
             let html = "";
             data.forEach(item => {
@@ -113,6 +122,8 @@
                     html += `<div class="results-notion">` + `<b><a href="${item.additional.file}">${item.additional.heading}</a></b>` + `<p>${item.entry}</p>` + `</div>`;
                 } else if (item.additional.file.endsWith(".html")) {
                     html += render_html(query, [item]);
+                } else if (item.additional.file.endsWith(".xml")) {
+                    html += render_xml(query, [item])
                 } else {
                     html += `<div class="results-plugin">` + `<b><a href="${item.additional.file}">${item.additional.heading}</a></b>` + `<p>${item.entry}</p>` + `</div>`;
                 }

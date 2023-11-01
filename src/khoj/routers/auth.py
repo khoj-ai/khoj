@@ -46,7 +46,6 @@ async def login(request: Request):
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 
-@auth_router.post("/redirect")
 @auth_router.post("/token")
 @requires(["authenticated"], redirect="login_page")
 async def generate_token(request: Request, token_name: Optional[str] = None) -> str:

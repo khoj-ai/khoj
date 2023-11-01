@@ -2,12 +2,14 @@
 import logging
 from pathlib import Path
 from typing import List, Tuple
+from bs4 import BeautifulSoup
+
 
 # Internal Packages
 from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.helpers import timer
-from khoj.utils.rawconfig import Entry, TextContentConfig
-from database.models import Embeddings, KhojUser, LocalPlaintextConfig
+from khoj.utils.rawconfig import Entry
+from database.models import Embeddings, KhojUser
 
 
 logger = logging.getLogger(__name__)
@@ -27,6 +29,19 @@ class PlaintextToJsonl(TextEmbeddings):
             files = {file: files[file] for file in files_to_process}
         else:
             deletion_file_names = None
+
+        with timer("Scrub plaintext files and extract text", logger):
+            for file in files:
+                try:
+                    plaintext_content = files[file]
+                    if file.endswith(("html", "htm", "xml")):
+                        plaintext_content = PlaintextToJsonl.extract_html_content(
+                            plaintext_content, file.split(".")[-1]
+                        )
+                    files[file] = plaintext_content
+                except Exception as e:
+                    logger.warning(f"Unable to read file: {file} as plaintext. Skipping file.")
+                    logger.warning(e, exc_info=True)
 
         # Extract Entries from specified plaintext files
         with timer("Parse entries from plaintext files", logger):
@@ -49,6 +64,15 @@ class PlaintextToJsonl(TextEmbeddings):
             )
 
         return num_new_embeddings, num_deleted_embeddings
+
+    @staticmethod
+    def extract_html_content(markup_content: str, markup_type: str):
+        "Extract content from HTML"
+        if markup_type == "xml":
+            soup = BeautifulSoup(markup_content, "xml")
+        else:
+            soup = BeautifulSoup(markup_content, "html.parser")
+        return soup.get_text(strip=True, separator="\n")
 
     @staticmethod
     def convert_plaintext_entries_to_maps(entry_to_file_map: dict) -> List[Entry]:

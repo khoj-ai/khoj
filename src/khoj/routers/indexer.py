@@ -156,18 +156,17 @@ async def update(
         host=host,
     )
 
+    logger.info(f"📪 Content index updated via API call by {client} client")
+
     return Response(content="OK", status_code=200)
 
 
 def configure_search(search_models: SearchModels, search_config: Optional[SearchConfig]) -> Optional[SearchModels]:
     # Run Validation Checks
-    if search_config is None:
-        logger.warning("🚨 No Search configuration available.")
-        return None
     if search_models is None:
         search_models = SearchModels()
 
-    if search_config.image:
+    if search_config and search_config.image:
         logger.info("🔍 🌄 Setting up image search model")
         search_models.image_search = image_search.initialize_model(search_config.image)
 

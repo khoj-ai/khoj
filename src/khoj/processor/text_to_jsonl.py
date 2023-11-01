@@ -5,7 +5,7 @@ import logging
 import uuid
 from tqdm import tqdm
 from typing import Callable, List, Tuple, Set, Any
-from khoj.utils.helpers import timer
+from khoj.utils.helpers import timer, batcher
 
 
 # Internal Packages
@@ -93,7 +93,7 @@ class TextEmbeddings(ABC):
         num_deleted_embeddings = 0
         with timer("Preparing dataset for regeneration", logger):
             if regenerate:
-                logger.info(f"Deleting all embeddings for file type {file_type}")
+                logger.debug(f"Deleting all embeddings for file type {file_type}")
                 num_deleted_embeddings = EmbeddingsAdapters.delete_all_embeddings(user, file_type)
 
         num_new_embeddings = 0
@@ -106,48 +106,54 @@ class TextEmbeddings(ABC):
                 )
                 existing_entry_hashes = set([entry.hashed_value for entry in existing_entries])
                 hashes_to_process = hashes_for_file - existing_entry_hashes
-                # for hashed_val in hashes_for_file:
-                #     if not EmbeddingsAdapters.does_embedding_exist(user, hashed_val):
-                #         hashes_to_process.add(hashed_val)
 
                 entries_to_process = [hash_to_current_entries[hashed_val] for hashed_val in hashes_to_process]
                 data_to_embed = [getattr(entry, key) for entry in entries_to_process]
                 embeddings = self.embeddings_model.embed_documents(data_to_embed)
 
                 with timer("Update the database with new vector embeddings", logger):
-                    embeddings_to_create = []
-                    for hashed_val, embedding in zip(hashes_to_process, embeddings):
-                        entry = hash_to_current_entries[hashed_val]
-                        embeddings_to_create.append(
-                            Embeddings(
-                                user=user,
-                                embeddings=embedding,
-                                raw=entry.raw,
-                                compiled=entry.compiled,
-                                heading=entry.heading,
-                                file_path=entry.file,
-                                file_type=file_type,
-                                hashed_value=hashed_val,
-                                corpus_id=entry.corpus_id,
-                            )
-                        )
-                    new_embeddings = Embeddings.objects.bulk_create(embeddings_to_create)
-                    num_new_embeddings += len(new_embeddings)
+                    num_items = len(hashes_to_process)
+                    assert num_items == len(embeddings)
+                    batch_size = min(200, num_items)
+                    entry_batches = zip(hashes_to_process, embeddings)
 
-                    dates_to_create = []
-                    with timer("Create new date associations for new embeddings", logger):
-                        for embedding in new_embeddings:
-                            dates = self.date_filter.extract_dates(embedding.raw)
-                            for date in dates:
-                                dates_to_create.append(
-                                    EmbeddingsDates(
-                                        date=date,
-                                        embeddings=embedding,
-                                    )
+                    for entry_batch in tqdm(
+                        batcher(entry_batches, batch_size), desc="Processing embeddings in batches"
+                    ):
+                        batch_embeddings_to_create = []
+                        for entry_hash, embedding in entry_batch:
+                            entry = hash_to_current_entries[entry_hash]
+                            batch_embeddings_to_create.append(
+                                Embeddings(
+                                    user=user,
+                                    embeddings=embedding,
+                                    raw=entry.raw,
+                                    compiled=entry.compiled,
+                                    heading=entry.heading[:1000],  # Truncate to max chars of field allowed
+                                    file_path=entry.file,
+                                    file_type=file_type,
+                                    hashed_value=entry_hash,
+                                    corpus_id=entry.corpus_id,
                                 )
-                        new_dates = EmbeddingsDates.objects.bulk_create(dates_to_create)
-                        if len(new_dates) > 0:
-                            logger.info(f"Created {len(new_dates)} new date entries")
+                            )
+                        new_embeddings = Embeddings.objects.bulk_create(batch_embeddings_to_create)
+                        logger.debug(f"Created {len(new_embeddings)} new embeddings")
+                        num_new_embeddings += len(new_embeddings)
+
+                        dates_to_create = []
+                        with timer("Create new date associations for new embeddings", logger):
+                            for embedding in new_embeddings:
+                                dates = self.date_filter.extract_dates(embedding.raw)
+                                for date in dates:
+                                    dates_to_create.append(
+                                        EmbeddingsDates(
+                                            date=date,
+                                            embeddings=embedding,
+                                        )
+                                    )
+                            new_dates = EmbeddingsDates.objects.bulk_create(dates_to_create)
+                            if len(new_dates) > 0:
+                                logger.debug(f"Created {len(new_dates)} new date entries")
 
         with timer("Identify hashes for removed entries", logger):
             for file in hashes_by_file:

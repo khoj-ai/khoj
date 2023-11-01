@@ -22,9 +22,7 @@ logger = logging.getLogger(__name__)
 # Test
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_text_search_setup_with_missing_file_raises_error(
-    org_config_with_only_new_file: LocalOrgConfig, search_config: SearchConfig
-):
+def test_text_search_setup_with_missing_file_raises_error(org_config_with_only_new_file: LocalOrgConfig):
     # Arrange
     # Ensure file mentioned in org.input-files is missing
     single_new_file = Path(org_config_with_only_new_file.input_files[0])
@@ -70,22 +68,39 @@ def test_text_search_setup_with_empty_file_raises_error(
     with caplog.at_level(logging.INFO):
         text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
 
-    assert "Created 0 new embeddings. Deleted 3 embeddings for user " in caplog.records[2].message
+    assert "Created 0 new embeddings. Deleted 3 embeddings for user " in caplog.records[-1].message
     verify_embeddings(0, default_user)
 
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_text_search_setup(content_config, default_user: KhojUser, caplog):
+def test_text_indexer_deletes_embedding_before_regenerate(
+    content_config: ContentConfig, default_user: KhojUser, caplog
+):
     # Arrange
     org_config = LocalOrgConfig.objects.filter(user=default_user).first()
     data = get_org_files(org_config)
-    with caplog.at_level(logging.INFO):
+    with caplog.at_level(logging.DEBUG):
         text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
 
     # Assert
-    assert "Deleting all embeddings for file type org" in caplog.records[1].message
-    assert "Created 10 new embeddings. Deleted 3 embeddings for user " in caplog.records[2].message
+    assert "Deleting all embeddings for file type org" in caplog.text
+    assert "Created 10 new embeddings. Deleted 3 embeddings for user " in caplog.records[-1].message
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.django_db
+def test_text_search_setup_batch_processes(content_config: ContentConfig, default_user: KhojUser, caplog):
+    # Arrange
+    org_config = LocalOrgConfig.objects.filter(user=default_user).first()
+    data = get_org_files(org_config)
+    with caplog.at_level(logging.DEBUG):
+        text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
+
+    # Assert
+    assert "Created 4 new embeddings" in caplog.text
+    assert "Created 6 new embeddings" in caplog.text
+    assert "Created 10 new embeddings. Deleted 3 embeddings for user " in caplog.records[-1].message
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -97,13 +112,13 @@ def test_text_index_same_if_content_unchanged(content_config: ContentConfig, def
 
     # Act
     # Generate initial notes embeddings during asymmetric setup
-    with caplog.at_level(logging.INFO):
+    with caplog.at_level(logging.DEBUG):
         text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
     initial_logs = caplog.text
     caplog.clear()  # Clear logs
 
     # Run asymmetric setup again with no changes to data source. Ensure index is not updated
-    with caplog.at_level(logging.INFO):
+    with caplog.at_level(logging.DEBUG):
         text_search.setup(OrgToJsonl, data, regenerate=False, user=default_user)
     final_logs = caplog.text
 
@@ -175,12 +190,10 @@ def test_entry_chunking_by_max_tokens(org_config_with_only_new_file: LocalOrgCon
 
     # Assert
     # verify newly added org-mode entry is split by max tokens
-    record = caplog.records[1]
-    assert "Created 2 new embeddings. Deleted 0 embeddings for user " in record.message
+    assert "Created 2 new embeddings. Deleted 0 embeddings for user " in caplog.records[-1].message
 
 
 # ----------------------------------------------------------------------------------------------------
-# @pytest.mark.skip(reason="Flaky due to compressed_jsonl file being rewritten by other tests")
 @pytest.mark.django_db
 def test_entry_chunking_by_max_tokens_not_full_corpus(
     org_config_with_only_new_file: LocalOrgConfig, default_user: KhojUser, caplog
@@ -232,11 +245,9 @@ conda activate khoj
             user=default_user,
         )
 
-    record = caplog.records[1]
-
     # Assert
     # verify newly added org-mode entry is split by max tokens
-    assert "Created 2 new embeddings. Deleted 0 embeddings for user " in record.message
+    assert "Created 2 new embeddings. Deleted 0 embeddings for user " in caplog.records[-1].message
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -251,7 +262,7 @@ def test_regenerate_index_with_new_entry(
     with caplog.at_level(logging.INFO):
         text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
 
-    assert "Created 10 new embeddings. Deleted 3 embeddings for user " in caplog.records[2].message
+    assert "Created 10 new embeddings. Deleted 3 embeddings for user " in caplog.records[-1].message
 
     # append org-mode entry to first org input file in config
     org_config.input_files = [f"{new_org_file}"]
@@ -286,20 +297,23 @@ def test_update_index_with_duplicate_entries_in_stable_order(
     data = get_org_files(org_config_with_only_new_file)
 
     # Act
-    # load embeddings, entries, notes model after adding new org-mode file
+    # generate embeddings, entries, notes model from scratch after adding new org-mode file
     with caplog.at_level(logging.INFO):
         text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
+    initial_logs = caplog.text
+    caplog.clear()  # Clear logs
 
     data = get_org_files(org_config_with_only_new_file)
 
-    # update embeddings, entries, notes model after adding new org-mode file
+    # update embeddings, entries, notes model with no new changes
     with caplog.at_level(logging.INFO):
         text_search.setup(OrgToJsonl, data, regenerate=False, user=default_user)
+    final_logs = caplog.text
 
     # Assert
     # verify only 1 entry added even if there are multiple duplicate entries
-    assert "Created 1 new embeddings. Deleted 3 embeddings for user " in caplog.records[2].message
-    assert "Created 0 new embeddings. Deleted 0 embeddings for user " in caplog.records[4].message
+    assert "Created 1 new embeddings. Deleted 3 embeddings for user " in initial_logs
+    assert "Created 0 new embeddings. Deleted 0 embeddings for user " in final_logs
 
     verify_embeddings(1, default_user)
 
@@ -319,6 +333,8 @@ def test_update_index_with_deleted_entry(org_config_with_only_new_file: LocalOrg
     # load embeddings, entries, notes model after adding new org file with 2 entries
     with caplog.at_level(logging.INFO):
         text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
+    initial_logs = caplog.text
+    caplog.clear()  # Clear logs
 
     # update embeddings, entries, notes model after removing an entry from the org file
     with open(new_file_to_index, "w") as f:
@@ -329,11 +345,12 @@ def test_update_index_with_deleted_entry(org_config_with_only_new_file: LocalOrg
     # Act
     with caplog.at_level(logging.INFO):
         text_search.setup(OrgToJsonl, data, regenerate=False, user=default_user)
+    final_logs = caplog.text
 
     # Assert
     # verify only 1 entry added even if there are multiple duplicate entries
-    assert "Created 2 new embeddings. Deleted 3 embeddings for user " in caplog.records[2].message
-    assert "Created 0 new embeddings. Deleted 1 embeddings for user " in caplog.records[4].message
+    assert "Created 2 new embeddings. Deleted 3 embeddings for user " in initial_logs
+    assert "Created 0 new embeddings. Deleted 1 embeddings for user " in final_logs
 
     verify_embeddings(1, default_user)
 
@@ -346,6 +363,8 @@ def test_update_index_with_new_entry(content_config: ContentConfig, new_org_file
     data = get_org_files(org_config)
     with caplog.at_level(logging.INFO):
         text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
+    initial_logs = caplog.text
+    caplog.clear()  # Clear logs
 
     # append org-mode entry to first org input file in config
     with open(new_org_file, "w") as f:
@@ -358,10 +377,11 @@ def test_update_index_with_new_entry(content_config: ContentConfig, new_org_file
     # update embeddings, entries with the newly added note
     with caplog.at_level(logging.INFO):
         text_search.setup(OrgToJsonl, data, regenerate=False, user=default_user)
+    final_logs = caplog.text
 
     # Assert
-    assert "Created 10 new embeddings. Deleted 3 embeddings for user " in caplog.records[2].message
-    assert "Created 1 new embeddings. Deleted 0 embeddings for user " in caplog.records[4].message
+    assert "Created 10 new embeddings. Deleted 3 embeddings for user " in initial_logs
+    assert "Created 1 new embeddings. Deleted 0 embeddings for user " in final_logs
 
     verify_embeddings(11, default_user)
 
