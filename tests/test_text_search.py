@@ -10,8 +10,8 @@ import pytest
 # Internal Packages
 from khoj.search_type import text_search
 from khoj.utils.rawconfig import ContentConfig, SearchConfig
-from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
-from khoj.processor.github.github_to_jsonl import GithubToJsonl
+from khoj.processor.org_mode.org_to_entries import OrgToEntries
+from khoj.processor.github.github_to_entries import GithubToEntries
 from khoj.utils.fs_syncer import collect_files, get_org_files
 from database.models import LocalOrgConfig, KhojUser, Entry, GithubConfig
 
@@ -65,7 +65,7 @@ def test_text_search_setup_with_empty_file_raises_error(
     # Act
     # Generate notes embeddings during asymmetric setup
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
+        text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
 
     assert "Created 0 new embeddings. Deleted 3 embeddings for user " in caplog.records[-1].message
     verify_embeddings(0, default_user)
@@ -80,7 +80,7 @@ def test_text_indexer_deletes_embedding_before_regenerate(
     org_config = LocalOrgConfig.objects.filter(user=default_user).first()
     data = get_org_files(org_config)
     with caplog.at_level(logging.DEBUG):
-        text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
+        text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
 
     # Assert
     assert "Deleting all embeddings for file type org" in caplog.text
@@ -94,7 +94,7 @@ def test_text_search_setup_batch_processes(content_config: ContentConfig, defaul
     org_config = LocalOrgConfig.objects.filter(user=default_user).first()
     data = get_org_files(org_config)
     with caplog.at_level(logging.DEBUG):
-        text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
+        text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
 
     # Assert
     assert "Created 4 new embeddings" in caplog.text
@@ -112,13 +112,13 @@ def test_text_index_same_if_content_unchanged(content_config: ContentConfig, def
     # Act
     # Generate initial notes embeddings during asymmetric setup
     with caplog.at_level(logging.DEBUG):
-        text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
+        text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
     initial_logs = caplog.text
     caplog.clear()  # Clear logs
 
     # Run asymmetric setup again with no changes to data source. Ensure index is not updated
     with caplog.at_level(logging.DEBUG):
-        text_search.setup(OrgToJsonl, data, regenerate=False, user=default_user)
+        text_search.setup(OrgToEntries, data, regenerate=False, user=default_user)
     final_logs = caplog.text
 
     # Assert
@@ -148,7 +148,7 @@ async def test_text_search(search_config: SearchConfig):
     await loop.run_in_executor(
         None,
         text_search.setup,
-        OrgToJsonl,
+        OrgToEntries,
         data,
         True,
         True,
@@ -185,7 +185,7 @@ def test_entry_chunking_by_max_tokens(org_config_with_only_new_file: LocalOrgCon
     # Act
     # reload embeddings, entries, notes model after adding new org-mode file
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, regenerate=False, user=default_user)
+        text_search.setup(OrgToEntries, data, regenerate=False, user=default_user)
 
     # Assert
     # verify newly added org-mode entry is split by max tokens
@@ -218,7 +218,7 @@ conda activate khoj
 #+end_src"""
     }
     text_search.setup(
-        OrgToJsonl,
+        OrgToEntries,
         data,
         regenerate=False,
         user=default_user,
@@ -237,7 +237,7 @@ conda activate khoj
     # reload embeddings, entries, notes model after adding new org-mode file
     with caplog.at_level(logging.INFO):
         text_search.setup(
-            OrgToJsonl,
+            OrgToEntries,
             data,
             regenerate=False,
             full_corpus=False,
@@ -259,7 +259,7 @@ def test_regenerate_index_with_new_entry(
     data = get_org_files(org_config)
 
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
+        text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
 
     assert "Created 10 new embeddings. Deleted 3 embeddings for user " in caplog.records[-1].message
 
@@ -273,7 +273,7 @@ def test_regenerate_index_with_new_entry(
     # Act
     # regenerate notes jsonl, model embeddings and model to include entry from new file
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
+        text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
 
     # Assert
     assert "Created 11 new embeddings. Deleted 10 embeddings for user " in caplog.records[-1].message
@@ -298,7 +298,7 @@ def test_update_index_with_duplicate_entries_in_stable_order(
     # Act
     # generate embeddings, entries, notes model from scratch after adding new org-mode file
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
+        text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
     initial_logs = caplog.text
     caplog.clear()  # Clear logs
 
@@ -306,7 +306,7 @@ def test_update_index_with_duplicate_entries_in_stable_order(
 
     # update embeddings, entries, notes model with no new changes
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, regenerate=False, user=default_user)
+        text_search.setup(OrgToEntries, data, regenerate=False, user=default_user)
     final_logs = caplog.text
 
     # Assert
@@ -331,7 +331,7 @@ def test_update_index_with_deleted_entry(org_config_with_only_new_file: LocalOrg
 
     # load embeddings, entries, notes model after adding new org file with 2 entries
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
+        text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
     initial_logs = caplog.text
     caplog.clear()  # Clear logs
 
@@ -343,7 +343,7 @@ def test_update_index_with_deleted_entry(org_config_with_only_new_file: LocalOrg
 
     # Act
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, regenerate=False, user=default_user)
+        text_search.setup(OrgToEntries, data, regenerate=False, user=default_user)
     final_logs = caplog.text
 
     # Assert
@@ -361,7 +361,7 @@ def test_update_index_with_new_entry(content_config: ContentConfig, new_org_file
     org_config = LocalOrgConfig.objects.filter(user=default_user).first()
     data = get_org_files(org_config)
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, regenerate=True, user=default_user)
+        text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
     initial_logs = caplog.text
     caplog.clear()  # Clear logs
 
@@ -375,7 +375,7 @@ def test_update_index_with_new_entry(content_config: ContentConfig, new_org_file
     # Act
     # update embeddings, entries with the newly added note
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToJsonl, data, regenerate=False, user=default_user)
+        text_search.setup(OrgToEntries, data, regenerate=False, user=default_user)
     final_logs = caplog.text
 
     # Assert
@@ -393,7 +393,7 @@ def test_text_search_setup_github(content_config: ContentConfig, default_user: K
     # Act
     # Regenerate github embeddings to test asymmetric setup without caching
     text_search.setup(
-        GithubToJsonl,
+        GithubToEntries,
         {},
         regenerate=True,
         user=default_user,

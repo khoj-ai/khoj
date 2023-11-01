@@ -10,16 +10,16 @@ import requests
 # Internal Packages
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry, GithubContentConfig, GithubRepoConfig
-from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
-from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
-from khoj.processor.text_to_jsonl import TextEntries
+from khoj.processor.markdown.markdown_to_entries import MarkdownToEntries
+from khoj.processor.org_mode.org_to_entries import OrgToEntries
+from khoj.processor.text_to_entries import TextToEntries
 from database.models import Entry as DbEntry, GithubConfig, KhojUser
 
 
 logger = logging.getLogger(__name__)
 
 
-class GithubToJsonl(TextEntries):
+class GithubToEntries(TextToEntries):
     def __init__(self, config: GithubConfig):
         super().__init__(config)
         raw_repos = config.githubrepoconfig.all()
@@ -77,24 +77,26 @@ class GithubToJsonl(TextEntries):
         current_entries = []
 
         with timer(f"Extract markdown entries from github repo {repo_shorthand}", logger):
-            current_entries = MarkdownToJsonl.convert_markdown_entries_to_maps(
-                *GithubToJsonl.extract_markdown_entries(markdown_files)
+            current_entries = MarkdownToEntries.convert_markdown_entries_to_maps(
+                *GithubToEntries.extract_markdown_entries(markdown_files)
             )
 
         with timer(f"Extract org entries from github repo {repo_shorthand}", logger):
-            current_entries += OrgToJsonl.convert_org_nodes_to_entries(*GithubToJsonl.extract_org_entries(org_files))
+            current_entries += OrgToEntries.convert_org_nodes_to_entries(
+                *GithubToEntries.extract_org_entries(org_files)
+            )
 
         with timer(f"Extract commit messages from github repo {repo_shorthand}", logger):
             current_entries += self.convert_commits_to_entries(self.get_commits(repo_url), repo)
 
         with timer(f"Extract issues from github repo {repo_shorthand}", logger):
-            issue_entries = GithubToJsonl.convert_issues_to_entries(
-                *GithubToJsonl.extract_github_issues(self.get_issues(repo_url))
+            issue_entries = GithubToEntries.convert_issues_to_entries(
+                *GithubToEntries.extract_github_issues(self.get_issues(repo_url))
             )
             current_entries += issue_entries
 
         with timer(f"Split entries by max token size supported by model {repo_shorthand}", logger):
-            current_entries = TextEntries.split_entries_by_max_tokens(current_entries, max_tokens=256)
+            current_entries = TextToEntries.split_entries_by_max_tokens(current_entries, max_tokens=256)
 
         return current_entries
 
@@ -280,7 +282,7 @@ class GithubToJsonl(TextEntries):
         entries = []
         entry_to_file_map = []
         for doc in markdown_files:
-            entries, entry_to_file_map = MarkdownToJsonl.process_single_markdown_file(
+            entries, entry_to_file_map = MarkdownToEntries.process_single_markdown_file(
                 doc["content"], doc["path"], entries, entry_to_file_map
             )
         return entries, dict(entry_to_file_map)
@@ -291,7 +293,7 @@ class GithubToJsonl(TextEntries):
         entry_to_file_map = []
 
         for doc in org_files:
-            entries, entry_to_file_map = OrgToJsonl.process_single_org_file(
+            entries, entry_to_file_map = OrgToEntries.process_single_org_file(
                 doc["content"], doc["path"], entries, entry_to_file_map
             )
         return entries, dict(entry_to_file_map)

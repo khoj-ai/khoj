@@ -18,7 +18,7 @@ from khoj.utils.models import BaseEncoder
 from khoj.utils.state import SearchType
 from khoj.utils.rawconfig import SearchResponse, Entry
 from khoj.utils.jsonl import load_jsonl
-from khoj.processor.text_to_jsonl import TextEntries
+from khoj.processor.text_to_entries import TextToEntries
 from database.adapters import EntryAdapters
 from database.models import KhojUser, Entry as DbEntry
 
@@ -188,7 +188,7 @@ def rerank_and_sort_results(hits, query):
 
 
 def setup(
-    text_to_jsonl: Type[TextEntries],
+    text_to_entries: Type[TextToEntries],
     files: dict[str, str],
     regenerate: bool,
     full_corpus: bool = True,
@@ -196,11 +196,11 @@ def setup(
     config=None,
 ) -> None:
     if config:
-        num_new_embeddings, num_deleted_embeddings = text_to_jsonl(config).process(
+        num_new_embeddings, num_deleted_embeddings = text_to_entries(config).process(
             files=files, full_corpus=full_corpus, user=user, regenerate=regenerate
         )
     else:
-        num_new_embeddings, num_deleted_embeddings = text_to_jsonl().process(
+        num_new_embeddings, num_deleted_embeddings = text_to_entries().process(
             files=files, full_corpus=full_corpus, user=user, regenerate=regenerate
         )
 

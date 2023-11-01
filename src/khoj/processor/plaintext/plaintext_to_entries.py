@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 
 
 # Internal Packages
-from khoj.processor.text_to_jsonl import TextEntries
+from khoj.processor.text_to_entries import TextToEntries
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry
 from database.models import Entry as DbEntry, KhojUser
@@ -15,7 +15,7 @@ from database.models import Entry as DbEntry, KhojUser
 logger = logging.getLogger(__name__)
 
 
-class PlaintextToJsonl(TextEntries):
+class PlaintextToEntries(TextToEntries):
     def __init__(self):
         super().__init__()
 
@@ -35,7 +35,7 @@ class PlaintextToJsonl(TextEntries):
                 try:
                     plaintext_content = files[file]
                     if file.endswith(("html", "htm", "xml")):
-                        plaintext_content = PlaintextToJsonl.extract_html_content(
+                        plaintext_content = PlaintextToEntries.extract_html_content(
                             plaintext_content, file.split(".")[-1]
                         )
                     files[file] = plaintext_content
@@ -45,7 +45,7 @@ class PlaintextToJsonl(TextEntries):
 
         # Extract Entries from specified plaintext files
         with timer("Parse entries from plaintext files", logger):
-            current_entries = PlaintextToJsonl.convert_plaintext_entries_to_maps(files)
+            current_entries = PlaintextToEntries.convert_plaintext_entries_to_maps(files)
 
         # Split entries by max tokens supported by model
         with timer("Split entries by max token size supported by model", logger):

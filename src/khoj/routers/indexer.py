@@ -10,12 +10,12 @@ from starlette.authentication import requires
 
 # Internal Packages
 from khoj.utils import state, constants
-from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
-from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
-from khoj.processor.pdf.pdf_to_jsonl import PdfToJsonl
-from khoj.processor.github.github_to_jsonl import GithubToJsonl
-from khoj.processor.notion.notion_to_jsonl import NotionToJsonl
-from khoj.processor.plaintext.plaintext_to_jsonl import PlaintextToJsonl
+from khoj.processor.markdown.markdown_to_entries import MarkdownToEntries
+from khoj.processor.org_mode.org_to_entries import OrgToEntries
+from khoj.processor.pdf.pdf_to_entries import PdfToEntries
+from khoj.processor.github.github_to_entries import GithubToEntries
+from khoj.processor.notion.notion_to_entries import NotionToEntries
+from khoj.processor.plaintext.plaintext_to_entries import PlaintextToEntries
 from khoj.search_type import text_search, image_search
 from khoj.routers.helpers import update_telemetry_state
 from khoj.utils.yaml import save_config_to_file_updated_state
@@ -201,7 +201,7 @@ def configure_content(
             logger.info("🦄 Setting up search for orgmode notes")
             # Extract Entries, Generate Notes Embeddings
             text_search.setup(
-                OrgToJsonl,
+                OrgToEntries,
                 files.get("org"),
                 regenerate=regenerate,
                 full_corpus=full_corpus,
@@ -216,7 +216,7 @@ def configure_content(
             logger.info("💎 Setting up search for markdown notes")
             # Extract Entries, Generate Markdown Embeddings
             text_search.setup(
-                MarkdownToJsonl,
+                MarkdownToEntries,
                 files.get("markdown"),
                 regenerate=regenerate,
                 full_corpus=full_corpus,
@@ -232,7 +232,7 @@ def configure_content(
             logger.info("🖨️ Setting up search for pdf")
             # Extract Entries, Generate PDF Embeddings
             text_search.setup(
-                PdfToJsonl,
+                PdfToEntries,
                 files.get("pdf"),
                 regenerate=regenerate,
                 full_corpus=full_corpus,
@@ -248,7 +248,7 @@ def configure_content(
             logger.info("📄 Setting up search for plaintext")
             # Extract Entries, Generate Plaintext Embeddings
             text_search.setup(
-                PlaintextToJsonl,
+                PlaintextToEntries,
                 files.get("plaintext"),
                 regenerate=regenerate,
                 full_corpus=full_corpus,
@@ -281,7 +281,7 @@ def configure_content(
             logger.info("🐙 Setting up search for github")
             # Extract Entries, Generate Github Embeddings
             text_search.setup(
-                GithubToJsonl,
+                GithubToEntries,
                 None,
                 regenerate=regenerate,
                 full_corpus=full_corpus,
@@ -298,7 +298,7 @@ def configure_content(
         if (search_type == None or search_type in state.SearchType.Notion.value) and notion_config:
             logger.info("🔌 Setting up search for notion")
             text_search.setup(
-                NotionToJsonl,
+                NotionToEntries,
                 None,
                 regenerate=regenerate,
                 full_corpus=full_corpus,

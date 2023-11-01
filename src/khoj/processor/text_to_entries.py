@@ -19,7 +19,7 @@ from database.adapters import EntryAdapters
 logger = logging.getLogger(__name__)
 
 
-class TextEntries(ABC):
+class TextToEntries(ABC):
     def __init__(self, config: Any = None):
         self.embeddings_model = EmbeddingsModel()
         self.config = config
@@ -85,10 +85,10 @@ class TextEntries(ABC):
     ):
         with timer("Construct current entry hashes", logger):
             hashes_by_file = dict[str, set[str]]()
-            current_entry_hashes = list(map(TextEntries.hash_func(key), current_entries))
+            current_entry_hashes = list(map(TextToEntries.hash_func(key), current_entries))
             hash_to_current_entries = dict(zip(current_entry_hashes, current_entries))
             for entry in tqdm(current_entries, desc="Hashing Entries"):
-                hashes_by_file.setdefault(entry.file, set()).add(TextEntries.hash_func(key)(entry))
+                hashes_by_file.setdefault(entry.file, set()).add(TextToEntries.hash_func(key)(entry))
 
         num_deleted_embeddings = 0
         with timer("Preparing dataset for regeneration", logger):
@@ -180,11 +180,11 @@ class TextEntries(ABC):
     ):
         # Hash all current and previous entries to identify new entries
         with timer("Hash previous, current entries", logger):
-            current_entry_hashes = list(map(TextEntries.hash_func(key), current_entries))
-            previous_entry_hashes = list(map(TextEntries.hash_func(key), previous_entries))
+            current_entry_hashes = list(map(TextToEntries.hash_func(key), current_entries))
+            previous_entry_hashes = list(map(TextToEntries.hash_func(key), previous_entries))
             if deletion_filenames is not None:
                 deletion_entries = [entry for entry in previous_entries if entry.file in deletion_filenames]
-                deletion_entry_hashes = list(map(TextEntries.hash_func(key), deletion_entries))
+                deletion_entry_hashes = list(map(TextToEntries.hash_func(key), deletion_entries))
             else:
                 deletion_entry_hashes = []
 
