@@ -13,8 +13,7 @@ from khoj.utils.rawconfig import Entry, GithubContentConfig, GithubRepoConfig
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.text_to_jsonl import TextEmbeddings
-from khoj.utils.rawconfig import Entry
-from database.models import Embeddings, GithubConfig, KhojUser
+from database.models import Entry as DbEntry, GithubConfig, KhojUser
 
 
 logger = logging.getLogger(__name__)
@@ -103,7 +102,7 @@ class GithubToJsonl(TextEmbeddings):
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
             num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
-                current_entries, Embeddings.EmbeddingsType.GITHUB, key="compiled", logger=logger, user=user
+                current_entries, DbEntry.EntryType.GITHUB, key="compiled", logger=logger, user=user
             )
 
         return num_new_embeddings, num_deleted_embeddings

@@ -11,7 +11,7 @@ from langchain.document_loaders import PyMuPDFLoader
 from khoj.processor.text_to_jsonl import TextEmbeddings
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry
-from database.models import Embeddings, KhojUser
+from database.models import Entry as DbEntry, KhojUser
 
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ class PdfToJsonl(TextEmbeddings):
         with timer("Identify new or updated entries", logger):
             num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
                 current_entries,
-                Embeddings.EmbeddingsType.PDF,
+                DbEntry.EntryType.PDF,
                 "compiled",
                 logger,
                 deletion_file_names,

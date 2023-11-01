@@ -6,31 +6,31 @@ from typing import List, Tuple, Type, Union, Dict
 
 # External Packages
 import torch
-from sentence_transformers import SentenceTransformer, CrossEncoder, util
+from sentence_transformers import util
 
 from asgiref.sync import sync_to_async
 
 
 # Internal Packages
 from khoj.utils import state
-from khoj.utils.helpers import get_absolute_path, resolve_absolute_path, load_model, timer
+from khoj.utils.helpers import get_absolute_path, timer
 from khoj.utils.models import BaseEncoder
 from khoj.utils.state import SearchType
 from khoj.utils.rawconfig import SearchResponse, Entry
 from khoj.utils.jsonl import load_jsonl
 from khoj.processor.text_to_jsonl import TextEmbeddings
-from database.adapters import EmbeddingsAdapters
-from database.models import KhojUser, Embeddings
+from database.adapters import EntryAdapters
+from database.models import KhojUser, Entry as DbEntry
 
 logger = logging.getLogger(__name__)
 
 search_type_to_embeddings_type = {
-    SearchType.Org.value: Embeddings.EmbeddingsType.ORG,
-    SearchType.Markdown.value: Embeddings.EmbeddingsType.MARKDOWN,
-    SearchType.Plaintext.value: Embeddings.EmbeddingsType.PLAINTEXT,
-    SearchType.Pdf.value: Embeddings.EmbeddingsType.PDF,
-    SearchType.Github.value: Embeddings.EmbeddingsType.GITHUB,
-    SearchType.Notion.value: Embeddings.EmbeddingsType.NOTION,
+    SearchType.Org.value: DbEntry.EntryType.ORG,
+    SearchType.Markdown.value: DbEntry.EntryType.MARKDOWN,
+    SearchType.Plaintext.value: DbEntry.EntryType.PLAINTEXT,
+    SearchType.Pdf.value: DbEntry.EntryType.PDF,
+    SearchType.Github.value: DbEntry.EntryType.GITHUB,
+    SearchType.Notion.value: DbEntry.EntryType.NOTION,
     SearchType.All.value: None,
 }
 
@@ -121,7 +121,7 @@ async def query(
     # Find relevant entries for the query
     top_k = 10
     with timer("Search Time", logger, state.device):
-        hits = EmbeddingsAdapters.search_with_embeddings(
+        hits = EntryAdapters.search_with_embeddings(
             user=user,
             embeddings=question_embedding,
             max_results=top_k,

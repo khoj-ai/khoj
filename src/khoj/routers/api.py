@@ -48,7 +48,7 @@ from khoj.processor.conversation.gpt4all.chat_model import extract_questions_off
 from fastapi.requests import Request
 
 from database import adapters
-from database.adapters import EmbeddingsAdapters, ConversationAdapters
+from database.adapters import EntryAdapters, ConversationAdapters
 from database.models import LocalMarkdownConfig, LocalOrgConfig, LocalPdfConfig, LocalPlaintextConfig, KhojUser
 
 
@@ -129,7 +129,7 @@ if not state.demo:
     @requires(["authenticated"])
     def get_config_data(request: Request):
         user = request.user.object
-        EmbeddingsAdapters.get_unique_file_types(user)
+        EntryAdapters.get_unique_file_types(user)
 
         return state.config
 
@@ -145,7 +145,7 @@ if not state.demo:
 
         configuration_update_metadata = {}
 
-        enabled_content = await sync_to_async(EmbeddingsAdapters.get_unique_file_types)(user)
+        enabled_content = await sync_to_async(EntryAdapters.get_unique_file_types)(user)
 
         if state.config.content_type is not None:
             configuration_update_metadata["github"] = "github" in enabled_content
@@ -241,9 +241,9 @@ if not state.demo:
             raise ValueError(f"Invalid content type: {content_type}")
 
         await content_object.objects.filter(user=user).adelete()
-        await sync_to_async(EmbeddingsAdapters.delete_all_embeddings)(user, content_type)
+        await sync_to_async(EntryAdapters.delete_all_entries)(user, content_type)
 
-        enabled_content = await sync_to_async(EmbeddingsAdapters.get_unique_file_types)(user)
+        enabled_content = await sync_to_async(EntryAdapters.get_unique_file_types)(user)
         return {"status": "ok"}
 
     @api.post("/delete/config/data/processor/conversation/openai", status_code=200)
@@ -372,7 +372,7 @@ def get_config_types(
 ):
     user = request.user.object
 
-    enabled_file_types = EmbeddingsAdapters.get_unique_file_types(user)
+    enabled_file_types = EntryAdapters.get_unique_file_types(user)
 
     configured_content_types = list(enabled_file_types)
 
@@ -706,7 +706,7 @@ async def extract_references_and_questions(
     if conversation_type == ConversationCommand.General:
         return compiled_references, inferred_queries, q
 
-    if not await EmbeddingsAdapters.user_has_embeddings(user=user):
+    if not await EntryAdapters.user_has_entries(user=user):
         logger.warning(
             "No content index loaded, so cannot extract references from knowledge base. Please configure your data sources and update the index to chat with your notes."
         )

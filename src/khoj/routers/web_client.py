@@ -19,7 +19,7 @@ from khoj.utils.rawconfig import (
 
 # Internal Packages
 from khoj.utils import constants, state
-from database.adapters import EmbeddingsAdapters, get_user_github_config, get_user_notion_config, ConversationAdapters
+from database.adapters import EntryAdapters, get_user_github_config, get_user_notion_config, ConversationAdapters
 from database.models import LocalOrgConfig, LocalMarkdownConfig, LocalPdfConfig, LocalPlaintextConfig
 
 
@@ -84,7 +84,7 @@ if not state.demo:
     @requires(["authenticated"], redirect="login_page")
     def config_page(request: Request):
         user = request.user.object
-        enabled_content = set(EmbeddingsAdapters.get_unique_file_types(user).all())
+        enabled_content = set(EntryAdapters.get_unique_file_types(user).all())
         default_full_config = FullConfig(
             content_type=None,
             search_type=None,

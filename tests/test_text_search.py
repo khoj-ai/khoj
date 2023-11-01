@@ -1,6 +1,5 @@
 # System Packages
 import logging
-import locale
 from pathlib import Path
 import os
 import asyncio
@@ -14,7 +13,7 @@ from khoj.utils.rawconfig import ContentConfig, SearchConfig
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.github.github_to_jsonl import GithubToJsonl
 from khoj.utils.fs_syncer import collect_files, get_org_files
-from database.models import LocalOrgConfig, KhojUser, Embeddings, GithubConfig
+from database.models import LocalOrgConfig, KhojUser, Entry, GithubConfig
 
 logger = logging.getLogger(__name__)
 
@@ -402,10 +401,10 @@ def test_text_search_setup_github(content_config: ContentConfig, default_user: K
     )
 
     # Assert
-    embeddings = Embeddings.objects.filter(user=default_user, file_type="github").count()
+    embeddings = Entry.objects.filter(user=default_user, file_type="github").count()
     assert embeddings > 1
 
 
 def verify_embeddings(expected_count, user):
-    embeddings = Embeddings.objects.filter(user=user, file_type="org").count()
+    embeddings = Entry.objects.filter(user=user, file_type="org").count()
     assert embeddings == expected_count

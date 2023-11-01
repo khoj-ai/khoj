@@ -12,8 +12,8 @@ from khoj.utils.helpers import timer, batcher
 from khoj.utils.rawconfig import Entry
 from khoj.processor.embeddings import EmbeddingsModel
 from khoj.search_filter.date_filter import DateFilter
-from database.models import KhojUser, Embeddings, EmbeddingsDates
-from database.adapters import EmbeddingsAdapters
+from database.models import KhojUser, Entry as DbEntry, EntryDates
+from database.adapters import EntryAdapters
 
 
 logger = logging.getLogger(__name__)
@@ -94,14 +94,14 @@ class TextEmbeddings(ABC):
         with timer("Preparing dataset for regeneration", logger):
             if regenerate:
                 logger.debug(f"Deleting all embeddings for file type {file_type}")
-                num_deleted_embeddings = EmbeddingsAdapters.delete_all_embeddings(user, file_type)
+                num_deleted_embeddings = EntryAdapters.delete_all_entries(user, file_type)
 
         num_new_embeddings = 0
         with timer("Identify hashes for adding new entries", logger):
             for file in tqdm(hashes_by_file, desc="Processing file with hashed values"):
                 hashes_for_file = hashes_by_file[file]
                 hashes_to_process = set()
-                existing_entries = Embeddings.objects.filter(
+                existing_entries = DbEntry.objects.filter(
                     user=user, hashed_value__in=hashes_for_file, file_type=file_type
                 )
                 existing_entry_hashes = set([entry.hashed_value for entry in existing_entries])
@@ -124,7 +124,7 @@ class TextEmbeddings(ABC):
                         for entry_hash, embedding in entry_batch:
                             entry = hash_to_current_entries[entry_hash]
                             batch_embeddings_to_create.append(
-                                Embeddings(
+                                DbEntry(
                                     user=user,
                                     embeddings=embedding,
                                     raw=entry.raw,
@@ -136,7 +136,7 @@ class TextEmbeddings(ABC):
                                     corpus_id=entry.corpus_id,
                                 )
                             )
-                        new_embeddings = Embeddings.objects.bulk_create(batch_embeddings_to_create)
+                        new_embeddings = DbEntry.objects.bulk_create(batch_embeddings_to_create)
                         logger.debug(f"Created {len(new_embeddings)} new embeddings")
                         num_new_embeddings += len(new_embeddings)
 
@@ -146,26 +146,26 @@ class TextEmbeddings(ABC):
                                 dates = self.date_filter.extract_dates(embedding.raw)
                                 for date in dates:
                                     dates_to_create.append(
-                                        EmbeddingsDates(
+                                        EntryDates(
                                             date=date,
                                             embeddings=embedding,
                                         )
                                     )
-                            new_dates = EmbeddingsDates.objects.bulk_create(dates_to_create)
+                            new_dates = EntryDates.objects.bulk_create(dates_to_create)
                             if len(new_dates) > 0:
                                 logger.debug(f"Created {len(new_dates)} new date entries")
 
         with timer("Identify hashes for removed entries", logger):
             for file in hashes_by_file:
-                existing_entry_hashes = EmbeddingsAdapters.get_existing_entry_hashes_by_file(user, file)
+                existing_entry_hashes = EntryAdapters.get_existing_entry_hashes_by_file(user, file)
                 to_delete_entry_hashes = set(existing_entry_hashes) - hashes_by_file[file]
                 num_deleted_embeddings += len(to_delete_entry_hashes)
-                EmbeddingsAdapters.delete_embedding_by_hash(user, hashed_values=list(to_delete_entry_hashes))
+                EntryAdapters.delete_entry_by_hash(user, hashed_values=list(to_delete_entry_hashes))
 
         with timer("Identify hashes for deleting entries", logger):
             if deletion_filenames is not None:
                 for file_path in deletion_filenames:
-                    deleted_count = EmbeddingsAdapters.delete_embedding_by_file(user, file_path)
+                    deleted_count = EntryAdapters.delete_entry_by_file(user, file_path)
                     num_deleted_embeddings += deleted_count
 
         return num_new_embeddings, num_deleted_embeddings
