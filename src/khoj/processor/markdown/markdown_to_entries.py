@@ -6,17 +6,17 @@ from pathlib import Path
 from typing import Tuple, List
 
 # Internal Packages
-from khoj.processor.text_to_jsonl import TextEmbeddings
+from khoj.processor.text_to_entries import TextToEntries
 from khoj.utils.helpers import timer
 from khoj.utils.constants import empty_escape_sequences
 from khoj.utils.rawconfig import Entry
-from database.models import Embeddings, KhojUser
+from database.models import Entry as DbEntry, KhojUser
 
 
 logger = logging.getLogger(__name__)
 
 
-class MarkdownToJsonl(TextEmbeddings):
+class MarkdownToEntries(TextToEntries):
     def __init__(self):
         super().__init__()
 
@@ -34,8 +34,8 @@ class MarkdownToJsonl(TextEmbeddings):
 
         # Extract Entries from specified Markdown files
         with timer("Parse entries from Markdown files into dictionaries", logger):
-            current_entries = MarkdownToJsonl.convert_markdown_entries_to_maps(
-                *MarkdownToJsonl.extract_markdown_entries(files)
+            current_entries = MarkdownToEntries.convert_markdown_entries_to_maps(
+                *MarkdownToEntries.extract_markdown_entries(files)
             )
 
         # Split entries by max tokens supported by model
@@ -46,7 +46,7 @@ class MarkdownToJsonl(TextEmbeddings):
         with timer("Identify new or updated entries", logger):
             num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
                 current_entries,
-                Embeddings.EmbeddingsType.MARKDOWN,
+                DbEntry.EntryType.MARKDOWN,
                 "compiled",
                 logger,
                 deletion_file_names,
@@ -67,7 +67,7 @@ class MarkdownToJsonl(TextEmbeddings):
         for markdown_file in markdown_files:
             try:
                 markdown_content = markdown_files[markdown_file]
-                entries, entry_to_file_map = MarkdownToJsonl.process_single_markdown_file(
+                entries, entry_to_file_map = MarkdownToEntries.process_single_markdown_file(
                     markdown_content, markdown_file, entries, entry_to_file_map
                 )
             except Exception as e:

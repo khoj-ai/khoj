@@ -3,7 +3,7 @@ import json
 import os
 
 # Internal Packages
-from khoj.processor.pdf.pdf_to_jsonl import PdfToJsonl
+from khoj.processor.pdf.pdf_to_entries import PdfToEntries
 
 from khoj.utils.fs_syncer import get_pdf_files
 from khoj.utils.rawconfig import TextContentConfig
@@ -18,11 +18,11 @@ def test_single_page_pdf_to_jsonl():
         pdf_bytes = f.read()
 
     data = {"tests/data/pdf/singlepage.pdf": pdf_bytes}
-    entries, entry_to_file_map = PdfToJsonl.extract_pdf_entries(pdf_files=data)
+    entries, entry_to_file_map = PdfToEntries.extract_pdf_entries(pdf_files=data)
 
     # Process Each Entry from All Pdf Files
-    jsonl_string = PdfToJsonl.convert_pdf_maps_to_jsonl(
-        PdfToJsonl.convert_pdf_entries_to_maps(entries, entry_to_file_map)
+    jsonl_string = PdfToEntries.convert_pdf_maps_to_jsonl(
+        PdfToEntries.convert_pdf_entries_to_maps(entries, entry_to_file_map)
     )
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
@@ -38,11 +38,11 @@ def test_multi_page_pdf_to_jsonl():
         pdf_bytes = f.read()
 
     data = {"tests/data/pdf/multipage.pdf": pdf_bytes}
-    entries, entry_to_file_map = PdfToJsonl.extract_pdf_entries(pdf_files=data)
+    entries, entry_to_file_map = PdfToEntries.extract_pdf_entries(pdf_files=data)
 
     # Process Each Entry from All Pdf Files
-    jsonl_string = PdfToJsonl.convert_pdf_maps_to_jsonl(
-        PdfToJsonl.convert_pdf_entries_to_maps(entries, entry_to_file_map)
+    jsonl_string = PdfToEntries.convert_pdf_maps_to_jsonl(
+        PdfToEntries.convert_pdf_entries_to_maps(entries, entry_to_file_map)
     )
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 

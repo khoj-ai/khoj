@@ -15,9 +15,9 @@ from khoj.utils import state
 from khoj.utils.state import search_models, content_index, config
 from khoj.search_type import text_search, image_search
 from khoj.utils.rawconfig import ContentConfig, SearchConfig
-from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
+from khoj.processor.org_mode.org_to_entries import OrgToEntries
 from database.models import KhojUser
-from database.adapters import EmbeddingsAdapters
+from database.adapters import EntryAdapters
 
 
 # Test
@@ -176,9 +176,9 @@ def test_regenerate_with_github_fails_without_pat(client):
 @pytest.mark.skip(reason="Flaky test on parallel test runs")
 def test_get_configured_types_via_api(client, sample_org_data):
     # Act
-    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False)
+    text_search.setup(OrgToEntries, sample_org_data, regenerate=False)
 
-    enabled_types = EmbeddingsAdapters.get_unique_file_types(user=None).all().values_list("file_type", flat=True)
+    enabled_types = EntryAdapters.get_unique_file_types(user=None).all().values_list("file_type", flat=True)
 
     # Assert
     assert list(enabled_types) == ["org"]
@@ -189,7 +189,7 @@ def test_get_configured_types_via_api(client, sample_org_data):
 def test_get_api_config_types(client, sample_org_data, default_user: KhojUser):
     # Arrange
     headers = {"Authorization": "Bearer kk-secret"}
-    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False, user=default_user)
+    text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)
 
     # Act
     response = client.get(f"/api/config/types", headers=headers)
@@ -255,7 +255,7 @@ def test_image_search(client, content_config: ContentConfig, search_config: Sear
 def test_notes_search(client, search_config: SearchConfig, sample_org_data, default_user: KhojUser):
     # Arrange
     headers = {"Authorization": "Bearer kk-secret"}
-    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False, user=default_user)
+    text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)
     user_query = quote("How to git install application?")
 
     # Act
@@ -276,7 +276,7 @@ def test_notes_search_with_only_filters(
     # Arrange
     headers = {"Authorization": "Bearer kk-secret"}
     text_search.setup(
-        OrgToJsonl,
+        OrgToEntries,
         sample_org_data,
         regenerate=False,
         user=default_user,
@@ -298,7 +298,7 @@ def test_notes_search_with_only_filters(
 def test_notes_search_with_include_filter(client, sample_org_data, default_user: KhojUser):
     # Arrange
     headers = {"Authorization": "Bearer kk-secret"}
-    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False, user=default_user)
+    text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)
     user_query = quote('How to git install application? +"Emacs"')
 
     # Act
@@ -317,7 +317,7 @@ def test_notes_search_with_exclude_filter(client, sample_org_data, default_user:
     # Arrange
     headers = {"Authorization": "Bearer kk-secret"}
     text_search.setup(
-        OrgToJsonl,
+        OrgToEntries,
         sample_org_data,
         regenerate=False,
         user=default_user,
@@ -339,7 +339,7 @@ def test_notes_search_with_exclude_filter(client, sample_org_data, default_user:
 def test_different_user_data_not_accessed(client, sample_org_data, default_user: KhojUser):
     # Arrange
     headers = {"Authorization": "Bearer kk-token"}  # Token for default_user2
-    text_search.setup(OrgToJsonl, sample_org_data, regenerate=False, user=default_user)
+    text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)
     user_query = quote("How to git install application?")
 
     # Act

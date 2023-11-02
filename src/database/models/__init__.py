@@ -120,8 +120,8 @@ class Conversation(BaseModel):
     conversation_log = models.JSONField(default=dict)
 
 
-class Embeddings(BaseModel):
-    class EmbeddingsType(models.TextChoices):
+class Entry(BaseModel):
+    class EntryType(models.TextChoices):
         IMAGE = "image"
         PDF = "pdf"
         PLAINTEXT = "plaintext"
@@ -136,7 +136,7 @@ class Embeddings(BaseModel):
     raw = models.TextField()
     compiled = models.TextField()
     heading = models.CharField(max_length=1000, default=None, null=True, blank=True)
-    file_type = models.CharField(max_length=30, choices=EmbeddingsType.choices, default=EmbeddingsType.PLAINTEXT)
+    file_type = models.CharField(max_length=30, choices=EntryType.choices, default=EntryType.PLAINTEXT)
     file_path = models.CharField(max_length=400, default=None, null=True, blank=True)
     file_name = models.CharField(max_length=400, default=None, null=True, blank=True)
     url = models.URLField(max_length=400, default=None, null=True, blank=True)
@@ -144,9 +144,9 @@ class Embeddings(BaseModel):
     corpus_id = models.UUIDField(default=uuid.uuid4, editable=False)
 
 
-class EmbeddingsDates(BaseModel):
+class EntryDates(BaseModel):
     date = models.DateField()
-    embeddings = models.ForeignKey(Embeddings, on_delete=models.CASCADE, related_name="embeddings_dates")
+    entry = models.ForeignKey(Entry, on_delete=models.CASCADE, related_name="embeddings_dates")
 
     class Meta:
         indexes = [

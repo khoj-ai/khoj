@@ -13,7 +13,7 @@ app = FastAPI()
 
 # Internal Packages
 from khoj.configure import configure_routes, configure_search_types, configure_middleware
-from khoj.processor.plaintext.plaintext_to_jsonl import PlaintextToJsonl
+from khoj.processor.plaintext.plaintext_to_entries import PlaintextToEntries
 from khoj.search_type import image_search, text_search
 from khoj.utils.config import SearchModels
 from khoj.utils.constants import web_directory
@@ -26,7 +26,7 @@ from khoj.utils.rawconfig import (
 )
 from khoj.utils import state, fs_syncer
 from khoj.routers.indexer import configure_content
-from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
+from khoj.processor.org_mode.org_to_entries import OrgToEntries
 from database.models import (
     KhojApiUser,
     LocalOrgConfig,
@@ -135,7 +135,7 @@ def content_config(tmp_path_factory, search_models: SearchModels, default_user: 
         user=default_user,
     )
 
-    text_search.setup(OrgToJsonl, get_sample_data("org"), regenerate=False, user=default_user)
+    text_search.setup(OrgToEntries, get_sample_data("org"), regenerate=False, user=default_user)
 
     if os.getenv("GITHUB_PAT_TOKEN"):
         GithubConfig.objects.create(
@@ -245,7 +245,7 @@ def client(
     # These lines help us Mock the Search models for these search types
     state.search_models.image_search = image_search.initialize_model(search_config.image)
     text_search.setup(
-        OrgToJsonl,
+        OrgToEntries,
         get_sample_data("org"),
         regenerate=False,
         user=api_user.user,
@@ -254,7 +254,7 @@ def client(
         content_config.image, state.search_models.image_search, regenerate=False
     )
     text_search.setup(
-        PlaintextToJsonl,
+        PlaintextToEntries,
         get_sample_data("plaintext"),
         regenerate=False,
         user=api_user.user,

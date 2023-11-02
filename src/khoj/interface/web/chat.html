@@ -8,6 +8,7 @@
         <link rel="manifest" href="/static/khoj_chat.webmanifest">
         <link rel="stylesheet" href="/static/assets/khoj.css">
     </head>
+    <script type="text/javascript" src="/static/assets/khoj.js"></script>
     <script>
         let chatOptions = [];
         function copyProgrammaticOutput(event) {
@@ -269,25 +270,10 @@
                 <button id="khoj-banner-submit" class="khoj-banner-button">Submit</button>
         {% endif %}
         </div>
+
         <!--Add Header Logo and Nav Pane-->
-        <div class="khoj-header">
-            {% if demo %}
-                <a class="khoj-logo" href="https://khoj.dev" target="_blank">
-                    <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
-                </a>
-            {% else %}
-                <a class="khoj-logo" href="/">
-                    <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
-                </a>
-            {% endif %}
-            <nav class="khoj-nav">
-                <a class="khoj-nav khoj-nav-selected" href="/chat">Chat</a>
-                <a class="khoj-nav" href="/">Search</a>
-                {% if not demo %}
-                    <a class="khoj-nav" href="/config">Settings</a>
-                {% endif %}
-            </nav>
-        </div>
+        {% import 'utils.html' as utils %}
+        {{ utils.heading_pane(user_photo, username) }}
 
         <!-- Chat Body -->
         <div id="chat-body"></div>
@@ -309,8 +295,8 @@
         }
         body {
             display: grid;
-            background: #fff;
-            color: #475569;
+            background: var(--background-color);
+            color: var(--main-text-color);
             text-align: center;
             font-family: roboto, karma, segoe ui, sans-serif;
             font-size: 20px;
@@ -332,7 +318,7 @@
             content: attr(data-meta);
             display: block;
             font-size: x-small;
-            color: #475569;
+            color: var(--main-text-color);
             margin: -8px 4px 0 -5px;
         }
         /* move message by khoj to left */
@@ -402,7 +388,7 @@
             top: 91%;
             right: -2px;
             border: 10px solid transparent;
-            border-left-color: #475569;
+            border-left-color: var(--main-text-color);
             border-right: 0;
             margin-top: -10px;
             transform: rotate(-60deg)
@@ -418,7 +404,7 @@
         #chat-footer > * {
             padding: 15px;
             border-radius: 5px;
-            border: 1px solid #475569;
+            border: 1px solid var(--main-text-color);
             background: #f9fafc
         }
         .option:hover {
@@ -451,9 +437,9 @@
         }
 
         a.inline-chat-link {
-            color: #475569;
+            color: var(--main-text-color);
             text-decoration: none;
-            border-bottom: 1px dotted #475569;
+            border-bottom: 1px dotted var(--main-text-color);
         }
 
         @media (pointer: coarse), (hover: none) {
@@ -479,7 +465,7 @@
                 padding: 2px 4px;
             }
         }
-        @media only screen and (max-width: 600px) {
+        @media only screen and (max-width: 700px) {
             body {
                 grid-template-columns: 1fr;
                 grid-template-rows: auto auto minmax(80px, 100%) auto;
@@ -499,7 +485,7 @@
                 padding: 0;
             }
         }
-        @media only screen and (min-width: 600px) {
+        @media only screen and (min-width: 700px) {
             body {
                 grid-template-columns: auto min(70vw, 100%) auto;
                 grid-template-rows: auto auto minmax(80px, 100%) auto;
@@ -542,7 +528,7 @@
         input#khoj-banner-email {
             padding: 10px;
             border-radius: 5px;
-            border: 1px solid #475569;
+            border: 1px solid var(--main-text-color);
             background: #f9fafc;
         }
 

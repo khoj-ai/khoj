@@ -6,7 +6,7 @@ from pathlib import Path
 # Internal Packages
 from khoj.utils.fs_syncer import get_plaintext_files
 from khoj.utils.rawconfig import TextContentConfig
-from khoj.processor.plaintext.plaintext_to_jsonl import PlaintextToJsonl
+from khoj.processor.plaintext.plaintext_to_entries import PlaintextToEntries
 from database.models import LocalPlaintextConfig, KhojUser
 
 
@@ -27,14 +27,14 @@ def test_plaintext_file(tmp_path):
         f"{plaintextfile}": entry,
     }
 
-    maps = PlaintextToJsonl.convert_plaintext_entries_to_maps(entry_to_file_map=data)
+    maps = PlaintextToEntries.convert_plaintext_entries_to_maps(entry_to_file_map=data)
 
     # Convert each entry.file to absolute path to make them JSON serializable
     for map in maps:
         map.file = str(Path(map.file).absolute())
 
     # Process Each Entry from All Notes Files
-    jsonl_string = PlaintextToJsonl.convert_entries_to_jsonl(maps)
+    jsonl_string = PlaintextToEntries.convert_entries_to_jsonl(maps)
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
@@ -100,7 +100,7 @@ def test_parse_html_plaintext_file(content_config, default_user: KhojUser):
     extracted_plaintext_files = get_plaintext_files(config=config)
 
     # Act
-    maps = PlaintextToJsonl.convert_plaintext_entries_to_maps(extracted_plaintext_files)
+    maps = PlaintextToEntries.convert_plaintext_entries_to_maps(extracted_plaintext_files)
 
     # Assert
     assert len(maps) == 1

@@ -8,19 +8,15 @@
         <link rel="stylesheet" href="/static/assets/pico.min.css">
         <link rel="stylesheet" href="/static/assets/khoj.css">
     </head>
+    <script type="text/javascript" src="/static/assets/khoj.js"></script>
     <body class="khoj-configure">
         <div class="khoj-header-wrapper">
             <div class="filler"></div>
-            <div class="khoj-header">
-                <a class="khoj-logo" href="https://khoj.dev" target="_blank">
-                    <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
-                </a>
-                <nav class="khoj-nav">
-                    <a class="khoj-nav" href="/chat">Chat</a>
-                    <a class="khoj-nav" href="/">Search</a>
-                    <a class="khoj-nav khoj-nav-selected" href="/config">Settings</a>
-                </nav>
-            </div>
+
+            <!--Add Header Logo and Nav Pane-->
+            {% import 'utils.html' as utils %}
+            {{ utils.heading_pane(user_photo, username) }}
+
             <div class="filler"></div>
         </div>
         <div class=”content”>
@@ -38,10 +34,15 @@
         img.khoj-logo {
             max-width: none!important;
         }
-        div.khoj-header-wrapper{
+        div.khoj-header-wrapper {
             display: grid;
             grid-template-columns: 1fr min(70vw, 100%) 1fr;
         }
+        img.circle {
+            width: 49px;
+            height: 49px;
+        }
+
         .page {
             display: grid;
             grid-auto-flow: row;
@@ -237,12 +238,12 @@
             margin-bottom: 0;
         }
 
-        @media screen and (max-width: 600px) {
+        @media screen and (max-width: 700px) {
             .section-cards {
                 grid-template-columns: 1fr;
             }
         }
-        @media only screen and (max-width: 600px) {
+        @media only screen and (max-width: 700px) {
             body {
                 display: grid;
                 grid-template-columns: 1fr;
@@ -268,10 +269,9 @@
                 width: 320px;
             }
 
-            div.khoj-header-wrapper{
+            div.khoj-header-wrapper {
                 grid-template-columns: auto;
             }
-
         }
     </style>
 </html>

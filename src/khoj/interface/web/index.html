@@ -10,6 +10,7 @@
     </head>
     <script type="text/javascript" src="/static/assets/org.min.js"></script>
     <script type="text/javascript" src="/static/assets/markdown-it.min.js"></script>
+    <script type="text/javascript" src="/static/assets/khoj.js"></script>
 
     <script>
         function render_image(item) {
@@ -281,25 +282,10 @@
                 <button id="khoj-banner-submit" class="khoj-banner-button">Submit</button>
             </div>
         {% endif %}
+
         <!--Add Header Logo and Nav Pane-->
-        <div class="khoj-header">
-            {% if demo %}
-                <a class="khoj-logo" href="https://khoj.dev" target="_blank">
-                    <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
-                </a>
-            {% else %}
-                <a class="khoj-logo" href="/">
-                    <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
-                </a>
-            {% endif %}
-            <nav class="khoj-nav">
-                <a class="khoj-nav" href="/chat">Chat</a>
-                <a class="khoj-nav khoj-nav-selected" href="/">Search</a>
-                {% if not demo %}
-                    <a class="khoj-nav" href="/config">Settings</a>
-                {% endif %}
-            </nav>
-        </div>
+        {% import 'utils.html' as utils %}
+        {{ utils.heading_pane(user_photo, username) }}
 
         <!--Add Text Box To Enter Query, Trigger Incremental Search OnChange -->
         <input type="text" id="query" class="option" onkeyup=incrementalSearch(event) autofocus="autofocus" placeholder="Search your knowledge base using natural language">
@@ -314,7 +300,7 @@
     </body>
 
     <style>
-        @media only screen and (max-width: 600px) {
+        @media only screen and (max-width: 700px) {
             body {
                 display: grid;
                 grid-template-columns: 1fr;
@@ -325,7 +311,7 @@
                 grid-column: 1;
             }
         }
-        @media only screen and (min-width: 600px) {
+        @media only screen and (min-width: 700px) {
             body {
                 display: grid;
                 grid-template-columns: 1fr min(70vw, 100%) 1fr;
@@ -339,8 +325,8 @@
         body {
             padding: 0px;
             margin: 0px;
-            background: #fff;
-            color: #475569;
+            background: var(--background-color);
+            color: var(--main-text-color);
             font-family: roboto, karma, segoe ui, sans-serif;
             font-size: 20px;
             font-weight: 300;
@@ -358,7 +344,7 @@
         #options > * {
             padding: 15px;
             border-radius: 5px;
-            border: 1px solid #475569;
+            border: 1px solid var(--main-text-color);
             background: #f9fafc
         }
         .option:hover {
@@ -386,7 +372,7 @@
         .image {
             width: 20vw;
             border-radius: 10px;
-            border: 1px solid #475569;
+            border: 1px solid var(--main-text-color);
         }
         #json {
             white-space: pre-wrap;
@@ -429,7 +415,7 @@
             padding: 3.5px 3.5px 0;
             margin-right: 5px;
             border-radius: 5px;
-            border: 1px solid #475569;
+            border: 1px solid var(--main-text-color);
             background-color: #ef4444;
             font-size: small;
         }
@@ -500,7 +486,7 @@
         input#khoj-banner-email {
             padding: 10px;
             border-radius: 5px;
-            border: 1px solid #475569;
+            border: 1px solid var(--main-text-color);
             background: #f9fafc;
         }
 
@@ -509,7 +495,7 @@
             box-shadow: 0 0 11px #aaa;
         }
 
-        @media only screen and (max-width: 600px) {
+        @media only screen and (max-width: 700px) {
             a.khoj-banner {
                 display: block;
             }

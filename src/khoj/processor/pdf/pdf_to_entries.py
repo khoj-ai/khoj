@@ -8,16 +8,16 @@ import base64
 from langchain.document_loaders import PyMuPDFLoader
 
 # Internal Packages
-from khoj.processor.text_to_jsonl import TextEmbeddings
+from khoj.processor.text_to_entries import TextToEntries
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry
-from database.models import Embeddings, KhojUser
+from database.models import Entry as DbEntry, KhojUser
 
 
 logger = logging.getLogger(__name__)
 
 
-class PdfToJsonl(TextEmbeddings):
+class PdfToEntries(TextToEntries):
     def __init__(self):
         super().__init__()
 
@@ -35,7 +35,7 @@ class PdfToJsonl(TextEmbeddings):
 
         # Extract Entries from specified Pdf files
         with timer("Parse entries from PDF files into dictionaries", logger):
-            current_entries = PdfToJsonl.convert_pdf_entries_to_maps(*PdfToJsonl.extract_pdf_entries(files))
+            current_entries = PdfToEntries.convert_pdf_entries_to_maps(*PdfToEntries.extract_pdf_entries(files))
 
         # Split entries by max tokens supported by model
         with timer("Split entries by max token size supported by model", logger):
@@ -45,7 +45,7 @@ class PdfToJsonl(TextEmbeddings):
         with timer("Identify new or updated entries", logger):
             num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
                 current_entries,
-                Embeddings.EmbeddingsType.PDF,
+                DbEntry.EntryType.PDF,
                 "compiled",
                 logger,
                 deletion_file_names,
