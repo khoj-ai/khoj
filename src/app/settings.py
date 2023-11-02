@@ -43,6 +43,9 @@ else:
     SESSION_COOKIE_DOMAIN = "khoj.dev"
     CSRF_COOKIE_DOMAIN = "khoj.dev"
 
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
 # Application definition
 
 INSTALLED_APPS = [
