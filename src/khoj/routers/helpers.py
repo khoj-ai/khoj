@@ -21,11 +21,13 @@ logger = logging.getLogger(__name__)
 executor = ThreadPoolExecutor(max_workers=1)
 
 
-def perform_chat_checks(user: KhojUser):
+def validate_conversation_config():
     if (
         ConversationAdapters.has_valid_offline_conversation_config()
         or ConversationAdapters.has_valid_openai_conversation_config()
     ):
+        if ConversationAdapters.get_default_conversation_config() is None:
+            raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
         return
 
     raise HTTPException(status_code=500, detail="Set your OpenAI API key or enable Local LLM via Khoj settings.")

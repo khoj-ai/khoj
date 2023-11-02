@@ -118,12 +118,6 @@ if not state.demo:
         user = request.user.object
         user_picture = request.session.get("user", {}).get("picture")
         enabled_content = set(EntryAdapters.get_unique_file_types(user).all())
-        default_full_config = FullConfig(
-            content_type=None,
-            search_type=None,
-            processor=None,
-        )
-        current_config = state.config or json.loads(default_full_config.json())
 
         successfully_configured = {
             "pdf": ("pdf" in enabled_content),
@@ -155,7 +149,6 @@ if not state.demo:
             "config.html",
             context={
                 "request": request,
-                "current_config": current_config,
                 "current_model_state": successfully_configured,
                 "anonymous_mode": state.anonymous_mode,
                 "username": user.username if user else None,

@@ -33,7 +33,7 @@ from khoj.utils.helpers import AsyncIteratorWrapper, get_device
 from fastapi.responses import StreamingResponse, Response
 from khoj.routers.helpers import (
     get_conversation_command,
-    perform_chat_checks,
+    validate_conversation_config,
     agenerate_chat_response,
     update_telemetry_state,
     is_ready_to_chat,
@@ -265,9 +265,9 @@ if not state.demo:
 
         return {"status": "ok"}
 
-    @api.post("/config/data/update_model", status_code=200)
+    @api.post("/config/data/conversation/model", status_code=200)
     @requires(["authenticated"])
-    async def update_model(
+    async def update_chat_model(
         request: Request,
         id: str,
         client: Optional[str] = None,
@@ -503,7 +503,7 @@ def chat_history(
     host: Optional[str] = Header(None),
 ):
     user = request.user.object
-    perform_chat_checks(user)
+    validate_conversation_config()
 
     # Load Conversation History
     meta_log = ConversationAdapters.get_conversation_by_user(user=user).conversation_log

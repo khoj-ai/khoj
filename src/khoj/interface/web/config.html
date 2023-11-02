@@ -10,9 +10,7 @@
                     <img class="card-icon" src="/static/assets/icons/github.svg" alt="Github">
                     <h3 class="card-title">
                         Github
-                        {% if current_model_state.github == False %}
-                            <img id="misconfigured-icon-github" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you just need to click Configure.">
-                        {% else %}
+                        {% if current_model_state.github == True %}
                             <img id="configured-icon-github" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
                         {% endif %}
                     </h3>
@@ -43,9 +41,7 @@
                     <img class="card-icon" src="/static/assets/icons/notion.svg" alt="Notion">
                     <h3 class="card-title">
                         Notion
-                        {% if current_model_state.notion == False %}
-                            <img id="misconfigured-icon-notion" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you just need to click Configure.">
-                        {% else %}
+                        {% if current_model_state.notion == True %}
                             <img id="configured-icon-notion" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
                         {% endif %}
                     </h3>
@@ -76,12 +72,8 @@
                     <img class="card-icon" src="/static/assets/icons/markdown.svg" alt="markdown">
                     <h3 class="card-title">
                         Markdown
-                        {% if current_model_state.markdown %}
-                            {% if current_model_state.markdown == False%}
-                                <img id="misconfigured-icon-markdown" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you just need to click Configure.">
-                            {% else %}
-                                <img id="configured-icon-markdown" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
-                            {% endif %}
+                        {% if current_model_state.markdown == True%}
+                            <img id="configured-icon-markdown" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
                         {% endif %}
                     </h3>
                 </div>
@@ -111,12 +103,8 @@
                     <img class="card-icon" src="/static/assets/icons/org.svg" alt="org">
                     <h3 class="card-title">
                         Org
-                        {% if current_model_state.org %}
-                            {% if current_model_state.org == False %}
-                                <img id="misconfigured-icon-org" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you just need to click Configure.">
-                            {% else %}
-                                <img id="configured-icon-org" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
-                            {% endif %}
+                        {% if current_model_state.org == True %}
+                            <img id="configured-icon-org" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
                         {% endif %}
                     </h3>
                 </div>
@@ -146,12 +134,8 @@
                     <img class="card-icon" src="/static/assets/icons/pdf.svg" alt="PDF">
                     <h3 class="card-title">
                         PDF
-                        {% if current_model_state.pdf %}
-                            {% if current_model_state.pdf == False %}
-                                <img id="misconfigured-icon-pdf" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you need to click Configure.">
-                            {% else %}
-                                <img id="configured-icon-pdf" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
-                            {% endif %}
+                        {% if current_model_state.pdf == True %}
+                            <img id="configured-icon-pdf" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
                         {% endif %}
                     </h3>
                 </div>
@@ -181,12 +165,8 @@
                     <img class="card-icon" src="/static/assets/icons/plaintext.svg" alt="Plaintext">
                     <h3 class="card-title">
                         Plaintext
-                        {% if current_model_state.plaintext %}
-                            {% if current_model_state.plaintext == False %}
-                                <img id="misconfigured-icon-plaintext" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you need to click Configure.">
-                            {% else %}
-                                <img id="configured-icon-plaintext" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
-                            {% endif %}
+                        {% if current_model_state.plaintext == True %}
+                            <img id="configured-icon-plaintext" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
                         {% endif %}
                     </h3>
                 </div>
@@ -214,14 +194,14 @@
         </div>
     </div>
     <div class="section">
-        <h2 class="section-title">Chat</h2>
+        <h2 class="section-title">Features</h2>
         <div id="features-hint-text"></div>
         <div class="section-cards">
             <div class="card">
                 <div class="card-title-row">
-                    <img class="card-icon" src="/static/assets/icons/chat.svg" alt="PDF">
+                    <img class="card-icon" src="/static/assets/icons/chat.svg" alt="Chat">
                     <h3 class="card-title">
-                        Model
+                        Chat Model
                     </h3>
                 </div>
                 <div class="card-description-row">
@@ -240,13 +220,14 @@
         </div>
     </div>
     <div class="section">
+        <h2 class="section-title">Clients</h2>
         <div class="api-settings">
             <div class="card-title-row">
                 <img class="card-icon" src="/static/assets/icons/key.svg" alt="API Key">
                 <h3 class="card-title">API Keys</h3>
             </div>
             <div class="card-description-row">
-                <p id="api-settings-card-description" class="card-description">Manage access to your Khoj from client apps</p>
+                <p id="api-settings-card-description" class="card-description">Manage access from your client apps to Khoj</p>
             </div>
             <table id="api-settings-keys-table">
                 <thead>
@@ -291,7 +272,7 @@
         saveModelButton.disabled = true;
         saveModelButton.innerHTML = "Saving...";
 
-        fetch('/api/config/data/update_model?id=' + chatModel, {
+        fetch('/api/config/data/conversation/model?id=' + chatModel, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -461,8 +442,8 @@
                 <td><b>${tokenName}</b></td>
                 <td id="api-key-${token}">${truncatedToken}</td>
                 <td>
-                    <img onclick="copyAPIKey('${token}')" class="configured-icon enabled" src="/static/assets/icons/copy-solid.svg" alt="Copy API Key" title="Copy API Key">
-                    <img onclick="deleteAPIKey('${token}')" class="configured-icon enabled" src="/static/assets/icons/trash-solid.svg" alt="Delete API Key" title="Delete API Key">
+                    <img onclick="copyAPIKey('${token}')" class="configured-icon api-key-action enabled" src="/static/assets/icons/copy-solid.svg" alt="Copy API Key" title="Copy API Key">
+                    <img onclick="deleteAPIKey('${token}')" class="configured-icon api-key-action enabled" src="/static/assets/icons/trash-solid.svg" alt="Delete API Key" title="Delete API Key">
                 </td>
             </tr>
         `;
