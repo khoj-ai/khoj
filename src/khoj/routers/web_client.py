@@ -21,7 +21,6 @@ from khoj.utils import constants, state
 from database.adapters import EntryAdapters, get_user_github_config, get_user_notion_config, ConversationAdapters
 from database.models import LocalOrgConfig, LocalMarkdownConfig, LocalPdfConfig, LocalPlaintextConfig
 
-
 # Initialize Router
 web_client = APIRouter()
 templates = Jinja2Templates(directory=constants.web_directory)
@@ -87,7 +86,7 @@ def login_page(request: Request):
         next_url = request.query_params.get("next", "/")
         return RedirectResponse(url=next_url)
     google_client_id = os.environ.get("GOOGLE_CLIENT_ID")
-    redirect_uri = request.url_for("auth")
+    redirect_uri = str(request.app.url_path_for("auth"))
     return templates.TemplateResponse(
         "login.html",
         context={
