@@ -84,8 +84,6 @@ def migrate_server_pg(args):
         )
         raw_config["version"] = schema_version
 
-        raw_config["app"] = raw_config.get("app", {})
-
         if "processor" in raw_config and "conversation" in raw_config["processor"]:
             processor_conversation = raw_config["processor"]["conversation"]
 
