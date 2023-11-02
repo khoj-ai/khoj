@@ -99,18 +99,27 @@ def migrate_server_pg(args):
                     model_type=ChatModelOptions.ModelType.OFFLINE,
                 )
 
-            if "openai" in raw_config["processor"]["conversation"]:
+            if (
+                "openai" in raw_config["processor"]["conversation"]
+                and raw_config["processor"]["conversation"]["openai"]
+            ):
                 openai = raw_config["processor"]["conversation"]["openai"]
 
-                OpenAIProcessorConversationConfig.objects.create(
-                    api_key=openai.get("api-key"),
-                )
-                ChatModelOptions.objects.create(
-                    chat_model=openai.get("chat-model"),
-                    tokenizer=processor_conversation.get("tokenizer"),
-                    max_prompt_size=processor_conversation.get("max-prompt-size"),
-                    model_type=ChatModelOptions.ModelType.OPENAI,
-                )
+                if openai.get("api-key") is None:
+                    logger.error("OpenAI API Key is not set. Will not be migrating OpenAI config.")
+                else:
+                    if openai.get("chat-model") is None:
+                        openai["chat-model"] = "gpt-3.5-turbo"
+
+                    OpenAIProcessorConversationConfig.objects.create(
+                        api_key=openai.get("api-key"),
+                    )
+                    ChatModelOptions.objects.create(
+                        chat_model=openai.get("chat-model"),
+                        tokenizer=processor_conversation.get("tokenizer"),
+                        max_prompt_size=processor_conversation.get("max-prompt-size"),
+                        model_type=ChatModelOptions.ModelType.OPENAI,
+                    )
 
         save_config_to_file(raw_config, args.config_file)
 
