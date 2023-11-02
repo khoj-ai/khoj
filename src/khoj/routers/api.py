@@ -5,7 +5,6 @@ import time
 import logging
 import json
 from typing import List, Optional, Union, Any
-import asyncio
 
 # External Packages
 from fastapi import APIRouter, HTTPException, Header, Request
@@ -25,19 +24,16 @@ from khoj.utils.rawconfig import (
     SearchConfig,
     SearchResponse,
     TextContentConfig,
-    OpenAIProcessorConfig,
     GithubContentConfig,
     NotionContentConfig,
-    ConversationProcessorConfig,
-    OfflineChatProcessorConfig,
 )
 from khoj.utils.state import SearchType
 from khoj.utils import state, constants
-from khoj.utils.helpers import AsyncIteratorWrapper
+from khoj.utils.helpers import AsyncIteratorWrapper, get_device
 from fastapi.responses import StreamingResponse, Response
 from khoj.routers.helpers import (
     get_conversation_command,
-    perform_chat_checks,
+    validate_conversation_config,
     agenerate_chat_response,
     update_telemetry_state,
     is_ready_to_chat,
@@ -113,8 +109,6 @@ async def map_config_to_db(config: FullConfig, user: KhojUser):
                 user=user,
                 token=config.content_type.notion.token,
             )
-    if config.processor and config.processor.conversation:
-        ConversationAdapters.set_conversation_processor_config(user, config.processor.conversation)
 
 
 # If it's a demo instance, prevent updating any of the configuration.
@@ -246,26 +240,6 @@ if not state.demo:
         enabled_content = await sync_to_async(EntryAdapters.get_unique_file_types)(user)
         return {"status": "ok"}
 
-    @api.post("/delete/config/data/processor/conversation/openai", status_code=200)
-    @requires(["authenticated"])
-    async def remove_processor_conversation_config_data(
-        request: Request,
-        client: Optional[str] = None,
-    ):
-        user = request.user.object
-
-        await sync_to_async(ConversationAdapters.clear_openai_conversation_config)(user)
-
-        update_telemetry_state(
-            request=request,
-            telemetry_type="api",
-            api="delete_processor_openai_config",
-            client=client,
-            metadata={"processor_conversation_type": "openai"},
-        )
-
-        return {"status": "ok"}
-
     @api.post("/config/data/content_type/{content_type}", status_code=200)
     @requires(["authenticated"])
     async def set_content_config_data(
@@ -291,70 +265,27 @@ if not state.demo:
 
         return {"status": "ok"}
 
-    @api.post("/config/data/processor/conversation/openai", status_code=200)
+    @api.post("/config/data/conversation/model", status_code=200)
     @requires(["authenticated"])
-    async def set_processor_openai_config_data(
+    async def update_chat_model(
         request: Request,
-        updated_config: Union[OpenAIProcessorConfig, None],
+        id: str,
         client: Optional[str] = None,
     ):
         user = request.user.object
 
-        conversation_config = ConversationProcessorConfig(openai=updated_config)
-
-        await sync_to_async(ConversationAdapters.set_conversation_processor_config)(user, conversation_config)
+        new_config = await ConversationAdapters.aset_user_conversation_processor(user, int(id))
 
         update_telemetry_state(
             request=request,
             telemetry_type="api",
-            api="set_processor_config",
+            api="set_conversation_chat_model",
             client=client,
             metadata={"processor_conversation_type": "conversation"},
         )
 
-        return {"status": "ok"}
-
-    @api.post("/config/data/processor/conversation/offline_chat", status_code=200)
-    @requires(["authenticated"])
-    async def set_processor_enable_offline_chat_config_data(
-        request: Request,
-        enable_offline_chat: bool,
-        offline_chat_model: Optional[str] = None,
-        client: Optional[str] = None,
-    ):
-        user = request.user.object
-
-        try:
-            if enable_offline_chat:
-                conversation_config = ConversationProcessorConfig(
-                    offline_chat=OfflineChatProcessorConfig(
-                        enable_offline_chat=enable_offline_chat,
-                        chat_model=offline_chat_model,
-                    )
-                )
-
-                await sync_to_async(ConversationAdapters.set_conversation_processor_config)(user, conversation_config)
-
-                offline_chat = await ConversationAdapters.get_offline_chat(user)
-                chat_model = offline_chat.chat_model
-                if state.gpt4all_processor_config is None:
-                    state.gpt4all_processor_config = GPT4AllProcessorModel(chat_model=chat_model)
-
-            else:
-                await sync_to_async(ConversationAdapters.clear_offline_chat_conversation_config)(user)
-                state.gpt4all_processor_config = None
-
-        except Exception as e:
-            logger.error(f"Error updating offline chat config: {e}", exc_info=True)
-            return {"status": "error", "message": str(e)}
-
-        update_telemetry_state(
-            request=request,
-            telemetry_type="api",
-            api="set_processor_config",
-            client=client,
-            metadata={"processor_conversation_type": f"{'enable' if enable_offline_chat else 'disable'}_local_llm"},
-        )
+        if new_config is None:
+            return {"status": "error", "message": "Model not found"}
 
         return {"status": "ok"}
 
@@ -572,7 +503,7 @@ def chat_history(
     host: Optional[str] = Header(None),
 ):
     user = request.user.object
-    perform_chat_checks(user)
+    validate_conversation_config()
 
     # Load Conversation History
     meta_log = ConversationAdapters.get_conversation_by_user(user=user).conversation_log
@@ -644,8 +575,11 @@ async def chat(
         conversation_command = ConversationCommand.General
 
     if conversation_command == ConversationCommand.Help:
-        model_type = "offline" if await ConversationAdapters.has_offline_chat(user) else "openai"
-        formatted_help = help_message.format(model=model_type, version=state.khoj_version)
+        conversation_config = await ConversationAdapters.aget_user_conversation_config(user)
+        if conversation_config == None:
+            conversation_config = await ConversationAdapters.aget_default_conversation_config()
+        model_type = conversation_config.model_type
+        formatted_help = help_message.format(model=model_type, version=state.khoj_version, device=get_device())
         return StreamingResponse(iter([formatted_help]), media_type="text/event-stream", status_code=200)
 
     # Get the (streamed) chat response from the LLM of choice.
@@ -723,9 +657,9 @@ async def extract_references_and_questions(
     # Infer search queries from user message
     with timer("Extracting search queries took", logger):
         # If we've reached here, either the user has enabled offline chat or the openai model is enabled.
-        if await ConversationAdapters.ahas_offline_chat(user):
+        if await ConversationAdapters.ahas_offline_chat():
             using_offline_chat = True
-            offline_chat = await ConversationAdapters.get_offline_chat(user)
+            offline_chat = await ConversationAdapters.get_offline_chat()
             chat_model = offline_chat.chat_model
             if state.gpt4all_processor_config is None:
                 state.gpt4all_processor_config = GPT4AllProcessorModel(chat_model=chat_model)
@@ -735,8 +669,8 @@ async def extract_references_and_questions(
             inferred_queries = extract_questions_offline(
                 defiltered_query, loaded_model=loaded_model, conversation_log=meta_log, should_extract_questions=False
             )
-        elif await ConversationAdapters.has_openai_chat(user):
-            openai_chat = await ConversationAdapters.get_openai_chat(user)
+        elif await ConversationAdapters.has_openai_chat():
+            openai_chat = await ConversationAdapters.get_openai_chat()
             api_key = openai_chat.api_key
             chat_model = openai_chat.chat_model
             inferred_queries = extract_questions(

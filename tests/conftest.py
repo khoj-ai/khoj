@@ -39,9 +39,10 @@ from database.models import (
 
 from tests.helpers import (
     UserFactory,
-    ConversationProcessorConfigFactory,
+    ChatModelOptionsFactory,
     OpenAIProcessorConversationConfigFactory,
     OfflineChatProcessorConversationConfigFactory,
+    UserConversationProcessorConfigFactory,
 )
 
 
@@ -188,7 +189,9 @@ def chat_client(search_config: SearchConfig, default_user2: KhojUser):
 
     # Initialize Processor from Config
     if os.getenv("OPENAI_API_KEY"):
-        OpenAIProcessorConversationConfigFactory(user=default_user2)
+        chat_model = ChatModelOptionsFactory(chat_model="gpt-3.5-turbo", model_type="openai")
+        OpenAIProcessorConversationConfigFactory()
+        UserConversationProcessorConfigFactory(user=default_user2, setting=chat_model)
 
     state.anonymous_mode = False
 
@@ -257,7 +260,6 @@ def client(
         user=api_user.user,
     )
 
-    ConversationProcessorConfigFactory(user=api_user.user)
     state.anonymous_mode = False
 
     configure_routes(app)
@@ -284,8 +286,8 @@ def client_offline_chat(search_config: SearchConfig, default_user2: KhojUser):
     )
 
     # Initialize Processor from Config
-    ConversationProcessorConfigFactory(user=default_user2)
-    OfflineChatProcessorConversationConfigFactory(user=default_user2)
+    OfflineChatProcessorConversationConfigFactory(enabled=True)
+    UserConversationProcessorConfigFactory(user=default_user2)
 
     state.anonymous_mode = True
 

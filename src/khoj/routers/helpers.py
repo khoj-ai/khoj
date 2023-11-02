@@ -21,22 +21,25 @@ logger = logging.getLogger(__name__)
 executor = ThreadPoolExecutor(max_workers=1)
 
 
-def perform_chat_checks(user: KhojUser):
-    if ConversationAdapters.has_valid_offline_conversation_config(
-        user
-    ) or ConversationAdapters.has_valid_openai_conversation_config(user):
+def validate_conversation_config():
+    if (
+        ConversationAdapters.has_valid_offline_conversation_config()
+        or ConversationAdapters.has_valid_openai_conversation_config()
+    ):
+        if ConversationAdapters.get_default_conversation_config() is None:
+            raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
         return
 
     raise HTTPException(status_code=500, detail="Set your OpenAI API key or enable Local LLM via Khoj settings.")
 
 
 async def is_ready_to_chat(user: KhojUser):
-    has_offline_config = await ConversationAdapters.ahas_offline_chat(user=user)
-    has_openai_config = await ConversationAdapters.has_openai_chat(user=user)
+    has_offline_config = await ConversationAdapters.ahas_offline_chat()
+    has_openai_config = await ConversationAdapters.has_openai_chat()
+    user_conversation_config = await ConversationAdapters.aget_user_conversation_config(user)
 
-    if has_offline_config:
-        offline_chat = await ConversationAdapters.get_offline_chat(user)
-        chat_model = offline_chat.chat_model
+    if has_offline_config and user_conversation_config and user_conversation_config.model_type == "offline":
+        chat_model = user_conversation_config.chat_model
         if state.gpt4all_processor_config is None:
             state.gpt4all_processor_config = GPT4AllProcessorModel(chat_model=chat_model)
         return True
@@ -139,10 +142,12 @@ def generate_chat_response(
             meta_log=meta_log,
         )
 
-        offline_chat_config = ConversationAdapters.get_offline_chat_conversation_config(user=user)
+        offline_chat_config = ConversationAdapters.get_offline_chat_conversation_config()
         conversation_config = ConversationAdapters.get_conversation_config(user)
-        openai_chat_config = ConversationAdapters.get_openai_conversation_config(user)
-        if offline_chat_config:
+        if conversation_config is None:
+            conversation_config = ConversationAdapters.get_default_conversation_config()
+        openai_chat_config = ConversationAdapters.get_openai_conversation_config()
+        if offline_chat_config and offline_chat_config.enabled and conversation_config.model_type == "offline":
             if state.gpt4all_processor_config.loaded_model is None:
                 state.gpt4all_processor_config = GPT4AllProcessorModel(offline_chat_config.chat_model)
 
@@ -154,14 +159,14 @@ def generate_chat_response(
                 conversation_log=meta_log,
                 completion_func=partial_completion,
                 conversation_command=conversation_command,
-                model=offline_chat_config.chat_model,
+                model=conversation_config.chat_model,
                 max_prompt_size=conversation_config.max_prompt_size,
                 tokenizer_name=conversation_config.tokenizer,
             )
 
-        elif openai_chat_config:
+        elif openai_chat_config and conversation_config.model_type == "openai":
             api_key = openai_chat_config.api_key
-            chat_model = openai_chat_config.chat_model
+            chat_model = conversation_config.chat_model
             chat_response = converse(
                 compiled_references,
                 q,
@@ -170,8 +175,8 @@ def generate_chat_response(
                 api_key=api_key,
                 completion_func=partial_completion,
                 conversation_command=conversation_command,
-                max_prompt_size=conversation_config.max_prompt_size if conversation_config else None,
-                tokenizer_name=conversation_config.tokenizer if conversation_config else None,
+                max_prompt_size=conversation_config.max_prompt_size,
+                tokenizer_name=conversation_config.tokenizer,
             )
 
     except Exception as e:

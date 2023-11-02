@@ -10,7 +10,6 @@ from fastapi.templating import Jinja2Templates
 from starlette.authentication import requires
 from khoj.utils.rawconfig import (
     TextContentConfig,
-    OpenAIProcessorConfig,
     FullConfig,
     GithubContentConfig,
     GithubRepoConfig,
@@ -119,12 +118,6 @@ if not state.demo:
         user = request.user.object
         user_picture = request.session.get("user", {}).get("picture")
         enabled_content = set(EntryAdapters.get_unique_file_types(user).all())
-        default_full_config = FullConfig(
-            content_type=None,
-            search_type=None,
-            processor=None,
-        )
-        current_config = state.config or json.loads(default_full_config.json())
 
         successfully_configured = {
             "pdf": ("pdf" in enabled_content),
@@ -143,26 +136,26 @@ if not state.demo:
                 }
             )
 
-        enabled_chat_config = ConversationAdapters.get_enabled_conversation_settings(user)
+        conversation_options = ConversationAdapters.get_conversation_processor_options().all()
+        all_conversation_options = list()
+        for conversation_option in conversation_options:
+            all_conversation_options.append(
+                {"chat_model": conversation_option.chat_model, "id": conversation_option.id}
+            )
 
-        successfully_configured.update(
-            {
-                "conversation_openai": enabled_chat_config["openai"],
-                "enable_offline_model": enabled_chat_config["offline_chat"],
-                "conversation_gpt4all": state.gpt4all_processor_config.loaded_model is not None
-                if state.gpt4all_processor_config
-                else False,
-            }
-        )
+        selected_conversation_config = ConversationAdapters.get_conversation_config(user)
 
         return templates.TemplateResponse(
             "config.html",
             context={
                 "request": request,
-                "current_config": current_config,
                 "current_model_state": successfully_configured,
                 "anonymous_mode": state.anonymous_mode,
-                "username": user.username,
+                "username": user.username if user else None,
+                "conversation_options": all_conversation_options,
+                "selected_conversation_config": selected_conversation_config.id
+                if selected_conversation_config
+                else None,
                 "user_photo": user_picture,
             },
         )
@@ -252,36 +245,6 @@ if not state.demo:
                 "request": request,
                 "current_config": current_config,
                 "content_type": content_type,
-                "username": user.username,
-                "user_photo": user_picture,
-            },
-        )
-
-    @web_client.get("/config/processor/conversation/openai", response_class=HTMLResponse)
-    @requires(["authenticated"], redirect="login_page")
-    def conversation_processor_config_page(request: Request):
-        user = request.user.object
-        user_picture = request.session.get("user", {}).get("picture")
-        openai_config = ConversationAdapters.get_openai_conversation_config(user)
-
-        if openai_config:
-            current_processor_openai_config = OpenAIProcessorConfig(
-                api_key=openai_config.api_key,
-                chat_model=openai_config.chat_model,
-            )
-        else:
-            current_processor_openai_config = OpenAIProcessorConfig(
-                api_key="",
-                chat_model="gpt-3.5-turbo",
-            )
-
-        current_processor_openai_config = json.loads(current_processor_openai_config.json())
-
-        return templates.TemplateResponse(
-            "processor_conversation_input.html",
-            context={
-                "request": request,
-                "current_config": current_processor_openai_config,
                 "username": user.username,
                 "user_photo": user_picture,
             },

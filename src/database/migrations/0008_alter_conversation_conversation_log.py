@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("database", "0007_remove_conversationprocessorconfig_conversation_and_more"),
+        ("database", "0007_add_conversation"),
     ]
 
     operations = [
