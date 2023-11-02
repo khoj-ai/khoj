@@ -19,7 +19,7 @@ from khoj.utils.rawconfig import (
 
 # Internal Packages
 from khoj.utils import constants, state
-from database.adapters import EmbeddingsAdapters, get_user_github_config, get_user_notion_config, ConversationAdapters
+from database.adapters import EntryAdapters, get_user_github_config, get_user_notion_config, ConversationAdapters
 from database.models import LocalOrgConfig, LocalMarkdownConfig, LocalPdfConfig, LocalPlaintextConfig
 
 
@@ -34,19 +34,52 @@ VALID_TEXT_CONTENT_TYPES = ["org", "markdown", "pdf", "plaintext"]
 @web_client.get("/", response_class=FileResponse)
 @requires(["authenticated"], redirect="login_page")
 def index(request: Request):
-    return templates.TemplateResponse("index.html", context={"request": request, "demo": state.demo})
+    user = request.user.object
+    user_picture = request.session.get("user", {}).get("picture")
+
+    return templates.TemplateResponse(
+        "index.html",
+        context={
+            "request": request,
+            "demo": state.demo,
+            "username": user.username,
+            "user_photo": user_picture,
+        },
+    )
 
 
 @web_client.post("/", response_class=FileResponse)
 @requires(["authenticated"], redirect="login_page")
 def index_post(request: Request):
-    return templates.TemplateResponse("index.html", context={"request": request, "demo": state.demo})
+    user = request.user.object
+    user_picture = request.session.get("user", {}).get("picture")
+
+    return templates.TemplateResponse(
+        "index.html",
+        context={
+            "request": request,
+            "demo": state.demo,
+            "username": user.username,
+            "user_photo": user_picture,
+        },
+    )
 
 
 @web_client.get("/chat", response_class=FileResponse)
 @requires(["authenticated"], redirect="login_page")
 def chat_page(request: Request):
-    return templates.TemplateResponse("chat.html", context={"request": request, "demo": state.demo})
+    user = request.user.object
+    user_picture = request.session.get("user", {}).get("picture")
+
+    return templates.TemplateResponse(
+        "chat.html",
+        context={
+            "request": request,
+            "demo": state.demo,
+            "username": user.username,
+            "user_photo": user_picture,
+        },
+    )
 
 
 @web_client.get("/login", response_class=FileResponse)
@@ -84,7 +117,8 @@ if not state.demo:
     @requires(["authenticated"], redirect="login_page")
     def config_page(request: Request):
         user = request.user.object
-        enabled_content = set(EmbeddingsAdapters.get_unique_file_types(user).all())
+        user_picture = request.session.get("user", {}).get("picture")
+        enabled_content = set(EntryAdapters.get_unique_file_types(user).all())
         default_full_config = FullConfig(
             content_type=None,
             search_type=None,
@@ -128,7 +162,8 @@ if not state.demo:
                 "current_config": current_config,
                 "current_model_state": successfully_configured,
                 "anonymous_mode": state.anonymous_mode,
-                "username": user.username if user else None,
+                "username": user.username,
+                "user_photo": user_picture,
             },
         )
 
@@ -136,6 +171,7 @@ if not state.demo:
     @requires(["authenticated"], redirect="login_page")
     def github_config_page(request: Request):
         user = request.user.object
+        user_picture = request.session.get("user", {}).get("picture")
         current_github_config = get_user_github_config(user)
 
         if current_github_config:
@@ -158,13 +194,20 @@ if not state.demo:
             current_config = {}  # type: ignore
 
         return templates.TemplateResponse(
-            "content_type_github_input.html", context={"request": request, "current_config": current_config}
+            "content_type_github_input.html",
+            context={
+                "request": request,
+                "current_config": current_config,
+                "username": user.username,
+                "user_photo": user_picture,
+            },
         )
 
     @web_client.get("/config/content_type/notion", response_class=HTMLResponse)
     @requires(["authenticated"], redirect="login_page")
     def notion_config_page(request: Request):
         user = request.user.object
+        user_picture = request.session.get("user", {}).get("picture")
         current_notion_config = get_user_notion_config(user)
 
         current_config = NotionContentConfig(
@@ -174,7 +217,13 @@ if not state.demo:
         current_config = json.loads(current_config.json())
 
         return templates.TemplateResponse(
-            "content_type_notion_input.html", context={"request": request, "current_config": current_config}
+            "content_type_notion_input.html",
+            context={
+                "request": request,
+                "current_config": current_config,
+                "username": user.username,
+                "user_photo": user_picture,
+            },
         )
 
     @web_client.get("/config/content_type/{content_type}", response_class=HTMLResponse)
@@ -185,6 +234,7 @@ if not state.demo:
 
         object = map_config_to_object(content_type)
         user = request.user.object
+        user_picture = request.session.get("user", {}).get("picture")
         config = object.objects.filter(user=user).first()
         if config == None:
             config = object.objects.create(user=user)
@@ -202,6 +252,8 @@ if not state.demo:
                 "request": request,
                 "current_config": current_config,
                 "content_type": content_type,
+                "username": user.username,
+                "user_photo": user_picture,
             },
         )
 
@@ -209,6 +261,7 @@ if not state.demo:
     @requires(["authenticated"], redirect="login_page")
     def conversation_processor_config_page(request: Request):
         user = request.user.object
+        user_picture = request.session.get("user", {}).get("picture")
         openai_config = ConversationAdapters.get_openai_conversation_config(user)
 
         if openai_config:
@@ -229,5 +282,7 @@ if not state.demo:
             context={
                 "request": request,
                 "current_config": current_processor_openai_config,
+                "username": user.username,
+                "user_photo": user_picture,
             },
         )

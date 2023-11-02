@@ -8,9 +8,9 @@ import requests
 # Internal Packages
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry, NotionContentConfig
-from khoj.processor.text_to_jsonl import TextEmbeddings
+from khoj.processor.text_to_entries import TextToEntries
 from khoj.utils.rawconfig import Entry
-from database.models import Embeddings, KhojUser, NotionConfig
+from database.models import Entry as DbEntry, KhojUser, NotionConfig
 
 from enum import Enum
 
@@ -50,7 +50,7 @@ class NotionBlockType(Enum):
     CALLOUT = "callout"
 
 
-class NotionToJsonl(TextEmbeddings):
+class NotionToEntries(TextToEntries):
     def __init__(self, config: NotionConfig):
         super().__init__(config)
         self.config = NotionContentConfig(
@@ -250,7 +250,7 @@ class NotionToJsonl(TextEmbeddings):
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
             num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
-                current_entries, Embeddings.EmbeddingsType.NOTION, key="compiled", logger=logger, user=user
+                current_entries, DbEntry.EntryType.NOTION, key="compiled", logger=logger, user=user
             )
 
         return num_new_embeddings, num_deleted_embeddings

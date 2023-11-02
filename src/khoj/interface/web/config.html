@@ -3,11 +3,6 @@
 
 <div class="page">
     <div class="section">
-        {% if anonymous_mode == False %}
-            <div>
-                Logged in as {{ username }}
-            </div>
-        {% endif %}
         <h2 class="section-title">Plugins</h2>
         <div class="section-cards">
             <div class="card">
@@ -328,11 +323,6 @@
             <div class="finalize-buttons">
                 <button id="reinitialize" type="submit" title="Regenerate index from scratch">🔄 Reinitialize</button>
             </div>
-            {% if anonymous_mode == False %}
-                <div class="finalize-buttons">
-                    <button id="logout" class="logout" onclick="window.location.href='/auth/logout'">Logout</button>
-                </div>
-            {% endif %}
         </div>
     </div>
 </div>
@@ -541,16 +531,7 @@
         })
         .then(response => response.json())
         .then(tokenObj => {
-            apiKeyList.innerHTML += `
-                <tr id="api-key-item-${tokenObj.token}">
-                    <td><b>${tokenObj.name}</b></td>
-                    <td id="api-key-${tokenObj.token}">${tokenObj.token}</td>
-                    <td>
-                        <img id="api-key-copy-button-${tokenObj.token}" onclick="copyAPIKey('${tokenObj.token}')" class="configured-icon enabled" src="/static/assets/icons/copy-solid.svg" alt="Copy API Key">
-                        <img id="api-key-delete-button-${tokenObj.token}" onclick="deleteAPIKey('${tokenObj.token}')" class="configured-icon enabled" src="/static/assets/icons/trash-solid.svg" alt="Delete API Key">
-                    </td>
-                </tr>
-            `;
+            apiKeyList.innerHTML += generateTokenRow(tokenObj);
         });
     }
 
@@ -561,7 +542,7 @@
         const copyApiKeyButton = document.getElementById(`api-key-${token}`);
         original_html = copyApiKeyButton.innerHTML
         setTimeout(function() {
-            copyApiKeyButton.innerHTML = "✅ Copied to your clipboard!";
+            copyApiKeyButton.innerHTML = "✅ Copied!";
             setTimeout(function() {
                 copyApiKeyButton.innerHTML = original_html;
             }, 1000);
@@ -581,23 +562,30 @@
         });
     }
 
+    function generateTokenRow(tokenObj) {
+        let token = tokenObj.token;
+        let tokenName = tokenObj.name;
+        let truncatedToken = token.slice(0, 4) + "..." + token.slice(-4);
+        let tokenId = `${tokenName}-${truncatedToken}`;
+        return `
+            <tr id="api-key-item-${token}">
+                <td><b>${tokenName}</b></td>
+                <td id="api-key-${token}">${truncatedToken}</td>
+                <td>
+                    <img onclick="copyAPIKey('${token}')" class="configured-icon enabled" src="/static/assets/icons/copy-solid.svg" alt="Copy API Key" title="Copy API Key">
+                    <img onclick="deleteAPIKey('${token}')" class="configured-icon enabled" src="/static/assets/icons/trash-solid.svg" alt="Delete API Key" title="Delete API Key">
+                </td>
+            </tr>
+        `;
+
+    }
+
     function listApiKeys() {
         const apiKeyList = document.getElementById("api-key-list");
         fetch('/auth/token')
             .then(response => response.json())
             .then(tokens => {
-                apiKeyList.innerHTML = tokens.map(tokenObj =>
-                    `
-                        <tr id="api-key-item-${tokenObj.token}">
-                            <td><b>${tokenObj.name}</b></td>
-                            <td id="api-key-${tokenObj.token}">${tokenObj.token}</td>
-                            <td>
-                                <img id="api-key-copy-button-${tokenObj.token}" onclick="copyAPIKey('${tokenObj.token}')" class="configured-icon enabled" src="/static/assets/icons/copy-solid.svg" alt="Copy API Key">
-                                <img id="api-key-delete-button-${tokenObj.token}" onclick="deleteAPIKey('${tokenObj.token}')" class="configured-icon enabled" src="/static/assets/icons/trash-solid.svg" alt="Delete API Key">
-                            </td>
-                        </tr>
-                    `)
-                    .join("");
+                apiKeyList.innerHTML = tokens.map(generateTokenRow).join("");
             });
     }
 

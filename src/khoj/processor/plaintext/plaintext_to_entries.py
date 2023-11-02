@@ -6,16 +6,16 @@ from bs4 import BeautifulSoup
 
 
 # Internal Packages
-from khoj.processor.text_to_jsonl import TextEmbeddings
+from khoj.processor.text_to_entries import TextToEntries
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry
-from database.models import Embeddings, KhojUser
+from database.models import Entry as DbEntry, KhojUser
 
 
 logger = logging.getLogger(__name__)
 
 
-class PlaintextToJsonl(TextEmbeddings):
+class PlaintextToEntries(TextToEntries):
     def __init__(self):
         super().__init__()
 
@@ -35,7 +35,7 @@ class PlaintextToJsonl(TextEmbeddings):
                 try:
                     plaintext_content = files[file]
                     if file.endswith(("html", "htm", "xml")):
-                        plaintext_content = PlaintextToJsonl.extract_html_content(
+                        plaintext_content = PlaintextToEntries.extract_html_content(
                             plaintext_content, file.split(".")[-1]
                         )
                     files[file] = plaintext_content
@@ -45,7 +45,7 @@ class PlaintextToJsonl(TextEmbeddings):
 
         # Extract Entries from specified plaintext files
         with timer("Parse entries from plaintext files", logger):
-            current_entries = PlaintextToJsonl.convert_plaintext_entries_to_maps(files)
+            current_entries = PlaintextToEntries.convert_plaintext_entries_to_maps(files)
 
         # Split entries by max tokens supported by model
         with timer("Split entries by max token size supported by model", logger):
@@ -55,7 +55,7 @@ class PlaintextToJsonl(TextEmbeddings):
         with timer("Identify new or updated entries", logger):
             num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
                 current_entries,
-                Embeddings.EmbeddingsType.PLAINTEXT,
+                DbEntry.EntryType.PLAINTEXT,
                 key="compiled",
                 logger=logger,
                 deletion_filenames=deletion_file_names,

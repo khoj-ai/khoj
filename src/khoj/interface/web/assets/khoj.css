@@ -6,6 +6,8 @@
     --primary-hover: #ffa000;
     --primary-focus: rgba(255, 179, 0, 0.125);
     --primary-inverse: rgba(0, 0, 0, 0.75);
+    --background-color: #fff;
+    --main-text-color: #475569;
 }
 
 /* Amber Dark scheme (Auto) */
@@ -16,6 +18,8 @@
         --primary-hover: #ffc107;
         --primary-focus: rgba(255, 179, 0, 0.25);
         --primary-inverse: rgba(0, 0, 0, 0.75);
+        --background-color: #fff;
+        --main-text-color: #475569;
     }
 }
 /* Amber Dark scheme (Forced) */
@@ -25,6 +29,8 @@
     --primary-hover: #ffc107;
     --primary-focus: rgba(255, 179, 0, 0.25);
     --primary-inverse: rgba(0, 0, 0, 0.75);
+    --background-color: #fff;
+    --main-text-color: #475569;
 }
 /* Amber (Common styles) */
 :root {
@@ -37,7 +43,8 @@
 .khoj-configure {
     display: grid;
     grid-template-columns: 1fr;
-    padding: 0 24px;
+    font-family: roboto, karma, segoe ui, sans-serif;
+    font-weight: 300;
 }
 .khoj-header {
     display: grid;
@@ -100,7 +107,84 @@ p#khoj-banner {
     display: inline;
 }
 
-@media only screen and (max-width: 600px) {
+/* Dropdown in navigation menu*/
+#khoj-nav-menu-container {
+    display: flex;
+    align-items: center;
+}
+.khoj-nav-dropdown-content {
+    display: block;
+    grid-auto-flow: row;
+    position: absolute;
+    background-color: var(--background-color);
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    right: 15vw;
+    top: 64px;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.1s ease-in-out;
+    pointer-events: none;
+    text-align: left;
+}
+.khoj-nav-dropdown-content.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+.khoj-nav-dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+}
+.khoj-nav-dropdown-content a:hover {
+    background-color: var(--primary-hover);
+}
+.khoj-nav-username {
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    font-weight: bold;
+}
+.circle {
+    border-radius: 50%;
+    border: 2px solid var(--primary-inverse);
+    width: 40px;
+    height: 40px;
+    vertical-align: text-top;
+    padding: 3px;
+    cursor: pointer;
+}
+.circle:hover {
+    background-color: var(--primary-hover);
+}
+.user-initial {
+    background-color: white;
+    color: black;
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    box-sizing: unset;
+}
+
+@media screen and (max-width: 700px) {
+    .khoj-nav-dropdown-content {
+        display: block;
+        grid-auto-flow: row;
+        position: absolute;
+        background-color: var(--background-color);
+        min-width: 160px;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        right: 10px;
+        z-index: 1;
+        opacity: 0;
+        transition: opacity 0.1s ease-in-out;
+        pointer-events: none;
+    }
+}
+
+@media only screen and (max-width: 700px) {
     div.khoj-header {
         display: grid;
         grid-auto-flow: column;
