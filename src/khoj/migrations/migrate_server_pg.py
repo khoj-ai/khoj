@@ -86,16 +86,6 @@ def migrate_server_pg(args):
 
         raw_config["app"] = raw_config.get("app", {})
 
-        # if "search-type" in raw_config:
-        #     new_config["search-type"] = {}
-        #     if "asymmetric" in raw_config["search-type"]:
-        #         new_config["search-type"]["asymmetric"] = {}
-        #         new_config["search-type"]["asymmetric"]["cross-encoder"] = raw_config["search-type"]["asymmetric"].get("cross-encoder")
-        #         new_config["search-type"]["asymmetric"]["encoder"] = raw_config["search-type"]["asymmetric"].get("encoder")
-
-        #     if "image" in raw_config["search-type"]:
-        #         new_config["search-type"]["image"] = raw_config["search-type"]["image"]
-
         if "processor" in raw_config and "conversation" in raw_config["processor"]:
             processor_conversation = raw_config["processor"]["conversation"]
 
