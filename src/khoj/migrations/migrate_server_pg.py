@@ -84,7 +84,10 @@ def migrate_server_pg(args):
         )
         raw_config["version"] = schema_version
 
-        if "processor" in raw_config and "conversation" in raw_config["processor"]:
+        if raw_config is None:
+            return args
+
+        if "processor" in raw_config and raw_config["processor"] and "conversation" in raw_config["processor"]:
             processor_conversation = raw_config["processor"]["conversation"]
 
             if "offline-chat" in raw_config["processor"]["conversation"]:
