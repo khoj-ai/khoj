@@ -43,7 +43,8 @@
 .khoj-configure {
     display: grid;
     grid-template-columns: 1fr;
-    padding: 0 24px;
+    font-family: roboto, karma, segoe ui, sans-serif;
+    font-weight: 300;
 }
 .khoj-header {
     display: grid;
