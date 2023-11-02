@@ -1,0 +1,129 @@
+"""
+The application config currently looks like this:
+app:
+  should-log-telemetry: true
+content-type:
+    ...
+processor:
+  conversation:
+    conversation-logfile: ~/.khoj/processor/conversation/conversation_logs.json
+    max-prompt-size: null
+    offline-chat:
+      chat-model: llama-2-7b-chat.ggmlv3.q4_0.bin
+      enable-offline-chat: false
+    openai:
+      api-key: sk-blah
+      chat-model: gpt-3.5-turbo
+    tokenizer: null
+search-type:
+  asymmetric:
+    cross-encoder: cross-encoder/ms-marco-MiniLM-L-6-v2
+    encoder: sentence-transformers/multi-qa-MiniLM-L6-cos-v1
+    encoder-type: null
+    model-directory: /Users/si/.khoj/search/asymmetric
+  image:
+    encoder: sentence-transformers/clip-ViT-B-32
+    encoder-type: null
+    model-directory: /Users/si/.khoj/search/image
+  symmetric:
+    cross-encoder: cross-encoder/ms-marco-MiniLM-L-6-v2
+    encoder: sentence-transformers/all-MiniLM-L6-v2
+    encoder-type: null
+    model-directory: ~/.khoj/search/symmetric
+version: 0.12.4
+
+
+The new version will looks like this:
+app:
+  should-log-telemetry: true
+processor:
+  conversation:
+    offline-chat:
+      enabled: false
+    openai:
+      api-key: sk-blah
+    chat-model-options:
+      - chat-model: gpt-3.5-turbo
+        tokenizer: null
+        type: openai
+      - chat-model: llama-2-7b-chat.ggmlv3.q4_0.bin
+        tokenizer: null
+        type: offline
+search-type:
+  asymmetric:
+    cross-encoder: cross-encoder/ms-marco-MiniLM-L-6-v2
+    encoder: sentence-transformers/multi-qa-MiniLM-L6-cos-v1
+  image:
+    encoder: sentence-transformers/clip-ViT-B-32
+    encoder-type: null
+    model-directory: /Users/si/.khoj/search/image
+version: 0.12.4
+"""
+
+import logging
+from packaging import version
+
+from khoj.utils.yaml import load_config_from_file, save_config_to_file
+from database.models import (
+    OpenAIProcessorConversationConfig,
+    OfflineChatProcessorConversationConfig,
+    ChatModelOptions,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def migrate_server_pg(args):
+    schema_version = "0.14.0"
+    raw_config = load_config_from_file(args.config_file)
+    previous_version = raw_config.get("version")
+
+    if previous_version is None or version.parse(previous_version) < version.parse(schema_version):
+        logger.info(
+            f"Migrating configuration used for version {previous_version} to latest version for server with postgres in {args.version_no}"
+        )
+        raw_config["version"] = schema_version
+
+        raw_config["app"] = raw_config.get("app", {})
+
+        # if "search-type" in raw_config:
+        #     new_config["search-type"] = {}
+        #     if "asymmetric" in raw_config["search-type"]:
+        #         new_config["search-type"]["asymmetric"] = {}
+        #         new_config["search-type"]["asymmetric"]["cross-encoder"] = raw_config["search-type"]["asymmetric"].get("cross-encoder")
+        #         new_config["search-type"]["asymmetric"]["encoder"] = raw_config["search-type"]["asymmetric"].get("encoder")
+
+        #     if "image" in raw_config["search-type"]:
+        #         new_config["search-type"]["image"] = raw_config["search-type"]["image"]
+
+        if "processor" in raw_config and "conversation" in raw_config["processor"]:
+            processor_conversation = raw_config["processor"]["conversation"]
+
+            if "offline-chat" in raw_config["processor"]["conversation"]:
+                offline_chat = raw_config["processor"]["conversation"]["offline-chat"]
+                OfflineChatProcessorConversationConfig.objects.create(
+                    enabled=offline_chat.get("enable-offline-chat"),
+                )
+                ChatModelOptions.objects.create(
+                    chat_model=offline_chat.get("chat-model"),
+                    tokenizer=processor_conversation.get("tokenizer"),
+                    max_prompt_size=processor_conversation.get("max-prompt-size"),
+                    model_type=ChatModelOptions.ModelType.OFFLINE,
+                )
+
+            if "openai" in raw_config["processor"]["conversation"]:
+                openai = raw_config["processor"]["conversation"]["openai"]
+
+                OpenAIProcessorConversationConfig.objects.create(
+                    api_key=openai.get("api-key"),
+                )
+                ChatModelOptions.objects.create(
+                    chat_model=openai.get("chat-model"),
+                    tokenizer=processor_conversation.get("tokenizer"),
+                    max_prompt_size=processor_conversation.get("max-prompt-size"),
+                    model_type=ChatModelOptions.ModelType.OPENAI,
+                )
+
+        save_config_to_file(raw_config, args.config_file)
+
+    return args
