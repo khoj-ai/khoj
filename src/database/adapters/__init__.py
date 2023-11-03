@@ -265,6 +265,10 @@ class ConversationAdapters:
 
     @staticmethod
     async def get_openai_chat():
+        return await ChatModelOptions.objects.filter(model_type="openai").afirst()
+
+    @staticmethod
+    async def get_openai_chat_config():
         return await OpenAIProcessorConversationConfig.objects.filter().afirst()
 
     @staticmethod

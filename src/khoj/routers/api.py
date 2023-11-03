@@ -670,8 +670,9 @@ async def extract_references_and_questions(
                 defiltered_query, loaded_model=loaded_model, conversation_log=meta_log, should_extract_questions=False
             )
         elif await ConversationAdapters.has_openai_chat():
+            openai_chat_config = await ConversationAdapters.get_openai_chat_config()
             openai_chat = await ConversationAdapters.get_openai_chat()
-            api_key = openai_chat.api_key
+            api_key = openai_chat_config.api_key
             chat_model = openai_chat.chat_model
             inferred_queries = extract_questions(
                 defiltered_query, model=chat_model, api_key=api_key, conversation_log=meta_log
