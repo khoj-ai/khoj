@@ -72,6 +72,7 @@ dependencies = [
     "python-multipart == 0.0.6",
     "gunicorn == 21.2.0",
     "lxml == 4.9.3",
+    "tzdata == 2023.3",
 ]
 dynamic = ["version"]
 

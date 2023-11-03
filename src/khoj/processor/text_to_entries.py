@@ -121,12 +121,12 @@ class TextToEntries(ABC):
                         batcher(entry_batches, batch_size), desc="Processing embeddings in batches"
                     ):
                         batch_embeddings_to_create = []
-                        for entry_hash, embedding in entry_batch:
+                        for entry_hash, new_entry in entry_batch:
                             entry = hash_to_current_entries[entry_hash]
                             batch_embeddings_to_create.append(
                                 DbEntry(
                                     user=user,
-                                    embeddings=embedding,
+                                    embeddings=new_entry,
                                     raw=entry.raw,
                                     compiled=entry.compiled,
                                     heading=entry.heading[:1000],  # Truncate to max chars of field allowed
@@ -136,19 +136,19 @@ class TextToEntries(ABC):
                                     corpus_id=entry.corpus_id,
                                 )
                             )
-                        new_embeddings = DbEntry.objects.bulk_create(batch_embeddings_to_create)
-                        logger.debug(f"Created {len(new_embeddings)} new embeddings")
-                        num_new_embeddings += len(new_embeddings)
+                        new_entries = DbEntry.objects.bulk_create(batch_embeddings_to_create)
+                        logger.debug(f"Created {len(new_entries)} new embeddings")
+                        num_new_embeddings += len(new_entries)
 
                         dates_to_create = []
                         with timer("Create new date associations for new embeddings", logger):
-                            for embedding in new_embeddings:
-                                dates = self.date_filter.extract_dates(embedding.raw)
+                            for new_entry in new_entries:
+                                dates = self.date_filter.extract_dates(new_entry.raw)
                                 for date in dates:
                                     dates_to_create.append(
                                         EntryDates(
                                             date=date,
-                                            embeddings=embedding,
+                                            entry=new_entry,
                                         )
                                     )
                             new_dates = EntryDates.objects.bulk_create(dates_to_create)
