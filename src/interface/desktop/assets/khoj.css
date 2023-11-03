@@ -2,29 +2,44 @@
 /* Can be forced with data-theme="light" */
 [data-theme="light"],
 :root:not([data-theme="dark"]) {
-    --primary: #ffb300;
-    --primary-hover: #ffa000;
+    --primary: #fee285;
+    --primary-hover: #fcc50b;
     --primary-focus: rgba(255, 179, 0, 0.125);
     --primary-inverse: rgba(0, 0, 0, 0.75);
+    --background-color: #f5f4f3;
+    --main-text-color: #475569;
+    --water: #44b9da;
+    --leaf: #7b990a;
+    --flower: #d1684e;
 }
 
 /* Amber Dark scheme (Auto) */
 /* Automatically enabled if user has Dark mode enabled */
 @media only screen and (prefers-color-scheme: dark) {
     :root:not([data-theme]) {
-        --primary: #ffb300;
-        --primary-hover: #ffc107;
+        --primary: #fee285;
+        --primary-hover: #fcc50b;
         --primary-focus: rgba(255, 179, 0, 0.25);
         --primary-inverse: rgba(0, 0, 0, 0.75);
+        --background-color: #f5f4f3;
+        --main-text-color: #475569;
+        --water: #44b9da;
+        --leaf: #7b990a;
+        --flower: #d1684e;
     }
 }
 /* Amber Dark scheme (Forced) */
 /* Enabled if forced with data-theme="dark" */
 [data-theme="dark"] {
-    --primary: #ffb300;
-    --primary-hover: #ffc107;
+    --primary: #fee285;
+    --primary-hover: #fcc50b;
     --primary-focus: rgba(255, 179, 0, 0.25);
     --primary-inverse: rgba(0, 0, 0, 0.75);
+    --background-color: #f5f4f3;
+    --main-text-color: #475569;
+    --water: #44b9da;
+    --leaf: #7b990a;
+    --flower: #d1684e;
 }
 /* Amber (Common styles) */
 :root {
@@ -66,7 +81,7 @@ a.khoj-logo {
 }
 
 .khoj-nav a {
-    color: #333;
+    color: var(--main-text-color);
     text-decoration: none;
     font-size: small;
     font-weight: normal;

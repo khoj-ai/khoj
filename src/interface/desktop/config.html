@@ -8,8 +8,6 @@
         <link rel="manifest" href="./khoj.webmanifest">
         <link rel="stylesheet" href="./assets/khoj.css">
     </head>
-    <script type="text/javascript" src="./assets/org.min.js"></script>
-    <script type="text/javascript" src="./assets/markdown-it.min.js"></script>
 
     <body>
         <!--Add Header Logo and Nav Pane-->
@@ -38,11 +36,11 @@
                     <div class="card-title-row">
                         <img class="card-icon" src="./assets/icons/key.svg" alt="Khoj Access Key">
                         <h3 class="card-title">
-                            Access Key
+                            API Key
                         </h3>
                     </div>
                     <div class="card-description-row">
-                        <input id="khoj-access-key" class="card-input" type="text" placeholder="Enter key to access your Khoj">
+                        <input id="khoj-access-key" class="card-input" type="text" placeholder="Enter API key to access your Khoj">
                     </div>
                 </div>
             </div>
@@ -131,7 +129,7 @@
         body, input {
             padding: 0px;
             margin: 0px;
-            background: #fff;
+            background: var(--background-color);
             color: #475569;
             font-family: roboto, karma, segoe ui, sans-serif;
             font-size: small;
@@ -191,7 +189,7 @@
             gap: 8px;
             padding: 24px 16px;
             width: 450px;
-            background: white;
+            background: var(--background-color);
             border: 1px solid rgb(229, 229, 229);
             border-radius: 4px;
             box-shadow: 0px 1px 3px 0px rgba(0,0,0,0.1),0px 1px 2px -1px rgba(0,0,0,0.1);
@@ -259,7 +257,7 @@
         }
         .primary-button {
             border: none;
-            color: white;
+            color: var(--background-color);
             padding: 15px 32px;
             text-align: center;
             text-decoration: none;
@@ -268,7 +266,7 @@
         }
 
         button.card-button.disabled {
-            color: rgb(255, 136, 136);
+            color: var(--flower);
             background: transparent;
             font-size: small;
             cursor: pointer;
@@ -280,11 +278,7 @@
         }
 
         button.card-button.happy {
-            color: rgb(0, 146, 0);
-        }
-
-        button.card-button.happy {
-            color: rgb(0, 146, 0);
+            color: var(--leaf);
         }
 
         img.configured-icon {
@@ -308,7 +302,9 @@
         div.folder-element {
             display: grid;
             grid-template-columns: auto 1fr;
-            box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgb(229, 229, 229);
+            border-radius: 4px;
+            box-shadow: 0px 1px 3px 0px rgba(0,0,0,0.1),0px 1px 2px -1px rgba(0,0,0,0.8);
             padding: 4px;
             margin-bottom: 8px;
         }
@@ -326,7 +322,7 @@
             background-color: rgb(253 214 214);
             border-radius: 3px;
             border: none;
-            color: rgb(207, 67, 59);
+            color: var(--flower);
             padding: 4px;
         }
 
@@ -335,14 +331,14 @@
             background-color: rgb(255 235 235);
             border-radius: 3px;
             border: none;
-            color: rgb(207, 67, 59);
+            color: var(--flower);
             padding: 4px;
             cursor: pointer;
         }
         #sync-data {
-            background-color: #ffb300;
+            background-color: var(--primary);
             border: none;
-            color: white;
+            color: var(--main-text-color);
             padding: 12px;
             text-align: center;
             text-decoration: none;
@@ -351,12 +347,12 @@
             border-radius: 4px;
             cursor: pointer;
             transition: background-color 0.3s ease;
-            box-shadow: 0px 5px 0px #f9f5de;
+            box-shadow: 0px 5px 0px var(--background-color);
         }
 
         #sync-data:hover {
-            background-color: #ffcc00;
-            box-shadow: 0px 3px 0px #f9f5de;
+            background-color: var(--primary-hover);
+            box-shadow: 0px 3px 0px var(--background-color);
         }
         .sync-force-toggle {
             align-content: center;
