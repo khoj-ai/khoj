@@ -306,7 +306,7 @@ async function syncData (regenerate = false) {
 }
 
 let win = null;
-const createWindow = (tab = 'index.html') => {
+const createWindow = (tab = 'chat.html') => {
     win = new BrowserWindow({
       width: 800,
       height: 800,
@@ -418,7 +418,7 @@ app.whenReady().then(() => {
 
     const contextMenu = Menu.buildFromTemplate([
         { label: 'Chat', type: 'normal', click: () => { openWindow('chat.html'); }},
-        { label: 'Search', type: 'normal', click: () => { openWindow('index.html') }},
+        { label: 'Search', type: 'normal', click: () => { openWindow('search.html') }},
         { label: 'Configure', type: 'normal', click: () => { openWindow('config.html') }},
         { type: 'separator' },
         { label: 'Quit', type: 'normal', click: () => { app.quit() } }
