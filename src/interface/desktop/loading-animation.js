@@ -2,8 +2,8 @@ var $wrap = document.getElementById('loading-animation'),
 
 canvassize = 280,
 
-length = 30,
-radius = 5.6,
+length = 40,
+radius = 7.3,
 
 rotatevalue = 0.035,
 acceleration = 0,
@@ -19,7 +19,7 @@ camera, scene, renderer;
 
 
 camera = new THREE.PerspectiveCamera(65, 1, 1, 10000);
-camera.position.z = 150;
+camera.position.z = 120;
 
 scene = new THREE.Scene();
 // scene.add(new THREE.AxisHelper(30));
@@ -102,8 +102,8 @@ function render() {
     if (acceleration > 0.35) {
         progress = (acceleration-0.35)/0.65;
         group.rotation.y = -Math.PI/2 *progress;
-        group.position.z = 50*progress;
-        progress = Math.max(0, (acceleration-0.97)/0.03);
+        group.position.z = 20*progress;
+        progress = Math.max(0, (acceleration-0.99)/0.01);
         mesh.material.opacity = 1-progress;
         ringcover.material.opacity = ring.material.opacity = progress;
         ring.scale.x = ring.scale.y = 0.9 + 0.1*progress;
@@ -114,7 +114,7 @@ function render() {
 }
 
 function animate() {
-    mesh.rotation.x += rotatevalue + acceleration;
+    mesh.rotation.x += rotatevalue + acceleration*Math.sin(Math.PI*acceleration);
     render();
     requestAnimationFrame(animate);
 }
@@ -126,4 +126,4 @@ function easing(t, b, c, d) {
 }
 
 animate();
-setTimeout(start, 300);
+setTimeout(start, 30);
