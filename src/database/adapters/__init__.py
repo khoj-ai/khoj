@@ -265,6 +265,10 @@ class ConversationAdapters:
 
     @staticmethod
     async def get_openai_chat():
+        return await ChatModelOptions.objects.filter(model_type="openai").afirst()
+
+    @staticmethod
+    async def get_openai_chat_config():
         return await OpenAIProcessorConversationConfig.objects.filter().afirst()
 
     @staticmethod
@@ -340,11 +344,11 @@ class EntryAdapters:
             if min_date is not None:
                 # Convert the min_date timestamp to yyyy-mm-dd format
                 formatted_min_date = date.fromtimestamp(min_date).strftime("%Y-%m-%d")
-                q_filter_terms &= Q(entry_dates__date__gte=formatted_min_date)
+                q_filter_terms &= Q(embeddings_dates__date__gte=formatted_min_date)
             if max_date is not None:
                 # Convert the max_date timestamp to yyyy-mm-dd format
                 formatted_max_date = date.fromtimestamp(max_date).strftime("%Y-%m-%d")
-                q_filter_terms &= Q(entry_dates__date__lte=formatted_max_date)
+                q_filter_terms &= Q(embeddings_dates__date__lte=formatted_max_date)
 
         relevant_entries = Entry.objects.filter(user=user).filter(
             q_filter_terms,

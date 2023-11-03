@@ -24,10 +24,29 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [".khoj.dev", "localhost", "127.0.0.1", "[::1]", "beta.khoj.dev"]
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://app.khoj.dev",
+    "https://beta.khoj.dev",
+    "https://khoj.dev",
+    "https://*.khoj.dev",
+]
+
+COOKIE_SAMESITE = "None"
+if DEBUG:
+    SESSION_COOKIE_DOMAIN = "localhost"
+    CSRF_COOKIE_DOMAIN = "localhost"
+else:
+    SESSION_COOKIE_DOMAIN = "khoj.dev"
+    CSRF_COOKIE_DOMAIN = "khoj.dev"
+
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SAMESITE = "None"
 
 # Application definition
 

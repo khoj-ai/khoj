@@ -10,7 +10,6 @@ from fastapi.templating import Jinja2Templates
 from starlette.authentication import requires
 from khoj.utils.rawconfig import (
     TextContentConfig,
-    FullConfig,
     GithubContentConfig,
     GithubRepoConfig,
     NotionContentConfig,
