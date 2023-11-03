@@ -84,7 +84,7 @@ class OpenAIProcessorConfig(ConfigBase):
 
 class OfflineChatProcessorConfig(ConfigBase):
     enable_offline_chat: Optional[bool] = False
-    chat_model: Optional[str] = "llama-2-7b-chat.ggmlv3.q4_0.bin"
+    chat_model: Optional[str] = "mistral-7b-instruct-v0.1.Q4_0.gguf"
 
 
 class ConversationProcessorConfig(ConfigBase):

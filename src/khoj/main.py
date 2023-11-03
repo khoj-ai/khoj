@@ -122,6 +122,7 @@ def set_state(args):
     state.demo = args.demo
     state.anonymous_mode = args.anonymous_mode
     state.khoj_version = version("khoj-assistant")
+    state.chat_on_gpu = args.chat_on_gpu
 
 
 def start_server(app, host=None, port=None, socket=None):

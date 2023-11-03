@@ -169,7 +169,7 @@ def md_content_config():
     return markdown_config
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def chat_client(search_config: SearchConfig, default_user2: KhojUser):
     # Initialize app state
     state.config.search_type = search_config
@@ -211,7 +211,7 @@ def chat_client_no_background(search_config: SearchConfig, default_user2: KhojUs
 
     # Initialize Processor from Config
     if os.getenv("OPENAI_API_KEY"):
-        OpenAIProcessorConversationConfigFactory(user=default_user2)
+        OpenAIProcessorConversationConfigFactory()
 
     state.anonymous_mode = True
 
