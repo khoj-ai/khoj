@@ -61,6 +61,13 @@ toggleFoldersButton.addEventListener('click', () => {
 function makeFileElement(file) {
     let fileElement = document.createElement("div");
     fileElement.classList.add("file-element");
+
+    let fileIconElement = document.createElement("img");
+    fileIconElement.classList.add("card-icon");
+    fileIconElement.src = "./assets/icons/plaintext.svg";
+    fileIconElement.alt = "File";
+    fileElement.appendChild(fileIconElement);
+
     let fileNameElement = document.createElement("div");
     fileNameElement.classList.add("content-name");
     fileNameElement.innerHTML = file.path;
@@ -82,6 +89,13 @@ function makeFileElement(file) {
 function makeFolderElement(folder) {
     let folderElement = document.createElement("div");
     folderElement.classList.add("folder-element");
+
+    let folderIconElement = document.createElement("img");
+    folderIconElement.classList.add("card-icon");
+    folderIconElement.src = "./assets/icons/folder.svg";
+    folderIconElement.alt = "File";
+    folderElement.appendChild(folderIconElement);
+
     let folderNameElement = document.createElement("div");
     folderNameElement.classList.add("content-name");
     folderNameElement.innerHTML = folder.path;
