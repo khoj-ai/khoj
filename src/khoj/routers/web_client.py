@@ -36,7 +36,7 @@ def index(request: Request):
     user_picture = request.session.get("user", {}).get("picture")
 
     return templates.TemplateResponse(
-        "index.html",
+        "chat.html",
         context={
             "request": request,
             "demo": state.demo,
@@ -53,7 +53,24 @@ def index_post(request: Request):
     user_picture = request.session.get("user", {}).get("picture")
 
     return templates.TemplateResponse(
-        "index.html",
+        "chat.html",
+        context={
+            "request": request,
+            "demo": state.demo,
+            "username": user.username,
+            "user_photo": user_picture,
+        },
+    )
+
+
+@web_client.get("/search", response_class=FileResponse)
+@requires(["authenticated"], redirect="login_page")
+def search_page(request: Request):
+    user = request.user.object
+    user_picture = request.session.get("user", {}).get("picture")
+
+    return templates.TemplateResponse(
+        "search.html",
         context={
             "request": request,
             "demo": state.demo,
