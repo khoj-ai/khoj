@@ -305,11 +305,13 @@ async function syncData (regenerate = false) {
     }
 }
 
+let firstRun = true;
 let win = null;
 const createWindow = (tab = 'chat.html') => {
     win = new BrowserWindow({
       width: 800,
       height: 800,
+      show: false,
     //   titleBarStyle: 'hidden',
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
@@ -330,12 +332,30 @@ const createWindow = (tab = 'chat.html') => {
 
     win.setResizable(true);
     win.setOpacity(0.95);
-    win.setBackgroundColor('#FFFFFF');
+    win.setBackgroundColor('#f5f4f3');
     win.setHasShadow(true);
 
     job.start();
 
     win.loadFile(tab)
+
+    if (firstRun === true) {
+        firstRun = false;
+
+        // Create splash screen
+        var splash = new BrowserWindow({width: 300, height: 300, transparent: true, frame: false, alwaysOnTop: true});
+        splash.setOpacity(0.85);
+        splash.setBackgroundColor('#d16b4e');
+        splash.loadFile('splash.html');
+
+        // Show splash screen on app load
+        win.once('ready-to-show', () => {
+            setTimeout(function(){ splash.close(); win.show(); }, 4500);
+        });
+    } else {
+        // Show main window directly if not first run
+        win.once('ready-to-show', () => { win.show(); });
+    }
 }
 
 app.whenReady().then(() => {
