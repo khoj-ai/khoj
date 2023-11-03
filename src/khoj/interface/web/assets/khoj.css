@@ -162,7 +162,7 @@ p#khoj-banner {
 }
 .circle {
     border-radius: 50%;
-    border: 2px solid var(--primary-inverse);
+    border: 3px solid var(--primary-hover);
     width: 40px;
     height: 40px;
     padding: 3px;
