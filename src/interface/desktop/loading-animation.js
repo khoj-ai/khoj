@@ -1,11 +1,11 @@
 var $wrap = document.getElementById('loading-animation'),
 
-canvassize = 280,
+canvassize = 380,
 
 length = 40,
-radius = 7.3,
+radius = 6.8,
 
-rotatevalue = 0.035,
+rotatevalue = 0.02,
 acceleration = 0,
 animatestep = 0,
 toend = false,

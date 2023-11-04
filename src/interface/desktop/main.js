@@ -344,8 +344,8 @@ const createWindow = (tab = 'chat.html') => {
         firstRun = false;
 
         // Create splash screen
-        var splash = new BrowserWindow({width: 300, height: 300, transparent: true, frame: false, alwaysOnTop: true});
-        splash.setOpacity(0.85);
+        var splash = new BrowserWindow({width: 400, height: 400, transparent: true, frame: false, alwaysOnTop: true});
+        splash.setOpacity(1.0);
         splash.setBackgroundColor('#d16b4e');
         splash.loadFile('splash.html');
 
