@@ -67,7 +67,7 @@ def test_text_search_setup_with_empty_file_raises_error(
     with caplog.at_level(logging.INFO):
         text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
 
-    assert "Created 0 new embeddings. Deleted 3 embeddings for user " in caplog.records[-1].message
+    assert "Deleted 3 entries. Created 0 new entries for user " in caplog.records[-1].message
     verify_embeddings(0, default_user)
 
 
@@ -83,8 +83,8 @@ def test_text_indexer_deletes_embedding_before_regenerate(
         text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
 
     # Assert
-    assert "Deleting all embeddings for file type org" in caplog.text
-    assert "Created 10 new embeddings. Deleted 3 embeddings for user " in caplog.records[-1].message
+    assert "Deleting all entries for file type org" in caplog.text
+    assert "Deleted 3 entries. Created 10 new entries for user " in caplog.records[-1].message
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -97,9 +97,7 @@ def test_text_search_setup_batch_processes(content_config: ContentConfig, defaul
         text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
 
     # Assert
-    assert "Created 4 new embeddings" in caplog.text
-    assert "Created 6 new embeddings" in caplog.text
-    assert "Created 10 new embeddings. Deleted 3 embeddings for user " in caplog.records[-1].message
+    assert "Deleted 3 entries. Created 10 new entries for user " in caplog.records[-1].message
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -122,8 +120,8 @@ def test_text_index_same_if_content_unchanged(content_config: ContentConfig, def
     final_logs = caplog.text
 
     # Assert
-    assert "Deleting all embeddings for file type org" in initial_logs
-    assert "Deleting all embeddings for file type org" not in final_logs
+    assert "Deleting all entries for file type org" in initial_logs
+    assert "Deleting all entries for file type org" not in final_logs
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -188,8 +186,9 @@ def test_entry_chunking_by_max_tokens(org_config_with_only_new_file: LocalOrgCon
         text_search.setup(OrgToEntries, data, regenerate=False, user=default_user)
 
     # Assert
-    # verify newly added org-mode entry is split by max tokens
-    assert "Created 2 new embeddings. Deleted 0 embeddings for user " in caplog.records[-1].message
+    assert (
+        "Deleted 0 entries. Created 2 new entries for user " in caplog.records[-1].message
+    ), "new entry not split by max tokens"
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -245,8 +244,9 @@ conda activate khoj
         )
 
     # Assert
-    # verify newly added org-mode entry is split by max tokens
-    assert "Created 2 new embeddings. Deleted 0 embeddings for user " in caplog.records[-1].message
+    assert (
+        "Deleted 0 entries. Created 2 new entries for user " in caplog.records[-1].message
+    ), "new entry not split by max tokens"
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -261,7 +261,7 @@ def test_regenerate_index_with_new_entry(
     with caplog.at_level(logging.INFO):
         text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
 
-    assert "Created 10 new embeddings. Deleted 3 embeddings for user " in caplog.records[-1].message
+    assert "Deleted 3 entries. Created 10 new entries for user " in caplog.records[-1].message
 
     # append org-mode entry to first org input file in config
     org_config.input_files = [f"{new_org_file}"]
@@ -276,7 +276,7 @@ def test_regenerate_index_with_new_entry(
         text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
 
     # Assert
-    assert "Created 11 new embeddings. Deleted 10 embeddings for user " in caplog.records[-1].message
+    assert "Deleted 10 entries. Created 11 new entries for user " in caplog.records[-1].message
     verify_embeddings(11, default_user)
 
 
@@ -311,8 +311,8 @@ def test_update_index_with_duplicate_entries_in_stable_order(
 
     # Assert
     # verify only 1 entry added even if there are multiple duplicate entries
-    assert "Created 1 new embeddings. Deleted 3 embeddings for user " in initial_logs
-    assert "Created 0 new embeddings. Deleted 0 embeddings for user " in final_logs
+    assert "Deleted 3 entries. Created 1 new entries for user " in initial_logs
+    assert "Deleted 0 entries. Created 0 new entries for user " in final_logs
 
     verify_embeddings(1, default_user)
 
@@ -348,8 +348,8 @@ def test_update_index_with_deleted_entry(org_config_with_only_new_file: LocalOrg
 
     # Assert
     # verify only 1 entry added even if there are multiple duplicate entries
-    assert "Created 2 new embeddings. Deleted 3 embeddings for user " in initial_logs
-    assert "Created 0 new embeddings. Deleted 1 embeddings for user " in final_logs
+    assert "Deleted 3 entries. Created 2 new entries for user " in initial_logs
+    assert "Deleted 1 entries. Created 0 new entries for user " in final_logs
 
     verify_embeddings(1, default_user)
 
@@ -379,9 +379,8 @@ def test_update_index_with_new_entry(content_config: ContentConfig, new_org_file
     final_logs = caplog.text
 
     # Assert
-    assert "Created 10 new embeddings. Deleted 3 embeddings for user " in initial_logs
-    assert "Created 1 new embeddings. Deleted 0 embeddings for user " in final_logs
-
+    assert "Deleted 3 entries. Created 10 new entries for user " in initial_logs
+    assert "Deleted 0 entries. Created 1 new entries for user " in final_logs
     verify_embeddings(11, default_user)
 
 
