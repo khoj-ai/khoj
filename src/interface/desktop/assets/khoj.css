@@ -92,8 +92,9 @@ a.khoj-logo {
 }
 .khoj-nav a:hover {
     background-color: var(--primary-hover);
+    color: var(--main-text-color);
 }
-.khoj-nav-selected {
+a.khoj-nav-selected {
     background-color: var(--primary);
 }
 img.khoj-logo {
