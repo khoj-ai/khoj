@@ -169,7 +169,7 @@ def md_content_config():
     return markdown_config
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def chat_client(search_config: SearchConfig, default_user2: KhojUser):
     # Initialize app state
     state.config.search_type = search_config
