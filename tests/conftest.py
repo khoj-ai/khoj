@@ -98,6 +98,19 @@ def api_user(default_user):
     )
 
 
+@pytest.mark.django_db
+@pytest.fixture
+def api_user2(default_user2):
+    if KhojApiUser.objects.filter(user=default_user2).exists():
+        return KhojApiUser.objects.get(user=default_user2)
+
+    return KhojApiUser.objects.create(
+        user=default_user2,
+        name="api-key",
+        token="kk-diff-secret",
+    )
+
+
 @pytest.fixture(scope="session")
 def search_models(search_config: SearchConfig):
     search_models = SearchModels()

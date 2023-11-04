@@ -352,21 +352,20 @@ def test_different_user_data_not_accessed(client, sample_org_data, default_user:
 
 
 def get_sample_files_data():
-    return {
-        "files": ("path/to/filename.org", "* practicing piano", "text/org"),
-        "files": ("path/to/filename1.org", "** top 3 reasons why I moved to SF", "text/org"),
-        "files": ("path/to/filename2.org", "* how to build a search engine", "text/org"),
-        "files": ("path/to/filename.pdf", "Moore's law does not apply to consumer hardware", "application/pdf"),
-        "files": ("path/to/filename1.pdf", "The sun is a ball of helium", "application/pdf"),
-        "files": ("path/to/filename2.pdf", "Effect of sunshine on baseline human happiness", "application/pdf"),
-        "files": ("path/to/filename.txt", "data,column,value", "text/plain"),
-        "files": ("path/to/filename1.txt", "<html>my first web page</html>", "text/plain"),
-        "files": ("path/to/filename2.txt", "2021-02-02 Journal Entry", "text/plain"),
-        "files": ("path/to/filename.md", "# Notes from client call", "text/markdown"),
-        "files": (
-            "path/to/filename1.md",
-            "## Studying anthropological records from the Fatimid caliphate",
-            "text/markdown",
+    return [
+        ("files", ("path/to/filename.org", "* practicing piano", "text/org")),
+        ("files", ("path/to/filename1.org", "** top 3 reasons why I moved to SF", "text/org")),
+        ("files", ("path/to/filename2.org", "* how to build a search engine", "text/org")),
+        ("files", ("path/to/filename.pdf", "Moore's law does not apply to consumer hardware", "application/pdf")),
+        ("files", ("path/to/filename1.pdf", "The sun is a ball of helium", "application/pdf")),
+        ("files", ("path/to/filename2.pdf", "Effect of sunshine on baseline human happiness", "application/pdf")),
+        ("files", ("path/to/filename.txt", "data,column,value", "text/plain")),
+        ("files", ("path/to/filename1.txt", "<html>my first web page</html>", "text/plain")),
+        ("files", ("path/to/filename2.txt", "2021-02-02 Journal Entry", "text/plain")),
+        ("files", ("path/to/filename.md", "# Notes from client call", "text/markdown")),
+        (
+            "files",
+            ("path/to/filename1.md", "## Studying anthropological records from the Fatimid caliphate", "text/markdown"),
         ),
-        "files": ("path/to/filename2.md", "**Understanding science through the lens of art**", "text/markdown"),
-    }
+        ("files", ("path/to/filename2.md", "**Understanding science through the lens of art**", "text/markdown")),
+    ]
