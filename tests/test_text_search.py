@@ -48,10 +48,11 @@ def test_get_org_files_with_org_suffixed_dir_doesnt_raise_error(tmp_path, defaul
         user=default_user,
     )
 
+    # Act
     org_files = collect_files(user=default_user)["org"]
 
-    # Act
-    # should not raise IsADirectoryError and return orgfile
+    # Assert
+    # should return orgfile and not raise IsADirectoryError
     assert org_files == {f"{orgfile}": "* Heading\n- List item\n"}
 
 
@@ -62,11 +63,13 @@ def test_text_search_setup_with_empty_file_raises_error(
 ):
     # Arrange
     data = get_org_files(org_config_with_only_new_file)
+
     # Act
     # Generate notes embeddings during asymmetric setup
     with caplog.at_level(logging.INFO):
         text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
 
+    # Assert
     assert "Deleted 3 entries. Created 0 new entries for user " in caplog.records[-1].message
     verify_embeddings(0, default_user)
 
@@ -79,6 +82,9 @@ def test_text_indexer_deletes_embedding_before_regenerate(
     # Arrange
     org_config = LocalOrgConfig.objects.filter(user=default_user).first()
     data = get_org_files(org_config)
+
+    # Act
+    # Generate notes embeddings during asymmetric setup
     with caplog.at_level(logging.DEBUG):
         text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
 
@@ -93,6 +99,9 @@ def test_text_search_setup_batch_processes(content_config: ContentConfig, defaul
     # Arrange
     org_config = LocalOrgConfig.objects.filter(user=default_user).first()
     data = get_org_files(org_config)
+
+    # Act
+    # Generate notes embeddings during asymmetric setup
     with caplog.at_level(logging.DEBUG):
         text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
 
@@ -133,7 +142,6 @@ async def test_text_search(search_config: SearchConfig):
     default_user = await KhojUser.objects.acreate(
         username="test_user", password="test_password", email="test@example.com"
     )
-    # Arrange
     org_config = await LocalOrgConfig.objects.acreate(
         input_files=None,
         input_filter=["tests/data/org/*.org"],
@@ -157,13 +165,12 @@ async def test_text_search(search_config: SearchConfig):
 
     # Act
     hits = await text_search.query(default_user, query)
-
-    # Assert
     results = text_search.collate_results(hits)
     results = sorted(results, key=lambda x: float(x.score))[:1]
-    # search results should contain "git clone" entry
+
+    # Assert
     search_result = results[0].entry
-    assert "git clone" in search_result
+    assert "git clone" in search_result, 'search result did not contain "git clone" entry'
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -256,27 +263,29 @@ def test_regenerate_index_with_new_entry(
 ):
     # Arrange
     org_config = LocalOrgConfig.objects.filter(user=default_user).first()
-    data = get_org_files(org_config)
-
-    with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
-
-    assert "Deleted 3 entries. Created 10 new entries for user " in caplog.records[-1].message
+    initial_data = get_org_files(org_config)
 
     # append org-mode entry to first org input file in config
     org_config.input_files = [f"{new_org_file}"]
     with open(new_org_file, "w") as f:
         f.write("\n* A Chihuahua doing Tango\n- Saw a super cute video of a chihuahua doing the Tango on Youtube\n")
 
-    data = get_org_files(org_config)
+    final_data = get_org_files(org_config)
 
     # Act
+    with caplog.at_level(logging.INFO):
+        text_search.setup(OrgToEntries, initial_data, regenerate=True, user=default_user)
+    initial_logs = caplog.text
+    caplog.clear()  # Clear logs
+
     # regenerate notes jsonl, model embeddings and model to include entry from new file
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
+        text_search.setup(OrgToEntries, final_data, regenerate=True, user=default_user)
+    final_logs = caplog.text
 
     # Assert
-    assert "Deleted 10 entries. Created 11 new entries for user " in caplog.records[-1].message
+    assert "Deleted 3 entries. Created 10 new entries for user " in initial_logs
+    assert "Deleted 10 entries. Created 11 new entries for user " in final_logs
     verify_embeddings(11, default_user)
 
 
@@ -327,23 +336,23 @@ def test_update_index_with_deleted_entry(org_config_with_only_new_file: LocalOrg
     new_entry = "* TODO A Chihuahua doing Tango\n- Saw a super cute video of a chihuahua doing the Tango on Youtube\n"
     with open(new_file_to_index, "w") as f:
         f.write(f"{new_entry}{new_entry} -- Tatooine")
-    data = get_org_files(org_config_with_only_new_file)
-
-    # load embeddings, entries, notes model after adding new org file with 2 entries
-    with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
-    initial_logs = caplog.text
-    caplog.clear()  # Clear logs
+    initial_data = get_org_files(org_config_with_only_new_file)
 
     # update embeddings, entries, notes model after removing an entry from the org file
     with open(new_file_to_index, "w") as f:
         f.write(f"{new_entry}")
 
-    data = get_org_files(org_config_with_only_new_file)
+    final_data = get_org_files(org_config_with_only_new_file)
 
     # Act
+    # load embeddings, entries, notes model after adding new org file with 2 entries
     with caplog.at_level(logging.INFO):
-        text_search.setup(OrgToEntries, data, regenerate=False, user=default_user)
+        text_search.setup(OrgToEntries, initial_data, regenerate=True, user=default_user)
+    initial_logs = caplog.text
+    caplog.clear()  # Clear logs
+
+    with caplog.at_level(logging.INFO):
+        text_search.setup(OrgToEntries, final_data, regenerate=False, user=default_user)
     final_logs = caplog.text
 
     # Assert
@@ -389,6 +398,7 @@ def test_update_index_with_new_entry(content_config: ContentConfig, new_org_file
 def test_text_search_setup_github(content_config: ContentConfig, default_user: KhojUser):
     # Arrange
     github_config = GithubConfig.objects.filter(user=default_user).first()
+
     # Act
     # Regenerate github embeddings to test asymmetric setup without caching
     text_search.setup(
