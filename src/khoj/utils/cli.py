@@ -14,6 +14,7 @@ from khoj.migrations.migrate_version import migrate_config_to_version
 from khoj.migrations.migrate_processor_config_openai import migrate_processor_conversation_schema
 from khoj.migrations.migrate_offline_model import migrate_offline_model
 from khoj.migrations.migrate_offline_chat_schema import migrate_offline_chat_schema
+from khoj.migrations.migrate_offline_chat_default_model import migrate_offline_chat_default_model
 from khoj.migrations.migrate_server_pg import migrate_server_pg
 
 
@@ -38,6 +39,9 @@ def cli(args=None):
         help="Path to UNIX socket for server. Use to run server behind reverse proxy. Default: /tmp/uvicorn.sock",
     )
     parser.add_argument("--version", "-V", action="store_true", help="Print the installed Khoj version and exit")
+    parser.add_argument(
+        "--disable-chat-on-gpu", action="store_true", default=False, help="Disable using GPU for the offline chat model"
+    )
     parser.add_argument("--demo", action="store_true", default=False, help="Run Khoj in demo mode")
     parser.add_argument(
         "--anonymous-mode",
@@ -49,6 +53,9 @@ def cli(args=None):
     args, remaining_args = parser.parse_known_args(args)
 
     logger.debug(f"Ignoring unknown commandline args: {remaining_args}")
+
+    # Set default values for arguments
+    args.chat_on_gpu = not args.disable_chat_on_gpu
 
     args.version_no = version("khoj-assistant")
     if args.version:
@@ -76,6 +83,7 @@ def run_migrations(args):
         migrate_processor_conversation_schema,
         migrate_offline_model,
         migrate_offline_chat_schema,
+        migrate_offline_chat_default_model,
         migrate_server_pg,
     ]
     for migration in migrations:

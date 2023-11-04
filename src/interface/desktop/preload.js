@@ -52,3 +52,7 @@ contextBridge.exposeInMainWorld('tokenAPI', {
     setToken: (token) => ipcRenderer.invoke('setToken', token),
     getToken: () => ipcRenderer.invoke('getToken')
 })
+
+contextBridge.exposeInMainWorld('appInfoAPI', {
+    getInfo: (callback) => ipcRenderer.on('appInfo', callback)
+})

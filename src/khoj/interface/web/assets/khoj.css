@@ -2,35 +2,44 @@
 /* Can be forced with data-theme="light" */
 [data-theme="light"],
 :root:not([data-theme="dark"]) {
-    --primary: #ffb300;
-    --primary-hover: #ffa000;
+    --primary: #fee285;
+    --primary-hover: #fcc50b;
     --primary-focus: rgba(255, 179, 0, 0.125);
     --primary-inverse: rgba(0, 0, 0, 0.75);
-    --background-color: #fff;
+    --background-color: #f5f4f3;
     --main-text-color: #475569;
+    --water: #44b9da;
+    --leaf: #7b990a;
+    --flower: #ffaeae;
 }
 
 /* Amber Dark scheme (Auto) */
 /* Automatically enabled if user has Dark mode enabled */
 @media only screen and (prefers-color-scheme: dark) {
     :root:not([data-theme]) {
-        --primary: #ffb300;
-        --primary-hover: #ffc107;
+        --primary: #fee285;
+        --primary-hover: #fcc50b;
         --primary-focus: rgba(255, 179, 0, 0.25);
         --primary-inverse: rgba(0, 0, 0, 0.75);
-        --background-color: #fff;
+        --background-color: #f5f4f3;
         --main-text-color: #475569;
+        --water: #44b9da;
+        --leaf: #7b990a;
+        --flower: #ffaeae;
     }
 }
 /* Amber Dark scheme (Forced) */
 /* Enabled if forced with data-theme="dark" */
 [data-theme="dark"] {
-    --primary: #ffb300;
-    --primary-hover: #ffc107;
+    --primary: #fee285;
+    --primary-hover: #fcc50b;
     --primary-focus: rgba(255, 179, 0, 0.25);
     --primary-inverse: rgba(0, 0, 0, 0.75);
-    --background-color: #fff;
+    --background-color: #f5f4f3;
     --main-text-color: #475569;
+    --water: #44b9da;
+    --leaf: #7b990a;
+    --flower: #ffaeae;
 }
 /* Amber (Common styles) */
 :root {
@@ -46,12 +55,17 @@
     font-family: roboto, karma, segoe ui, sans-serif;
     font-weight: 300;
 }
+
+.khoj-footer,
 .khoj-header {
     display: grid;
     grid-auto-flow: column;
     gap: 20px;
     padding: 16px 0;
     margin: 0 0 16px 0;
+}
+.khoj-footer {
+    margin: 16px 0 0 0;
 }
 
 nav.khoj-nav {
@@ -71,7 +85,7 @@ a.khoj-logo {
 }
 
 .khoj-nav a {
-    color: #333;
+    color: var(--main-text-color);
     text-decoration: none;
     font-size: 20px;
     font-weight: normal;
@@ -148,10 +162,9 @@ p#khoj-banner {
 }
 .circle {
     border-radius: 50%;
-    border: 2px solid var(--primary-inverse);
+    border: 3px solid var(--primary-hover);
     width: 40px;
     height: 40px;
-    vertical-align: text-top;
     padding: 3px;
     cursor: pointer;
 }
@@ -159,7 +172,7 @@ p#khoj-banner {
     background-color: var(--primary-hover);
 }
 .user-initial {
-    background-color: white;
+    background-color: var(--background-color);
     color: black;
     display: grid;
     justify-content: center;

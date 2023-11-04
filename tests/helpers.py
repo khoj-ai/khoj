@@ -37,7 +37,7 @@ class ChatModelOptionsFactory(factory.django.DjangoModelFactory):
 
     max_prompt_size = 2000
     tokenizer = None
-    chat_model = "llama-2-7b-chat.ggmlv3.q4_0.bin"
+    chat_model = "mistral-7b-instruct-v0.1.Q4_0.gguf"
     model_type = "offline"
 
 

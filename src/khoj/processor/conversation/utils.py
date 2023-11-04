@@ -20,9 +20,11 @@ model_to_prompt_size = {
     "gpt-4": 8192,
     "llama-2-7b-chat.ggmlv3.q4_0.bin": 1548,
     "gpt-3.5-turbo-16k": 15000,
+    "mistral-7b-instruct-v0.1.Q4_0.gguf": 1548,
 }
 model_to_tokenizer = {
     "llama-2-7b-chat.ggmlv3.q4_0.bin": "hf-internal-testing/llama-tokenizer",
+    "mistral-7b-instruct-v0.1.Q4_0.gguf": "mistralai/Mistral-7B-Instruct-v0.1",
 }
 
 

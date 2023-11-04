@@ -1,5 +1,6 @@
-const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, shell } = require('electron');
 const todesktop = require("@todesktop/runtime");
+const khojPackage = require('./package.json');
 
 todesktop.init();
 
@@ -305,11 +306,13 @@ async function syncData (regenerate = false) {
     }
 }
 
+let firstRun = true;
 let win = null;
-const createWindow = (tab = 'index.html') => {
+const createWindow = (tab = 'chat.html') => {
     win = new BrowserWindow({
       width: 800,
       height: 800,
+      show: false,
     //   titleBarStyle: 'hidden',
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
@@ -330,12 +333,30 @@ const createWindow = (tab = 'index.html') => {
 
     win.setResizable(true);
     win.setOpacity(0.95);
-    win.setBackgroundColor('#FFFFFF');
+    win.setBackgroundColor('#f5f4f3');
     win.setHasShadow(true);
 
     job.start();
 
     win.loadFile(tab)
+
+    if (firstRun === true) {
+        firstRun = false;
+
+        // Create splash screen
+        var splash = new BrowserWindow({width: 400, height: 400, transparent: true, frame: false, alwaysOnTop: true});
+        splash.setOpacity(1.0);
+        splash.setBackgroundColor('#d16b4e');
+        splash.loadFile('splash.html');
+
+        // Show splash screen on app load
+        win.once('ready-to-show', () => {
+            setTimeout(function(){ splash.close(); win.show(); }, 4500);
+        });
+    } else {
+        // Show main window directly if not first run
+        win.once('ready-to-show', () => { win.show(); });
+    }
 }
 
 app.whenReady().then(() => {
@@ -370,11 +391,12 @@ app.whenReady().then(() => {
 
     app.setAboutPanelOptions({
         applicationName: "Khoj",
-        applicationVersion: "0.0.1",
-        version: "0.0.1",
-        authors: "Khoj Team",
+        applicationVersion: khojPackage.version,
+        version: khojPackage.version,
+        authors: "Saba Imran, Debanjum Singh Solanky and contributors",
         website: "https://khoj.dev",
-        iconPath: path.join(__dirname, 'assets', 'khoj.png')
+        copyright: "GPL v3",
+        iconPath: path.join(__dirname, 'assets', 'icons', 'favicon-128x128.png')
     });
 
     app.on('ready', async() => {
@@ -399,6 +421,43 @@ app.on('window-all-closed', () => {
 })
 
 /*
+** About Page
+*/
+
+let aboutWindow;
+
+function openAboutWindow() {
+    if (aboutWindow) { aboutWindow.focus(); return; }
+
+    aboutWindow = new BrowserWindow({
+        width: 400,
+        height: 400,
+        titleBarStyle: 'hidden',
+        show: false,
+        webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
+            nodeIntegration: true,
+        },
+    });
+
+    aboutWindow.loadFile('about.html');
+
+    // Pass OS, Khoj version to About page
+    aboutWindow.webContents.on('did-finish-load', () => {
+        aboutWindow.webContents.send('appInfo', { version: khojPackage.version, platform: process.platform });
+    });
+
+    // Open links in external browser
+    aboutWindow.webContents.setWindowOpenHandler(({ url }) => {
+        shell.openExternal(url);
+        return { action: 'deny' };
+    });
+
+    aboutWindow.once('ready-to-show', () => { aboutWindow.show(); });
+    aboutWindow.on('closed', () => { aboutWindow = null; });
+}
+
+/*
 **  System Tray Icon
 */
 
@@ -418,9 +477,10 @@ app.whenReady().then(() => {
 
     const contextMenu = Menu.buildFromTemplate([
         { label: 'Chat', type: 'normal', click: () => { openWindow('chat.html'); }},
-        { label: 'Search', type: 'normal', click: () => { openWindow('index.html') }},
+        { label: 'Search', type: 'normal', click: () => { openWindow('search.html') }},
         { label: 'Configure', type: 'normal', click: () => { openWindow('config.html') }},
         { type: 'separator' },
+        { label: 'About Khoj', type: 'normal', click: () => { openAboutWindow(); } },
         { label: 'Quit', type: 'normal', click: () => { app.quit() } }
     ])
 

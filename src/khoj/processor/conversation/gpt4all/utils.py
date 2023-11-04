@@ -1,5 +1,6 @@
 import logging
 
+from khoj.utils import state
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +17,13 @@ def download_model(model_name: str):
 
     # Decide whether to load model to GPU or CPU
     try:
-        # Check if machine has GPU and GPU has enough free memory to load the chat model
-        device = "gpu" if gpt4all.pyllmodel.LLModel().list_gpu(chat_model_config["path"]) else "cpu"
+        # Try load chat model to GPU if:
+        # 1. Loading chat model to GPU isn't disabled via CLI and
+        # 2. Machine has GPU
+        # 3. GPU has enough free memory to load the chat model
+        device = (
+            "gpu" if state.chat_on_gpu and gpt4all.pyllmodel.LLModel().list_gpu(chat_model_config["path"]) else "cpu"
+        )
     except ValueError:
         device = "cpu"
 

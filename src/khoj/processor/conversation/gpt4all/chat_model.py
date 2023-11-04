@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 def extract_questions_offline(
     text: str,
-    model: str = "llama-2-7b-chat.ggmlv3.q4_0.bin",
+    model: str = "mistral-7b-instruct-v0.1.Q4_0.gguf",
     loaded_model: Union[Any, None] = None,
     conversation_log={},
     use_history: bool = True,
@@ -123,7 +123,7 @@ def converse_offline(
     references,
     user_query,
     conversation_log={},
-    model: str = "llama-2-7b-chat.ggmlv3.q4_0.bin",
+    model: str = "mistral-7b-instruct-v0.1.Q4_0.gguf",
     loaded_model: Union[Any, None] = None,
     completion_func=None,
     conversation_command=ConversationCommand.Default,

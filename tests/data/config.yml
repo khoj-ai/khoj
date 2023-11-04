@@ -14,4 +14,4 @@ search-type:
   asymmetric:
     cross-encoder: cross-encoder/ms-marco-MiniLM-L-6-v2
     encoder: sentence-transformers/msmarco-MiniLM-L-6-v3
-version: 0.10.1
+version: 0.14.0
