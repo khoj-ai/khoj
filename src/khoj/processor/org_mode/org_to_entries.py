@@ -24,7 +24,7 @@ class OrgToEntries(TextToEntries):
         self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None, regenerate: bool = False
     ) -> Tuple[int, int]:
         # Extract required fields from config
-        index_heading_entries = True
+        index_heading_entries = False
 
         if not full_corpus:
             deletion_file_names = set([file for file in files if files[file] == ""])
