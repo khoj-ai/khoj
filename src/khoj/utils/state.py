@@ -33,5 +33,6 @@ SearchType = utils_config.SearchType
 telemetry: List[Dict[str, str]] = []
 demo: bool = False
 khoj_version: str = None
-anonymous_mode: bool = False
 device = get_device()
+chat_on_gpu: bool = True
+anonymous_mode: bool = False

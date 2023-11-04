@@ -61,6 +61,7 @@ toggleFoldersButton.addEventListener('click', () => {
 function makeFileElement(file) {
     let fileElement = document.createElement("div");
     fileElement.classList.add("file-element");
+
     let fileNameElement = document.createElement("div");
     fileNameElement.classList.add("content-name");
     fileNameElement.innerHTML = file.path;
@@ -82,6 +83,7 @@ function makeFileElement(file) {
 function makeFolderElement(folder) {
     let folderElement = document.createElement("div");
     folderElement.classList.add("folder-element");
+
     let folderNameElement = document.createElement("div");
     folderNameElement.classList.add("content-name");
     folderNameElement.innerHTML = folder.path;

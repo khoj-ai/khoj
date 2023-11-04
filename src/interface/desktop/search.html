@@ -10,6 +10,7 @@
     </head>
     <script type="text/javascript" src="./assets/org.min.js"></script>
     <script type="text/javascript" src="./assets/markdown-it.min.js"></script>
+    <script src="./utils.js"></script>
 
     <script>
         function render_image(item) {
@@ -264,7 +265,7 @@
             </a>
             <nav class="khoj-nav">
                 <a class="khoj-nav" href="./chat.html">💬 Chat</a>
-                <a class="khoj-nav khoj-nav-selected" href="./index.html">🔎 Search</a>
+                <a class="khoj-nav khoj-nav-selected" href="./search.html">🔎 Search</a>
                 <a class="khoj-nav" href="./config.html">⚙️ Settings</a>
             </nav>
         </div>
@@ -302,8 +303,8 @@
         body {
             padding: 0px;
             margin: 0px;
-            background: #fff;
-            color: #475569;
+            background: var(--background-color);
+            color: var(--main-text-color);
             font-family: roboto, karma, segoe ui, sans-serif;
             font-size: small;
             font-weight: 300;

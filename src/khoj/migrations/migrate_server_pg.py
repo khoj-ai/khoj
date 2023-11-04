@@ -9,7 +9,7 @@ processor:
     conversation-logfile: ~/.khoj/processor/conversation/conversation_logs.json
     max-prompt-size: null
     offline-chat:
-      chat-model: llama-2-7b-chat.ggmlv3.q4_0.bin
+      chat-model: mistral-7b-instruct-v0.1.Q4_0.gguf
       enable-offline-chat: false
     openai:
       api-key: sk-blah
@@ -46,7 +46,7 @@ processor:
       - chat-model: gpt-3.5-turbo
         tokenizer: null
         type: openai
-      - chat-model: llama-2-7b-chat.ggmlv3.q4_0.bin
+      - chat-model: mistral-7b-instruct-v0.1.Q4_0.gguf
         tokenizer: null
         type: offline
 search-type:

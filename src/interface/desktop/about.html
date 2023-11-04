@@ -1,0 +1,88 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
+        <title>Khoj - About</title>
+
+        <link rel="icon" type="image/png" sizes="128x128" href="./assets/icons/favicon-128x128.png">
+        <link rel="manifest" href="/static/khoj_chat.webmanifest">
+        <link rel="stylesheet" href="./assets/khoj.css">
+     </head>
+    <script type="text/javascript" src="./utils.js"></script>
+    <style>
+        html, body {
+            height: 100%;
+            width: 100%;
+            padding: 0px;
+            margin: 0px;
+        }
+        body {
+            display: grid;
+            grid-template-rows: auto;
+            background: var(--background-color);
+            color: var(--main-text-color);
+            text-align: center;
+            font-family: roboto, karma, segoe ui, sans-serif;
+            font-size: small;
+            font-weight: 300;
+            line-height: 1.5em;
+        }
+        header > *,
+        body > * {
+            padding: 0px;
+            margin: 0px;
+        }
+        header > * {
+            margin-top: 20px;
+        }
+
+        img {
+            width: 100px;
+            height: 100px;
+            margin-top: 32px;
+        }
+
+        p {
+            font-size: 14px;
+        }
+        #about-page-version {
+            margin: 0;
+        }
+
+        .button {
+            display: block;
+            width: 60%;
+            padding: 10px 16px;
+            margin: 10px auto;
+            background-color: var(--primary);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        footer {
+            font-size: 10px;
+            color: slategray;
+            margin-top: 10px;
+        }
+    </style>
+    <body>
+        <header>
+            <img id="logo" src="./assets/icons/favicon-128x128.png" alt="Khoj Logo">
+            <p id="about-page-title"><b>Khoj for Desktop</b>
+            <p id="about-page-version"></p>
+        </header>
+        <div class="action">
+            <button class="button" onclick="window.open('https://khoj.dev/terms-of-service', '_blank')">Terms of Service</button>
+            <button class="button" onclick="window.open('https://khoj.dev/privacy-policy', '_blank')">Privacy Policy</button>
+        </div>
+        <footer>
+            © 2023 Khoj Inc. All rights reserved.
+        </footer>
+    </body>
+</html>

@@ -211,7 +211,7 @@ def chat_client_no_background(search_config: SearchConfig, default_user2: KhojUs
 
     # Initialize Processor from Config
     if os.getenv("OPENAI_API_KEY"):
-        OpenAIProcessorConversationConfigFactory(user=default_user2)
+        OpenAIProcessorConversationConfigFactory()
 
     state.anonymous_mode = True
 

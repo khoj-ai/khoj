@@ -8,7 +8,7 @@
         <link rel="manifest" href="/static/khoj_chat.webmanifest">
         <link rel="stylesheet" href="/static/assets/khoj.css">
     </head>
-    <script type="text/javascript" src="/static/assets/khoj.js"></script>
+    <script type="text/javascript" src="/static/assets/utils.js"></script>
     <script>
         let chatOptions = [];
         function copyProgrammaticOutput(event) {
@@ -67,6 +67,8 @@
             // Replace any ** with <b> and __ with <u>
             newHTML = newHTML.replace(/\*\*([\s\S]*?)\*\*/g, '<b>$1</b>');
             newHTML = newHTML.replace(/__([\s\S]*?)__/g, '<u>$1</u>');
+            // Remove any text between <s>[INST] and </s> tags. These are spurious instructions for the AI chat model.
+            newHTML = newHTML.replace(/<s>\[INST\].+(<\/s>)?/g, '');
             return newHTML;
         }
 
@@ -163,6 +165,7 @@
 
         function incrementalChat(event) {
             if (!event.shiftKey && event.key === 'Enter') {
+                e.preventDefault();
                 chat();
             }
         }
@@ -281,8 +284,7 @@
         <!-- Chat Footer -->
         <div id="chat-footer">
             <div id="chat-tooltip" style="display: none;"></div>
-            <textarea id="chat-input" class="option" oninput="onChatInput()" onkeyup=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands, or just type your questions and hit enter.">
-            </textarea>
+            <textarea id="chat-input" class="option" oninput="onChatInput()" onkeydown=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands, or just type your questions and hit enter."></textarea>
         </div>
     </body>
 

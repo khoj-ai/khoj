@@ -38,7 +38,7 @@ export class KhojChatModal extends Modal {
         await this.getChatHistory();
 
         // Add chat input field
-        contentEl.createEl("input",
+        const chatInput = contentEl.createEl("input",
             {
                 attr: {
                     type: "text",
@@ -48,10 +48,11 @@ export class KhojChatModal extends Modal {
                     class: "khoj-chat-input option"
                 }
             })
-            .addEventListener('change', (event) => { this.result = (<HTMLInputElement>event.target).value });
+        chatInput.addEventListener('change', (event) => { this.result = (<HTMLInputElement>event.target).value });
 
         // Scroll to bottom of modal, till the send message input box
         this.modalEl.scrollTop = this.modalEl.scrollHeight;
+        chatInput.focus();
     }
 
     generateReference(messageEl: any, reference: string, index: number) {
