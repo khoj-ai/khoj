@@ -10,18 +10,6 @@
     </head>
 
     <body>
-        {% if demo %}
-            <!-- Banner linking to https://khoj.dev -->
-            <div class="khoj-banner-container">
-                <a class="khoj-banner" href="https://khoj.dev" target="_blank">
-                    <p id="khoj-banner" class="khoj-banner">
-                        Enroll in Khoj cloud to get your own assistant
-                    </p>
-                </a>
-                <input type="text" id="khoj-banner-email" placeholder="email" class="khoj-banner-email"></input>
-                <button id="khoj-banner-submit" class="khoj-banner-button">Submit</button>
-            </div>
-        {% endif %}
         <div class="khoj-header"></div>
 
         <!-- Login Modal -->
@@ -106,19 +94,6 @@
             justify-self: center;
         }
 
-        button#khoj-banner-submit,
-        input#khoj-banner-email {
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #475569;
-            background: #f9fafc;
-        }
-
-        button#khoj-banner-submit:hover,
-        input#khoj-banner-email:hover {
-            box-shadow: 0 0 11px #aaa;
-        }
-
         div#login-modal {
             display: grid;
             grid-template-columns: 1fr;
@@ -143,12 +118,6 @@
         }
 
         @media only screen and (max-width: 700px) {
-            a.khoj-banner {
-                display: block;
-            }
-            p.khoj-banner {
-                padding: 0;
-            }
             div#login-modal {
                 margin-left: 10%;
                 margin-right: 10%;
@@ -156,34 +125,5 @@
         }
 
     </style>
-    <script>
-        var khojBannerSubmit = document.getElementById("khoj-banner-submit");
-        khojBannerSubmit?.addEventListener("click", function(event) {
-            event.preventDefault();
-            var email = document.getElementById("khoj-banner-email").value;
-            fetch("https://app.khoj.dev/beta/users/", {
-                    method: "POST",
-                    body: JSON.stringify({
-                        email: email
-                    }),
-                    headers: {
-                        "Content-Type": "application/json"
-                    }
-                }).then(function(response) {
-                    return response.json();
-                }).then(function(data) {
-                    console.log(data);
-                    if (data.user != null) {
-                        document.getElementById("khoj-banner").innerHTML = "Thanks for signing up. We'll be in touch soon! 🚀";
-                        document.getElementById("khoj-banner-submit").remove();
-                    } else {
-                        document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
-                    }
-                }).catch(function(error) {
-                    console.log(error);
-                    document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
-                });
-            });
-    </script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </html>

@@ -68,13 +68,17 @@ class PdfToEntries(TextToEntries):
                 with open(f"{tmp_file}", "wb") as f:
                     bytes = pdf_files[pdf_file]
                     f.write(bytes)
-                loader = PyMuPDFLoader(f"{tmp_file}")
-                pdf_entries_per_file = [page.page_content for page in loader.load()]
+                try:
+                    loader = PyMuPDFLoader(f"{tmp_file}", extract_images=True)
+                    pdf_entries_per_file = [page.page_content for page in loader.load()]
+                except ImportError:
+                    loader = PyMuPDFLoader(f"{tmp_file}")
+                    pdf_entries_per_file = [page.page_content for page in loader.load()]
                 entry_to_location_map += zip(pdf_entries_per_file, [pdf_file] * len(pdf_entries_per_file))
                 entries.extend(pdf_entries_per_file)
             except Exception as e:
                 logger.warning(f"Unable to process file: {pdf_file}. This file will not be indexed.")
-                logger.warning(e)
+                logger.warning(e, exc_info=True)
             finally:
                 if os.path.exists(f"{tmp_file}"):
                     os.remove(f"{tmp_file}")

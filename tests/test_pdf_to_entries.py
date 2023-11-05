@@ -50,6 +50,23 @@ def test_multi_page_pdf_to_jsonl():
     assert len(jsonl_data) == 6
 
 
+def test_ocr_page_pdf_to_jsonl():
+    "Convert multiple pages from single PDF file to jsonl."
+    # Act
+    # Extract Entries from specified Pdf files
+    with open("tests/data/pdf/ocr_samples.pdf", "rb") as f:
+        pdf_bytes = f.read()
+
+    data = {"tests/data/pdf/ocr_samples.pdf": pdf_bytes}
+    entries, entry_to_file_map = PdfToEntries.extract_pdf_entries(pdf_files=data)
+
+    # Process Each Entry from All Pdf Files
+    entries = PdfToEntries.convert_pdf_entries_to_maps(entries, entry_to_file_map)
+
+    assert len(entries) == 1
+    assert "playing on a strip of marsh" in entries[0].raw
+
+
 def test_get_pdf_files(tmp_path):
     "Ensure Pdf files specified via input-filter, input-files extracted"
     # Arrange

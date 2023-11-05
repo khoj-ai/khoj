@@ -165,7 +165,7 @@
 
         function incrementalChat(event) {
             if (!event.shiftKey && event.key === 'Enter') {
-                e.preventDefault();
+                event.preventDefault();
                 chat();
             }
         }
@@ -261,17 +261,7 @@
         }
     </script>
     <body>
-        <div id="khoj-banner-container" class="khoj-banner-container">
-        {% if demo %}
-            <!-- Banner linking to https://khoj.dev -->
-                <a class="khoj-banner" href="https://khoj.dev" target="_blank">
-                    <p id="khoj-banner" class="khoj-banner">
-                        Enroll in Khoj cloud to get your own assistant
-                    </p>
-                </a>
-                <input type="text" id="khoj-banner-email" placeholder="email" class="khoj-banner-email"></input>
-                <button id="khoj-banner-submit" class="khoj-banner-button">Submit</button>
-        {% endif %}
+        <div id="khoj-empty-container" class="khoj-empty-container">
         </div>
 
         <!--Add Header Logo and Nav Pane-->
@@ -480,12 +470,6 @@
                 margin: 4px;
                 grid-template-columns: auto;
             }
-            a.khoj-banner {
-                display: block;
-            }
-            p.khoj-banner {
-                padding: 0;
-            }
         }
         @media only screen and (min-width: 700px) {
             body {
@@ -495,14 +479,6 @@
             body > * {
                 grid-column: 2;
             }
-        }
-
-        div.khoj-banner-container {
-            background: linear-gradient(-45deg, #FFC107, #FF9800, #FF5722, #FF9800, #FFC107);
-            background-size: 400% 400%;
-            animation: gradient 15s ease infinite;
-            text-align: center;
-            padding: 10px;
         }
 
         div#chat-tooltip {
@@ -526,19 +502,7 @@
             text-align: center;
         }
 
-        button#khoj-banner-submit,
-        input#khoj-banner-email {
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid var(--main-text-color);
-            background: #f9fafc;
-        }
-
-        button#khoj-banner-submit:hover,
-        input#khoj-banner-email:hover {
-            box-shadow: 0 0 11px #aaa;
-        }
-        div.khoj-banner-container-hidden {
+        div.khoj-empty-container {
             margin: 0px;
             padding: 0px;
         }
@@ -558,39 +522,4 @@
             white-space: pre-wrap;
         }
     </style>
-    <script>
-        if ("{{demo}}" === "False") {
-            document.getElementById("khoj-banner-container").classList.remove("khoj-banner-container");
-            document.getElementById("khoj-banner-container").classList.add("khoj-banner-container-hidden");
-        }
-
-        var khojBannerSubmit = document.getElementById("khoj-banner-submit");
-
-        khojBannerSubmit?.addEventListener("click", function(event) {
-            event.preventDefault();
-            var email = document.getElementById("khoj-banner-email").value;
-            fetch("https://app.khoj.dev/beta/users/", {
-                    method: "POST",
-                    body: JSON.stringify({
-                        email: email
-                    }),
-                    headers: {
-                        "Content-Type": "application/json"
-                    }
-                }).then(function(response) {
-                    return response.json();
-                }).then(function(data) {
-                    console.log(data);
-                    if (data.user != null) {
-                        document.getElementById("khoj-banner").innerHTML = "Thanks for signing up. We'll be in touch soon! 🚀";
-                        document.getElementById("khoj-banner-submit").remove();
-                    } else {
-                        document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
-                    }
-                }).catch(function(error) {
-                    console.log(error);
-                    document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
-                });
-            });
-    </script>
 </html>

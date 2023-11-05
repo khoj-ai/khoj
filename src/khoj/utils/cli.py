@@ -42,7 +42,6 @@ def cli(args=None):
     parser.add_argument(
         "--disable-chat-on-gpu", action="store_true", default=False, help="Disable using GPU for the offline chat model"
     )
-    parser.add_argument("--demo", action="store_true", default=False, help="Run Khoj in demo mode")
     parser.add_argument(
         "--anonymous-mode",
         action="store_true",
