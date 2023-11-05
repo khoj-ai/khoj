@@ -106,21 +106,6 @@ img.khoj-logo {
     justify-self: center;
 }
 
-a.khoj-banner {
-    color: black;
-    text-decoration: none;
-}
-
-p.khoj-banner {
-    font-size: medium;
-    margin: 0;
-    padding: 10px;
-}
-
-p#khoj-banner {
-    display: inline;
-}
-
 /* Dropdown in navigation menu*/
 #khoj-nav-menu-container {
     display: flex;

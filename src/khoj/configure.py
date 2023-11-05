@@ -159,24 +159,22 @@ def configure_middleware(app):
     app.add_middleware(SessionMiddleware, secret_key=os.environ.get("KHOJ_DJANGO_SECRET_KEY", "!secret"))
 
 
-if not state.demo:
-
-    @schedule.repeat(schedule.every(61).minutes)
-    def update_search_index():
-        try:
-            logger.info("📬 Updating content index via Scheduler")
-            for user in get_all_users():
-                all_files = collect_files(user=user)
-                state.content_index = configure_content(
-                    state.content_index, state.config.content_type, all_files, state.search_models, user=user
-                )
-            all_files = collect_files(user=None)
+@schedule.repeat(schedule.every(61).minutes)
+def update_search_index():
+    try:
+        logger.info("📬 Updating content index via Scheduler")
+        for user in get_all_users():
+            all_files = collect_files(user=user)
             state.content_index = configure_content(
-                state.content_index, state.config.content_type, all_files, state.search_models, user=None
+                state.content_index, state.config.content_type, all_files, state.search_models, user=user
             )
-            logger.info("📪 Content index updated via Scheduler")
-        except Exception as e:
-            logger.error(f"🚨 Error updating content index via Scheduler: {e}", exc_info=True)
+        all_files = collect_files(user=None)
+        state.content_index = configure_content(
+            state.content_index, state.config.content_type, all_files, state.search_models, user=None
+        )
+        logger.info("📪 Content index updated via Scheduler")
+    except Exception as e:
+        logger.error(f"🚨 Error updating content index via Scheduler: {e}", exc_info=True)
 
 
 def configure_search_types(config: FullConfig):

@@ -31,7 +31,6 @@ config_lock = threading.Lock()
 chat_lock = threading.Lock()
 SearchType = utils_config.SearchType
 telemetry: List[Dict[str, str]] = []
-demo: bool = False
 khoj_version: str = None
 device = get_device()
 chat_on_gpu: bool = True

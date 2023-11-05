@@ -111,183 +111,187 @@ async def map_config_to_db(config: FullConfig, user: KhojUser):
             )
 
 
-# If it's a demo instance, prevent updating any of the configuration.
-if not state.demo:
+def _initialize_config():
+    if state.config is None:
+        state.config = FullConfig()
+        state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
 
-    def _initialize_config():
-        if state.config is None:
-            state.config = FullConfig()
-            state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
 
-    @api.get("/config/data", response_model=FullConfig)
-    @requires(["authenticated"])
-    def get_config_data(request: Request):
-        user = request.user.object
-        EntryAdapters.get_unique_file_types(user)
+@api.get("/config/data", response_model=FullConfig)
+@requires(["authenticated"])
+def get_config_data(request: Request):
+    user = request.user.object
+    EntryAdapters.get_unique_file_types(user)
 
-        return state.config
+    return state.config
 
-    @api.post("/config/data")
-    @requires(["authenticated"])
-    async def set_config_data(
-        request: Request,
-        updated_config: FullConfig,
-        client: Optional[str] = None,
-    ):
-        user = request.user.object
-        await map_config_to_db(updated_config, user)
 
-        configuration_update_metadata = {}
+@api.post("/config/data")
+@requires(["authenticated"])
+async def set_config_data(
+    request: Request,
+    updated_config: FullConfig,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+    await map_config_to_db(updated_config, user)
 
-        enabled_content = await sync_to_async(EntryAdapters.get_unique_file_types)(user)
+    configuration_update_metadata = {}
 
-        if state.config.content_type is not None:
-            configuration_update_metadata["github"] = "github" in enabled_content
-            configuration_update_metadata["notion"] = "notion" in enabled_content
-            configuration_update_metadata["org"] = "org" in enabled_content
-            configuration_update_metadata["pdf"] = "pdf" in enabled_content
-            configuration_update_metadata["markdown"] = "markdown" in enabled_content
+    enabled_content = await sync_to_async(EntryAdapters.get_unique_file_types)(user)
 
-        if state.config.processor is not None:
-            configuration_update_metadata["conversation_processor"] = state.config.processor.conversation is not None
+    if state.config.content_type is not None:
+        configuration_update_metadata["github"] = "github" in enabled_content
+        configuration_update_metadata["notion"] = "notion" in enabled_content
+        configuration_update_metadata["org"] = "org" in enabled_content
+        configuration_update_metadata["pdf"] = "pdf" in enabled_content
+        configuration_update_metadata["markdown"] = "markdown" in enabled_content
 
-        update_telemetry_state(
-            request=request,
-            telemetry_type="api",
-            api="set_config",
-            client=client,
-            metadata=configuration_update_metadata,
-        )
-        return state.config
+    if state.config.processor is not None:
+        configuration_update_metadata["conversation_processor"] = state.config.processor.conversation is not None
 
-    @api.post("/config/data/content_type/github", status_code=200)
-    @requires(["authenticated"])
-    async def set_content_config_github_data(
-        request: Request,
-        updated_config: Union[GithubContentConfig, None],
-        client: Optional[str] = None,
-    ):
-        _initialize_config()
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="set_config",
+        client=client,
+        metadata=configuration_update_metadata,
+    )
+    return state.config
 
-        user = request.user.object
 
-        await adapters.set_user_github_config(
-            user=user,
-            pat_token=updated_config.pat_token,
-            repos=updated_config.repos,
-        )
+@api.post("/config/data/content_type/github", status_code=200)
+@requires(["authenticated"])
+async def set_content_config_github_data(
+    request: Request,
+    updated_config: Union[GithubContentConfig, None],
+    client: Optional[str] = None,
+):
+    _initialize_config()
 
-        update_telemetry_state(
-            request=request,
-            telemetry_type="api",
-            api="set_content_config",
-            client=client,
-            metadata={"content_type": "github"},
-        )
+    user = request.user.object
 
-        return {"status": "ok"}
+    await adapters.set_user_github_config(
+        user=user,
+        pat_token=updated_config.pat_token,
+        repos=updated_config.repos,
+    )
 
-    @api.post("/config/data/content_type/notion", status_code=200)
-    @requires(["authenticated"])
-    async def set_content_config_notion_data(
-        request: Request,
-        updated_config: Union[NotionContentConfig, None],
-        client: Optional[str] = None,
-    ):
-        _initialize_config()
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="set_content_config",
+        client=client,
+        metadata={"content_type": "github"},
+    )
 
-        user = request.user.object
+    return {"status": "ok"}
 
-        await adapters.set_notion_config(
-            user=user,
-            token=updated_config.token,
-        )
 
-        update_telemetry_state(
-            request=request,
-            telemetry_type="api",
-            api="set_content_config",
-            client=client,
-            metadata={"content_type": "notion"},
-        )
+@api.post("/config/data/content_type/notion", status_code=200)
+@requires(["authenticated"])
+async def set_content_config_notion_data(
+    request: Request,
+    updated_config: Union[NotionContentConfig, None],
+    client: Optional[str] = None,
+):
+    _initialize_config()
 
-        return {"status": "ok"}
+    user = request.user.object
 
-    @api.post("/delete/config/data/content_type/{content_type}", status_code=200)
-    @requires(["authenticated"])
-    async def remove_content_config_data(
-        request: Request,
-        content_type: str,
-        client: Optional[str] = None,
-    ):
-        user = request.user.object
+    await adapters.set_notion_config(
+        user=user,
+        token=updated_config.token,
+    )
 
-        update_telemetry_state(
-            request=request,
-            telemetry_type="api",
-            api="delete_content_config",
-            client=client,
-            metadata={"content_type": content_type},
-        )
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="set_content_config",
+        client=client,
+        metadata={"content_type": "notion"},
+    )
 
-        content_object = map_config_to_object(content_type)
-        if content_object is None:
-            raise ValueError(f"Invalid content type: {content_type}")
+    return {"status": "ok"}
 
-        await content_object.objects.filter(user=user).adelete()
-        await sync_to_async(EntryAdapters.delete_all_entries)(user, content_type)
 
-        enabled_content = await sync_to_async(EntryAdapters.get_unique_file_types)(user)
-        return {"status": "ok"}
+@api.post("/delete/config/data/content_type/{content_type}", status_code=200)
+@requires(["authenticated"])
+async def remove_content_config_data(
+    request: Request,
+    content_type: str,
+    client: Optional[str] = None,
+):
+    user = request.user.object
 
-    @api.post("/config/data/content_type/{content_type}", status_code=200)
-    @requires(["authenticated"])
-    async def set_content_config_data(
-        request: Request,
-        content_type: str,
-        updated_config: Union[TextContentConfig, None],
-        client: Optional[str] = None,
-    ):
-        _initialize_config()
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="delete_content_config",
+        client=client,
+        metadata={"content_type": content_type},
+    )
 
-        user = request.user.object
+    content_object = map_config_to_object(content_type)
+    if content_object is None:
+        raise ValueError(f"Invalid content type: {content_type}")
 
-        content_object = map_config_to_object(content_type)
-        await adapters.set_text_content_config(user, content_object, updated_config)
+    await content_object.objects.filter(user=user).adelete()
+    await sync_to_async(EntryAdapters.delete_all_entries)(user, content_type)
 
-        update_telemetry_state(
-            request=request,
-            telemetry_type="api",
-            api="set_content_config",
-            client=client,
-            metadata={"content_type": content_type},
-        )
+    enabled_content = await sync_to_async(EntryAdapters.get_unique_file_types)(user)
+    return {"status": "ok"}
 
-        return {"status": "ok"}
 
-    @api.post("/config/data/conversation/model", status_code=200)
-    @requires(["authenticated"])
-    async def update_chat_model(
-        request: Request,
-        id: str,
-        client: Optional[str] = None,
-    ):
-        user = request.user.object
+@api.post("/config/data/content_type/{content_type}", status_code=200)
+@requires(["authenticated"])
+async def set_content_config_data(
+    request: Request,
+    content_type: str,
+    updated_config: Union[TextContentConfig, None],
+    client: Optional[str] = None,
+):
+    _initialize_config()
 
-        new_config = await ConversationAdapters.aset_user_conversation_processor(user, int(id))
+    user = request.user.object
 
-        update_telemetry_state(
-            request=request,
-            telemetry_type="api",
-            api="set_conversation_chat_model",
-            client=client,
-            metadata={"processor_conversation_type": "conversation"},
-        )
+    content_object = map_config_to_object(content_type)
+    await adapters.set_text_content_config(user, content_object, updated_config)
 
-        if new_config is None:
-            return {"status": "error", "message": "Model not found"}
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="set_content_config",
+        client=client,
+        metadata={"content_type": content_type},
+    )
 
-        return {"status": "ok"}
+    return {"status": "ok"}
+
+
+@api.post("/config/data/conversation/model", status_code=200)
+@requires(["authenticated"])
+async def update_chat_model(
+    request: Request,
+    id: str,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+
+    new_config = await ConversationAdapters.aset_user_conversation_processor(user, int(id))
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="set_conversation_chat_model",
+        client=client,
+        metadata={"processor_conversation_type": "conversation"},
+    )
+
+    if new_config is None:
+        return {"status": "error", "message": "Model not found"}
+
+    return {"status": "ok"}
 
 
 # Create Routes
@@ -377,6 +381,7 @@ async def search(
             SearchType.Github,
             SearchType.Notion,
             SearchType.Plaintext,
+            SearchType.Pdf,
         ]:
             # query markdown notes
             search_futures += [
