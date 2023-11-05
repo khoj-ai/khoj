@@ -53,10 +53,10 @@
             justify-self: center;
         }
 
-        .api-settings {
+        div.section-manage-files,
+        div.api-settings {
             display: grid;
             grid-template-columns: 1fr;
-            grid-template-rows: 1fr 1fr auto;
             justify-items: start;
             gap: 8px;
             padding: 24px 24px;
@@ -64,13 +64,23 @@
             border: 1px solid rgb(229, 229, 229);
             border-radius: 4px;
             box-shadow: 0px 1px 3px 0px rgba(0,0,0,0.1),0px 1px 2px -1px rgba(0,0,0,0.8);
-         }
-         #api-settings-card-description {
+        }
+
+        div.section-manage-files {
+            width: 640px;
+        }
+
+        div.api-settings {
+            grid-template-rows: 1fr 1fr auto;
+        }
+
+        #api-settings-card-description {
             margin: 8px 0 0 0;
-         }
-         #api-settings-keys-table {
-            margin-bottom: 16px;
-         }
+        }
+
+        #api-settings-keys-table {
+        margin-bottom: 16px;
+        }
 
         div.instructions {
             font-size: large;
@@ -184,6 +194,37 @@
             text-align: left;
         }
 
+        button.remove-file-button:hover {
+            background-color: rgb(255 235 235);
+            border-radius: 3px;
+            border: none;
+            color: var(--flower);
+            padding: 4px;
+            cursor: pointer;
+        }
+
+        button.remove-file-button {
+            background-color: rgb(253 214 214);
+            border-radius: 3px;
+            border: none;
+            color: var(--flower);
+            padding: 4px;
+        }
+
+        div.file-element {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            border: 1px solid rgb(229, 229, 229);
+            border-radius: 4px;
+            box-shadow: 0px 1px 3px 0px rgba(0,0,0,0.1),0px 1px 2px -1px rgba(0,0,0,0.8);
+            padding: 4px;
+            margin-bottom: 8px;
+        }
+
+        div.remove-button-container {
+            text-align: right;
+        }
+
         button.card-button.happy {
             color: var(--leaf);
         }
@@ -246,6 +287,11 @@
             cursor: pointer;
         }
 
+        a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+
         @media screen and (max-width: 700px) {
             .section-cards {
                 grid-template-columns: 1fr;
@@ -255,7 +301,7 @@
             body {
                 display: grid;
                 grid-template-columns: 1fr;
-                grid-template-rows: 1fr auto auto auto minmax(80px, 100%);
+                grid-template-rows: 1fr auto auto auto auto;
             }
             body > * {
                 grid-column: 1;
@@ -281,8 +327,13 @@
                 grid-template-columns: auto;
             }
 
+            div.section-manage-files,
             div.api-settings {
                 width: auto;
+            }
+
+            div.finalize-buttons {
+                padding: 0;
             }
         }
     </style>

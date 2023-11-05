@@ -67,130 +67,6 @@
                     </div>
                 {% endif %}
             </div>
-            <div class="card">
-                <div class="card-title-row">
-                    <img class="card-icon" src="/static/assets/icons/markdown.svg" alt="markdown">
-                    <h3 class="card-title">
-                        Markdown
-                        {% if current_model_state.markdown == True%}
-                            <img id="configured-icon-markdown" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
-                        {% endif %}
-                    </h3>
-                </div>
-                <div class="card-description-row">
-                    <p class="card-description">Set markdown files to index</p>
-                </div>
-                <div class="card-action-row">
-                    <a class="card-button" href="/config/content_type/markdown">
-                        {% if current_model_state.markdown %}
-                            Update
-                        {% else %}
-                            Setup
-                        {% endif %}
-                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
-                    </a>
-                </div>
-                {% if current_model_state.markdown %}
-                    <div id="clear-markdown" class="card-action-row">
-                        <button class="card-button" onclick="clearContentType('markdown')">
-                            Disable
-                        </button>
-                    </div>
-                {% endif %}
-            </div>
-            <div class="card">
-                <div class="card-title-row">
-                    <img class="card-icon" src="/static/assets/icons/org.svg" alt="org">
-                    <h3 class="card-title">
-                        Org
-                        {% if current_model_state.org == True %}
-                            <img id="configured-icon-org" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
-                        {% endif %}
-                    </h3>
-                </div>
-                <div class="card-description-row">
-                <p class="card-description">Set org files to index</p>
-                </div>
-                <div class="card-action-row">
-                    <a class="card-button" href="/config/content_type/org">
-                        {% if current_model_state.org %}
-                            Update
-                        {% else %}
-                            Setup
-                        {% endif %}
-                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
-                    </a>
-                </div>
-                {% if current_model_state.org %}
-                    <div id="clear-org" class="card-action-row">
-                        <button class="card-button" onclick="clearContentType('org')">
-                            Disable
-                        </button>
-                    </div>
-                {% endif %}
-            </div>
-            <div class="card">
-                <div class="card-title-row">
-                    <img class="card-icon" src="/static/assets/icons/pdf.svg" alt="PDF">
-                    <h3 class="card-title">
-                        PDF
-                        {% if current_model_state.pdf == True %}
-                            <img id="configured-icon-pdf" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
-                        {% endif %}
-                    </h3>
-                </div>
-                <div class="card-description-row">
-                <p class="card-description">Set PDF files to index</p>
-                </div>
-                <div class="card-action-row">
-                    <a class="card-button" href="/config/content_type/pdf">
-                        {% if current_model_state.pdf %}
-                            Update
-                        {% else %}
-                            Setup
-                        {% endif %}
-                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
-                    </a>
-                </div>
-                {% if current_model_state.pdf %}
-                    <div id="clear-pdf" class="card-action-row">
-                        <button class="card-button" onclick="clearContentType('pdf')">
-                            Disable
-                        </button>
-                    </div>
-                {% endif %}
-            </div>
-            <div class="card">
-                <div class="card-title-row">
-                    <img class="card-icon" src="/static/assets/icons/plaintext.svg" alt="Plaintext">
-                    <h3 class="card-title">
-                        Plaintext
-                        {% if current_model_state.plaintext == True %}
-                            <img id="configured-icon-plaintext" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
-                        {% endif %}
-                    </h3>
-                </div>
-                <div class="card-description-row">
-                <p class="card-description">Set Plaintext files to index</p>
-                </div>
-                <div class="card-action-row">
-                    <a class="card-button" href="/config/content_type/plaintext">
-                        {% if current_model_state.plaintext %}
-                            Update
-                        {% else %}
-                            Setup
-                        {% endif %}
-                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
-                    </a>
-                </div>
-                {% if current_model_state.plaintext %}
-                    <div id="clear-plaintext" class="card-action-row">
-                        <button class="card-button" onclick="clearContentType('plaintext')">
-                            Disable
-                        </button>
-                    </div>
-                {% endif %}
-            </div>
         </div>
     </div>
     <div class="section">
@@ -246,6 +122,16 @@
             </div>
         </div>
     </div>
+    <div class="section">
+        <h2 class="section-title">Manage Data</h2>
+        <div class="section-manage-files">
+            <div id="delete-all-files" class="delete-all=files">
+                <button id="delete-all-files" type="submit" title="Delete all indexed files">🗑️ Remove All</button>
+            </div>
+            <div class="indexed-files">
+            </div>
+        </div>
+    </div>
     <div class="section general-settings">
         <div id="results-count" title="Number of items to show in search and use for chat response">
             <label for="results-count-slider">Results Count: <span id="results-count-value">5</span></label>
@@ -291,8 +177,8 @@
     };
 
     function clearContentType(content_type) {
-        fetch('/api/delete/config/data/content_type/' + content_type, {
-            method: 'POST',
+        fetch('/api/config/data/content_type/' + content_type, {
+            method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
             }
@@ -461,6 +347,85 @@
 
     // List user's API keys on page load
     listApiKeys();
+
+    function removeFile(path) {
+        fetch('/api/config/data/file?filename=' + path, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status == "ok") {
+                getAllFilenames();
+            }
+        })
+    }
+
+    // Get all currently indexed files
+    function getAllFilenames() {
+        fetch('/api/config/data/all')
+            .then(response => response.json())
+            .then(data => {
+                var indexedFiles = document.getElementsByClassName("indexed-files")[0];
+                indexedFiles.innerHTML = "";
+
+                if (data.length == 0) {
+                    document.getElementById("delete-all-files").style.display = "none";
+                    indexedFiles.innerHTML = "<div>Use the <a href='https://download.khoj.dev'>Khoj Desktop client</a> to index files.</div>";
+                } else {
+                    document.getElementById("delete-all-files").style.display = "block";
+                }
+
+                for (var filename of data) {
+                    let fileElement = document.createElement("div");
+                    fileElement.classList.add("file-element");
+
+                    let fileNameElement = document.createElement("div");
+                    fileNameElement.classList.add("content-name");
+                    fileNameElement.innerHTML = filename;
+                    fileElement.appendChild(fileNameElement);
+
+                    let buttonContainer = document.createElement("div");
+                    buttonContainer.classList.add("remove-button-container");
+                    let removeFileButton = document.createElement("button");
+                    removeFileButton.classList.add("remove-file-button");
+                    removeFileButton.innerHTML = "🗑️";
+                    removeFileButton.addEventListener("click", ((filename) => {
+                        return () => {
+                            removeFile(filename);
+                        };
+                    })(filename));
+                    buttonContainer.appendChild(removeFileButton);
+                    fileElement.appendChild(buttonContainer);
+                    indexedFiles.appendChild(fileElement);
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+    }
+
+    // Get all currently indexed files on page load
+    getAllFilenames();
+
+    let deleteAllFilesButton = document.getElementById("delete-all-files");
+    deleteAllFilesButton.addEventListener("click", function(event) {
+        event.preventDefault();
+        fetch('/api/config/data/all', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status == "ok") {
+                getAllFilenames();
+            }
+        })
+    });
 
 </script>
 {% endblock %}

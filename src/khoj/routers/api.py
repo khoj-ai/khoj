@@ -45,7 +45,15 @@ from fastapi.requests import Request
 
 from database import adapters
 from database.adapters import EntryAdapters, ConversationAdapters
-from database.models import LocalMarkdownConfig, LocalOrgConfig, LocalPdfConfig, LocalPlaintextConfig, KhojUser
+from database.models import (
+    LocalMarkdownConfig,
+    LocalOrgConfig,
+    LocalPdfConfig,
+    LocalPlaintextConfig,
+    KhojUser,
+    GithubConfig,
+    NotionConfig,
+)
 
 
 # Initialize Router
@@ -54,14 +62,10 @@ logger = logging.getLogger(__name__)
 
 
 def map_config_to_object(content_type: str):
-    if content_type == "org":
-        return LocalOrgConfig
-    if content_type == "markdown":
-        return LocalMarkdownConfig
-    if content_type == "pdf":
-        return LocalPdfConfig
-    if content_type == "plaintext":
-        return LocalPlaintextConfig
+    if content_type == "github":
+        return GithubConfig
+    if content_type == "notion":
+        return NotionConfig
 
 
 async def map_config_to_db(config: FullConfig, user: KhojUser):
@@ -215,7 +219,7 @@ async def set_content_config_notion_data(
     return {"status": "ok"}
 
 
-@api.post("/delete/config/data/content_type/{content_type}", status_code=200)
+@api.delete("/config/data/content_type/{content_type}", status_code=200)
 @requires(["authenticated"])
 async def remove_content_config_data(
     request: Request,
@@ -243,28 +247,61 @@ async def remove_content_config_data(
     return {"status": "ok"}
 
 
-@api.post("/config/data/content_type/{content_type}", status_code=200)
+@api.delete("/config/data/file", status_code=200)
 @requires(["authenticated"])
-async def set_content_config_data(
+async def remove_file_data(
     request: Request,
-    content_type: str,
-    updated_config: Union[TextContentConfig, None],
+    filename: str,
     client: Optional[str] = None,
 ):
-    _initialize_config()
-
     user = request.user.object
-
-    content_object = map_config_to_object(content_type)
-    await adapters.set_text_content_config(user, content_object, updated_config)
 
     update_telemetry_state(
         request=request,
         telemetry_type="api",
-        api="set_content_config",
+        api="delete_file",
         client=client,
-        metadata={"content_type": content_type},
     )
+
+    await EntryAdapters.adelete_entry_by_file(user, filename)
+
+    return {"status": "ok"}
+
+
+@api.get("/config/data/all", response_model=List[str])
+@requires(["authenticated"])
+async def get_all_filenames(
+    request: Request,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="get_all_filenames",
+        client=client,
+    )
+
+    return await sync_to_async(list)(EntryAdapters.aget_all_filenames(user))
+
+
+@api.delete("/config/data/all", status_code=200)
+@requires(["authenticated"])
+async def remove_all_config_data(
+    request: Request,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="delete_all_config",
+        client=client,
+    )
+
+    await EntryAdapters.adelete_all_entries(user)
 
     return {"status": "ok"}
 

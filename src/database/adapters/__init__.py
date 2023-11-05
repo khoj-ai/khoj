@@ -291,8 +291,11 @@ class EntryAdapters:
         return deleted_count
 
     @staticmethod
-    def delete_all_entries(user: KhojUser, file_type: str):
-        deleted_count, _ = Entry.objects.filter(user=user, file_type=file_type).delete()
+    def delete_all_entries(user: KhojUser, file_type: str = None):
+        if file_type is None:
+            deleted_count, _ = Entry.objects.filter(user=user).delete()
+        else:
+            deleted_count, _ = Entry.objects.filter(user=user, file_type=file_type).delete()
         return deleted_count
 
     @staticmethod
@@ -313,6 +316,18 @@ class EntryAdapters:
     @staticmethod
     async def user_has_entries(user: KhojUser):
         return await Entry.objects.filter(user=user).aexists()
+
+    @staticmethod
+    async def adelete_entry_by_file(user: KhojUser, file_path: str):
+        return await Entry.objects.filter(user=user, file_path=file_path).adelete()
+
+    @staticmethod
+    def aget_all_filenames(user: KhojUser):
+        return Entry.objects.filter(user=user).distinct("file_path").values_list("file_path", flat=True)
+
+    @staticmethod
+    async def adelete_all_entries(user: KhojUser):
+        return await Entry.objects.filter(user=user).adelete()
 
     @staticmethod
     def apply_filters(user: KhojUser, query: str, file_type_filter: str = None):
