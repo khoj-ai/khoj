@@ -70,7 +70,7 @@ class PdfToEntries(TextToEntries):
                     f.write(bytes)
                 try:
                     loader = PyMuPDFLoader(f"{tmp_file}", extract_images=True)
-                except ModuleNotFoundError:
+                except ImportError:
                     loader = PyMuPDFLoader(f"{tmp_file}")
                 pdf_entries_per_file = [page.page_content for page in loader.load()]
                 entry_to_location_map += zip(pdf_entries_per_file, [pdf_file] * len(pdf_entries_per_file))
