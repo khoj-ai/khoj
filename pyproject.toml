@@ -92,6 +92,7 @@ test = [
     "factory-boy >= 3.2.1",
     "trio >= 0.22.0",
     "pytest-xdist",
+    "psutil >= 5.8.0",
 ]
 dev = [
     "khoj-assistant[test]",

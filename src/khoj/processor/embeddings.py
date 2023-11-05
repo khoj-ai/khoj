@@ -8,10 +8,10 @@ from khoj.utils.rawconfig import SearchResponse
 
 class EmbeddingsModel:
     def __init__(self):
-        self.model_name = "thenlper/gte-small"
         self.encode_kwargs = {"normalize_embeddings": True}
-        model_kwargs = {"device": get_device()}
-        self.embeddings_model = SentenceTransformer(self.model_name, **model_kwargs)
+        self.model_kwargs = {"device": get_device()}
+        self.model_name = "thenlper/gte-small"
+        self.embeddings_model = SentenceTransformer(self.model_name, **self.model_kwargs)
 
     def embed_query(self, query):
         return self.embeddings_model.encode([query], show_progress_bar=False, **self.encode_kwargs)[0]
