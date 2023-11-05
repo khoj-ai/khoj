@@ -165,7 +165,7 @@
 
         function incrementalChat(event) {
             if (!event.shiftKey && event.key === 'Enter') {
-                e.preventDefault();
+                event.preventDefault();
                 chat();
             }
         }
