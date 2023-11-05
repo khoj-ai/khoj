@@ -4,7 +4,7 @@ FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
 LABEL org.opencontainers.image.source https://github.com/khoj-ai/khoj
 
 # Install System Dependencies
-RUN apt update -y && apt -y install python3-pip git
+RUN apt update -y && apt -y install python3-pip git libsqlite3-0 ffmpeg libsm6 libxext6
 
 WORKDIR /app
 
