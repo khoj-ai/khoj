@@ -68,7 +68,7 @@ class PdfToEntries(TextToEntries):
                 with open(f"{tmp_file}", "wb") as f:
                     bytes = pdf_files[pdf_file]
                     f.write(bytes)
-                loader = PyMuPDFLoader(f"{tmp_file}")
+                loader = PyMuPDFLoader(f"{tmp_file}", extract_images=True)
                 pdf_entries_per_file = [page.page_content for page in loader.load()]
                 entry_to_location_map += zip(pdf_entries_per_file, [pdf_file] * len(pdf_entries_per_file))
                 entries.extend(pdf_entries_per_file)
