@@ -1,6 +1,7 @@
 # Standard Packages
 import concurrent.futures
 import math
+import os
 import time
 import logging
 import json
@@ -10,6 +11,7 @@ from typing import List, Optional, Union, Any
 from fastapi import APIRouter, HTTPException, Header, Request
 from starlette.authentication import requires
 from asgiref.sync import sync_to_async
+import stripe
 
 # Internal Packages
 from khoj.configure import configure_server
@@ -23,7 +25,6 @@ from khoj.utils.rawconfig import (
     FullConfig,
     SearchConfig,
     SearchResponse,
-    TextContentConfig,
     GithubContentConfig,
     NotionContentConfig,
 )
@@ -723,3 +724,61 @@ async def extract_references_and_questions(
         compiled_references = [item.additional["compiled"] for item in result_list]
 
     return compiled_references, inferred_queries, defiltered_query
+
+
+# Stripe integration for Khoj Cloud Subscription
+stripe.api_key = os.getenv("STRIPE_API_KEY")
+endpoint_secret = os.getenv("STRIPE_SIGINING_SECRET")
+
+
+@api.post("/subscription")
+async def subscribe(request: Request):
+    """Webhook for Stripe to send subscription events to Khoj Cloud"""
+    event = None
+    try:
+        payload = await request.body()
+        sig_header = request.headers["stripe-signature"]
+        event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
+    except ValueError as e:
+        # Invalid payload
+        raise e
+    except stripe.error.SignatureVerificationError as e:
+        # Invalid signature
+        raise e
+
+    # Handle the event
+    success = True
+    if (
+        event["type"] == "payment_intent.succeeded"
+        or event["type"] == "invoice.payment_succeeded"
+        or event["type"] == "customer.subscription.created"
+    ):
+        # Retrieve the customer's details
+        customer_id = event["data"]["object"]["customer"]
+        customer = stripe.Customer.retrieve(customer_id)
+        customer_email = customer["email"]
+        # Mark the customer as subscribed
+        user = await adapters.set_user_subscribed(customer_email)
+        if not user:
+            success = False
+    elif event["type"] == "customer.subscription.updated" or event["type"] == "customer.subscription.deleted":
+        # Retrieve the customer's details
+        customer_id = event["data"]["object"]["customer"]
+        customer = stripe.Customer.retrieve(customer_id)
+
+    logger.info(f'Stripe subscription {event["type"]} for {customer["email"]}')
+
+    return {"success": success}
+
+
+@api.delete("/subscription")
+@requires(["authenticated"])
+async def unsubscribe(request: Request, user_email: str):
+    customer = stripe.Customer.list(email=user_email).data
+    if not is_none_or_empty(customer):
+        stripe.Subscription.modify(customer[0].id, cancel_at_period_end=True)
+        success = True
+    else:
+        success = False
+
+    return {"success": success}
