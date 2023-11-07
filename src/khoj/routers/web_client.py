@@ -9,7 +9,6 @@ from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from starlette.authentication import requires
 from khoj.utils.rawconfig import (
-    TextContentConfig,
     GithubContentConfig,
     GithubRepoConfig,
     NotionContentConfig,
@@ -18,13 +17,10 @@ from khoj.utils.rawconfig import (
 # Internal Packages
 from khoj.utils import constants, state
 from database.adapters import EntryAdapters, get_user_github_config, get_user_notion_config, ConversationAdapters
-from database.models import LocalOrgConfig, LocalMarkdownConfig, LocalPdfConfig, LocalPlaintextConfig
 
 # Initialize Router
 web_client = APIRouter()
 templates = Jinja2Templates(directory=constants.web_directory)
-
-VALID_TEXT_CONTENT_TYPES = ["org", "markdown", "pdf", "plaintext"]
 
 
 # Create Routes
@@ -107,17 +103,6 @@ def login_page(request: Request):
             "redirect_uri": redirect_uri,
         },
     )
-
-
-def map_config_to_object(content_type: str):
-    if content_type == "org":
-        return LocalOrgConfig
-    if content_type == "markdown":
-        return LocalMarkdownConfig
-    if content_type == "pdf":
-        return LocalPdfConfig
-    if content_type == "plaintext":
-        return LocalPlaintextConfig
 
 
 @web_client.get("/config", response_class=HTMLResponse)
@@ -220,38 +205,6 @@ def notion_config_page(request: Request):
         context={
             "request": request,
             "current_config": current_config,
-            "username": user.username,
-            "user_photo": user_picture,
-        },
-    )
-
-
-@web_client.get("/config/content_type/{content_type}", response_class=HTMLResponse)
-@requires(["authenticated"], redirect="login_page")
-def content_config_page(request: Request, content_type: str):
-    if content_type not in VALID_TEXT_CONTENT_TYPES:
-        return templates.TemplateResponse("config.html", context={"request": request})
-
-    object = map_config_to_object(content_type)
-    user = request.user.object
-    user_picture = request.session.get("user", {}).get("picture")
-    config = object.objects.filter(user=user).first()
-    if config == None:
-        config = object.objects.create(user=user)
-
-    current_config = TextContentConfig(
-        input_files=config.input_files,
-        input_filter=config.input_filter,
-        index_heading_entries=config.index_heading_entries,
-    )
-    current_config = json.loads(current_config.json())
-
-    return templates.TemplateResponse(
-        "content_type_input.html",
-        context={
-            "request": request,
-            "current_config": current_config,
-            "content_type": content_type,
             "username": user.username,
             "user_photo": user_picture,
         },
