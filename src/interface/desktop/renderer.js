@@ -196,9 +196,13 @@ khojKeyInput.addEventListener('blur', async () => {
 });
 
 const syncButton = document.getElementById('sync-data');
-const syncForceToggle = document.getElementById('sync-force');
 syncButton.addEventListener('click', async () => {
     loadingBar.style.display = 'block';
-    const regenerate = syncForceToggle.checked;
-    await window.syncDataAPI.syncData(regenerate);
+    await window.syncDataAPI.syncData(false);
+});
+
+const syncForceButton = document.getElementById('sync-force');
+syncForceButton.addEventListener('click', async () => {
+    loadingBar.style.display = 'block';
+    await window.syncDataAPI.syncData(true);
 });
