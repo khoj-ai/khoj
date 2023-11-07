@@ -110,24 +110,13 @@ def login_page(request: Request):
 def config_page(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
-    enabled_content = set(EntryAdapters.get_unique_file_types(user).all())
+    enabled_content_source = set(EntryAdapters.get_unique_file_source(user).all())
 
     successfully_configured = {
-        "pdf": ("pdf" in enabled_content),
-        "markdown": ("markdown" in enabled_content),
-        "org": ("org" in enabled_content),
-        "image": False,
-        "github": ("github" in enabled_content),
-        "notion": ("notion" in enabled_content),
-        "plaintext": ("plaintext" in enabled_content),
+        "computer": ("computer" in enabled_content_source),
+        "github": ("github" in enabled_content_source),
+        "notion": ("notion" in enabled_content_source),
     }
-
-    if state.content_index:
-        successfully_configured.update(
-            {
-                "image": state.content_index.image is not None,
-            }
-        )
 
     conversation_options = ConversationAdapters.get_conversation_processor_options().all()
     all_conversation_options = list()
@@ -205,6 +194,22 @@ def notion_config_page(request: Request):
         context={
             "request": request,
             "current_config": current_config,
+            "username": user.username,
+            "user_photo": user_picture,
+        },
+    )
+
+
+@web_client.get("/config/content-source/computer", response_class=HTMLResponse)
+@requires(["authenticated"], redirect="login_page")
+def computer_config_page(request: Request):
+    user = request.user.object
+    user_picture = request.session.get("user", {}).get("picture")
+
+    return templates.TemplateResponse(
+        "content_source_computer_input.html",
+        context={
+            "request": request,
             "username": user.username,
             "user_photo": user_picture,
         },

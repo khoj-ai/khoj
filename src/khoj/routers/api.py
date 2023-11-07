@@ -270,10 +270,11 @@ async def remove_file_data(
     return {"status": "ok"}
 
 
-@api.get("/config/data/all", response_model=List[str])
+@api.get("/config/data/{content_source}", response_model=List[str])
 @requires(["authenticated"])
 async def get_all_filenames(
     request: Request,
+    content_source: str,
     client: Optional[str] = None,
 ):
     user = request.user.object
@@ -285,27 +286,7 @@ async def get_all_filenames(
         client=client,
     )
 
-    return await sync_to_async(list)(EntryAdapters.aget_all_filenames(user))
-
-
-@api.delete("/config/data/all", status_code=200)
-@requires(["authenticated"])
-async def remove_all_config_data(
-    request: Request,
-    client: Optional[str] = None,
-):
-    user = request.user.object
-
-    update_telemetry_state(
-        request=request,
-        telemetry_type="api",
-        api="delete_all_config",
-        client=client,
-    )
-
-    await EntryAdapters.adelete_all_entries(user)
-
-    return {"status": "ok"}
+    return await sync_to_async(list)(EntryAdapters.aget_all_filenames_by_source(user, content_source))
 
 
 @api.post("/config/data/conversation/model", status_code=200)

@@ -3,9 +3,40 @@
 
 <div class="page">
     <div class="section">
-        <h2 class="section-title">Plugins</h2>
+        <h2 class="section-title">Content</h2>
         <div class="section-cards">
             <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/computer.png" alt="Computer">
+                    <h3 class="card-title">
+                        Files
+                        {% if current_model_state.computer == True %}
+                            <img id="configured-icon-github" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
+                        {% endif %}
+                    </h3>
+                </div>
+                <div class="card-description-row">
+                <p class="card-description">Manage files from your computer</p>
+                </div>
+                <div class="card-action-row">
+                    <a class="card-button" href="/config/content-source/computer">
+                        {% if current_model_state.computer %}
+                            Update
+                        {% else %}
+                            Setup
+                        {% endif %}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                    </a>
+                </div>
+                {% if current_model_state.computer %}
+                    <div id="clear-desktop" class="card-action-row">
+                        <button class="card-button" onclick="clearContentType('computer')">
+                            Disable
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+             <div class="card">
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/github.svg" alt="Github">
                     <h3 class="card-title">
@@ -47,11 +78,11 @@
                     </h3>
                 </div>
                 <div class="card-description-row">
-                    <p class="card-description">Configure your settings from Notion</p>
+                    <p class="card-description">Sync your Notion pages</p>
                 </div>
                 <div class="card-action-row">
                     <a class="card-button" href="/config/content-source/notion">
-                        {% if current_model_state.content %}
+                        {% if current_model_state.notion %}
                             Update
                         {% else %}
                             Setup
@@ -77,7 +108,7 @@
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/chat.svg" alt="Chat">
                     <h3 class="card-title">
-                        Chat Model
+                        Chat
                     </h3>
                 </div>
                 <div class="card-description-row">
@@ -119,16 +150,6 @@
                 <button class="card-button happy" id="generate-api-key" onclick="generateAPIKey()">
                     Generate API Key
                 </button>
-            </div>
-        </div>
-    </div>
-    <div class="section">
-        <h2 class="section-title">Manage Data</h2>
-        <div class="section-manage-files">
-            <div id="delete-all-files" class="delete-all=files">
-                <button id="delete-all-files" type="submit" title="Delete all indexed files">🗑️ Remove All</button>
-            </div>
-            <div class="indexed-files">
             </div>
         </div>
     </div>
@@ -363,70 +384,5 @@
             }
         })
     }
-
-    // Get all currently indexed files
-    function getAllFilenames() {
-        fetch('/api/config/data/all')
-            .then(response => response.json())
-            .then(data => {
-                var indexedFiles = document.getElementsByClassName("indexed-files")[0];
-                indexedFiles.innerHTML = "";
-
-                if (data.length == 0) {
-                    document.getElementById("delete-all-files").style.display = "none";
-                    indexedFiles.innerHTML = "<div>Use the <a href='https://download.khoj.dev'>Khoj Desktop client</a> to index files.</div>";
-                } else {
-                    document.getElementById("delete-all-files").style.display = "block";
-                }
-
-                for (var filename of data) {
-                    let fileElement = document.createElement("div");
-                    fileElement.classList.add("file-element");
-
-                    let fileNameElement = document.createElement("div");
-                    fileNameElement.classList.add("content-name");
-                    fileNameElement.innerHTML = filename;
-                    fileElement.appendChild(fileNameElement);
-
-                    let buttonContainer = document.createElement("div");
-                    buttonContainer.classList.add("remove-button-container");
-                    let removeFileButton = document.createElement("button");
-                    removeFileButton.classList.add("remove-file-button");
-                    removeFileButton.innerHTML = "🗑️";
-                    removeFileButton.addEventListener("click", ((filename) => {
-                        return () => {
-                            removeFile(filename);
-                        };
-                    })(filename));
-                    buttonContainer.appendChild(removeFileButton);
-                    fileElement.appendChild(buttonContainer);
-                    indexedFiles.appendChild(fileElement);
-                }
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-            });
-    }
-
-    // Get all currently indexed files on page load
-    getAllFilenames();
-
-    let deleteAllFilesButton = document.getElementById("delete-all-files");
-    deleteAllFilesButton.addEventListener("click", function(event) {
-        event.preventDefault();
-        fetch('/api/config/data/all', {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status == "ok") {
-                getAllFilenames();
-            }
-        })
-    });
-
 </script>
 {% endblock %}
