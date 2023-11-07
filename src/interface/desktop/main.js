@@ -110,6 +110,15 @@ function filenameToMimeType (filename) {
 }
 
 function pushDataToKhoj (regenerate = false) {
+    // Don't sync if token or hostURL is not set or if already syncing
+    if (store.get('khojToken') === '' || store.get('hostURL') === '' || store.get('syncing') === true) {
+        const win = BrowserWindow.getAllWindows()[0];
+        if (win) win.webContents.send('update-state', state);
+        return;
+    } else {
+        store.set('syncing', true);
+    }
+
     let filesToPush = [];
     const files = store.get('files') || [];
     const folders = store.get('folders') || [];
@@ -192,11 +201,13 @@ function pushDataToKhoj (regenerate = false) {
             })
             .finally(() => {
                 // Syncing complete
+                store.set('syncing', false);
                 const win = BrowserWindow.getAllWindows()[0];
                 if (win) win.webContents.send('update-state', state);
             });
     } else {
         // Syncing complete
+        store.set('syncing', false);
         const win = BrowserWindow.getAllWindows()[0];
         if (win) win.webContents.send('update-state', state);
     }
