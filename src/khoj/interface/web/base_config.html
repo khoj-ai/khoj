@@ -209,16 +209,20 @@
             border: none;
             color: var(--flower);
             padding: 4px;
+            width: 32px;
+            margin-bottom: 0px
         }
 
         div.file-element {
             display: grid;
-            grid-template-columns: 1fr auto;
+            grid-template-columns: 1fr 5fr 1fr;
             border: 1px solid rgb(229, 229, 229);
             border-radius: 4px;
             box-shadow: 0px 1px 3px 0px rgba(0,0,0,0.1),0px 1px 2px -1px rgba(0,0,0,0.8);
-            padding: 4px;
+            padding: 4px 0;
             margin-bottom: 8px;
+            justify-items: center;
+            align-items: center;
         }
 
         div.remove-button-container {

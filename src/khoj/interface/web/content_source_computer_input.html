@@ -23,6 +23,12 @@
     #desktop-client {
         font-weight: normal;
     }
+    .indexed-files {
+        width: 100%;
+    }
+    .content-name {
+        font-size: smaller;
+    }
 </style>
 <script>
     function removeFile(path) {
@@ -58,6 +64,22 @@
                 for (var filename of data) {
                     let fileElement = document.createElement("div");
                     fileElement.classList.add("file-element");
+
+                    let fileExtension = filename.split('.').pop();
+                    if (fileExtension === "org")
+                        image_name = "org.svg"
+                    else if (fileExtension === "pdf")
+                        image_name = "pdf.svg"
+                    else if (fileExtension === "markdown" || fileExtension === "md")
+                        image_name = "markdown.svg"
+                    else
+                        image_name = "plaintext.svg"
+
+                    let fileIconElement = document.createElement("img");
+                    fileIconElement.classList.add("card-icon");
+                    fileIconElement.src = `/static/assets/icons/${image_name}`;
+                    fileIconElement.alt = "File";
+                    fileElement.appendChild(fileIconElement);
 
                     let fileNameElement = document.createElement("div");
                     fileNameElement.classList.add("content-name");
