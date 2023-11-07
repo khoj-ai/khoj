@@ -1,5 +1,4 @@
 # Standard Packages
-import sys
 import logging
 import json
 from enum import Enum
@@ -109,7 +108,6 @@ def configure_server(
         state.search_models = configure_search(state.search_models, state.config.search_type)
         initialize_content(regenerate, search_type, init, user)
     except Exception as e:
-        logger.error(f"🚨 Failed to configure search models", exc_info=True)
         raise e
     finally:
         state.config_lock.release()
@@ -125,7 +123,7 @@ def initialize_content(regenerate: bool, search_type: Optional[SearchType] = Non
             else:
                 logger.info("📬 Updating content index...")
                 all_files = collect_files(user=user)
-                state.content_index = configure_content(
+                state.content_index, status = configure_content(
                     state.content_index,
                     state.config.content_type,
                     all_files,
@@ -134,8 +132,9 @@ def initialize_content(regenerate: bool, search_type: Optional[SearchType] = Non
                     search_type,
                     user=user,
                 )
+                if not status:
+                    raise RuntimeError("Failed to update content index")
         except Exception as e:
-            logger.error(f"🚨 Failed to index content", exc_info=True)
             raise e
 
 
@@ -165,13 +164,15 @@ def update_search_index():
         logger.info("📬 Updating content index via Scheduler")
         for user in get_all_users():
             all_files = collect_files(user=user)
-            state.content_index = configure_content(
+            state.content_index, success = configure_content(
                 state.content_index, state.config.content_type, all_files, state.search_models, user=user
             )
         all_files = collect_files(user=None)
-        state.content_index = configure_content(
+        state.content_index, success = configure_content(
             state.content_index, state.config.content_type, all_files, state.search_models, user=None
         )
+        if not success:
+            raise RuntimeError("Failed to update content index")
         logger.info("📪 Content index updated via Scheduler")
     except Exception as e:
         logger.error(f"🚨 Error updating content index via Scheduler: {e}", exc_info=True)

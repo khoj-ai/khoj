@@ -196,7 +196,7 @@ def chat_client(search_config: SearchConfig, default_user2: KhojUser):
 
     # Index Markdown Content for Search
     all_files = fs_syncer.collect_files(user=default_user2)
-    state.content_index = configure_content(
+    state.content_index, _ = configure_content(
         state.content_index, state.config.content_type, all_files, state.search_models, user=default_user2
     )
 

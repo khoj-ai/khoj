@@ -126,7 +126,7 @@ async def update(
 
         # Extract required fields from config
         loop = asyncio.get_event_loop()
-        state.content_index = await loop.run_in_executor(
+        state.content_index, success = await loop.run_in_executor(
             None,
             configure_content,
             state.content_index,
@@ -138,6 +138,8 @@ async def update(
             False,
             user,
         )
+        if not success:
+            raise RuntimeError("Failed to update content index")
         logger.info(f"Finished processing batch indexing request")
     except Exception as e:
         logger.error(f"Failed to process batch indexing request: {e}", exc_info=True)
@@ -145,6 +147,7 @@ async def update(
             f"🚨 Failed to {force} update {t} content index triggered via API call by {client} client: {e}",
             exc_info=True,
         )
+        return Response(content="Failed", status_code=500)
 
     update_telemetry_state(
         request=request,
@@ -182,18 +185,19 @@ def configure_content(
     t: Optional[state.SearchType] = None,
     full_corpus: bool = True,
     user: KhojUser = None,
-) -> Optional[ContentIndex]:
+) -> tuple[Optional[ContentIndex], bool]:
     content_index = ContentIndex()
 
+    success = True
     if t is not None and not t.value in [type.value for type in state.SearchType]:
         logger.warning(f"🚨 Invalid search type: {t}")
-        return None
+        return None, False
 
     search_type = t.value if t else None
 
     if files is None:
         logger.warning(f"🚨 No files to process for {search_type} search.")
-        return None
+        return None, True
 
     try:
         # Initialize Org Notes Search
@@ -209,6 +213,7 @@ def configure_content(
             )
     except Exception as e:
         logger.error(f"🚨 Failed to setup org: {e}", exc_info=True)
+        success = False
 
     try:
         # Initialize Markdown Search
@@ -225,6 +230,7 @@ def configure_content(
 
     except Exception as e:
         logger.error(f"🚨 Failed to setup markdown: {e}", exc_info=True)
+        success = False
 
     try:
         # Initialize PDF Search
@@ -241,6 +247,7 @@ def configure_content(
 
     except Exception as e:
         logger.error(f"🚨 Failed to setup PDF: {e}", exc_info=True)
+        success = False
 
     try:
         # Initialize Plaintext Search
@@ -257,6 +264,7 @@ def configure_content(
 
     except Exception as e:
         logger.error(f"🚨 Failed to setup plaintext: {e}", exc_info=True)
+        success = False
 
     try:
         # Initialize Image Search
@@ -274,6 +282,7 @@ def configure_content(
 
     except Exception as e:
         logger.error(f"🚨 Failed to setup images: {e}", exc_info=True)
+        success = False
 
     try:
         github_config = GithubConfig.objects.filter(user=user).prefetch_related("githubrepoconfig").first()
@@ -291,6 +300,7 @@ def configure_content(
 
     except Exception as e:
         logger.error(f"🚨 Failed to setup GitHub: {e}", exc_info=True)
+        success = False
 
     try:
         # Initialize Notion Search
@@ -308,12 +318,13 @@ def configure_content(
 
     except Exception as e:
         logger.error(f"🚨 Failed to setup GitHub: {e}", exc_info=True)
+        success = False
 
     # Invalidate Query Cache
     if user:
         state.query_cache[user.uuid] = LRU()
 
-    return content_index
+    return content_index, success
 
 
 def load_content(
