@@ -321,7 +321,6 @@ def load_content(
     content_index: Optional[ContentIndex],
     search_models: SearchModels,
 ):
-    logger.info(f"Loading content from existing embeddings...")
     if content_config is None:
         logger.warning("🚨 No Content configuration available.")
         return None

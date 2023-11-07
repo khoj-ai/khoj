@@ -51,7 +51,8 @@ def cli(args=None):
 
     args, remaining_args = parser.parse_known_args(args)
 
-    logger.debug(f"Ignoring unknown commandline args: {remaining_args}")
+    if len(remaining_args) > 0:
+        logger.info(f"⚠️  Ignoring unknown commandline args: {remaining_args}")
 
     # Set default values for arguments
     args.chat_on_gpu = not args.disable_chat_on_gpu

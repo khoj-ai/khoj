@@ -1,4 +1,3 @@
-import secrets
 from typing import Type, TypeVar, List
 from datetime import date
 import secrets
@@ -36,9 +35,6 @@ from database.models import (
     OfflineChatProcessorConversationConfig,
 )
 from khoj.utils.helpers import generate_random_name
-from khoj.utils.rawconfig import (
-    ConversationProcessorConfig as UserConversationProcessorConfig,
-)
 from khoj.search_filter.word_filter import WordFilter
 from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.date_filter import DateFilter
