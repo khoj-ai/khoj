@@ -1,4 +1,5 @@
 # System Packages
+from datetime import datetime
 import json
 import os
 
@@ -8,6 +9,7 @@ from fastapi import Request
 from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from starlette.authentication import requires
+from database.models import KhojUser
 from khoj.utils.rawconfig import (
     GithubContentConfig,
     GithubRepoConfig,
@@ -16,7 +18,13 @@ from khoj.utils.rawconfig import (
 
 # Internal Packages
 from khoj.utils import constants, state
-from database.adapters import EntryAdapters, get_user_github_config, get_user_notion_config, ConversationAdapters
+from database.adapters import (
+    EntryAdapters,
+    get_user_github_config,
+    get_user_notion_config,
+    ConversationAdapters,
+    is_user_subscribed,
+)
 
 # Initialize Router
 web_client = APIRouter()
@@ -108,8 +116,10 @@ def login_page(request: Request):
 @web_client.get("/config", response_class=HTMLResponse)
 @requires(["authenticated"], redirect="login_page")
 def config_page(request: Request):
-    user = request.user.object
+    user: KhojUser = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
+    user_is_subscribed = is_user_subscribed(user.email)
+    days_to_renewal = (user.subscription_renewal_date - datetime.now()).days if user.subscription_renewal_date else 0
     enabled_content_source = set(EntryAdapters.get_unique_file_source(user).all())
 
     successfully_configured = {
@@ -131,10 +141,12 @@ def config_page(request: Request):
             "request": request,
             "current_model_state": successfully_configured,
             "anonymous_mode": state.anonymous_mode,
-            "username": user.username if user else None,
+            "username": user.username,
             "conversation_options": all_conversation_options,
             "selected_conversation_config": selected_conversation_config.id if selected_conversation_config else None,
             "user_photo": user_picture,
+            "is_subscribed": user_is_subscribed,
+            "days_to_renewal": days_to_renewal,
         },
     )
 

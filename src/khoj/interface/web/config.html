@@ -158,6 +158,42 @@
             </div>
         </div>
     </div>
+     <div class="section">
+        <h2 class="section-title">Billing</h2>
+        <div class="section-cards">
+            <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/credit-card.png" alt="Credit Card">
+                    <h3 class="card-title">
+                        <span>Subscription</span>
+                        <img id="configured-icon-subscription"
+                            style="display: {% if not is_subscribed %}none{% endif %}"
+                            class="configured-icon"
+                            src="/static/assets/icons/confirm-icon.svg"
+                            alt="Configured">
+                    </h3>
+                </div>
+                <div class="card-description-row">
+                    <p class="card-description">Manage your subscription to Khoj Cloud</p>
+                </div>
+                {% if not is_subscribed %}
+                <div class="card-action-row">
+                    <a class="card-button happy" href="https://buy.stripe.com/28ocQb7kb4iD0cEdQQ?email={{ username }}" target="_blank">
+                        Subscribe
+                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                    </a>
+                </div>
+                {% else %}
+                <div class="card-action-row"
+                    style="display: {% if not current_model_state.github %}none{% endif %}">
+                    <button class="card-button" onclick="unsubscribe()">
+                        Unsubscribe
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
     <div class="section general-settings">
         <div id="results-count" title="Number of items to show in search and use for chat response">
             <label for="results-count-slider">Results Count: <span id="results-count-value">5</span></label>
@@ -221,6 +257,18 @@
             }
         })
     };
+
+    function unsubscribe() {
+        fetch('/api/subscription', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                "email": "{{ username }}"
+            })
+        })
+    }
 
     var configure = document.getElementById("configure");
     configure.addEventListener("click", function(event) {
