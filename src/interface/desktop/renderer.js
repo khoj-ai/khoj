@@ -206,3 +206,9 @@ syncForceButton.addEventListener('click', async () => {
     loadingBar.style.display = 'block';
     await window.syncDataAPI.syncData(true);
 });
+
+const deleteAllButton = document.getElementById('delete-all');
+deleteAllButton.addEventListener('click', async () => {
+    loadingBar.style.display = 'block';
+    await window.syncDataAPI.deleteAllFiles();
+});
