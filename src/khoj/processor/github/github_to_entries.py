@@ -104,7 +104,12 @@ class GithubToEntries(TextToEntries):
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
             num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
-                current_entries, DbEntry.EntryType.GITHUB, key="compiled", logger=logger, user=user
+                current_entries,
+                DbEntry.EntryType.GITHUB,
+                DbEntry.EntrySource.GITHUB,
+                key="compiled",
+                logger=logger,
+                user=user,
             )
 
         return num_new_embeddings, num_deleted_embeddings

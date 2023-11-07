@@ -204,11 +204,12 @@ def setup(
             files=files, full_corpus=full_corpus, user=user, regenerate=regenerate
         )
 
-    file_names = [file_name for file_name in files]
+    if files:
+        file_names = [file_name for file_name in files]
 
-    logger.info(
-        f"Deleted {num_deleted_embeddings} entries. Created {num_new_embeddings} new entries for user {user} from files {file_names}"
-    )
+        logger.info(
+            f"Deleted {num_deleted_embeddings} entries. Created {num_new_embeddings} new entries for user {user} from files {file_names}"
+        )
 
 
 def cross_encoder_score(query: str, hits: List[SearchResponse]) -> List[SearchResponse]:

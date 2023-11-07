@@ -56,6 +56,7 @@ class PlaintextToEntries(TextToEntries):
             num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
                 current_entries,
                 DbEntry.EntryType.PLAINTEXT,
+                DbEntry.EntrySource.COMPUTER,
                 key="compiled",
                 logger=logger,
                 deletion_filenames=deletion_file_names,

@@ -287,11 +287,19 @@ class EntryAdapters:
         return deleted_count
 
     @staticmethod
-    def delete_all_entries(user: KhojUser, file_type: str = None):
+    def delete_all_entries_by_type(user: KhojUser, file_type: str = None):
         if file_type is None:
             deleted_count, _ = Entry.objects.filter(user=user).delete()
         else:
             deleted_count, _ = Entry.objects.filter(user=user, file_type=file_type).delete()
+        return deleted_count
+
+    @staticmethod
+    def delete_all_entries_by_source(user: KhojUser, file_source: str = None):
+        if file_source is None:
+            deleted_count, _ = Entry.objects.filter(user=user).delete()
+        else:
+            deleted_count, _ = Entry.objects.filter(user=user, file_source=file_source).delete()
         return deleted_count
 
     @staticmethod
@@ -318,8 +326,12 @@ class EntryAdapters:
         return await Entry.objects.filter(user=user, file_path=file_path).adelete()
 
     @staticmethod
-    def aget_all_filenames(user: KhojUser):
-        return Entry.objects.filter(user=user).distinct("file_path").values_list("file_path", flat=True)
+    def aget_all_filenames_by_source(user: KhojUser, file_source: str):
+        return (
+            Entry.objects.filter(user=user, file_source=file_source)
+            .distinct("file_path")
+            .values_list("file_path", flat=True)
+        )
 
     @staticmethod
     async def adelete_all_entries(user: KhojUser):
@@ -384,3 +396,7 @@ class EntryAdapters:
     @staticmethod
     def get_unique_file_types(user: KhojUser):
         return Entry.objects.filter(user=user).values_list("file_type", flat=True).distinct()
+
+    @staticmethod
+    def get_unique_file_source(user: KhojUser):
+        return Entry.objects.filter(user=user).values_list("file_source", flat=True).distinct()
