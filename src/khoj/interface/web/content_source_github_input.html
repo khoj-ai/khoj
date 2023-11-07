@@ -125,7 +125,7 @@
         }
 
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
-        fetch('/api/config/data/content_type/github', {
+        fetch('/api/config/data/content-source/github', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

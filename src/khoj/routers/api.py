@@ -61,11 +61,13 @@ api = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-def map_config_to_object(content_type: str):
-    if content_type == "github":
+def map_config_to_object(content_source: str):
+    if content_source == "github":
         return GithubConfig
-    if content_type == "notion":
+    if content_source == "notion":
         return NotionConfig
+    if content_source == "computer":
+        return "Computer"
 
 
 async def map_config_to_db(config: FullConfig, user: KhojUser):
@@ -164,7 +166,7 @@ async def set_config_data(
     return state.config
 
 
-@api.post("/config/data/content_type/github", status_code=200)
+@api.post("/config/data/content-source/github", status_code=200)
 @requires(["authenticated"])
 async def set_content_config_github_data(
     request: Request,
@@ -192,7 +194,7 @@ async def set_content_config_github_data(
     return {"status": "ok"}
 
 
-@api.post("/config/data/content_type/notion", status_code=200)
+@api.post("/config/data/content-source/notion", status_code=200)
 @requires(["authenticated"])
 async def set_content_config_notion_data(
     request: Request,
@@ -219,11 +221,11 @@ async def set_content_config_notion_data(
     return {"status": "ok"}
 
 
-@api.delete("/config/data/content_type/{content_type}", status_code=200)
+@api.delete("/config/data/content-source/{content_source}", status_code=200)
 @requires(["authenticated"])
-async def remove_content_config_data(
+async def remove_content_source_data(
     request: Request,
-    content_type: str,
+    content_source: str,
     client: Optional[str] = None,
 ):
     user = request.user.object
@@ -233,15 +235,15 @@ async def remove_content_config_data(
         telemetry_type="api",
         api="delete_content_config",
         client=client,
-        metadata={"content_type": content_type},
+        metadata={"content_source": content_source},
     )
 
-    content_object = map_config_to_object(content_type)
+    content_object = map_config_to_object(content_source)
     if content_object is None:
-        raise ValueError(f"Invalid content type: {content_type}")
-
-    await content_object.objects.filter(user=user).adelete()
-    await sync_to_async(EntryAdapters.delete_all_entries)(user, content_type)
+        raise ValueError(f"Invalid content source: {content_source}")
+    elif content_object != "Computer":
+        await content_object.objects.filter(user=user).adelete()
+    await sync_to_async(EntryAdapters.delete_all_entries_by_source)(user, content_source)
 
     enabled_content = await sync_to_async(EntryAdapters.get_unique_file_types)(user)
     return {"status": "ok"}

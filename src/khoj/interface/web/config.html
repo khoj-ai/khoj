@@ -19,7 +19,7 @@
                 <p class="card-description">Set repositories to index</p>
                 </div>
                 <div class="card-action-row">
-                    <a class="card-button" href="/config/content_type/github">
+                    <a class="card-button" href="/config/content-source/github">
                         {% if current_model_state.github %}
                             Update
                         {% else %}
@@ -50,7 +50,7 @@
                     <p class="card-description">Configure your settings from Notion</p>
                 </div>
                 <div class="card-action-row">
-                    <a class="card-button" href="/config/content_type/notion">
+                    <a class="card-button" href="/config/content-source/notion">
                         {% if current_model_state.content %}
                             Update
                         {% else %}
@@ -176,8 +176,9 @@
         })
     };
 
-    function clearContentType(content_type) {
-        fetch('/api/config/data/content_type/' + content_type, {
+    function clearContentType(content_source) {
+
+        fetch('/api/config/data/content-source/' + content_source, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -186,15 +187,15 @@
         .then(response => response.json())
         .then(data => {
             if (data.status == "ok") {
-                var contentTypeClearButton = document.getElementById("clear-" + content_type);
+                var contentTypeClearButton = document.getElementById("clear-" + content_source);
                 contentTypeClearButton.style.display = "none";
 
-                var configuredIcon = document.getElementById("configured-icon-" + content_type);
+                var configuredIcon = document.getElementById("configured-icon-" + content_source);
                 if (configuredIcon) {
                     configuredIcon.style.display = "none";
                 }
 
-                var misconfiguredIcon = document.getElementById("misconfigured-icon-" + content_type);
+                var misconfiguredIcon = document.getElementById("misconfigured-icon-" + content_source);
                 if (misconfiguredIcon) {
                     misconfiguredIcon.style.display = "none";
                 }

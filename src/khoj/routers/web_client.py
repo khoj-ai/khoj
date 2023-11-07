@@ -150,7 +150,7 @@ def config_page(request: Request):
     )
 
 
-@web_client.get("/config/content_type/github", response_class=HTMLResponse)
+@web_client.get("/config/content-source/github", response_class=HTMLResponse)
 @requires(["authenticated"], redirect="login_page")
 def github_config_page(request: Request):
     user = request.user.object
@@ -177,7 +177,7 @@ def github_config_page(request: Request):
         current_config = {}  # type: ignore
 
     return templates.TemplateResponse(
-        "content_type_github_input.html",
+        "content_source_github_input.html",
         context={
             "request": request,
             "current_config": current_config,
@@ -187,7 +187,7 @@ def github_config_page(request: Request):
     )
 
 
-@web_client.get("/config/content_type/notion", response_class=HTMLResponse)
+@web_client.get("/config/content-source/notion", response_class=HTMLResponse)
 @requires(["authenticated"], redirect="login_page")
 def notion_config_page(request: Request):
     user = request.user.object
@@ -201,7 +201,7 @@ def notion_config_page(request: Request):
     current_config = json.loads(current_config.json())
 
     return templates.TemplateResponse(
-        "content_type_notion_input.html",
+        "content_source_notion_input.html",
         context={
             "request": request,
             "current_config": current_config,
