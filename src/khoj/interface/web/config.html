@@ -8,11 +8,13 @@
             <div class="card">
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/computer.png" alt="Computer">
-                    <h3 class="card-title">
+                    <h3 id="card-title-computer" class="card-title">
                         Files
-                        {% if current_model_state.computer == True %}
-                            <img id="configured-icon-github" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
-                        {% endif %}
+                        <img id="configured-icon-computer"
+                            style="display: {% if not current_model_state.computer %}none{% endif %}"
+                            class="configured-icon"
+                            src="/static/assets/icons/confirm-icon.svg"
+                            alt="Configured">
                     </h3>
                 </div>
                 <div class="card-description-row">
@@ -28,22 +30,23 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
                     </a>
                 </div>
-                {% if current_model_state.computer %}
-                    <div id="clear-desktop" class="card-action-row">
-                        <button class="card-button" onclick="clearContentType('computer')">
-                            Disable
-                        </button>
-                    </div>
-                {% endif %}
+                <div id="clear-computer" class="card-action-row"
+                    style="display: {% if not current_model_state.computer %}none{% endif %}">
+                    <button class="card-button" onclick="clearContentType('computer')">
+                        Disable
+                    </button>
+                </div>
             </div>
              <div class="card">
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/github.svg" alt="Github">
                     <h3 class="card-title">
                         Github
-                        {% if current_model_state.github == True %}
-                            <img id="configured-icon-github" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
-                        {% endif %}
+                        <img id="configured-icon-github"
+                            class="configured-icon"
+                            src="/static/assets/icons/confirm-icon.svg"
+                            alt="Configured"
+                            style="display: {% if not current_model_state.github %}none{% endif %}">
                     </h3>
                 </div>
                 <div class="card-description-row">
@@ -59,22 +62,24 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
                     </a>
                 </div>
-                {% if current_model_state.github %}
-                    <div id="clear-github" class="card-action-row">
-                        <button class="card-button" onclick="clearContentType('github')">
-                            Disable
-                        </button>
-                    </div>
-                {% endif %}
+                <div id="clear-github"
+                    class="card-action-row"
+                    style="display: {% if not current_model_state.github %}none{% endif %}">
+                    <button class="card-button" onclick="clearContentType('github')">
+                        Disable
+                    </button>
+                </div>
             </div>
             <div class="card">
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/notion.svg" alt="Notion">
                     <h3 class="card-title">
                         Notion
-                        {% if current_model_state.notion == True %}
-                            <img id="configured-icon-notion" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
-                        {% endif %}
+                        <img id="configured-icon-notion"
+                            class="configured-icon"
+                            src="/static/assets/icons/confirm-icon.svg"
+                            alt="Configured"
+                            style="display: {% if not current_model_state.notion %}none{% endif %}">
                     </h3>
                 </div>
                 <div class="card-description-row">
@@ -90,13 +95,13 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
                     </a>
                 </div>
-                {% if current_model_state.notion %}
-                    <div id="clear-notion" class="card-action-row">
-                        <button class="card-button" onclick="clearContentType('notion')">
-                            Disable
-                        </button>
-                    </div>
-                {% endif %}
+                <div id="clear-notion"
+                    class="card-action-row"
+                    style="display: {% if not current_model_state.notion %}none{% endif %}">
+                    <button class="card-button" onclick="clearContentType('notion')">
+                        Disable
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -208,18 +213,11 @@
         .then(response => response.json())
         .then(data => {
             if (data.status == "ok") {
-                var contentTypeClearButton = document.getElementById("clear-" + content_source);
-                contentTypeClearButton.style.display = "none";
-
-                var configuredIcon = document.getElementById("configured-icon-" + content_source);
-                if (configuredIcon) {
-                    configuredIcon.style.display = "none";
-                }
-
-                var misconfiguredIcon = document.getElementById("misconfigured-icon-" + content_source);
-                if (misconfiguredIcon) {
-                    misconfiguredIcon.style.display = "none";
-                }
+                document.getElementById("configured-icon-" + content_source).style.display = "none";
+                document.getElementById("clear-" + content_source).style.display = "none";
+            } else {
+                document.getElementById("configured-icon-" + content_source).style.display = "";
+                document.getElementById("clear-" + content_source).style.display = "";
             }
         })
     };
@@ -265,6 +263,7 @@
             if (data.detail != null) {
                 throw new Error(data.detail);
             }
+
             document.getElementById("status").innerHTML = emoji + " " + successText;
             document.getElementById("status").style.display = "block";
             button.disabled = false;
@@ -276,6 +275,26 @@
             document.getElementById("status").style.display = "block";
             button.disabled = false;
             button.innerHTML = '⚠️ Unsuccessful';
+        });
+
+        content_sources = ["computer", "github", "notion"];
+        content_sources.forEach(content_source => {
+            fetch(`/api/config/data/${content_source}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.length > 0) {
+                    document.getElementById("configured-icon-" + content_source).style.display = "";
+                    document.getElementById("clear-" + content_source).style.display = "";
+                } else {
+                    document.getElementById("configured-icon-" + content_source).style.display = "none";
+                    document.getElementById("clear-" + content_source).style.display = "none";
+                }
+            });
         });
     }
 
