@@ -55,7 +55,7 @@ dependencies = [
     "torch == 2.0.1",
     "uvicorn == 0.17.6",
     "aiohttp == 3.8.5",
-    "langchain >= 0.0.187",
+    "langchain >= 0.0.331",
     "requests >= 2.26.0",
     "bs4 >= 0.0.1",
     "anyio == 3.7.1",
