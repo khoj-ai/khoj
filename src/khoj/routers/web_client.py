@@ -1,5 +1,5 @@
 # System Packages
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import os
 
@@ -119,7 +119,9 @@ def config_page(request: Request):
     user: KhojUser = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
     user_is_subscribed = is_user_subscribed(user.email)
-    days_to_renewal = (user.subscription_renewal_date - datetime.now()).days if user.subscription_renewal_date else 0
+    days_to_renewal = (
+        (user.subscription_renewal_date - datetime.now(tz=timezone.utc)).days if user.subscription_renewal_date else 0
+    )
     enabled_content_source = set(EntryAdapters.get_unique_file_source(user).all())
 
     successfully_configured = {

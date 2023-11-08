@@ -184,8 +184,7 @@
                     </a>
                 </div>
                 {% else %}
-                <div class="card-action-row"
-                    style="display: {% if not current_model_state.github %}none{% endif %}">
+                <div class="card-action-row">
                     <button class="card-button" onclick="unsubscribe()">
                         Unsubscribe
                     </button>
@@ -259,14 +258,11 @@
     };
 
     function unsubscribe() {
-        fetch('/api/subscription', {
+        fetch('/api/subscription?email=' + '{{username}}', {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                "email": "{{ username }}"
-            })
         })
     }
 

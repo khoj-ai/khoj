@@ -776,10 +776,13 @@ async def subscribe(request: Request):
 
 @api.delete("/subscription")
 @requires(["authenticated"])
-async def unsubscribe(request: Request, user_email: str):
-    customer = stripe.Customer.list(email=user_email).data
+async def unsubscribe(request: Request, email: str):
+    customer = stripe.Customer.list(email=email).data
     if not is_none_or_empty(customer):
-        stripe.Subscription.modify(customer[0].id, cancel_at_period_end=True)
+        customer_id = customer[0].id
+        for subscription in stripe.Subscription.list(customer=customer_id):
+            stripe.Subscription.modify(subscription.id, cancel_at_period_end=True)
+
         success = True
     else:
         success = False
