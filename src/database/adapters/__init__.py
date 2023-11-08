@@ -103,33 +103,39 @@ async def create_google_user(token: dict) -> KhojUser:
     return user
 
 
-async def set_user_unsubscribed(email: str, type="standard") -> KhojUser:
-    user = await KhojUser.objects.filter(email=email, subscription_type=type).afirst()
-    if user:
-        user.is_subscribed = False
-        await user.asave()
-        return user
-    else:
-        return None
-
-
-async def set_user_subscribed(email: str, type="standard") -> KhojUser:
+async def set_user_subscription(email: str, is_subscribed=None, renewal_date=None, type="standard") -> KhojUser:
     user = await KhojUser.objects.filter(email=email).afirst()
     if user:
         user.subscription_type = type
-        user.is_subscribed = True
-        start_date = user.subscription_renewal_date or datetime.now()
-        user.subscription_renewal_date = start_date + timedelta(days=30)
+        if is_subscribed is not None:
+            user.is_subscribed = is_subscribed
+        if renewal_date is False:
+            user.subscription_renewal_date = None
+        elif renewal_date is not None:
+            user.subscription_renewal_date = renewal_date
         await user.asave()
         return user
     else:
         return None
 
 
-def is_user_subscribed(email: str, type="standard") -> bool:
-    return KhojUser.objects.filter(
-        email=email, subscription_type=type, subscription_renewal_date__gte=datetime.now(tz=timezone.utc)
-    ).exists()
+def get_user_subscription_state(email: str) -> str:
+    """Get subscription state of user
+    Valid state transitions: trial -> subscribed <-> unsubscribed OR expired
+    """
+    user = KhojUser.objects.filter(email=email).first()
+    if user.subscription_type == KhojUser.SubscriptionType.TRIAL:
+        return "trial"
+    elif user.is_subscribed and user.subscription_renewal_date >= datetime.now(tz=timezone.utc):
+        return "subscribed"
+    elif not user.is_subscribed and user.subscription_renewal_date >= datetime.now(tz=timezone.utc):
+        return "unsubscribed"
+    elif not user.is_subscribed and user.subscription_renewal_date < datetime.now(tz=timezone.utc):
+        return "expired"
+
+
+async def get_user_by_email(email: str) -> KhojUser:
+    return await KhojUser.objects.filter(email=email).afirst()
 
 
 async def get_user_by_token(token: dict) -> KhojUser:

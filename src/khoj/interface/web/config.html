@@ -167,29 +167,39 @@
                     <h3 class="card-title">
                         <span>Subscription</span>
                         <img id="configured-icon-subscription"
-                            style="display: {% if not is_subscribed %}none{% endif %}"
+                            style="display: {% if subscription_state == 'trial' or subscription_state == 'expired' %}none{% endif %}"
                             class="configured-icon"
                             src="/static/assets/icons/confirm-icon.svg"
                             alt="Configured">
                     </h3>
                 </div>
                 <div class="card-description-row">
-                    <p class="card-description">Manage your subscription to Khoj Cloud</p>
-                </div>
-                {% if not is_subscribed %}
-                <div class="card-action-row">
-                    <a class="card-button happy" href="{{ khoj_cloud_subscription_url }}?email={{ username }}" target="_blank">
-                        Subscribe
-                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
-                    </a>
-                </div>
+                {% if subscription_state == "subscribed" %}
+                    <p class="card-description">You are <b>subscribed</b> to Khoj Cloud. Subscription will <b>renew</b> on <b>{{ subscription_renewal_date }}</b></p>
+                {% elif subscription_state == "unsubscribed" %}
+                    <p class="card-description">You are <b>subscribed</b> to Khoj Cloud. Subscription will <b>expire</b> on <b>{{ subscription_renewal_date }}</b></p>
+                {% elif subscription_state == "expired" %}
+                    <p class="card-description">Subscribe to Khoj Cloud. Subscription <b>expired</b> on <b>{{ subscription_renewal_date }}</b></p>
                 {% else %}
+                    <p class="card-description">Subscribe to Khoj Cloud</p>
+                {% endif %}
+                </div>
                 <div class="card-action-row">
+                    {% if subscription_state == "subscribed" %}
                     <button class="card-button" onclick="unsubscribe()">
                         Unsubscribe
                     </button>
+                    {% elif subscription_state == "unsubscribed" %}
+                    <button class="card-button" onclick="resubscribe()">
+                        Resubscribe
+                    </button>
+                    {% else %}
+                    <a class="card-button happy" href="{{ khoj_cloud_subscription_url }}?prefilled_email={{ username }}" target="_blank">
+                        Subscribe
+                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                    </a>
+                    {% endif %}
                 </div>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -258,8 +268,17 @@
     };
 
     function unsubscribe() {
-        fetch('/api/subscription?email=' + '{{username}}', {
-            method: 'DELETE',
+        fetch('/api/subscription?operation=cancel&email={{username}}', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+    }
+
+    function resubscribe() {
+        fetch('/api/subscription?operation=resubscribe&email={{username}}', {
+            method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
             },

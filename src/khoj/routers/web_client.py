@@ -1,5 +1,4 @@
 # System Packages
-from datetime import datetime, timezone
 import json
 import os
 
@@ -23,7 +22,7 @@ from database.adapters import (
     get_user_github_config,
     get_user_notion_config,
     ConversationAdapters,
-    is_user_subscribed,
+    get_user_subscription_state,
 )
 
 # Initialize Router
@@ -118,9 +117,9 @@ def login_page(request: Request):
 def config_page(request: Request):
     user: KhojUser = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
-    user_is_subscribed = is_user_subscribed(user.email)
-    days_to_renewal = (
-        (user.subscription_renewal_date - datetime.now(tz=timezone.utc)).days if user.subscription_renewal_date else 0
+    user_subscription_state = get_user_subscription_state(user.email)
+    subscription_renewal_date = (
+        user.subscription_renewal_date.strftime("%d %b %Y") if user.subscription_renewal_date else None
     )
     enabled_content_source = set(EntryAdapters.get_unique_file_source(user).all())
 
@@ -147,8 +146,8 @@ def config_page(request: Request):
             "conversation_options": all_conversation_options,
             "selected_conversation_config": selected_conversation_config.id if selected_conversation_config else None,
             "user_photo": user_picture,
-            "is_subscribed": user_is_subscribed,
-            "days_to_renewal": days_to_renewal,
+            "subscription_state": user_subscription_state,
+            "subscription_renewal_date": subscription_renewal_date,
             "khoj_cloud_subscription_url": os.getenv("KHOJ_CLOUD_SUBSCRIPTION_URL"),
         },
     )

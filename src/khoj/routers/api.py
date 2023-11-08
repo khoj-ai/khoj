@@ -1,5 +1,6 @@
 # Standard Packages
 import concurrent.futures
+from datetime import datetime, timezone
 import math
 import os
 import time
@@ -746,48 +747,72 @@ async def subscribe(request: Request):
         # Invalid signature
         raise e
 
-    # Handle the event
-    success = True
-    if (
-        event["type"] == "payment_intent.succeeded"
-        or event["type"] == "invoice.payment_succeeded"
-        or event["type"] == "customer.subscription.created"
-    ):
-        # Retrieve the customer's details
-        customer_id = event["data"]["object"]["customer"]
-        customer = stripe.Customer.retrieve(customer_id)
-        customer_email = customer["email"]
-        # Mark the customer as subscribed
-        user = await adapters.set_user_subscribed(customer_email)
-        if not user:
-            success = False
-    elif event["type"] == "customer.subscription.updated" or event["type"] == "customer.subscription.deleted":
-        # Retrieve the customer's details
-        customer_id = event["data"]["object"]["customer"]
-        customer = stripe.Customer.retrieve(customer_id)
-        customer_email = customer["email"]
-        # Mark the customer as unsubscribed
-        user = await adapters.set_user_unsubscribed(customer_email)
-        if not user:
-            success = False
-    else:
+    event_type = event["type"]
+    if event_type not in {
+        "invoice.paid",
+        "customer.subscription.updated",
+        "customer.subscription.deleted",
+        "subscription_schedule.canceled",
+    }:
         logger.warn(f"Unhandled Stripe event type: {event['type']}")
         return {"success": False}
+
+    # Retrieve the customer's details
+    subscription = event["data"]["object"]
+    customer_id = subscription["customer"]
+    customer = stripe.Customer.retrieve(customer_id)
+    customer_email = customer["email"]
+
+    # Handle valid stripe webhook events
+    success = True
+    if event_type in {"invoice.paid"}:
+        # Mark the user as subscribed and update the next renewal date on payment
+        subscription = stripe.Subscription.list(customer=customer_id).data[0]
+        renewal_date = datetime.fromtimestamp(subscription["current_period_end"], tz=timezone.utc)
+        user = await adapters.set_user_subscription(customer_email, is_subscribed=True, renewal_date=renewal_date)
+        success = user is not None
+    elif event_type in {"customer.subscription.updated"}:
+        user = await adapters.get_user_by_email(customer_email)
+        # Allow updating subscription status if paid user
+        if user.subscription_renewal_date:
+            # Mark user as unsubscribed or resubscribed
+            is_subscribed = not subscription["cancel_at_period_end"]
+            updated_user = await adapters.set_user_subscription(customer_email, is_subscribed=is_subscribed)
+            success = updated_user is not None
+    elif event_type in {"customer.subscription.deleted"}:
+        # Reset the user to trial state
+        user = await adapters.set_user_subscription(
+            customer_email, is_subscribed=False, renewal_date=False, type="trial"
+        )
+        success = user is not None
 
     logger.info(f'Stripe subscription {event["type"]} for {customer["email"]}')
     return {"success": success}
 
 
-@api.delete("/subscription")
+@api.patch("/subscription")
 @requires(["authenticated"])
-async def unsubscribe(request: Request, email: str):
-    customer = stripe.Customer.list(email=email).data
-    if not is_none_or_empty(customer):
-        customer_id = customer[0].id
+async def unsubscribe(request: Request, email: str, operation: str):
+    # Retrieve the customer's details
+    customers = stripe.Customer.list(email=email).auto_paging_iter()
+    customer = next(customers, None)
+    if customer is None:
+        return {"success": False, "message": "Customer not found"}
+
+    if operation == "cancel":
+        customer_id = customer.id
         for subscription in stripe.Subscription.list(customer=customer_id):
             stripe.Subscription.modify(subscription.id, cancel_at_period_end=True)
-        success = True
-    else:
-        success = False
+        return {"success": True}
 
-    return {"success": success}
+    elif operation == "resubscribe":
+        subscriptions = stripe.Subscription.list(customer=customer.id).auto_paging_iter()
+        # Find the subscription that is set to cancel at the end of the period
+        for subscription in subscriptions:
+            if subscription.cancel_at_period_end:
+                # Update the subscription to not cancel at the end of the period
+                stripe.Subscription.modify(subscription.id, cancel_at_period_end=False)
+                return {"success": True}
+        return {"success": False, "message": "No subscription found that is set to cancel"}
+
+    return {"success": False, "message": "Invalid operation"}
