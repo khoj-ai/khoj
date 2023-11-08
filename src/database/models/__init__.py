@@ -22,6 +22,7 @@ class KhojUser(AbstractUser):
     subscription_type = models.CharField(
         max_length=20, choices=SubscriptionType.choices, default=SubscriptionType.TRIAL
     )
+    is_subscribed = models.BooleanField(default=False)
     subscription_renewal_date = models.DateTimeField(null=True, default=None)
 
     def save(self, *args, **kwargs):

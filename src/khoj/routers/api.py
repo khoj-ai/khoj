@@ -765,12 +765,16 @@ async def subscribe(request: Request):
         # Retrieve the customer's details
         customer_id = event["data"]["object"]["customer"]
         customer = stripe.Customer.retrieve(customer_id)
+        customer_email = customer["email"]
+        # Mark the customer as unsubscribed
+        user = await adapters.set_user_unsubscribed(customer_email)
+        if not user:
+            success = False
     else:
-        logger.warn(f"Unhandled Stripe event type: {event['type']}, {event['data']['object']}")
+        logger.warn(f"Unhandled Stripe event type: {event['type']}")
         return {"success": False}
 
     logger.info(f'Stripe subscription {event["type"]} for {customer["email"]}')
-
     return {"success": success}
 
 
