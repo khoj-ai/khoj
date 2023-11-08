@@ -728,7 +728,7 @@ async def extract_references_and_questions(
 
 # Stripe integration for Khoj Cloud Subscription
 stripe.api_key = os.getenv("STRIPE_API_KEY")
-endpoint_secret = os.getenv("STRIPE_SIGINING_SECRET")
+endpoint_secret = os.getenv("STRIPE_SIGNING_SECRET")
 
 
 @api.post("/subscription")
@@ -765,6 +765,9 @@ async def subscribe(request: Request):
         # Retrieve the customer's details
         customer_id = event["data"]["object"]["customer"]
         customer = stripe.Customer.retrieve(customer_id)
+    else:
+        logger.warn(f"Unhandled Stripe event type: {event['type']}, {event['data']['object']}")
+        return {"success": False}
 
     logger.info(f'Stripe subscription {event["type"]} for {customer["email"]}')
 
