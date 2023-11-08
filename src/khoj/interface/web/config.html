@@ -178,7 +178,7 @@
                 </div>
                 {% if not is_subscribed %}
                 <div class="card-action-row">
-                    <a class="card-button happy" href="https://buy.stripe.com/28ocQb7kb4iD0cEdQQ?email={{ username }}" target="_blank">
+                    <a class="card-button happy" href="{{ khoj_cloud_subscription_url }}?email={{ username }}" target="_blank">
                         Subscribe
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
                     </a>

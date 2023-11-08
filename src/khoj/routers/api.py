@@ -782,7 +782,6 @@ async def unsubscribe(request: Request, email: str):
         customer_id = customer[0].id
         for subscription in stripe.Subscription.list(customer=customer_id):
             stripe.Subscription.modify(subscription.id, cancel_at_period_end=True)
-
         success = True
     else:
         success = False
