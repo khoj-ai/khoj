@@ -150,7 +150,9 @@ def configure_routes(app):
     app.include_router(api, prefix="/api")
     app.include_router(api_beta, prefix="/api/beta")
     app.include_router(indexer, prefix="/api/v1/index")
-    app.include_router(subscription_router, prefix="/api/subscription")
+    if state.billing_enabled:
+        logger.info("💳 Enabled Billing")
+        app.include_router(subscription_router, prefix="/api/subscription")
     app.include_router(web_client)
     app.include_router(auth_router, prefix="/auth")
 

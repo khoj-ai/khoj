@@ -12,13 +12,11 @@ import stripe
 # Internal Packages
 from database import adapters
 
+
 # Stripe integration for Khoj Cloud Subscription
 stripe.api_key = os.getenv("STRIPE_API_KEY")
 endpoint_secret = os.getenv("STRIPE_SIGNING_SECRET")
-
-
 logger = logging.getLogger(__name__)
-
 subscription_router = APIRouter()
 
 

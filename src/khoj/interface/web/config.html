@@ -158,7 +158,8 @@
             </div>
         </div>
     </div>
-     <div class="section">
+    {% if billing_enabled %}
+    <div class="section">
         <h2 class="section-title">Billing</h2>
         <div class="section-cards">
             <div class="card">
@@ -219,6 +220,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
     <div class="section general-settings">
         <div id="results-count" title="Number of items to show in search and use for chat response">
             <label for="results-count-slider">Results Count: <span id="results-count-value">5</span></label>

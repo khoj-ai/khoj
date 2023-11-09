@@ -150,6 +150,7 @@ def config_page(request: Request):
             "conversation_options": all_conversation_options,
             "selected_conversation_config": selected_conversation_config.id if selected_conversation_config else None,
             "user_photo": user_picture,
+            "billing_enabled": state.billing_enabled,
             "subscription_state": user_subscription_state,
             "subscription_renewal_date": subscription_renewal_date,
             "khoj_cloud_subscription_url": os.getenv("KHOJ_CLOUD_SUBSCRIPTION_URL"),
