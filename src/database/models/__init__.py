@@ -14,16 +14,7 @@ class BaseModel(models.Model):
 
 
 class KhojUser(AbstractUser):
-    class SubscriptionType(models.TextChoices):
-        TRIAL = "trial"
-        STANDARD = "standard"
-
     uuid = models.UUIDField(models.UUIDField(default=uuid.uuid4, editable=False))
-    subscription_type = models.CharField(
-        max_length=20, choices=SubscriptionType.choices, default=SubscriptionType.TRIAL
-    )
-    is_subscribed = models.BooleanField(default=False)
-    subscription_renewal_date = models.DateTimeField(null=True, default=None)
 
     def save(self, *args, **kwargs):
         if not self.uuid:
@@ -53,6 +44,17 @@ class KhojApiUser(models.Model):
     token = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=50)
     accessed_at = models.DateTimeField(null=True, default=None)
+
+
+class Subscription(BaseModel):
+    class Type(models.TextChoices):
+        TRIAL = "trial"
+        STANDARD = "standard"
+
+    user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
+    type = models.CharField(max_length=20, choices=Type.choices, default=Type.TRIAL)
+    is_recurring = models.BooleanField(default=False)
+    renewal_date = models.DateTimeField(null=True, default=None)
 
 
 class NotionConfig(BaseModel):

@@ -8,6 +8,7 @@ from fastapi import Request
 from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from starlette.authentication import requires
+from database import adapters
 from database.models import KhojUser
 from khoj.utils.rawconfig import (
     GithubContentConfig,
@@ -117,9 +118,12 @@ def login_page(request: Request):
 def config_page(request: Request):
     user: KhojUser = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
-    user_subscription_state = get_user_subscription_state(user.email)
+    user_subscription = adapters.get_user_subscription(user.email)
+    user_subscription_state = get_user_subscription_state(user_subscription)
     subscription_renewal_date = (
-        user.subscription_renewal_date.strftime("%d %b %Y") if user.subscription_renewal_date else None
+        user_subscription.renewal_date.strftime("%d %b %Y")
+        if user_subscription and user_subscription.renewal_date
+        else None
     )
     enabled_content_source = set(EntryAdapters.get_unique_file_source(user).all())
 

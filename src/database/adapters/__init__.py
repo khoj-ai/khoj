@@ -1,4 +1,4 @@
-from typing import Type, TypeVar, List
+from typing import Optional, Type, TypeVar, List
 from datetime import date, datetime, timedelta
 import secrets
 from typing import Type, TypeVar, List
@@ -30,6 +30,7 @@ from database.models import (
     GithubRepoConfig,
     Conversation,
     ChatModelOptions,
+    Subscription,
     UserConversationConfig,
     OpenAIProcessorConversationConfig,
     OfflineChatProcessorConversationConfig,
@@ -103,35 +104,51 @@ async def create_google_user(token: dict) -> KhojUser:
     return user
 
 
-async def set_user_subscription(email: str, is_subscribed=None, renewal_date=None, type="standard") -> KhojUser:
-    user = await KhojUser.objects.filter(email=email).afirst()
-    if user:
-        user.subscription_type = type
-        if is_subscribed is not None:
-            user.is_subscribed = is_subscribed
+def get_user_subscription(email: str) -> Optional[Subscription]:
+    return Subscription.objects.filter(user__email=email).first()
+
+
+async def set_user_subscription(
+    email: str, is_recurring=None, renewal_date=None, type="standard"
+) -> Optional[Subscription]:
+    user_subscription = await Subscription.objects.filter(user__email=email).afirst()
+    if not user_subscription:
+        user = await get_user_by_email(email)
+        if not user:
+            return None
+        user_subscription = await Subscription.objects.acreate(
+            user=user, type=type, is_recurring=is_recurring, renewal_date=renewal_date
+        )
+        return user_subscription
+    elif user_subscription:
+        user_subscription.type = type
+        if is_recurring is not None:
+            user_subscription.is_recurring = is_recurring
         if renewal_date is False:
-            user.subscription_renewal_date = None
+            user_subscription.renewal_date = None
         elif renewal_date is not None:
-            user.subscription_renewal_date = renewal_date
-        await user.asave()
-        return user
+            user_subscription.renewal_date = renewal_date
+        await user_subscription.asave()
+        return user_subscription
     else:
         return None
 
 
-def get_user_subscription_state(email: str) -> str:
+def get_user_subscription_state(user_subscription: Subscription) -> str:
     """Get subscription state of user
     Valid state transitions: trial -> subscribed <-> unsubscribed OR expired
     """
-    user = KhojUser.objects.filter(email=email).first()
-    if user.subscription_type == KhojUser.SubscriptionType.TRIAL:
+    if not user_subscription:
         return "trial"
-    elif user.is_subscribed and user.subscription_renewal_date >= datetime.now(tz=timezone.utc):
+    elif user_subscription.type == Subscription.Type.TRIAL:
+        return "trial"
+    elif user_subscription.is_recurring and user_subscription.renewal_date >= datetime.now(tz=timezone.utc):
         return "subscribed"
-    elif not user.is_subscribed and user.subscription_renewal_date >= datetime.now(tz=timezone.utc):
+    elif not user_subscription.is_recurring and user_subscription.renewal_date >= datetime.now(tz=timezone.utc):
         return "unsubscribed"
-    elif not user.is_subscribed and user.subscription_renewal_date < datetime.now(tz=timezone.utc):
+    elif not user_subscription.is_recurring and user_subscription.renewal_date < datetime.now(tz=timezone.utc):
         return "expired"
+    return "invalid"
 
 
 async def get_user_by_email(email: str) -> KhojUser:

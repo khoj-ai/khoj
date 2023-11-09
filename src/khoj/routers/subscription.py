@@ -4,6 +4,7 @@ import logging
 import os
 
 # External Packages
+from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Request
 from starlette.authentication import requires
 import stripe
@@ -58,20 +59,20 @@ async def subscribe(request: Request):
         # Mark the user as subscribed and update the next renewal date on payment
         subscription = stripe.Subscription.list(customer=customer_id).data[0]
         renewal_date = datetime.fromtimestamp(subscription["current_period_end"], tz=timezone.utc)
-        user = await adapters.set_user_subscription(customer_email, is_subscribed=True, renewal_date=renewal_date)
+        user = await adapters.set_user_subscription(customer_email, is_recurring=True, renewal_date=renewal_date)
         success = user is not None
     elif event_type in {"customer.subscription.updated"}:
-        user = await adapters.get_user_by_email(customer_email)
+        user_subscription = await sync_to_async(adapters.get_user_subscription)(customer_email)
         # Allow updating subscription status if paid user
-        if user.subscription_renewal_date:
+        if user_subscription.renewal_date:
             # Mark user as unsubscribed or resubscribed
-            is_subscribed = not subscription["cancel_at_period_end"]
-            updated_user = await adapters.set_user_subscription(customer_email, is_subscribed=is_subscribed)
+            is_recurring = not subscription["cancel_at_period_end"]
+            updated_user = await adapters.set_user_subscription(customer_email, is_recurring=is_recurring)
             success = updated_user is not None
     elif event_type in {"customer.subscription.deleted"}:
         # Reset the user to trial state
         user = await adapters.set_user_subscription(
-            customer_email, is_subscribed=False, renewal_date=False, type="trial"
+            customer_email, is_recurring=False, renewal_date=False, type="trial"
         )
         success = user is not None
 
