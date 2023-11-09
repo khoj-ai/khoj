@@ -330,7 +330,7 @@ class EntryAdapters:
         return deleted_count
 
     @staticmethod
-    def delete_all_entries_by_source(user: KhojUser, file_source: str = None):
+    def delete_all_entries(user: KhojUser, file_source: str = None):
         if file_source is None:
             deleted_count, _ = Entry.objects.filter(user=user).delete()
         else:

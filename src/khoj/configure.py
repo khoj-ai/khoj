@@ -145,10 +145,12 @@ def configure_routes(app):
     from khoj.routers.web_client import web_client
     from khoj.routers.indexer import indexer
     from khoj.routers.auth import auth_router
+    from khoj.routers.subscription import subscription_router
 
     app.include_router(api, prefix="/api")
     app.include_router(api_beta, prefix="/api/beta")
     app.include_router(indexer, prefix="/api/v1/index")
+    app.include_router(subscription_router, prefix="/api/subscription")
     app.include_router(web_client)
     app.include_router(auth_router, prefix="/auth")
 
