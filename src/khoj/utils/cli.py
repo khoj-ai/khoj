@@ -71,7 +71,7 @@ def cli(args=None):
     else:
         args = run_migrations(args)
         args.config = parse_config_from_file(args.config_file)
-        if os.environ.get("DEBUG"):
+        if os.environ.get("KHOJ_DEBUG"):
             args.config.app.should_log_telemetry = False
 
     return args
