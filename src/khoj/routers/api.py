@@ -50,6 +50,7 @@ from database.models import (
     LocalPdfConfig,
     LocalPlaintextConfig,
     KhojUser,
+    Entry as DbEntry,
     GithubConfig,
     NotionConfig,
 )
@@ -60,12 +61,12 @@ api = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-def map_config_to_object(content_source: str):
-    if content_source == "github":
+def map_config_to_object(content_source: DbEntry.EntrySource):
+    if content_source == DbEntry.EntrySource.GITHUB:
         return GithubConfig
-    if content_source == "notion":
+    if content_source == DbEntry.EntrySource.GITHUB:
         return NotionConfig
-    if content_source == "computer":
+    if content_source == DbEntry.EntrySource.COMPUTER:
         return "Computer"
 
 
