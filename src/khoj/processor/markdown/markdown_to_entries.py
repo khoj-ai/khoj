@@ -47,6 +47,7 @@ class MarkdownToEntries(TextToEntries):
             num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
                 current_entries,
                 DbEntry.EntryType.MARKDOWN,
+                DbEntry.EntrySource.COMPUTER,
                 "compiled",
                 logger,
                 deletion_file_names,

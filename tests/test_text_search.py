@@ -58,7 +58,7 @@ def test_get_org_files_with_org_suffixed_dir_doesnt_raise_error(tmp_path, defaul
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_text_search_setup_with_empty_file_raises_error(
+def test_text_search_setup_with_empty_file_creates_no_entries(
     org_config_with_only_new_file: LocalOrgConfig, default_user: KhojUser, caplog
 ):
     # Arrange

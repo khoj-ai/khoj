@@ -46,6 +46,17 @@ class KhojApiUser(models.Model):
     accessed_at = models.DateTimeField(null=True, default=None)
 
 
+class Subscription(BaseModel):
+    class Type(models.TextChoices):
+        TRIAL = "trial"
+        STANDARD = "standard"
+
+    user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
+    type = models.CharField(max_length=20, choices=Type.choices, default=Type.TRIAL)
+    is_recurring = models.BooleanField(default=False)
+    renewal_date = models.DateTimeField(null=True, default=None)
+
+
 class NotionConfig(BaseModel):
     token = models.CharField(max_length=200)
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
@@ -131,11 +142,17 @@ class Entry(BaseModel):
         GITHUB = "github"
         CONVERSATION = "conversation"
 
+    class EntrySource(models.TextChoices):
+        COMPUTER = "computer"
+        NOTION = "notion"
+        GITHUB = "github"
+
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
     embeddings = VectorField(dimensions=384)
     raw = models.TextField()
     compiled = models.TextField()
     heading = models.CharField(max_length=1000, default=None, null=True, blank=True)
+    file_source = models.CharField(max_length=30, choices=EntrySource.choices, default=EntrySource.COMPUTER)
     file_type = models.CharField(max_length=30, choices=EntryType.choices, default=EntryType.PLAINTEXT)
     file_path = models.CharField(max_length=400, default=None, null=True, blank=True)
     file_name = models.CharField(max_length=400, default=None, null=True, blank=True)

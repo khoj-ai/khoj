@@ -1,8 +1,8 @@
-from typing import Type, TypeVar, List
-from datetime import date
+from typing import Optional, Type, TypeVar, List
+from datetime import date, datetime, timedelta
 import secrets
 from typing import Type, TypeVar, List
-from datetime import date
+from datetime import date, timezone
 
 from django.db import models
 from django.contrib.sessions.backends.db import SessionStore
@@ -30,6 +30,7 @@ from database.models import (
     GithubRepoConfig,
     Conversation,
     ChatModelOptions,
+    Subscription,
     UserConversationConfig,
     OpenAIProcessorConversationConfig,
     OfflineChatProcessorConversationConfig,
@@ -101,6 +102,57 @@ async def create_google_user(token: dict) -> KhojUser:
     )
 
     return user
+
+
+def get_user_subscription(email: str) -> Optional[Subscription]:
+    return Subscription.objects.filter(user__email=email).first()
+
+
+async def set_user_subscription(
+    email: str, is_recurring=None, renewal_date=None, type="standard"
+) -> Optional[Subscription]:
+    user_subscription = await Subscription.objects.filter(user__email=email).afirst()
+    if not user_subscription:
+        user = await get_user_by_email(email)
+        if not user:
+            return None
+        user_subscription = await Subscription.objects.acreate(
+            user=user, type=type, is_recurring=is_recurring, renewal_date=renewal_date
+        )
+        return user_subscription
+    elif user_subscription:
+        user_subscription.type = type
+        if is_recurring is not None:
+            user_subscription.is_recurring = is_recurring
+        if renewal_date is False:
+            user_subscription.renewal_date = None
+        elif renewal_date is not None:
+            user_subscription.renewal_date = renewal_date
+        await user_subscription.asave()
+        return user_subscription
+    else:
+        return None
+
+
+def get_user_subscription_state(user_subscription: Subscription) -> str:
+    """Get subscription state of user
+    Valid state transitions: trial -> subscribed <-> unsubscribed OR expired
+    """
+    if not user_subscription:
+        return "trial"
+    elif user_subscription.type == Subscription.Type.TRIAL:
+        return "trial"
+    elif user_subscription.is_recurring and user_subscription.renewal_date >= datetime.now(tz=timezone.utc):
+        return "subscribed"
+    elif not user_subscription.is_recurring and user_subscription.renewal_date >= datetime.now(tz=timezone.utc):
+        return "unsubscribed"
+    elif not user_subscription.is_recurring and user_subscription.renewal_date < datetime.now(tz=timezone.utc):
+        return "expired"
+    return "invalid"
+
+
+async def get_user_by_email(email: str) -> KhojUser:
+    return await KhojUser.objects.filter(email=email).afirst()
 
 
 async def get_user_by_token(token: dict) -> KhojUser:
@@ -287,11 +339,19 @@ class EntryAdapters:
         return deleted_count
 
     @staticmethod
-    def delete_all_entries(user: KhojUser, file_type: str = None):
+    def delete_all_entries_by_type(user: KhojUser, file_type: str = None):
         if file_type is None:
             deleted_count, _ = Entry.objects.filter(user=user).delete()
         else:
             deleted_count, _ = Entry.objects.filter(user=user, file_type=file_type).delete()
+        return deleted_count
+
+    @staticmethod
+    def delete_all_entries(user: KhojUser, file_source: str = None):
+        if file_source is None:
+            deleted_count, _ = Entry.objects.filter(user=user).delete()
+        else:
+            deleted_count, _ = Entry.objects.filter(user=user, file_source=file_source).delete()
         return deleted_count
 
     @staticmethod
@@ -318,8 +378,12 @@ class EntryAdapters:
         return await Entry.objects.filter(user=user, file_path=file_path).adelete()
 
     @staticmethod
-    def aget_all_filenames(user: KhojUser):
-        return Entry.objects.filter(user=user).distinct("file_path").values_list("file_path", flat=True)
+    def aget_all_filenames_by_source(user: KhojUser, file_source: str):
+        return (
+            Entry.objects.filter(user=user, file_source=file_source)
+            .distinct("file_path")
+            .values_list("file_path", flat=True)
+        )
 
     @staticmethod
     async def adelete_all_entries(user: KhojUser):
@@ -384,3 +448,7 @@ class EntryAdapters:
     @staticmethod
     def get_unique_file_types(user: KhojUser):
         return Entry.objects.filter(user=user).values_list("file_type", flat=True).distinct()
+
+    @staticmethod
+    def get_unique_file_source(user: KhojUser):
+        return Entry.objects.filter(user=user).values_list("file_source", flat=True).distinct()

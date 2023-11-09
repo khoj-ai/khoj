@@ -48,6 +48,7 @@ class OrgToEntries(TextToEntries):
             num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
                 current_entries,
                 DbEntry.EntryType.ORG,
+                DbEntry.EntrySource.COMPUTER,
                 "compiled",
                 logger,
                 deletion_file_names,

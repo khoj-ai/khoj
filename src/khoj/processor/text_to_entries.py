@@ -78,6 +78,7 @@ class TextToEntries(ABC):
         self,
         current_entries: List[Entry],
         file_type: str,
+        file_source: str,
         key="compiled",
         logger: logging.Logger = None,
         deletion_filenames: Set[str] = None,
@@ -93,9 +94,9 @@ class TextToEntries(ABC):
 
         num_deleted_entries = 0
         if regenerate:
-            with timer("Prepared dataset for regeneration in", logger):
+            with timer("Cleared existing dataset for regeneration in", logger):
                 logger.debug(f"Deleting all entries for file type {file_type}")
-                num_deleted_entries = EntryAdapters.delete_all_entries(user, file_type)
+                num_deleted_entries = EntryAdapters.delete_all_entries_by_type(user, file_type)
 
         hashes_to_process = set()
         with timer("Identified entries to add to database in", logger):
@@ -132,6 +133,7 @@ class TextToEntries(ABC):
                             compiled=entry.compiled,
                             heading=entry.heading[:1000],  # Truncate to max chars of field allowed
                             file_path=entry.file,
+                            file_source=file_source,
                             file_type=file_type,
                             hashed_value=entry_hash,
                             corpus_id=entry.corpus_id,

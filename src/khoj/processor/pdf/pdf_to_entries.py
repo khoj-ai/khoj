@@ -46,6 +46,7 @@ class PdfToEntries(TextToEntries):
             num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
                 current_entries,
                 DbEntry.EntryType.PDF,
+                DbEntry.EntrySource.COMPUTER,
                 "compiled",
                 logger,
                 deletion_file_names,

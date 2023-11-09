@@ -8,8 +8,9 @@ from fastapi import Request
 from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from starlette.authentication import requires
+from database import adapters
+from database.models import KhojUser
 from khoj.utils.rawconfig import (
-    TextContentConfig,
     GithubContentConfig,
     GithubRepoConfig,
     NotionContentConfig,
@@ -17,14 +18,17 @@ from khoj.utils.rawconfig import (
 
 # Internal Packages
 from khoj.utils import constants, state
-from database.adapters import EntryAdapters, get_user_github_config, get_user_notion_config, ConversationAdapters
-from database.models import LocalOrgConfig, LocalMarkdownConfig, LocalPdfConfig, LocalPlaintextConfig
+from database.adapters import (
+    EntryAdapters,
+    get_user_github_config,
+    get_user_notion_config,
+    ConversationAdapters,
+    get_user_subscription_state,
+)
 
 # Initialize Router
 web_client = APIRouter()
 templates = Jinja2Templates(directory=constants.web_directory)
-
-VALID_TEXT_CONTENT_TYPES = ["org", "markdown", "pdf", "plaintext"]
 
 
 # Create Routes
@@ -109,40 +113,25 @@ def login_page(request: Request):
     )
 
 
-def map_config_to_object(content_type: str):
-    if content_type == "org":
-        return LocalOrgConfig
-    if content_type == "markdown":
-        return LocalMarkdownConfig
-    if content_type == "pdf":
-        return LocalPdfConfig
-    if content_type == "plaintext":
-        return LocalPlaintextConfig
-
-
 @web_client.get("/config", response_class=HTMLResponse)
 @requires(["authenticated"], redirect="login_page")
 def config_page(request: Request):
-    user = request.user.object
+    user: KhojUser = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
-    enabled_content = set(EntryAdapters.get_unique_file_types(user).all())
+    user_subscription = adapters.get_user_subscription(user.email)
+    user_subscription_state = get_user_subscription_state(user_subscription)
+    subscription_renewal_date = (
+        user_subscription.renewal_date.strftime("%d %b %Y")
+        if user_subscription and user_subscription.renewal_date
+        else None
+    )
+    enabled_content_source = set(EntryAdapters.get_unique_file_source(user).all())
 
     successfully_configured = {
-        "pdf": ("pdf" in enabled_content),
-        "markdown": ("markdown" in enabled_content),
-        "org": ("org" in enabled_content),
-        "image": False,
-        "github": ("github" in enabled_content),
-        "notion": ("notion" in enabled_content),
-        "plaintext": ("plaintext" in enabled_content),
+        "computer": ("computer" in enabled_content_source),
+        "github": ("github" in enabled_content_source),
+        "notion": ("notion" in enabled_content_source),
     }
-
-    if state.content_index:
-        successfully_configured.update(
-            {
-                "image": state.content_index.image is not None,
-            }
-        )
 
     conversation_options = ConversationAdapters.get_conversation_processor_options().all()
     all_conversation_options = list()
@@ -157,15 +146,19 @@ def config_page(request: Request):
             "request": request,
             "current_model_state": successfully_configured,
             "anonymous_mode": state.anonymous_mode,
-            "username": user.username if user else None,
+            "username": user.username,
             "conversation_options": all_conversation_options,
             "selected_conversation_config": selected_conversation_config.id if selected_conversation_config else None,
             "user_photo": user_picture,
+            "billing_enabled": state.billing_enabled,
+            "subscription_state": user_subscription_state,
+            "subscription_renewal_date": subscription_renewal_date,
+            "khoj_cloud_subscription_url": os.getenv("KHOJ_CLOUD_SUBSCRIPTION_URL"),
         },
     )
 
 
-@web_client.get("/config/content_type/github", response_class=HTMLResponse)
+@web_client.get("/config/content-source/github", response_class=HTMLResponse)
 @requires(["authenticated"], redirect="login_page")
 def github_config_page(request: Request):
     user = request.user.object
@@ -192,7 +185,7 @@ def github_config_page(request: Request):
         current_config = {}  # type: ignore
 
     return templates.TemplateResponse(
-        "content_type_github_input.html",
+        "content_source_github_input.html",
         context={
             "request": request,
             "current_config": current_config,
@@ -202,7 +195,7 @@ def github_config_page(request: Request):
     )
 
 
-@web_client.get("/config/content_type/notion", response_class=HTMLResponse)
+@web_client.get("/config/content-source/notion", response_class=HTMLResponse)
 @requires(["authenticated"], redirect="login_page")
 def notion_config_page(request: Request):
     user = request.user.object
@@ -216,7 +209,7 @@ def notion_config_page(request: Request):
     current_config = json.loads(current_config.json())
 
     return templates.TemplateResponse(
-        "content_type_notion_input.html",
+        "content_source_notion_input.html",
         context={
             "request": request,
             "current_config": current_config,
@@ -226,32 +219,16 @@ def notion_config_page(request: Request):
     )
 
 
-@web_client.get("/config/content_type/{content_type}", response_class=HTMLResponse)
+@web_client.get("/config/content-source/computer", response_class=HTMLResponse)
 @requires(["authenticated"], redirect="login_page")
-def content_config_page(request: Request, content_type: str):
-    if content_type not in VALID_TEXT_CONTENT_TYPES:
-        return templates.TemplateResponse("config.html", context={"request": request})
-
-    object = map_config_to_object(content_type)
+def computer_config_page(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
-    config = object.objects.filter(user=user).first()
-    if config == None:
-        config = object.objects.create(user=user)
-
-    current_config = TextContentConfig(
-        input_files=config.input_files,
-        input_filter=config.input_filter,
-        index_heading_entries=config.index_heading_entries,
-    )
-    current_config = json.loads(current_config.json())
 
     return templates.TemplateResponse(
-        "content_type_input.html",
+        "content_source_computer_input.html",
         context={
             "request": request,
-            "current_config": current_config,
-            "content_type": content_type,
             "username": user.username,
             "user_photo": user_picture,
         },

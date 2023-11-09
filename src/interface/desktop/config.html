@@ -91,11 +91,13 @@
             </div>
             <div class="section-action-row">
                 <div class="card-description-row">
-                    <button id="sync-data">Sync</button>
+                    <button id="sync-data" class="sync-data">💾 Save</button>
                 </div>
-                <div class="card-description-row sync-force-toggle">
-                    <input id="sync-force" type="checkbox" name="sync-force" value="force">
-                    <label for="sync-force">Force Sync</label>
+                <div class="card-description-row">
+                    <button id="sync-force" class="sync-data">💾 Save All</button>
+                </div>
+                <div class="card-description-row">
+                    <button id="delete-all" class="sync-data">🗑️ Delete All</button>
                 </div>
             </div>
             <div id="loading-bar" style="display: none;"></div>
@@ -336,7 +338,7 @@
             padding: 4px;
             cursor: pointer;
         }
-        #sync-data {
+        button.sync-data {
             background-color: var(--primary);
             border: none;
             color: var(--main-text-color);
@@ -351,7 +353,7 @@
             box-shadow: 0px 5px 0px var(--background-color);
         }
 
-        #sync-data:hover {
+        button.sync-data:hover {
             background-color: var(--primary-hover);
             box-shadow: 0px 3px 0px var(--background-color);
         }

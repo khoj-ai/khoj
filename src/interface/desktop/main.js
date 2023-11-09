@@ -67,6 +67,7 @@ const schema = {
     }
 };
 
+const syncing = false;
 var state = {}
 const store = new Store({ schema });
 
@@ -110,6 +111,15 @@ function filenameToMimeType (filename) {
 }
 
 function pushDataToKhoj (regenerate = false) {
+    // Don't sync if token or hostURL is not set or if already syncing
+    if (store.get('khojToken') === '' || store.get('hostURL') === '' || syncing === true) {
+        const win = BrowserWindow.getAllWindows()[0];
+        if (win) win.webContents.send('update-state', state);
+        return;
+    } else {
+        syncing = true;
+    }
+
     let filesToPush = [];
     const files = store.get('files') || [];
     const folders = store.get('folders') || [];
@@ -192,11 +202,13 @@ function pushDataToKhoj (regenerate = false) {
             })
             .finally(() => {
                 // Syncing complete
+                syncing = false;
                 const win = BrowserWindow.getAllWindows()[0];
                 if (win) win.webContents.send('update-state', state);
             });
     } else {
         // Syncing complete
+        syncing = false;
         const win = BrowserWindow.getAllWindows()[0];
         if (win) win.webContents.send('update-state', state);
     }
@@ -306,6 +318,19 @@ async function syncData (regenerate = false) {
     }
 }
 
+async function deleteAllFiles () {
+    try {
+        store.set('files', []);
+        store.set('folders', []);
+        pushDataToKhoj(true);
+        const date = new Date();
+        console.log('Pushing data to Khoj at: ', date);
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+
 let firstRun = true;
 let win = null;
 const createWindow = (tab = 'chat.html') => {
@@ -386,6 +411,7 @@ app.whenReady().then(() => {
     ipcMain.handle('syncData', (event, regenerate) => {
         syncData(regenerate);
     });
+    ipcMain.handle('deleteAllFiles', deleteAllFiles);
 
     createWindow()
 

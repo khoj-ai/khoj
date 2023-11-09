@@ -64,6 +64,7 @@ def test_encode_docs_memory_leak():
     batch_size = 20
     embeddings_model = EmbeddingsModel()
     memory_usage_trend = []
+    device = f"{helpers.get_device()}".upper()
 
     # Act
     # Encode random strings repeatedly and record memory usage trend
@@ -76,8 +77,9 @@ def test_encode_docs_memory_leak():
     # Calculate slope of line fitting memory usage history
     memory_usage_trend = np.array(memory_usage_trend)
     slope, _, _, _, _ = linregress(np.arange(len(memory_usage_trend)), memory_usage_trend)
+    print(f"Memory usage increased at ~{slope:.2f} MB per iteration on {device}")
 
     # Assert
     # If slope is positive memory utilization is increasing
     # Positive threshold of 2, from observing memory usage trend on MPS vs CPU device
-    assert slope < 2, f"Memory usage increasing at ~{slope:.2f} MB per iteration"
+    assert slope < 2, f"Memory leak suspected on {device}. Memory usage increased at ~{slope:.2f} MB per iteration"

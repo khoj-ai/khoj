@@ -187,9 +187,9 @@
                 .then(response => {
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
+                    let references = null;
 
                     function readStream() {
-                        let references = null;
                         reader.read().then(({ done, value }) => {
                             if (done) {
                                 // Evaluate the contents of new_response_text.innerHTML after all the data has been streamed
