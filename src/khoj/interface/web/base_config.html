@@ -24,6 +24,12 @@
             {% endblock %}
         </div>
     </body>
+    <script>
+        document.getElementById("settings-nav").classList.add("khoj-nav-selected");
+        {% if is_active %}
+        document.getElementById("profile-picture").classList.add("subscribed");
+        {% endif %}
+    </script>
     <style>
         html, body {
             width: 100%;

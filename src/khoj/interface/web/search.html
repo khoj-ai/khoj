@@ -285,6 +285,12 @@
         <!-- Section to Render Results -->
         <div id="results"></div>
     </body>
+    <script>
+        document.getElementById("search-nav").classList.add("khoj-nav-selected");
+        {% if is_active %}
+        document.getElementById("profile-picture").classList.add("subscribed");
+        {% endif %}
+    </script>
 
     <style>
         @media only screen and (max-width: 700px) {

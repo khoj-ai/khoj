@@ -374,7 +374,12 @@
             <textarea id="chat-input" class="option" oninput="onChatInput()" onkeydown=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands, or just type your questions and hit enter."></textarea>
         </div>
     </body>
-
+    <script>
+        document.getElementById("chat-nav").classList.add("khoj-nav-selected");
+        {% if is_active %}
+        document.getElementById("profile-picture").classList.add("subscribed");
+        {% endif %}
+    </script>
     <style>
         html, body {
             height: 100%;

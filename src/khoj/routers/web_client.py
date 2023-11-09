@@ -69,6 +69,8 @@ def index_post(request: Request):
 def search_page(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
+    user_subscription = adapters.get_user_subscription(user.email)
+    user_subscription_state = get_user_subscription_state(user_subscription)
 
     return templates.TemplateResponse(
         "search.html",
@@ -76,6 +78,7 @@ def search_page(request: Request):
             "request": request,
             "username": user.username,
             "user_photo": user_picture,
+            "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
         },
     )
 
@@ -85,6 +88,8 @@ def search_page(request: Request):
 def chat_page(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
+    user_subscription = adapters.get_user_subscription(user.email)
+    user_subscription_state = get_user_subscription_state(user_subscription)
 
     return templates.TemplateResponse(
         "chat.html",
@@ -92,6 +97,7 @@ def chat_page(request: Request):
             "request": request,
             "username": user.username,
             "user_photo": user_picture,
+            "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
         },
     )
 
@@ -154,6 +160,7 @@ def config_page(request: Request):
             "subscription_state": user_subscription_state,
             "subscription_renewal_date": subscription_renewal_date,
             "khoj_cloud_subscription_url": os.getenv("KHOJ_CLOUD_SUBSCRIPTION_URL"),
+            "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
         },
     )
 

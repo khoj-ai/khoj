@@ -147,7 +147,7 @@ img.khoj-logo {
 }
 .circle {
     border-radius: 50%;
-    border: 3px solid var(--primary-hover);
+    border: 3px dotted var(--main-text-color);
     width: 40px;
     height: 40px;
     padding: 3px;
@@ -164,6 +164,11 @@ img.khoj-logo {
     align-items: center;
     font-size: 20px;
     box-sizing: unset;
+    width: 40px;
+    height: 40px;
+}
+.subscribed {
+    border: 3px solid var(--primary-hover);
 }
 
 @media screen and (max-width: 700px) {
