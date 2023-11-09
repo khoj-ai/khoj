@@ -30,7 +30,7 @@ class GoogleUser(models.Model):
     name = models.CharField(max_length=200)
     given_name = models.CharField(max_length=200)
     family_name = models.CharField(max_length=200)
-    picture = models.CharField(max_length=200)
+    picture = models.CharField(max_length=200, null=True, default=None)
     locale = models.CharField(max_length=200)
 
     def __str__(self):

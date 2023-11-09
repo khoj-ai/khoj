@@ -40,7 +40,6 @@ async def subscribe(request: Request):
         "invoice.paid",
         "customer.subscription.updated",
         "customer.subscription.deleted",
-        "subscription_schedule.canceled",
     }:
         logger.warn(f"Unhandled Stripe event type: {event['type']}")
         return {"success": False}
