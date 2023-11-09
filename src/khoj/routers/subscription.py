@@ -64,7 +64,7 @@ async def subscribe(request: Request):
     elif event_type in {"customer.subscription.updated"}:
         user_subscription = await sync_to_async(adapters.get_user_subscription)(customer_email)
         # Allow updating subscription status if paid user
-        if user_subscription.renewal_date:
+        if user_subscription and user_subscription.renewal_date:
             # Mark user as unsubscribed or resubscribed
             is_recurring = not subscription["cancel_at_period_end"]
             updated_user = await adapters.set_user_subscription(customer_email, is_recurring=is_recurring)

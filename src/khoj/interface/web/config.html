@@ -174,31 +174,47 @@
                     </h3>
                 </div>
                 <div class="card-description-row">
-                {% if subscription_state == "subscribed" %}
-                    <p class="card-description">You are <b>subscribed</b> to Khoj Cloud. Subscription will <b>renew</b> on <b>{{ subscription_renewal_date }}</b></p>
-                {% elif subscription_state == "unsubscribed" %}
-                    <p class="card-description">You are <b>subscribed</b> to Khoj Cloud. Subscription will <b>expire</b> on <b>{{ subscription_renewal_date }}</b></p>
-                {% elif subscription_state == "expired" %}
-                    <p class="card-description">Subscribe to Khoj Cloud. Subscription <b>expired</b> on <b>{{ subscription_renewal_date }}</b></p>
-                {% else %}
-                    <p class="card-description">Subscribe to Khoj Cloud</p>
-                {% endif %}
+                    <p id="trial-description"
+                       class="card-description"
+                       style="display: {% if subscription_state != 'trial' %}none{% endif %}">
+                        Subscribe to Khoj Cloud
+                    </p>
+                    <p id="unsubscribe-description"
+                       class="card-description"
+                       style="display: {% if subscription_state != 'subscribed' %}none{% endif %}">
+                       You are <b>subscribed</b> to Khoj Cloud. Subscription will <b>renew</b> on <b>{{ subscription_renewal_date }}</b>
+                    </p>
+                    <p id="resubscribe-description"
+                       class="card-description"
+                       style="display: {% if subscription_state != 'unsubscribed' %}none{% endif %}">
+                       You are <b>subscribed</b> to Khoj Cloud. Subscription will <b>expire</b> on <b>{{ subscription_renewal_date }}</b>
+                    </p>
+                    <p id="expire-description"
+                       class="card-description"
+                       style="display: {% if subscription_state != 'expired' %}none{% endif %}">
+                       Subscribe to Khoj Cloud. Subscription <b>expired</b> on <b>{{ subscription_renewal_date }}</b>
+                    </p>
                 </div>
                 <div class="card-action-row">
-                    {% if subscription_state == "subscribed" %}
-                    <button class="card-button" onclick="unsubscribe()">
+                    <button id="unsubscribe-button"
+                            class="card-button"
+                            onclick="unsubscribe()"
+                            style="display: {% if subscription_state != 'subscribed' %}none{% endif %};">
                         Unsubscribe
                     </button>
-                    {% elif subscription_state == "unsubscribed" %}
-                    <button class="card-button" onclick="resubscribe()">
+                    <button id="resubscribe-button"
+                            class="card-button happy"
+                            onclick="resubscribe()"
+                            style="display: {% if subscription_state != 'unsubscribed' %}none{% endif %};">
                         Resubscribe
                     </button>
-                    {% else %}
-                    <a class="card-button happy" href="{{ khoj_cloud_subscription_url }}?prefilled_email={{ username }}" target="_blank">
+                    <a id="subscribe-button"
+                       class="card-button happy"
+                       href="{{ khoj_cloud_subscription_url }}?prefilled_email={{ username }}"
+                       style="display: {% if subscription_state == 'subscribed' or subscription_state == 'unsubscribed' %}none{% endif %};">
                         Subscribe
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
                     </a>
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -274,6 +290,17 @@
                 'Content-Type': 'application/json',
             },
         })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+               document.getElementById("unsubscribe-description").style.display = "none";
+               document.getElementById("unsubscribe-button").style.display = "none";
+
+               document.getElementById("resubscribe-description").style.display = "";
+               document.getElementById("resubscribe-button").style.display = "";
+
+             }
+        })
     }
 
     function resubscribe() {
@@ -282,6 +309,16 @@
             headers: {
                 'Content-Type': 'application/json',
             },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+               document.getElementById("resubscribe-description").style.display = "none";
+               document.getElementById("resubscribe-button").style.display = "none";
+
+               document.getElementById("unsubscribe-description").style.display = "";
+               document.getElementById("unsubscribe-button").style.display = "";
+            }
         })
     }
 
