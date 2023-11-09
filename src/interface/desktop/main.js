@@ -10,7 +10,7 @@ const {dialog} = require('electron');
 const cron = require('cron').CronJob;
 const axios = require('axios');
 
-const KHOJ_URL = 'http://127.0.0.1:42110'
+const KHOJ_URL = 'https://app.khoj.dev';
 
 const Store = require('electron-store');
 
@@ -67,7 +67,7 @@ const schema = {
     }
 };
 
-const syncing = false;
+let syncing = false;
 var state = {}
 const store = new Store({ schema });
 
