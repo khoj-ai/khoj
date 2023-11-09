@@ -67,6 +67,7 @@ const schema = {
     }
 };
 
+const syncing = false;
 var state = {}
 const store = new Store({ schema });
 
@@ -111,12 +112,12 @@ function filenameToMimeType (filename) {
 
 function pushDataToKhoj (regenerate = false) {
     // Don't sync if token or hostURL is not set or if already syncing
-    if (store.get('khojToken') === '' || store.get('hostURL') === '' || store.get('syncing') === true) {
+    if (store.get('khojToken') === '' || store.get('hostURL') === '' || syncing === true) {
         const win = BrowserWindow.getAllWindows()[0];
         if (win) win.webContents.send('update-state', state);
         return;
     } else {
-        store.set('syncing', true);
+        syncing = true;
     }
 
     let filesToPush = [];
@@ -201,13 +202,13 @@ function pushDataToKhoj (regenerate = false) {
             })
             .finally(() => {
                 // Syncing complete
-                store.set('syncing', false);
+                syncing = false;
                 const win = BrowserWindow.getAllWindows()[0];
                 if (win) win.webContents.send('update-state', state);
             });
     } else {
         // Syncing complete
-        store.set('syncing', false);
+        syncing = false;
         const win = BrowserWindow.getAllWindows()[0];
         if (win) win.webContents.send('update-state', state);
     }
