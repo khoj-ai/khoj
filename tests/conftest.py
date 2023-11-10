@@ -87,6 +87,22 @@ def default_user2():
 
 @pytest.mark.django_db
 @pytest.fixture
+def default_user3():
+    """
+    This user should not have any data associated with it
+    """
+    if KhojUser.objects.filter(username="default3").exists():
+        return KhojUser.objects.get(username="default3")
+
+    return KhojUser.objects.create(
+        username="default3",
+        email="default3@example.com",
+        password="default3",
+    )
+
+
+@pytest.mark.django_db
+@pytest.fixture
 def api_user(default_user):
     if KhojApiUser.objects.filter(user=default_user).exists():
         return KhojApiUser.objects.get(user=default_user)
@@ -108,6 +124,19 @@ def api_user2(default_user2):
         user=default_user2,
         name="api-key",
         token="kk-diff-secret",
+    )
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def api_user3(default_user3):
+    if KhojApiUser.objects.filter(user=default_user3).exists():
+        return KhojApiUser.objects.get(user=default_user3)
+
+    return KhojApiUser.objects.create(
+        user=default_user3,
+        name="api-key",
+        token="kk-diff-secret-3",
     )
 
 
