@@ -326,9 +326,7 @@ def get_config_types(
     request: Request,
 ):
     user = request.user.object
-
     enabled_file_types = EntryAdapters.get_unique_file_types(user)
-
     configured_content_types = list(enabled_file_types)
 
     if state.config and state.config.content_type:
@@ -665,7 +663,7 @@ async def extract_references_and_questions(
     if conversation_type == ConversationCommand.General:
         return compiled_references, inferred_queries, q
 
-    if not await EntryAdapters.user_has_entries(user=user):
+    if not sync_to_async(EntryAdapters.user_has_entries)(user=user):
         logger.warning(
             "No content index loaded, so cannot extract references from knowledge base. Please configure your data sources and update the index to chat with your notes."
         )
