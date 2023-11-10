@@ -111,13 +111,15 @@ def converse(
         return iter([prompts.no_notes_found.format()])
     elif conversation_command == ConversationCommand.General or is_none_or_empty(compiled_references):
         conversation_primer = prompts.general_conversation.format(query=user_query)
+        personality = prompts.personality.format(current_date=current_date)
     else:
-        conversation_primer = prompts.notes_conversation.format(query=user_query, references=compiled_references)
+        conversation_primer = prompts.general_conversation.format(query=user_query)
+        personality = prompts.personality_with_notes.format(current_date=current_date, references=compiled_references)
 
     # Setup Prompt with Primer or Conversation History
     messages = generate_chatml_messages_with_context(
         conversation_primer,
-        prompts.personality.format(current_date=current_date),
+        personality,
         conversation_log,
         model,
         max_prompt_size,
