@@ -134,10 +134,11 @@ async def set_user_subscription(
         return None
 
 
-def get_user_subscription_state(user_subscription: Subscription) -> str:
+def get_user_subscription_state(email: str) -> str:
     """Get subscription state of user
     Valid state transitions: trial -> subscribed <-> unsubscribed OR expired
     """
+    user_subscription = Subscription.objects.filter(user__email=email).first()
     if not user_subscription:
         return "trial"
     elif user_subscription.type == Subscription.Type.TRIAL:
@@ -450,5 +451,5 @@ class EntryAdapters:
         return Entry.objects.filter(user=user).values_list("file_type", flat=True).distinct()
 
     @staticmethod
-    def get_unique_file_source(user: KhojUser):
-        return Entry.objects.filter(user=user).values_list("file_source", flat=True).distinct()
+    def get_unique_file_sources(user: KhojUser):
+        return Entry.objects.filter(user=user).values_list("file_source", flat=True).distinct().all()
