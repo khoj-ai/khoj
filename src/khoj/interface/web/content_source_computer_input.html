@@ -7,7 +7,7 @@
             <span class="card-title-text">Files</span>
             <div class="instructions">
                 <p class="card-description">Manage files from your computer</p>
-                <p id="desktop-client" class="card-description">Download the <a href="https://download.khoj.dev">Khoj Desktop app</a> to sync files from your computer</p>
+                <p id="get-desktop-client" class="card-description">Download the <a href="https://download.khoj.dev">Khoj Desktop app</a> to sync documents from your computer</p>
             </div>
         </h2>
         <div class="section-manage-files">
@@ -56,8 +56,9 @@
 
                 if (data.length == 0) {
                     document.getElementById("delete-all-files").style.display = "none";
-                    indexedFiles.innerHTML = "<div class='card-description'>Use the <a href='https://download.khoj.dev'>Khoj Desktop client</a> to index files.</div>";
+                    indexedFiles.innerHTML = "<div class='card-description'>No documents synced with Khoj</div>";
                 } else {
+                    document.getElementById("get-desktop-client").style.display = "none";
                     document.getElementById("delete-all-files").style.display = "block";
                 }
 
