@@ -155,11 +155,14 @@ window.updateStateAPI.onUpdateState((event, state) => {
     loadingBar.style.display = 'none';
     let syncStatusElement = document.getElementById("sync-status");
     const currentTime = new Date();
+    nextSyncTime = new Date();
+    nextSyncTime.setMinutes(Math.ceil((nextSyncTime.getMinutes() + 1) / 10) * 10);
     if (state.completed == false) {
         syncStatusElement.innerHTML = `Sync was unsuccessful at ${currentTime.toLocaleTimeString()}. Contact team@khoj.dev to report this issue.`;
         return;
     }
-    syncStatusElement.innerHTML = `Last synced at ${currentTime.toLocaleTimeString()}`;
+    const options = { hour: '2-digit', minute: '2-digit' };
+    syncStatusElement.innerHTML = `⏱️ Synced at ${currentTime.toLocaleTimeString(undefined, options)}. Next sync at ${nextSyncTime.toLocaleTimeString(undefined, options)}.`;
 });
 
 const urlInput = document.getElementById('khoj-host-url');

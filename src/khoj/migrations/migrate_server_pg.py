@@ -74,7 +74,7 @@ logger = logging.getLogger(__name__)
 
 
 def migrate_server_pg(args):
-    schema_version = "0.14.0"
+    schema_version = "0.15.0"
     raw_config = load_config_from_file(args.config_file)
     previous_version = raw_config.get("version")
 

@@ -1,11 +1,13 @@
-{% macro heading_pane(user_photo, username) -%}
+{% macro heading_pane(user_photo, username, is_active, has_documents) -%}
     <div class="khoj-header">
         <a class="khoj-logo" href="/" target="_blank">
             <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
         </a>
         <nav class="khoj-nav">
             <a id="chat-nav" class="khoj-nav" href="/chat">💬 Chat</a>
+            {% if has_documents %}
             <a id="search-nav" class="khoj-nav" href="/search">🔎 Search</a>
+            {% endif %}
             <!-- Dropdown Menu -->
             <div id="khoj-nav-menu-container" class="khoj-nav dropdown">
                 {% if user_photo and user_photo != "None" %}
@@ -15,7 +17,11 @@
                     <img id="profile-picture" class="circle" src="{{ user_photo }}" alt="{{ username[0].upper() }}" onclick="toggleMenu()" referrerpolicy="no-referrer">
                     {% endif %}
                 {% else %}
-                    <div class="circle user-initial" alt="{{ username[0].upper() }}" onclick="toggleMenu()">{{ username[0].upper() }}</div>
+                    {% if is_active %}
+                    <div id="profile-picture" class="circle user-initial subscribed" alt="{{ username[0].upper() }}" onclick="toggleMenu()">{{ username[0].upper() }}</div>
+                    {% else %}
+                    <div id="profile-picture" class="circle user-initial" alt="{{ username[0].upper() }}" onclick="toggleMenu()">{{ username[0].upper() }}</div>
+                    {% endif %}
                 {% endif %}
                 <div id="khoj-nav-menu" class="khoj-nav-dropdown-content">
                     <div class="khoj-nav-username"> {{ username }} </div>

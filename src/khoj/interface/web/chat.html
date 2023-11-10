@@ -10,6 +10,16 @@
     </head>
     <script type="text/javascript" src="/static/assets/utils.js"></script>
     <script>
+        let welcome_message = `
+Hi, I am Khoj, your open, personal AI 👋🏽. I can help:
+• 🧠 Answer general knowledge questions
+• 💡 Be a sounding board for your ideas
+• 📜 Chat with your notes & documents
+
+Download the <a class='inline-chat-link' href='https://khoj.dev/downloads'>🖥️ Desktop app</a> to chat with your computer docs.
+
+To get started, just start typing below. You can also type / to see a list of commands.
+`.trim()
         let chatOptions = [];
         function copyProgrammaticOutput(event) {
             // Remove the first 4 characters which are the "Copy" button
@@ -322,7 +332,7 @@
                         document.getElementById("chat-input").setAttribute("placeholder", "Configure Khoj to enable chat");
                     } else {
                         // Set welcome message on load
-                        renderMessage("Hey 👋🏾, what's up?", "khoj");
+                        renderMessage(welcome_message, "khoj");
                     }
                     return data.response;
                 })
@@ -363,7 +373,7 @@
 
         <!--Add Header Logo and Nav Pane-->
         {% import 'utils.html' as utils %}
-        {{ utils.heading_pane(user_photo, username) }}
+        {{ utils.heading_pane(user_photo, username, is_active, has_documents) }}
 
         <!-- Chat Body -->
         <div id="chat-body"></div>
@@ -376,9 +386,6 @@
     </body>
     <script>
         document.getElementById("chat-nav").classList.add("khoj-nav-selected");
-        {% if is_active %}
-        document.getElementById("profile-picture").classList.add("subscribed");
-        {% endif %}
     </script>
     <style>
         html, body {

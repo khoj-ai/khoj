@@ -37,6 +37,8 @@ templates = Jinja2Templates(directory=constants.web_directory)
 def index(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
+    user_subscription_state = get_user_subscription_state(user.email)
+    has_documents = EntryAdapters.user_has_entries(user=user)
 
     return templates.TemplateResponse(
         "chat.html",
@@ -44,6 +46,8 @@ def index(request: Request):
             "request": request,
             "username": user.username,
             "user_photo": user_picture,
+            "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
+            "has_documents": has_documents,
         },
     )
 
@@ -53,6 +57,8 @@ def index(request: Request):
 def index_post(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
+    user_subscription_state = get_user_subscription_state(user.email)
+    has_documents = EntryAdapters.user_has_entries(user=user)
 
     return templates.TemplateResponse(
         "chat.html",
@@ -60,6 +66,8 @@ def index_post(request: Request):
             "request": request,
             "username": user.username,
             "user_photo": user_picture,
+            "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
+            "has_documents": has_documents,
         },
     )
 
@@ -69,8 +77,8 @@ def index_post(request: Request):
 def search_page(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
-    user_subscription = adapters.get_user_subscription(user.email)
-    user_subscription_state = get_user_subscription_state(user_subscription)
+    user_subscription_state = get_user_subscription_state(user.email)
+    has_documents = EntryAdapters.user_has_entries(user=user)
 
     return templates.TemplateResponse(
         "search.html",
@@ -79,6 +87,7 @@ def search_page(request: Request):
             "username": user.username,
             "user_photo": user_picture,
             "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
+            "has_documents": has_documents,
         },
     )
 
@@ -88,8 +97,8 @@ def search_page(request: Request):
 def chat_page(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
-    user_subscription = adapters.get_user_subscription(user.email)
-    user_subscription_state = get_user_subscription_state(user_subscription)
+    user_subscription_state = get_user_subscription_state(user.email)
+    has_documents = EntryAdapters.user_has_entries(user=user)
 
     return templates.TemplateResponse(
         "chat.html",
@@ -98,6 +107,7 @@ def chat_page(request: Request):
             "username": user.username,
             "user_photo": user_picture,
             "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
+            "has_documents": has_documents,
         },
     )
 
@@ -124,27 +134,28 @@ def login_page(request: Request):
 def config_page(request: Request):
     user: KhojUser = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
+    has_documents = EntryAdapters.user_has_entries(user=user)
+
+    user_subscription_state = get_user_subscription_state(user.email)
     user_subscription = adapters.get_user_subscription(user.email)
-    user_subscription_state = get_user_subscription_state(user_subscription)
     subscription_renewal_date = (
         user_subscription.renewal_date.strftime("%d %b %Y")
         if user_subscription and user_subscription.renewal_date
         else None
     )
-    enabled_content_source = set(EntryAdapters.get_unique_file_source(user).all())
 
+    enabled_content_source = set(EntryAdapters.get_unique_file_sources(user))
     successfully_configured = {
         "computer": ("computer" in enabled_content_source),
         "github": ("github" in enabled_content_source),
         "notion": ("notion" in enabled_content_source),
     }
 
+    selected_conversation_config = ConversationAdapters.get_conversation_config(user)
     conversation_options = ConversationAdapters.get_conversation_processor_options().all()
     all_conversation_options = list()
     for conversation_option in conversation_options:
         all_conversation_options.append({"chat_model": conversation_option.chat_model, "id": conversation_option.id})
-
-    selected_conversation_config = ConversationAdapters.get_conversation_config(user)
 
     return templates.TemplateResponse(
         "config.html",
@@ -161,6 +172,7 @@ def config_page(request: Request):
             "subscription_renewal_date": subscription_renewal_date,
             "khoj_cloud_subscription_url": os.getenv("KHOJ_CLOUD_SUBSCRIPTION_URL"),
             "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
+            "has_documents": has_documents,
         },
     )
 
@@ -170,6 +182,8 @@ def config_page(request: Request):
 def github_config_page(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
+    user_subscription_state = get_user_subscription_state(user.email)
+    has_documents = EntryAdapters.user_has_entries(user=user)
     current_github_config = get_user_github_config(user)
 
     if current_github_config:
@@ -198,6 +212,8 @@ def github_config_page(request: Request):
             "current_config": current_config,
             "username": user.username,
             "user_photo": user_picture,
+            "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
+            "has_documents": has_documents,
         },
     )
 
@@ -207,6 +223,8 @@ def github_config_page(request: Request):
 def notion_config_page(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
+    user_subscription_state = adapters.get_user_subscription(user.email)
+    has_documents = EntryAdapters.user_has_entries(user=user)
     current_notion_config = get_user_notion_config(user)
 
     current_config = NotionContentConfig(
@@ -222,6 +240,8 @@ def notion_config_page(request: Request):
             "current_config": current_config,
             "username": user.username,
             "user_photo": user_picture,
+            "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
+            "has_documents": has_documents,
         },
     )
 
@@ -231,6 +251,8 @@ def notion_config_page(request: Request):
 def computer_config_page(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
+    user_subscription_state = get_user_subscription_state(user.email)
+    has_documents = EntryAdapters.user_has_entries(user=user)
 
     return templates.TemplateResponse(
         "content_source_computer_input.html",
@@ -238,5 +260,7 @@ def computer_config_page(request: Request):
             "request": request,
             "username": user.username,
             "user_photo": user_picture,
+            "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
+            "has_documents": has_documents,
         },
     )
