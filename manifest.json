@@ -1,9 +1,9 @@
 {
 	"id": "khoj",
 	"name": "Khoj",
-	"version": "0.13.0",
+	"version": "0.14.0",
 	"minAppVersion": "0.15.0",
-	"description": "An Open-Source AI Personal Assistant for your Digital Brain",
+	"description": "An AI copilot for your Second Brain",
 	"author": "Khoj Inc.",
 	"authorUrl": "https://github.com/khoj-ai",
 	"isDesktopOnly": true
