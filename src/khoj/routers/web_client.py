@@ -37,6 +37,8 @@ templates = Jinja2Templates(directory=constants.web_directory)
 def index(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
+    user_subscription = adapters.get_user_subscription(user.email)
+    user_subscription_state = get_user_subscription_state(user_subscription)
 
     return templates.TemplateResponse(
         "chat.html",
@@ -44,6 +46,7 @@ def index(request: Request):
             "request": request,
             "username": user.username,
             "user_photo": user_picture,
+            "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
         },
     )
 
@@ -53,6 +56,8 @@ def index(request: Request):
 def index_post(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
+    user_subscription = adapters.get_user_subscription(user.email)
+    user_subscription_state = get_user_subscription_state(user_subscription)
 
     return templates.TemplateResponse(
         "chat.html",
@@ -60,6 +65,7 @@ def index_post(request: Request):
             "request": request,
             "username": user.username,
             "user_photo": user_picture,
+            "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
         },
     )
 
@@ -170,6 +176,8 @@ def config_page(request: Request):
 def github_config_page(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
+    user_subscription = adapters.get_user_subscription(user.email)
+    user_subscription_state = get_user_subscription_state(user_subscription)
     current_github_config = get_user_github_config(user)
 
     if current_github_config:
@@ -198,6 +206,7 @@ def github_config_page(request: Request):
             "current_config": current_config,
             "username": user.username,
             "user_photo": user_picture,
+            "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
         },
     )
 
@@ -207,6 +216,8 @@ def github_config_page(request: Request):
 def notion_config_page(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
+    user_subscription = adapters.get_user_subscription(user.email)
+    user_subscription_state = get_user_subscription_state(user_subscription)
     current_notion_config = get_user_notion_config(user)
 
     current_config = NotionContentConfig(
@@ -222,6 +233,7 @@ def notion_config_page(request: Request):
             "current_config": current_config,
             "username": user.username,
             "user_photo": user_picture,
+            "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
         },
     )
 
@@ -231,6 +243,8 @@ def notion_config_page(request: Request):
 def computer_config_page(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
+    user_subscription = adapters.get_user_subscription(user.email)
+    user_subscription_state = get_user_subscription_state(user_subscription)
 
     return templates.TemplateResponse(
         "content_source_computer_input.html",
@@ -238,5 +252,6 @@ def computer_config_page(request: Request):
             "request": request,
             "username": user.username,
             "user_photo": user_picture,
+            "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
         },
     )

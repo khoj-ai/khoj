@@ -363,7 +363,7 @@
 
         <!--Add Header Logo and Nav Pane-->
         {% import 'utils.html' as utils %}
-        {{ utils.heading_pane(user_photo, username) }}
+        {{ utils.heading_pane(user_photo, username, is_active) }}
 
         <!-- Chat Body -->
         <div id="chat-body"></div>
@@ -376,9 +376,6 @@
     </body>
     <script>
         document.getElementById("chat-nav").classList.add("khoj-nav-selected");
-        {% if is_active %}
-        document.getElementById("profile-picture").classList.add("subscribed");
-        {% endif %}
     </script>
     <style>
         html, body {
