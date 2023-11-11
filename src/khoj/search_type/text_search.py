@@ -224,7 +224,7 @@ def cross_encoder_score(query: str, hits: List[SearchResponse]) -> List[SearchRe
 
     # Convert cross-encoder scores to distances and pass in hits for reranking
     for idx in range(len(cross_scores)):
-        hits[idx]["cross_score"] = -1 * cross_scores[idx]
+        hits[idx]["cross_score"] = 1 - cross_scores[idx]
 
     return hits
 

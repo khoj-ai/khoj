@@ -27,5 +27,5 @@ class CrossEncoderModel:
 
     def predict(self, query, hits: List[SearchResponse]):
         cross__inp = [[query, hit.additional["compiled"]] for hit in hits]
-        cross_scores = self.cross_encoder_model.predict(cross__inp)
+        cross_scores = self.cross_encoder_model.predict(cross__inp, apply_softmax=True)
         return cross_scores
