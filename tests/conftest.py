@@ -235,7 +235,7 @@ def chat_client(search_config: SearchConfig, default_user2: KhojUser):
         OpenAIProcessorConversationConfigFactory()
         UserConversationProcessorConfigFactory(user=default_user2, setting=chat_model)
 
-    state.anonymous_mode = False
+    state.anonymous_mode = True
 
     app = FastAPI()
 
@@ -253,7 +253,9 @@ def chat_client_no_background(search_config: SearchConfig, default_user2: KhojUs
 
     # Initialize Processor from Config
     if os.getenv("OPENAI_API_KEY"):
+        chat_model = ChatModelOptionsFactory(chat_model="gpt-3.5-turbo", model_type="openai")
         OpenAIProcessorConversationConfigFactory()
+        UserConversationProcessorConfigFactory(user=default_user2, setting=chat_model)
 
     state.anonymous_mode = True
 
