@@ -46,6 +46,9 @@
     </div>
 </div>
 <style>
+    td {
+        padding: 10px 0;
+    }
     div.repo {
         width: 100%;
         height: 100%;
@@ -124,6 +127,10 @@
             return;
         }
 
+        const submitButton = document.getElementById("submit");
+        submitButton.disabled = true;
+        submitButton.innerHTML = "Saving...";
+
         // Save Github config on server
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
         fetch('/api/config/data/content-source/github', {
@@ -140,8 +147,13 @@
         .then(response => response.json())
         .then(data => { data["status"] === "ok" ? data : Promise.reject(data) })
         .catch(error => {
-            document.getElementById("success").innerHTML = "⚠️ Failed to update settings";
+            document.getElementById("success").innerHTML = "⚠️ Failed to save Github settings.";
             document.getElementById("success").style.display = "block";
+            submitButton.innerHTML = "⚠️ Failed to save settings";
+            setTimeout(function() {
+                submitButton.innerHTML = "Save";
+                submitButton.disabled = false;
+            }, 2000);
             return;
         });
 
@@ -150,12 +162,21 @@
         .then(response => response.json())
         .then(data => { data["status"] == "ok" ? data : Promise.reject(data) })
         .then(data => {
-            document.getElementById("success").innerHTML = "✅ Successfully updated";
-            document.getElementById("success").style.display = "block";
+            document.getElementById("success").style.display = "none";
+            submitButton.innerHTML = "✅ Successfully updated";
+            setTimeout(function() {
+                submitButton.innerHTML = "Save";
+                submitButton.disabled = false;
+            }, 2000);
         })
         .catch(error => {
-            document.getElementById("success").innerHTML = "⚠️ Failed to update settings";
+            document.getElementById("success").innerHTML = "⚠️ Failed to save Github content.";
             document.getElementById("success").style.display = "block";
+            submitButton.innerHTML = "⚠️ Failed to save content";
+            setTimeout(function() {
+                submitButton.innerHTML = "Save";
+                submitButton.disabled = false;
+            }, 2000);
         });
 
     });
