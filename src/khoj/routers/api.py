@@ -356,7 +356,7 @@ async def search(
     n: Optional[int] = 5,
     t: Optional[SearchType] = SearchType.All,
     r: Optional[bool] = False,
-    score_threshold: Optional[Union[float, None]] = None,
+    max_distance: Optional[Union[float, None]] = None,
     dedupe: Optional[bool] = True,
     client: Optional[str] = None,
     user_agent: Optional[str] = Header(None),
@@ -375,12 +375,12 @@ async def search(
     # initialize variables
     user_query = q.strip()
     results_count = n or 5
-    score_threshold = score_threshold if score_threshold is not None else -math.inf
+    max_distance = max_distance if max_distance is not None else math.inf
     search_futures: List[concurrent.futures.Future] = []
 
     # return cached results, if available
     if user:
-        query_cache_key = f"{user_query}-{n}-{t}-{r}-{score_threshold}-{dedupe}"
+        query_cache_key = f"{user_query}-{n}-{t}-{r}-{max_distance}-{dedupe}"
         if query_cache_key in state.query_cache[user.uuid]:
             logger.debug(f"Return response from query cache")
             return state.query_cache[user.uuid][query_cache_key]
@@ -418,7 +418,7 @@ async def search(
                     t,
                     question_embedding=encoded_asymmetric_query,
                     rank_results=r or False,
-                    score_threshold=score_threshold,
+                    max_distance=max_distance,
                 )
             ]
 
@@ -431,7 +431,6 @@ async def search(
                     results_count,
                     state.search_models.image_search,
                     state.content_index.image,
-                    score_threshold=score_threshold,
                 )
             ]
 
@@ -454,11 +453,10 @@ async def search(
                     # Collate results
                     results += text_search.collate_results(hits, dedupe=dedupe)
 
-            if r:
-                results = text_search.rerank_and_sort_results(results, query=defiltered_query)[:results_count]
-            else:
                 # Sort results across all content types and take top results
-                results = sorted(results, key=lambda x: float(x.score))[:results_count]
+                results = text_search.rerank_and_sort_results(results, query=defiltered_query, rank_results=r)[
+                    :results_count
+                ]
 
     # Cache results
     if user:
@@ -583,6 +581,7 @@ async def chat(
     request: Request,
     q: str,
     n: Optional[int] = 5,
+    d: Optional[float] = 0.15,
     client: Optional[str] = None,
     stream: Optional[bool] = False,
     user_agent: Optional[str] = Header(None),
@@ -599,7 +598,7 @@ async def chat(
     meta_log = (await ConversationAdapters.aget_conversation_by_user(user)).conversation_log
 
     compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
-        request, meta_log, q, (n or 5), conversation_command
+        request, meta_log, q, (n or 5), (d or math.inf), conversation_command
     )
 
     if conversation_command == ConversationCommand.Default and is_none_or_empty(compiled_references):
@@ -663,6 +662,7 @@ async def extract_references_and_questions(
     meta_log: dict,
     q: str,
     n: int,
+    d: float,
     conversation_type: ConversationCommand = ConversationCommand.Default,
 ):
     user = request.user.object if request.user.is_authenticated else None
@@ -723,7 +723,7 @@ async def extract_references_and_questions(
                     request=request,
                     n=n_items,
                     r=True,
-                    score_threshold=-5.0,
+                    max_distance=d,
                     dedupe=False,
                 )
             )
