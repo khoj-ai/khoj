@@ -43,7 +43,7 @@ To get started, just start typing below. You can also type / to see a list of co
             let escaped_ref = reference.replaceAll('"', '&quot;');
 
             // Generate HTML for Chat Reference
-            let short_ref = escaped_ref.slice(0, 100);
+            let short_ref = escaped_ref.slice(0, 140);
             short_ref = short_ref.length < escaped_ref.length ? short_ref + "..." : short_ref;
             let referenceButton = document.createElement('button');
             referenceButton.innerHTML = short_ref;
@@ -447,7 +447,7 @@ To get started, just start typing below. You can also type / to see a list of co
             cursor: pointer;
             transition: background 0.2s ease-in-out;
             text-align: left;
-            max-height: 50px;
+            max-height: 75px;
             transition: max-height 0.3s ease-in-out;
             overflow: hidden;
         }
