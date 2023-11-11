@@ -134,4 +134,5 @@ def converse(
         temperature=temperature,
         openai_api_key=api_key,
         completion_func=completion_func,
+        model_kwargs={"stop": ["Notes:\n["]},
     )
