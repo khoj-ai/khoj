@@ -110,7 +110,7 @@
         <div class="section finalize-actions general-settings">
             <div class="section-cards">
                 <div class="finalize-buttons">
-                    <button id="configure" type="submit" title="Update index with the latest changes">⚙️ Configure</button>
+                    <button id="configure" type="submit" title="Update index with the latest changes">💾 Save All</button>
                 </div>
                 <div class="finalize-buttons">
                     <button id="reinitialize" type="submit" title="Regenerate index from scratch">🔄 Reinitialize</button>
@@ -326,11 +326,11 @@
         event.preventDefault();
         updateIndex(
             force=false,
-            successText="Configured successfully!",
+            successText="Saved!",
             errorText="Unable to configure. Raise issue on Khoj <a href='https://github.com/khoj-ai/khoj/issues'>Github</a> or <a href='https://discord.gg/BDgyabRM6e'>Discord</a>.",
             button=configure,
-            loadingText="Configuring...",
-            emoji="⚙️");
+            loadingText="Saving...",
+            emoji="💾");
     });
 
     var reinitialize = document.getElementById("reinitialize");
@@ -338,7 +338,7 @@
         event.preventDefault();
         updateIndex(
             force=true,
-            successText="Reinitialized successfully!",
+            successText="Reinitialized!",
             errorText="Unable to reinitialize. Raise issue on Khoj <a href='https://github.com/khoj-ai/khoj/issues'>Github</a> or <a href='https://discord.gg/BDgyabRM6e'>Discord</a>.",
             button=reinitialize,
             loadingText="Reinitializing...",
@@ -347,6 +347,7 @@
 
     function updateIndex(force, successText, errorText, button, loadingText, emoji) {
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
+        const original_html = button.innerHTML;
         button.disabled = true;
         button.innerHTML = emoji + " " + loadingText;
         fetch('/api/update?&client=web&force=' + force, {
@@ -363,10 +364,13 @@
                 throw new Error(data.detail);
             }
 
-            document.getElementById("status").innerHTML = emoji + " " + successText;
-            document.getElementById("status").style.display = "block";
+            document.getElementById("status").style.display = "none";
+
             button.disabled = false;
-            button.innerHTML = '✅ Done!';
+            button.innerHTML = `✅ ${successText}`;
+            setTimeout(function() {
+                button.innerHTML = original_html;
+            }, 2000);
         })
         .catch((error) => {
             console.error('Error:', error);
@@ -374,6 +378,9 @@
             document.getElementById("status").style.display = "block";
             button.disabled = false;
             button.innerHTML = '⚠️ Unsuccessful';
+            setTimeout(function() {
+                button.innerHTML = original_html;
+            }, 2000);
         });
 
         content_sources = ["computer", "github", "notion"];
