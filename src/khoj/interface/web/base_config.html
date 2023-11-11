@@ -121,7 +121,7 @@
         div.finalize-buttons {
             display: grid;
             gap: 8px;
-            padding: 24px 16px;
+            padding: 32px 0px 0px;
             width: 320px;
             border-radius: 4px;
             overflow: hidden;
@@ -274,7 +274,9 @@
             100% { transform: rotate(360deg); }
         }
 
-
+        #status {
+            padding-top: 32px;
+        }
         div.finalize-actions {
             grid-auto-flow: column;
             grid-gap: 24px;
@@ -347,6 +349,12 @@
                 width: auto;
             }
 
+            #status {
+                padding-top: 12px;
+            }
+            div.finalize-actions {
+                padding: 12px 0 0;
+            }
             div.finalize-buttons {
                 padding: 0;
             }

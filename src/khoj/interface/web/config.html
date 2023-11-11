@@ -104,6 +104,19 @@
                 </div>
             </div>
         </div>
+        <div class="general-settings section">
+            <div id="status" style="display: none;"></div>
+        </div>
+        <div class="section finalize-actions general-settings">
+            <div class="section-cards">
+                <div class="finalize-buttons">
+                    <button id="configure" type="submit" title="Update index with the latest changes">⚙️ Configure</button>
+                </div>
+                <div class="finalize-buttons">
+                    <button id="reinitialize" type="submit" title="Regenerate index from scratch">🔄 Reinitialize</button>
+                </div>
+            </div>
+        </div>
     </div>
     <div class="section">
         <h2 class="section-title">Features</h2>
@@ -221,23 +234,7 @@
         </div>
     </div>
     {% endif %}
-    <div class="section general-settings">
-        <div id="results-count" title="Number of items to show in search and use for chat response">
-            <label for="results-count-slider">Results Count: <span id="results-count-value">5</span></label>
-            <input type="range" id="results-count-slider" name="results-count-slider" min="1" max="10" step="1" value="5">
-        </div>
-        <div id="status" style="display: none;"></div>
-    </div>
-    <div class="section finalize-actions general-settings">
-        <div class="section-cards">
-            <div class="finalize-buttons">
-                <button id="configure" type="submit" title="Update index with the latest changes">⚙️ Configure</button>
-            </div>
-            <div class="finalize-buttons">
-                <button id="reinitialize" type="submit" title="Regenerate index from scratch">🔄 Reinitialize</button>
-            </div>
-        </div>
-    </div>
+    <div class="section"></div>
 </div>
 <script>
 
@@ -398,26 +395,6 @@
                 }
             });
         });
-    }
-
-    // Setup the results count slider
-    const resultsCountSlider = document.getElementById('results-count-slider');
-    const resultsCountValue = document.getElementById('results-count-value');
-
-    // Set the initial value of the slider
-    resultsCountValue.textContent = resultsCountSlider.value;
-
-    // Store the slider value in localStorage when it changes
-    resultsCountSlider.addEventListener('input', () => {
-        resultsCountValue.textContent = resultsCountSlider.value;
-        localStorage.setItem('khojResultsCount', resultsCountSlider.value);
-    });
-
-    // Get the slider value from localStorage on page load
-    const storedResultsCount = localStorage.getItem('khojResultsCount');
-    if (storedResultsCount) {
-        resultsCountSlider.value = storedResultsCount;
-        resultsCountValue.textContent = storedResultsCount;
     }
 
     function generateAPIKey() {
