@@ -359,7 +359,6 @@
         })
         .then(response => response.json())
         .then(data => {
-            console.log('Success:', data);
             if (data.detail != null) {
                 throw new Error(data.detail);
             }
