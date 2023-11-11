@@ -41,6 +41,7 @@
             return;
         }
 
+        // Save Notion config on server
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
         fetch('/api/config/data/content-source/notion', {
             method: 'POST',
@@ -53,15 +54,25 @@
             })
         })
         .then(response => response.json())
+        .then(data => { data["status"] === "ok" ? data : Promise.reject(data) })
+        .catch(error => {
+            document.getElementById("success").innerHTML = "⚠️ Failed to update settings";
+            document.getElementById("success").style.display = "block";
+            return;
+        });
+
+        // Index Notion content on server
+        fetch('/api/update?t=notion')
+        .then(response => response.json())
+        .then(data => { data["status"] == "ok" ? data : Promise.reject(data) })
         .then(data => {
-            if (data["status"] == "ok") {
-                document.getElementById("success").innerHTML = "✅ Successfully updated. Go to your <a href='/config'>settings page</a> to complete setup.";
-                document.getElementById("success").style.display = "block";
-            } else {
-                document.getElementById("success").innerHTML = "⚠️ Failed to update settings.";
-                document.getElementById("success").style.display = "block";
-            }
+            document.getElementById("success").innerHTML = "✅ Successfully updated";
+            document.getElementById("success").style.display = "block";
         })
+        .catch(error => {
+            document.getElementById("success").innerHTML = "⚠️ Failed to update settings";
+            document.getElementById("success").style.display = "block";
+        });
     });
 </script>
 {% endblock %}

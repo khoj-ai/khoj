@@ -177,11 +177,15 @@ async def set_content_config_github_data(
 
     user = request.user.object
 
-    await adapters.set_user_github_config(
-        user=user,
-        pat_token=updated_config.pat_token,
-        repos=updated_config.repos,
-    )
+    try:
+        await adapters.set_user_github_config(
+            user=user,
+            pat_token=updated_config.pat_token,
+            repos=updated_config.repos,
+        )
+    except Exception as e:
+        logger.error(e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to set Github config")
 
     update_telemetry_state(
         request=request,
@@ -205,10 +209,14 @@ async def set_content_config_notion_data(
 
     user = request.user.object
 
-    await adapters.set_notion_config(
-        user=user,
-        token=updated_config.token,
-    )
+    try:
+        await adapters.set_notion_config(
+            user=user,
+            token=updated_config.token,
+        )
+    except Exception as e:
+        logger.error(e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to set Github config")
 
     update_telemetry_state(
         request=request,
