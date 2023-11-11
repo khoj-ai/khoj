@@ -13,7 +13,7 @@ from khoj.utils.helpers import ConversationCommand, log_telemetry
 from khoj.processor.conversation.openai.gpt import converse
 from khoj.processor.conversation.gpt4all.chat_model import converse_offline
 from khoj.processor.conversation.utils import message_to_log, ThreadedGenerator
-from database.models import KhojUser
+from database.models import KhojUser, Subscription
 from database.adapters import ConversationAdapters
 
 logger = logging.getLogger(__name__)
@@ -61,12 +61,15 @@ def update_telemetry_state(
     metadata: Optional[dict] = None,
 ):
     user: KhojUser = request.user.object if request.user.is_authenticated else None
+    subscription: Subscription = user.subscription if user and user.subscription else None
     user_state = {
         "client_host": request.client.host if request.client else None,
         "user_agent": user_agent or "unknown",
         "referer": referer or "unknown",
         "host": host or "unknown",
         "server_id": str(user.uuid) if user else None,
+        "subscription_type": subscription.type if subscription else None,
+        "is_recurring": subscription.is_recurring if subscription else None,
     }
 
     if metadata:

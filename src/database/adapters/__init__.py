@@ -101,6 +101,8 @@ async def create_google_user(token: dict) -> KhojUser:
         user=user,
     )
 
+    await Subscription.objects.acreate(user=user, type="trial")
+
     return user
 
 

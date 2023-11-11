@@ -51,10 +51,10 @@ class Subscription(BaseModel):
         TRIAL = "trial"
         STANDARD = "standard"
 
-    user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
+    user = models.OneToOneField(KhojUser, on_delete=models.CASCADE, related_name="subscription")
     type = models.CharField(max_length=20, choices=Type.choices, default=Type.TRIAL)
     is_recurring = models.BooleanField(default=False)
-    renewal_date = models.DateTimeField(null=True, default=None)
+    renewal_date = models.DateTimeField(null=True, default=None, blank=True)
 
 
 class NotionConfig(BaseModel):

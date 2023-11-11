@@ -9,6 +9,7 @@ from database.models import (
     OpenAIProcessorConversationConfig,
     UserConversationConfig,
     Conversation,
+    Subscription,
 )
 
 
@@ -68,3 +69,12 @@ class ConversationFactory(factory.django.DjangoModelFactory):
         model = Conversation
 
     user = factory.SubFactory(UserFactory)
+
+
+class SubscriptionFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Subscription
+
+    user = factory.SubFactory(UserFactory)
+    type = "trial"
+    is_recurring = False
