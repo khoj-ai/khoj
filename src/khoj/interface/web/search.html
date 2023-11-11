@@ -189,7 +189,6 @@
             })
                 .then(response => response.json())
                 .then(data => {
-                    console.log(data);
                     document.getElementById("results").innerHTML = render_results(data, query, type);
                 });
         }

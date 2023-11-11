@@ -308,6 +308,7 @@ def test_ask_for_clarification_if_not_enough_context_in_question(chat_client_no_
         "which of namita's sons",
         "the birth order",
         "provide more context",
+        "provide me with more context",
     ]
     assert response.status_code == 200
     assert any([expected_response in response_message.lower() for expected_response in expected_responses]), (

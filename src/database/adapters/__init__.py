@@ -1,3 +1,4 @@
+import math
 from typing import Optional, Type, TypeVar, List
 from datetime import date, datetime, timedelta
 import secrets
@@ -437,12 +438,19 @@ class EntryAdapters:
 
     @staticmethod
     def search_with_embeddings(
-        user: KhojUser, embeddings: Tensor, max_results: int = 10, file_type_filter: str = None, raw_query: str = None
+        user: KhojUser,
+        embeddings: Tensor,
+        max_results: int = 10,
+        file_type_filter: str = None,
+        raw_query: str = None,
+        max_distance: float = math.inf,
     ):
         relevant_entries = EntryAdapters.apply_filters(user, raw_query, file_type_filter)
         relevant_entries = relevant_entries.filter(user=user).annotate(
             distance=CosineDistance("embeddings", embeddings)
         )
+        relevant_entries = relevant_entries.filter(distance__lte=max_distance)
+
         if file_type_filter:
             relevant_entries = relevant_entries.filter(file_type=file_type_filter)
         relevant_entries = relevant_entries.order_by("distance")
