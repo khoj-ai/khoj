@@ -2,7 +2,7 @@ import logging
 import asyncio
 from datetime import datetime
 from functools import partial
-from typing import Iterator, List, Optional, Union
+from typing import Iterator, List, Optional, Tuple, Union
 from concurrent.futures import ThreadPoolExecutor
 
 from fastapi import HTTPException, Request
@@ -109,7 +109,7 @@ def generate_chat_response(
     inferred_queries: List[str] = [],
     conversation_command: ConversationCommand = ConversationCommand.Default,
     user: KhojUser = None,
-) -> Union[ThreadedGenerator, Iterator[str]]:
+) -> Tuple[Union[ThreadedGenerator, Iterator[str]], dict]:
     def _save_to_conversation_log(
         q: str,
         chat_response: str,
