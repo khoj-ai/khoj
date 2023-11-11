@@ -109,7 +109,7 @@
             display: grid;
             grid-template-rows: repeat(3, 1fr);
             gap: 8px;
-            padding: 24px 16px;
+            padding: 24px 16px 8px;
             width: 320px;
             height: 180px;
             background: var(--background-color);
@@ -162,10 +162,13 @@
             color: grey;
             font-size: 16px;
         }
-        .card-button-row {
+        .card-description-row {
+            padding-top: 4px;
+        }
+        .card-action-row {
             display: grid;
-            grid-template-columns: auto;
-            text-align: right;
+            grid-auto-flow: row;
+            justify-content: left;
         }
         .card-button {
             border: none;
@@ -287,6 +290,7 @@
 
         select#chat-models {
             margin-bottom: 0;
+            padding: 8px;
         }
 
 
