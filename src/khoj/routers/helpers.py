@@ -132,6 +132,8 @@ def generate_chat_response(
     chat_response = None
     logger.debug(f"Conversation Type: {conversation_command.name}")
 
+    metadata = {}
+
     try:
         partial_completion = partial(
             _save_to_conversation_log,
@@ -179,8 +181,10 @@ def generate_chat_response(
                 tokenizer_name=conversation_config.tokenizer,
             )
 
+        metadata.update({"chat_model": conversation_config.chat_model})
+
     except Exception as e:
         logger.error(e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-    return chat_response
+    return chat_response, metadata

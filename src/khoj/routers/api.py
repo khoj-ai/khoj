@@ -606,13 +606,26 @@ async def chat(
         return StreamingResponse(iter([formatted_help]), media_type="text/event-stream", status_code=200)
 
     # Get the (streamed) chat response from the LLM of choice.
-    llm_response = await agenerate_chat_response(
+    llm_response, chat_metadata = await agenerate_chat_response(
         defiltered_query,
         meta_log,
         compiled_references,
         inferred_queries,
         conversation_command,
         user,
+    )
+
+    chat_metadata.update({"conversation_command": conversation_command.value})
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="chat",
+        client=client,
+        user_agent=user_agent,
+        referer=referer,
+        host=host,
+        metadata=chat_metadata,
     )
 
     if llm_response is None:
@@ -633,16 +646,6 @@ async def chat(
     actual_response = aggregated_gpt_response.split("### compiled references:")[0]
 
     response_obj = {"response": actual_response, "context": compiled_references}
-
-    update_telemetry_state(
-        request=request,
-        telemetry_type="api",
-        api="chat",
-        client=client,
-        user_agent=user_agent,
-        referer=referer,
-        host=host,
-    )
 
     return Response(content=json.dumps(response_obj), media_type="application/json", status_code=200)
 
