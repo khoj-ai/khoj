@@ -3,217 +3,118 @@
 
 <div class="page">
     <div class="section">
-        <h2 class="section-title">Plugins</h2>
+        <h2 class="section-title">Content</h2>
         <div class="section-cards">
             <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/computer.png" alt="Computer">
+                    <h3 id="card-title-computer" class="card-title">
+                        Files
+                        <img id="configured-icon-computer"
+                            style="display: {% if not current_model_state.computer %}none{% endif %}"
+                            class="configured-icon"
+                            src="/static/assets/icons/confirm-icon.svg"
+                            alt="Configured">
+                    </h3>
+                </div>
+                <div class="card-description-row">
+                <p class="card-description">Manage files from your computer</p>
+                </div>
+                <div class="card-action-row">
+                    <a class="card-button" href="/config/content-source/computer">
+                        {% if current_model_state.computer %}
+                            Update
+                        {% else %}
+                            Setup
+                        {% endif %}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                    </a>
+                    <div id="clear-computer" class="card-action-row"
+                        style="display: {% if not current_model_state.computer %}none{% endif %}">
+                        <button class="card-button" onclick="clearContentType('computer')">
+                            Disable
+                        </button>
+                    </div>
+                </div>
+            </div>
+             <div class="card">
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/github.svg" alt="Github">
                     <h3 class="card-title">
                         Github
-                        {% if current_config.content_type.github %}
-                            {% if current_model_state.github == False %}
-                                <img id="misconfigured-icon-github" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you just need to click Configure.">
-                            {% else %}
-                                <img id="configured-icon-github" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
-                            {% endif %}
-                        {% endif %}
+                        <img id="configured-icon-github"
+                            class="configured-icon"
+                            src="/static/assets/icons/confirm-icon.svg"
+                            alt="Configured"
+                            style="display: {% if not current_model_state.github %}none{% endif %}">
                     </h3>
                 </div>
                 <div class="card-description-row">
                 <p class="card-description">Set repositories to index</p>
                 </div>
                 <div class="card-action-row">
-                    <a class="card-button" href="/config/content_type/github">
-                        {% if current_config.content_type.github %}
+                    <a class="card-button" href="/config/content-source/github">
+                        {% if current_model_state.github %}
                             Update
                         {% else %}
                             Setup
                         {% endif %}
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
                     </a>
-                </div>
-                {% if current_config.content_type.github %}
-                    <div id="clear-github" class="card-action-row">
+                    <div id="clear-github"
+                        class="card-action-row"
+                        style="display: {% if not current_model_state.github %}none{% endif %}">
                         <button class="card-button" onclick="clearContentType('github')">
                             Disable
                         </button>
                     </div>
-                {% endif %}
+                </div>
             </div>
             <div class="card">
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/notion.svg" alt="Notion">
                     <h3 class="card-title">
                         Notion
-                        {% if current_config.content_type.notion %}
-                            {% if current_model_state.notion == False %}
-                                <img id="misconfigured-icon-notion" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you just need to click Configure.">
-                            {% else %}
-                                <img id="configured-icon-notion" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
-                            {% endif %}
-                        {% endif %}
+                        <img id="configured-icon-notion"
+                            class="configured-icon"
+                            src="/static/assets/icons/confirm-icon.svg"
+                            alt="Configured"
+                            style="display: {% if not current_model_state.notion %}none{% endif %}">
                     </h3>
                 </div>
                 <div class="card-description-row">
-                    <p class="card-description">Configure your settings from Notion</p>
+                    <p class="card-description">Sync your Notion pages</p>
                 </div>
                 <div class="card-action-row">
-                    <a class="card-button" href="/config/content_type/notion">
-                        {% if current_config.content_type.content %}
+                    <a class="card-button" href="/config/content-source/notion">
+                        {% if current_model_state.notion %}
                             Update
                         {% else %}
                             Setup
                         {% endif %}
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
                     </a>
-                </div>
-                {% if current_config.content_type.notion %}
-                    <div id="clear-notion" class="card-action-row">
+                    <div id="clear-notion"
+                        class="card-action-row"
+                        style="display: {% if not current_model_state.notion %}none{% endif %}">
                         <button class="card-button" onclick="clearContentType('notion')">
                             Disable
                         </button>
                     </div>
-                {% endif %}
+                </div>
             </div>
-            <div class="card">
-                <div class="card-title-row">
-                    <img class="card-icon" src="/static/assets/icons/markdown.svg" alt="markdown">
-                    <h3 class="card-title">
-                        Markdown
-                        {% if current_config.content_type.markdown %}
-                            {% if current_model_state.markdown == False%}
-                                <img id="misconfigured-icon-markdown" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you just need to click Configure.">
-                            {% else %}
-                                <img id="configured-icon-markdown" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
-                            {% endif %}
-                        {% endif %}
-                    </h3>
+        </div>
+        <div class="general-settings section">
+            <div id="status" style="display: none;"></div>
+        </div>
+        <div class="section finalize-actions general-settings">
+            <div class="section-cards">
+                <div class="finalize-buttons">
+                    <button id="configure" type="submit" title="Update index with the latest changes">💾 Save All</button>
                 </div>
-                <div class="card-description-row">
-                    <p class="card-description">Set markdown files to index</p>
+                <div class="finalize-buttons">
+                    <button id="reinitialize" type="submit" title="Regenerate index from scratch">🔄 Reinitialize</button>
                 </div>
-                <div class="card-action-row">
-                    <a class="card-button" href="/config/content_type/markdown">
-                        {% if current_config.content_type.markdown %}
-                            Update
-                        {% else %}
-                            Setup
-                        {% endif %}
-                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
-                    </a>
-                </div>
-                {% if current_config.content_type.markdown %}
-                    <div id="clear-markdown" class="card-action-row">
-                        <button class="card-button" onclick="clearContentType('markdown')">
-                            Disable
-                        </button>
-                    </div>
-                {% endif %}
-            </div>
-            <div class="card">
-                <div class="card-title-row">
-                    <img class="card-icon" src="/static/assets/icons/org.svg" alt="org">
-                    <h3 class="card-title">
-                        Org
-                        {% if current_config.content_type.org %}
-                            {% if current_model_state.org == False %}
-                                <img id="misconfigured-icon-org" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you just need to click Configure.">
-                            {% else %}
-                                <img id="configured-icon-org" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
-                            {% endif %}
-                        {% endif %}
-                    </h3>
-                </div>
-                <div class="card-description-row">
-                <p class="card-description">Set org files to index</p>
-                </div>
-                <div class="card-action-row">
-                    <a class="card-button" href="/config/content_type/org">
-                        {% if current_config.content_type.org %}
-                            Update
-                        {% else %}
-                            Setup
-                        {% endif %}
-                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
-                    </a>
-                </div>
-                {% if current_config.content_type.org %}
-                    <div id="clear-org" class="card-action-row">
-                        <button class="card-button" onclick="clearContentType('org')">
-                            Disable
-                        </button>
-                    </div>
-                {% endif %}
-            </div>
-            <div class="card">
-                <div class="card-title-row">
-                    <img class="card-icon" src="/static/assets/icons/pdf.svg" alt="PDF">
-                    <h3 class="card-title">
-                        PDF
-                        {% if current_config.content_type.pdf %}
-                            {% if current_model_state.pdf == False %}
-                                <img id="misconfigured-icon-pdf" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you need to click Configure.">
-                            {% else %}
-                                <img id="configured-icon-pdf" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
-                            {% endif %}
-                        {% endif %}
-                    </h3>
-                </div>
-                <div class="card-description-row">
-                <p class="card-description">Set PDF files to index</p>
-                </div>
-                <div class="card-action-row">
-                    <a class="card-button" href="/config/content_type/pdf">
-                        {% if current_config.content_type.pdf %}
-                            Update
-                        {% else %}
-                            Setup
-                        {% endif %}
-                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
-                    </a>
-                </div>
-                {% if current_config.content_type.pdf %}
-                    <div id="clear-pdf" class="card-action-row">
-                        <button class="card-button" onclick="clearContentType('pdf')">
-                            Disable
-                        </button>
-                    </div>
-                {% endif %}
-            </div>
-            <div class="card">
-                <div class="card-title-row">
-                    <img class="card-icon" src="/static/assets/icons/plaintext.svg" alt="Plaintext">
-                    <h3 class="card-title">
-                        Plaintext
-                        {% if current_config.content_type.plaintext %}
-                            {% if current_model_state.plaintext == False %}
-                                <img id="misconfigured-icon-plaintext" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="Embeddings have not been generated yet for this content type. Either the configuration is invalid, or you need to click Configure.">
-                            {% else %}
-                                <img id="configured-icon-plaintext" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
-                            {% endif %}
-                        {% endif %}
-                    </h3>
-                </div>
-                <div class="card-description-row">
-                <p class="card-description">Set Plaintext files to index</p>
-                </div>
-                <div class="card-action-row">
-                    <a class="card-button" href="/config/content_type/plaintext">
-                        {% if current_config.content_type.plaintext %}
-                            Update
-                        {% else %}
-                            Setup
-                        {% endif %}
-                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
-                    </a>
-                </div>
-                {% if current_config.content_type.plaintext %}
-                    <div id="clear-plaintext" class="card-action-row">
-                        <button class="card-button" onclick="clearContentType('plaintext')">
-                            Disable
-                        </button>
-                    </div>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -223,214 +124,213 @@
         <div class="section-cards">
             <div class="card">
                 <div class="card-title-row">
-                    <img class="card-icon" src="/static/assets/icons/openai-logomark.svg" alt="Chat">
+                    <img class="card-icon" src="/static/assets/icons/chat.svg" alt="Chat">
                     <h3 class="card-title">
                         Chat
-                        {% if current_config.processor and current_config.processor.conversation.openai %}
-                            {% if current_model_state.conversation_openai == False %}
-                                <img id="misconfigured-icon-conversation-processor" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="The OpenAI configuration did not work as expected.">
-                            {% else %}
-                                <img id="configured-icon-conversation-processor" class="configured-icon" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
-                            {% endif %}
-                        {% endif %}
                     </h3>
                 </div>
                 <div class="card-description-row">
-                <p class="card-description">Setup online chat using OpenAI</p>
+                    <select id="chat-models">
+                        {% for option in conversation_options %}
+                            <option value="{{ option.id }}" {% if option.id == selected_conversation_config %}selected{% endif %}>{{ option.chat_model }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="card-action-row">
-                    <a class="card-button" href="/config/processor/conversation/openai">
-                        {% if current_config.processor and current_config.processor.conversation.openai %}
-                            Update
-                        {% else %}
-                            Setup
-                        {% endif %}
+                    <button id="save-model" class="card-button happy" onclick="updateChatModel()">
+                        Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="section">
+        <h2 class="section-title">Clients</h2>
+        <div class="api-settings">
+            <div class="card-title-row">
+                <img class="card-icon" src="/static/assets/icons/key.svg" alt="API Key">
+                <h3 class="card-title">API Keys</h3>
+            </div>
+            <div class="card-description-row">
+                <p id="api-settings-card-description" class="card-description">Manage access from your client apps to Khoj</p>
+            </div>
+            <table id="api-settings-keys-table">
+                <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Key</th>
+                    <th scope="col">Actions</th>
+                </tr>
+                </thead>
+                <tbody id="api-key-list"></tbody>
+            </table>
+            <div class="card-action-row">
+                <button class="card-button happy" id="generate-api-key" onclick="generateAPIKey()">
+                    Generate API Key
+                </button>
+            </div>
+        </div>
+    </div>
+    {% if billing_enabled %}
+    <div class="section">
+        <h2 class="section-title">Billing</h2>
+        <div class="section-cards">
+            <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/credit-card.png" alt="Credit Card">
+                    <h3 class="card-title">
+                        <span>Subscription</span>
+                        <img id="configured-icon-subscription"
+                            style="display: {% if subscription_state == 'trial' or subscription_state == 'expired' %}none{% endif %}"
+                            class="configured-icon"
+                            src="/static/assets/icons/confirm-icon.svg"
+                            alt="Configured">
+                    </h3>
+                </div>
+                <div class="card-description-row">
+                    <p id="trial-description"
+                       class="card-description"
+                       style="display: {% if subscription_state != 'trial' %}none{% endif %}">
+                        Subscribe to Khoj Cloud
+                    </p>
+                    <p id="unsubscribe-description"
+                       class="card-description"
+                       style="display: {% if subscription_state != 'subscribed' %}none{% endif %}">
+                       You are <b>subscribed</b> to Khoj Cloud. Subscription will <b>renew</b> on <b>{{ subscription_renewal_date }}</b>
+                    </p>
+                    <p id="resubscribe-description"
+                       class="card-description"
+                       style="display: {% if subscription_state != 'unsubscribed' %}none{% endif %}">
+                       You are <b>subscribed</b> to Khoj Cloud. Subscription will <b>expire</b> on <b>{{ subscription_renewal_date }}</b>
+                    </p>
+                    <p id="expire-description"
+                       class="card-description"
+                       style="display: {% if subscription_state != 'expired' %}none{% endif %}">
+                       Subscribe to Khoj Cloud. Subscription <b>expired</b> on <b>{{ subscription_renewal_date }}</b>
+                    </p>
+                </div>
+                <div class="card-action-row">
+                    <button id="unsubscribe-button"
+                            class="card-button"
+                            onclick="unsubscribe()"
+                            style="display: {% if subscription_state != 'subscribed' %}none{% endif %};">
+                        Unsubscribe
+                    </button>
+                    <button id="resubscribe-button"
+                            class="card-button happy"
+                            onclick="resubscribe()"
+                            style="display: {% if subscription_state != 'unsubscribed' %}none{% endif %};">
+                        Resubscribe
+                    </button>
+                    <a id="subscribe-button"
+                       class="card-button happy"
+                       href="{{ khoj_cloud_subscription_url }}?prefilled_email={{ username }}"
+                       style="display: {% if subscription_state == 'subscribed' or subscription_state == 'unsubscribed' %}none{% endif %};">
+                        Subscribe
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
                     </a>
                 </div>
-                {% if current_config.processor and current_config.processor.conversation.openai %}
-                    <div id="clear-conversation" class="card-action-row">
-                        <button class="card-button" onclick="clearConversationProcessor()">
-                            Disable
-                        </button>
-                    </div>
-                {% endif %}
-            </div>
-            <div class="card">
-                <div class="card-title-row">
-                    <img class="card-icon" src="/static/assets/icons/chat.svg" alt="Chat">
-                    <h3 class="card-title">
-                        Offline Chat
-                        <img id="configured-icon-conversation-enable-offline-chat" class="configured-icon {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.offline_chat.enable_offline_chat and current_model_state.conversation_gpt4all %}enabled{% else %}disabled{% endif %}" src="/static/assets/icons/confirm-icon.svg" alt="Configured">
-                        {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.offline_chat.enable_offline_chat and not current_model_state.conversation_gpt4all %}
-                            <img id="misconfigured-icon-conversation-enable-offline-chat" class="configured-icon" src="/static/assets/icons/question-mark-icon.svg" alt="Not Configured" title="The model was not downloaded as expected.">
-                        {% endif %}
-                    </h3>
-                </div>
-                <div class="card-description-row">
-                <p class="card-description">Setup offline chat</p>
-                </div>
-                <div id="clear-enable-offline-chat" class="card-action-row {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.offline_chat.enable_offline_chat %}enabled{% else %}disabled{% endif %}">
-                    <button class="card-button" onclick="toggleEnableLocalLLLM(false)">
-                        Disable
-                    </button>
-                </div>
-                <div id="set-enable-offline-chat" class="card-action-row {% if current_config.processor and current_config.processor.conversation and current_config.processor.conversation.offline_chat.enable_offline_chat %}disabled{% else %}enabled{% endif %}">
-                    <button class="card-button happy" onclick="toggleEnableLocalLLLM(true)">
-                        Enable
-                    </button>
-                </div>
-                <div id="toggle-enable-offline-chat" class="card-action-row disabled">
-                    <div class="loader"></div>
-                </div>
             </div>
         </div>
     </div>
-    <div class="section general-settings">
-        <div id="results-count" title="Number of items to show in search and use for chat response">
-            <label for="results-count-slider">Results Count: <span id="results-count-value">5</span></label>
-            <input type="range" id="results-count-slider" name="results-count-slider" min="1" max="10" step="1" value="5">
-        </div>
-        <div id="status" style="display: none;"></div>
-    </div>
-    <div class="section finalize-actions general-settings">
-        <div class="section-cards">
-            <div class="finalize-buttons">
-                <button id="configure" type="submit" title="Update index with the latest changes">⚙️ Configure</button>
-            </div>
-            <div class="finalize-buttons">
-                <button id="reinitialize" type="submit" title="Regenerate index from scratch">🔄 Reinitialize</button>
-            </div>
-        </div>
-    </div>
+    {% endif %}
+    <div class="section"></div>
 </div>
 <script>
-    function clearContentType(content_type) {
-        const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
-        fetch('/api/delete/config/data/content_type/' + content_type, {
+
+    function updateChatModel() {
+        const chatModel = document.getElementById("chat-models").value;
+        const saveModelButton = document.getElementById("save-model");
+        saveModelButton.disabled = true;
+        saveModelButton.innerHTML = "Saving...";
+
+        fetch('/api/config/data/conversation/model?id=' + chatModel, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
             }
         })
         .then(response => response.json())
         .then(data => {
             if (data.status == "ok") {
-                var contentTypeClearButton = document.getElementById("clear-" + content_type);
-                contentTypeClearButton.style.display = "none";
-
-                var configuredIcon = document.getElementById("configured-icon-" + content_type);
-                if (configuredIcon) {
-                    configuredIcon.style.display = "none";
-                }
-
-                var misconfiguredIcon = document.getElementById("misconfigured-icon-" + content_type);
-                if (misconfiguredIcon) {
-                    misconfiguredIcon.style.display = "none";
-                }
+                saveModelButton.innerHTML = "Save";
+                saveModelButton.disabled = false;
+            } else {
+                saveModelButton.innerHTML = "Error";
+                saveModelButton.disabled = false;
             }
         })
     };
 
-    function toggleEnableLocalLLLM(enable) {
-        const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
-        var toggleEnableLocalLLLMButton = document.getElementById("toggle-enable-offline-chat");
-        var featuresHintText = document.getElementById("features-hint-text");
-        toggleEnableLocalLLLMButton.classList.remove("disabled");
-        toggleEnableLocalLLLMButton.classList.add("enabled");
+    function clearContentType(content_source) {
 
-        if (enable) {
-            featuresHintText.style.display = "block";
-            featuresHintText.innerHTML = "An open source model is being downloaded in the background. Hang tight, this may take a few minutes ⏳.";
-            featuresHintText.classList.add("show");
-        }
-
-        fetch('/api/config/data/processor/conversation/offline_chat' + '?enable_offline_chat=' + enable, {
-            method: 'POST',
+        fetch('/api/config/data/content-source/' + content_source, {
+            method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status == "ok") {
+                document.getElementById("configured-icon-" + content_source).style.display = "none";
+                document.getElementById("clear-" + content_source).style.display = "none";
+            } else {
+                document.getElementById("configured-icon-" + content_source).style.display = "";
+                document.getElementById("clear-" + content_source).style.display = "";
+            }
+        })
+    };
+
+    function unsubscribe() {
+        fetch('/api/subscription?operation=cancel&email={{username}}', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
             },
         })
         .then(response => response.json())
         .then(data => {
-            if (data.status == "ok") {
-                // Toggle the Enabled/Disabled UI based on the action/response.
-                var enableLocalLLLMButton = document.getElementById("set-enable-offline-chat");
-                var disableLocalLLLMButton = document.getElementById("clear-enable-offline-chat");
-                var configuredIcon = document.getElementById("configured-icon-conversation-enable-offline-chat");
-                var toggleEnableLocalLLLMButton = document.getElementById("toggle-enable-offline-chat");
+            if (data.success) {
+               document.getElementById("unsubscribe-description").style.display = "none";
+               document.getElementById("unsubscribe-button").style.display = "none";
 
-                toggleEnableLocalLLLMButton.classList.remove("enabled");
-                toggleEnableLocalLLLMButton.classList.add("disabled");
+               document.getElementById("resubscribe-description").style.display = "";
+               document.getElementById("resubscribe-button").style.display = "";
 
-
-                if (enable) {
-                    enableLocalLLLMButton.classList.add("disabled");
-                    enableLocalLLLMButton.classList.remove("enabled");
-
-                    configuredIcon.classList.add("enabled");
-                    configuredIcon.classList.remove("disabled");
-
-                    disableLocalLLLMButton.classList.remove("disabled");
-                    disableLocalLLLMButton.classList.add("enabled");
-                } else {
-                    enableLocalLLLMButton.classList.remove("disabled");
-                    enableLocalLLLMButton.classList.add("enabled");
-
-                    configuredIcon.classList.remove("enabled");
-                    configuredIcon.classList.add("disabled");
-
-                    disableLocalLLLMButton.classList.add("disabled");
-                    disableLocalLLLMButton.classList.remove("enabled");
-                }
-
-                featuresHintText.classList.remove("show");
-                featuresHintText.innerHTML = "";
-            }
+             }
         })
     }
 
-    function clearConversationProcessor() {
-        const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
-        fetch('/api/delete/config/data/processor/conversation/openai', {
-            method: 'POST',
+    function resubscribe() {
+        fetch('/api/subscription?operation=resubscribe&email={{username}}', {
+            method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-            }
+            },
         })
         .then(response => response.json())
         .then(data => {
-            if (data.status == "ok") {
-                var conversationClearButton = document.getElementById("clear-conversation");
-                conversationClearButton.style.display = "none";
+            if (data.success) {
+               document.getElementById("resubscribe-description").style.display = "none";
+               document.getElementById("resubscribe-button").style.display = "none";
 
-                var configuredIcon = document.getElementById("configured-icon-conversation-processor");
-                if (configuredIcon) {
-                    configuredIcon.style.display = "none";
-                }
-
-                var misconfiguredIcon = document.getElementById("misconfigured-icon-conversation-processor");
-
-                if (misconfiguredIcon) {
-                    misconfiguredIcon.style.display = "none";
-                }
+               document.getElementById("unsubscribe-description").style.display = "";
+               document.getElementById("unsubscribe-button").style.display = "";
             }
         })
-    };
+    }
 
     var configure = document.getElementById("configure");
     configure.addEventListener("click", function(event) {
         event.preventDefault();
         updateIndex(
             force=false,
-            successText="Configured successfully!",
+            successText="Saved!",
             errorText="Unable to configure. Raise issue on Khoj <a href='https://github.com/khoj-ai/khoj/issues'>Github</a> or <a href='https://discord.gg/BDgyabRM6e'>Discord</a>.",
             button=configure,
-            loadingText="Configuring...",
-            emoji="⚙️");
+            loadingText="Saving...",
+            emoji="💾");
     });
 
     var reinitialize = document.getElementById("reinitialize");
@@ -438,7 +338,7 @@
         event.preventDefault();
         updateIndex(
             force=true,
-            successText="Reinitialized successfully!",
+            successText="Reinitialized!",
             errorText="Unable to reinitialize. Raise issue on Khoj <a href='https://github.com/khoj-ai/khoj/issues'>Github</a> or <a href='https://discord.gg/BDgyabRM6e'>Discord</a>.",
             button=reinitialize,
             loadingText="Reinitializing...",
@@ -447,6 +347,7 @@
 
     function updateIndex(force, successText, errorText, button, loadingText, emoji) {
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
+        const original_html = button.innerHTML;
         button.disabled = true;
         button.innerHTML = emoji + " " + loadingText;
         fetch('/api/update?&client=web&force=' + force, {
@@ -458,14 +359,17 @@
         })
         .then(response => response.json())
         .then(data => {
-            console.log('Success:', data);
             if (data.detail != null) {
                 throw new Error(data.detail);
             }
-            document.getElementById("status").innerHTML = emoji + " " + successText;
-            document.getElementById("status").style.display = "block";
+
+            document.getElementById("status").style.display = "none";
+
             button.disabled = false;
-            button.innerHTML = '✅ Done!';
+            button.innerHTML = `✅ ${successText}`;
+            setTimeout(function() {
+                button.innerHTML = original_html;
+            }, 2000);
         })
         .catch((error) => {
             console.error('Error:', error);
@@ -473,27 +377,116 @@
             document.getElementById("status").style.display = "block";
             button.disabled = false;
             button.innerHTML = '⚠️ Unsuccessful';
+            setTimeout(function() {
+                button.innerHTML = original_html;
+            }, 2000);
+        });
+
+        content_sources = ["computer", "github", "notion"];
+        content_sources.forEach(content_source => {
+            fetch(`/api/config/data/${content_source}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.length > 0) {
+                    document.getElementById("configured-icon-" + content_source).style.display = "";
+                    document.getElementById("clear-" + content_source).style.display = "";
+                } else {
+                    document.getElementById("configured-icon-" + content_source).style.display = "none";
+                    document.getElementById("clear-" + content_source).style.display = "none";
+                }
+            });
         });
     }
 
-    // Setup the results count slider
-    const resultsCountSlider = document.getElementById('results-count-slider');
-    const resultsCountValue = document.getElementById('results-count-value');
+    function generateAPIKey() {
+        const apiKeyList = document.getElementById("api-key-list");
+        fetch('/auth/token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(tokenObj => {
+            apiKeyList.innerHTML += generateTokenRow(tokenObj);
+        });
+    }
 
-    // Set the initial value of the slider
-    resultsCountValue.textContent = resultsCountSlider.value;
+    function copyAPIKey(token) {
+        // Copy API key to clipboard
+        navigator.clipboard.writeText(token);
+        // Flash the API key copied message
+        const copyApiKeyButton = document.getElementById(`api-key-${token}`);
+        original_html = copyApiKeyButton.innerHTML
+        setTimeout(function() {
+            copyApiKeyButton.innerHTML = "✅ Copied!";
+            setTimeout(function() {
+                copyApiKeyButton.innerHTML = original_html;
+            }, 1000);
+        }, 100);
+    }
 
-    // Store the slider value in localStorage when it changes
-    resultsCountSlider.addEventListener('input', () => {
-        resultsCountValue.textContent = resultsCountSlider.value;
-        localStorage.setItem('khojResultsCount', resultsCountSlider.value);
-    });
+    function deleteAPIKey(token) {
+        const apiKeyList = document.getElementById("api-key-list");
+        fetch(`/auth/token?token=${token}`, {
+            method: 'DELETE',
+        })
+        .then(response => {
+            if (response.ok) {
+                const apiKeyItem = document.getElementById(`api-key-item-${token}`);
+                apiKeyList.removeChild(apiKeyItem);
+            }
+        });
+    }
 
-    // Get the slider value from localStorage on page load
-    const storedResultsCount = localStorage.getItem('khojResultsCount');
-    if (storedResultsCount) {
-        resultsCountSlider.value = storedResultsCount;
-        resultsCountValue.textContent = storedResultsCount;
+    function generateTokenRow(tokenObj) {
+        let token = tokenObj.token;
+        let tokenName = tokenObj.name;
+        let truncatedToken = token.slice(0, 4) + "..." + token.slice(-4);
+        let tokenId = `${tokenName}-${truncatedToken}`;
+        return `
+            <tr id="api-key-item-${token}">
+                <td><b>${tokenName}</b></td>
+                <td id="api-key-${token}">${truncatedToken}</td>
+                <td>
+                    <img onclick="copyAPIKey('${token}')" class="configured-icon api-key-action enabled" src="/static/assets/icons/copy-solid.svg" alt="Copy API Key" title="Copy API Key">
+                    <img onclick="deleteAPIKey('${token}')" class="configured-icon api-key-action enabled" src="/static/assets/icons/trash-solid.svg" alt="Delete API Key" title="Delete API Key">
+                </td>
+            </tr>
+        `;
+
+    }
+
+    function listApiKeys() {
+        const apiKeyList = document.getElementById("api-key-list");
+        fetch('/auth/token')
+            .then(response => response.json())
+            .then(tokens => {
+                apiKeyList.innerHTML = tokens.map(generateTokenRow).join("");
+            });
+    }
+
+    // List user's API keys on page load
+    listApiKeys();
+
+    function removeFile(path) {
+        fetch('/api/config/data/file?filename=' + path, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status == "ok") {
+                getAllFilenames();
+            }
+        })
     }
 </script>
 {% endblock %}

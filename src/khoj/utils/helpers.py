@@ -5,16 +5,18 @@ import datetime
 from enum import Enum
 from importlib import import_module
 from importlib.metadata import version
+from itertools import islice
 import logging
 from os import path
 import os
 from pathlib import Path
 import platform
-import sys
+import random
 from time import perf_counter
 import torch
 from typing import Optional, Union, TYPE_CHECKING
 import uuid
+from asgiref.sync import sync_to_async
 
 # Internal Packages
 from khoj.utils import constants
@@ -29,8 +31,30 @@ if TYPE_CHECKING:
     from khoj.utils.rawconfig import AppConfig
 
 
+class AsyncIteratorWrapper:
+    def __init__(self, obj):
+        self._it = iter(obj)
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        try:
+            value = await self.next_async()
+        except StopAsyncIteration:
+            return
+        return value
+
+    @sync_to_async
+    def next_async(self):
+        try:
+            return next(self._it)
+        except StopIteration:
+            raise StopAsyncIteration
+
+
 def is_none_or_empty(item):
-    return item == None or (hasattr(item, "__iter__") and len(item) == 0) or item == ""
+    return item is None or (hasattr(item, "__iter__") and len(item) == 0) or item == ""
 
 
 def to_snake_case_from_dash(item: str):
@@ -209,10 +233,12 @@ def log_telemetry(
     if not app_config or not app_config.should_log_telemetry:
         return []
 
+    if properties.get("server_id") is None:
+        properties["server_id"] = get_server_id()
+
     # Populate telemetry data to log
     request_body = {
         "telemetry_type": telemetry_type,
-        "server_id": get_server_id(),
         "server_version": version("khoj-assistant"),
         "os": platform.system(),
         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -229,6 +255,18 @@ def log_telemetry(
     return request_body
 
 
+def get_device() -> torch.device:
+    """Get device to run model on"""
+    if torch.cuda.is_available():
+        # Use CUDA GPU
+        return torch.device("cuda:0")
+    elif torch.backends.mps.is_available():
+        # Use Apple M1 Metal Acceleration
+        return torch.device("mps")
+    else:
+        return torch.device("cpu")
+
+
 class ConversationCommand(str, Enum):
     Default = "default"
     General = "general"
@@ -242,3 +280,39 @@ command_descriptions = {
     ConversationCommand.Default: "The default command when no command specified. It intelligently auto-switches between general and notes mode.",
     ConversationCommand.Help: "Display a help message with all available commands and other metadata.",
 }
+
+
+def generate_random_name():
+    # List of adjectives and nouns to choose from
+    adjectives = [
+        "happy",
+        "irritated",
+        "annoyed",
+        "calm",
+        "brave",
+        "scared",
+        "energetic",
+        "chivalrous",
+        "kind",
+        "grumpy",
+    ]
+    nouns = ["dog", "cat", "falcon", "whale", "turtle", "rabbit", "hamster", "snake", "spider", "elephant"]
+
+    # Select two random words from the lists
+    adjective = random.choice(adjectives)
+    noun = random.choice(nouns)
+
+    # Combine the words to form a name
+    name = f"{adjective} {noun}"
+
+    return name
+
+
+def batcher(iterable, max_n):
+    "Split an iterable into chunks of size max_n"
+    it = iter(iterable)
+    while True:
+        chunk = list(islice(it, max_n))
+        if not chunk:
+            return
+        yield (x for x in chunk if x is not None)

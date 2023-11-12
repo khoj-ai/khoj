@@ -1,39 +1,55 @@
 # External Packages
 import os
-from copy import deepcopy
 from fastapi.testclient import TestClient
 from pathlib import Path
 import pytest
+from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI
+import os
+from fastapi import FastAPI
+
+app = FastAPI()
+
 
 # Internal Packages
-from khoj.main import app
-from khoj.configure import configure_processor, configure_routes, configure_search_types
-from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
-from khoj.processor.plaintext.plaintext_to_jsonl import PlaintextToJsonl
+from khoj.configure import configure_routes, configure_search_types, configure_middleware
+from khoj.processor.plaintext.plaintext_to_entries import PlaintextToEntries
 from khoj.search_type import image_search, text_search
 from khoj.utils.config import SearchModels
+from khoj.utils.constants import web_directory
 from khoj.utils.helpers import resolve_absolute_path
 from khoj.utils.rawconfig import (
     ContentConfig,
-    ConversationProcessorConfig,
-    OfflineChatProcessorConfig,
-    OpenAIProcessorConfig,
-    ProcessorConfig,
-    TextContentConfig,
-    GithubContentConfig,
-    GithubRepoConfig,
     ImageContentConfig,
     SearchConfig,
-    TextSearchConfig,
     ImageSearchConfig,
 )
 from khoj.utils import state, fs_syncer
 from khoj.routers.indexer import configure_content
-from khoj.processor.jsonl.jsonl_to_jsonl import JsonlToJsonl
-from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
-from khoj.search_filter.date_filter import DateFilter
-from khoj.search_filter.word_filter import WordFilter
-from khoj.search_filter.file_filter import FileFilter
+from khoj.processor.org_mode.org_to_entries import OrgToEntries
+from database.models import (
+    KhojApiUser,
+    LocalOrgConfig,
+    LocalMarkdownConfig,
+    LocalPlaintextConfig,
+    GithubConfig,
+    KhojUser,
+    GithubRepoConfig,
+)
+
+from tests.helpers import (
+    UserFactory,
+    ChatModelOptionsFactory,
+    OpenAIProcessorConversationConfigFactory,
+    OfflineChatProcessorConversationConfigFactory,
+    UserConversationProcessorConfigFactory,
+    SubscriptionFactory,
+)
+
+
+@pytest.fixture(autouse=True)
+def enable_db_access_for_all_tests(db):
+    pass
 
 
 @pytest.fixture(scope="session")
@@ -41,20 +57,6 @@ def search_config() -> SearchConfig:
     model_dir = resolve_absolute_path("~/.khoj/search")
     model_dir.mkdir(parents=True, exist_ok=True)
     search_config = SearchConfig()
-
-    search_config.symmetric = TextSearchConfig(
-        encoder="sentence-transformers/all-MiniLM-L6-v2",
-        cross_encoder="cross-encoder/ms-marco-MiniLM-L-6-v2",
-        model_directory=model_dir / "symmetric/",
-        encoder_type=None,
-    )
-
-    search_config.asymmetric = TextSearchConfig(
-        encoder="sentence-transformers/multi-qa-MiniLM-L6-cos-v1",
-        cross_encoder="cross-encoder/ms-marco-MiniLM-L-6-v2",
-        model_directory=model_dir / "asymmetric/",
-        encoder_type=None,
-    )
 
     search_config.image = ImageSearchConfig(
         encoder="sentence-transformers/clip-ViT-B-32",
@@ -65,17 +67,102 @@ def search_config() -> SearchConfig:
     return search_config
 
 
+@pytest.mark.django_db
+@pytest.fixture
+def default_user():
+    user = UserFactory()
+    SubscriptionFactory(user=user)
+    return user
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def default_user2():
+    if KhojUser.objects.filter(username="default").exists():
+        return KhojUser.objects.get(username="default")
+
+    user = KhojUser.objects.create(
+        username="default",
+        email="default@example.com",
+        password="default",
+    )
+    SubscriptionFactory(user=user)
+    return user
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def default_user3():
+    """
+    This user should not have any data associated with it
+    """
+    if KhojUser.objects.filter(username="default3").exists():
+        return KhojUser.objects.get(username="default3")
+
+    user = KhojUser.objects.create(
+        username="default3",
+        email="default3@example.com",
+        password="default3",
+    )
+    SubscriptionFactory(user=user)
+    return user
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def api_user(default_user):
+    if KhojApiUser.objects.filter(user=default_user).exists():
+        return KhojApiUser.objects.get(user=default_user)
+
+    return KhojApiUser.objects.create(
+        user=default_user,
+        name="api-key",
+        token="kk-secret",
+    )
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def api_user2(default_user2):
+    if KhojApiUser.objects.filter(user=default_user2).exists():
+        return KhojApiUser.objects.get(user=default_user2)
+
+    return KhojApiUser.objects.create(
+        user=default_user2,
+        name="api-key",
+        token="kk-diff-secret",
+    )
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def api_user3(default_user3):
+    if KhojApiUser.objects.filter(user=default_user3).exists():
+        return KhojApiUser.objects.get(user=default_user3)
+
+    return KhojApiUser.objects.create(
+        user=default_user3,
+        name="api-key",
+        token="kk-diff-secret-3",
+    )
+
+
 @pytest.fixture(scope="session")
 def search_models(search_config: SearchConfig):
     search_models = SearchModels()
-    search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     search_models.image_search = image_search.initialize_model(search_config.image)
 
     return search_models
 
 
-@pytest.fixture(scope="session")
-def content_config(tmp_path_factory, search_models: SearchModels, search_config: SearchConfig):
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
+
+
+@pytest.mark.django_db
+@pytest.fixture(scope="function")
+def content_config(tmp_path_factory, search_models: SearchModels, default_user: KhojUser):
     content_dir = tmp_path_factory.mktemp("content")
 
     # Generate Image Embeddings from Test Images
@@ -90,217 +177,185 @@ def content_config(tmp_path_factory, search_models: SearchModels, search_config:
 
     image_search.setup(content_config.image, search_models.image_search.image_encoder, regenerate=False)
 
-    # Generate Notes Embeddings from Test Notes
-    content_config.org = TextContentConfig(
+    LocalOrgConfig.objects.create(
         input_files=None,
         input_filter=["tests/data/org/*.org"],
-        compressed_jsonl=content_dir.joinpath("notes.jsonl.gz"),
-        embeddings_file=content_dir.joinpath("note_embeddings.pt"),
+        index_heading_entries=False,
+        user=default_user,
     )
 
-    filters = [DateFilter(), WordFilter(), FileFilter()]
-    text_search.setup(
-        OrgToJsonl,
-        get_sample_data("org"),
-        content_config.org,
-        search_models.text_search.bi_encoder,
-        regenerate=False,
-        filters=filters,
-    )
-
-    content_config.plugins = {
-        "plugin1": TextContentConfig(
-            input_files=[content_dir.joinpath("notes.jsonl.gz")],
-            input_filter=None,
-            compressed_jsonl=content_dir.joinpath("plugin.jsonl.gz"),
-            embeddings_file=content_dir.joinpath("plugin_embeddings.pt"),
-        )
-    }
+    text_search.setup(OrgToEntries, get_sample_data("org"), regenerate=False, user=default_user)
 
     if os.getenv("GITHUB_PAT_TOKEN"):
-        content_config.github = GithubContentConfig(
-            pat_token=os.getenv("GITHUB_PAT_TOKEN", ""),
-            repos=[
-                GithubRepoConfig(
-                    owner="khoj-ai",
-                    name="lantern",
-                    branch="master",
-                )
-            ],
-            compressed_jsonl=content_dir.joinpath("github.jsonl.gz"),
-            embeddings_file=content_dir.joinpath("github_embeddings.pt"),
+        GithubConfig.objects.create(
+            pat_token=os.getenv("GITHUB_PAT_TOKEN"),
+            user=default_user,
         )
 
-    content_config.plaintext = TextContentConfig(
+        GithubRepoConfig.objects.create(
+            owner="khoj-ai",
+            name="lantern",
+            branch="master",
+            github_config=GithubConfig.objects.get(user=default_user),
+        )
+
+    LocalPlaintextConfig.objects.create(
         input_files=None,
         input_filter=["tests/data/plaintext/*.txt", "tests/data/plaintext/*.md", "tests/data/plaintext/*.html"],
-        compressed_jsonl=content_dir.joinpath("plaintext.jsonl.gz"),
-        embeddings_file=content_dir.joinpath("plaintext_embeddings.pt"),
-    )
-
-    content_config.github = GithubContentConfig(
-        pat_token=os.getenv("GITHUB_PAT_TOKEN", ""),
-        repos=[
-            GithubRepoConfig(
-                owner="khoj-ai",
-                name="lantern",
-                branch="master",
-            )
-        ],
-        compressed_jsonl=content_dir.joinpath("github.jsonl.gz"),
-        embeddings_file=content_dir.joinpath("github_embeddings.pt"),
-    )
-
-    filters = [DateFilter(), WordFilter(), FileFilter()]
-    text_search.setup(
-        JsonlToJsonl,
-        None,
-        content_config.plugins["plugin1"],
-        search_models.text_search.bi_encoder,
-        regenerate=False,
-        filters=filters,
+        user=default_user,
     )
 
     return content_config
 
 
 @pytest.fixture(scope="session")
-def md_content_config(tmp_path_factory):
-    content_dir = tmp_path_factory.mktemp("content")
-
-    # Generate Embeddings for Markdown Content
-    content_config = ContentConfig()
-    content_config.markdown = TextContentConfig(
+def md_content_config():
+    markdown_config = LocalMarkdownConfig.objects.create(
         input_files=None,
         input_filter=["tests/data/markdown/*.markdown"],
-        compressed_jsonl=content_dir.joinpath("markdown.jsonl.gz"),
-        embeddings_file=content_dir.joinpath("markdown_embeddings.pt"),
     )
 
-    return content_config
+    return markdown_config
 
 
-@pytest.fixture(scope="session")
-def processor_config(tmp_path_factory):
-    openai_api_key = os.getenv("OPENAI_API_KEY")
-    processor_dir = tmp_path_factory.mktemp("processor")
-
-    # The conversation processor is the only configured processor
-    # It needs an OpenAI API key to work.
-    if not openai_api_key:
-        return
-
-    # Setup conversation processor, if OpenAI API key is set
-    processor_config = ProcessorConfig()
-    processor_config.conversation = ConversationProcessorConfig(
-        openai=OpenAIProcessorConfig(api_key=openai_api_key),
-        conversation_logfile=processor_dir.joinpath("conversation_logs.json"),
-    )
-
-    return processor_config
-
-
-@pytest.fixture(scope="session")
-def processor_config_offline_chat(tmp_path_factory):
-    processor_dir = tmp_path_factory.mktemp("processor")
-
-    # Setup conversation processor
-    processor_config = ProcessorConfig()
-    offline_chat = OfflineChatProcessorConfig(enable_offline_chat=True, chat_model="mistral-7b-instruct-v0.1.Q4_0.gguf")
-    processor_config.conversation = ConversationProcessorConfig(
-        offline_chat=offline_chat,
-        conversation_logfile=processor_dir.joinpath("conversation_logs.json"),
-    )
-
-    return processor_config
-
-
-@pytest.fixture(scope="session")
-def chat_client(md_content_config: ContentConfig, search_config: SearchConfig, processor_config: ProcessorConfig):
+@pytest.fixture(scope="function")
+def chat_client(search_config: SearchConfig, default_user2: KhojUser):
     # Initialize app state
-    state.config.content_type = md_content_config
     state.config.search_type = search_config
     state.SearchType = configure_search_types(state.config)
 
+    LocalMarkdownConfig.objects.create(
+        input_files=None,
+        input_filter=["tests/data/markdown/*.markdown"],
+        user=default_user2,
+    )
+
     # Index Markdown Content for Search
-    state.search_models.text_search = text_search.initialize_model(search_config.asymmetric)
-    all_files = fs_syncer.collect_files(state.config.content_type)
-    state.content_index = configure_content(
-        state.content_index, state.config.content_type, all_files, state.search_models
+    all_files = fs_syncer.collect_files(user=default_user2)
+    state.content_index, _ = configure_content(
+        state.content_index, state.config.content_type, all_files, state.search_models, user=default_user2
     )
 
     # Initialize Processor from Config
-    state.processor_config = configure_processor(processor_config)
+    if os.getenv("OPENAI_API_KEY"):
+        chat_model = ChatModelOptionsFactory(chat_model="gpt-3.5-turbo", model_type="openai")
+        OpenAIProcessorConversationConfigFactory()
+        UserConversationProcessorConfigFactory(user=default_user2, setting=chat_model)
+
+    state.anonymous_mode = True
+
+    app = FastAPI()
 
     configure_routes(app)
+    configure_middleware(app)
+    app.mount("/static", StaticFiles(directory=web_directory), name="static")
     return TestClient(app)
 
 
 @pytest.fixture(scope="function")
-def client(content_config: ContentConfig, search_config: SearchConfig, processor_config: ProcessorConfig):
+def chat_client_no_background(search_config: SearchConfig, default_user2: KhojUser):
+    # Initialize app state
+    state.config.search_type = search_config
+    state.SearchType = configure_search_types(state.config)
+
+    # Initialize Processor from Config
+    if os.getenv("OPENAI_API_KEY"):
+        chat_model = ChatModelOptionsFactory(chat_model="gpt-3.5-turbo", model_type="openai")
+        OpenAIProcessorConversationConfigFactory()
+        UserConversationProcessorConfigFactory(user=default_user2, setting=chat_model)
+
+    state.anonymous_mode = True
+
+    app = FastAPI()
+
+    configure_routes(app)
+    configure_middleware(app)
+    app.mount("/static", StaticFiles(directory=web_directory), name="static")
+    return TestClient(app)
+
+
+@pytest.fixture(scope="function")
+def fastapi_app():
+    app = FastAPI()
+    configure_routes(app)
+    configure_middleware(app)
+    app.mount("/static", StaticFiles(directory=web_directory), name="static")
+    return app
+
+
+@pytest.fixture(scope="function")
+def client(
+    content_config: ContentConfig,
+    search_config: SearchConfig,
+    api_user: KhojApiUser,
+):
     state.config.content_type = content_config
     state.config.search_type = search_config
     state.SearchType = configure_search_types(state.config)
 
     # These lines help us Mock the Search models for these search types
-    state.search_models.text_search = text_search.initialize_model(search_config.asymmetric)
     state.search_models.image_search = image_search.initialize_model(search_config.image)
-    state.content_index.org = text_search.setup(
-        OrgToJsonl,
+    text_search.setup(
+        OrgToEntries,
         get_sample_data("org"),
-        content_config.org,
-        state.search_models.text_search.bi_encoder,
         regenerate=False,
+        user=api_user.user,
     )
     state.content_index.image = image_search.setup(
         content_config.image, state.search_models.image_search, regenerate=False
     )
-    state.content_index.plaintext = text_search.setup(
-        PlaintextToJsonl,
+    text_search.setup(
+        PlaintextToEntries,
         get_sample_data("plaintext"),
-        content_config.plaintext,
-        state.search_models.text_search.bi_encoder,
         regenerate=False,
+        user=api_user.user,
     )
 
-    state.processor_config = configure_processor(processor_config)
+    state.anonymous_mode = False
 
     configure_routes(app)
+    configure_middleware(app)
+    app.mount("/static", StaticFiles(directory=web_directory), name="static")
     return TestClient(app)
 
 
 @pytest.fixture(scope="function")
-def client_offline_chat(
-    search_config: SearchConfig,
-    processor_config_offline_chat: ProcessorConfig,
-    content_config: ContentConfig,
-    md_content_config,
-):
+def client_offline_chat(search_config: SearchConfig, default_user2: KhojUser):
     # Initialize app state
-    state.config.content_type = md_content_config
     state.config.search_type = search_config
     state.SearchType = configure_search_types(state.config)
 
-    # Index Markdown Content for Search
-    state.search_models.text_search = text_search.initialize_model(search_config.asymmetric)
-    state.search_models.image_search = image_search.initialize_model(search_config.image)
+    LocalMarkdownConfig.objects.create(
+        input_files=None,
+        input_filter=["tests/data/markdown/*.markdown"],
+        user=default_user2,
+    )
 
-    all_files = fs_syncer.collect_files(state.config.content_type)
-    state.content_index = configure_content(
-        state.content_index, state.config.content_type, all_files, state.search_models
+    all_files = fs_syncer.collect_files(user=default_user2)
+    configure_content(
+        state.content_index, state.config.content_type, all_files, state.search_models, user=default_user2
     )
 
     # Initialize Processor from Config
-    state.processor_config = configure_processor(processor_config_offline_chat)
+    OfflineChatProcessorConversationConfigFactory(enabled=True)
+    UserConversationProcessorConfigFactory(user=default_user2)
+
+    state.anonymous_mode = True
+
+    app = FastAPI()
 
     configure_routes(app)
+    configure_middleware(app)
+    app.mount("/static", StaticFiles(directory=web_directory), name="static")
     return TestClient(app)
 
 
 @pytest.fixture(scope="function")
-def new_org_file(content_config: ContentConfig):
+def new_org_file(default_user: KhojUser, content_config: ContentConfig):
     # Setup
-    new_org_file = Path(content_config.org.input_filter[0]).parent / "new_file.org"
+    org_config = LocalOrgConfig.objects.filter(user=default_user).first()
+    input_filters = org_config.input_filter
+    new_org_file = Path(input_filters[0]).parent / "new_file.org"
     new_org_file.touch()
 
     yield new_org_file
@@ -311,11 +366,9 @@ def new_org_file(content_config: ContentConfig):
 
 
 @pytest.fixture(scope="function")
-def org_config_with_only_new_file(content_config: ContentConfig, new_org_file: Path):
-    new_org_config = deepcopy(content_config.org)
-    new_org_config.input_files = [f"{new_org_file}"]
-    new_org_config.input_filter = None
-    return new_org_config
+def org_config_with_only_new_file(new_org_file: Path, default_user: KhojUser):
+    LocalOrgConfig.objects.update(input_files=[str(new_org_file)], input_filter=None)
+    return LocalOrgConfig.objects.filter(user=default_user).first()
 
 
 @pytest.fixture(scope="function")

@@ -2,29 +2,44 @@
 /* Can be forced with data-theme="light" */
 [data-theme="light"],
 :root:not([data-theme="dark"]) {
-    --primary: #ffb300;
-    --primary-hover: #ffa000;
+    --primary: #fee285;
+    --primary-hover: #fcc50b;
     --primary-focus: rgba(255, 179, 0, 0.125);
     --primary-inverse: rgba(0, 0, 0, 0.75);
+    --background-color: #f5f4f3;
+    --main-text-color: #475569;
+    --water: #44b9da;
+    --leaf: #7b990a;
+    --flower: #ffaeae;
 }
 
 /* Amber Dark scheme (Auto) */
 /* Automatically enabled if user has Dark mode enabled */
 @media only screen and (prefers-color-scheme: dark) {
     :root:not([data-theme]) {
-        --primary: #ffb300;
-        --primary-hover: #ffc107;
+        --primary: #fee285;
+        --primary-hover: #fcc50b;
         --primary-focus: rgba(255, 179, 0, 0.25);
         --primary-inverse: rgba(0, 0, 0, 0.75);
+        --background-color: #f5f4f3;
+        --main-text-color: #475569;
+        --water: #44b9da;
+        --leaf: #7b990a;
+        --flower: #ffaeae;
     }
 }
 /* Amber Dark scheme (Forced) */
 /* Enabled if forced with data-theme="dark" */
 [data-theme="dark"] {
-    --primary: #ffb300;
-    --primary-hover: #ffc107;
+    --primary: #fee285;
+    --primary-hover: #fcc50b;
     --primary-focus: rgba(255, 179, 0, 0.25);
     --primary-inverse: rgba(0, 0, 0, 0.75);
+    --background-color: #f5f4f3;
+    --main-text-color: #475569;
+    --water: #44b9da;
+    --leaf: #7b990a;
+    --flower: #ffaeae;
 }
 /* Amber (Common styles) */
 :root {
@@ -37,14 +52,20 @@
 .khoj-configure {
     display: grid;
     grid-template-columns: 1fr;
-    padding: 0 24px;
+    font-family: roboto, karma, segoe ui, sans-serif;
+    font-weight: 300;
 }
+
+.khoj-footer,
 .khoj-header {
     display: grid;
     grid-auto-flow: column;
     gap: 20px;
     padding: 16px 0;
     margin: 0 0 16px 0;
+}
+.khoj-footer {
+    margin: 16px 0 0 0;
 }
 
 nav.khoj-nav {
@@ -64,7 +85,7 @@ a.khoj-logo {
 }
 
 .khoj-nav a {
-    color: #333;
+    color: var(--main-text-color);
     text-decoration: none;
     font-size: 20px;
     font-weight: normal;
@@ -85,22 +106,88 @@ img.khoj-logo {
     justify-self: center;
 }
 
-a.khoj-banner {
+/* Dropdown in navigation menu*/
+#khoj-nav-menu-container {
+    display: flex;
+    align-items: center;
+}
+.khoj-nav-dropdown-content {
+    display: block;
+    grid-auto-flow: row;
+    position: absolute;
+    background-color: var(--background-color);
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    right: 15vw;
+    top: 64px;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.1s ease-in-out;
+    pointer-events: none;
+    text-align: left;
+}
+.khoj-nav-dropdown-content.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+.khoj-nav-dropdown-content a {
     color: black;
+    padding: 12px 16px;
     text-decoration: none;
+    display: block;
+}
+.khoj-nav-dropdown-content a:hover {
+    background-color: var(--primary-hover);
+}
+.khoj-nav-username {
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    font-weight: bold;
+}
+.circle {
+    border-radius: 50%;
+    border: 3px dotted var(--main-text-color);
+    width: 40px;
+    height: 40px;
+    padding: 3px;
+    cursor: pointer;
+}
+.circle:hover {
+    background-color: var(--primary-hover);
+}
+.user-initial {
+    background-color: var(--background-color);
+    color: black;
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    box-sizing: unset;
+    width: 40px;
+    height: 40px;
+}
+.subscribed {
+    border: 3px solid var(--primary-hover);
 }
 
-p.khoj-banner {
-    font-size: medium;
-    margin: 0;
-    padding: 10px;
+@media screen and (max-width: 700px) {
+    .khoj-nav-dropdown-content {
+        display: block;
+        grid-auto-flow: row;
+        position: absolute;
+        background-color: var(--background-color);
+        min-width: 160px;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        right: 10px;
+        z-index: 1;
+        opacity: 0;
+        transition: opacity 0.1s ease-in-out;
+        pointer-events: none;
+    }
 }
 
-p#khoj-banner {
-    display: inline;
-}
-
-@media only screen and (max-width: 600px) {
+@media only screen and (max-width: 700px) {
     div.khoj-header {
         display: grid;
         grid-auto-flow: column;

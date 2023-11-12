@@ -146,7 +146,7 @@ def extract_metadata(image_name):
 
 
 async def query(
-    raw_query, count, search_model: ImageSearchModel, content: ImageContent, score_threshold: float = -math.inf
+    raw_query, count, search_model: ImageSearchModel, content: ImageContent, score_threshold: float = math.inf
 ):
     # Set query to image content if query is of form file:/path/to/file.png
     if raw_query.startswith("file:") and pathlib.Path(raw_query[5:]).is_file():
@@ -167,7 +167,8 @@ async def query(
     # Compute top_k ranked images based on cosine-similarity b/w query and all image embeddings.
     with timer("Search Time", logger):
         image_hits = {
-            result["corpus_id"]: {"image_score": result["score"], "score": result["score"]}
+            # Map scores to distance metric by multiplying by -1
+            result["corpus_id"]: {"image_score": -1 * result["score"], "score": -1 * result["score"]}
             for result in util.semantic_search(query_embedding, content.image_embeddings, top_k=count)[0]
         }
 
@@ -204,7 +205,7 @@ async def query(
     ]
 
     # Filter results by score threshold
-    hits = [hit for hit in hits if hit["image_score"] >= score_threshold]
+    hits = [hit for hit in hits if hit["image_score"] <= score_threshold]
 
     # Sort the images based on their combined metadata, image scores
     return sorted(hits, key=lambda hit: hit["score"], reverse=True)
@@ -236,6 +237,7 @@ def collate_results(hits, image_names, output_directory, image_files_url, count=
                         "image_score": f"{hit['image_score']:.9f}",
                         "metadata_score": f"{hit['metadata_score']:.9f}",
                     },
+                    "corpus_id": hit["corpus_id"],
                 }
             )
         ]

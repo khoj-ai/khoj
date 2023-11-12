@@ -1,0 +1,129 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
+        <title>Khoj - Login</title>
+
+        <link rel="icon" type="image/png" sizes="128x128" href="/static/assets/icons/favicon-128x128.png">
+        <link rel="manifest" href="/static/khoj.webmanifest">
+        <link rel="stylesheet" href="/static/assets/khoj.css">
+    </head>
+
+    <body>
+        <div class="khoj-header"></div>
+
+        <!-- Login Modal -->
+        <div id="login-modal">
+            <img class="khoj-logo" src="/static/assets/icons/favicon-128x128.png" alt="Khoj"></img>
+            <div class="login-modal-title">Log in to Khoj</div>
+            <!-- Sign Up/Login with Google OAuth -->
+            <div
+                class="g_id_signin"
+                data-shape="circle"
+                data-text="continue_with"
+                data-logo_alignment="center"
+                data-size="large"
+                data-type="standard">
+            </div>
+            <div id="g_id_onload"
+                data-client_id="{{ google_client_id }}"
+                data-ux_mode="redirect"
+                data-login_uri="{{ redirect_uri }}"
+                data-auto-select="true">
+            </div>
+        </div>
+
+        <div class="khoj-footer"></div>
+   </div>
+
+
+    </body>
+
+    <style>
+        @media only screen and (max-width: 700px) {
+            body {
+                display: grid;
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto 1fr;
+                font-size: small!important;
+            }
+            body > * {
+                grid-column: 1;
+            }
+        }
+        @media only screen and (min-width: 700px) {
+            body {
+                display: grid;
+                grid-template-columns: 1fr min(70vw, 100%) 1fr;
+                grid-template-rows: 1fr auto 1fr;
+            }
+            body > * {
+                grid-column: 2;
+            }
+        }
+        body {
+            padding: 0px;
+            margin: 0px;
+            height: 100%;
+            background: var(--background-color);
+            color: var(--main-text-color);
+            font-family: roboto, karma, segoe ui, sans-serif;
+            font-size: 20px;
+            font-weight: 300;
+            line-height: 1.5em;
+        }
+        body > * {
+            padding: 10px;
+            margin: 10px;
+        }
+
+        @keyframes gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        a.khoj-logo {
+            text-align: center;
+            justify-self: center;
+        }
+
+        div#login-modal {
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr auto auto 1fr;
+            gap: 32px;
+            min-height: 300px;
+            background: var(--background-color);
+            margin-left: 25%;
+            margin-right: 25%;
+        }
+
+        div.g_id_signin {
+            margin: 0 auto;
+            display: block;
+        }
+
+        div.login-modal-title {
+            text-align: center;
+            line-height: 28px;
+            font-size: 24px;
+            font-weight: 500;
+        }
+
+        @media only screen and (max-width: 700px) {
+            div#login-modal {
+                margin-left: 10%;
+                margin-right: 10%;
+            }
+        }
+
+    </style>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</html>

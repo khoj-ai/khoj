@@ -2,10 +2,8 @@ name: test
 
 on:
   pull_request:
-    branches:
-      - 'master'
     paths:
-      - src/khoj/**
+      - src/**
       - tests/**
       - config/**
       - pyproject.toml
@@ -13,7 +11,7 @@ on:
       - .github/workflows/test.yml
   push:
     branches:
-      - 'master'
+      - master
     paths:
       - src/khoj/**
       - tests/**
@@ -26,6 +24,7 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    container: ubuntu:jammy
     strategy:
       fail-fast: false
       matrix:
@@ -33,6 +32,17 @@ jobs:
           - '3.9'
           - '3.10'
           - '3.11'
+
+    services:
+      postgres:
+        image: ankane/pgvector
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
     steps:
       - uses: actions/checkout@v3
         with:
@@ -43,17 +53,37 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
 
-      - name: ⏬️ Install Dependencies
+      - name: Install Git
         run: |
-          sudo apt update && sudo apt install -y libegl1
+          apt update && apt install -y git
+
+      - name: ⏬️ Install Dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt update && apt install -y libegl1 sqlite3 libsqlite3-dev libsqlite3-0 ffmpeg libsm6 libxext6
+
+      - name: ⬇️ Install Postgres
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run : |
+          apt install -y postgresql postgresql-client && apt install -y postgresql-server-dev-14
+
+      - name: ⬇️ Install pip
+        run: |
+          apt install -y python3-pip
+          python -m ensurepip --upgrade
           python -m pip install --upgrade pip
 
       - name: ⬇️ Install Application
-        run: pip install --upgrade .[dev]
-
-      - name: 🌡️ Validate Application
-        run: pre-commit run --hook-stage manual --all
+        run: sed -i 's/dynamic = \["version"\]/version = "0.0.0"/' pyproject.toml && pip install --upgrade .[dev]
 
       - name: 🧪 Test Application
+        env:
+          POSTGRES_HOST: postgres
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
         run: pytest
         timeout-minutes: 10

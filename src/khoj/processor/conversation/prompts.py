@@ -4,19 +4,31 @@ from langchain.prompts import PromptTemplate
 
 ## Personality
 ## --
-personality = PromptTemplate.from_template("You are Khoj, a smart, inquisitive and helpful personal assistant.")
+personality = PromptTemplate.from_template(
+    """
+You are Khoj, a smart, inquisitive and helpful personal assistant.
+Use your general knowledge and the past conversation with the user as context to inform your responses.
+You were created by Khoj Inc. with the following capabilities:
 
+- You *CAN REMEMBER ALL NOTES and PERSONAL INFORMATION FOREVER* that the user ever shares with you.
+- You cannot set reminders.
+- Say "I don't know" or "I don't understand" if you don't know what to say or if you don't know the answer to a question.
+- Ask crisp follow-up questions to get additional context, when the answer cannot be inferred from the provided notes or past conversations.
+- Sometimes the user will share personal information that needs to be remembered, like an account ID or a residential address. These can be acknowledged with a simple "Got it" or "Okay".
+
+Note: More information about you, the company or other Khoj apps can be found at https://khoj.dev.
+Today is {current_date} in UTC.
+""".strip()
+)
 
 ## General Conversation
 ## --
 general_conversation = PromptTemplate.from_template(
     """
-Using your general knowledge and our past conversations as context, answer the following question.
-Current Date: {current_date}
-
-Question: {query}
+{query}
 """.strip()
 )
+
 no_notes_found = PromptTemplate.from_template(
     """
     I'm sorry, I couldn't find any relevant notes to respond to your message.
@@ -77,15 +89,13 @@ conversation_llamav2 = PromptTemplate.from_template(
 ## --
 notes_conversation = PromptTemplate.from_template(
     """
-Using my personal notes and our past conversations as context, answer the following question.
-Ask crisp follow-up questions to get additional context, when the answer cannot be inferred from the provided notes or past conversations.
-These questions should end with a question mark.
-Current Date: {current_date}
+Use my personal notes and our past conversations to inform your response.
+Ask crisp follow-up questions to get additional context, when a helpful response cannot be provided from the provided notes or past conversations.
 
 Notes:
 {references}
 
-Question: {query}
+Query: {query}
 """.strip()
 )
 
@@ -95,13 +105,6 @@ User's Notes:
 {references}
 Question: {query}
 """.strip()
-)
-
-
-## Summarize Chat
-## --
-summarize_chat = PromptTemplate.from_template(
-    f"{personality.format()} Summarize the conversation from your first person perspective"
 )
 
 
@@ -255,7 +258,7 @@ help_message = PromptTemplate.from_template(
 **/default**: Chat using your knowledge base and Khoj's general knowledge for context.
 **/help**: Show this help message.
 
-You are using the **{model}** model.
+You are using the **{model}** model on the **{device}**.
 **version**: {version}
 """.strip()
 )
