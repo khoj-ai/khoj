@@ -56,7 +56,7 @@ def extract_questions_offline(
     last_christmas_date = f"{last_year}-12-25"
     next_christmas_date = f"{datetime.now().year}-12-25"
     system_prompt = prompts.extract_questions_system_prompt_llamav2.format(
-        message=(prompts.system_prompt_message_extract_questions_llamav2)
+        message=prompts.system_prompt_message_extract_questions_llamav2
     )
     example_questions = prompts.extract_questions_llamav2_sample.format(
         query=text,

@@ -29,7 +29,7 @@ def test_cli_invalid_config_file_path():
 
     # Assert
     assert actual_args.config_file == resolve_absolute_path(non_existent_config_file)
-    assert actual_args.config == None
+    assert actual_args.config is None
 
 
 # ----------------------------------------------------------------------------------------------------

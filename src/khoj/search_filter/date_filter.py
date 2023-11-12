@@ -151,16 +151,16 @@ class DateFilter(BaseFilter):
         start_of_day = parsed_date.replace(hour=0, minute=0, second=0, microsecond=0)
 
         if "year" in date_str:
-            return (datetime(parsed_date.year, 1, 1, 0, 0, 0), datetime(parsed_date.year + 1, 1, 1, 0, 0, 0))
+            return datetime(parsed_date.year, 1, 1, 0, 0, 0), datetime(parsed_date.year + 1, 1, 1, 0, 0, 0)
         if "month" in date_str:
             start_of_month = datetime(parsed_date.year, parsed_date.month, 1, 0, 0, 0)
             next_month = start_of_month + relativedelta(months=1)
-            return (start_of_month, next_month)
+            return start_of_month, next_month
         if "week" in date_str:
             # if week in date string, dateparser parses it to next week start
             # so today = end of this week
             start_of_week = start_of_day - timedelta(days=7)
-            return (start_of_week, start_of_day)
+            return start_of_week, start_of_day
         else:
             next_day = start_of_day + relativedelta(days=1)
-        return (start_of_day, next_day)
+        return start_of_day, next_day

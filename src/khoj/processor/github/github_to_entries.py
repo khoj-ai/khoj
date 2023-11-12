@@ -222,9 +222,7 @@ class GithubToEntries(TextToEntries):
                 user_url = f"[{username}]({issue['user']['html_url']})"
                 issue_content = {
                     "content": f"## [Issue {issue['number']}]({issue['html_url']}) {issue['title']}\nby {user_url}\n\n{issue['body']}",
-                    "path": issue["html_url"],
-                }
-                issue_content["created_at"] = {issue["created_at"]}
+                    "path": issue["html_url"], "created_at": {issue["created_at"]}}
                 if issue["comments"] > 0:
                     issue_content["comments"] = self.get_comments(issue["comments_url"])
                 issues += [issue_content]

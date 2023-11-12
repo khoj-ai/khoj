@@ -54,7 +54,7 @@ class AsyncIteratorWrapper:
 
 
 def is_none_or_empty(item):
-    return item == None or (hasattr(item, "__iter__") and len(item) == 0) or item == ""
+    return item is None or (hasattr(item, "__iter__") and len(item) == 0) or item == ""
 
 
 def to_snake_case_from_dash(item: str):

@@ -15,12 +15,12 @@ from khoj.utils import helpers
 def test_get_from_null_dict():
     # null handling
     assert helpers.get_from_dict(dict()) == dict()
-    assert helpers.get_from_dict(dict(), None) == None
+    assert helpers.get_from_dict(dict(), None) is None
 
     # key present in nested dictionary
     # 1-level dictionary
     assert helpers.get_from_dict({"a": 1, "b": 2}, "a") == 1
-    assert helpers.get_from_dict({"a": 1, "b": 2}, "c") == None
+    assert helpers.get_from_dict({"a": 1, "b": 2}, "c") is None
 
     # 2-level dictionary
     assert helpers.get_from_dict({"a": {"a_a": 1}, "b": 2}, "a") == {"a_a": 1}
@@ -28,7 +28,7 @@ def test_get_from_null_dict():
 
     # key not present in nested dictionary
     # 2-level_dictionary
-    assert helpers.get_from_dict({"a": {"a_a": 1}, "b": 2}, "b", "b_a") == None
+    assert helpers.get_from_dict({"a": {"a_a": 1}, "b": 2}, "b", "b_a") is None
 
 
 def test_merge_dicts():

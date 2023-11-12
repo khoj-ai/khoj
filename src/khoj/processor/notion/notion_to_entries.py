@@ -98,10 +98,10 @@ class NotionToEntries(TextToEntries):
                     json=self.body_params,
                 ).json()
                 responses.append(result)
-                if result["has_more"] == False:
+                if not result["has_more"]:
                     break
-                else:
-                    self.body_params.update({"start_cursor": result["next_cursor"]})
+
+                self.body_params.update({"start_cursor": result["next_cursor"]})
 
         for response in responses:
             with timer("Processing response", logger=logger):
@@ -123,7 +123,7 @@ class NotionToEntries(TextToEntries):
         page_id = page["id"]
         title, content = self.get_page_content(page_id)
 
-        if title == None or content == None:
+        if title is None or content is None:
             return []
 
         current_entries = []
@@ -131,11 +131,11 @@ class NotionToEntries(TextToEntries):
         for block in content["results"]:
             block_type = block.get("type")
 
-            if block_type == None:
+            if block_type is None:
                 continue
             block_data = block[block_type]
 
-            if block_data.get("rich_text") == None or len(block_data["rich_text"]) == 0:
+            if block_data.get("rich_text") is None or len(block_data["rich_text"]) == 0:
                 # There's no text to handle here.
                 continue
 
@@ -184,7 +184,7 @@ class NotionToEntries(TextToEntries):
         results = children["results"] if children.get("results") else []
         for child in results:
             child_type = child.get("type")
-            if child_type == None:
+            if child_type is None:
                 continue
             child_data = child[child_type]
             if child_data.get("rich_text") and len(child_data["rich_text"]) > 0:
