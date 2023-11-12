@@ -1,27 +1,24 @@
 # Standard Packages
-import sys
-import logging
 import json
+import logging
+import sys
 from enum import Enum
 from typing import Optional
+
 import requests
 
 # External Packages
 import schedule
 from fastapi.staticfiles import StaticFiles
 
+from khoj.routers.indexer import configure_content, configure_search, load_content
+
 # Internal Packages
 from khoj.utils import constants, state
-from khoj.utils.config import (
-    SearchType,
-    ProcessorConfigModel,
-    ConversationProcessorConfigModel,
-)
-from khoj.utils.helpers import resolve_absolute_path, merge_dicts
+from khoj.utils.config import ConversationProcessorConfigModel, ProcessorConfigModel, SearchType
 from khoj.utils.fs_syncer import collect_files
-from khoj.utils.rawconfig import FullConfig, OfflineChatProcessorConfig, ProcessorConfig, ConversationProcessorConfig
-from khoj.routers.indexer import configure_content, load_content, configure_search
-
+from khoj.utils.helpers import merge_dicts, resolve_absolute_path
+from khoj.utils.rawconfig import ConversationProcessorConfig, FullConfig, OfflineChatProcessorConfig, ProcessorConfig
 
 logger = logging.getLogger(__name__)
 
@@ -97,8 +94,8 @@ def configure_routes(app):
     # Import APIs here to setup search types before while configuring server
     from khoj.routers.api import api
     from khoj.routers.api_beta import api_beta
-    from khoj.routers.web_client import web_client
     from khoj.routers.indexer import indexer
+    from khoj.routers.web_client import web_client
 
     app.mount("/static", StaticFiles(directory=constants.web_directory), name="static")
     app.include_router(api, prefix="/api")

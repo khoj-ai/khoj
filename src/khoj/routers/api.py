@@ -1,53 +1,52 @@
 # Standard Packages
 import concurrent.futures
+import json
+import logging
 import math
 import time
+from typing import Any, List, Optional, Union
+
 import yaml
-import logging
-import json
-from typing import List, Optional, Union, Any
 
 # External Packages
-from fastapi import APIRouter, HTTPException, Header, Request
+from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi.requests import Request
+from fastapi.responses import Response, StreamingResponse
 from sentence_transformers import util
 
 # Internal Packages
 from khoj.configure import configure_processor, configure_server
-from khoj.search_type import image_search, text_search
+from khoj.processor.conversation.gpt4all.chat_model import extract_questions_offline
+from khoj.processor.conversation.openai.gpt import extract_questions
+from khoj.processor.conversation.prompts import help_message
+from khoj.routers.helpers import (
+    generate_chat_response,
+    get_conversation_command,
+    perform_chat_checks,
+    update_telemetry_state,
+)
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
+from khoj.search_type import image_search, text_search
+from khoj.utils import constants, state
 from khoj.utils.config import TextSearchModel
-from khoj.utils.helpers import ConversationCommand, is_none_or_empty, timer, command_descriptions
+from khoj.utils.helpers import ConversationCommand, command_descriptions, is_none_or_empty, resolve_absolute_path, timer
 from khoj.utils.rawconfig import (
     ContentConfig,
+    ConversationProcessorConfig,
     FullConfig,
+    GithubContentConfig,
+    NotionContentConfig,
+    OfflineChatProcessorConfig,
+    OpenAIProcessorConfig,
     ProcessorConfig,
     SearchConfig,
     SearchResponse,
     TextContentConfig,
-    OpenAIProcessorConfig,
-    GithubContentConfig,
-    NotionContentConfig,
-    ConversationProcessorConfig,
-    OfflineChatProcessorConfig,
 )
-from khoj.utils.helpers import resolve_absolute_path
 from khoj.utils.state import SearchType
-from khoj.utils import state, constants
 from khoj.utils.yaml import save_config_to_file_updated_state
-from fastapi.responses import StreamingResponse, Response
-from khoj.routers.helpers import (
-    get_conversation_command,
-    perform_chat_checks,
-    generate_chat_response,
-    update_telemetry_state,
-)
-from khoj.processor.conversation.prompts import help_message
-from khoj.processor.conversation.openai.gpt import extract_questions
-from khoj.processor.conversation.gpt4all.chat_model import extract_questions_offline
-from fastapi.requests import Request
-
 
 # Initialize Router
 api = APIRouter()

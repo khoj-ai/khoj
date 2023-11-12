@@ -1,20 +1,21 @@
 # System Packages
-import logging
 import locale
-from pathlib import Path
+import logging
 import os
+from pathlib import Path
 
 # External Packages
 import pytest
 
-# Internal Packages
-from khoj.utils.state import content_index, search_models
-from khoj.search_type import text_search
-from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.github.github_to_jsonl import GithubToJsonl
+from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
+from khoj.search_type import text_search
 from khoj.utils.config import SearchModels
 from khoj.utils.fs_syncer import get_org_files
 from khoj.utils.rawconfig import ContentConfig, SearchConfig, TextContentConfig
+
+# Internal Packages
+from khoj.utils.state import content_index, search_models
 
 
 # Test

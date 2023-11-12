@@ -5,11 +5,11 @@ from typing import Iterator, List, Optional, Union
 
 from fastapi import HTTPException, Request
 
-from khoj.utils import state
-from khoj.utils.helpers import ConversationCommand, timer, log_telemetry
-from khoj.processor.conversation.openai.gpt import converse
 from khoj.processor.conversation.gpt4all.chat_model import converse_offline
-from khoj.processor.conversation.utils import reciprocal_conversation_to_chatml, message_to_log, ThreadedGenerator
+from khoj.processor.conversation.openai.gpt import converse
+from khoj.processor.conversation.utils import ThreadedGenerator, message_to_log, reciprocal_conversation_to_chatml
+from khoj.utils import state
+from khoj.utils.helpers import ConversationCommand, log_telemetry, timer
 
 logger = logging.getLogger(__name__)
 

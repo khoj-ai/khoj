@@ -9,7 +9,6 @@ from khoj.utils.helpers import timer
 from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry
 
-
 logger = logging.getLogger(__name__)
 
 

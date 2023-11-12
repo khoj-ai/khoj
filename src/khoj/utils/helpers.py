@@ -1,28 +1,29 @@
 # Standard Packages
 from __future__ import annotations  # to avoid quoting type hints
-from collections import OrderedDict
+
 import datetime
+import logging
+import os
+import platform
+import sys
+import uuid
+from collections import OrderedDict
 from enum import Enum
 from importlib import import_module
 from importlib.metadata import version
-import logging
 from os import path
-import os
 from pathlib import Path
-import platform
-import sys
 from time import perf_counter
+from typing import TYPE_CHECKING, Optional, Union
+
 import torch
-from typing import Optional, Union, TYPE_CHECKING
-import uuid
 
 # Internal Packages
 from khoj.utils import constants
 
-
 if TYPE_CHECKING:
     # External Packages
-    from sentence_transformers import SentenceTransformer, CrossEncoder
+    from sentence_transformers import CrossEncoder, SentenceTransformer
 
     # Internal Packages
     from khoj.utils.models import BaseEncoder

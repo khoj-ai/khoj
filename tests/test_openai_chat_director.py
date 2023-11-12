@@ -5,12 +5,12 @@ import urllib.parse
 # External Packages
 import pytest
 from freezegun import freeze_time
+
 from khoj.processor.conversation import prompts
 
 # Internal Packages
 from khoj.processor.conversation.utils import message_to_log
 from khoj.utils import state
-
 
 # Initialize variables for tests
 api_key = os.getenv("OPENAI_API_KEY")

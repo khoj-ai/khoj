@@ -1,7 +1,7 @@
 # Standard Packages
+import locale
 import os
 import sys
-import locale
 
 if sys.stdout is None:
     sys.stdout = open(os.devnull, "w")
@@ -17,12 +17,13 @@ from importlib.metadata import version
 warnings.filterwarnings("ignore", message=r"snapshot_download.py has been made private", category=FutureWarning)
 warnings.filterwarnings("ignore", message=r"legacy way to download files from the HF hub,", category=FutureWarning)
 
+import schedule
+
 # External Packages
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from rich.logging import RichHandler
-import schedule
 
 # Internal Packages
 from khoj.configure import configure_routes, initialize_server

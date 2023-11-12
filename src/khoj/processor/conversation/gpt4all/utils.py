@@ -2,7 +2,6 @@ import logging
 
 from khoj.utils import state
 
-
 logger = logging.getLogger(__name__)
 
 

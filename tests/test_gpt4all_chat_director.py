@@ -3,14 +3,13 @@ import urllib.parse
 
 # External Packages
 import pytest
-from freezegun import freeze_time
 from faker import Faker
+from freezegun import freeze_time
 
 # Internal Packages
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import message_to_log
 from khoj.utils import state
-
 
 SKIP_TESTS = True
 pytestmark = pytest.mark.skipif(

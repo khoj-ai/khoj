@@ -1,17 +1,16 @@
 # System Packages
 from __future__ import annotations  # to avoid quoting type hints
 
-from enum import Enum
 import logging
-
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Union, Any
-from khoj.processor.conversation.gpt4all.utils import download_model
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 # External Packages
 import torch
 
+from khoj.processor.conversation.gpt4all.utils import download_model
 from khoj.utils.rawconfig import OfflineChatProcessorConfig
 
 logger = logging.getLogger(__name__)
@@ -19,6 +18,7 @@ logger = logging.getLogger(__name__)
 # Internal Packages
 if TYPE_CHECKING:
     from sentence_transformers import CrossEncoder
+
     from khoj.search_filter.base_filter import BaseFilter
     from khoj.utils.models import BaseEncoder
     from khoj.utils.rawconfig import ConversationProcessorConfig, Entry, OpenAIProcessorConfig

@@ -7,15 +7,14 @@ from typing import Dict, List, Union
 # External Packages
 import requests
 
-# Internal Packages
-from khoj.utils.helpers import timer
-from khoj.utils.rawconfig import Entry, GithubContentConfig, GithubRepoConfig
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.text_to_jsonl import TextToJsonl
-from khoj.utils.jsonl import compress_jsonl_data
-from khoj.utils.rawconfig import Entry
 
+# Internal Packages
+from khoj.utils.helpers import timer
+from khoj.utils.jsonl import compress_jsonl_data
+from khoj.utils.rawconfig import Entry, GithubContentConfig, GithubRepoConfig
 
 logger = logging.getLogger(__name__)
 

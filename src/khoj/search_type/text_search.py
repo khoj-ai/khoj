@@ -6,18 +6,18 @@ from typing import List, Tuple, Type, Union
 
 # External Packages
 import torch
-from sentence_transformers import SentenceTransformer, CrossEncoder, util
+from sentence_transformers import CrossEncoder, SentenceTransformer, util
+
 from khoj.processor.text_to_jsonl import TextToJsonl
 from khoj.search_filter.base_filter import BaseFilter
 
 # Internal Packages
 from khoj.utils import state
-from khoj.utils.helpers import get_absolute_path, is_none_or_empty, resolve_absolute_path, load_model, timer
 from khoj.utils.config import TextContent, TextSearchModel
-from khoj.utils.models import BaseEncoder
-from khoj.utils.rawconfig import SearchResponse, TextSearchConfig, TextConfigBase, Entry
+from khoj.utils.helpers import get_absolute_path, is_none_or_empty, load_model, resolve_absolute_path, timer
 from khoj.utils.jsonl import load_jsonl
-
+from khoj.utils.models import BaseEncoder
+from khoj.utils.rawconfig import Entry, SearchResponse, TextConfigBase, TextSearchConfig
 
 logger = logging.getLogger(__name__)
 

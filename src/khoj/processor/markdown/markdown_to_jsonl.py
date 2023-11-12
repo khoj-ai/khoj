@@ -1,17 +1,17 @@
 # Standard Packages
 import logging
 import re
-import urllib3
 from pathlib import Path
 from typing import List
 
+import urllib3
+
 # Internal Packages
 from khoj.processor.text_to_jsonl import TextToJsonl
-from khoj.utils.helpers import timer
 from khoj.utils.constants import empty_escape_sequences
+from khoj.utils.helpers import timer
 from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry, TextContentConfig
-
 
 logger = logging.getLogger(__name__)
 

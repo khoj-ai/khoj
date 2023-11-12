@@ -1,39 +1,31 @@
 # Standard Packages
 import logging
-from typing import Optional, Union, Dict
+from typing import Dict, Optional, Union
 
 # External Packages
-from fastapi import APIRouter, HTTPException, Header, Request, Response, UploadFile
+from fastapi import APIRouter, Header, HTTPException, Request, Response, UploadFile
 from pydantic import BaseModel
-from khoj.routers.helpers import update_telemetry_state
 
-# Internal Packages
-from khoj.utils import state, constants
+from khoj.processor.github.github_to_jsonl import GithubToJsonl
 from khoj.processor.jsonl.jsonl_to_jsonl import JsonlToJsonl
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
+from khoj.processor.notion.notion_to_jsonl import NotionToJsonl
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.pdf.pdf_to_jsonl import PdfToJsonl
-from khoj.processor.github.github_to_jsonl import GithubToJsonl
-from khoj.processor.notion.notion_to_jsonl import NotionToJsonl
 from khoj.processor.plaintext.plaintext_to_jsonl import PlaintextToJsonl
-from khoj.utils.rawconfig import ContentConfig, TextContentConfig
-from khoj.search_type import text_search, image_search
-from khoj.utils.yaml import save_config_to_file_updated_state
-from khoj.utils.config import SearchModels
+from khoj.routers.helpers import update_telemetry_state
+from khoj.search_filter.date_filter import DateFilter
+from khoj.search_filter.file_filter import FileFilter
+from khoj.search_filter.word_filter import WordFilter
+from khoj.search_type import image_search, text_search
+
+# Internal Packages
+from khoj.utils import constants, state
+from khoj.utils.config import ContentIndex, SearchModels
 from khoj.utils.constants import default_config
 from khoj.utils.helpers import LRU, get_file_type
-from khoj.utils.rawconfig import (
-    ContentConfig,
-    FullConfig,
-    SearchConfig,
-)
-from khoj.search_filter.date_filter import DateFilter
-from khoj.search_filter.word_filter import WordFilter
-from khoj.search_filter.file_filter import FileFilter
-from khoj.utils.config import (
-    ContentIndex,
-    SearchModels,
-)
+from khoj.utils.rawconfig import ContentConfig, FullConfig, SearchConfig, TextContentConfig
+from khoj.utils.yaml import save_config_to_file_updated_state
 
 logger = logging.getLogger(__name__)
 

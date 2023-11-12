@@ -1,15 +1,13 @@
 # External Packages
-from fastapi import APIRouter
-from fastapi import Request
-from fastapi.responses import HTMLResponse, FileResponse
+import json
+
+from fastapi import APIRouter, Request
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
-from khoj.utils.rawconfig import TextContentConfig, OpenAIProcessorConfig, FullConfig
 
 # Internal Packages
 from khoj.utils import constants, state
-
-import json
-
+from khoj.utils.rawconfig import FullConfig, OpenAIProcessorConfig, TextContentConfig
 
 # Initialize Router
 web_client = APIRouter()

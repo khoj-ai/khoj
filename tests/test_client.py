@@ -1,23 +1,24 @@
 # Standard Modules
 from io import BytesIO
-from PIL import Image
 from urllib.parse import quote
 
+import pytest
 
 # External Packages
 from fastapi.testclient import TestClient
-import pytest
+from PIL import Image
+
+from khoj.configure import configure_routes, configure_search_types
 
 # Internal Packages
 from khoj.main import app
-from khoj.configure import configure_routes, configure_search_types
-from khoj.utils import state
-from khoj.utils.state import search_models, content_index, config
-from khoj.search_type import text_search, image_search
-from khoj.utils.rawconfig import ContentConfig, SearchConfig
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
-from khoj.search_filter.word_filter import WordFilter
 from khoj.search_filter.file_filter import FileFilter
+from khoj.search_filter.word_filter import WordFilter
+from khoj.search_type import image_search, text_search
+from khoj.utils import state
+from khoj.utils.rawconfig import ContentConfig, SearchConfig
+from khoj.utils.state import config, content_index, search_models
 
 
 # Test

@@ -1,14 +1,14 @@
-from typing import Iterator, Union, List, Any
-from datetime import datetime
 import logging
+from datetime import datetime
 from threading import Thread
+from typing import Any, Iterator, List, Union
 
 from langchain.schema import ChatMessage
 
-from khoj.processor.conversation.utils import ThreadedGenerator, generate_chatml_messages_with_context
 from khoj.processor.conversation import prompts
-from khoj.utils.constants import empty_escape_sequences
+from khoj.processor.conversation.utils import ThreadedGenerator, generate_chatml_messages_with_context
 from khoj.utils import state
+from khoj.utils.constants import empty_escape_sequences
 from khoj.utils.helpers import ConversationCommand, is_none_or_empty
 
 logger = logging.getLogger(__name__)

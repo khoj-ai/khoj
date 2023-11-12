@@ -4,10 +4,10 @@ from pathlib import Path
 # External Packages
 import yaml
 
-# Internal Packages
-from khoj.utils.rawconfig import FullConfig
 from khoj.utils import state
 
+# Internal Packages
+from khoj.utils.rawconfig import FullConfig
 
 # Do not emit tags when dumping to YAML
 yaml.emitter.Emitter.process_tag = lambda self, *args, **kwargs: None  # type: ignore[assignment]

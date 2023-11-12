@@ -1,9 +1,10 @@
 # Standard Packages
-import logging
-from time import perf_counter
 import json
-from datetime import datetime
+import logging
 import queue
+from datetime import datetime
+from time import perf_counter
+
 import tiktoken
 
 # External packages
@@ -12,7 +13,6 @@ from transformers import AutoTokenizer
 
 # Internal Packages
 from khoj.utils.helpers import merge_dicts
-
 
 logger = logging.getLogger(__name__)
 model_to_prompt_size = {

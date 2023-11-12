@@ -1,25 +1,26 @@
 # Standard Packages
+import copy
 import glob
+import logging
 import math
 import pathlib
-import copy
 import shutil
-import logging
 from typing import List
+
+import torch
+from PIL import Image
 
 # External Packages
 from sentence_transformers import SentenceTransformer, util
-from PIL import Image
 from tqdm import trange
-import torch
+
 from khoj.utils import state
+from khoj.utils.config import ImageContent, ImageSearchModel
 
 # Internal Packages
-from khoj.utils.helpers import get_absolute_path, get_from_dict, resolve_absolute_path, load_model, timer
-from khoj.utils.config import ImageContent, ImageSearchModel
+from khoj.utils.helpers import get_absolute_path, get_from_dict, load_model, resolve_absolute_path, timer
 from khoj.utils.models import BaseEncoder
 from khoj.utils.rawconfig import ImageContentConfig, ImageSearchConfig, SearchResponse
-
 
 # Create Logger
 logger = logging.getLogger(__name__)

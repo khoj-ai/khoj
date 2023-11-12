@@ -1,15 +1,15 @@
 # Standard Packages
 import threading
-from typing import List, Dict
-from packaging import version
+from pathlib import Path
+from typing import Dict, List
 
 # External Packages
 import torch
-from pathlib import Path
+from packaging import version
 
 # Internal Packages
 from khoj.utils import config as utils_config
-from khoj.utils.config import ContentIndex, SearchModels, ProcessorConfigModel
+from khoj.utils.config import ContentIndex, ProcessorConfigModel, SearchModels
 from khoj.utils.helpers import LRU
 from khoj.utils.rawconfig import FullConfig
 

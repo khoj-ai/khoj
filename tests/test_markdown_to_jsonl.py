@@ -1,7 +1,7 @@
 # Standard Packages
 import json
-from pathlib import Path
 import os
+from pathlib import Path
 
 # Internal Packages
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl

@@ -1,39 +1,41 @@
 # External Packages
 import os
 from copy import deepcopy
-from fastapi.testclient import TestClient
 from pathlib import Path
+
 import pytest
+from fastapi.testclient import TestClient
+
+from khoj.configure import configure_processor, configure_routes, configure_search_types
 
 # Internal Packages
 from khoj.main import app
-from khoj.configure import configure_processor, configure_routes, configure_search_types
+from khoj.processor.jsonl.jsonl_to_jsonl import JsonlToJsonl
 from khoj.processor.markdown.markdown_to_jsonl import MarkdownToJsonl
+from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.plaintext.plaintext_to_jsonl import PlaintextToJsonl
+from khoj.routers.indexer import configure_content
+from khoj.search_filter.date_filter import DateFilter
+from khoj.search_filter.file_filter import FileFilter
+from khoj.search_filter.word_filter import WordFilter
 from khoj.search_type import image_search, text_search
+from khoj.utils import fs_syncer, state
 from khoj.utils.config import SearchModels
 from khoj.utils.helpers import resolve_absolute_path
 from khoj.utils.rawconfig import (
     ContentConfig,
     ConversationProcessorConfig,
-    OfflineChatProcessorConfig,
-    OpenAIProcessorConfig,
-    ProcessorConfig,
-    TextContentConfig,
     GithubContentConfig,
     GithubRepoConfig,
     ImageContentConfig,
-    SearchConfig,
-    TextSearchConfig,
     ImageSearchConfig,
+    OfflineChatProcessorConfig,
+    OpenAIProcessorConfig,
+    ProcessorConfig,
+    SearchConfig,
+    TextContentConfig,
+    TextSearchConfig,
 )
-from khoj.utils import state, fs_syncer
-from khoj.routers.indexer import configure_content
-from khoj.processor.jsonl.jsonl_to_jsonl import JsonlToJsonl
-from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
-from khoj.search_filter.date_filter import DateFilter
-from khoj.search_filter.word_filter import WordFilter
-from khoj.search_filter.file_filter import FileFilter
 
 
 @pytest.fixture(scope="session")

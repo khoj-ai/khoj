@@ -7,9 +7,8 @@ from typing import List
 # Internal Packages
 from khoj.processor.text_to_jsonl import TextToJsonl
 from khoj.utils.helpers import get_absolute_path, timer
-from khoj.utils.jsonl import load_jsonl, compress_jsonl_data
+from khoj.utils.jsonl import compress_jsonl_data, load_jsonl
 from khoj.utils.rawconfig import Entry
-
 
 logger = logging.getLogger(__name__)
 

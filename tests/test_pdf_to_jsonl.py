@@ -4,7 +4,6 @@ import os
 
 # Internal Packages
 from khoj.processor.pdf.pdf_to_jsonl import PdfToJsonl
-
 from khoj.utils.fs_syncer import get_pdf_files
 from khoj.utils.rawconfig import TextContentConfig
 

@@ -21,7 +21,6 @@ except ModuleNotFoundError as e:
 # Internal Packages
 from khoj.processor.conversation.gpt4all.chat_model import converse_offline, extract_questions_offline, filter_questions
 from khoj.processor.conversation.gpt4all.utils import download_model
-
 from khoj.processor.conversation.utils import message_to_log
 
 MODEL_NAME = "mistral-7b-instruct-v0.1.Q4_0.gguf"

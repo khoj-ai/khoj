@@ -1,7 +1,6 @@
 # External Packages
 from langchain.prompts import PromptTemplate
 
-
 ## Personality
 ## --
 personality = PromptTemplate.from_template("You are Khoj, a smart, inquisitive and helpful personal assistant.")

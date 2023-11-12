@@ -1,18 +1,16 @@
 # Standard Packages
 import logging
+from enum import Enum
 
 # External Packages
 import requests
 
+from khoj.processor.text_to_jsonl import TextToJsonl
+
 # Internal Packages
 from khoj.utils.helpers import timer
-from khoj.utils.rawconfig import Entry, NotionContentConfig
-from khoj.processor.text_to_jsonl import TextToJsonl
 from khoj.utils.jsonl import compress_jsonl_data
-from khoj.utils.rawconfig import Entry
-
-from enum import Enum
-
+from khoj.utils.rawconfig import Entry, NotionContentConfig
 
 logger = logging.getLogger(__name__)
 

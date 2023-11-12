@@ -1,8 +1,8 @@
 # Standard Packages
-import os
-import logging
-from typing import List
 import base64
+import logging
+import os
+from typing import List
 
 # External Packages
 from langchain.document_loaders import PyMuPDFLoader
@@ -12,7 +12,6 @@ from khoj.processor.text_to_jsonl import TextToJsonl
 from khoj.utils.helpers import timer
 from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry
-
 
 logger = logging.getLogger(__name__)
 

@@ -6,11 +6,10 @@ from typing import Iterable, List, Tuple
 # Internal Packages
 from khoj.processor.org_mode import orgnode
 from khoj.processor.text_to_jsonl import TextToJsonl
+from khoj.utils import state
 from khoj.utils.helpers import timer
 from khoj.utils.jsonl import compress_jsonl_data
 from khoj.utils.rawconfig import Entry, TextContentConfig
-from khoj.utils import state
-
 
 logger = logging.getLogger(__name__)
 

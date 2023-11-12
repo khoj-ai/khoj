@@ -33,10 +33,10 @@ headline and associated text from an org-mode file, and routines for
 constructing data structures of these classes.
 """
 
-import re
 import datetime
-from pathlib import Path
+import re
 from os.path import relpath
+from pathlib import Path
 from typing import List
 
 indent_regex = re.compile(r"^ *")

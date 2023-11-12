@@ -5,10 +5,9 @@ import os
 # Internal Packages
 from khoj.processor.org_mode.org_to_jsonl import OrgToJsonl
 from khoj.processor.text_to_jsonl import TextToJsonl
-from khoj.utils.helpers import is_none_or_empty
-from khoj.utils.rawconfig import Entry
 from khoj.utils.fs_syncer import get_org_files
-from khoj.utils.rawconfig import TextContentConfig
+from khoj.utils.helpers import is_none_or_empty
+from khoj.utils.rawconfig import Entry, TextContentConfig
 
 
 def test_configure_heading_entry_to_jsonl(tmp_path):

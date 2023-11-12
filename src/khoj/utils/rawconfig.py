@@ -1,13 +1,13 @@
 # System Packages
 import json
 from pathlib import Path
-from typing import List, Dict, Optional, Union, Any
+from typing import Any, Dict, List, Optional, Union
 
 # External Packages
 from pydantic import BaseModel, validator
 
 # Internal Packages
-from khoj.utils.helpers import to_snake_case_from_dash, is_none_or_empty
+from khoj.utils.helpers import is_none_or_empty, to_snake_case_from_dash
 
 
 class ConfigBase(BaseModel):

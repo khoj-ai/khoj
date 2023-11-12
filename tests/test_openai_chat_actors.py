@@ -2,15 +2,15 @@
 import os
 from datetime import datetime
 
+import freezegun
+
 # External Packages
 import pytest
-import freezegun
 from freezegun import freeze_time
 
 # Internal Packages
 from khoj.processor.conversation.openai.gpt import converse, extract_questions
 from khoj.processor.conversation.utils import message_to_log
-
 
 # Initialize variables for tests
 api_key = os.getenv("OPENAI_API_KEY")
