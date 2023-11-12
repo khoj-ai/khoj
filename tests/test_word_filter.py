@@ -2,7 +2,8 @@
 from khoj.search_filter.word_filter import WordFilter
 from khoj.utils.rawconfig import Entry
 
-
+# Test
+# ----------------------------------------------------------------------------------------------------
 def test_no_word_filter():
     # Arrange
     word_filter = WordFilter()
@@ -19,6 +20,7 @@ def test_no_word_filter():
     assert entry_indices == {0, 1, 2, 3}
 
 
+# ----------------------------------------------------------------------------------------------------
 def test_word_exclude_filter():
     # Arrange
     word_filter = WordFilter()
@@ -35,6 +37,7 @@ def test_word_exclude_filter():
     assert entry_indices == {0, 2}
 
 
+# ----------------------------------------------------------------------------------------------------
 def test_word_include_filter():
     # Arrange
     word_filter = WordFilter()
@@ -51,6 +54,7 @@ def test_word_include_filter():
     assert entry_indices == {2, 3}
 
 
+# ----------------------------------------------------------------------------------------------------
 def test_word_include_and_exclude_filter():
     # Arrange
     word_filter = WordFilter()
@@ -67,6 +71,7 @@ def test_word_include_and_exclude_filter():
     assert entry_indices == {2}
 
 
+# ----------------------------------------------------------------------------------------------------
 def test_get_word_filter_terms():
     # Arrange
     word_filter = WordFilter()
