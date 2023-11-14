@@ -1,12 +1,17 @@
-import logging
+# Standard Packages
 import asyncio
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from functools import partial
+import logging
+from time import time
 from typing import Iterator, List, Optional, Union, Tuple, Dict
-from concurrent.futures import ThreadPoolExecutor
 
+# External Packages
 from fastapi import HTTPException, Request
 
+# Internal Packages
 from khoj.utils import state
 from khoj.utils.config import GPT4AllProcessorModel
 from khoj.utils.helpers import ConversationCommand, log_telemetry
@@ -15,6 +20,7 @@ from khoj.processor.conversation.gpt4all.chat_model import converse_offline
 from khoj.processor.conversation.utils import message_to_log, ThreadedGenerator
 from database.models import KhojUser, Subscription
 from database.adapters import ConversationAdapters
+
 
 logger = logging.getLogger(__name__)
 
@@ -191,3 +197,26 @@ def generate_chat_response(
         raise HTTPException(status_code=500, detail=str(e))
 
     return chat_response, metadata
+
+
+class ApiUserRateLimiter:
+    def __init__(self, requests: int, window: int):
+        self.requests = requests
+        self.window = window
+        self.cache: dict[str, list[float]] = defaultdict(list)
+
+    def __call__(self, request: Request):
+        user: KhojUser = request.user.object
+        user_requests = self.cache[user.uuid]
+
+        # Remove requests outside of the time window
+        cutoff = time() - self.window
+        while user_requests and user_requests[0] < cutoff:
+            user_requests.pop(0)
+
+        # Check if the user has exceeded the rate limit
+        if len(user_requests) >= self.requests:
+            raise HTTPException(status_code=429, detail="Too Many Requests")
+
+        # Add the current request to the cache
+        user_requests.append(time())

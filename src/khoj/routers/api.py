@@ -7,7 +7,7 @@ import json
 from typing import List, Optional, Union, Any
 
 # External Packages
-from fastapi import APIRouter, HTTPException, Header, Request
+from fastapi import APIRouter, Depends, HTTPException, Header, Request
 from starlette.authentication import requires
 from asgiref.sync import sync_to_async
 
@@ -36,6 +36,7 @@ from khoj.routers.helpers import (
     agenerate_chat_response,
     update_telemetry_state,
     is_ready_to_chat,
+    ApiUserRateLimiter,
 )
 from khoj.processor.conversation.prompts import help_message
 from khoj.processor.conversation.openai.gpt import extract_questions
@@ -587,6 +588,8 @@ async def chat(
     user_agent: Optional[str] = Header(None),
     referer: Optional[str] = Header(None),
     host: Optional[str] = Header(None),
+    rate_limiter_per_minute=Depends(ApiUserRateLimiter(requests=30, window=60)),
+    rate_limiter_per_day=Depends(ApiUserRateLimiter(requests=500, window=60 * 60 * 24)),
 ) -> Response:
     user = request.user.object
 
