@@ -56,6 +56,7 @@ locale.setlocale(locale.LC_ALL, "")
 from khoj.configure import configure_routes, initialize_server, configure_middleware
 from khoj.utils import state
 from khoj.utils.cli import cli
+from khoj.utils.initialization import initialization
 
 # Setup Logger
 rich_handler = RichHandler(rich_tracebacks=True)
@@ -74,14 +75,18 @@ def run(should_start_server=True):
     args = cli(state.cli_args)
     set_state(args)
 
-    # Create app directory, if it doesn't exist
-    state.config_file.parent.mkdir(parents=True, exist_ok=True)
+    logger.info(f"🚒 Initializing Khoj v{state.khoj_version}")
 
     # Set Logging Level
     if args.verbose == 0:
         logger.setLevel(logging.INFO)
     elif args.verbose >= 1:
         logger.setLevel(logging.DEBUG)
+
+    initialization()
+
+    # Create app directory, if it doesn't exist
+    state.config_file.parent.mkdir(parents=True, exist_ok=True)
 
     # Set Log File
     fh = logging.FileHandler(state.config_file.parent / "khoj.log", encoding="utf-8")

@@ -159,8 +159,8 @@ def generate_chat_response(
             conversation_config = ConversationAdapters.get_default_conversation_config()
         openai_chat_config = ConversationAdapters.get_openai_conversation_config()
         if offline_chat_config and offline_chat_config.enabled and conversation_config.model_type == "offline":
-            if state.gpt4all_processor_config.loaded_model is None:
-                state.gpt4all_processor_config = GPT4AllProcessorModel(offline_chat_config.chat_model)
+            if state.gpt4all_processor_config is None or state.gpt4all_processor_config.loaded_model is None:
+                state.gpt4all_processor_config = GPT4AllProcessorModel(conversation_config.chat_model)
 
             loaded_model = state.gpt4all_processor_config.loaded_model
             chat_response = converse_offline(
