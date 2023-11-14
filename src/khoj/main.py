@@ -102,7 +102,7 @@ def run(should_start_server=True):
     configure_routes(app)
 
     #  Mount Django and Static Files
-    app.mount("/django", django_app, name="django")
+    app.mount("/server", django_app, name="server")
     static_dir = "static"
     if not os.path.exists(static_dir):
         os.mkdir(static_dir)

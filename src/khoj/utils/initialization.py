@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 def initialization():
     def _create_admin_user():
         logger.info(
-            "👩‍✈️ Setting up admin user. These credentials will allow you to configure your server at /django/admin."
+            "👩‍✈️ Setting up admin user. These credentials will allow you to configure your server at /server/admin."
         )
         email_addr = os.getenv("ADMIN_EMAIL") or input("Email: ")
         password = os.getenv("ADMIN_PASSWORD") or input("Password: ")
@@ -28,7 +28,7 @@ def initialization():
 
     def _create_chat_configuration():
         logger.info(
-            "🗣️  Configure chat models available to your server. You can always update these at /django/admin using the credentials of your admin account"
+            "🗣️  Configure chat models available to your server. You can always update these at /server/admin using the credentials of your admin account"
         )
         try:
             # Some environments don't support interactive input. We catch the exception and return if that's the case. The admin can still configure their settings from the admin page.
