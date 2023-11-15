@@ -115,15 +115,11 @@ def configure_server(
     try:
         state.embeddings_model = EmbeddingsModel(get_or_create_search_model().bi_encoder)
         state.cross_encoder_model = CrossEncoderModel(get_or_create_search_model().cross_encoder)
-
-        state.config_lock.acquire()
         state.SearchType = configure_search_types()
         state.search_models = configure_search(state.search_models, state.config.search_type)
         initialize_content(regenerate, search_type, init, user)
     except Exception as e:
         raise e
-    finally:
-        state.config_lock.release()
 
 
 def initialize_content(regenerate: bool, search_type: Optional[SearchType] = None, init=False, user: KhojUser = None):

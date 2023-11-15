@@ -27,7 +27,6 @@ host: str = None
 port: int = None
 cli_args: List[str] = None
 query_cache: Dict[str, LRU] = defaultdict(LRU)
-config_lock = threading.Lock()
 chat_lock = threading.Lock()
 SearchType = utils_config.SearchType
 telemetry: List[Dict[str, str]] = []
