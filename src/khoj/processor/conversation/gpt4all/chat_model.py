@@ -55,10 +55,10 @@ def extract_questions_offline(
     last_year = datetime.now().year - 1
     last_christmas_date = f"{last_year}-12-25"
     next_christmas_date = f"{datetime.now().year}-12-25"
-    system_prompt = prompts.extract_questions_system_prompt_llamav2.format(
-        message=(prompts.system_prompt_message_extract_questions_llamav2)
+    system_prompt = prompts.system_prompt_extract_questions_gpt4all.format(
+        message=(prompts.system_prompt_message_extract_questions_gpt4all)
     )
-    example_questions = prompts.extract_questions_llamav2_sample.format(
+    example_questions = prompts.extract_questions_gpt4all_sample.format(
         query=text,
         chat_history=chat_history,
         current_date=current_date,
@@ -150,14 +150,14 @@ def converse_offline(
     elif conversation_command == ConversationCommand.General or is_none_or_empty(compiled_references_message):
         conversation_primer = user_query
     else:
-        conversation_primer = prompts.notes_conversation_llamav2.format(
+        conversation_primer = prompts.notes_conversation_gpt4all.format(
             query=user_query, references=compiled_references_message
         )
 
     # Setup Prompt with Primer or Conversation History
     messages = generate_chatml_messages_with_context(
         conversation_primer,
-        prompts.system_prompt_message_llamav2,
+        prompts.system_prompt_message_gpt4all,
         conversation_log,
         model_name=model,
         max_prompt_size=max_prompt_size,
@@ -183,16 +183,16 @@ def llm_thread(g, messages: List[ChatMessage], model: Any):
     conversation_history = messages[1:-1]
 
     formatted_messages = [
-        prompts.chat_history_llamav2_from_assistant.format(message=message.content)
+        prompts.khoj_message_gpt4all.format(message=message.content)
         if message.role == "assistant"
-        else prompts.chat_history_llamav2_from_user.format(message=message.content)
+        else prompts.user_message_gpt4all.format(message=message.content)
         for message in conversation_history
     ]
 
     stop_words = ["<s>"]
     chat_history = "".join(formatted_messages)
-    templated_system_message = prompts.system_prompt_llamav2.format(message=system_message.content)
-    templated_user_message = prompts.general_conversation_llamav2.format(query=user_message.content)
+    templated_system_message = prompts.system_prompt_gpt4all.format(message=system_message.content)
+    templated_user_message = prompts.user_message_gpt4all.format(message=user_message.content)
     prompted_message = templated_system_message + chat_history + templated_user_message
 
     state.chat_lock.acquire()

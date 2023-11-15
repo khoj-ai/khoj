@@ -7,7 +7,7 @@ import json
 from typing import List, Optional, Union, Any
 
 # External Packages
-from fastapi import APIRouter, HTTPException, Header, Request
+from fastapi import APIRouter, Depends, HTTPException, Header, Request
 from starlette.authentication import requires
 from asgiref.sync import sync_to_async
 
@@ -36,6 +36,7 @@ from khoj.routers.helpers import (
     agenerate_chat_response,
     update_telemetry_state,
     is_ready_to_chat,
+    ApiUserRateLimiter,
 )
 from khoj.processor.conversation.prompts import help_message
 from khoj.processor.conversation.openai.gpt import extract_questions
@@ -177,11 +178,15 @@ async def set_content_config_github_data(
 
     user = request.user.object
 
-    await adapters.set_user_github_config(
-        user=user,
-        pat_token=updated_config.pat_token,
-        repos=updated_config.repos,
-    )
+    try:
+        await adapters.set_user_github_config(
+            user=user,
+            pat_token=updated_config.pat_token,
+            repos=updated_config.repos,
+        )
+    except Exception as e:
+        logger.error(e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to set Github config")
 
     update_telemetry_state(
         request=request,
@@ -205,10 +210,14 @@ async def set_content_config_notion_data(
 
     user = request.user.object
 
-    await adapters.set_notion_config(
-        user=user,
-        token=updated_config.token,
-    )
+    try:
+        await adapters.set_notion_config(
+            user=user,
+            token=updated_config.token,
+        )
+    except Exception as e:
+        logger.error(e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to set Github config")
 
     update_telemetry_state(
         request=request,
@@ -348,7 +357,7 @@ async def search(
     n: Optional[int] = 5,
     t: Optional[SearchType] = SearchType.All,
     r: Optional[bool] = False,
-    score_threshold: Optional[Union[float, None]] = None,
+    max_distance: Optional[Union[float, None]] = None,
     dedupe: Optional[bool] = True,
     client: Optional[str] = None,
     user_agent: Optional[str] = Header(None),
@@ -367,12 +376,12 @@ async def search(
     # initialize variables
     user_query = q.strip()
     results_count = n or 5
-    score_threshold = score_threshold if score_threshold is not None else -math.inf
+    max_distance = max_distance if max_distance is not None else math.inf
     search_futures: List[concurrent.futures.Future] = []
 
     # return cached results, if available
     if user:
-        query_cache_key = f"{user_query}-{n}-{t}-{r}-{score_threshold}-{dedupe}"
+        query_cache_key = f"{user_query}-{n}-{t}-{r}-{max_distance}-{dedupe}"
         if query_cache_key in state.query_cache[user.uuid]:
             logger.debug(f"Return response from query cache")
             return state.query_cache[user.uuid][query_cache_key]
@@ -409,8 +418,7 @@ async def search(
                     user_query,
                     t,
                     question_embedding=encoded_asymmetric_query,
-                    rank_results=r or False,
-                    score_threshold=score_threshold,
+                    max_distance=max_distance,
                 )
             ]
 
@@ -423,7 +431,6 @@ async def search(
                     results_count,
                     state.search_models.image_search,
                     state.content_index.image,
-                    score_threshold=score_threshold,
                 )
             ]
 
@@ -446,11 +453,10 @@ async def search(
                     # Collate results
                     results += text_search.collate_results(hits, dedupe=dedupe)
 
-            if r:
-                results = text_search.rerank_and_sort_results(results, query=defiltered_query)[:results_count]
-            else:
                 # Sort results across all content types and take top results
-                results = sorted(results, key=lambda x: float(x.score))[:results_count]
+                results = text_search.rerank_and_sort_results(results, query=defiltered_query, rank_results=r)[
+                    :results_count
+                ]
 
     # Cache results
     if user:
@@ -575,11 +581,14 @@ async def chat(
     request: Request,
     q: str,
     n: Optional[int] = 5,
+    d: Optional[float] = 0.15,
     client: Optional[str] = None,
     stream: Optional[bool] = False,
     user_agent: Optional[str] = Header(None),
     referer: Optional[str] = Header(None),
     host: Optional[str] = Header(None),
+    rate_limiter_per_minute=Depends(ApiUserRateLimiter(requests=30, window=60)),
+    rate_limiter_per_day=Depends(ApiUserRateLimiter(requests=500, window=60 * 60 * 24)),
 ) -> Response:
     user = request.user.object
 
@@ -591,7 +600,7 @@ async def chat(
     meta_log = (await ConversationAdapters.aget_conversation_by_user(user)).conversation_log
 
     compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
-        request, meta_log, q, (n or 5), conversation_command
+        request, meta_log, q, (n or 5), (d or math.inf), conversation_command
     )
 
     if conversation_command == ConversationCommand.Default and is_none_or_empty(compiled_references):
@@ -606,13 +615,26 @@ async def chat(
         return StreamingResponse(iter([formatted_help]), media_type="text/event-stream", status_code=200)
 
     # Get the (streamed) chat response from the LLM of choice.
-    llm_response = await agenerate_chat_response(
+    llm_response, chat_metadata = await agenerate_chat_response(
         defiltered_query,
         meta_log,
         compiled_references,
         inferred_queries,
         conversation_command,
         user,
+    )
+
+    chat_metadata.update({"conversation_command": conversation_command.value})
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="chat",
+        client=client,
+        user_agent=user_agent,
+        referer=referer,
+        host=host,
+        metadata=chat_metadata,
     )
 
     if llm_response is None:
@@ -634,16 +656,6 @@ async def chat(
 
     response_obj = {"response": actual_response, "context": compiled_references}
 
-    update_telemetry_state(
-        request=request,
-        telemetry_type="api",
-        api="chat",
-        client=client,
-        user_agent=user_agent,
-        referer=referer,
-        host=host,
-    )
-
     return Response(content=json.dumps(response_obj), media_type="application/json", status_code=200)
 
 
@@ -652,6 +664,7 @@ async def extract_references_and_questions(
     meta_log: dict,
     q: str,
     n: int,
+    d: float,
     conversation_type: ConversationCommand = ConversationCommand.Default,
 ):
     user = request.user.object if request.user.is_authenticated else None
@@ -663,7 +676,7 @@ async def extract_references_and_questions(
     if conversation_type == ConversationCommand.General:
         return compiled_references, inferred_queries, q
 
-    if not sync_to_async(EntryAdapters.user_has_entries)(user=user):
+    if not await sync_to_async(EntryAdapters.user_has_entries)(user=user):
         logger.warning(
             "No content index loaded, so cannot extract references from knowledge base. Please configure your data sources and update the index to chat with your notes."
         )
@@ -712,7 +725,7 @@ async def extract_references_and_questions(
                     request=request,
                     n=n_items,
                     r=True,
-                    score_threshold=-5.0,
+                    max_distance=d,
                     dedupe=False,
                 )
             )

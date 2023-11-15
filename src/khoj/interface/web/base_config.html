@@ -109,7 +109,7 @@
             display: grid;
             grid-template-rows: repeat(3, 1fr);
             gap: 8px;
-            padding: 24px 16px;
+            padding: 24px 16px 8px;
             width: 320px;
             height: 180px;
             background: var(--background-color);
@@ -121,7 +121,7 @@
         div.finalize-buttons {
             display: grid;
             gap: 8px;
-            padding: 24px 16px;
+            padding: 32px 0px 0px;
             width: 320px;
             border-radius: 4px;
             overflow: hidden;
@@ -162,10 +162,13 @@
             color: grey;
             font-size: 16px;
         }
-        .card-button-row {
+        .card-description-row {
+            padding-top: 4px;
+        }
+        .card-action-row {
             display: grid;
-            grid-template-columns: auto;
-            text-align: right;
+            grid-auto-flow: row;
+            justify-content: left;
         }
         .card-button {
             border: none;
@@ -271,7 +274,9 @@
             100% { transform: rotate(360deg); }
         }
 
-
+        #status {
+            padding-top: 32px;
+        }
         div.finalize-actions {
             grid-auto-flow: column;
             grid-gap: 24px;
@@ -287,6 +292,7 @@
 
         select#chat-models {
             margin-bottom: 0;
+            padding: 8px;
         }
 
 
@@ -343,6 +349,12 @@
                 width: auto;
             }
 
+            #status {
+                padding-top: 12px;
+            }
+            div.finalize-actions {
+                padding: 12px 0 0;
+            }
             div.finalize-buttons {
                 padding: 0;
             }

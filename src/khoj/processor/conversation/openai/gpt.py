@@ -20,27 +20,6 @@ from khoj.utils.helpers import ConversationCommand, is_none_or_empty
 logger = logging.getLogger(__name__)
 
 
-def summarize(session, model, api_key=None, temperature=0.5, max_tokens=200):
-    """
-    Summarize conversation session using the specified OpenAI chat model
-    """
-    messages = [ChatMessage(content=prompts.summarize_chat.format(), role="system")] + session
-
-    # Get Response from GPT
-    logger.debug(f"Prompt for GPT: {messages}")
-    response = completion_with_backoff(
-        messages=messages,
-        model_name=model,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        model_kwargs={"stop": ['"""'], "frequency_penalty": 0.2},
-        openai_api_key=api_key,
-    )
-
-    # Extract, Clean Message from GPT's Response
-    return str(response.content).replace("\n\n", "")
-
-
 def extract_questions(
     text,
     model: Optional[str] = "gpt-4",
@@ -131,16 +110,14 @@ def converse(
         completion_func(chat_response=prompts.no_notes_found.format())
         return iter([prompts.no_notes_found.format()])
     elif conversation_command == ConversationCommand.General or is_none_or_empty(compiled_references):
-        conversation_primer = prompts.general_conversation.format(current_date=current_date, query=user_query)
+        conversation_primer = prompts.general_conversation.format(query=user_query)
     else:
-        conversation_primer = prompts.notes_conversation.format(
-            current_date=current_date, query=user_query, references=compiled_references
-        )
+        conversation_primer = prompts.notes_conversation.format(query=user_query, references=compiled_references)
 
     # Setup Prompt with Primer or Conversation History
     messages = generate_chatml_messages_with_context(
         conversation_primer,
-        prompts.personality.format(),
+        prompts.personality.format(current_date=current_date),
         conversation_log,
         model,
         max_prompt_size,
@@ -157,4 +134,5 @@ def converse(
         temperature=temperature,
         openai_api_key=api_key,
         completion_func=completion_func,
+        model_kwargs={"stop": ["Notes:\n["]},
     )
