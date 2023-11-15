@@ -216,7 +216,11 @@ async def set_user_github_config(user: KhojUser, pat_token: str, repos: list):
 
 
 def get_or_create_search_model():
-    return SearchModel.objects.filter().get_or_create()[0]
+    search_model = SearchModel.objects.filter().first()
+    if not search_model:
+        search_model = SearchModel.objects.create()
+
+    return search_model
 
 
 class ConversationAdapters:
