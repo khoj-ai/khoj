@@ -581,7 +581,7 @@ async def chat(
     request: Request,
     q: str,
     n: Optional[int] = 5,
-    d: Optional[float] = 0.15,
+    d: Optional[float] = 0.4,
     client: Optional[str] = None,
     stream: Optional[bool] = False,
     user_agent: Optional[str] = Header(None),
