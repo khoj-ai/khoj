@@ -1,8 +1,8 @@
 import math
-from typing import Optional, Type, TypeVar, List
-from datetime import date, datetime, timedelta
+from typing import Optional, Type, List
+from datetime import date, datetime
 import secrets
-from typing import Type, TypeVar, List
+from typing import Type, List
 from datetime import date, timezone
 
 from django.db import models
@@ -31,6 +31,7 @@ from database.models import (
     GithubRepoConfig,
     Conversation,
     ChatModelOptions,
+    SearchModel,
     Subscription,
     UserConversationConfig,
     OpenAIProcessorConversationConfig,
@@ -40,15 +41,6 @@ from khoj.utils.helpers import generate_random_name
 from khoj.search_filter.word_filter import WordFilter
 from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.date_filter import DateFilter
-
-ModelType = TypeVar("ModelType", bound=models.Model)
-
-
-async def retrieve_object(model_class: Type[ModelType], id: int) -> ModelType:
-    instance = await model_class.objects.filter(id=id).afirst()
-    if not instance:
-        raise HTTPException(status_code=404, detail=f"{model_class.__name__} not found")
-    return instance
 
 
 async def set_notion_config(token: str, user: KhojUser):
@@ -218,6 +210,10 @@ async def set_user_github_config(user: KhojUser, pat_token: str, repos: list):
             name=repo["name"], owner=repo["owner"], branch=repo["branch"], github_config=config
         )
     return config
+
+
+def get_or_create_search_model():
+    return SearchModel.objects.filter().get_or_create()[0]
 
 
 class ConversationAdapters:

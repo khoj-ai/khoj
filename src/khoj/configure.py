@@ -3,7 +3,6 @@ import logging
 import json
 from enum import Enum
 from typing import Optional
-from fastapi import Request
 import requests
 import os
 
@@ -21,15 +20,16 @@ from starlette.authentication import (
 )
 
 # Internal Packages
+from database.models import KhojUser, Subscription
+from database.adapters import get_all_users, get_or_create_search_model
+from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
+from khoj.routers.indexer import configure_content, load_content, configure_search
 from khoj.utils import constants, state
 from khoj.utils.config import (
     SearchType,
 )
 from khoj.utils.fs_syncer import collect_files
 from khoj.utils.rawconfig import FullConfig
-from khoj.routers.indexer import configure_content, load_content, configure_search
-from database.models import KhojUser, Subscription
-from database.adapters import get_all_users
 
 
 logger = logging.getLogger(__name__)
@@ -113,6 +113,9 @@ def configure_server(
 
     # Initialize Search Models from Config and initialize content
     try:
+        state.embeddings_model = EmbeddingsModel(get_or_create_search_model().bi_encoder)
+        state.cross_encoder_model = CrossEncoderModel(get_or_create_search_model().cross_encoder)
+
         state.config_lock.acquire()
         state.SearchType = configure_search_types(state.config)
         state.search_models = configure_search(state.search_models, state.config.search_type)

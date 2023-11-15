@@ -8,11 +8,13 @@ from fastapi import FastAPI
 import os
 from fastapi import FastAPI
 
+
 app = FastAPI()
 
 
 # Internal Packages
 from khoj.configure import configure_routes, configure_search_types, configure_middleware
+from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
 from khoj.processor.plaintext.plaintext_to_entries import PlaintextToEntries
 from khoj.search_type import image_search, text_search
 from khoj.utils.config import SearchModels
@@ -54,6 +56,9 @@ def enable_db_access_for_all_tests(db):
 
 @pytest.fixture(scope="session")
 def search_config() -> SearchConfig:
+    state.embeddings_model = EmbeddingsModel()
+    state.cross_encoder_model = CrossEncoderModel()
+
     model_dir = resolve_absolute_path("~/.khoj/search")
     model_dir.mkdir(parents=True, exist_ok=True)
     search_config = SearchConfig()
@@ -292,6 +297,8 @@ def client(
     state.config.content_type = content_config
     state.config.search_type = search_config
     state.SearchType = configure_search_types(state.config)
+    state.embeddings_model = EmbeddingsModel()
+    state.cross_encoder_model = CrossEncoderModel()
 
     # These lines help us Mock the Search models for these search types
     state.search_models.image_search = image_search.initialize_model(search_config.image)
