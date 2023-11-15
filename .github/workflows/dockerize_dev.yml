@@ -1,4 +1,4 @@
-name: dockerize-prod
+name: dockerize-dev
 
 on:
   pull_request:
