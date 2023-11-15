@@ -227,7 +227,7 @@ def md_content_config():
 def chat_client(search_config: SearchConfig, default_user2: KhojUser):
     # Initialize app state
     state.config.search_type = search_config
-    state.SearchType = configure_search_types(state.config)
+    state.SearchType = configure_search_types()
 
     LocalMarkdownConfig.objects.create(
         input_files=None,
@@ -261,7 +261,7 @@ def chat_client(search_config: SearchConfig, default_user2: KhojUser):
 def chat_client_no_background(search_config: SearchConfig, default_user2: KhojUser):
     # Initialize app state
     state.config.search_type = search_config
-    state.SearchType = configure_search_types(state.config)
+    state.SearchType = configure_search_types()
 
     # Initialize Processor from Config
     if os.getenv("OPENAI_API_KEY"):
@@ -296,7 +296,7 @@ def client(
 ):
     state.config.content_type = content_config
     state.config.search_type = search_config
-    state.SearchType = configure_search_types(state.config)
+    state.SearchType = configure_search_types()
     state.embeddings_model = EmbeddingsModel()
     state.cross_encoder_model = CrossEncoderModel()
 
@@ -330,7 +330,7 @@ def client(
 def client_offline_chat(search_config: SearchConfig, default_user2: KhojUser):
     # Initialize app state
     state.config.search_type = search_config
-    state.SearchType = configure_search_types(state.config)
+    state.SearchType = configure_search_types()
 
     LocalMarkdownConfig.objects.create(
         input_files=None,

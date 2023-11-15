@@ -117,7 +117,7 @@ def configure_server(
         state.cross_encoder_model = CrossEncoderModel(get_or_create_search_model().cross_encoder)
 
         state.config_lock.acquire()
-        state.SearchType = configure_search_types(state.config)
+        state.SearchType = configure_search_types()
         state.search_models = configure_search(state.search_models, state.config.search_type)
         initialize_content(regenerate, search_type, init, user)
     except Exception as e:
@@ -195,7 +195,7 @@ def update_search_index():
         logger.error(f"🚨 Error updating content index via Scheduler: {e}", exc_info=True)
 
 
-def configure_search_types(config: FullConfig):
+def configure_search_types():
     # Extract core search types
     core_search_types = {e.name: e.value for e in SearchType}
 

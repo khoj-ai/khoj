@@ -203,9 +203,6 @@ def test_get_api_config_types(client, sample_org_data, default_user: KhojUser):
 @pytest.mark.django_db(transaction=True)
 def test_get_configured_types_with_no_content_config(fastapi_app: FastAPI):
     # Arrange
-    state.SearchType = configure_search_types(config)
-    original_config = state.config.content_type
-    state.config.content_type = None
     state.anonymous_mode = True
 
     configure_routes(fastapi_app)
@@ -217,9 +214,6 @@ def test_get_configured_types_with_no_content_config(fastapi_app: FastAPI):
     # Assert
     assert response.status_code == 200
     assert response.json() == ["all"]
-
-    # Restore
-    state.config.content_type = original_config
 
 
 # ----------------------------------------------------------------------------------------------------
