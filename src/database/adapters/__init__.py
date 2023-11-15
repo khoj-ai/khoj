@@ -80,7 +80,7 @@ async def get_or_create_user(token: dict) -> KhojUser:
 
 
 async def create_user_by_token(token: dict) -> KhojUser:
-    user = await KhojUser.objects.filter(email=token.get("email")).aupdate_or_create(
+    user, _ = await KhojUser.objects.filter(email=token.get("email")).aupdate_or_create(
         defaults={"username": token.get("email"), "email": token.get("email")}
     )
     await user.asave()
