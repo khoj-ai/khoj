@@ -59,10 +59,7 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 email="default@example.com",
                 password="default",
             )
-            Subscription.objects.create(
-                user=default_user,
-                type="trial",
-            )
+            Subscription.objects.create(user=default_user, type="standard", renewal_date="2100-04-01")
 
     async def authenticate(self, request: HTTPConnection):
         current_user = request.session.get("user")

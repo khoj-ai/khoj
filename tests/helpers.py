@@ -76,5 +76,6 @@ class SubscriptionFactory(factory.django.DjangoModelFactory):
         model = Subscription
 
     user = factory.SubFactory(UserFactory)
-    type = "trial"
+    type = "standard"
     is_recurring = False
+    renewal_date = "2100-04-01"
