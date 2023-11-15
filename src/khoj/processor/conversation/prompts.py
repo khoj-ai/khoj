@@ -35,11 +35,13 @@ no_notes_found = PromptTemplate.from_template(
     """.strip()
 )
 
-system_prompt_message_llamav2 = f"""You are Khoj, a smart, inquisitive and helpful personal assistant.
+## Conversation Prompts for GPT4All Models
+## --
+system_prompt_message_gpt4all = f"""You are Khoj, a smart, inquisitive and helpful personal assistant.
 Using your general knowledge and our past conversations as context, answer the following question.
 If you do not know the answer, say 'I don't know.'"""
 
-system_prompt_message_extract_questions_llamav2 = f"""You are Khoj, a kind and intelligent personal assistant. When the user asks you a question, you ask follow-up questions to clarify the necessary information you need in order to answer from the user's perspective.
+system_prompt_message_extract_questions_gpt4all = f"""You are Khoj, a kind and intelligent personal assistant. When the user asks you a question, you ask follow-up questions to clarify the necessary information you need in order to answer from the user's perspective.
 - Write the question as if you can search for the answer on the user's personal notes.
 - Try to be as specific as possible. Instead of saying "they" or "it" or "he", use the name of the person or thing you are referring to. For example, instead of saying "Which store did they go to?", say "Which store did Alice and Bob go to?".
 - Add as much context from the previous questions and notes as required into your search queries.
@@ -47,41 +49,29 @@ system_prompt_message_extract_questions_llamav2 = f"""You are Khoj, a kind and i
 What follow-up questions, if any, will you need to ask to answer the user's question?
 """
 
-system_prompt_llamav2 = PromptTemplate.from_template(
+system_prompt_gpt4all = PromptTemplate.from_template(
     """
 <s>[INST] <<SYS>>
 {message}
 <</SYS>>Hi there! [/INST] Hello! How can I help you today? </s>"""
 )
 
-extract_questions_system_prompt_llamav2 = PromptTemplate.from_template(
+system_prompt_extract_questions_gpt4all = PromptTemplate.from_template(
     """
 <s>[INST] <<SYS>>
 {message}
 <</SYS>>[/INST]</s>"""
 )
 
-general_conversation_llamav2 = PromptTemplate.from_template(
-    """
-<s>[INST] {query} [/INST]
-""".strip()
-)
-
-chat_history_llamav2_from_user = PromptTemplate.from_template(
+user_message_gpt4all = PromptTemplate.from_template(
     """
 <s>[INST] {message} [/INST]
 """.strip()
 )
 
-chat_history_llamav2_from_assistant = PromptTemplate.from_template(
+khoj_message_gpt4all = PromptTemplate.from_template(
     """
 {message}</s>
-""".strip()
-)
-
-conversation_llamav2 = PromptTemplate.from_template(
-    """
-<s>[INST] {query} [/INST]
 """.strip()
 )
 
@@ -99,7 +89,7 @@ Query: {query}
 """.strip()
 )
 
-notes_conversation_llamav2 = PromptTemplate.from_template(
+notes_conversation_gpt4all = PromptTemplate.from_template(
     """
 User's Notes:
 {references}
@@ -135,7 +125,10 @@ Question: {user_query}
 Answer (in second person):"""
 )
 
-extract_questions_llamav2_sample = PromptTemplate.from_template(
+
+## Extract Questions
+## --
+extract_questions_gpt4all_sample = PromptTemplate.from_template(
     """
 <s>[INST] <<SYS>>Current Date: {current_date}<</SYS>> [/INST]</s>
 <s>[INST] How was my trip to Cambodia? [/INST]
@@ -160,8 +153,6 @@ Use these notes from the user's previous conversations to provide a response:
 )
 
 
-## Extract Questions
-## --
 extract_questions = PromptTemplate.from_template(
     """
 You are Khoj, an extremely smart and helpful search assistant with the ability to retrieve information from the user's notes.

@@ -104,7 +104,6 @@ async def query(
     raw_query: str,
     type: SearchType = SearchType.All,
     question_embedding: Union[torch.Tensor, None] = None,
-    rank_results: bool = False,
     max_distance: float = math.inf,
 ) -> Tuple[List[dict], List[Entry]]:
     "Search for entries that answer the query"

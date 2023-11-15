@@ -418,7 +418,6 @@ async def search(
                     user_query,
                     t,
                     question_embedding=encoded_asymmetric_query,
-                    rank_results=r or False,
                     max_distance=max_distance,
                 )
             ]
