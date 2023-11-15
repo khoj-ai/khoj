@@ -21,8 +21,8 @@ def initialization():
         logger.info(
             "👩‍✈️ Setting up admin user. These credentials will allow you to configure your server at /server/admin."
         )
-        email_addr = os.getenv("ADMIN_EMAIL") or input("Email: ")
-        password = os.getenv("ADMIN_PASSWORD") or input("Password: ")
+        email_addr = os.getenv("KHOJ_ADMIN_EMAIL") or input("Email: ")
+        password = os.getenv("KHOJ_ADMIN_PASSWORD") or input("Password: ")
         admin_user = KhojUser.objects.create_superuser(email=email_addr, username=email_addr, password=password)
         logger.info(f"👩‍✈️ Created admin user: {admin_user.email}")
 
@@ -37,6 +37,8 @@ def initialization():
             return
 
         try:
+            # Note: gpt4all package is not available on all devices.
+            # So ensure gpt4all package is installed before continuing this step.
             import gpt4all
 
             use_offline_model = input("Use offline chat model? (y/n): ")
