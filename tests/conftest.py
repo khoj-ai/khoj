@@ -43,6 +43,7 @@ from tests.helpers import (
     OpenAIProcessorConversationConfigFactory,
     OfflineChatProcessorConversationConfigFactory,
     UserConversationProcessorConfigFactory,
+    SubscriptionFactory,
 )
 
 
@@ -69,7 +70,9 @@ def search_config() -> SearchConfig:
 @pytest.mark.django_db
 @pytest.fixture
 def default_user():
-    return UserFactory()
+    user = UserFactory()
+    SubscriptionFactory(user=user)
+    return user
 
 
 @pytest.mark.django_db
@@ -78,11 +81,31 @@ def default_user2():
     if KhojUser.objects.filter(username="default").exists():
         return KhojUser.objects.get(username="default")
 
-    return KhojUser.objects.create(
+    user = KhojUser.objects.create(
         username="default",
         email="default@example.com",
         password="default",
     )
+    SubscriptionFactory(user=user)
+    return user
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def default_user3():
+    """
+    This user should not have any data associated with it
+    """
+    if KhojUser.objects.filter(username="default3").exists():
+        return KhojUser.objects.get(username="default3")
+
+    user = KhojUser.objects.create(
+        username="default3",
+        email="default3@example.com",
+        password="default3",
+    )
+    SubscriptionFactory(user=user)
+    return user
 
 
 @pytest.mark.django_db
@@ -108,6 +131,19 @@ def api_user2(default_user2):
         user=default_user2,
         name="api-key",
         token="kk-diff-secret",
+    )
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def api_user3(default_user3):
+    if KhojApiUser.objects.filter(user=default_user3).exists():
+        return KhojApiUser.objects.get(user=default_user3)
+
+    return KhojApiUser.objects.create(
+        user=default_user3,
+        name="api-key",
+        token="kk-diff-secret-3",
     )
 
 
@@ -206,7 +242,7 @@ def chat_client(search_config: SearchConfig, default_user2: KhojUser):
         OpenAIProcessorConversationConfigFactory()
         UserConversationProcessorConfigFactory(user=default_user2, setting=chat_model)
 
-    state.anonymous_mode = False
+    state.anonymous_mode = True
 
     app = FastAPI()
 
@@ -224,7 +260,9 @@ def chat_client_no_background(search_config: SearchConfig, default_user2: KhojUs
 
     # Initialize Processor from Config
     if os.getenv("OPENAI_API_KEY"):
+        chat_model = ChatModelOptionsFactory(chat_model="gpt-3.5-turbo", model_type="openai")
         OpenAIProcessorConversationConfigFactory()
+        UserConversationProcessorConfigFactory(user=default_user2, setting=chat_model)
 
     state.anonymous_mode = True
 

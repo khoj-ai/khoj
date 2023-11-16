@@ -9,6 +9,7 @@ from database.models import (
     OpenAIProcessorConversationConfig,
     UserConversationConfig,
     Conversation,
+    Subscription,
 )
 
 
@@ -68,3 +69,13 @@ class ConversationFactory(factory.django.DjangoModelFactory):
         model = Conversation
 
     user = factory.SubFactory(UserFactory)
+
+
+class SubscriptionFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Subscription
+
+    user = factory.SubFactory(UserFactory)
+    type = "standard"
+    is_recurring = False
+    renewal_date = "2100-04-01"

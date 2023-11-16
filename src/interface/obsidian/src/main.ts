@@ -1,4 +1,4 @@
-import { Notice, Plugin } from 'obsidian';
+import { Notice, Plugin, request } from 'obsidian';
 import { KhojSetting, KhojSettingTab, DEFAULT_SETTINGS } from 'src/settings'
 import { KhojSearchModal } from 'src/search_modal'
 import { KhojChatModal } from 'src/chat_modal'
@@ -69,6 +69,25 @@ export default class Khoj extends Plugin {
     async loadSettings() {
         // Load khoj obsidian plugin settings
         this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+
+        // Check if khoj backend is configured, note if cannot connect to backend
+        let headers = { "Authorization": `Bearer ${this.settings.khojApiKey}` };
+
+        if (this.settings.khojUrl === "https://app.khoj.dev") {
+            if (this.settings.khojApiKey === "") {
+                new Notice(`❗️Khoj API key is not configured. Please visit https://app.khoj.dev to get an API key.`);
+                return;
+            }
+
+            await request({ url: this.settings.khojUrl ,method: "GET", headers: headers })
+                .then(response => {
+                    this.settings.connectedToBackend = true;
+                })
+                .catch(error => {
+                    this.settings.connectedToBackend = false;
+                    new Notice(`❗️Ensure Khoj backend is running and Khoj URL is pointing to it in the plugin settings.\n\n${error}`);
+                });
+        }
     }
 
     async saveSettings() {

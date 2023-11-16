@@ -28,7 +28,7 @@ from khoj.utils.config import (
 from khoj.utils.fs_syncer import collect_files
 from khoj.utils.rawconfig import FullConfig
 from khoj.routers.indexer import configure_content, load_content, configure_search
-from database.models import KhojUser
+from database.models import KhojUser, Subscription
 from database.adapters import get_all_users
 
 
@@ -54,27 +54,37 @@ class UserAuthenticationBackend(AuthenticationBackend):
 
     def _initialize_default_user(self):
         if not self.khojuser_manager.filter(username="default").exists():
-            self.khojuser_manager.create_user(
+            default_user = self.khojuser_manager.create_user(
                 username="default",
                 email="default@example.com",
                 password="default",
             )
+            Subscription.objects.create(user=default_user, type="standard", renewal_date="2100-04-01")
 
     async def authenticate(self, request: HTTPConnection):
         current_user = request.session.get("user")
         if current_user and current_user.get("email"):
-            user = await self.khojuser_manager.filter(email=current_user.get("email")).afirst()
+            user = (
+                await self.khojuser_manager.filter(email=current_user.get("email"))
+                .prefetch_related("subscription")
+                .afirst()
+            )
             if user:
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
         if len(request.headers.get("Authorization", "").split("Bearer ")) == 2:
             # Get bearer token from header
             bearer_token = request.headers["Authorization"].split("Bearer ")[1]
             # Get user owning token
-            user_with_token = await self.khojapiuser_manager.filter(token=bearer_token).select_related("user").afirst()
+            user_with_token = (
+                await self.khojapiuser_manager.filter(token=bearer_token)
+                .select_related("user")
+                .prefetch_related("user__subscription")
+                .afirst()
+            )
             if user_with_token:
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user_with_token.user)
         if state.anonymous_mode:
-            user = await self.khojuser_manager.filter(username="default").afirst()
+            user = await self.khojuser_manager.filter(username="default").prefetch_related("subscription").afirst()
             if user:
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
 

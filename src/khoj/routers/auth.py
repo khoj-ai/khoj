@@ -16,7 +16,7 @@ from google.auth.transport import requests as google_requests
 
 # Internal Packages
 from database.adapters import get_khoj_tokens, get_or_create_user, create_khoj_token, delete_khoj_token
-from database.models import KhojApiUser
+from khoj.routers.helpers import update_telemetry_state
 from khoj.utils import state
 
 
@@ -99,6 +99,16 @@ async def auth(request: Request):
     khoj_user = await get_or_create_user(idinfo)
     if khoj_user:
         request.session["user"] = dict(idinfo)
+
+        if not khoj_user.last_login:
+            update_telemetry_state(
+                request=request,
+                telemetry_type="api",
+                api="create_user",
+                metadata={"user_id": str(khoj_user.uuid)},
+            )
+            logger.log(logging.INFO, f"New User Created: {khoj_user.uuid}")
+            RedirectResponse(url="/?status=welcome")
 
     return RedirectResponse(url="/")
 

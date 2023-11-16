@@ -104,8 +104,7 @@ async def query(
     raw_query: str,
     type: SearchType = SearchType.All,
     question_embedding: Union[torch.Tensor, None] = None,
-    rank_results: bool = False,
-    score_threshold: float = -math.inf,
+    max_distance: float = math.inf,
 ) -> Tuple[List[dict], List[Entry]]:
     "Search for entries that answer the query"
 
@@ -127,6 +126,7 @@ async def query(
             max_results=top_k,
             file_type_filter=file_type,
             raw_query=raw_query,
+            max_distance=max_distance,
         ).all()
         hits = await sync_to_async(list)(hits)  # type: ignore[call-arg]
 
@@ -177,12 +177,16 @@ def deduplicated_search_responses(hits: List[SearchResponse]):
             )
 
 
-def rerank_and_sort_results(hits, query):
+def rerank_and_sort_results(hits, query, rank_results):
+    # If we have more than one result and reranking is enabled
+    rank_results = rank_results and len(list(hits)) > 1
+
     # Score all retrieved entries using the cross-encoder
-    hits = cross_encoder_score(query, hits)
+    if rank_results:
+        hits = cross_encoder_score(query, hits)
 
     # Sort results by cross-encoder score followed by bi-encoder score
-    hits = sort_results(rank_results=True, hits=hits)
+    hits = sort_results(rank_results=rank_results, hits=hits)
 
     return hits
 
@@ -217,9 +221,9 @@ def cross_encoder_score(query: str, hits: List[SearchResponse]) -> List[SearchRe
     with timer("Cross-Encoder Predict Time", logger, state.device):
         cross_scores = state.cross_encoder_model.predict(query, hits)
 
-    # Store cross-encoder scores in results dictionary for ranking
+    # Convert cross-encoder scores to distances and pass in hits for reranking
     for idx in range(len(cross_scores)):
-        hits[idx]["cross_score"] = cross_scores[idx]
+        hits[idx]["cross_score"] = 1 - cross_scores[idx]
 
     return hits
 
@@ -227,7 +231,7 @@ def cross_encoder_score(query: str, hits: List[SearchResponse]) -> List[SearchRe
 def sort_results(rank_results: bool, hits: List[dict]) -> List[dict]:
     """Order results by cross-encoder score followed by bi-encoder score"""
     with timer("Rank Time", logger, state.device):
-        hits.sort(key=lambda x: x["score"], reverse=True)  # sort by bi-encoder score
+        hits.sort(key=lambda x: x["score"])  # sort by bi-encoder score
         if rank_results:
-            hits.sort(key=lambda x: x["cross_score"], reverse=True)  # sort by cross-encoder score
+            hits.sort(key=lambda x: x["cross_score"])  # sort by cross-encoder score
     return hits

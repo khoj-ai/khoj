@@ -10,7 +10,15 @@ services:
       POSTGRES_DB: postgres
     volumes:
       - khoj_db:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
   server:
+    depends_on:
+      database:
+        condition: service_healthy
     # Use the following line to use the latest version of khoj. Otherwise, it will build from source.
     image: ghcr.io/khoj-ai/khoj:latest
     # Uncomment the following line to build from source. This will take a few minutes. Comment the next two lines out if you want to use the offiicial image.
@@ -24,20 +32,6 @@ services:
       - "42110:42110"
     working_dir: /app
     volumes:
-      - .:/app
-      # These mounted volumes hold the raw data that should be indexed for search.
-      # The path in your local directory (left hand side)
-      #   points to the files you want to index.
-      # The path of the mounted directory (right hand side),
-      #   must match the path prefix in your config file.
-      - ./tests/data/org/:/data/org/
-      - ./tests/data/images/:/data/images/
-      - ./tests/data/markdown/:/data/markdown/
-      - ./tests/data/pdf/:/data/pdf/
-      # Embeddings and models are populated after the first run
-      # You can set these volumes to point to empty directories on host
-      - ./tests/data/embeddings/:/root/.khoj/content/
-      - ./tests/data/models/:/root/.khoj/search/
       - khoj_config:/root/.khoj/
       - khoj_models:/root/.cache/torch/sentence_transformers
     # Use 0.0.0.0 to explicitly set the host ip for the service on the container. https://pythonspeed.com/articles/docker-connection-refused/
@@ -47,9 +41,11 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_HOST=database
       - POSTGRES_PORT=5432
-      - GOOGLE_CLIENT_SECRET=bar
-      - GOOGLE_CLIENT_ID=foo
-    command: --host="0.0.0.0" --port=42110 -vv
+      - KHOJ_DJANGO_SECRET_KEY=secret
+      - KHOJ_DEBUG=True
+      - KHOJ_ADMIN_EMAIL=username@example.com
+      - KHOJ_ADMIN_PASSWORD=password
+    command: --host="0.0.0.0" --port=42110 -vv --anonymous-mode
 
 
 volumes:
