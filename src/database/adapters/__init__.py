@@ -1,16 +1,12 @@
 import math
-from typing import Optional, Type, TypeVar, List
-from datetime import date, datetime, timedelta
+from typing import Optional, Type, List
+from datetime import date, datetime
 import secrets
-from typing import Type, TypeVar, List
+from typing import Type, List
 from datetime import date, timezone
 
 from django.db import models
 from django.contrib.sessions.backends.db import SessionStore
-from pgvector.django import CosineDistance
-from django.db.models.manager import BaseManager
-from django.db.models import Q
-from torch import Tensor
 from pgvector.django import CosineDistance
 from django.db.models.manager import BaseManager
 from django.db.models import Q
@@ -31,6 +27,7 @@ from database.models import (
     GithubRepoConfig,
     Conversation,
     ChatModelOptions,
+    SearchModelConfig,
     Subscription,
     UserConversationConfig,
     OpenAIProcessorConversationConfig,
@@ -40,15 +37,6 @@ from khoj.utils.helpers import generate_random_name
 from khoj.search_filter.word_filter import WordFilter
 from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.date_filter import DateFilter
-
-ModelType = TypeVar("ModelType", bound=models.Model)
-
-
-async def retrieve_object(model_class: Type[ModelType], id: int) -> ModelType:
-    instance = await model_class.objects.filter(id=id).afirst()
-    if not instance:
-        raise HTTPException(status_code=404, detail=f"{model_class.__name__} not found")
-    return instance
 
 
 async def set_notion_config(token: str, user: KhojUser):
@@ -65,9 +53,7 @@ async def create_khoj_token(user: KhojUser, name=None):
     "Create Khoj API key for user"
     token = f"kk-{secrets.token_urlsafe(32)}"
     name = name or f"{generate_random_name().title()}"
-    api_config = await KhojApiUser.objects.acreate(token=token, user=user, name=name)
-    await api_config.asave()
-    return api_config
+    return await KhojApiUser.objects.acreate(token=token, user=user, name=name)
 
 
 def get_khoj_tokens(user: KhojUser):
@@ -83,13 +69,16 @@ async def delete_khoj_token(user: KhojUser, token: str):
 async def get_or_create_user(token: dict) -> KhojUser:
     user = await get_user_by_token(token)
     if not user:
-        user = await create_google_user(token)
+        user = await create_user_by_google_token(token)
     return user
 
 
-async def create_google_user(token: dict) -> KhojUser:
-    user = await KhojUser.objects.acreate(username=token.get("email"), email=token.get("email"))
+async def create_user_by_google_token(token: dict) -> KhojUser:
+    user, _ = await KhojUser.objects.filter(email=token.get("email")).aupdate_or_create(
+        defaults={"username": token.get("email"), "email": token.get("email")}
+    )
     await user.asave()
+
     await GoogleUser.objects.acreate(
         sub=token.get("sub"),
         azp=token.get("azp"),
@@ -218,6 +207,14 @@ async def set_user_github_config(user: KhojUser, pat_token: str, repos: list):
             name=repo["name"], owner=repo["owner"], branch=repo["branch"], github_config=config
         )
     return config
+
+
+def get_or_create_search_model():
+    search_model = SearchModelConfig.objects.filter().first()
+    if not search_model:
+        search_model = SearchModelConfig.objects.create()
+
+    return search_model
 
 
 class ConversationAdapters:

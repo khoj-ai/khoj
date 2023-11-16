@@ -396,6 +396,14 @@ app.whenReady().then(() => {
         event.reply('update-state', arg);
     });
 
+    ipcMain.on('navigate', (event, page) => {
+        win.loadFile(page);
+    });
+
+    ipcMain.on('navigateToWebApp', (event, page) => {
+        shell.openExternal(`${store.get('hostURL')}/${page}`);
+    });
+
     ipcMain.handle('getFiles', getFiles);
     ipcMain.handle('getFolders', getFolders);
 

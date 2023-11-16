@@ -173,7 +173,6 @@ def test_regenerate_with_github_fails_without_pat(client):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-@pytest.mark.skip(reason="Flaky test on parallel test runs")
 def test_get_configured_types_via_api(client, sample_org_data):
     # Act
     text_search.setup(OrgToEntries, sample_org_data, regenerate=False)
@@ -203,10 +202,10 @@ def test_get_api_config_types(client, sample_org_data, default_user: KhojUser):
 @pytest.mark.django_db(transaction=True)
 def test_get_configured_types_with_no_content_config(fastapi_app: FastAPI):
     # Arrange
-    state.SearchType = configure_search_types(config)
-    original_config = state.config.content_type
-    state.config.content_type = None
     state.anonymous_mode = True
+    if state.config and state.config.content_type:
+        state.config.content_type = None
+    state.search_models = configure_search_types()
 
     configure_routes(fastapi_app)
     client = TestClient(fastapi_app)
@@ -217,9 +216,6 @@ def test_get_configured_types_with_no_content_config(fastapi_app: FastAPI):
     # Assert
     assert response.status_code == 200
     assert response.json() == ["all"]
-
-    # Restore
-    state.config.content_type = original_config
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -259,13 +255,30 @@ def test_notes_search(client, search_config: SearchConfig, sample_org_data, defa
     user_query = quote("How to git install application?")
 
     # Act
-    response = client.get(f"/api/search?q={user_query}&n=1&t=org&r=true", headers=headers)
+    response = client.get(f"/api/search?q={user_query}&n=1&t=org&r=true&max_distance=0.18", headers=headers)
 
     # Assert
     assert response.status_code == 200
-    # assert actual_data contains "Khoj via Emacs" entry
+
+    assert len(response.json()) == 1, "Expected only 1 result"
     search_result = response.json()[0]["entry"]
-    assert "git clone https://github.com/khoj-ai/khoj" in search_result
+    assert "git clone https://github.com/khoj-ai/khoj" in search_result, "Expected 'git clone' in search result"
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.django_db(transaction=True)
+def test_notes_search_no_results(client, search_config: SearchConfig, sample_org_data, default_user: KhojUser):
+    # Arrange
+    headers = {"Authorization": "Bearer kk-secret"}
+    text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)
+    user_query = quote("How to find my goat?")
+
+    # Act
+    response = client.get(f"/api/search?q={user_query}&n=1&t=org&r=true&max_distance=0.18", headers=headers)
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == [], "Expected no results"
 
 
 # ----------------------------------------------------------------------------------------------------

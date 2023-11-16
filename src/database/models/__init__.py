@@ -102,6 +102,16 @@ class LocalPlaintextConfig(BaseModel):
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
 
 
+class SearchModelConfig(BaseModel):
+    class ModelType(models.TextChoices):
+        TEXT = "text"
+
+    name = models.CharField(max_length=200, default="default")
+    model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.TEXT)
+    bi_encoder = models.CharField(max_length=200, default="thenlper/gte-small")
+    cross_encoder = models.CharField(max_length=200, default="cross-encoder/ms-marco-MiniLM-L-6-v2")
+
+
 class OpenAIProcessorConversationConfig(BaseModel):
     api_key = models.CharField(max_length=200)
 

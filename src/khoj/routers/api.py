@@ -376,7 +376,7 @@ async def search(
     # initialize variables
     user_query = q.strip()
     results_count = n or 5
-    max_distance = max_distance if max_distance is not None else math.inf
+    max_distance = max_distance or math.inf
     search_futures: List[concurrent.futures.Future] = []
 
     # return cached results, if available
@@ -581,7 +581,7 @@ async def chat(
     request: Request,
     q: str,
     n: Optional[int] = 5,
-    d: Optional[float] = 0.15,
+    d: Optional[float] = 0.18,
     client: Optional[str] = None,
     stream: Optional[bool] = False,
     user_agent: Optional[str] = Header(None),

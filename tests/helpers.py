@@ -7,6 +7,7 @@ from database.models import (
     ChatModelOptions,
     OfflineChatProcessorConversationConfig,
     OpenAIProcessorConversationConfig,
+    SearchModelConfig,
     UserConversationConfig,
     Conversation,
     Subscription,
@@ -69,6 +70,16 @@ class ConversationFactory(factory.django.DjangoModelFactory):
         model = Conversation
 
     user = factory.SubFactory(UserFactory)
+
+
+class SearchModelFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = SearchModelConfig
+
+    name = "default"
+    model_type = "text"
+    bi_encoder = "thenlper/gte-small"
+    cross_encoder = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
 
 class SubscriptionFactory(factory.django.DjangoModelFactory):

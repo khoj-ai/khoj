@@ -1,16 +1,17 @@
 from typing import List
 
 from sentence_transformers import SentenceTransformer, CrossEncoder
+from torch import nn
 
 from khoj.utils.helpers import get_device
 from khoj.utils.rawconfig import SearchResponse
 
 
 class EmbeddingsModel:
-    def __init__(self):
+    def __init__(self, model_name: str = "thenlper/gte-small"):
         self.encode_kwargs = {"normalize_embeddings": True}
         self.model_kwargs = {"device": get_device()}
-        self.model_name = "thenlper/gte-small"
+        self.model_name = model_name
         self.embeddings_model = SentenceTransformer(self.model_name, **self.model_kwargs)
 
     def embed_query(self, query):
@@ -21,11 +22,11 @@ class EmbeddingsModel:
 
 
 class CrossEncoderModel:
-    def __init__(self):
-        self.model_name = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    def __init__(self, model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"):
+        self.model_name = model_name
         self.cross_encoder_model = CrossEncoder(model_name=self.model_name, device=get_device())
 
-    def predict(self, query, hits: List[SearchResponse]):
-        cross__inp = [[query, hit.additional["compiled"]] for hit in hits]
-        cross_scores = self.cross_encoder_model.predict(cross__inp, apply_softmax=True)
+    def predict(self, query, hits: List[SearchResponse], key: str = "compiled"):
+        cross_inp = [[query, hit.additional[key]] for hit in hits]
+        cross_scores = self.cross_encoder_model.predict(cross_inp, activation_fct=nn.Sigmoid())
         return cross_scores

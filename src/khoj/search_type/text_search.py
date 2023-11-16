@@ -2,7 +2,7 @@
 import logging
 import math
 from pathlib import Path
-from typing import List, Tuple, Type, Union, Dict
+from typing import List, Tuple, Type, Union
 
 # External Packages
 import torch

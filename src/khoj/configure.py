@@ -3,7 +3,6 @@ import logging
 import json
 from enum import Enum
 from typing import Optional
-from fastapi import Request
 import requests
 import os
 
@@ -21,15 +20,16 @@ from starlette.authentication import (
 )
 
 # Internal Packages
+from database.models import KhojUser, Subscription
+from database.adapters import get_all_users, get_or_create_search_model
+from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
+from khoj.routers.indexer import configure_content, load_content, configure_search
 from khoj.utils import constants, state
 from khoj.utils.config import (
     SearchType,
 )
 from khoj.utils.fs_syncer import collect_files
 from khoj.utils.rawconfig import FullConfig
-from khoj.routers.indexer import configure_content, load_content, configure_search
-from database.models import KhojUser, Subscription
-from database.adapters import get_all_users
 
 
 logger = logging.getLogger(__name__)
@@ -113,14 +113,13 @@ def configure_server(
 
     # Initialize Search Models from Config and initialize content
     try:
-        state.config_lock.acquire()
-        state.SearchType = configure_search_types(state.config)
+        state.embeddings_model = EmbeddingsModel(get_or_create_search_model().bi_encoder)
+        state.cross_encoder_model = CrossEncoderModel(get_or_create_search_model().cross_encoder)
+        state.SearchType = configure_search_types()
         state.search_models = configure_search(state.search_models, state.config.search_type)
         initialize_content(regenerate, search_type, init, user)
     except Exception as e:
         raise e
-    finally:
-        state.config_lock.release()
 
 
 def initialize_content(regenerate: bool, search_type: Optional[SearchType] = None, init=False, user: KhojUser = None):
@@ -192,7 +191,7 @@ def update_search_index():
         logger.error(f"🚨 Error updating content index via Scheduler: {e}", exc_info=True)
 
 
-def configure_search_types(config: FullConfig):
+def configure_search_types():
     # Extract core search types
     core_search_types = {e.name: e.value for e in SearchType}
 

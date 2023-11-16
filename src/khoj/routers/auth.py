@@ -16,6 +16,7 @@ from google.auth.transport import requests as google_requests
 
 # Internal Packages
 from database.adapters import get_khoj_tokens, get_or_create_user, create_khoj_token, delete_khoj_token
+from database.models import KhojApiUser
 from khoj.routers.helpers import update_telemetry_state
 from khoj.utils import state
 
@@ -51,12 +52,16 @@ async def login(request: Request):
 
 @auth_router.post("/token")
 @requires(["authenticated"], redirect="login_page")
-async def generate_token(request: Request, token_name: Optional[str] = None) -> str:
+async def generate_token(request: Request, token_name: Optional[str] = None):
     "Generate API token for given user"
     if token_name:
-        return await create_khoj_token(user=request.user.object, name=token_name)
+        token = await create_khoj_token(user=request.user.object, name=token_name)
     else:
-        return await create_khoj_token(user=request.user.object)
+        token = await create_khoj_token(user=request.user.object)
+    return {
+        "token": token.token,
+        "name": token.name,
+    }
 
 
 @auth_router.get("/token")

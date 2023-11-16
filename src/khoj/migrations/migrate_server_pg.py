@@ -30,7 +30,7 @@ search-type:
     encoder: sentence-transformers/all-MiniLM-L6-v2
     encoder-type: null
     model-directory: ~/.khoj/search/symmetric
-version: 0.12.4
+version: 0.14.0
 
 
 The new version will looks like this:
@@ -53,11 +53,7 @@ search-type:
   asymmetric:
     cross-encoder: cross-encoder/ms-marco-MiniLM-L-6-v2
     encoder: sentence-transformers/multi-qa-MiniLM-L6-cos-v1
-  image:
-    encoder: sentence-transformers/clip-ViT-B-32
-    encoder-type: null
-    model-directory: /Users/si/.khoj/search/image
-version: 0.12.4
+version: 0.15.0
 """
 
 import logging
@@ -68,6 +64,7 @@ from database.models import (
     OpenAIProcessorConversationConfig,
     OfflineChatProcessorConversationConfig,
     ChatModelOptions,
+    SearchModelConfig,
 )
 
 logger = logging.getLogger(__name__)
@@ -86,6 +83,19 @@ def migrate_server_pg(args):
 
         if raw_config is None:
             return args
+
+        if "search-type" in raw_config and raw_config["search-type"]:
+            if "asymmetric" in raw_config["search-type"]:
+                # Delete all existing search models
+                SearchModelConfig.objects.filter(model_type=SearchModelConfig.ModelType.TEXT).delete()
+                # Create new search model from existing Khoj YAML config
+                asymmetric_search = raw_config["search-type"]["asymmetric"]
+                SearchModelConfig.objects.create(
+                    name="default",
+                    model_type=SearchModelConfig.ModelType.TEXT,
+                    bi_encoder=asymmetric_search.get("encoder"),
+                    cross_encoder=asymmetric_search.get("cross-encoder"),
+                )
 
         if "processor" in raw_config and raw_config["processor"] and "conversation" in raw_config["processor"]:
             processor_conversation = raw_config["processor"]["conversation"]
