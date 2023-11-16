@@ -142,7 +142,8 @@ export class KhojChatModal extends Modal {
     async getChatHistory(): Promise<void> {
         // Get chat history from Khoj backend
         let chatUrl = `${this.setting.khojUrl}/api/chat/history?client=obsidian`;
-        let response = await request(chatUrl);
+        let headers = { "Authorization": `Bearer ${this.setting.khojApiKey}` };
+        let response = await request({ url: chatUrl, headers: headers });
         let chatLogs = JSON.parse(response).response;
         chatLogs.forEach((chatLog: any) => {
             this.renderMessageWithReferences(chatLog.message, chatLog.by, chatLog.context, new Date(chatLog.created));
@@ -168,7 +169,8 @@ export class KhojChatModal extends Modal {
             method: "GET",
             headers: {
                 "Access-Control-Allow-Origin": "*",
-                "Content-Type": "text/event-stream"
+                "Content-Type": "text/event-stream",
+                "Authorization": `Bearer ${this.setting.khojApiKey}`,
             },
         })
 

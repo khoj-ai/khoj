@@ -1,0 +1,130 @@
+{% extends "base_config.html" %}
+{% block content %}
+<div class="page">
+    <div class="section">
+        <h2 class="section-title">
+            <img class="card-icon" src="/static/assets/icons/computer.png" alt="files">
+            <span class="card-title-text">Files</span>
+            <div class="instructions">
+                <p class="card-description">Manage files from your computer</p>
+                <p id="get-desktop-client" class="card-description">Download the <a href="https://khoj.dev/downloads">Khoj Desktop app</a> to sync documents from your computer</p>
+            </div>
+        </h2>
+        <div class="section-manage-files">
+            <div id="delete-all-files" class="delete-all-files">
+                <button id="delete-all-files" type="submit" title="Remove all computer files from Khoj">🗑️ Delete all</button>
+            </div>
+            <div class="indexed-files">
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    #desktop-client {
+        font-weight: normal;
+    }
+    .indexed-files {
+        width: 100%;
+    }
+    .content-name {
+        font-size: smaller;
+    }
+</style>
+<script>
+    function removeFile(path) {
+        fetch('/api/config/data/file?filename=' + path, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.ok ? response.json() : Promise.reject(response))
+        .then(data => {
+            if (data.status == "ok") {
+                getAllComputerFilenames();
+            }
+        })
+    }
+
+    // Get all currently indexed files
+    function getAllComputerFilenames() {
+        fetch('/api/config/data/computer')
+            .then(response => response.json())
+            .then(data => {
+                var indexedFiles = document.getElementsByClassName("indexed-files")[0];
+                indexedFiles.innerHTML = "";
+
+                if (data.length == 0) {
+                    document.getElementById("delete-all-files").style.display = "none";
+                    indexedFiles.innerHTML = "<div class='card-description'>No documents synced with Khoj</div>";
+                } else {
+                    document.getElementById("get-desktop-client").style.display = "none";
+                    document.getElementById("delete-all-files").style.display = "block";
+                }
+
+                for (var filename of data) {
+                    let fileElement = document.createElement("div");
+                    fileElement.classList.add("file-element");
+
+                    let fileExtension = filename.split('.').pop();
+                    if (fileExtension === "org")
+                        image_name = "org.svg"
+                    else if (fileExtension === "pdf")
+                        image_name = "pdf.svg"
+                    else if (fileExtension === "markdown" || fileExtension === "md")
+                        image_name = "markdown.svg"
+                    else
+                        image_name = "plaintext.svg"
+
+                    let fileIconElement = document.createElement("img");
+                    fileIconElement.classList.add("card-icon");
+                    fileIconElement.src = `/static/assets/icons/${image_name}`;
+                    fileIconElement.alt = "File";
+                    fileElement.appendChild(fileIconElement);
+
+                    let fileNameElement = document.createElement("div");
+                    fileNameElement.classList.add("content-name");
+                    fileNameElement.innerHTML = filename;
+                    fileElement.appendChild(fileNameElement);
+
+                    let buttonContainer = document.createElement("div");
+                    buttonContainer.classList.add("remove-button-container");
+                    let removeFileButton = document.createElement("button");
+                    removeFileButton.classList.add("remove-file-button");
+                    removeFileButton.innerHTML = "🗑️";
+                    removeFileButton.addEventListener("click", ((filename) => {
+                        return () => {
+                            removeFile(filename);
+                        };
+                    })(filename));
+                    buttonContainer.appendChild(removeFileButton);
+                    fileElement.appendChild(buttonContainer);
+                    indexedFiles.appendChild(fileElement);
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+    }
+
+    // Get all currently indexed files on page load
+    getAllComputerFilenames();
+
+    let deleteAllComputerFilesButton = document.getElementById("delete-all-files");
+    deleteAllComputerFilesButton.addEventListener("click", function(event) {
+        event.preventDefault();
+        fetch('/api/config/data/content-source/computer', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status == "ok") {
+                getAllComputerFilenames();
+            }
+        })
+    });
+</script>
+{% endblock %}

@@ -61,6 +61,7 @@ toggleFoldersButton.addEventListener('click', () => {
 function makeFileElement(file) {
     let fileElement = document.createElement("div");
     fileElement.classList.add("file-element");
+
     let fileNameElement = document.createElement("div");
     fileNameElement.classList.add("content-name");
     fileNameElement.innerHTML = file.path;
@@ -82,6 +83,7 @@ function makeFileElement(file) {
 function makeFolderElement(folder) {
     let folderElement = document.createElement("div");
     folderElement.classList.add("folder-element");
+
     let folderNameElement = document.createElement("div");
     folderNameElement.classList.add("content-name");
     folderNameElement.innerHTML = folder.path;
@@ -153,11 +155,14 @@ window.updateStateAPI.onUpdateState((event, state) => {
     loadingBar.style.display = 'none';
     let syncStatusElement = document.getElementById("sync-status");
     const currentTime = new Date();
+    nextSyncTime = new Date();
+    nextSyncTime.setMinutes(Math.ceil((nextSyncTime.getMinutes() + 1) / 10) * 10);
     if (state.completed == false) {
         syncStatusElement.innerHTML = `Sync was unsuccessful at ${currentTime.toLocaleTimeString()}. Contact team@khoj.dev to report this issue.`;
         return;
     }
-    syncStatusElement.innerHTML = `Last synced at ${currentTime.toLocaleTimeString()}`;
+    const options = { hour: '2-digit', minute: '2-digit' };
+    syncStatusElement.innerHTML = `⏱️ Synced at ${currentTime.toLocaleTimeString(undefined, options)}. Next sync at ${nextSyncTime.toLocaleTimeString(undefined, options)}.`;
 });
 
 const urlInput = document.getElementById('khoj-host-url');
@@ -174,6 +179,7 @@ urlInput.addEventListener('blur', async () => {
         new URL(urlInputValue);
     } catch (e) {
         console.log(e);
+        alert('Please enter a valid URL');
         return;
     }
 
@@ -181,10 +187,25 @@ urlInput.addEventListener('blur', async () => {
     urlInput.value = url;
 });
 
-const syncButton = document.getElementById('sync-data');
-const syncForceToggle = document.getElementById('sync-force');
-syncButton.addEventListener('click', async () => {
+const khojKeyInput = document.getElementById('khoj-access-key');
+(async function() {
+    const token = await window.tokenAPI.getToken();
+    khojKeyInput.value = token;
+})();
+
+khojKeyInput.addEventListener('blur', async () => {
+    const token = await window.tokenAPI.setToken(khojKeyInput.value.trim());
+    khojKeyInput.value = token;
+});
+
+const syncForceButton = document.getElementById('sync-force');
+syncForceButton.addEventListener('click', async () => {
     loadingBar.style.display = 'block';
-    const regenerate = syncForceToggle.checked;
-    await window.syncDataAPI.syncData(regenerate);
+    await window.syncDataAPI.syncData(true);
+});
+
+const deleteAllButton = document.getElementById('delete-all');
+deleteAllButton.addEventListener('click', async () => {
+    loadingBar.style.display = 'block';
+    await window.syncDataAPI.deleteAllFiles();
 });

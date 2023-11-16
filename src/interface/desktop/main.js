@@ -1,5 +1,6 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, shell } = require('electron');
 const todesktop = require("@todesktop/runtime");
+const khojPackage = require('./package.json');
 
 todesktop.init();
 
@@ -9,7 +10,7 @@ const {dialog} = require('electron');
 const cron = require('cron').CronJob;
 const axios = require('axios');
 
-const KHOJ_URL = 'http://127.0.0.1:42110'
+const KHOJ_URL = 'https://app.khoj.dev';
 
 const Store = require('electron-store');
 
@@ -42,6 +43,10 @@ const schema = {
         },
         default: []
     },
+    khojToken: {
+        type: 'string',
+        default: ''
+    },
     hostURL: {
         type: 'string',
         default: KHOJ_URL
@@ -62,8 +67,8 @@ const schema = {
     }
 };
 
+let syncing = false;
 var state = {}
-
 const store = new Store({ schema });
 
 console.log(store);
@@ -106,6 +111,15 @@ function filenameToMimeType (filename) {
 }
 
 function pushDataToKhoj (regenerate = false) {
+    // Don't sync if token or hostURL is not set or if already syncing
+    if (store.get('khojToken') === '' || store.get('hostURL') === '' || syncing === true) {
+        const win = BrowserWindow.getAllWindows()[0];
+        if (win) win.webContents.send('update-state', state);
+        return;
+    } else {
+        syncing = true;
+    }
+
     let filesToPush = [];
     const files = store.get('files') || [];
     const folders = store.get('folders') || [];
@@ -168,7 +182,7 @@ function pushDataToKhoj (regenerate = false) {
     if (!!formData?.entries()?.next().value) {
         const hostURL = store.get('hostURL') || KHOJ_URL;
         const headers = {
-            'x-api-key': 'secret'
+            'Authorization': `Bearer ${store.get("khojToken")}`
         };
         axios.post(`${hostURL}/api/v1/index/update?force=${regenerate}&client=desktop`, formData, { headers })
             .then(response => {
@@ -188,11 +202,13 @@ function pushDataToKhoj (regenerate = false) {
             })
             .finally(() => {
                 // Syncing complete
+                syncing = false;
                 const win = BrowserWindow.getAllWindows()[0];
                 if (win) win.webContents.send('update-state', state);
             });
     } else {
         // Syncing complete
+        syncing = false;
         const win = BrowserWindow.getAllWindows()[0];
         if (win) win.webContents.send('update-state', state);
     }
@@ -246,6 +262,15 @@ async function handleFileOpen (type) {
     }
 }
 
+async function getToken () {
+    return store.get('khojToken');
+}
+
+async function setToken (event, token) {
+    store.set('khojToken', token);
+    return store.get('khojToken');
+}
+
 async function getFiles () {
     return store.get('files');
 }
@@ -255,6 +280,12 @@ async function getFolders () {
 }
 
 async function setURL (event, url) {
+    // Sanitize the URL. Remove trailing slash if present. Add http:// if not present.
+    url = url.replace(/\/$/, "");
+    if (!url.match(/^[a-zA-Z]+:\/\//)) {
+        url = `http://${url}`;
+    }
+
     store.set('hostURL', url);
     return store.get('hostURL');
 }
@@ -287,10 +318,26 @@ async function syncData (regenerate = false) {
     }
 }
 
-const createWindow = () => {
-    const win = new BrowserWindow({
+async function deleteAllFiles () {
+    try {
+        store.set('files', []);
+        store.set('folders', []);
+        pushDataToKhoj(true);
+        const date = new Date();
+        console.log('Pushing data to Khoj at: ', date);
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+
+let firstRun = true;
+let win = null;
+const createWindow = (tab = 'chat.html') => {
+    win = new BrowserWindow({
       width: 800,
       height: 800,
+      show: false,
     //   titleBarStyle: 'hidden',
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
@@ -311,12 +358,30 @@ const createWindow = () => {
 
     win.setResizable(true);
     win.setOpacity(0.95);
-    win.setBackgroundColor('#FFFFFF');
+    win.setBackgroundColor('#f5f4f3');
     win.setHasShadow(true);
 
     job.start();
 
-    win.loadFile('index.html')
+    win.loadFile(tab)
+
+    if (firstRun === true) {
+        firstRun = false;
+
+        // Create splash screen
+        var splash = new BrowserWindow({width: 400, height: 400, transparent: true, frame: false, alwaysOnTop: true});
+        splash.setOpacity(1.0);
+        splash.setBackgroundColor('#d16b4e');
+        splash.loadFile('splash.html');
+
+        // Show splash screen on app load
+        win.once('ready-to-show', () => {
+            setTimeout(function(){ splash.close(); win.show(); }, 4500);
+        });
+    } else {
+        // Show main window directly if not first run
+        win.once('ready-to-show', () => { win.show(); });
+    }
 }
 
 app.whenReady().then(() => {
@@ -331,6 +396,14 @@ app.whenReady().then(() => {
         event.reply('update-state', arg);
     });
 
+    ipcMain.on('navigate', (event, page) => {
+        win.loadFile(page);
+    });
+
+    ipcMain.on('navigateToWebApp', (event, page) => {
+        shell.openExternal(`${store.get('hostURL')}/${page}`);
+    });
+
     ipcMain.handle('getFiles', getFiles);
     ipcMain.handle('getFolders', getFolders);
 
@@ -340,19 +413,24 @@ app.whenReady().then(() => {
     ipcMain.handle('setURL', setURL);
     ipcMain.handle('getURL', getURL);
 
+    ipcMain.handle('setToken', setToken);
+    ipcMain.handle('getToken', getToken);
+
     ipcMain.handle('syncData', (event, regenerate) => {
         syncData(regenerate);
     });
+    ipcMain.handle('deleteAllFiles', deleteAllFiles);
 
     createWindow()
 
     app.setAboutPanelOptions({
         applicationName: "Khoj",
-        applicationVersion: "0.0.1",
-        version: "0.0.1",
-        authors: "Khoj Team",
+        applicationVersion: khojPackage.version,
+        version: khojPackage.version,
+        authors: "Saba Imran, Debanjum Singh Solanky and contributors",
         website: "https://khoj.dev",
-        iconPath: path.join(__dirname, 'assets', 'khoj.png')
+        copyright: "GPL v3",
+        iconPath: path.join(__dirname, 'assets', 'icons', 'favicon-128x128.png')
     });
 
     app.on('ready', async() => {
@@ -374,4 +452,72 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
+})
+
+/*
+** About Page
+*/
+
+let aboutWindow;
+
+function openAboutWindow() {
+    if (aboutWindow) { aboutWindow.focus(); return; }
+
+    aboutWindow = new BrowserWindow({
+        width: 400,
+        height: 400,
+        titleBarStyle: 'hidden',
+        show: false,
+        webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
+            nodeIntegration: true,
+        },
+    });
+
+    aboutWindow.loadFile('about.html');
+
+    // Pass OS, Khoj version to About page
+    aboutWindow.webContents.on('did-finish-load', () => {
+        aboutWindow.webContents.send('appInfo', { version: khojPackage.version, platform: process.platform });
+    });
+
+    // Open links in external browser
+    aboutWindow.webContents.setWindowOpenHandler(({ url }) => {
+        shell.openExternal(url);
+        return { action: 'deny' };
+    });
+
+    aboutWindow.once('ready-to-show', () => { aboutWindow.show(); });
+    aboutWindow.on('closed', () => { aboutWindow = null; });
+}
+
+/*
+**  System Tray Icon
+*/
+
+let tray
+
+openWindow = (page) => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow(page);
+    } else {
+        win.loadFile(page); win.show();
+    }
+}
+
+app.whenReady().then(() => {
+    const icon = nativeImage.createFromPath('assets/icons/favicon-20x20.png')
+    tray = new Tray(icon)
+
+    const contextMenu = Menu.buildFromTemplate([
+        { label: 'Chat', type: 'normal', click: () => { openWindow('chat.html'); }},
+        { label: 'Search', type: 'normal', click: () => { openWindow('search.html') }},
+        { label: 'Configure', type: 'normal', click: () => { openWindow('config.html') }},
+        { type: 'separator' },
+        { label: 'About Khoj', type: 'normal', click: () => { openAboutWindow(); } },
+        { label: 'Quit', type: 'normal', click: () => { app.quit() } }
+    ])
+
+    tray.setToolTip('Khoj')
+    tray.setContextMenu(contextMenu)
 })

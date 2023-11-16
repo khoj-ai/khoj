@@ -1,0 +1,184 @@
+{% extends "base_config.html" %}
+{% block content %}
+<div class="page">
+    <div class="section">
+        <h2 class="section-title">
+            <img class="card-icon" src="/static/assets/icons/github.svg" alt="Github">
+            <span class="card-title-text">Github</span>
+            <div class="instructions">
+                <a href="https://docs.khoj.dev/#/github_integration">ⓘ Help</a>
+            </div>
+        </h2>
+        <form>
+            <table>
+                <tr>
+                    <td>
+                        <label for="pat-token">Personal Access Token</label>
+                    </td>
+                    <td>
+                        <input type="text" id="pat-token" name="pat" value="{{ current_config['pat_token'] }}">
+                    </td>
+                </tr>
+            </table>
+            <h4>Repositories</h4>
+            <div id="repositories" class="section-cards">
+                {% for repo in current_config['repos'] %}
+                <div class="card repo" id="repo-card-{{loop.index}}">
+                    <label for="repo-owner">Repository Owner</label>
+                    <input type="text" id="repo-owner-{{loop.index}}" name="repo_owner" value="{{ repo.owner }}">
+                    <label for="repo-name">Repository Name</label>
+                    <input type="text" id="repo-name-{{loop.index}}" name="repo_name" value="{{ repo.name}}">
+                    <label for="repo-branch">Repository Branch</label>
+                    <input type="text" id="repo-branch-{{loop.index}}" name="repo_branch" value="{{ repo.branch }}">
+                    <button type="button"
+                            class="remove-repo-button"
+                            onclick="remove_repo({{loop.index}})"
+                            id="remove-repo-button-{{loop.index}}">Remove Repository</button>
+                </div>
+                {% endfor %}
+            </div>
+            <button type="button" id="add-repository-button">Add Repository</button>
+            <div class="section">
+                <div id="success" style="display: none;"></div>
+                <button id="submit" type="submit">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+<style>
+    td {
+        padding: 10px 0;
+    }
+    div.repo {
+        width: 100%;
+        height: 100%;
+        grid-template-rows: none;
+    }
+    div#repositories {
+        margin-bottom: 12px;
+    }
+    button.remove-repo-button {
+        background-color: gainsboro;
+    }
+</style>
+<script>
+    const add_repo_button = document.getElementById("add-repository-button");
+    add_repo_button.addEventListener("click", function(event) {
+        event.preventDefault();
+        var repo = document.createElement("div");
+        repo.classList.add("card");
+        repo.classList.add("repo");
+        const id = Date.now();
+        repo.id = "repo-card-" + id;
+        repo.innerHTML = `
+            <label for="repo-owner">Repository Owner</label>
+            <input type="text" id="repo-owner" name="repo_owner">
+            <label for="repo-name">Repository Name</label>
+            <input type="text" id="repo-name" name="repo_name">
+            <label for="repo-branch">Repository Branch</label>
+            <input type="text" id="repo-branch" name="repo_branch">
+            <button type="button"
+                    class="remove-repo-button"
+                    onclick="remove_repo(${id})"
+                    id="remove-repo-button-${id}">Remove Repository</button>
+        `;
+        document.getElementById("repositories").appendChild(repo);
+    })
+
+    function remove_repo(index) {
+        document.getElementById("repo-card-" + index).remove();
+    }
+
+    submit.addEventListener("click", function(event) {
+        event.preventDefault();
+
+        const pat_token = document.getElementById("pat-token").value;
+
+        if (pat_token == "") {
+            document.getElementById("success").innerHTML = "❌ Please enter a Personal Access Token.";
+            document.getElementById("success").style.display = "block";
+            return;
+        }
+
+
+        var cards = document.getElementById("repositories").getElementsByClassName("repo");
+        var repos = [];
+
+        for (var i = 0; i < cards.length; i++) {
+            var card = cards[i];
+            var owner = card.getElementsByTagName("input")[0].value;
+            var name = card.getElementsByTagName("input")[1].value;
+            var branch = card.getElementsByTagName("input")[2].value;
+
+            if (owner == "" || name == "" || branch == "") {
+                continue;
+            }
+
+            repos.push({
+                "owner": owner,
+                "name": name,
+                "branch": branch,
+            });
+        }
+
+        if (repos.length == 0) {
+            document.getElementById("success").innerHTML = "❌ Please add at least one repository.";
+            document.getElementById("success").style.display = "block";
+            return;
+        }
+
+        const submitButton = document.getElementById("submit");
+        submitButton.disabled = true;
+        submitButton.innerHTML = "Saving...";
+
+        // Save Github config on server
+        const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
+        fetch('/api/config/data/content-source/github', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify({
+                "pat_token": pat_token,
+                "repos": repos,
+            })
+        })
+        .then(response => response.json())
+        .then(data => { data["status"] === "ok" ? data : Promise.reject(data) })
+        .catch(error => {
+            document.getElementById("success").innerHTML = "⚠️ Failed to save Github settings.";
+            document.getElementById("success").style.display = "block";
+            submitButton.innerHTML = "⚠️ Failed to save settings";
+            setTimeout(function() {
+                submitButton.innerHTML = "Save";
+                submitButton.disabled = false;
+            }, 2000);
+            return;
+        });
+
+        // Index Github content on server
+        fetch('/api/update?t=github')
+        .then(response => response.json())
+        .then(data => { data["status"] == "ok" ? data : Promise.reject(data) })
+        .then(data => {
+            document.getElementById("success").style.display = "none";
+            submitButton.innerHTML = "✅ Successfully updated";
+            setTimeout(function() {
+                submitButton.innerHTML = "Save";
+                submitButton.disabled = false;
+            }, 2000);
+        })
+        .catch(error => {
+            document.getElementById("success").innerHTML = "⚠️ Failed to save Github content.";
+            document.getElementById("success").style.display = "block";
+            submitButton.innerHTML = "⚠️ Failed to save content";
+            setTimeout(function() {
+                submitButton.innerHTML = "Save";
+                submitButton.disabled = false;
+            }, 2000);
+        });
+
+    });
+</script>
+{% endblock %}

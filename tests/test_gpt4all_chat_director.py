@@ -9,8 +9,7 @@ from faker import Faker
 # Internal Packages
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import message_to_log
-from khoj.utils import state
-
+from tests.helpers import ConversationFactory
 
 SKIP_TESTS = True
 pytestmark = pytest.mark.skipif(
@@ -23,7 +22,7 @@ fake = Faker()
 
 # Helpers
 # ----------------------------------------------------------------------------------------------------
-def populate_chat_history(message_list):
+def populate_chat_history(message_list, user):
     # Generate conversation logs
     conversation_log = {"chat": []}
     for user_message, llm_message, context in message_list:
@@ -33,14 +32,15 @@ def populate_chat_history(message_list):
             {"context": context, "intent": {"query": user_message, "inferred-queries": f'["{user_message}"]'}},
         )
 
-    # Update Conversation Metadata Logs in Application State
-    state.processor_config.conversation.meta_log = conversation_log
+    # Update Conversation Metadata Logs in Database
+    ConversationFactory(user=user, conversation_log=conversation_log)
 
 
 # Tests
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
+@pytest.mark.django_db(transaction=True)
 def test_chat_with_no_chat_history_or_retrieved_content_gpt4all(client_offline_chat):
     # Act
     response = client_offline_chat.get(f'/api/chat?q="Hello, my name is Testatron. Who are you?"&stream=true')
@@ -56,13 +56,14 @@ def test_chat_with_no_chat_history_or_retrieved_content_gpt4all(client_offline_c
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-def test_answer_from_chat_history(client_offline_chat):
+@pytest.mark.django_db(transaction=True)
+def test_answer_from_chat_history(client_offline_chat, default_user2):
     # Arrange
     message_list = [
         ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
         ("When was I born?", "You were born on 1st April 1984.", []),
     ]
-    populate_chat_history(message_list)
+    populate_chat_history(message_list, default_user2)
 
     # Act
     response = client_offline_chat.get(f'/api/chat?q="What is my name?"&stream=true')
@@ -78,7 +79,8 @@ def test_answer_from_chat_history(client_offline_chat):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-def test_answer_from_currently_retrieved_content(client_offline_chat):
+@pytest.mark.django_db(transaction=True)
+def test_answer_from_currently_retrieved_content(client_offline_chat, default_user2):
     # Arrange
     message_list = [
         ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
@@ -88,7 +90,7 @@ def test_answer_from_currently_retrieved_content(client_offline_chat):
             ["Testatron was born on 1st April 1984 in Testville."],
         ),
     ]
-    populate_chat_history(message_list)
+    populate_chat_history(message_list, default_user2)
 
     # Act
     response = client_offline_chat.get(f'/api/chat?q="Where was Xi Li born?"')
@@ -101,7 +103,8 @@ def test_answer_from_currently_retrieved_content(client_offline_chat):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-def test_answer_from_chat_history_and_previously_retrieved_content(client_offline_chat):
+@pytest.mark.django_db(transaction=True)
+def test_answer_from_chat_history_and_previously_retrieved_content(client_offline_chat, default_user2):
     # Arrange
     message_list = [
         ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
@@ -111,7 +114,7 @@ def test_answer_from_chat_history_and_previously_retrieved_content(client_offlin
             ["Testatron was born on 1st April 1984 in Testville."],
         ),
     ]
-    populate_chat_history(message_list)
+    populate_chat_history(message_list, default_user2)
 
     # Act
     response = client_offline_chat.get(f'/api/chat?q="Where was I born?"')
@@ -130,13 +133,14 @@ def test_answer_from_chat_history_and_previously_retrieved_content(client_offlin
     reason="Chat director not capable of answering this question yet because it requires extract_questions",
 )
 @pytest.mark.chatquality
-def test_answer_from_chat_history_and_currently_retrieved_content(client_offline_chat):
+@pytest.mark.django_db(transaction=True)
+def test_answer_from_chat_history_and_currently_retrieved_content(client_offline_chat, default_user2):
     # Arrange
     message_list = [
         ("Hello, my name is Xi Li. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
         ("When was I born?", "You were born on 1st April 1984.", []),
     ]
-    populate_chat_history(message_list)
+    populate_chat_history(message_list, default_user2)
 
     # Act
     response = client_offline_chat.get(f'/api/chat?q="Where was I born?"')
@@ -154,14 +158,15 @@ def test_answer_from_chat_history_and_currently_retrieved_content(client_offline
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
-def test_no_answer_in_chat_history_or_retrieved_content(client_offline_chat):
+@pytest.mark.django_db(transaction=True)
+def test_no_answer_in_chat_history_or_retrieved_content(client_offline_chat, default_user2):
     "Chat director should say don't know as not enough contexts in chat history or retrieved to answer question"
     # Arrange
     message_list = [
         ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
         ("When was I born?", "You were born on 1st April 1984.", []),
     ]
-    populate_chat_history(message_list)
+    populate_chat_history(message_list, default_user2)
 
     # Act
     response = client_offline_chat.get(f'/api/chat?q="Where was I born?"&stream=true')
@@ -177,11 +182,12 @@ def test_no_answer_in_chat_history_or_retrieved_content(client_offline_chat):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-def test_answer_using_general_command(client_offline_chat):
+@pytest.mark.django_db(transaction=True)
+def test_answer_using_general_command(client_offline_chat, default_user2):
     # Arrange
     query = urllib.parse.quote("/general Where was Xi Li born?")
     message_list = []
-    populate_chat_history(message_list)
+    populate_chat_history(message_list, default_user2)
 
     # Act
     response = client_offline_chat.get(f"/api/chat?q={query}&stream=true")
@@ -194,11 +200,12 @@ def test_answer_using_general_command(client_offline_chat):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-def test_answer_from_retrieved_content_using_notes_command(client_offline_chat):
+@pytest.mark.django_db(transaction=True)
+def test_answer_from_retrieved_content_using_notes_command(client_offline_chat, default_user2):
     # Arrange
     query = urllib.parse.quote("/notes Where was Xi Li born?")
     message_list = []
-    populate_chat_history(message_list)
+    populate_chat_history(message_list, default_user2)
 
     # Act
     response = client_offline_chat.get(f"/api/chat?q={query}&stream=true")
@@ -211,12 +218,13 @@ def test_answer_from_retrieved_content_using_notes_command(client_offline_chat):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-def test_answer_using_file_filter(client_offline_chat):
+@pytest.mark.django_db(transaction=True)
+def test_answer_using_file_filter(client_offline_chat, default_user2):
     # Arrange
     no_answer_query = urllib.parse.quote('Where was Xi Li born? file:"Namita.markdown"')
     answer_query = urllib.parse.quote('Where was Xi Li born? file:"Xi Li.markdown"')
     message_list = []
-    populate_chat_history(message_list)
+    populate_chat_history(message_list, default_user2)
 
     # Act
     no_answer_response = client_offline_chat.get(f"/api/chat?q={no_answer_query}&stream=true").content.decode("utf-8")
@@ -229,11 +237,12 @@ def test_answer_using_file_filter(client_offline_chat):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-def test_answer_not_known_using_notes_command(client_offline_chat):
+@pytest.mark.django_db(transaction=True)
+def test_answer_not_known_using_notes_command(client_offline_chat, default_user2):
     # Arrange
     query = urllib.parse.quote("/notes Where was Testatron born?")
     message_list = []
-    populate_chat_history(message_list)
+    populate_chat_history(message_list, default_user2)
 
     # Act
     response = client_offline_chat.get(f"/api/chat?q={query}&stream=true")
@@ -247,6 +256,7 @@ def test_answer_not_known_using_notes_command(client_offline_chat):
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering time aware questions yet")
 @pytest.mark.chatquality
+@pytest.mark.django_db(transaction=True)
 @freeze_time("2023-04-01")
 def test_answer_requires_current_date_awareness(client_offline_chat):
     "Chat actor should be able to answer questions relative to current date using provided notes"
@@ -265,6 +275,7 @@ def test_answer_requires_current_date_awareness(client_offline_chat):
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
+@pytest.mark.django_db(transaction=True)
 @freeze_time("2023-04-01")
 def test_answer_requires_date_aware_aggregation_across_provided_notes(client_offline_chat):
     "Chat director should be able to answer questions that require date aware aggregation across multiple notes"
@@ -280,14 +291,15 @@ def test_answer_requires_date_aware_aggregation_across_provided_notes(client_off
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
-def test_answer_general_question_not_in_chat_history_or_retrieved_content(client_offline_chat):
+@pytest.mark.django_db(transaction=True)
+def test_answer_general_question_not_in_chat_history_or_retrieved_content(client_offline_chat, default_user2):
     # Arrange
     message_list = [
         ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
         ("When was I born?", "You were born on 1st April 1984.", []),
         ("Where was I born?", "You were born Testville.", []),
     ]
-    populate_chat_history(message_list)
+    populate_chat_history(message_list, default_user2)
 
     # Act
     response = client_offline_chat.get(
@@ -307,7 +319,8 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content(client
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.xfail(reason="Chat director not consistently capable of asking for clarification yet.")
 @pytest.mark.chatquality
-def test_ask_for_clarification_if_not_enough_context_in_question(client_offline_chat):
+@pytest.mark.django_db(transaction=True)
+def test_ask_for_clarification_if_not_enough_context_in_question(client_offline_chat, default_user2):
     # Act
     response = client_offline_chat.get(f'/api/chat?q="What is the name of Namitas older son"&stream=true')
     response_message = response.content.decode("utf-8")
@@ -328,14 +341,15 @@ def test_ask_for_clarification_if_not_enough_context_in_question(client_offline_
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.xfail(reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
-def test_answer_in_chat_history_beyond_lookback_window(client_offline_chat):
+@pytest.mark.django_db(transaction=True)
+def test_answer_in_chat_history_beyond_lookback_window(client_offline_chat, default_user2):
     # Arrange
     message_list = [
         ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
         ("When was I born?", "You were born on 1st April 1984.", []),
         ("Where was I born?", "You were born Testville.", []),
     ]
-    populate_chat_history(message_list)
+    populate_chat_history(message_list, default_user2)
 
     # Act
     response = client_offline_chat.get(f'/api/chat?q="What is my name?"&stream=true')
@@ -350,11 +364,12 @@ def test_answer_in_chat_history_beyond_lookback_window(client_offline_chat):
 
 
 @pytest.mark.chatquality
-def test_answer_chat_history_very_long(client_offline_chat):
+@pytest.mark.django_db(transaction=True)
+def test_answer_chat_history_very_long(client_offline_chat, default_user2):
     # Arrange
     message_list = [(" ".join([fake.paragraph() for _ in range(50)]), fake.sentence(), []) for _ in range(10)]
 
-    populate_chat_history(message_list)
+    populate_chat_history(message_list, default_user2)
 
     # Act
     response = client_offline_chat.get(f'/api/chat?q="What is my name?"&stream=true')
@@ -368,6 +383,7 @@ def test_answer_chat_history_very_long(client_offline_chat):
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
+@pytest.mark.django_db(transaction=True)
 def test_answer_requires_multiple_independent_searches(client_offline_chat):
     "Chat director should be able to answer by doing multiple independent searches for required information"
     # Act

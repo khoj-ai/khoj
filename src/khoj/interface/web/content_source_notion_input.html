@@ -1,0 +1,96 @@
+{% extends "base_config.html" %}
+{% block content %}
+<div class="page">
+    <div class="section">
+        <h2 class="section-title">
+            <img class="card-icon" src="/static/assets/icons/notion.svg" alt="Notion">
+            <span class="card-title-text">Notion</span>
+            <div class="instructions">
+                <a href="https://docs.khoj.dev/#/notion_integration">ⓘ Help</a>
+            </div>
+        </h2>
+        <form>
+            <table>
+                <tr>
+                    <td>
+                        <label for="token">Token</label>
+                    </td>
+                    <td>
+                        <input type="text" id="token" name="pat" value="{{ current_config['token'] }}">
+                    </td>
+                </tr>
+            </table>
+            <div class="section">
+                <div id="success" style="display: none;"></div>
+                <button id="submit" type="submit">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    const submit = document.getElementById("submit");
+
+    submit.addEventListener("click", function(event) {
+        event.preventDefault();
+
+        const token = document.getElementById("token").value;
+
+        if (token == "") {
+            document.getElementById("success").innerHTML = "❌ Please enter a Notion Token.";
+            document.getElementById("success").style.display = "block";
+            return;
+        }
+
+        const submitButton = document.getElementById("submit");
+        submitButton.disabled = true;
+        submitButton.innerHTML = "Saving...";
+
+        // Save Notion config on server
+        const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
+        fetch('/api/config/data/content-source/notion', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify({
+                "token": token,
+            })
+        })
+        .then(response => response.json())
+        .then(data => { data["status"] === "ok" ? data : Promise.reject(data) })
+        .catch(error => {
+            document.getElementById("success").innerHTML = "⚠️ Failed to save Notion settings.";
+            document.getElementById("success").style.display = "block";
+            submitButton.innerHTML = "⚠️ Failed to save settings";
+            setTimeout(function() {
+                submitButton.innerHTML = "Save";
+                submitButton.disabled = false;
+            }, 2000);
+            return;
+        });
+
+        // Index Notion content on server
+        fetch('/api/update?t=notion')
+        .then(response => response.json())
+        .then(data => { data["status"] == "ok" ? data : Promise.reject(data) })
+        .then(data => {
+            document.getElementById("success").style.display = "none";
+            submitButton.innerHTML = "✅ Successfully updated";
+            setTimeout(function() {
+                submitButton.innerHTML = "Save";
+                submitButton.disabled = false;
+            }, 2000);
+        })
+        .catch(error => {
+            document.getElementById("success").innerHTML = "⚠️ Failed to save Notion content.";
+            document.getElementById("success").style.display = "block";
+            submitButton.innerHTML = "⚠️ Failed to save content";
+            setTimeout(function() {
+                submitButton.innerHTML = "Save";
+                submitButton.disabled = false;
+            }, 2000);
+        });
+    });
+</script>
+{% endblock %}
