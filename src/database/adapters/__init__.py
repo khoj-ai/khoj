@@ -31,7 +31,7 @@ from database.models import (
     GithubRepoConfig,
     Conversation,
     ChatModelOptions,
-    SearchModel,
+    SearchModelConfig,
     Subscription,
     UserConversationConfig,
     OpenAIProcessorConversationConfig,
@@ -73,11 +73,11 @@ async def delete_khoj_token(user: KhojUser, token: str):
 async def get_or_create_user(token: dict) -> KhojUser:
     user = await get_user_by_token(token)
     if not user:
-        user = await create_user_by_token(token)
+        user = await create_user_by_google_token(token)
     return user
 
 
-async def create_user_by_token(token: dict) -> KhojUser:
+async def create_user_by_google_token(token: dict) -> KhojUser:
     user, _ = await KhojUser.objects.filter(email=token.get("email")).aupdate_or_create(
         defaults={"username": token.get("email"), "email": token.get("email")}
     )
@@ -214,9 +214,9 @@ async def set_user_github_config(user: KhojUser, pat_token: str, repos: list):
 
 
 def get_or_create_search_model():
-    search_model = SearchModel.objects.filter().first()
+    search_model = SearchModelConfig.objects.filter().first()
     if not search_model:
-        search_model = SearchModel.objects.create()
+        search_model = SearchModelConfig.objects.create()
 
     return search_model
 

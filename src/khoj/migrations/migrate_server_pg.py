@@ -64,7 +64,7 @@ from database.models import (
     OpenAIProcessorConversationConfig,
     OfflineChatProcessorConversationConfig,
     ChatModelOptions,
-    SearchModel,
+    SearchModelConfig,
 )
 
 logger = logging.getLogger(__name__)
@@ -87,12 +87,12 @@ def migrate_server_pg(args):
         if "search-type" in raw_config and raw_config["search-type"]:
             if "asymmetric" in raw_config["search-type"]:
                 # Delete all existing search models
-                SearchModel.objects.filter(model_type=SearchModel.ModelType.TEXT).delete()
+                SearchModelConfig.objects.filter(model_type=SearchModelConfig.ModelType.TEXT).delete()
                 # Create new search model from existing Khoj YAML config
                 asymmetric_search = raw_config["search-type"]["asymmetric"]
-                SearchModel.objects.create(
+                SearchModelConfig.objects.create(
                     name="default",
-                    model_type=SearchModel.ModelType.TEXT,
+                    model_type=SearchModelConfig.ModelType.TEXT,
                     bi_encoder=asymmetric_search.get("encoder"),
                     cross_encoder=asymmetric_search.get("cross-encoder"),
                 )
