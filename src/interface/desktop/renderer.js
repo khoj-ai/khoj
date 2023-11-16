@@ -198,12 +198,6 @@ khojKeyInput.addEventListener('blur', async () => {
     khojKeyInput.value = token;
 });
 
-const syncButton = document.getElementById('sync-data');
-syncButton.addEventListener('click', async () => {
-    loadingBar.style.display = 'block';
-    await window.syncDataAPI.syncData(false);
-});
-
 const syncForceButton = document.getElementById('sync-force');
 syncForceButton.addEventListener('click', async () => {
     loadingBar.style.display = 'block';

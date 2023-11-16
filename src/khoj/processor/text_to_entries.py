@@ -14,7 +14,7 @@ from khoj.utils.rawconfig import Entry
 from khoj.processor.embeddings import EmbeddingsModel
 from khoj.search_filter.date_filter import DateFilter
 from database.models import KhojUser, Entry as DbEntry, EntryDates
-from database.adapters import EntryAdapters
+from database.adapters import EntryAdapters, get_or_create_search_model
 
 
 logger = logging.getLogger(__name__)
@@ -22,7 +22,8 @@ logger = logging.getLogger(__name__)
 
 class TextToEntries(ABC):
     def __init__(self, config: Any = None):
-        self.embeddings_model = EmbeddingsModel()
+        bi_encoder_name = get_or_create_search_model().bi_encoder
+        self.embeddings_model = EmbeddingsModel(bi_encoder_name)
         self.config = config
         self.date_filter = DateFilter()
 

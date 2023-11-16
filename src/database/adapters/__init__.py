@@ -1,7 +1,8 @@
-from typing import Optional, Type, TypeVar, List
-from datetime import date, datetime, timedelta
+import math
+from typing import Optional, Type, List
+from datetime import date, datetime
 import secrets
-from typing import Type, TypeVar, List
+from typing import Type, List
 from datetime import date, timezone
 
 from django.db import models
@@ -30,6 +31,7 @@ from database.models import (
     GithubRepoConfig,
     Conversation,
     ChatModelOptions,
+    SearchModel,
     Subscription,
     UserConversationConfig,
     OpenAIProcessorConversationConfig,
@@ -39,15 +41,6 @@ from khoj.utils.helpers import generate_random_name
 from khoj.search_filter.word_filter import WordFilter
 from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.date_filter import DateFilter
-
-ModelType = TypeVar("ModelType", bound=models.Model)
-
-
-async def retrieve_object(model_class: Type[ModelType], id: int) -> ModelType:
-    instance = await model_class.objects.filter(id=id).afirst()
-    if not instance:
-        raise HTTPException(status_code=404, detail=f"{model_class.__name__} not found")
-    return instance
 
 
 async def set_notion_config(token: str, user: KhojUser):
@@ -80,13 +73,16 @@ async def delete_khoj_token(user: KhojUser, token: str):
 async def get_or_create_user(token: dict) -> KhojUser:
     user = await get_user_by_token(token)
     if not user:
-        user = await create_google_user(token)
+        user = await create_user_by_token(token)
     return user
 
 
-async def create_google_user(token: dict) -> KhojUser:
-    user = await KhojUser.objects.acreate(username=token.get("email"), email=token.get("email"))
+async def create_user_by_token(token: dict) -> KhojUser:
+    user, _ = await KhojUser.objects.filter(email=token.get("email")).aupdate_or_create(
+        defaults={"username": token.get("email"), "email": token.get("email")}
+    )
     await user.asave()
+
     await GoogleUser.objects.acreate(
         sub=token.get("sub"),
         azp=token.get("azp"),
@@ -98,6 +94,8 @@ async def create_google_user(token: dict) -> KhojUser:
         locale=token.get("locale"),
         user=user,
     )
+
+    await Subscription.objects.acreate(user=user, type="trial")
 
     return user
 
@@ -213,6 +211,14 @@ async def set_user_github_config(user: KhojUser, pat_token: str, repos: list):
             name=repo["name"], owner=repo["owner"], branch=repo["branch"], github_config=config
         )
     return config
+
+
+def get_or_create_search_model():
+    search_model = SearchModel.objects.filter().first()
+    if not search_model:
+        search_model = SearchModel.objects.create()
+
+    return search_model
 
 
 class ConversationAdapters:
@@ -433,12 +439,19 @@ class EntryAdapters:
 
     @staticmethod
     def search_with_embeddings(
-        user: KhojUser, embeddings: Tensor, max_results: int = 10, file_type_filter: str = None, raw_query: str = None
+        user: KhojUser,
+        embeddings: Tensor,
+        max_results: int = 10,
+        file_type_filter: str = None,
+        raw_query: str = None,
+        max_distance: float = math.inf,
     ):
         relevant_entries = EntryAdapters.apply_filters(user, raw_query, file_type_filter)
         relevant_entries = relevant_entries.filter(user=user).annotate(
             distance=CosineDistance("embeddings", embeddings)
         )
+        relevant_entries = relevant_entries.filter(distance__lte=max_distance)
+
         if file_type_filter:
             relevant_entries = relevant_entries.filter(file_type=file_type_filter)
         relevant_entries = relevant_entries.order_by("distance")

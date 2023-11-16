@@ -16,7 +16,7 @@ from khoj.utils.state import search_models, content_index, config
 from khoj.search_type import text_search, image_search
 from khoj.utils.rawconfig import ContentConfig, SearchConfig
 from khoj.processor.org_mode.org_to_entries import OrgToEntries
-from database.models import KhojUser
+from database.models import KhojUser, KhojApiUser
 from database.adapters import EntryAdapters
 
 
@@ -173,7 +173,6 @@ def test_regenerate_with_github_fails_without_pat(client):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-@pytest.mark.skip(reason="Flaky test on parallel test runs")
 def test_get_configured_types_via_api(client, sample_org_data):
     # Act
     text_search.setup(OrgToEntries, sample_org_data, regenerate=False)
@@ -203,10 +202,10 @@ def test_get_api_config_types(client, sample_org_data, default_user: KhojUser):
 @pytest.mark.django_db(transaction=True)
 def test_get_configured_types_with_no_content_config(fastapi_app: FastAPI):
     # Arrange
-    state.SearchType = configure_search_types(config)
-    original_config = state.config.content_type
-    state.config.content_type = None
     state.anonymous_mode = True
+    if state.config and state.config.content_type:
+        state.config.content_type = None
+    state.search_models = configure_search_types()
 
     configure_routes(fastapi_app)
     client = TestClient(fastapi_app)
@@ -217,9 +216,6 @@ def test_get_configured_types_with_no_content_config(fastapi_app: FastAPI):
     # Assert
     assert response.status_code == 200
     assert response.json() == ["all"]
-
-    # Restore
-    state.config.content_type = original_config
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -349,6 +345,24 @@ def test_different_user_data_not_accessed(client, sample_org_data, default_user:
     assert response.status_code == 403
     # assert actual response has no data as the default_user is different from the user making the query (anonymous)
     assert len(response.json()) == 1 and response.json()["detail"] == "Forbidden"
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.django_db(transaction=True)
+def test_user_no_data_returns_empty(client, sample_org_data, api_user3: KhojApiUser):
+    # Arrange
+    token = api_user3.token
+    headers = {"Authorization": "Bearer " + token}
+    user_query = quote("How to git install application?")
+
+    # Act
+    response = client.get(f"/api/search?q={user_query}&n=1&t=org", headers=headers)
+
+    # Assert
+    assert response.status_code == 200
+    # assert actual response has no data as the default_user3, though other users have data
+    assert len(response.json()) == 0
+    assert response.json() == []
 
 
 def get_sample_files_data():

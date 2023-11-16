@@ -43,7 +43,7 @@ To get started, just start typing below. You can also type / to see a list of co
             let escaped_ref = reference.replaceAll('"', '&quot;');
 
             // Generate HTML for Chat Reference
-            let short_ref = escaped_ref.slice(0, 100);
+            let short_ref = escaped_ref.slice(0, 140);
             short_ref = short_ref.length < escaped_ref.length ? short_ref + "..." : short_ref;
             let referenceButton = document.createElement('button');
             referenceButton.innerHTML = short_ref;
@@ -205,8 +205,11 @@ To get started, just start typing below. You can also type / to see a list of co
                                 // Evaluate the contents of new_response_text.innerHTML after all the data has been streamed
                                 const currentHTML = newResponseText.innerHTML;
                                 newResponseText.innerHTML = formatHTMLMessage(currentHTML);
-                                newResponseText.appendChild(references);
+                                if (references != null) {
+                                    newResponseText.appendChild(references);
+                                }
                                 document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+                                document.getElementById("chat-input").removeAttribute("disabled");
                                 return;
                             }
 
@@ -265,7 +268,6 @@ To get started, just start typing below. You can also type / to see a list of co
                         });
                     }
                     readStream();
-                    document.getElementById("chat-input").removeAttribute("disabled");
                 });
         }
 
@@ -417,6 +419,9 @@ To get started, just start typing below. You can also type / to see a list of co
             display: block;
         }
 
+        div.references {
+            padding-top: 8px;
+        }
         div.reference {
             display: grid;
             grid-template-rows: auto;
@@ -447,12 +452,12 @@ To get started, just start typing below. You can also type / to see a list of co
             cursor: pointer;
             transition: background 0.2s ease-in-out;
             text-align: left;
-            max-height: 50px;
+            max-height: 75px;
             transition: max-height 0.3s ease-in-out;
             overflow: hidden;
         }
         button.reference-button.expanded {
-            max-height: 200px;
+            max-height: none;
         }
 
         button.reference-button::before {

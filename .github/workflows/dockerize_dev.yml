@@ -1,21 +1,17 @@
-name: dockerize-prod
+name: dockerize-dev
 
 on:
-  push:
-    tags:
-      - "*"
-    branches:
-      - master
+  pull_request:
     paths:
       - src/khoj/**
       - config/**
       - pyproject.toml
       - prod.Dockerfile
-      - .github/workflows/dockerize_production.yml
+      - .github/workflows/dockerize_dev.yml
   workflow_dispatch:
 
 env:
-  DOCKER_IMAGE_TAG: 'prod'
+  DOCKER_IMAGE_TAG: 'dev'
 
 jobs:
   build:

@@ -8,11 +8,13 @@ from fastapi import FastAPI
 import os
 from fastapi import FastAPI
 
+
 app = FastAPI()
 
 
 # Internal Packages
 from khoj.configure import configure_routes, configure_search_types, configure_middleware
+from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
 from khoj.processor.plaintext.plaintext_to_entries import PlaintextToEntries
 from khoj.search_type import image_search, text_search
 from khoj.utils.config import SearchModels
@@ -43,6 +45,7 @@ from tests.helpers import (
     OpenAIProcessorConversationConfigFactory,
     OfflineChatProcessorConversationConfigFactory,
     UserConversationProcessorConfigFactory,
+    SubscriptionFactory,
 )
 
 
@@ -53,6 +56,9 @@ def enable_db_access_for_all_tests(db):
 
 @pytest.fixture(scope="session")
 def search_config() -> SearchConfig:
+    state.embeddings_model = EmbeddingsModel()
+    state.cross_encoder_model = CrossEncoderModel()
+
     model_dir = resolve_absolute_path("~/.khoj/search")
     model_dir.mkdir(parents=True, exist_ok=True)
     search_config = SearchConfig()
@@ -69,7 +75,9 @@ def search_config() -> SearchConfig:
 @pytest.mark.django_db
 @pytest.fixture
 def default_user():
-    return UserFactory()
+    user = UserFactory()
+    SubscriptionFactory(user=user)
+    return user
 
 
 @pytest.mark.django_db
@@ -78,11 +86,31 @@ def default_user2():
     if KhojUser.objects.filter(username="default").exists():
         return KhojUser.objects.get(username="default")
 
-    return KhojUser.objects.create(
+    user = KhojUser.objects.create(
         username="default",
         email="default@example.com",
         password="default",
     )
+    SubscriptionFactory(user=user)
+    return user
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def default_user3():
+    """
+    This user should not have any data associated with it
+    """
+    if KhojUser.objects.filter(username="default3").exists():
+        return KhojUser.objects.get(username="default3")
+
+    user = KhojUser.objects.create(
+        username="default3",
+        email="default3@example.com",
+        password="default3",
+    )
+    SubscriptionFactory(user=user)
+    return user
 
 
 @pytest.mark.django_db
@@ -108,6 +136,19 @@ def api_user2(default_user2):
         user=default_user2,
         name="api-key",
         token="kk-diff-secret",
+    )
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def api_user3(default_user3):
+    if KhojApiUser.objects.filter(user=default_user3).exists():
+        return KhojApiUser.objects.get(user=default_user3)
+
+    return KhojApiUser.objects.create(
+        user=default_user3,
+        name="api-key",
+        token="kk-diff-secret-3",
     )
 
 
@@ -186,7 +227,7 @@ def md_content_config():
 def chat_client(search_config: SearchConfig, default_user2: KhojUser):
     # Initialize app state
     state.config.search_type = search_config
-    state.SearchType = configure_search_types(state.config)
+    state.SearchType = configure_search_types()
 
     LocalMarkdownConfig.objects.create(
         input_files=None,
@@ -206,7 +247,7 @@ def chat_client(search_config: SearchConfig, default_user2: KhojUser):
         OpenAIProcessorConversationConfigFactory()
         UserConversationProcessorConfigFactory(user=default_user2, setting=chat_model)
 
-    state.anonymous_mode = False
+    state.anonymous_mode = True
 
     app = FastAPI()
 
@@ -220,11 +261,13 @@ def chat_client(search_config: SearchConfig, default_user2: KhojUser):
 def chat_client_no_background(search_config: SearchConfig, default_user2: KhojUser):
     # Initialize app state
     state.config.search_type = search_config
-    state.SearchType = configure_search_types(state.config)
+    state.SearchType = configure_search_types()
 
     # Initialize Processor from Config
     if os.getenv("OPENAI_API_KEY"):
+        chat_model = ChatModelOptionsFactory(chat_model="gpt-3.5-turbo", model_type="openai")
         OpenAIProcessorConversationConfigFactory()
+        UserConversationProcessorConfigFactory(user=default_user2, setting=chat_model)
 
     state.anonymous_mode = True
 
@@ -253,7 +296,9 @@ def client(
 ):
     state.config.content_type = content_config
     state.config.search_type = search_config
-    state.SearchType = configure_search_types(state.config)
+    state.SearchType = configure_search_types()
+    state.embeddings_model = EmbeddingsModel()
+    state.cross_encoder_model = CrossEncoderModel()
 
     # These lines help us Mock the Search models for these search types
     state.search_models.image_search = image_search.initialize_model(search_config.image)
@@ -285,7 +330,7 @@ def client(
 def client_offline_chat(search_config: SearchConfig, default_user2: KhojUser):
     # Initialize app state
     state.config.search_type = search_config
-    state.SearchType = configure_search_types(state.config)
+    state.SearchType = configure_search_types()
 
     LocalMarkdownConfig.objects.create(
         input_files=None,

@@ -29,12 +29,12 @@
                         {% endif %}
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
                     </a>
-                </div>
-                <div id="clear-computer" class="card-action-row"
-                    style="display: {% if not current_model_state.computer %}none{% endif %}">
-                    <button class="card-button" onclick="clearContentType('computer')">
-                        Disable
-                    </button>
+                    <div id="clear-computer" class="card-action-row"
+                        style="display: {% if not current_model_state.computer %}none{% endif %}">
+                        <button class="card-button" onclick="clearContentType('computer')">
+                            Disable
+                        </button>
+                    </div>
                 </div>
             </div>
              <div class="card">
@@ -61,13 +61,13 @@
                         {% endif %}
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
                     </a>
-                </div>
-                <div id="clear-github"
-                    class="card-action-row"
-                    style="display: {% if not current_model_state.github %}none{% endif %}">
-                    <button class="card-button" onclick="clearContentType('github')">
-                        Disable
-                    </button>
+                    <div id="clear-github"
+                        class="card-action-row"
+                        style="display: {% if not current_model_state.github %}none{% endif %}">
+                        <button class="card-button" onclick="clearContentType('github')">
+                            Disable
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="card">
@@ -94,13 +94,26 @@
                         {% endif %}
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
                     </a>
+                    <div id="clear-notion"
+                        class="card-action-row"
+                        style="display: {% if not current_model_state.notion %}none{% endif %}">
+                        <button class="card-button" onclick="clearContentType('notion')">
+                            Disable
+                        </button>
+                    </div>
                 </div>
-                <div id="clear-notion"
-                    class="card-action-row"
-                    style="display: {% if not current_model_state.notion %}none{% endif %}">
-                    <button class="card-button" onclick="clearContentType('notion')">
-                        Disable
-                    </button>
+            </div>
+        </div>
+        <div class="general-settings section">
+            <div id="status" style="display: none;"></div>
+        </div>
+        <div class="section finalize-actions general-settings">
+            <div class="section-cards">
+                <div class="finalize-buttons">
+                    <button id="configure" type="submit" title="Update index with the latest changes">💾 Save All</button>
+                </div>
+                <div class="finalize-buttons">
+                    <button id="reinitialize" type="submit" title="Regenerate index from scratch">🔄 Reinitialize</button>
                 </div>
             </div>
         </div>
@@ -221,23 +234,7 @@
         </div>
     </div>
     {% endif %}
-    <div class="section general-settings">
-        <div id="results-count" title="Number of items to show in search and use for chat response">
-            <label for="results-count-slider">Results Count: <span id="results-count-value">5</span></label>
-            <input type="range" id="results-count-slider" name="results-count-slider" min="1" max="10" step="1" value="5">
-        </div>
-        <div id="status" style="display: none;"></div>
-    </div>
-    <div class="section finalize-actions general-settings">
-        <div class="section-cards">
-            <div class="finalize-buttons">
-                <button id="configure" type="submit" title="Update index with the latest changes">⚙️ Configure</button>
-            </div>
-            <div class="finalize-buttons">
-                <button id="reinitialize" type="submit" title="Regenerate index from scratch">🔄 Reinitialize</button>
-            </div>
-        </div>
-    </div>
+    <div class="section"></div>
 </div>
 <script>
 
@@ -329,11 +326,11 @@
         event.preventDefault();
         updateIndex(
             force=false,
-            successText="Configured successfully!",
+            successText="Saved!",
             errorText="Unable to configure. Raise issue on Khoj <a href='https://github.com/khoj-ai/khoj/issues'>Github</a> or <a href='https://discord.gg/BDgyabRM6e'>Discord</a>.",
             button=configure,
-            loadingText="Configuring...",
-            emoji="⚙️");
+            loadingText="Saving...",
+            emoji="💾");
     });
 
     var reinitialize = document.getElementById("reinitialize");
@@ -341,7 +338,7 @@
         event.preventDefault();
         updateIndex(
             force=true,
-            successText="Reinitialized successfully!",
+            successText="Reinitialized!",
             errorText="Unable to reinitialize. Raise issue on Khoj <a href='https://github.com/khoj-ai/khoj/issues'>Github</a> or <a href='https://discord.gg/BDgyabRM6e'>Discord</a>.",
             button=reinitialize,
             loadingText="Reinitializing...",
@@ -350,6 +347,7 @@
 
     function updateIndex(force, successText, errorText, button, loadingText, emoji) {
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
+        const original_html = button.innerHTML;
         button.disabled = true;
         button.innerHTML = emoji + " " + loadingText;
         fetch('/api/update?&client=web&force=' + force, {
@@ -361,15 +359,17 @@
         })
         .then(response => response.json())
         .then(data => {
-            console.log('Success:', data);
             if (data.detail != null) {
                 throw new Error(data.detail);
             }
 
-            document.getElementById("status").innerHTML = emoji + " " + successText;
-            document.getElementById("status").style.display = "block";
+            document.getElementById("status").style.display = "none";
+
             button.disabled = false;
-            button.innerHTML = '✅ Done!';
+            button.innerHTML = `✅ ${successText}`;
+            setTimeout(function() {
+                button.innerHTML = original_html;
+            }, 2000);
         })
         .catch((error) => {
             console.error('Error:', error);
@@ -377,6 +377,9 @@
             document.getElementById("status").style.display = "block";
             button.disabled = false;
             button.innerHTML = '⚠️ Unsuccessful';
+            setTimeout(function() {
+                button.innerHTML = original_html;
+            }, 2000);
         });
 
         content_sources = ["computer", "github", "notion"];
@@ -398,26 +401,6 @@
                 }
             });
         });
-    }
-
-    // Setup the results count slider
-    const resultsCountSlider = document.getElementById('results-count-slider');
-    const resultsCountValue = document.getElementById('results-count-value');
-
-    // Set the initial value of the slider
-    resultsCountValue.textContent = resultsCountSlider.value;
-
-    // Store the slider value in localStorage when it changes
-    resultsCountSlider.addEventListener('input', () => {
-        resultsCountValue.textContent = resultsCountSlider.value;
-        localStorage.setItem('khojResultsCount', resultsCountSlider.value);
-    });
-
-    // Get the slider value from localStorage on page load
-    const storedResultsCount = localStorage.getItem('khojResultsCount');
-    if (storedResultsCount) {
-        resultsCountSlider.value = storedResultsCount;
-        resultsCountValue.textContent = storedResultsCount;
     }
 
     function generateAPIKey() {
