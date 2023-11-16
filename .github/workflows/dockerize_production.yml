@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
 
 env:
-  DOCKER_IMAGE_TAG: 'prod'
+  DOCKER_IMAGE_TAG: ${{ github.ref == 'refs/heads/master' && 'latest' || github.ref_name }}
 
 jobs:
   build:
@@ -42,6 +42,6 @@ jobs:
           file: prod.Dockerfile
           platforms: linux/amd64
           push: true
-          tags: ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}
+          tags: ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }}
           build-args: |
             PORT=42110
