@@ -31,7 +31,7 @@ from database.models import (
     GithubRepoConfig,
     Conversation,
     ChatModelOptions,
-    SearchModel,
+    SearchModelConfig,
     Subscription,
     UserConversationConfig,
     OpenAIProcessorConversationConfig,
@@ -216,9 +216,9 @@ async def set_user_github_config(user: KhojUser, pat_token: str, repos: list):
 
 
 def get_or_create_search_model():
-    search_model = SearchModel.objects.filter().first()
+    search_model = SearchModelConfig.objects.filter().first()
     if not search_model:
-        search_model = SearchModel.objects.create()
+        search_model = SearchModelConfig.objects.create()
 
     return search_model
 

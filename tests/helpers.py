@@ -7,7 +7,7 @@ from database.models import (
     ChatModelOptions,
     OfflineChatProcessorConversationConfig,
     OpenAIProcessorConversationConfig,
-    SearchModel,
+    SearchModelConfig,
     UserConversationConfig,
     Conversation,
     Subscription,
@@ -74,7 +74,7 @@ class ConversationFactory(factory.django.DjangoModelFactory):
 
 class SearchModelFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = SearchModel
+        model = SearchModelConfig
 
     name = "default"
     model_type = "text"
