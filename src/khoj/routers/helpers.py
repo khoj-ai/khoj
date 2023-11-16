@@ -47,6 +47,7 @@ async def is_ready_to_chat(user: KhojUser):
     if has_offline_config and user_conversation_config and user_conversation_config.model_type == "offline":
         chat_model = user_conversation_config.chat_model
         if state.gpt4all_processor_config is None:
+            logger.info("Loading Offline Chat Model...")
             state.gpt4all_processor_config = GPT4AllProcessorModel(chat_model=chat_model)
         return True
 

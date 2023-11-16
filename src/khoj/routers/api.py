@@ -38,7 +38,7 @@ from khoj.routers.helpers import (
     is_ready_to_chat,
     ApiUserRateLimiter,
 )
-from khoj.processor.conversation.prompts import help_message
+from khoj.processor.conversation.prompts import help_message, no_entries_found
 from khoj.processor.conversation.openai.gpt import extract_questions
 from khoj.processor.conversation.gpt4all.chat_model import extract_questions_offline
 from fastapi.requests import Request
@@ -606,13 +606,17 @@ async def chat(
     if conversation_command == ConversationCommand.Default and is_none_or_empty(compiled_references):
         conversation_command = ConversationCommand.General
 
-    if conversation_command == ConversationCommand.Help:
+    elif conversation_command == ConversationCommand.Help:
         conversation_config = await ConversationAdapters.aget_user_conversation_config(user)
         if conversation_config == None:
             conversation_config = await ConversationAdapters.aget_default_conversation_config()
         model_type = conversation_config.model_type
         formatted_help = help_message.format(model=model_type, version=state.khoj_version, device=get_device())
         return StreamingResponse(iter([formatted_help]), media_type="text/event-stream", status_code=200)
+
+    elif conversation_command == ConversationCommand.Notes and not await EntryAdapters.auser_has_entries(user):
+        no_entries_found_format = no_entries_found.format()
+        return StreamingResponse(iter([no_entries_found_format]), media_type="text/event-stream", status_code=200)
 
     # Get the (streamed) chat response from the LLM of choice.
     llm_response, chat_metadata = await agenerate_chat_response(
