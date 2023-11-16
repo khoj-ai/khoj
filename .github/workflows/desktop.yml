@@ -1,0 +1,48 @@
+name: desktop
+
+on:
+  push:
+    tags:
+      - "*"
+    branches:
+      - 'master'
+    paths:
+      - src/interface/desktop/**
+      - .github/workflows/desktop.yml
+
+jobs:
+  build:
+    name: 🖥️ Build, Release Desktop App
+    runs-on: ubuntu-latest
+    env:
+      TODESKTOP_ACCESS_TOKEN: ${{ secrets.TODESKTOP_ACCESS_TOKEN }}
+      TODESKTOP_EMAIL: ${{ secrets.TODESKTOP_EMAIL }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: src/interface/desktop
+    steps:
+      - name: ⬇️ Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: ⤵️ Install Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "lts/*"
+
+      - name: ⚙️ Setup Desktop Build
+        run: |
+          yarn
+          npm install -g @todesktop/cli
+          sed -i "s/\"id\": \"\"/\"id\": \"${{ secrets.TODESKTOP_ID }}\"/g" todesktop.json
+
+      - name: ⚙️ Build Desktop App
+        run: |
+          npx todesktop build
+
+      - name: 📦 Release Desktop App
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          npx todesktop release --latest --force
