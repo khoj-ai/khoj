@@ -1,4 +1,4 @@
-# Setup the Github integration
+# 🧑🏾‍💻 Setup the Github integration
 
 The Github integration allows you to index as many repositories as you want. It's currently default configured to index Issues, Commits, and all Markdown/Org files in each repository. For large repositories, this takes a fairly long time, but it works well for smaller projects.
 
