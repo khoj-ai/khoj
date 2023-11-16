@@ -24,13 +24,13 @@
 </div>
 
 ## Introduction
-Welcome to the Khoj Docs! This is the best place to [get started](./setup.md) with Khoj. Unless otherwise mentioned, the docs only pertain to self-hosted Khoj instances.
+Welcome to the Khoj Docs! This is the best place to [get started](./setup.md) with Khoj. We have instructions on self-hosting, using Khoj with Emacs, Obsidian, and the Web, and more. We also include setup instructions for users on the hosted instance at [app.khoj.dev](https://app.khoj.dev).
 
 - Khoj is an application to dynamically engage with your notes, documents and images. We support APIs for [semantic search](./search.md) and [chat](./chat.md).
 - It can be easily self-hosted and run on your consumer hardware or private cloud.
 - It provides an open source, AI personal assistant accessible from your [Emacs](./emacs.md), [Obsidian](./obsidian.md) or [Web browser](./web.md), or our [desktop app](https://khoj.dev/downloads).
 - It works with plaintext, markdown, [notion](./notion_integration.md) org-mode, pdf files and [github repositories](./github_integration.md)
-- It can support use with multiple users, so you and your family, friends, or team can have a shared assistance server. As the admin, you can configure the server settings at `/server/admin`.
+- It can support use with multiple users. If you're self-hosting, your family, friends, or team can have a shared assistance server. You'll the the suite of server admin settings at `/server/admin`.
 
 ## Quickstart
 [Click here](./setup.md) for full setup instructions

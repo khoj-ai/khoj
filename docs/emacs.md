@@ -69,7 +69,7 @@ Indexes your org-agenda files, by default.
                 khoj-openai-api-key "YOUR_OPENAI_API_KEY")) ; required to enable chat
 ```
 
-### With [Straight.el](https://github.com/raxod502/straight.el)
+### With [ Straight.el](https://github.com/raxod502/straight.el)
 Add below snippet to your Emacs config file.
 Indexes the specified org files, directories. Sets up OpenAI API key for Khoj Chat
 

@@ -1,6 +1,6 @@
 - Get Started
     - [Overview](README.md)
-    - [Install](setup.md)
+    - [Self-Host](setup.md)
     - [Demos](demos.md)
 - Use
     - [Features](features.md)

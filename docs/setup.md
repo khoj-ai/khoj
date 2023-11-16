@@ -196,8 +196,8 @@ docker-compose up --build
 1. (Optional) Hit `Ctrl-C` in the terminal running the khoj server to stop it
 2. Delete the khoj directory in your home folder (i.e `~/.khoj` on Linux, Mac or `C:\Users\<your-username>\.khoj` on Windows)
 5. You might want to `rm -rf` the following directories:
-- `~/.khoj`
-- `~/.cache/gpt4all`
+    - `~/.khoj`
+    - `~/.cache/gpt4all`
 3. Uninstall the khoj server with `pip uninstall khoj-assistant`
 4. (Optional) Uninstall khoj.el or the khoj obsidian plugin in the standard way on Emacs, Obsidian
 
