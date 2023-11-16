@@ -64,9 +64,7 @@ async def create_khoj_token(user: KhojUser, name=None):
     "Create Khoj API key for user"
     token = f"kk-{secrets.token_urlsafe(32)}"
     name = name or f"{generate_random_name().title()}"
-    api_config = await KhojApiUser.objects.acreate(token=token, user=user, name=name)
-    await api_config.asave()
-    return api_config
+    return await KhojApiUser.objects.acreate(token=token, user=user, name=name)
 
 
 def get_khoj_tokens(user: KhojUser):
