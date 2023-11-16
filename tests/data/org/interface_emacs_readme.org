@@ -5,7 +5,7 @@
    - Install and Run [[https://github.com/khoj-ai/khoj][khoj]]
 
 ** Installation
-   - Direct Install
+*** Direct
      - Put ~khoj.el~ in your Emacs load path. For e.g ~/.emacs.d/lisp
 
      - Load via ~use-package~ in your ~/.emacs.d/init.el or .emacs file by adding below snippet
@@ -16,7 +16,7 @@
            :bind ("C-c s" . 'khoj))
        #+end_src
 
-   - Use [[https://github.com/quelpa/quelpa#installation][Quelpa]]
+*** Using [[https://github.com/quelpa/quelpa#installation][Quelpa]]
      - Ensure [[https://github.com/quelpa/quelpa#installation][Quelpa]], [[https://github.com/quelpa/quelpa-use-package#installation][quelpa-use-package]] are installed
      - Add below snippet to your ~/.emacs.d/init.el or .emacs config file and execute it.
        #+begin_src elisp

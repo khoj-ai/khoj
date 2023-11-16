@@ -70,7 +70,7 @@ def test_text_search_setup_with_empty_file_creates_no_entries(
         text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
 
     # Assert
-    assert "Deleted 3 entries. Created 0 new entries for user " in caplog.records[-1].message
+    assert "Deleted 8 entries. Created 0 new entries for user " in caplog.records[-1].message
     verify_embeddings(0, default_user)
 
 
@@ -90,7 +90,7 @@ def test_text_indexer_deletes_embedding_before_regenerate(
 
     # Assert
     assert "Deleting all entries for file type org" in caplog.text
-    assert "Deleted 3 entries. Created 10 new entries for user " in caplog.records[-1].message
+    assert "Deleted 8 entries. Created 13 new entries for user " in caplog.records[-1].message
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -106,7 +106,7 @@ def test_text_search_setup_batch_processes(content_config: ContentConfig, defaul
         text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
 
     # Assert
-    assert "Deleted 3 entries. Created 10 new entries for user " in caplog.records[-1].message
+    assert "Deleted 8 entries. Created 13 new entries for user " in caplog.records[-1].message
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -284,9 +284,9 @@ def test_regenerate_index_with_new_entry(
     final_logs = caplog.text
 
     # Assert
-    assert "Deleted 3 entries. Created 10 new entries for user " in initial_logs
-    assert "Deleted 10 entries. Created 11 new entries for user " in final_logs
-    verify_embeddings(11, default_user)
+    assert "Deleted 8 entries. Created 13 new entries for user " in initial_logs
+    assert "Deleted 13 entries. Created 14 new entries for user " in final_logs
+    verify_embeddings(14, default_user)
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -320,7 +320,7 @@ def test_update_index_with_duplicate_entries_in_stable_order(
 
     # Assert
     # verify only 1 entry added even if there are multiple duplicate entries
-    assert "Deleted 3 entries. Created 1 new entries for user " in initial_logs
+    assert "Deleted 8 entries. Created 1 new entries for user " in initial_logs
     assert "Deleted 0 entries. Created 0 new entries for user " in final_logs
 
     verify_embeddings(1, default_user)
@@ -357,7 +357,7 @@ def test_update_index_with_deleted_entry(org_config_with_only_new_file: LocalOrg
 
     # Assert
     # verify only 1 entry added even if there are multiple duplicate entries
-    assert "Deleted 3 entries. Created 2 new entries for user " in initial_logs
+    assert "Deleted 8 entries. Created 2 new entries for user " in initial_logs
     assert "Deleted 1 entries. Created 0 new entries for user " in final_logs
 
     verify_embeddings(1, default_user)
@@ -388,9 +388,9 @@ def test_update_index_with_new_entry(content_config: ContentConfig, new_org_file
     final_logs = caplog.text
 
     # Assert
-    assert "Deleted 3 entries. Created 10 new entries for user " in initial_logs
+    assert "Deleted 8 entries. Created 13 new entries for user " in initial_logs
     assert "Deleted 0 entries. Created 1 new entries for user " in final_logs
-    verify_embeddings(11, default_user)
+    verify_embeddings(14, default_user)
 
 
 # ----------------------------------------------------------------------------------------------------
