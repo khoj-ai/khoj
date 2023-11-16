@@ -57,3 +57,8 @@ contextBridge.exposeInMainWorld('tokenAPI', {
 contextBridge.exposeInMainWorld('appInfoAPI', {
     getInfo: (callback) => ipcRenderer.on('appInfo', callback)
 })
+
+contextBridge.exposeInMainWorld('navigateAPI', {
+  navigateToSettings: () => ipcRenderer.send('navigate', 'config.html'),
+  navigateToWebSettings: () => ipcRenderer.send('navigateToWebApp', 'config'),
+})
