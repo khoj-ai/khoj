@@ -1,7 +1,6 @@
 name: dockerize-prod
 
 on:
-  pull_request:
   push:
     tags:
       - "*"
