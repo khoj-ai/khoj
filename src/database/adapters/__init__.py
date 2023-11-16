@@ -11,10 +11,6 @@ from pgvector.django import CosineDistance
 from django.db.models.manager import BaseManager
 from django.db.models import Q
 from torch import Tensor
-from pgvector.django import CosineDistance
-from django.db.models.manager import BaseManager
-from django.db.models import Q
-from torch import Tensor
 
 # Import sync_to_async from Django Channels
 from asgiref.sync import sync_to_async
