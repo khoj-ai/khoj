@@ -9,6 +9,7 @@
         <link rel="stylesheet" href="/static/assets/khoj.css">
     </head>
     <script type="text/javascript" src="/static/assets/utils.js"></script>
+    <script type="text/javascript" src="/static/assets/markdown-it.min.js"></script>
     <script>
         let welcome_message = `
 Hi, I am Khoj, your open, personal AI 👋🏽. I can help:
@@ -83,7 +84,7 @@ To get started, just start typing below. You can also type / to see a list of co
             // Create a new div for the chat message text and append it to the chat message
             let chatMessageText = document.createElement('div');
             chatMessageText.className = `chat-message-text ${by}`;
-            chatMessageText.innerHTML = formattedMessage;
+            chatMessageText.appendChild(formattedMessage);
             chatMessage.appendChild(chatMessageText);
 
             // Append annotations div to the chat message
@@ -141,16 +142,42 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
         function formatHTMLMessage(htmlMessage) {
-            // Replace any ``` with <div class="programmatic-output">
-            let newHTML = htmlMessage.replace(/```([\s\S]*?)```/g, '<div class="programmatic-output"><button class="copy-button" onclick="copyProgrammaticOutput(event)">Copy</button>$1</div>');
-            // Replace any ** with <b> and __ with <u>
-            newHTML = newHTML.replace(/\*\*([\s\S]*?)\*\*/g, '<b>$1</b>');
-            newHTML = newHTML.replace(/__([\s\S]*?)__/g, '<u>$1</u>');
+            var md = window.markdownit();
+            let newHTML = htmlMessage;
+
             // Remove any text between <s>[INST] and </s> tags. These are spurious instructions for the AI chat model.
             newHTML = newHTML.replace(/<s>\[INST\].+(<\/s>)?/g, '');
-            // For any text that has single backticks, replace them with <code> tags
-            newHTML = newHTML.replace(/`([^`]+)`/g, '<code class="chat-response">$1</code>');
-            return newHTML;
+
+            // Render markdown
+            newHTML = md.render(newHTML);
+            // Get any elements with a class that starts with "language"
+            let element = document.createElement('div');
+            element.innerHTML = newHTML;
+            let codeBlockElements = element.querySelectorAll('[class^="language-"]');
+            // For each element, add a parent div with the class "programmatic-output"
+            codeBlockElements.forEach((codeElement) => {
+                // Create the parent div
+                let parentDiv = document.createElement('div');
+                parentDiv.classList.add("programmatic-output");
+                // Add the parent div before the code element
+                codeElement.parentNode.insertBefore(parentDiv, codeElement);
+                // Move the code element into the parent div
+                parentDiv.appendChild(codeElement);
+                // Add a copy button to each element
+                let copyButton = document.createElement('button');
+                copyButton.classList.add("copy-button");
+                copyButton.innerHTML = "Copy";
+                copyButton.addEventListener('click', copyProgrammaticOutput);
+                codeElement.prepend(copyButton);
+            });
+
+            // Get all code elements that have no class.
+            let codeElements = element.querySelectorAll('code:not([class])');
+            codeElements.forEach((codeElement) => {
+                // Add the class "chat-response" to each element
+                codeElement.classList.add("chat-response");
+            });
+            return element
         }
 
         function chat() {
@@ -206,7 +233,8 @@ To get started, just start typing below. You can also type / to see a list of co
                             if (done) {
                                 // Evaluate the contents of new_response_text.innerHTML after all the data has been streamed
                                 const currentHTML = newResponseText.innerHTML;
-                                newResponseText.innerHTML = formatHTMLMessage(currentHTML);
+                                newResponseText.innerHTML = "";
+                                newResponseText.appendChild(formatHTMLMessage(currentHTML));
                                 if (references != null) {
                                     newResponseText.appendChild(references);
                                 }
