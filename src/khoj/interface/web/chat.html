@@ -148,6 +148,8 @@ To get started, just start typing below. You can also type / to see a list of co
             newHTML = newHTML.replace(/__([\s\S]*?)__/g, '<u>$1</u>');
             // Remove any text between <s>[INST] and </s> tags. These are spurious instructions for the AI chat model.
             newHTML = newHTML.replace(/<s>\[INST\].+(<\/s>)?/g, '');
+            // For any text that has single backticks, replace them with <code> tags
+            newHTML = newHTML.replace(/`([^`]+)`/g, '<code class="chat-response">$1</code>');
             return newHTML;
         }
 
@@ -488,6 +490,16 @@ To get started, just start typing below. You can also type / to see a list of co
 
         button.reference-expand-button:hover {
             background: var(--primary-hover);
+        }
+
+        code.chat-response {
+            background: var(--primary-hover);
+            color: var(--primary-inverse);
+            border-radius: 5px;
+            padding: 5px;
+            font-size: 14px;
+            font-weight: 300;
+            line-height: 1.5em;
         }
 
         #chat-body {
