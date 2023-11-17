@@ -161,7 +161,7 @@ async def test_text_search(search_config: SearchConfig):
         default_user,
     )
 
-    query = "How to git install application?"
+    query = "Load Khoj on Emacs?"
 
     # Act
     hits = await text_search.query(default_user, query)
@@ -170,7 +170,7 @@ async def test_text_search(search_config: SearchConfig):
 
     # Assert
     search_result = results[0].entry
-    assert "git clone" in search_result, 'search result did not contain "git clone" entry'
+    assert "Emacs load path" in search_result, 'Expected "Emacs load path" in entry'
 
 
 # ----------------------------------------------------------------------------------------------------
