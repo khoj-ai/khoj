@@ -10,8 +10,8 @@ import pytest
 # Internal Packages
 from khoj.search_type import text_search
 from khoj.utils.rawconfig import ContentConfig, SearchConfig
-from khoj.processor.org_mode.org_to_entries import OrgToEntries
-from khoj.processor.github.github_to_entries import GithubToEntries
+from khoj.processor.data_sources.org_mode.org_to_entries import OrgToEntries
+from khoj.processor.data_sources.github.github_to_entries import GithubToEntries
 from khoj.utils.fs_syncer import collect_files, get_org_files
 from database.models import LocalOrgConfig, KhojUser, Entry, GithubConfig
 

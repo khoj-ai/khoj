@@ -15,7 +15,7 @@ from khoj.utils import state
 from khoj.utils.state import search_models, content_index, config
 from khoj.search_type import text_search, image_search
 from khoj.utils.rawconfig import ContentConfig, SearchConfig
-from khoj.processor.org_mode.org_to_entries import OrgToEntries
+from khoj.processor.data_sources.org_mode.org_to_entries import OrgToEntries
 from database.models import KhojUser, KhojApiUser
 from database.adapters import EntryAdapters
 

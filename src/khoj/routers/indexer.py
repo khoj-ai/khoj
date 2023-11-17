@@ -10,12 +10,12 @@ from starlette.authentication import requires
 
 # Internal Packages
 from khoj.utils import state, constants
-from khoj.processor.markdown.markdown_to_entries import MarkdownToEntries
-from khoj.processor.org_mode.org_to_entries import OrgToEntries
-from khoj.processor.pdf.pdf_to_entries import PdfToEntries
-from khoj.processor.github.github_to_entries import GithubToEntries
-from khoj.processor.notion.notion_to_entries import NotionToEntries
-from khoj.processor.plaintext.plaintext_to_entries import PlaintextToEntries
+from khoj.processor.data_sources.markdown.markdown_to_entries import MarkdownToEntries
+from khoj.processor.data_sources.org_mode.org_to_entries import OrgToEntries
+from khoj.processor.data_sources.pdf.pdf_to_entries import PdfToEntries
+from khoj.processor.data_sources.github.github_to_entries import GithubToEntries
+from khoj.processor.data_sources.notion.notion_to_entries import NotionToEntries
+from khoj.processor.data_sources.plaintext.plaintext_to_entries import PlaintextToEntries
 from khoj.search_type import text_search, image_search
 from khoj.routers.helpers import update_telemetry_state
 from khoj.utils.yaml import save_config_to_file_updated_state

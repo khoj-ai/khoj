@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Iterable, List, Tuple
 
 # Internal Packages
-from khoj.processor.org_mode import orgnode
+from khoj.processor.data_sources.org_mode import orgnode
 from khoj.processor.text_to_entries import TextToEntries
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry

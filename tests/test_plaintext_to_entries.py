@@ -6,7 +6,7 @@ from pathlib import Path
 # Internal Packages
 from khoj.utils.fs_syncer import get_plaintext_files
 from khoj.utils.rawconfig import TextContentConfig
-from khoj.processor.plaintext.plaintext_to_entries import PlaintextToEntries
+from khoj.processor.data_sources.plaintext.plaintext_to_entries import PlaintextToEntries
 from database.models import LocalPlaintextConfig, KhojUser
 
 

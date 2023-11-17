@@ -272,6 +272,7 @@ class ConversationCommand(str, Enum):
     General = "general"
     Notes = "notes"
     Help = "help"
+    Online = "online"
 
 
 command_descriptions = {

@@ -15,7 +15,7 @@ app = FastAPI()
 # Internal Packages
 from khoj.configure import configure_routes, configure_search_types, configure_middleware
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
-from khoj.processor.plaintext.plaintext_to_entries import PlaintextToEntries
+from khoj.processor.data_sources.plaintext.plaintext_to_entries import PlaintextToEntries
 from khoj.search_type import image_search, text_search
 from khoj.utils.config import SearchModels
 from khoj.utils.constants import web_directory
@@ -28,7 +28,7 @@ from khoj.utils.rawconfig import (
 )
 from khoj.utils import state, fs_syncer
 from khoj.routers.indexer import configure_content
-from khoj.processor.org_mode.org_to_entries import OrgToEntries
+from khoj.processor.data_sources.org_mode.org_to_entries import OrgToEntries
 from database.models import (
     KhojApiUser,
     LocalOrgConfig,

@@ -3,7 +3,7 @@ import json
 import os
 
 # Internal Packages
-from khoj.processor.org_mode.org_to_entries import OrgToEntries
+from khoj.processor.data_sources.org_mode.org_to_entries import OrgToEntries
 from khoj.processor.text_to_entries import TextToEntries
 from khoj.utils.helpers import is_none_or_empty
 from khoj.utils.rawconfig import Entry
