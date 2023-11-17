@@ -262,7 +262,7 @@ Body Line 1"""
     assert entries[0].closed == ""
     assert entries[0].scheduled == ""
     assert entries[0].deadline == ""
-    assert entries[0].ancestors == []
+    assert entries[0].ancestors == ["test"]
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -287,7 +287,7 @@ Body Line 1
     assert entries[0].closed == ""
     assert entries[0].scheduled == ""
     assert entries[0].deadline == ""
-    assert entries[0].ancestors == []
+    assert entries[0].ancestors == ["title1 title2"]
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -308,10 +308,10 @@ entry body
     assert len(entries) == 2
     assert entries[0].heading == "Title"
     assert entries[0].body == "intro body\n"
-    assert entries[0].ancestors == []
+    assert entries[0].ancestors == ["Title"]
     assert entries[1].heading == "Entry Heading"
     assert entries[1].body == "entry body\n\n"
-    assert entries[1].ancestors == [f"{orgfile}"]
+    assert entries[1].ancestors == ["Title"]
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -332,10 +332,10 @@ entry body
     assert len(entries) == 2
     assert entries[0].heading == "Title1 Title2"
     assert entries[0].body == "intro body\n"
-    assert entries[0].ancestors == []
+    assert entries[0].ancestors == ["Title1 Title2"]
     assert entries[1].heading == "Entry Heading"
     assert entries[1].body == "entry body\n\n"
-    assert entries[1].ancestors == [f"{orgfile}"]
+    assert entries[0].ancestors == ["Title1 Title2"]
 
 
 # ----------------------------------------------------------------------------------------------------

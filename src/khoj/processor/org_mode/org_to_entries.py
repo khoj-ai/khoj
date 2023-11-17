@@ -110,7 +110,7 @@ class OrgToEntries(TextToEntries):
 
             compiled = heading
             if state.verbose > 2:
-                logger.debug(f"Title: {parsed_entry.heading}")
+                logger.debug(f"Title: {heading}")
 
             if parsed_entry.tags:
                 tags_str = " ".join(parsed_entry.tags)

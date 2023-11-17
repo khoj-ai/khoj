@@ -80,7 +80,7 @@ def makelist(file, filename):
     }  # populated from #+SEQ_TODO line
     level = ""
     heading = ""
-    ancestor_headings = [f"{filename}"]
+    ancestor_headings = []
     bodytext = ""
     introtext = ""
     tags = list()  # set of all tags in headline
@@ -257,6 +257,9 @@ def makelist(file, filename):
             n.priority = priority_search.group(1)
             n.heading = priority_search.group(2)
 
+        # Prefix filepath/title to ancestors
+        n.ancestors = [file_title] + n.ancestors
+
         # Set SOURCE property to a file+heading based org-mode link to the entry
         if n.level == 0:
             n.properties["LINE"] = f"file:{normalize_filename(filename)}::0"
@@ -295,14 +298,19 @@ class Orgnode(object):
         self._logbook = list()  # List of clock-in, clock-out tuples representing logbook entries
         self._ancestor_headings = ancestor_headings.copy()
 
-        # Look for priority in headline and transfer to prty field
-
     @property
-    def ancestors(self):
+    def ancestors(self) -> List[str]:
         """
-        Return the Heading text of the node without the TODO tag
+        Return the ancestor headings of the node
         """
         return self._ancestor_headings
+
+    @ancestors.setter
+    def ancestors(self, new_ancestors):
+        """
+        Update the ancestor headings of the node
+        """
+        self._ancestor_headings = new_ancestors
 
     @property
     def heading(self):
