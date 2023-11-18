@@ -99,14 +99,14 @@ class ProcessorConfig(ConfigBase):
 
 
 class AppConfig(ConfigBase):
-    should_log_telemetry: bool
+    should_log_telemetry: bool = True
 
 
 class FullConfig(ConfigBase):
     content_type: Optional[ContentConfig] = None
     search_type: Optional[SearchConfig] = None
     processor: Optional[ProcessorConfig] = None
-    app: Optional[AppConfig] = AppConfig(should_log_telemetry=True)
+    app: Optional[AppConfig] = AppConfig()
     version: Optional[str] = None
 
 
