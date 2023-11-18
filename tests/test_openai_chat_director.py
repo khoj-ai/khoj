@@ -227,7 +227,7 @@ def test_answer_not_known_using_notes_command(chat_client_no_background, default
 
     # Assert
     assert response.status_code == 200
-    assert response_message == prompts.no_notes_found.format()
+    assert response_message == prompts.no_entries_found.format()
 
 
 # ----------------------------------------------------------------------------------------------------

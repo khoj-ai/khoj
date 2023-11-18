@@ -6,10 +6,10 @@ from datetime import datetime
 from functools import partial
 import logging
 from time import time
-from typing import Iterator, List, Optional, Union, Tuple, Dict
+from typing import Annotated, Iterator, List, Optional, Union, Tuple, Dict
 
 # External Packages
-from fastapi import HTTPException, Request
+from fastapi import HTTPException, Header, Request, Depends
 
 # Internal Packages
 from khoj.utils import state
@@ -221,3 +221,20 @@ class ApiUserRateLimiter:
 
         # Add the current request to the cache
         user_requests.append(time())
+
+
+class CommonQueryParamsClass:
+    def __init__(
+        self,
+        client: Optional[str] = None,
+        user_agent: Optional[str] = Header(None),
+        referer: Optional[str] = Header(None),
+        host: Optional[str] = Header(None),
+    ):
+        self.client = client
+        self.user_agent = user_agent
+        self.referer = referer
+        self.host = host
+
+
+CommonQueryParams = Annotated[CommonQueryParamsClass, Depends()]
