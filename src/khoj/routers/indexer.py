@@ -63,7 +63,7 @@ async def update(
     request: Request,
     files: list[UploadFile],
     force: bool = False,
-    t: Optional[Union[state.SearchType, str]] = None,
+    t: Optional[Union[state.SearchType, str]] = state.SearchType.All,
     client: Optional[str] = None,
     user_agent: Optional[str] = Header(None),
     referer: Optional[str] = Header(None),
@@ -182,13 +182,16 @@ def configure_content(
     files: Optional[dict[str, dict[str, str]]],
     search_models: SearchModels,
     regenerate: bool = False,
-    t: Optional[state.SearchType] = None,
+    t: Optional[state.SearchType] = state.SearchType.All,
     full_corpus: bool = True,
     user: KhojUser = None,
 ) -> tuple[Optional[ContentIndex], bool]:
     content_index = ContentIndex()
 
     success = True
+    if t is not None and t in [type.value for type in state.SearchType]:
+        t = state.SearchType(t)
+
     if t is not None and not t.value in [type.value for type in state.SearchType]:
         logger.warning(f"🚨 Invalid search type: {t}")
         return None, False
