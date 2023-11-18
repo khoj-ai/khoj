@@ -122,7 +122,7 @@ async def map_config_to_db(config: FullConfig, user: KhojUser):
 def _initialize_config():
     if state.config is None:
         state.config = FullConfig()
-        state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
+        state.config.search_type = SearchConfig.model_validate(constants.default_config["search-type"])
 
 
 @api.get("/config/data", response_model=FullConfig)
