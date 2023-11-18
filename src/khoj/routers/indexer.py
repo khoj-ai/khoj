@@ -204,7 +204,7 @@ def configure_content(
 
     try:
         # Initialize Org Notes Search
-        if (search_type == None or search_type == state.SearchType.Org.value) and files["org"]:
+        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Org.value) and files["org"]:
             logger.info("🦄 Setting up search for orgmode notes")
             # Extract Entries, Generate Notes Embeddings
             text_search.setup(
@@ -220,7 +220,9 @@ def configure_content(
 
     try:
         # Initialize Markdown Search
-        if (search_type == None or search_type == state.SearchType.Markdown.value) and files["markdown"]:
+        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Markdown.value) and files[
+            "markdown"
+        ]:
             logger.info("💎 Setting up search for markdown notes")
             # Extract Entries, Generate Markdown Embeddings
             text_search.setup(
@@ -237,7 +239,7 @@ def configure_content(
 
     try:
         # Initialize PDF Search
-        if (search_type == None or search_type == state.SearchType.Pdf.value) and files["pdf"]:
+        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Pdf.value) and files["pdf"]:
             logger.info("🖨️ Setting up search for pdf")
             # Extract Entries, Generate PDF Embeddings
             text_search.setup(
@@ -254,7 +256,9 @@ def configure_content(
 
     try:
         # Initialize Plaintext Search
-        if (search_type == None or search_type == state.SearchType.Plaintext.value) and files["plaintext"]:
+        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Plaintext.value) and files[
+            "plaintext"
+        ]:
             logger.info("📄 Setting up search for plaintext")
             # Extract Entries, Generate Plaintext Embeddings
             text_search.setup(
@@ -272,7 +276,7 @@ def configure_content(
     try:
         # Initialize Image Search
         if (
-            (search_type == None or search_type == state.SearchType.Image.value)
+            (search_type == state.SearchType.All.value or search_type == state.SearchType.Image.value)
             and content_config
             and content_config.image
             and search_models.image_search
@@ -289,7 +293,9 @@ def configure_content(
 
     try:
         github_config = GithubConfig.objects.filter(user=user).prefetch_related("githubrepoconfig").first()
-        if (search_type == None or search_type == state.SearchType.Github.value) and github_config is not None:
+        if (
+            search_type == state.SearchType.All.value or search_type == state.SearchType.Github.value
+        ) and github_config is not None:
             logger.info("🐙 Setting up search for github")
             # Extract Entries, Generate Github Embeddings
             text_search.setup(
@@ -308,7 +314,9 @@ def configure_content(
     try:
         # Initialize Notion Search
         notion_config = NotionConfig.objects.filter(user=user).first()
-        if (search_type == None or search_type in state.SearchType.Notion.value) and notion_config:
+        if (
+            search_type == state.SearchType.All.value or search_type in state.SearchType.Notion.value
+        ) and notion_config:
             logger.info("🔌 Setting up search for notion")
             text_search.setup(
                 NotionToEntries,
