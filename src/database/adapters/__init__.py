@@ -339,10 +339,6 @@ class ConversationAdapters:
     async def get_openai_chat_config():
         return await OpenAIProcessorConversationConfig.objects.filter().afirst()
 
-    @staticmethod
-    async def aget_default_conversation_config():
-        return await ChatModelOptions.objects.filter().afirst()
-
 
 class EntryAdapters:
     word_filer = WordFilter()
