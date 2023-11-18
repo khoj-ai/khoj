@@ -678,7 +678,7 @@ async def extract_references_and_questions(
         if (
             offline_chat_config
             and offline_chat_config.enabled
-            and conversation_config.model_type == ChatModelOptions.ModelType.OFFLINE.value
+            and conversation_config.model_type == ChatModelOptions.ModelType.OFFLINE
         ):
             using_offline_chat = True
             offline_chat = await ConversationAdapters.get_offline_chat()
@@ -691,7 +691,7 @@ async def extract_references_and_questions(
             inferred_queries = extract_questions_offline(
                 defiltered_query, loaded_model=loaded_model, conversation_log=meta_log, should_extract_questions=False
             )
-        elif openai_chat_config and conversation_config.model_type == ChatModelOptions.ModelType.OPENAI.value:
+        elif openai_chat_config and conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
             openai_chat_config = await ConversationAdapters.get_openai_chat_config()
             openai_chat = await ConversationAdapters.get_openai_chat()
             api_key = openai_chat_config.api_key
