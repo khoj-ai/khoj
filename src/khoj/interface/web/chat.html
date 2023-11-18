@@ -183,7 +183,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 return;
             }
 
-            if ((context && context.length == 0) && (onlineContext == null || (onlineContext && onlineContext.organic.length == 0 && onlineContext.knowledgeGraph.length == 0 && onlineContext.peopleAlsoAsk.length == 0))) {
+            if ((context && context.length == 0) && (onlineContext == null || (onlineContext && Object.keys(onlineContext).length == 0))) {
                 renderMessage(message, by, dt);
                 return;
             }
