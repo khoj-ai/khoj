@@ -241,8 +241,16 @@ class ConversationAdapters:
         return OpenAIProcessorConversationConfig.objects.filter().first()
 
     @staticmethod
+    async def aget_openai_conversation_config():
+        return await OpenAIProcessorConversationConfig.objects.filter().afirst()
+
+    @staticmethod
     def get_offline_chat_conversation_config():
         return OfflineChatProcessorConversationConfig.objects.filter().first()
+
+    @staticmethod
+    async def aget_offline_chat_conversation_config():
+        return await OfflineChatProcessorConversationConfig.objects.filter().afirst()
 
     @staticmethod
     def has_valid_offline_conversation_config():
@@ -268,8 +276,19 @@ class ConversationAdapters:
         return config.setting
 
     @staticmethod
+    async def aget_conversation_config(user: KhojUser):
+        config = await UserConversationConfig.objects.filter(user=user).prefetch_related("setting").afirst()
+        if not config:
+            return None
+        return config.setting
+
+    @staticmethod
     def get_default_conversation_config():
         return ChatModelOptions.objects.filter().first()
+
+    @staticmethod
+    async def aget_default_conversation_config():
+        return await ChatModelOptions.objects.filter().afirst()
 
     @staticmethod
     def save_conversation(user: KhojUser, conversation_log: dict):

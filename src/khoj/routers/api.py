@@ -55,6 +55,7 @@ from database.models import (
     Entry as DbEntry,
     GithubConfig,
     NotionConfig,
+    ChatModelOptions,
 )
 
 
@@ -669,7 +670,16 @@ async def extract_references_and_questions(
     # Infer search queries from user message
     with timer("Extracting search queries took", logger):
         # If we've reached here, either the user has enabled offline chat or the openai model is enabled.
-        if await ConversationAdapters.ahas_offline_chat():
+        offline_chat_config = await ConversationAdapters.aget_offline_chat_conversation_config()
+        conversation_config = await ConversationAdapters.aget_conversation_config(user)
+        if conversation_config is None:
+            conversation_config = await ConversationAdapters.aget_default_conversation_config()
+        openai_chat_config = await ConversationAdapters.aget_openai_conversation_config()
+        if (
+            offline_chat_config
+            and offline_chat_config.enabled
+            and conversation_config.model_type == ChatModelOptions.ModelType.OFFLINE.value
+        ):
             using_offline_chat = True
             offline_chat = await ConversationAdapters.get_offline_chat()
             chat_model = offline_chat.chat_model
@@ -681,7 +691,7 @@ async def extract_references_and_questions(
             inferred_queries = extract_questions_offline(
                 defiltered_query, loaded_model=loaded_model, conversation_log=meta_log, should_extract_questions=False
             )
-        elif await ConversationAdapters.has_openai_chat():
+        elif openai_chat_config and conversation_config.model_type == ChatModelOptions.ModelType.OPENAI.value:
             openai_chat_config = await ConversationAdapters.get_openai_chat_config()
             openai_chat = await ConversationAdapters.get_openai_chat()
             api_key = openai_chat_config.api_key
@@ -690,11 +700,6 @@ async def extract_references_and_questions(
                 defiltered_query, model=chat_model, api_key=api_key, conversation_log=meta_log
             )
 
-    logger.info(f"🔍 Inferred queries: {inferred_queries}")
-    logger.info(f"🔍 Defiltered query: {defiltered_query}")
-    logger.info(f"using max distance: {d}")
-    logger.info(f"using filters: {filters_in_query}")
-    logger.info(f"Max results: {n}")
     # Collate search results as context for GPT
     with timer("Searching knowledge base took", logger):
         result_list = []
@@ -711,20 +716,7 @@ async def extract_references_and_questions(
                     common=common,
                 )
             )
-        logger.info(f"🔍 Found {len(result_list)} results")
-        logger.info(f"Confidence scores: {[item.score for item in result_list]}")
-        # Dedupe the results again, as duplicates may be returned across queries.
-        with open("compiled_references_pre_deduped.txt", "w") as f:
-            for item in compiled_references:
-                f.write(f"{item}\n")
-
         result_list = text_search.deduplicated_search_responses(result_list)
         compiled_references = [item.additional["compiled"] for item in result_list]
-
-        with open("compiled_references_deduped.txt", "w") as f:
-            for item in compiled_references:
-                f.write(f"{item}\n")
-
-        logger.info(f"🔍 Deduped results: {len(result_list)}")
 
     return compiled_references, inferred_queries, defiltered_query
