@@ -690,6 +690,11 @@ async def extract_references_and_questions(
                 defiltered_query, model=chat_model, api_key=api_key, conversation_log=meta_log
             )
 
+    logger.info(f"🔍 Inferred queries: {inferred_queries}")
+    logger.info(f"🔍 Defiltered query: {defiltered_query}")
+    logger.info(f"using max distance: {d}")
+    logger.info(f"using filters: {filters_in_query}")
+    logger.info(f"Max results: {n}")
     # Collate search results as context for GPT
     with timer("Searching knowledge base took", logger):
         result_list = []
@@ -706,8 +711,20 @@ async def extract_references_and_questions(
                     common=common,
                 )
             )
+        logger.info(f"🔍 Found {len(result_list)} results")
+        logger.info(f"Confidence scores: {[item.score for item in result_list]}")
         # Dedupe the results again, as duplicates may be returned across queries.
+        with open("compiled_references_pre_deduped.txt", "w") as f:
+            for item in compiled_references:
+                f.write(f"{item}\n")
+
         result_list = text_search.deduplicated_search_responses(result_list)
         compiled_references = [item.additional["compiled"] for item in result_list]
+
+        with open("compiled_references_deduped.txt", "w") as f:
+            for item in compiled_references:
+                f.write(f"{item}\n")
+
+        logger.info(f"🔍 Deduped results: {len(result_list)}")
 
     return compiled_references, inferred_queries, defiltered_query
