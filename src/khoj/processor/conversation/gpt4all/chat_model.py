@@ -121,6 +121,7 @@ def filter_questions(questions: List[str]):
 
 def converse_offline(
     references,
+    online_results,
     user_query,
     conversation_log={},
     model: str = "mistral-7b-instruct-v0.1.Q4_0.gguf",
@@ -147,6 +148,13 @@ def converse_offline(
     # Get Conversation Primer appropriate to Conversation Type
     if conversation_command == ConversationCommand.Notes and is_none_or_empty(compiled_references_message):
         return iter([prompts.no_notes_found.format()])
+    elif conversation_command == ConversationCommand.Online and is_none_or_empty(online_results):
+        completion_func(chat_response=prompts.no_online_results_found.format())
+        return iter([prompts.no_online_results_found.format()])
+    elif conversation_command == ConversationCommand.Online:
+        conversation_primer = prompts.online_search_conversation.format(
+            query=user_query, online_results=str(online_results)
+        )
     elif conversation_command == ConversationCommand.General or is_none_or_empty(compiled_references_message):
         conversation_primer = user_query
     else:
@@ -164,7 +172,7 @@ def converse_offline(
         tokenizer_name=tokenizer_name,
     )
 
-    g = ThreadedGenerator(references, completion_func=completion_func)
+    g = ThreadedGenerator(references, online_results, completion_func=completion_func)
     t = Thread(target=llm_thread, args=(g, messages, gpt4all_model))
     t.start()
     return g

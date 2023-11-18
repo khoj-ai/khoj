@@ -6,7 +6,7 @@ from datetime import datetime
 from functools import partial
 import logging
 from time import time
-from typing import Iterator, List, Optional, Union, Tuple, Dict
+from typing import Iterator, List, Optional, Union, Tuple, Dict, Any
 
 # External Packages
 from fastapi import HTTPException, Request
@@ -96,6 +96,8 @@ def get_conversation_command(query: str, any_references: bool = False) -> Conver
         return ConversationCommand.Help
     elif query.startswith("/general"):
         return ConversationCommand.General
+    elif query.startswith("/online"):
+        return ConversationCommand.Online
     # If no relevant notes found for the given query
     elif not any_references:
         return ConversationCommand.General
@@ -116,6 +118,7 @@ def generate_chat_response(
     q: str,
     meta_log: dict,
     compiled_references: List[str] = [],
+    online_results: Dict[str, Any] = {},
     inferred_queries: List[str] = [],
     conversation_command: ConversationCommand = ConversationCommand.Default,
     user: KhojUser = None,
@@ -125,6 +128,7 @@ def generate_chat_response(
         chat_response: str,
         user_message_time: str,
         compiled_references: List[str],
+        online_results: Dict[str, Any],
         inferred_queries: List[str],
         meta_log,
     ):
@@ -132,7 +136,11 @@ def generate_chat_response(
             user_message=q,
             chat_response=chat_response,
             user_message_metadata={"created": user_message_time},
-            khoj_message_metadata={"context": compiled_references, "intent": {"inferred-queries": inferred_queries}},
+            khoj_message_metadata={
+                "context": compiled_references,
+                "intent": {"inferred-queries": inferred_queries},
+                "onlineContext": online_results,
+            },
             conversation_log=meta_log.get("chat", []),
         )
         ConversationAdapters.save_conversation(user, {"chat": updated_conversation})
@@ -150,6 +158,7 @@ def generate_chat_response(
             q,
             user_message_time=user_message_time,
             compiled_references=compiled_references,
+            online_results=online_results,
             inferred_queries=inferred_queries,
             meta_log=meta_log,
         )
@@ -166,6 +175,7 @@ def generate_chat_response(
             loaded_model = state.gpt4all_processor_config.loaded_model
             chat_response = converse_offline(
                 references=compiled_references,
+                online_results=online_results,
                 user_query=q,
                 loaded_model=loaded_model,
                 conversation_log=meta_log,
@@ -181,6 +191,7 @@ def generate_chat_response(
             chat_model = conversation_config.chat_model
             chat_response = converse(
                 compiled_references,
+                online_results,
                 q,
                 meta_log,
                 model=chat_model,

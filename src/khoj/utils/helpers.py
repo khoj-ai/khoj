@@ -279,6 +279,7 @@ command_descriptions = {
     ConversationCommand.General: "Only talk about information that relies on Khoj's general knowledge, not your personal knowledge base.",
     ConversationCommand.Notes: "Only talk about information that is available in your knowledge base.",
     ConversationCommand.Default: "The default command when no command specified. It intelligently auto-switches between general and notes mode.",
+    ConversationCommand.Online: "Look up information on the internet.",
     ConversationCommand.Help: "Display a help message with all available commands and other metadata.",
 }
 

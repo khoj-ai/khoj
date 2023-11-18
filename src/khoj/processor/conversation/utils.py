@@ -29,9 +29,10 @@ model_to_tokenizer = {
 
 
 class ThreadedGenerator:
-    def __init__(self, compiled_references, completion_func=None):
+    def __init__(self, compiled_references, online_results, completion_func=None):
         self.queue = queue.Queue()
         self.compiled_references = compiled_references
+        self.online_results = online_results
         self.completion_func = completion_func
         self.response = ""
         self.start_time = perf_counter()
@@ -62,6 +63,8 @@ class ThreadedGenerator:
     def close(self):
         if self.compiled_references and len(self.compiled_references) > 0:
             self.queue.put(f"### compiled references:{json.dumps(self.compiled_references)}")
+        elif self.online_results and len(self.online_results) > 0:
+            self.queue.put(f"### compiled references:{json.dumps(self.online_results)}")
         self.queue.put(StopIteration)
 
 

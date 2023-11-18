@@ -4,7 +4,7 @@ import math
 import time
 import logging
 import json
-from typing import List, Optional, Union, Any
+from typing import List, Optional, Union, Any, Dict
 
 # External Packages
 from fastapi import APIRouter, Depends, HTTPException, Header, Request
@@ -41,6 +41,7 @@ from khoj.routers.helpers import (
 from khoj.processor.conversation.prompts import help_message, no_entries_found
 from khoj.processor.conversation.openai.gpt import extract_questions
 from khoj.processor.conversation.gpt4all.chat_model import extract_questions_offline
+from khoj.processor.tools.online_search import search_with_google
 from fastapi.requests import Request
 
 from database import adapters
@@ -602,6 +603,7 @@ async def chat(
     compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
         request, meta_log, q, (n or 5), (d or math.inf), conversation_command
     )
+    online_results: Dict = dict()
 
     if conversation_command == ConversationCommand.Default and is_none_or_empty(compiled_references):
         conversation_command = ConversationCommand.General
@@ -618,11 +620,22 @@ async def chat(
         no_entries_found_format = no_entries_found.format()
         return StreamingResponse(iter([no_entries_found_format]), media_type="text/event-stream", status_code=200)
 
+    elif conversation_command == ConversationCommand.Online:
+        try:
+            online_results = search_with_google(defiltered_query)
+        except ValueError as e:
+            return StreamingResponse(
+                iter(["Please set your SERPER_DEV_API_KEY to get started with online searches 🌐"]),
+                media_type="text/event-stream",
+                status_code=200,
+            )
+
     # Get the (streamed) chat response from the LLM of choice.
     llm_response, chat_metadata = await agenerate_chat_response(
         defiltered_query,
         meta_log,
         compiled_references,
+        online_results,
         inferred_queries,
         conversation_command,
         user,
@@ -677,7 +690,7 @@ async def extract_references_and_questions(
     compiled_references: List[Any] = []
     inferred_queries: List[str] = []
 
-    if conversation_type == ConversationCommand.General:
+    if conversation_type == ConversationCommand.General or conversation_type == ConversationCommand.Online:
         return compiled_references, inferred_queries, q
 
     if not await sync_to_async(EntryAdapters.user_has_entries)(user=user):

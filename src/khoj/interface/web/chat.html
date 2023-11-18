@@ -70,6 +70,52 @@ To get started, just start typing below. You can also type / to see a list of co
             return referenceButton;
         }
 
+        function generateOnlineReference(reference, index) {
+
+            // Generate HTML for Chat Reference
+            let title = reference.title;
+            let link = reference.link;
+            let snippet = reference.snippet;
+            let question = reference.question;
+            if (question) {
+                question = `<b>Question:</b> ${question}<br><br>`;
+            } else {
+                question = "";
+            }
+
+            let linkElement = document.createElement('a');
+            linkElement.setAttribute('href', link);
+            linkElement.setAttribute('target', '_blank');
+            linkElement.setAttribute('rel', 'noopener noreferrer');
+            linkElement.classList.add("inline-chat-link");
+            linkElement.classList.add("reference-link");
+            linkElement.setAttribute('title', title);
+            linkElement.innerHTML = title;
+
+            let referenceButton = document.createElement('button');
+            referenceButton.innerHTML = linkElement.outerHTML;
+            referenceButton.id = `ref-${index}`;
+            referenceButton.classList.add("reference-button");
+            referenceButton.classList.add("collapsed");
+            referenceButton.tabIndex = 0;
+
+            // Add event listener to toggle full reference on click
+            referenceButton.addEventListener('click', function() {
+                console.log(`Toggling ref-${index}`)
+                if (this.classList.contains("collapsed")) {
+                    this.classList.remove("collapsed");
+                    this.classList.add("expanded");
+                    this.innerHTML = linkElement.outerHTML + `<br><br>${question + snippet}`;
+                } else {
+                    this.classList.add("collapsed");
+                    this.classList.remove("expanded");
+                    this.innerHTML = linkElement.outerHTML;
+                }
+            });
+
+            return referenceButton;
+        }
+
         function renderMessage(message, by, dt=null, annotations=null) {
             let message_time = formatDate(dt ?? new Date());
             let by_name =  by == "khoj" ? "🏮 Khoj" : "🤔 You";
@@ -99,8 +145,45 @@ To get started, just start typing below. You can also type / to see a list of co
             chatBody.scrollTop = chatBody.scrollHeight;
         }
 
-        function renderMessageWithReference(message, by, context=null, dt=null) {
-            if (context == null || context.length == 0) {
+        function processOnlineReferences(referenceSection, onlineContext) {
+            let numOnlineReferences = 0;
+            if (onlineContext.organic && onlineContext.organic.length > 0) {
+                numOnlineReferences += onlineContext.organic.length;
+                for (let index in onlineContext.organic) {
+                    let reference = onlineContext.organic[index];
+                    let polishedReference = generateOnlineReference(reference, index);
+                    referenceSection.appendChild(polishedReference);
+                }
+            }
+
+            if (onlineContext.knowledgeGraph && onlineContext.knowledgeGraph.length > 0) {
+                numOnlineReferences += onlineContext.knowledgeGraph.length;
+                for (let index in onlineContext.knowledgeGraph) {
+                    let reference = onlineContext.knowledgeGraph[index];
+                    let polishedReference = generateOnlineReference(reference, index);
+                    referenceSection.appendChild(polishedReference);
+                }
+            }
+
+            if (onlineContext.peopleAlsoAsk && onlineContext.peopleAlsoAsk.length > 0) {
+                numOnlineReferences += onlineContext.peopleAlsoAsk.length;
+                for (let index in onlineContext.peopleAlsoAsk) {
+                    let reference = onlineContext.peopleAlsoAsk[index];
+                    let polishedReference = generateOnlineReference(reference, index);
+                    referenceSection.appendChild(polishedReference);
+                }
+            }
+
+            return numOnlineReferences;
+        }
+
+        function renderMessageWithReference(message, by, context=null, dt=null, onlineContext=null) {
+            if (context == null && onlineContext == null) {
+                renderMessage(message, by, dt);
+                return;
+            }
+
+            if ((context && context.length == 0) && (onlineContext == null || (onlineContext && onlineContext.organic.length == 0 && onlineContext.knowledgeGraph.length == 0 && onlineContext.peopleAlsoAsk.length == 0))) {
                 renderMessage(message, by, dt);
                 return;
             }
@@ -109,8 +192,11 @@ To get started, just start typing below. You can also type / to see a list of co
 
             let referenceExpandButton = document.createElement('button');
             referenceExpandButton.classList.add("reference-expand-button");
-            let expandButtonText = context.length == 1 ? "1 reference" : `${context.length} references`;
-            referenceExpandButton.innerHTML = expandButtonText;
+            let numReferences = 0;
+
+            if (context) {
+                numReferences += context.length;
+            }
 
             references.appendChild(referenceExpandButton);
 
@@ -136,6 +222,14 @@ To get started, just start typing below. You can also type / to see a list of co
                     referenceSection.appendChild(polishedReference);
                 }
             }
+
+            if (onlineContext) {
+                numReferences += processOnlineReferences(referenceSection, onlineContext);
+            }
+
+            let expandButtonText = numReferences == 1 ? "1 reference" : `${numReferences} references`;
+            referenceExpandButton.innerHTML = expandButtonText;
+
             references.appendChild(referenceSection);
 
             renderMessage(message, by, dt, references);
@@ -177,6 +271,13 @@ To get started, just start typing below. You can also type / to see a list of co
                 // Add the class "chat-response" to each element
                 codeElement.classList.add("chat-response");
             });
+
+            let anchorElements = element.querySelectorAll('a');
+            anchorElements.forEach((anchorElement) => {
+                // Add the class "inline-chat-link" to each element
+                anchorElement.classList.add("inline-chat-link");
+            });
+
             return element
         }
 
@@ -258,14 +359,27 @@ To get started, just start typing below. You can also type / to see a list of co
 
                                 let referenceExpandButton = document.createElement('button');
                                 referenceExpandButton.classList.add("reference-expand-button");
-                                let expandButtonText = rawReferenceAsJson.length == 1 ? "1 reference" : `${rawReferenceAsJson.length} references`;
-                                referenceExpandButton.innerHTML = expandButtonText;
 
-                                references.appendChild(referenceExpandButton);
 
                                 let referenceSection = document.createElement('div');
                                 referenceSection.classList.add("reference-section");
                                 referenceSection.classList.add("collapsed");
+
+                                let numReferences = 0;
+
+                                // If rawReferenceAsJson is a list, then count the length
+                                if (Array.isArray(rawReferenceAsJson)) {
+                                    numReferences = rawReferenceAsJson.length;
+
+                                    rawReferenceAsJson.forEach((reference, index) => {
+                                    let polishedReference = generateReference(reference, index);
+                                    referenceSection.appendChild(polishedReference);
+                                });
+                                } else {
+                                    numReferences += processOnlineReferences(referenceSection, rawReferenceAsJson);
+                                }
+
+                                references.appendChild(referenceExpandButton);
 
                                 referenceExpandButton.addEventListener('click', function() {
                                     if (referenceSection.classList.contains("collapsed")) {
@@ -277,10 +391,8 @@ To get started, just start typing below. You can also type / to see a list of co
                                     }
                                 });
 
-                                rawReferenceAsJson.forEach((reference, index) => {
-                                    let polishedReference = generateReference(reference, index);
-                                    referenceSection.appendChild(polishedReference);
-                                });
+                                let expandButtonText = numReferences == 1 ? "1 reference" : `${numReferences} references`;
+                                referenceExpandButton.innerHTML = expandButtonText;
                                 references.appendChild(referenceSection);
                                 readStream();
                             } else {
@@ -371,7 +483,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 .then(response => {
                     // Render conversation history, if any
                     response.forEach(chat_log => {
-                        renderMessageWithReference(chat_log.message, chat_log.by, chat_log.context, new Date(chat_log.created));
+                        renderMessageWithReference(chat_log.message, chat_log.by, chat_log.context, new Date(chat_log.created), chat_log.onlineContext);
                     });
                 })
                 .catch(err => {
@@ -665,6 +777,11 @@ To get started, just start typing below. You can also type / to see a list of co
             border-bottom: 1px dotted var(--main-text-color);
         }
 
+        a.reference-link {
+            color: var(--main-text-color);
+            border-bottom: 1px dotted var(--main-text-color);
+        }
+
         button.copy-button {
             display: block;
             border-radius: 4px;
@@ -747,6 +864,10 @@ To get started, just start typing below. You can also type / to see a list of co
         div.khoj-empty-container {
             margin: 0px;
             padding: 0px;
+        }
+
+        p {
+            margin: 0;
         }
 
         div.programmatic-output {

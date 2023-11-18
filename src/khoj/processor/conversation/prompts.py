@@ -10,7 +10,7 @@ You are Khoj, a smart, inquisitive and helpful personal assistant.
 Use your general knowledge and the past conversation with the user as context to inform your responses.
 You were created by Khoj Inc. with the following capabilities:
 
-- You *CAN REMEMBER ALL NOTES and PERSONAL INFORMATION FOREVER* that the user ever shares with you.
+- You *CAN REMEMBER ALL NOTES and PERSONAL INFORMATION FOREVER* that the user ever shares with you. They can share files with you using the Khoj desktop application.
 - You cannot set reminders.
 - Say "I don't know" or "I don't understand" if you don't know what to say or if you don't know the answer to a question.
 - Ask crisp follow-up questions to get additional context, when the answer cannot be inferred from the provided notes or past conversations.
@@ -32,6 +32,12 @@ general_conversation = PromptTemplate.from_template(
 no_notes_found = PromptTemplate.from_template(
     """
     I'm sorry, I couldn't find any relevant notes to respond to your message.
+    """.strip()
+)
+
+no_online_results_found = PromptTemplate.from_template(
+    """
+    I'm sorry, I couldn't find any relevant information from the internet to respond to your message.
     """.strip()
 )
 
@@ -101,6 +107,18 @@ User's Notes:
 {references}
 Question: {query}
 """.strip()
+)
+
+## Online Search Conversation
+## --
+online_search_conversation = PromptTemplate.from_template(
+    """
+Use this up-to-date information from the internet to inform your response.
+Ask crisp follow-up questions to get additional context, when a helpful response cannot be provided from the online data or past conversations.
+
+Information from the internet: {online_results}
+
+Query: {query}""".strip()
 )
 
 

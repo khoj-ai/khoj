@@ -88,6 +88,7 @@ def extract_questions(
 
 def converse(
     references,
+    online_results,
     user_query,
     conversation_log={},
     model: str = "gpt-3.5-turbo",
@@ -109,6 +110,13 @@ def converse(
     if conversation_command == ConversationCommand.Notes and is_none_or_empty(compiled_references):
         completion_func(chat_response=prompts.no_notes_found.format())
         return iter([prompts.no_notes_found.format()])
+    elif conversation_command == ConversationCommand.Online and is_none_or_empty(online_results):
+        completion_func(chat_response=prompts.no_online_results_found.format())
+        return iter([prompts.no_online_results_found.format()])
+    elif conversation_command == ConversationCommand.Online:
+        conversation_primer = prompts.online_search_conversation.format(
+            query=user_query, online_results=str(online_results)
+        )
     elif conversation_command == ConversationCommand.General or is_none_or_empty(compiled_references):
         conversation_primer = prompts.general_conversation.format(query=user_query)
     else:
@@ -130,6 +138,7 @@ def converse(
     return chat_completion_with_backoff(
         messages=messages,
         compiled_references=references,
+        online_results=online_results,
         model_name=model,
         temperature=temperature,
         openai_api_key=api_key,
