@@ -163,7 +163,7 @@ def deduplicated_search_responses(hits: List[SearchResponse]):
 
         else:
             hit_ids.add(hit.corpus_id)
-            yield SearchResponse.parse_obj(
+            yield SearchResponse.model_validate(
                 {
                     "entry": hit.entry,
                     "score": hit.score,

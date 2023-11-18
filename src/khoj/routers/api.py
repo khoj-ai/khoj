@@ -55,6 +55,7 @@ from database.models import (
     Entry as DbEntry,
     GithubConfig,
     NotionConfig,
+    ChatModelOptions,
 )
 
 
@@ -122,7 +123,7 @@ async def map_config_to_db(config: FullConfig, user: KhojUser):
 def _initialize_config():
     if state.config is None:
         state.config = FullConfig()
-        state.config.search_type = SearchConfig.parse_obj(constants.default_config["search-type"])
+        state.config.search_type = SearchConfig.model_validate(constants.default_config["search-type"])
 
 
 @api.get("/config/data", response_model=FullConfig)
@@ -669,7 +670,16 @@ async def extract_references_and_questions(
     # Infer search queries from user message
     with timer("Extracting search queries took", logger):
         # If we've reached here, either the user has enabled offline chat or the openai model is enabled.
-        if await ConversationAdapters.ahas_offline_chat():
+        offline_chat_config = await ConversationAdapters.aget_offline_chat_conversation_config()
+        conversation_config = await ConversationAdapters.aget_conversation_config(user)
+        if conversation_config is None:
+            conversation_config = await ConversationAdapters.aget_default_conversation_config()
+        openai_chat_config = await ConversationAdapters.aget_openai_conversation_config()
+        if (
+            offline_chat_config
+            and offline_chat_config.enabled
+            and conversation_config.model_type == ChatModelOptions.ModelType.OFFLINE
+        ):
             using_offline_chat = True
             offline_chat = await ConversationAdapters.get_offline_chat()
             chat_model = offline_chat.chat_model
@@ -681,7 +691,7 @@ async def extract_references_and_questions(
             inferred_queries = extract_questions_offline(
                 defiltered_query, loaded_model=loaded_model, conversation_log=meta_log, should_extract_questions=False
             )
-        elif await ConversationAdapters.has_openai_chat():
+        elif openai_chat_config and conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
             openai_chat_config = await ConversationAdapters.get_openai_chat_config()
             openai_chat = await ConversationAdapters.get_openai_chat()
             api_key = openai_chat_config.api_key
@@ -706,7 +716,6 @@ async def extract_references_and_questions(
                     common=common,
                 )
             )
-        # Dedupe the results again, as duplicates may be returned across queries.
         result_list = text_search.deduplicated_search_responses(result_list)
         compiled_references = [item.additional["compiled"] for item in result_list]
 
