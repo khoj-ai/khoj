@@ -28,11 +28,11 @@ def search_with_google(query: str):
         logger.error(response.text)
         return {}
 
-    response = response.json()
+    json_response = response.json()
 
     response_dict = {}
-    response_dict["knowledgeGraph"] = response.get("knowledgeGraph", {})
-    response_dict["organic"] = response.get("organic", [])
-    response_dict["answerBox"] = response.get("answerBox", [])
-    response_dict["peopleAlsoAsk"] = response.get("peopleAlsoAsk", [])
+    response_dict["knowledgeGraph"] = json_response.get("knowledgeGraph", {})
+    response_dict["organic"] = json_response.get("organic", [])
+    response_dict["answerBox"] = json_response.get("answerBox", [])
+    response_dict["peopleAlsoAsk"] = json_response.get("peopleAlsoAsk", [])
     return response_dict
