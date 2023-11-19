@@ -6,7 +6,8 @@
     - [Features](features.md)
         - [Chat](chat.md)
         - [Search](search.md)
-    - Interfaces
+    - Clients
+        - [Desktop](desktop.md)
         - [Obsidian](obsidian.md)
         - [Emacs](emacs.md)
         - [Web](web.md)
