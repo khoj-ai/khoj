@@ -8,17 +8,15 @@ from khoj.utils.rawconfig import Entry
 def test_no_word_filter():
     # Arrange
     word_filter = WordFilter()
-    entries = arrange_content()
     q_with_no_filter = "head tail"
 
     # Act
     can_filter = word_filter.can_filter(q_with_no_filter)
-    ret_query, entry_indices = word_filter.apply(q_with_no_filter, entries)
+    filter_terms = word_filter.get_filter_terms(q_with_no_filter)
 
     # Assert
     assert can_filter == False
-    assert ret_query == "head tail"
-    assert entry_indices == {0, 1, 2, 3}
+    assert filter_terms == []
 
 
 # ----------------------------------------------------------------------------------------------------
