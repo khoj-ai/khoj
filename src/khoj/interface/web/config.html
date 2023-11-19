@@ -2,7 +2,7 @@
 {% block content %}
 
 <div class="page">
-    <div class="section">
+    <div id="content" class="section">
         <h2 class="section-title">Content</h2>
         <div class="section-cards">
             <div class="card">
@@ -118,7 +118,7 @@
             </div>
         </div>
     </div>
-    <div class="section">
+    <div id ="features" class="section">
         <h2 class="section-title">Features</h2>
         <div id="features-hint-text"></div>
         <div class="section-cards">
@@ -144,9 +144,9 @@
             </div>
         </div>
     </div>
-    <div class="section">
+    <div id="clients" class="section">
         <h2 class="section-title">Clients</h2>
-        <div class="api-settings">
+        <div id="clients-api" class="api-settings">
             <div class="card-title-row">
                 <img class="card-icon" src="/static/assets/icons/key.svg" alt="API Key">
                 <h3 class="card-title">API Keys</h3>
@@ -172,7 +172,7 @@
         </div>
     </div>
     {% if billing_enabled %}
-    <div class="section">
+    <div id="billing" class="section">
         <h2 class="section-title">Billing</h2>
         <div class="section-cards">
             <div class="card">

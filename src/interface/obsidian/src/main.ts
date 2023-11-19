@@ -75,7 +75,7 @@ export default class Khoj extends Plugin {
 
         if (this.settings.khojUrl === "https://app.khoj.dev") {
             if (this.settings.khojApiKey === "") {
-                new Notice(`❗️Khoj API key is not configured. Please visit https://app.khoj.dev to get an API key.`);
+                new Notice(`❗️Khoj API key is not configured. Please visit https://app.khoj.dev/config#clients to get an API key.`);
                 return;
             }
 

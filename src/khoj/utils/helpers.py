@@ -286,15 +286,15 @@ def generate_random_name():
     # List of adjectives and nouns to choose from
     adjectives = [
         "happy",
-        "irritated",
-        "annoyed",
+        "serendipitous",
+        "exuberant",
         "calm",
         "brave",
         "scared",
         "energetic",
         "chivalrous",
         "kind",
-        "grumpy",
+        "suave",
     ]
     nouns = ["dog", "cat", "falcon", "whale", "turtle", "rabbit", "hamster", "snake", "spider", "elephant"]
 

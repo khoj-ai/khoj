@@ -28,5 +28,5 @@ For the Linux installation, you have to have `glibc` version 2.35 or higher. You
 If you decide you want to uninstall the application, you can uninstall it like any other application on your system. For example, on MacOS, you can drag the application to the trash. On Windows, you can uninstall it from the `Add or Remove Programs` menu. On Linux, you can uninstall it with `sudo apt remove khoj`.
 
 In addition to that, you might want to `rm -rf` the following directories:
-- `~/.khoj`
-- `~/.cache/gpt4all`
+  - `~/.khoj`
+  - `~/.cache/gpt4all`
