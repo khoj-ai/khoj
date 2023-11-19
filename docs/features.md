@@ -1,10 +1,10 @@
 ## Features
 
-#### [Search](./search.md)
+#### [Search](search.md)
   - **Local**: Your personal data stays local. All search and indexing is done on your machine.
   - **Incremental**: Incremental search for a fast, search-as-you-type experience
 
-#### [Chat](./chat.md)
+#### [Chat](chat.md)
   - **Faster answers**: Find answers faster, smoother than search. No need to manually scan through your notes to find answers.
   - **Iterative discovery**: Iteratively explore and (re-)discover your notes
   - **Assisted creativity**: Smoothly weave across answers retrieval and content generation

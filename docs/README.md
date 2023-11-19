@@ -27,12 +27,11 @@
 Welcome to the Khoj Docs! This is the best place to get setup and explore Khoj's features.
 
 - Khoj is an open source, personal AI
-- You can [chat](./chat.md) with it about anything. When relevant, it'll use any notes or documents you shared with it to respond
-- Use natural language to quickly [find](./search.md) relevant notes and documents
-- Access it from your [Emacs](./emacs.md), [Obsidian](./obsidian.md), [Web browser](./web.md) or the [Khoj Desktop app](https://khoj.dev/downloads)
-- It understands pdf, plaintext, markdown, org-mode files, [notion pages](./notion_integration.md) and [github repositories](./github_integration.md)
-- You can self-host and run Khoj on your consumer hardware or private cloud
-- It supports multiple users. If you want, you can self-host, a shared assistance server for your family, friends, or team
+- You can [chat](chat.md) with it about anything. When relevant, it'll use any notes or documents you shared with it to respond
+- Quickly [find](search.md) relevant notes and documents using natural language
+- It understands pdf, plaintext, markdown, org-mode files, [notion pages](notion_integration.md) and [github repositories](github_integration.md)
+- Access it from your [Emacs](emacs.md), [Obsidian](obsidian.md), [Web browser](web.md) or the [Khoj Desktop app](desktop.md)
+- You can self-host Khoj on your consumer hardware or share it with your family, friends or team from your private cloud
 
 ## Quickstart
 - [Try Khoj Cloud](https://app.khoj.dev) to get started quickly
@@ -43,11 +42,11 @@ Welcome to the Khoj Docs! This is the best place to get setup and explore Khoj's
 <span>&nbsp;&nbsp;</span>
 <img src="https://docs.khoj.dev/assets/khoj_chat_on_web.png" width="400px">
 
-#### [Search](./search.md)
+#### [Search](search.md)
   - **Natural**: Use natural language queries to quickly find relevant notes and documents.
   - **Incremental**: Incremental search for a fast, search-as-you-type experience
 
-#### [Chat](./chat.md)
+#### [Chat](chat.md)
   - **Faster answers**: Find answers faster, smoother than search. No need to manually scan through your notes to find answers.
   - **Iterative discovery**: Iteratively explore and (re-)discover your notes
   - **Assisted creativity**: Smoothly weave across answers retrieval and content generation

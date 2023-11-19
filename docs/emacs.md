@@ -86,13 +86,13 @@ M-x package-install khoj
 <!-- tabs:end -->
 ## Use
 ### Search
-See [Khoj Search](/search) for details
+See [Khoj Search](search.md) for details
 1. Hit  `C-c s s` (or `M-x khoj RET s`) to open khoj search
 2. Enter your query in natural language<br/>
   E.g *"What is the meaning of life?"*, *"My life goals for 2023"*
 
 ### Chat
-See [Khoj Chat](/chat) for details
+See [Khoj Chat](chat.md) for details
 1. Hit `C-c s c` (or `M-x khoj RET c`) to open khoj chat
 2. Ask questions in a natural, conversational style<br/>
   E.g *"When did I file my taxes last year?"*
