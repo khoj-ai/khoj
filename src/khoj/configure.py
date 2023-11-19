@@ -1,43 +1,97 @@
 # Standard Packages
-import sys
 import logging
 import json
 from enum import Enum
 from typing import Optional
 import requests
+import os
 
 # External Packages
 import schedule
-from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.authentication import AuthenticationMiddleware
+from starlette.requests import HTTPConnection
+
+from starlette.authentication import (
+    AuthCredentials,
+    AuthenticationBackend,
+    SimpleUser,
+    UnauthenticatedUser,
+)
 
 # Internal Packages
+from database.models import KhojUser, Subscription
+from database.adapters import get_all_users, get_or_create_search_model
+from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
+from khoj.routers.indexer import configure_content, load_content, configure_search
 from khoj.utils import constants, state
 from khoj.utils.config import (
     SearchType,
-    ProcessorConfigModel,
-    ConversationProcessorConfigModel,
 )
-from khoj.utils.helpers import resolve_absolute_path, merge_dicts
 from khoj.utils.fs_syncer import collect_files
-from khoj.utils.rawconfig import FullConfig, OfflineChatProcessorConfig, ProcessorConfig, ConversationProcessorConfig
-from khoj.routers.indexer import configure_content, load_content, configure_search
+from khoj.utils.rawconfig import FullConfig
 
 
 logger = logging.getLogger(__name__)
 
 
-def initialize_server(config: Optional[FullConfig], required=False):
-    if config is None and required:
-        logger.error(
-            f"🚨 Exiting as Khoj is not configured.\nConfigure it via http://{state.host}:{state.port}/config or by editing {state.config_file}."
-        )
-        sys.exit(1)
-    elif config is None:
-        logger.warning(
-            f"🚨 Khoj is not configured.\nConfigure it via http://{state.host}:{state.port}/config, plugins or by editing {state.config_file}."
-        )
-        return None
+class AuthenticatedKhojUser(SimpleUser):
+    def __init__(self, user):
+        self.object = user
+        super().__init__(user.email)
 
+
+class UserAuthenticationBackend(AuthenticationBackend):
+    def __init__(
+        self,
+    ):
+        from database.models import KhojUser, KhojApiUser
+
+        self.khojuser_manager = KhojUser.objects
+        self.khojapiuser_manager = KhojApiUser.objects
+        self._initialize_default_user()
+        super().__init__()
+
+    def _initialize_default_user(self):
+        if not self.khojuser_manager.filter(username="default").exists():
+            default_user = self.khojuser_manager.create_user(
+                username="default",
+                email="default@example.com",
+                password="default",
+            )
+            Subscription.objects.create(user=default_user, type="standard", renewal_date="2100-04-01")
+
+    async def authenticate(self, request: HTTPConnection):
+        current_user = request.session.get("user")
+        if current_user and current_user.get("email"):
+            user = (
+                await self.khojuser_manager.filter(email=current_user.get("email"))
+                .prefetch_related("subscription")
+                .afirst()
+            )
+            if user:
+                return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
+        if len(request.headers.get("Authorization", "").split("Bearer ")) == 2:
+            # Get bearer token from header
+            bearer_token = request.headers["Authorization"].split("Bearer ")[1]
+            # Get user owning token
+            user_with_token = (
+                await self.khojapiuser_manager.filter(token=bearer_token)
+                .select_related("user")
+                .prefetch_related("user__subscription")
+                .afirst()
+            )
+            if user_with_token:
+                return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user_with_token.user)
+        if state.anonymous_mode:
+            user = await self.khojuser_manager.filter(username="default").prefetch_related("subscription").afirst()
+            if user:
+                return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
+
+        return AuthCredentials(), UnauthenticatedUser()
+
+
+def initialize_server(config: Optional[FullConfig]):
     try:
         configure_server(config, init=True)
     except Exception as e:
@@ -45,32 +99,30 @@ def initialize_server(config: Optional[FullConfig], required=False):
 
 
 def configure_server(
-    config: FullConfig, regenerate: bool = False, search_type: Optional[SearchType] = None, init=False
+    config: FullConfig,
+    regenerate: bool = False,
+    search_type: Optional[SearchType] = None,
+    init=False,
+    user: KhojUser = None,
 ):
     # Update Config
+    if config == None:
+        logger.info(f"🚨 Khoj is not configured.\nInitializing it with a default config.")
+        config = FullConfig()
     state.config = config
-
-    # Initialize Processor from Config
-    try:
-        state.processor_config = configure_processor(state.config.processor)
-    except Exception as e:
-        logger.error(f"🚨 Failed to configure processor", exc_info=True)
-        raise e
 
     # Initialize Search Models from Config and initialize content
     try:
-        state.config_lock.acquire()
-        state.SearchType = configure_search_types(state.config)
+        state.embeddings_model = EmbeddingsModel(get_or_create_search_model().bi_encoder)
+        state.cross_encoder_model = CrossEncoderModel(get_or_create_search_model().cross_encoder)
+        state.SearchType = configure_search_types()
         state.search_models = configure_search(state.search_models, state.config.search_type)
-        initialize_content(regenerate, search_type, init)
+        initialize_content(regenerate, search_type, init, user)
     except Exception as e:
-        logger.error(f"🚨 Failed to configure search models", exc_info=True)
         raise e
-    finally:
-        state.config_lock.release()
 
 
-def initialize_content(regenerate: bool, search_type: Optional[SearchType] = None, init=False):
+def initialize_content(regenerate: bool, search_type: Optional[SearchType] = None, init=False, user: KhojUser = None):
     # Initialize Content from Config
     if state.search_models:
         try:
@@ -79,17 +131,19 @@ def initialize_content(regenerate: bool, search_type: Optional[SearchType] = Non
                 state.content_index = load_content(state.config.content_type, state.content_index, state.search_models)
             else:
                 logger.info("📬 Updating content index...")
-                all_files = collect_files(state.config.content_type)
-                state.content_index = configure_content(
+                all_files = collect_files(user=user)
+                state.content_index, status = configure_content(
                     state.content_index,
                     state.config.content_type,
                     all_files,
                     state.search_models,
                     regenerate,
                     search_type,
+                    user=user,
                 )
+                if not status:
+                    raise RuntimeError("Failed to update content index")
         except Exception as e:
-            logger.error(f"🚨 Failed to index content", exc_info=True)
             raise e
 
 
@@ -99,134 +153,50 @@ def configure_routes(app):
     from khoj.routers.api_beta import api_beta
     from khoj.routers.web_client import web_client
     from khoj.routers.indexer import indexer
+    from khoj.routers.auth import auth_router
+    from khoj.routers.subscription import subscription_router
 
-    app.mount("/static", StaticFiles(directory=constants.web_directory), name="static")
     app.include_router(api, prefix="/api")
     app.include_router(api_beta, prefix="/api/beta")
     app.include_router(indexer, prefix="/api/v1/index")
+    if state.billing_enabled:
+        logger.info("💳 Enabled Billing")
+        app.include_router(subscription_router, prefix="/api/subscription")
     app.include_router(web_client)
+    app.include_router(auth_router, prefix="/auth")
 
 
-if not state.demo:
+def configure_middleware(app):
+    app.add_middleware(AuthenticationMiddleware, backend=UserAuthenticationBackend())
+    app.add_middleware(SessionMiddleware, secret_key=os.environ.get("KHOJ_DJANGO_SECRET_KEY", "!secret"))
 
-    @schedule.repeat(schedule.every(61).minutes)
-    def update_search_index():
-        try:
-            logger.info("📬 Updating content index via Scheduler")
-            all_files = collect_files(state.config.content_type)
-            state.content_index = configure_content(
-                state.content_index, state.config.content_type, all_files, state.search_models
+
+@schedule.repeat(schedule.every(61).minutes)
+def update_search_index():
+    try:
+        logger.info("📬 Updating content index via Scheduler")
+        for user in get_all_users():
+            all_files = collect_files(user=user)
+            state.content_index, success = configure_content(
+                state.content_index, state.config.content_type, all_files, state.search_models, user=user
             )
-            logger.info("📪 Content index updated via Scheduler")
-        except Exception as e:
-            logger.error(f"🚨 Error updating content index via Scheduler: {e}", exc_info=True)
+        all_files = collect_files(user=None)
+        state.content_index, success = configure_content(
+            state.content_index, state.config.content_type, all_files, state.search_models, user=None
+        )
+        if not success:
+            raise RuntimeError("Failed to update content index")
+        logger.info("📪 Content index updated via Scheduler")
+    except Exception as e:
+        logger.error(f"🚨 Error updating content index via Scheduler: {e}", exc_info=True)
 
 
-def configure_search_types(config: FullConfig):
+def configure_search_types():
     # Extract core search types
     core_search_types = {e.name: e.value for e in SearchType}
-    # Extract configured plugin search types
-    plugin_search_types = {}
-    if config.content_type and config.content_type.plugins:
-        plugin_search_types = {plugin_type: plugin_type for plugin_type in config.content_type.plugins.keys()}
 
     # Dynamically generate search type enum by merging core search types with configured plugin search types
-    return Enum("SearchType", merge_dicts(core_search_types, plugin_search_types))
-
-
-def configure_processor(
-    processor_config: Optional[ProcessorConfig], state_processor_config: Optional[ProcessorConfigModel] = None
-):
-    if not processor_config:
-        logger.warning("🚨 No Processor configuration available.")
-        return None
-
-    processor = ProcessorConfigModel()
-
-    # Initialize Conversation Processor
-    logger.info("💬 Setting up conversation processor")
-    processor.conversation = configure_conversation_processor(processor_config, state_processor_config)
-
-    return processor
-
-
-def configure_conversation_processor(
-    processor_config: Optional[ProcessorConfig], state_processor_config: Optional[ProcessorConfigModel] = None
-):
-    if (
-        not processor_config
-        or not processor_config.conversation
-        or not processor_config.conversation.conversation_logfile
-    ):
-        default_config = constants.default_config
-        default_conversation_logfile = resolve_absolute_path(
-            default_config["processor"]["conversation"]["conversation-logfile"]  # type: ignore
-        )
-        conversation_logfile = resolve_absolute_path(default_conversation_logfile)
-        conversation_config = processor_config.conversation if processor_config else None
-        conversation_processor = ConversationProcessorConfigModel(
-            conversation_config=ConversationProcessorConfig(
-                conversation_logfile=conversation_logfile,
-                openai=(conversation_config.openai if (conversation_config is not None) else None),
-                offline_chat=conversation_config.offline_chat if conversation_config else OfflineChatProcessorConfig(),
-            )
-        )
-    else:
-        conversation_processor = ConversationProcessorConfigModel(
-            conversation_config=processor_config.conversation,
-        )
-        conversation_logfile = resolve_absolute_path(conversation_processor.conversation_logfile)
-
-    # Load Conversation Logs from Disk
-    if state_processor_config and state_processor_config.conversation and state_processor_config.conversation.meta_log:
-        conversation_processor.meta_log = state_processor_config.conversation.meta_log
-        conversation_processor.chat_session = state_processor_config.conversation.chat_session
-        logger.debug(f"Loaded conversation logs from state")
-        return conversation_processor
-
-    if conversation_logfile.is_file():
-        # Load Metadata Logs from Conversation Logfile
-        with conversation_logfile.open("r") as f:
-            conversation_processor.meta_log = json.load(f)
-        logger.debug(f"Loaded conversation logs from {conversation_logfile}")
-    else:
-        # Initialize Conversation Logs
-        conversation_processor.meta_log = {}
-        conversation_processor.chat_session = []
-
-    return conversation_processor
-
-
-@schedule.repeat(schedule.every(17).minutes)
-def save_chat_session():
-    # No need to create empty log file
-    if not (
-        state.processor_config
-        and state.processor_config.conversation
-        and state.processor_config.conversation.meta_log
-        and state.processor_config.conversation.chat_session
-    ):
-        return
-
-    # Summarize Conversation Logs for this Session
-    conversation_log = state.processor_config.conversation.meta_log
-    session = {
-        "session-start": conversation_log.get("session", [{"session-end": 0}])[-1]["session-end"],
-        "session-end": len(conversation_log["chat"]),
-    }
-    if "session" in conversation_log:
-        conversation_log["session"].append(session)
-    else:
-        conversation_log["session"] = [session]
-
-    # Save Conversation Metadata Logs to Disk
-    conversation_logfile = resolve_absolute_path(state.processor_config.conversation.conversation_logfile)
-    conversation_logfile.parent.mkdir(parents=True, exist_ok=True)  # create conversation directory if doesn't exist
-    with open(conversation_logfile, "w+", encoding="utf-8") as logfile:
-        json.dump(conversation_log, logfile, indent=2)
-
-    state.processor_config.conversation.chat_session = []
-    logger.info("📩 Saved current chat session to conversation logs")
+    return Enum("SearchType", core_search_types)
 
 
 @schedule.repeat(schedule.every(59).minutes)

@@ -1,4 +1,4 @@
-# Telemetry
+# Telemetry (self-hosting)
 
 We collect some high level, anonymized metadata about usage of Khoj. This includes:
 - Client (Web, Emacs, Obsidian)

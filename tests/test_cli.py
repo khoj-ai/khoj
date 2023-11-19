@@ -25,7 +25,7 @@ def test_cli_invalid_config_file_path():
     non_existent_config_file = f"non-existent-khoj-{random()}.yml"
 
     # Act
-    actual_args = cli([f"-c={non_existent_config_file}"])
+    actual_args = cli([f"--config-file={non_existent_config_file}"])
 
     # Assert
     assert actual_args.config_file == resolve_absolute_path(non_existent_config_file)
@@ -35,7 +35,7 @@ def test_cli_invalid_config_file_path():
 # ----------------------------------------------------------------------------------------------------
 def test_cli_config_from_file():
     # Act
-    actual_args = cli(["-c=tests/data/config.yml", "--regenerate", "-vvv"])
+    actual_args = cli(["--config-file=tests/data/config.yml", "--regenerate", "-vvv"])
 
     # Assert
     assert actual_args.config_file == resolve_absolute_path(Path("tests/data/config.yml"))
@@ -48,14 +48,3 @@ def test_cli_config_from_file():
         Path("~/first_from_config.org"),
         Path("~/second_from_config.org"),
     ]
-    assert len(actual_args.config.content_type.plugins.keys()) == 2
-    assert actual_args.config.content_type.plugins["content_plugin_1"].input_files == [
-        Path("content_plugin_1_new.jsonl.gz")
-    ]
-    assert actual_args.config.content_type.plugins["content_plugin_2"].input_filter == ["*2_new.jsonl.gz"]
-    assert actual_args.config.content_type.plugins["content_plugin_1"].compressed_jsonl == Path(
-        "content_plugin_1.jsonl.gz"
-    )
-    assert actual_args.config.content_type.plugins["content_plugin_2"].embeddings_file == Path(
-        "content_plugin_2_embeddings.pt"
-    )

@@ -1,19 +1,20 @@
 # System Packages
 import json
 from pathlib import Path
-from typing import List, Dict, Optional, Union, Any
+from typing import List, Dict, Optional
+import uuid
 
 # External Packages
-from pydantic import BaseModel, validator
+from pydantic import BaseModel
 
 # Internal Packages
-from khoj.utils.helpers import to_snake_case_from_dash, is_none_or_empty
+from khoj.utils.helpers import to_snake_case_from_dash
 
 
 class ConfigBase(BaseModel):
     class Config:
         alias_generator = to_snake_case_from_dash
-        allow_population_by_field_name = True
+        populate_by_name = True
 
     def __getitem__(self, item):
         return getattr(self, item)
@@ -27,9 +28,9 @@ class TextConfigBase(ConfigBase):
     embeddings_file: Path
 
 
-class TextContentConfig(TextConfigBase):
-    input_files: Optional[List[Path]]
-    input_filter: Optional[List[str]]
+class TextContentConfig(ConfigBase):
+    input_files: Optional[List[Path]] = None
+    input_filter: Optional[List[str]] = None
     index_heading_entries: Optional[bool] = False
 
 
@@ -39,51 +40,41 @@ class GithubRepoConfig(ConfigBase):
     branch: Optional[str] = "master"
 
 
-class GithubContentConfig(TextConfigBase):
+class GithubContentConfig(ConfigBase):
     pat_token: str
     repos: List[GithubRepoConfig]
 
 
-class NotionContentConfig(TextConfigBase):
+class NotionContentConfig(ConfigBase):
     token: str
 
 
 class ImageContentConfig(ConfigBase):
-    input_directories: Optional[List[Path]]
-    input_filter: Optional[List[str]]
+    input_directories: Optional[List[Path]] = None
+    input_filter: Optional[List[str]] = None
     embeddings_file: Path
     use_xmp_metadata: bool
     batch_size: int
 
 
 class ContentConfig(ConfigBase):
-    org: Optional[TextContentConfig]
-    image: Optional[ImageContentConfig]
-    markdown: Optional[TextContentConfig]
-    pdf: Optional[TextContentConfig]
-    plaintext: Optional[TextContentConfig]
-    github: Optional[GithubContentConfig]
-    plugins: Optional[Dict[str, TextContentConfig]]
-    notion: Optional[NotionContentConfig]
-
-
-class TextSearchConfig(ConfigBase):
-    encoder: str
-    cross_encoder: str
-    encoder_type: Optional[str]
-    model_directory: Optional[Path]
+    org: Optional[TextContentConfig] = None
+    image: Optional[ImageContentConfig] = None
+    markdown: Optional[TextContentConfig] = None
+    pdf: Optional[TextContentConfig] = None
+    plaintext: Optional[TextContentConfig] = None
+    github: Optional[GithubContentConfig] = None
+    notion: Optional[NotionContentConfig] = None
 
 
 class ImageSearchConfig(ConfigBase):
     encoder: str
-    encoder_type: Optional[str]
-    model_directory: Optional[Path]
+    encoder_type: Optional[str] = None
+    model_directory: Optional[Path] = None
 
 
 class SearchConfig(ConfigBase):
-    asymmetric: Optional[TextSearchConfig]
-    symmetric: Optional[TextSearchConfig]
-    image: Optional[ImageSearchConfig]
+    image: Optional[ImageSearchConfig] = None
 
 
 class OpenAIProcessorConfig(ConfigBase):
@@ -97,33 +88,34 @@ class OfflineChatProcessorConfig(ConfigBase):
 
 
 class ConversationProcessorConfig(ConfigBase):
-    conversation_logfile: Path
-    openai: Optional[OpenAIProcessorConfig]
-    offline_chat: Optional[OfflineChatProcessorConfig]
-    max_prompt_size: Optional[int]
-    tokenizer: Optional[str]
+    openai: Optional[OpenAIProcessorConfig] = None
+    offline_chat: Optional[OfflineChatProcessorConfig] = None
+    max_prompt_size: Optional[int] = None
+    tokenizer: Optional[str] = None
 
 
 class ProcessorConfig(ConfigBase):
-    conversation: Optional[ConversationProcessorConfig]
+    conversation: Optional[ConversationProcessorConfig] = None
 
 
 class AppConfig(ConfigBase):
-    should_log_telemetry: bool
+    should_log_telemetry: bool = True
 
 
 class FullConfig(ConfigBase):
     content_type: Optional[ContentConfig] = None
     search_type: Optional[SearchConfig] = None
     processor: Optional[ProcessorConfig] = None
-    app: Optional[AppConfig] = AppConfig(should_log_telemetry=True)
+    app: Optional[AppConfig] = AppConfig()
     version: Optional[str] = None
 
 
 class SearchResponse(ConfigBase):
     entry: str
-    score: str
-    additional: Optional[dict]
+    score: float
+    cross_score: Optional[float] = None
+    additional: Optional[dict] = None
+    corpus_id: str
 
 
 class Entry:
@@ -131,14 +123,21 @@ class Entry:
     compiled: str
     heading: Optional[str]
     file: Optional[str]
+    corpus_id: str
 
     def __init__(
-        self, raw: str = None, compiled: str = None, heading: Optional[str] = None, file: Optional[str] = None
+        self,
+        raw: str = None,
+        compiled: str = None,
+        heading: Optional[str] = None,
+        file: Optional[str] = None,
+        corpus_id: uuid.UUID = None,
     ):
         self.raw = raw
         self.compiled = compiled
         self.heading = heading
         self.file = file
+        self.corpus_id = str(corpus_id)
 
     def to_json(self) -> str:
         return json.dumps(self.__dict__, ensure_ascii=False)
@@ -153,4 +152,5 @@ class Entry:
             compiled=dictionary["compiled"],
             file=dictionary.get("file", None),
             heading=dictionary.get("heading", None),
+            corpus_id=dictionary.get("corpus_id", None),
         )

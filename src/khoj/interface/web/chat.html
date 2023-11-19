@@ -8,7 +8,18 @@
         <link rel="manifest" href="/static/khoj_chat.webmanifest">
         <link rel="stylesheet" href="/static/assets/khoj.css">
     </head>
+    <script type="text/javascript" src="/static/assets/utils.js"></script>
     <script>
+        let welcome_message = `
+Hi, I am Khoj, your open, personal AI 👋🏽. I can help:
+• 🧠 Answer general knowledge questions
+• 💡 Be a sounding board for your ideas
+• 📜 Chat with your notes & documents
+
+Download the <a class='inline-chat-link' href='https://khoj.dev/downloads'>🖥️ Desktop app</a> to chat with your computer docs.
+
+To get started, just start typing below. You can also type / to see a list of commands.
+`.trim()
         let chatOptions = [];
         function copyProgrammaticOutput(event) {
             // Remove the first 4 characters which are the "Copy" button
@@ -32,32 +43,101 @@
             let escaped_ref = reference.replaceAll('"', '&quot;');
 
             // Generate HTML for Chat Reference
-            return `<sup><abbr title="${escaped_ref}" tabindex="0">${index}</abbr></sup>`;
+            let short_ref = escaped_ref.slice(0, 140);
+            short_ref = short_ref.length < escaped_ref.length ? short_ref + "..." : short_ref;
+            let referenceButton = document.createElement('button');
+            referenceButton.innerHTML = short_ref;
+            referenceButton.id = `ref-${index}`;
+            referenceButton.classList.add("reference-button");
+            referenceButton.classList.add("collapsed");
+            referenceButton.tabIndex = 0;
+
+            // Add event listener to toggle full reference on click
+            referenceButton.addEventListener('click', function() {
+                console.log(`Toggling ref-${index}`)
+                if (this.classList.contains("collapsed")) {
+                    this.classList.remove("collapsed");
+                    this.classList.add("expanded");
+                    this.innerHTML = escaped_ref;
+                } else {
+                    this.classList.add("collapsed");
+                    this.classList.remove("expanded");
+                    this.innerHTML = short_ref;
+                }
+            });
+
+            return referenceButton;
         }
 
-        function renderMessage(message, by, dt=null) {
+        function renderMessage(message, by, dt=null, annotations=null) {
             let message_time = formatDate(dt ?? new Date());
             let by_name =  by == "khoj" ? "🏮 Khoj" : "🤔 You";
             let formattedMessage = formatHTMLMessage(message);
-            // Generate HTML for Chat Message and Append to Chat Body
-            document.getElementById("chat-body").innerHTML += `
-                <div data-meta="${by_name} at ${message_time}" class="chat-message ${by}">
-                    <div class="chat-message-text ${by}">${formattedMessage}</div>
-                </div>
-            `;
+            let chatBody = document.getElementById("chat-body");
+
+            // Create a new div for the chat message
+            let chatMessage = document.createElement('div');
+            chatMessage.className = `chat-message ${by}`;
+            chatMessage.dataset.meta = `${by_name} at ${message_time}`;
+
+            // Create a new div for the chat message text and append it to the chat message
+            let chatMessageText = document.createElement('div');
+            chatMessageText.className = `chat-message-text ${by}`;
+            chatMessageText.innerHTML = formattedMessage;
+            chatMessage.appendChild(chatMessageText);
+
+            // Append annotations div to the chat message
+            if (annotations) {
+                chatMessageText.appendChild(annotations);
+            }
+
+            // Append chat message div to chat body
+            chatBody.appendChild(chatMessage);
+
             // Scroll to bottom of chat-body element
-            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+            chatBody.scrollTop = chatBody.scrollHeight;
         }
 
         function renderMessageWithReference(message, by, context=null, dt=null) {
-            let references = '';
-            if (context) {
-                references = context
-                    .map((reference, index) => generateReference(reference, index))
-                    .join("<sup>,</sup>");
+            if (context == null || context.length == 0) {
+                renderMessage(message, by, dt);
+                return;
             }
 
-            renderMessage(message+references, by, dt);
+            let references = document.createElement('div');
+
+            let referenceExpandButton = document.createElement('button');
+            referenceExpandButton.classList.add("reference-expand-button");
+            let expandButtonText = context.length == 1 ? "1 reference" : `${context.length} references`;
+            referenceExpandButton.innerHTML = expandButtonText;
+
+            references.appendChild(referenceExpandButton);
+
+            let referenceSection = document.createElement('div');
+            referenceSection.classList.add("reference-section");
+            referenceSection.classList.add("collapsed");
+
+            referenceExpandButton.addEventListener('click', function() {
+                if (referenceSection.classList.contains("collapsed")) {
+                    referenceSection.classList.remove("collapsed");
+                    referenceSection.classList.add("expanded");
+                } else {
+                    referenceSection.classList.add("collapsed");
+                    referenceSection.classList.remove("expanded");
+                }
+            });
+
+            references.classList.add("references");
+            if (context) {
+                for (let index in context) {
+                    let reference = context[index];
+                    let polishedReference = generateReference(reference, index);
+                    referenceSection.appendChild(polishedReference);
+                }
+            }
+            references.appendChild(referenceSection);
+
+            renderMessage(message, by, dt, references);
         }
 
         function formatHTMLMessage(htmlMessage) {
@@ -66,6 +146,8 @@
             // Replace any ** with <b> and __ with <u>
             newHTML = newHTML.replace(/\*\*([\s\S]*?)\*\*/g, '<b>$1</b>');
             newHTML = newHTML.replace(/__([\s\S]*?)__/g, '<u>$1</u>');
+            // Remove any text between <s>[INST] and </s> tags. These are spurious instructions for the AI chat model.
+            newHTML = newHTML.replace(/<s>\[INST\].+(<\/s>)?/g, '');
             return newHTML;
         }
 
@@ -115,6 +197,7 @@
                 .then(response => {
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
+                    let references = null;
 
                     function readStream() {
                         reader.read().then(({ done, value }) => {
@@ -122,7 +205,11 @@
                                 // Evaluate the contents of new_response_text.innerHTML after all the data has been streamed
                                 const currentHTML = newResponseText.innerHTML;
                                 newResponseText.innerHTML = formatHTMLMessage(currentHTML);
-
+                                if (references != null) {
+                                    newResponseText.appendChild(references);
+                                }
+                                document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+                                document.getElementById("chat-input").removeAttribute("disabled");
                                 return;
                             }
 
@@ -135,11 +222,36 @@
 
                                 const rawReference = chunk.split("### compiled references:")[1];
                                 const rawReferenceAsJson = JSON.parse(rawReference);
-                                let polishedReference = rawReferenceAsJson.map((reference, index) => generateReference(reference, index))
-                                    .join("<sup>,</sup>");
+                                references = document.createElement('div');
+                                references.classList.add("references");
 
-                                newResponseText.innerHTML += polishedReference;
-                                document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+
+                                let referenceExpandButton = document.createElement('button');
+                                referenceExpandButton.classList.add("reference-expand-button");
+                                let expandButtonText = rawReferenceAsJson.length == 1 ? "1 reference" : `${rawReferenceAsJson.length} references`;
+                                referenceExpandButton.innerHTML = expandButtonText;
+
+                                references.appendChild(referenceExpandButton);
+
+                                let referenceSection = document.createElement('div');
+                                referenceSection.classList.add("reference-section");
+                                referenceSection.classList.add("collapsed");
+
+                                referenceExpandButton.addEventListener('click', function() {
+                                    if (referenceSection.classList.contains("collapsed")) {
+                                        referenceSection.classList.remove("collapsed");
+                                        referenceSection.classList.add("expanded");
+                                    } else {
+                                        referenceSection.classList.add("collapsed");
+                                        referenceSection.classList.remove("expanded");
+                                    }
+                                });
+
+                                rawReferenceAsJson.forEach((reference, index) => {
+                                    let polishedReference = generateReference(reference, index);
+                                    referenceSection.appendChild(polishedReference);
+                                });
+                                references.appendChild(referenceSection);
                                 readStream();
                             } else {
                                 // Display response from Khoj
@@ -156,12 +268,12 @@
                         });
                     }
                     readStream();
-                    document.getElementById("chat-input").removeAttribute("disabled");
                 });
         }
 
         function incrementalChat(event) {
             if (!event.shiftKey && event.key === 'Enter') {
+                event.preventDefault();
                 chat();
             }
         }
@@ -215,14 +327,14 @@
                 .then(data => {
                     if (data.detail) {
                         // If the server returns a 500 error with detail, render a setup hint.
-                        renderMessage("Hi 👋🏾, to get started you have two options:<ol><li><b>Use OpenAI</b>: <ol><li>Get your <a class='inline-chat-link' href='https://platform.openai.com/account/api-keys'>OpenAI API key</a></li><li>Save it in the Khoj <a class='inline-chat-link' href='/config/processor/conversation/openai'>chat settings</a></li><li>Click Configure on the Khoj <a class='inline-chat-link' href='/config'>settings page</a></li></ol></li><li><b>Enable offline chat</b>: <ol><li>Go to the Khoj <a class='inline-chat-link' href='/config'>settings page</a> and enable offline chat</li></ol></li></ol>", "khoj");
+                        renderMessage("Hi 👋🏾, to start chatting add available chat models options via <a class='inline-chat-link' href='/server/admin'>the Django Admin panel</a> on the Server", "khoj");
 
                         // Disable chat input field and update placeholder text
                         document.getElementById("chat-input").setAttribute("disabled", "disabled");
                         document.getElementById("chat-input").setAttribute("placeholder", "Configure Khoj to enable chat");
                     } else {
                         // Set welcome message on load
-                        renderMessage("Hey 👋🏾, what's up?", "khoj");
+                        renderMessage(welcome_message, "khoj");
                     }
                     return data.response;
                 })
@@ -233,6 +345,7 @@
                     });
                 })
                 .catch(err => {
+                    console.log(err);
                     return;
                 });
 
@@ -257,37 +370,12 @@
         }
     </script>
     <body>
-        <div id="khoj-banner-container" class="khoj-banner-container">
-        {% if demo %}
-            <!-- Banner linking to https://khoj.dev -->
-                <a class="khoj-banner" href="https://khoj.dev" target="_blank">
-                    <p id="khoj-banner" class="khoj-banner">
-                        Enroll in Khoj cloud to get your own assistant
-                    </p>
-                </a>
-                <input type="text" id="khoj-banner-email" placeholder="email" class="khoj-banner-email"></input>
-                <button id="khoj-banner-submit" class="khoj-banner-button">Submit</button>
-        {% endif %}
+        <div id="khoj-empty-container" class="khoj-empty-container">
         </div>
+
         <!--Add Header Logo and Nav Pane-->
-        <div class="khoj-header">
-            {% if demo %}
-                <a class="khoj-logo" href="https://khoj.dev" target="_blank">
-                    <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
-                </a>
-            {% else %}
-                <a class="khoj-logo" href="/">
-                    <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
-                </a>
-            {% endif %}
-            <nav class="khoj-nav">
-                <a class="khoj-nav khoj-nav-selected" href="/chat">Chat</a>
-                <a class="khoj-nav" href="/">Search</a>
-                {% if not demo %}
-                    <a class="khoj-nav" href="/config">Settings</a>
-                {% endif %}
-            </nav>
-        </div>
+        {% import 'utils.html' as utils %}
+        {{ utils.heading_pane(user_photo, username, is_active, has_documents) }}
 
         <!-- Chat Body -->
         <div id="chat-body"></div>
@@ -295,11 +383,12 @@
         <!-- Chat Footer -->
         <div id="chat-footer">
             <div id="chat-tooltip" style="display: none;"></div>
-            <textarea id="chat-input" class="option" oninput="onChatInput()" onkeyup=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands, or just type your questions and hit enter.">
-            </textarea>
+            <textarea id="chat-input" class="option" oninput="onChatInput()" onkeydown=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands, or just type your questions and hit enter."></textarea>
         </div>
     </body>
-
+    <script>
+        document.getElementById("chat-nav").classList.add("khoj-nav-selected");
+    </script>
     <style>
         html, body {
             height: 100%;
@@ -309,8 +398,8 @@
         }
         body {
             display: grid;
-            background: #fff;
-            color: #475569;
+            background: var(--background-color);
+            color: var(--main-text-color);
             text-align: center;
             font-family: roboto, karma, segoe ui, sans-serif;
             font-size: 20px;
@@ -321,6 +410,86 @@
             padding: 10px;
             margin: 10px;
         }
+
+        div.collapsed {
+            display: none;
+        }
+
+        div.expanded {
+            display: block;
+        }
+
+        div.references {
+            padding-top: 8px;
+        }
+        div.reference {
+            display: grid;
+            grid-template-rows: auto;
+            grid-auto-flow: row;
+            grid-column-gap: 10px;
+            grid-row-gap: 10px;
+            margin: 10px;
+        }
+
+        div.expanded.reference-section {
+            display: grid;
+            grid-template-rows: auto;
+            grid-auto-flow: row;
+            grid-column-gap: 10px;
+            grid-row-gap: 10px;
+            margin: 10px;
+        }
+
+        button.reference-button {
+            background: var(--background-color);
+            color: var(--main-text-color);
+            border: 1px solid var(--main-text-color);
+            border-radius: 5px;
+            padding: 5px;
+            font-size: 14px;
+            font-weight: 300;
+            line-height: 1.5em;
+            cursor: pointer;
+            transition: background 0.2s ease-in-out;
+            text-align: left;
+            max-height: 75px;
+            transition: max-height 0.3s ease-in-out;
+            overflow: hidden;
+        }
+        button.reference-button.expanded {
+            max-height: none;
+        }
+
+        button.reference-button::before {
+            content: "▶";
+            margin-right: 5px;
+            display: inline-block;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        button.reference-button:active:before,
+        button.reference-button[aria-expanded="true"]::before {
+            transform: rotate(90deg);
+        }
+
+        button.reference-expand-button {
+            background: var(--background-color);
+            color: var(--main-text-color);
+            border: 1px dotted var(--main-text-color);
+            border-radius: 5px;
+            padding: 5px;
+            font-size: 14px;
+            font-weight: 300;
+            line-height: 1.5em;
+            cursor: pointer;
+            transition: background 0.4s ease-in-out;
+            text-align: left;
+        }
+
+        button.reference-expand-button:hover {
+            background: var(--primary-hover);
+        }
+
         #chat-body {
             font-size: medium;
             margin: 0px;
@@ -332,7 +501,7 @@
             content: attr(data-meta);
             display: block;
             font-size: x-small;
-            color: #475569;
+            color: var(--main-text-color);
             margin: -8px 4px 0 -5px;
         }
         /* move message by khoj to left */
@@ -402,7 +571,7 @@
             top: 91%;
             right: -2px;
             border: 10px solid transparent;
-            border-left-color: #475569;
+            border-left-color: var(--main-text-color);
             border-right: 0;
             margin-top: -10px;
             transform: rotate(-60deg)
@@ -418,7 +587,7 @@
         #chat-footer > * {
             padding: 15px;
             border-radius: 5px;
-            border: 1px solid #475569;
+            border: 1px solid var(--main-text-color);
             background: #f9fafc
         }
         .option:hover {
@@ -451,9 +620,9 @@
         }
 
         a.inline-chat-link {
-            color: #475569;
+            color: var(--main-text-color);
             text-decoration: none;
-            border-bottom: 1px dotted #475569;
+            border-bottom: 1px dotted var(--main-text-color);
         }
 
         @media (pointer: coarse), (hover: none) {
@@ -479,7 +648,7 @@
                 padding: 2px 4px;
             }
         }
-        @media only screen and (max-width: 600px) {
+        @media only screen and (max-width: 700px) {
             body {
                 grid-template-columns: 1fr;
                 grid-template-rows: auto auto minmax(80px, 100%) auto;
@@ -492,14 +661,8 @@
                 margin: 4px;
                 grid-template-columns: auto;
             }
-            a.khoj-banner {
-                display: block;
-            }
-            p.khoj-banner {
-                padding: 0;
-            }
         }
-        @media only screen and (min-width: 600px) {
+        @media only screen and (min-width: 700px) {
             body {
                 grid-template-columns: auto min(70vw, 100%) auto;
                 grid-template-rows: auto auto minmax(80px, 100%) auto;
@@ -507,14 +670,6 @@
             body > * {
                 grid-column: 2;
             }
-        }
-
-        div.khoj-banner-container {
-            background: linear-gradient(-45deg, #FFC107, #FF9800, #FF5722, #FF9800, #FFC107);
-            background-size: 400% 400%;
-            animation: gradient 15s ease infinite;
-            text-align: center;
-            padding: 10px;
         }
 
         div#chat-tooltip {
@@ -538,19 +693,7 @@
             text-align: center;
         }
 
-        button#khoj-banner-submit,
-        input#khoj-banner-email {
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #475569;
-            background: #f9fafc;
-        }
-
-        button#khoj-banner-submit:hover,
-        input#khoj-banner-email:hover {
-            box-shadow: 0 0 11px #aaa;
-        }
-        div.khoj-banner-container-hidden {
+        div.khoj-empty-container {
             margin: 0px;
             padding: 0px;
         }
@@ -570,39 +713,4 @@
             white-space: pre-wrap;
         }
     </style>
-    <script>
-        if ("{{demo}}" === "False") {
-            document.getElementById("khoj-banner-container").classList.remove("khoj-banner-container");
-            document.getElementById("khoj-banner-container").classList.add("khoj-banner-container-hidden");
-        }
-
-        var khojBannerSubmit = document.getElementById("khoj-banner-submit");
-
-        khojBannerSubmit?.addEventListener("click", function(event) {
-            event.preventDefault();
-            var email = document.getElementById("khoj-banner-email").value;
-            fetch("https://app.khoj.dev/beta/users/", {
-                    method: "POST",
-                    body: JSON.stringify({
-                        email: email
-                    }),
-                    headers: {
-                        "Content-Type": "application/json"
-                    }
-                }).then(function(response) {
-                    return response.json();
-                }).then(function(data) {
-                    console.log(data);
-                    if (data.user != null) {
-                        document.getElementById("khoj-banner").innerHTML = "Thanks for signing up. We'll be in touch soon! 🚀";
-                        document.getElementById("khoj-banner-submit").remove();
-                    } else {
-                        document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
-                    }
-                }).catch(function(error) {
-                    console.log(error);
-                    document.getElementById("khoj-banner").innerHTML = "There was an error signing up. Please contact team@khoj.dev";
-                });
-            });
-    </script>
 </html>

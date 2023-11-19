@@ -2,6 +2,10 @@
 import argparse
 import pathlib
 from importlib.metadata import version
+import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Internal Packages
 from khoj.utils.helpers import resolve_absolute_path
@@ -11,13 +15,14 @@ from khoj.migrations.migrate_processor_config_openai import migrate_processor_co
 from khoj.migrations.migrate_offline_model import migrate_offline_model
 from khoj.migrations.migrate_offline_chat_schema import migrate_offline_chat_schema
 from khoj.migrations.migrate_offline_chat_default_model import migrate_offline_chat_default_model
+from khoj.migrations.migrate_server_pg import migrate_server_pg
 
 
 def cli(args=None):
     # Setup Argument Parser for the Commandline Interface
     parser = argparse.ArgumentParser(description="Start Khoj; An AI personal assistant for your Digital Brain")
     parser.add_argument(
-        "--config-file", "-c", default="~/.khoj/khoj.yml", type=pathlib.Path, help="YAML file to configure Khoj"
+        "--config-file", default="~/.khoj/khoj.yml", type=pathlib.Path, help="YAML file to configure Khoj"
     )
     parser.add_argument(
         "--regenerate",
@@ -37,9 +42,17 @@ def cli(args=None):
     parser.add_argument(
         "--disable-chat-on-gpu", action="store_true", default=False, help="Disable using GPU for the offline chat model"
     )
-    parser.add_argument("--demo", action="store_true", default=False, help="Run Khoj in demo mode")
+    parser.add_argument(
+        "--anonymous-mode",
+        action="store_true",
+        default=False,
+        help="Run Khoj in anonymous mode. This does not require any login for connecting users.",
+    )
 
-    args = parser.parse_args(args)
+    args, remaining_args = parser.parse_known_args(args)
+
+    if len(remaining_args) > 0:
+        logger.info(f"⚠️  Ignoring unknown commandline args: {remaining_args}")
 
     # Set default values for arguments
     args.chat_on_gpu = not args.disable_chat_on_gpu
@@ -58,6 +71,8 @@ def cli(args=None):
     else:
         args = run_migrations(args)
         args.config = parse_config_from_file(args.config_file)
+        if os.environ.get("KHOJ_DEBUG"):
+            args.config.app.should_log_telemetry = False
 
     return args
 
@@ -69,6 +84,7 @@ def run_migrations(args):
         migrate_offline_model,
         migrate_offline_chat_schema,
         migrate_offline_chat_default_model,
+        migrate_server_pg,
     ]
     for migration in migrations:
         args = migration(args)

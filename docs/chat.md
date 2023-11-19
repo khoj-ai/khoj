@@ -1,13 +1,13 @@
-### Khoj Chat
-#### Overview
+## Khoj Chat
+### Overview
 - Creates a personal assistant for you to inquire and engage with your notes
 - You can choose to use Online or Offline Chat depending on your requirements
 - Supports multi-turn conversations with the relevant notes for context
 - Shows reference notes used to generate a response
 
-### Setup
+### Setup (Self-Hosting)
 #### Offline Chat
-Offline chat stays completely private and works without internet. But it is slower, lower quality and more compute intensive.
+Offline chat stays completely private and works without internet using open-source models.
 
 > **System Requirements**:
 >  - Minimum 8 GB RAM. Recommend **16Gb VRAM**
@@ -15,9 +15,10 @@ Offline chat stays completely private and works without internet. But it is slow
 >  - A CPU supporting [AVX or AVX2 instructions](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions) is required
 >  - A Mac M1+ or [Vulcan supported GPU](https://vulkan.gpuinfo.org/) should significantly speed up chat response times
 
-- Open your [Khoj settings](http://localhost:42110/config/) and click *Enable* on the Offline Chat card
+1. Open your [Khoj offline settings](http://localhost:42110/server/admin/database/offlinechatprocessorconversationconfig/) and click *Enable* on the Offline Chat configuration.
+2. Open your [Chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/) and add a new option for the offline chat model you want to use. Make sure to use `Offline` as its type. We currently only support offline models that use the [Llama chat prompt](https://replicate.com/blog/how-to-prompt-llama#wrap-user-input-with-inst-inst-tags) format. We recommend using `mistral-7b-instruct-v0.1.Q4_0.gguf`.
 
-![Configure offline chat](https://user-images.githubusercontent.com/6413477/257021364-8a2029f5-dc21-4de8-9af9-9ba6100d695c.mp4 ':include :type=mp4')
+!> **Note**: Offline chat is not supported for a multi-user scenario. The host machine will encounter segmentation faults if multiple users try to use offline chat at the same time.
 
 #### Online Chat
 Online chat requires internet to use ChatGPT but is faster, higher quality and less compute intensive.
@@ -25,14 +26,12 @@ Online chat requires internet to use ChatGPT but is faster, higher quality and l
 !> **Warning**: This will enable Khoj to send your chat queries and query relevant notes to OpenAI for processing
 
 1. Get your [OpenAI API Key](https://platform.openai.com/account/api-keys)
-2. Open your [Khoj Online Chat settings](http://localhost:42110/config/processor/conversation), add your OpenAI API key, and click *Save*. Then go to your [Khoj settings](http://localhost:42110/config) and click `Configure`. This will refresh Khoj with your OpenAI API key.
-
-![Configure online chat](https://user-images.githubusercontent.com/6413477/256998908-ac26e55e-13a2-45fb-9348-3b90a62f7687.mp4 ':include :type=mp4')
-
+2. Open your [Khoj Online Chat settings](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/). Add a new setting with your OpenAI API key, and click *Save*. Only one configuration will be used, so make sure that's the only one you have.
+3. Open your [Chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/) and add a new option for the OpenAI chat model you want to use. Make sure to use `OpenAI` as its type.
 
 ### Use
 1. Open Khoj Chat
-    - **On Web**: Open [/chat](http://localhost:42110/chat) in your web browser
+    - **On Web**: Open [/chat](https://app.khoj.dev/chat) in your web browser
     - **On Obsidian**: Search for *Khoj: Chat* in the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
     - **On Emacs**: Run `M-x khoj <user-query>`
 2. Enter your queries to chat with Khoj. Use [slash commands](#commands) and [query filters](./advanced.md#query-filters) to change what Khoj uses to respond

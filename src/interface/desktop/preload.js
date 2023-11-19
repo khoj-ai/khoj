@@ -45,5 +45,20 @@ contextBridge.exposeInMainWorld('hostURLAPI', {
 })
 
 contextBridge.exposeInMainWorld('syncDataAPI', {
-    syncData: (regenerate) => ipcRenderer.invoke('syncData', regenerate)
+    syncData: (regenerate) => ipcRenderer.invoke('syncData', regenerate),
+    deleteAllFiles: () => ipcRenderer.invoke('deleteAllFiles')
+})
+
+contextBridge.exposeInMainWorld('tokenAPI', {
+    setToken: (token) => ipcRenderer.invoke('setToken', token),
+    getToken: () => ipcRenderer.invoke('getToken')
+})
+
+contextBridge.exposeInMainWorld('appInfoAPI', {
+    getInfo: (callback) => ipcRenderer.on('appInfo', callback)
+})
+
+contextBridge.exposeInMainWorld('navigateAPI', {
+  navigateToSettings: () => ipcRenderer.send('navigate', 'config.html'),
+  navigateToWebSettings: () => ipcRenderer.send('navigateToWebApp', 'config'),
 })

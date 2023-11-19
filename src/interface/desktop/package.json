@@ -1,6 +1,6 @@
 {
   "name": "Khoj",
-  "version": "0.14.0",
+  "version": "1.0.0",
   "description": "An AI copilot for your Second Brain",
   "author": "Saba Imran, Debanjum Singh Solanky <team@khoj.dev>",
   "license": "GPL-3.0-or-later",
@@ -10,14 +10,14 @@
   "main": "main.js",
   "private": false,
   "devDependencies": {
-    "electron": "25.8.1"
+    "electron": "25.8.4"
   },
   "scripts": {
     "start": "yarn electron ."
   },
   "dependencies": {
     "@todesktop/runtime": "^1.3.0",
-    "axios": "^1.5.0",
+    "axios": "^1.6.0",
     "cron": "^2.4.3",
     "electron-store": "^8.1.0",
     "fs": "^0.0.1-security"

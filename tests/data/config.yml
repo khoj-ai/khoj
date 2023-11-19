@@ -9,20 +9,9 @@ content-type:
     input-filter:
     - '*.org'
     - ~/notes/*.org
-  plugins:
-    content_plugin_1:
-      compressed-jsonl: content_plugin_1.jsonl.gz
-      embeddings-file: content_plugin_1_embeddings.pt
-      input-files:
-      - content_plugin_1_new.jsonl.gz
-    content_plugin_2:
-      compressed-jsonl: content_plugin_2.jsonl.gz
-      embeddings-file: content_plugin_2_embeddings.pt
-      input-filter:
-      - '*2_new.jsonl.gz'
 enable-offline-chat: false
 search-type:
   asymmetric:
     cross-encoder: cross-encoder/ms-marco-MiniLM-L-6-v2
     encoder: sentence-transformers/msmarco-MiniLM-L-6-v3
-version: 0.10.1
+version: 0.15.0

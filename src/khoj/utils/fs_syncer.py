@@ -5,23 +5,37 @@ from typing import Optional
 from bs4 import BeautifulSoup
 
 from khoj.utils.helpers import get_absolute_path, is_none_or_empty
-from khoj.utils.rawconfig import TextContentConfig, ContentConfig
+from khoj.utils.rawconfig import TextContentConfig
 from khoj.utils.config import SearchType
+from database.models import LocalMarkdownConfig, LocalOrgConfig, LocalPdfConfig, LocalPlaintextConfig
 
 logger = logging.getLogger(__name__)
 
 
-def collect_files(config: ContentConfig, search_type: Optional[SearchType] = SearchType.All):
+def collect_files(search_type: Optional[SearchType] = SearchType.All, user=None) -> dict:
     files = {}
+
     if search_type == SearchType.All or search_type == SearchType.Org:
-        files["org"] = get_org_files(config.org) if config.org else {}
+        org_config = LocalOrgConfig.objects.filter(user=user).first()
+        files["org"] = get_org_files(construct_config_from_db(org_config)) if org_config else {}
     if search_type == SearchType.All or search_type == SearchType.Markdown:
-        files["markdown"] = get_markdown_files(config.markdown) if config.markdown else {}
+        markdown_config = LocalMarkdownConfig.objects.filter(user=user).first()
+        files["markdown"] = get_markdown_files(construct_config_from_db(markdown_config)) if markdown_config else {}
     if search_type == SearchType.All or search_type == SearchType.Plaintext:
-        files["plaintext"] = get_plaintext_files(config.plaintext) if config.plaintext else {}
+        plaintext_config = LocalPlaintextConfig.objects.filter(user=user).first()
+        files["plaintext"] = get_plaintext_files(construct_config_from_db(plaintext_config)) if plaintext_config else {}
     if search_type == SearchType.All or search_type == SearchType.Pdf:
-        files["pdf"] = get_pdf_files(config.pdf) if config.pdf else {}
+        pdf_config = LocalPdfConfig.objects.filter(user=user).first()
+        files["pdf"] = get_pdf_files(construct_config_from_db(pdf_config)) if pdf_config else {}
     return files
+
+
+def construct_config_from_db(db_config) -> TextContentConfig:
+    return TextContentConfig(
+        input_files=db_config.input_files,
+        input_filter=db_config.input_filter,
+        index_heading_entries=db_config.index_heading_entries,
+    )
 
 
 def get_plaintext_files(config: TextContentConfig) -> dict[str, str]:
