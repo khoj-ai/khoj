@@ -1,5 +1,5 @@
-### Khoj Chat
-#### Overview
+## Khoj Chat
+### Overview
 - Creates a personal assistant for you to inquire and engage with your notes
 - You can choose to use Online or Offline Chat depending on your requirements
 - Supports multi-turn conversations with the relevant notes for context
