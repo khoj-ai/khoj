@@ -63,7 +63,7 @@
 ;; Khoj Static Configuration
 ;; -------------------------
 
-(defcustom khoj-server-url "http://localhost:42110"
+(defcustom khoj-server-url "https://app.khoj.dev"
   "Location of Khoj API server."
   :group 'khoj
   :type 'string)
@@ -94,7 +94,7 @@
   :type 'number)
 
 (defcustom khoj-api-key nil
-  "API Key to Khoj server."
+  "API Key to your Khoj. Default at https://app.khoj.dev/config#clients."
   :group 'khoj
   :type 'string)
 
