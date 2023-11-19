@@ -229,7 +229,7 @@ def collate_results(hits, image_names, output_directory, image_files_url, count=
 
         # Add the image metadata to the results
         results += [
-            SearchResponse.parse_obj(
+            SearchResponse.model_validate(
                 {
                     "entry": f"{image_files_url}/{target_image_name}",
                     "score": f"{hit['score']:.9f}",
@@ -237,7 +237,7 @@ def collate_results(hits, image_names, output_directory, image_files_url, count=
                         "image_score": f"{hit['image_score']:.9f}",
                         "metadata_score": f"{hit['metadata_score']:.9f}",
                     },
-                    "corpus_id": hit["corpus_id"],
+                    "corpus_id": str(hit["corpus_id"]),
                 }
             )
         ]

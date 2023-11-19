@@ -9,7 +9,7 @@
 </div>
 
 <div align="center">
-<b>An AI personal assistant for your digital brain</b>
+<b>An AI copilot for your Second Brain</b>
 
 </div>
 
@@ -24,30 +24,29 @@
 </div>
 
 ## Introduction
-Welcome to the Khoj Docs! This is the best place to [get started](./setup.md) with Khoj.
+Welcome to the Khoj Docs! This is the best place to get setup and explore Khoj's features.
 
-- Khoj is a desktop application to [search](./search.md) and [chat](./chat.md) with your notes, documents and images
-- It is an offline-first, open source AI personal assistant accessible from your [Emacs](./emacs.md), [Obsidian](./obsidian.md) or [Web browser](./web.md)
-- It works with jpeg, markdown, [notion](./notion_integration.md) org-mode, pdf files and [github repositories](./github_integration.md)
-- If you have more questions, check out the [FAQ](https://faq.khoj.dev/) - it's a live Khoj instance indexing our Github repository!
+- Khoj is an open source, personal AI
+- You can [chat](chat.md) with it about anything. When relevant, it'll use any notes or documents you shared with it to respond
+- Quickly [find](search.md) relevant notes and documents using natural language
+- It understands pdf, plaintext, markdown, org-mode files, [notion pages](notion_integration.md) and [github repositories](github_integration.md)
+- Access it from your [Emacs](emacs.md), [Obsidian](obsidian.md), [Web browser](web.md) or the [Khoj Desktop app](desktop.md)
+- You can self-host Khoj on your consumer hardware or share it with your family, friends or team from your private cloud
 
 ## Quickstart
-[Click here](./setup.md) for full setup instructions
-
-```shell
-pip install khoj-assistant && khoj
-```
+- [Try Khoj Cloud](https://app.khoj.dev) to get started quickly
+- [Read these instructions](./setup.md) to self-host a private instance of Khoj
 
 ## Overview
 <img src="https://docs.khoj.dev/assets/khoj_search_on_web.png" width="400px">
 <span>&nbsp;&nbsp;</span>
 <img src="https://docs.khoj.dev/assets/khoj_chat_on_web.png" width="400px">
 
-#### [Search](./search.md)
-  - **Local**: Your personal data stays local. All search and indexing is done on your machine.
+#### [Search](search.md)
+  - **Natural**: Use natural language queries to quickly find relevant notes and documents.
   - **Incremental**: Incremental search for a fast, search-as-you-type experience
 
-#### [Chat](./chat.md)
+#### [Chat](chat.md)
   - **Faster answers**: Find answers faster, smoother than search. No need to manually scan through your notes to find answers.
   - **Iterative discovery**: Iteratively explore and (re-)discover your notes
   - **Assisted creativity**: Smoothly weave across answers retrieval and content generation

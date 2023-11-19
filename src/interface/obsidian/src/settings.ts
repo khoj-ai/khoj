@@ -13,7 +13,7 @@ export interface KhojSetting {
 
 export const DEFAULT_SETTINGS: KhojSetting = {
     resultsCount: 6,
-    khojUrl: 'http://127.0.0.1:42110',
+    khojUrl: 'https://app.khoj.dev',
     khojApiKey: '',
     connectedToBackend: false,
     autoConfigure: true,

@@ -1,12 +1,13 @@
 - Get Started
     - [Overview](README.md)
-    - [Install](setup.md)
+    - [Self-Host](setup.md)
     - [Demos](demos.md)
 - Use
     - [Features](features.md)
         - [Chat](chat.md)
         - [Search](search.md)
-    - Interfaces
+    - Clients
+        - [Desktop](desktop.md)
         - [Obsidian](obsidian.md)
         - [Emacs](emacs.md)
         - [Web](web.md)

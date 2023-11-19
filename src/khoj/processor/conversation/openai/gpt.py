@@ -1,5 +1,6 @@
 # Standard Packages
 import logging
+import json
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -31,6 +32,10 @@ def extract_questions(
     """
     Infer search queries to retrieve relevant notes to answer user query
     """
+
+    def _valid_question(question: str):
+        return not is_none_or_empty(question) and question != "[]"
+
     # Extract Past User Message and Inferred Questions from Conversation Log
     chat_history = "".join(
         [
@@ -70,7 +75,7 @@ def extract_questions(
 
     # Extract, Clean Message from GPT's Response
     try:
-        questions = (
+        split_questions = (
             response.content.strip(empty_escape_sequences)
             .replace("['", '["')
             .replace("']", '"]')
@@ -79,9 +84,18 @@ def extract_questions(
             .replace('"]', "")
             .split('", "')
         )
+        questions = []
+
+        for question in split_questions:
+            if question not in questions and _valid_question(question):
+                questions.append(question)
+
+        if is_none_or_empty(questions):
+            raise ValueError("GPT returned empty JSON")
     except:
         logger.warning(f"GPT returned invalid JSON. Falling back to using user message as search query.\n{response}")
         questions = [text]
+
     logger.debug(f"Extracted Questions by GPT: {questions}")
     return questions
 

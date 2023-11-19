@@ -9,9 +9,6 @@ import os
 from fastapi import FastAPI
 
 
-app = FastAPI()
-
-
 # Internal Packages
 from khoj.configure import configure_routes, configure_search_types, configure_middleware
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
@@ -320,6 +317,7 @@ def client(
 
     state.anonymous_mode = False
 
+    app = FastAPI()
     configure_routes(app)
     configure_middleware(app)
     app.mount("/static", StaticFiles(directory=web_directory), name="static")

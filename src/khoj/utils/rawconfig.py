@@ -14,7 +14,7 @@ from khoj.utils.helpers import to_snake_case_from_dash
 class ConfigBase(BaseModel):
     class Config:
         alias_generator = to_snake_case_from_dash
-        allow_population_by_field_name = True
+        populate_by_name = True
 
     def __getitem__(self, item):
         return getattr(self, item)
@@ -29,8 +29,8 @@ class TextConfigBase(ConfigBase):
 
 
 class TextContentConfig(ConfigBase):
-    input_files: Optional[List[Path]]
-    input_filter: Optional[List[str]]
+    input_files: Optional[List[Path]] = None
+    input_filter: Optional[List[str]] = None
     index_heading_entries: Optional[bool] = False
 
 
@@ -50,31 +50,31 @@ class NotionContentConfig(ConfigBase):
 
 
 class ImageContentConfig(ConfigBase):
-    input_directories: Optional[List[Path]]
-    input_filter: Optional[List[str]]
+    input_directories: Optional[List[Path]] = None
+    input_filter: Optional[List[str]] = None
     embeddings_file: Path
     use_xmp_metadata: bool
     batch_size: int
 
 
 class ContentConfig(ConfigBase):
-    org: Optional[TextContentConfig]
-    image: Optional[ImageContentConfig]
-    markdown: Optional[TextContentConfig]
-    pdf: Optional[TextContentConfig]
-    plaintext: Optional[TextContentConfig]
-    github: Optional[GithubContentConfig]
-    notion: Optional[NotionContentConfig]
+    org: Optional[TextContentConfig] = None
+    image: Optional[ImageContentConfig] = None
+    markdown: Optional[TextContentConfig] = None
+    pdf: Optional[TextContentConfig] = None
+    plaintext: Optional[TextContentConfig] = None
+    github: Optional[GithubContentConfig] = None
+    notion: Optional[NotionContentConfig] = None
 
 
 class ImageSearchConfig(ConfigBase):
     encoder: str
-    encoder_type: Optional[str]
-    model_directory: Optional[Path]
+    encoder_type: Optional[str] = None
+    model_directory: Optional[Path] = None
 
 
 class SearchConfig(ConfigBase):
-    image: Optional[ImageSearchConfig]
+    image: Optional[ImageSearchConfig] = None
 
 
 class OpenAIProcessorConfig(ConfigBase):
@@ -95,26 +95,26 @@ class ConversationProcessorConfig(ConfigBase):
 
 
 class ProcessorConfig(ConfigBase):
-    conversation: Optional[ConversationProcessorConfig]
+    conversation: Optional[ConversationProcessorConfig] = None
 
 
 class AppConfig(ConfigBase):
-    should_log_telemetry: bool
+    should_log_telemetry: bool = True
 
 
 class FullConfig(ConfigBase):
     content_type: Optional[ContentConfig] = None
     search_type: Optional[SearchConfig] = None
     processor: Optional[ProcessorConfig] = None
-    app: Optional[AppConfig] = AppConfig(should_log_telemetry=True)
+    app: Optional[AppConfig] = AppConfig()
     version: Optional[str] = None
 
 
 class SearchResponse(ConfigBase):
     entry: str
     score: float
-    cross_score: Optional[float]
-    additional: Optional[dict]
+    cross_score: Optional[float] = None
+    additional: Optional[dict] = None
     corpus_id: str
 
 
