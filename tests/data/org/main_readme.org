@@ -22,16 +22,16 @@
    #+end_src
 
 ** Use
-   - *Khoj via Emacs*
+*** *Khoj via Emacs*
      - [[https://github.com/khoj-ai/khoj/tree/master/interface/emacs#installation][Install]] [[./interface/emacs/khoj.el][khoj.el]]
      - Run ~M-x khoj <user-query>~ or Call ~C-c C-s~
 
-   - *Khoj via API*
+*** *Khoj via API*
      - Query: ~GET~ [[http://localhost:42110/api/search?q=%22what%20is%20the%20meaning%20of%20life%22][http://localhost:42110/api/search?q="What is the meaning of life"]]
      - Update Index: ~GET~ [[http://localhost:42110/api/update][http://localhost:42110/api/update]]
      - [[http://localhost:42110/docs][Khoj API Docs]]
 
-   - *Call Khoj via Python Script Directly*
+*** *Call Khoj via Python Script Directly*
      #+begin_src shell
      python3 search_types/asymmetric.py \
      --compressed-jsonl .notes.jsonl.gz \
