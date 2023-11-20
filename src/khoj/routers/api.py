@@ -513,6 +513,17 @@ def update(
     return {"status": "ok", "message": "khoj reloaded"}
 
 
+@api.get("/chat/starters", response_class=Response)
+@requires(["authenticated"])
+async def chat_starters(
+    request: Request,
+    common: CommonQueryParams,
+) -> Response:
+    user: KhojUser = request.user.object
+    starter_questions = await ConversationAdapters.aget_conversation_starters(user)
+    return Response(content=json.dumps(starter_questions), media_type="application/json", status_code=200)
+
+
 @api.get("/chat/history")
 @requires(["authenticated"])
 def chat_history(

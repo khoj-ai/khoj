@@ -33,8 +33,11 @@ from database.models import (
     UserConversationConfig,
     OpenAIProcessorConversationConfig,
     OfflineChatProcessorConversationConfig,
+    ReflectiveQuestion,
 )
 from khoj.utils.helpers import generate_random_name
+from khoj.utils import state
+from khoj.utils.config import GPT4AllProcessorModel
 from khoj.search_filter.word_filter import WordFilter
 from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.date_filter import DateFilter
@@ -339,6 +342,25 @@ class ConversationAdapters:
     @staticmethod
     async def get_openai_chat_config():
         return await OpenAIProcessorConversationConfig.objects.filter().afirst()
+
+    @staticmethod
+    async def aget_conversation_starters(user: KhojUser):
+        all_questions = []
+        if await ReflectiveQuestion.objects.filter(user=user).aexists():
+            all_questions = await sync_to_async(ReflectiveQuestion.objects.filter(user=user).values_list)(
+                "question", flat=True
+            )
+
+        all_questions = await sync_to_async(ReflectiveQuestion.objects.filter(user=None).values_list)(
+            "question", flat=True
+        )
+
+        max_results = 3
+        all_questions = await sync_to_async(list)(all_questions)
+        if len(all_questions) < max_results:
+            return all_questions
+
+        return random.sample(all_questions, max_results)
 
     @staticmethod
     def get_valid_conversation_config(user: KhojUser):
