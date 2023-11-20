@@ -4,6 +4,7 @@ from datetime import date, datetime
 import secrets
 from typing import Type, List
 from datetime import date, timezone
+import random
 
 from django.db import models
 from django.contrib.sessions.backends.db import SessionStore
@@ -338,6 +339,26 @@ class ConversationAdapters:
     @staticmethod
     async def get_openai_chat_config():
         return await OpenAIProcessorConversationConfig.objects.filter().afirst()
+
+    @staticmethod
+    def get_valid_conversation_config(user: KhojUser):
+        offline_chat_config = ConversationAdapters.get_offline_chat_conversation_config()
+        conversation_config = ConversationAdapters.get_conversation_config(user)
+        if conversation_config is None:
+            conversation_config = ConversationAdapters.get_default_conversation_config()
+
+        if offline_chat_config and offline_chat_config.enabled and conversation_config.model_type == "offline":
+            if state.gpt4all_processor_config is None or state.gpt4all_processor_config.loaded_model is None:
+                state.gpt4all_processor_config = GPT4AllProcessorModel(conversation_config.chat_model)
+
+            return conversation_config
+
+        openai_chat_config = ConversationAdapters.get_openai_conversation_config()
+        if openai_chat_config and conversation_config.model_type == "openai":
+            return conversation_config
+
+        else:
+            raise ValueError("Invalid conversation config - either configure offline chat or openai chat")
 
 
 class EntryAdapters:

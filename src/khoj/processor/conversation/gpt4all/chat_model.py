@@ -179,13 +179,6 @@ def converse_offline(
 
 
 def llm_thread(g, messages: List[ChatMessage], model: Any):
-    try:
-        from gpt4all import GPT4All
-    except ModuleNotFoundError as e:
-        logger.info("There was an error importing GPT4All. Please run pip install gpt4all in order to install it.")
-        raise e
-
-    assert isinstance(model, GPT4All), "model should be of type GPT4All"
     user_message = messages[-1]
     system_message = messages[0]
     conversation_history = messages[1:-1]
@@ -204,7 +197,7 @@ def llm_thread(g, messages: List[ChatMessage], model: Any):
     prompted_message = templated_system_message + chat_history + templated_user_message
 
     state.chat_lock.acquire()
-    response_iterator = model.generate(prompted_message, streaming=True, max_tokens=500, n_batch=512)
+    response_iterator = send_message_to_model_offline(prompted_message, loaded_model=model, streaming=True)
     try:
         for response in response_iterator:
             if any(stop_word in response.strip() for stop_word in stop_words):
@@ -214,3 +207,18 @@ def llm_thread(g, messages: List[ChatMessage], model: Any):
     finally:
         state.chat_lock.release()
     g.close()
+
+
+def send_message_to_model_offline(
+    message, loaded_model=None, model="mistral-7b-instruct-v0.1.Q4_0.gguf", streaming=False
+):
+    try:
+        from gpt4all import GPT4All
+    except ModuleNotFoundError as e:
+        logger.info("There was an error importing GPT4All. Please run pip install gpt4all in order to install it.")
+        raise e
+
+    assert loaded_model is None or isinstance(loaded_model, GPT4All), "loaded_model must be of type GPT4All or None"
+    gpt4all_model = loaded_model or GPT4All(model)
+
+    return gpt4all_model.generate(message, max_tokens=200, top_k=2, temp=0, n_batch=512, streaming=streaming)

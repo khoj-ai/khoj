@@ -100,6 +100,27 @@ def extract_questions(
     return questions
 
 
+def send_message_to_model(
+    message,
+    api_key,
+    model,
+):
+    """
+    Send message to model
+    """
+    messages = [ChatMessage(content=message, role="assistant")]
+
+    # Get Response from GPT
+    return completion_with_backoff(
+        messages=messages,
+        model_name=model,
+        temperature=0,
+        max_tokens=100,
+        model_kwargs={"stop": ["A: ", "\n"]},
+        openai_api_key=api_key,
+    )
+
+
 def converse(
     references,
     online_results,

@@ -6,7 +6,12 @@ from datetime import datetime
 from functools import partial
 import logging
 from time import time
+import json
 from typing import Annotated, Iterator, List, Optional, Union, Tuple, Dict, Any
+
+from datetime import datetime
+
+from khoj.processor.conversation import prompts
 
 # External Packages
 from fastapi import HTTPException, Header, Request, Depends
@@ -15,10 +20,10 @@ from fastapi import HTTPException, Header, Request, Depends
 from khoj.utils import state
 from khoj.utils.config import GPT4AllProcessorModel
 from khoj.utils.helpers import ConversationCommand, log_telemetry
-from khoj.processor.conversation.openai.gpt import converse
-from khoj.processor.conversation.gpt4all.chat_model import converse_offline
+from khoj.processor.conversation.openai.gpt import converse, send_message_to_model
+from khoj.processor.conversation.gpt4all.chat_model import converse_offline, send_message_to_model_offline
 from khoj.processor.conversation.utils import message_to_log, ThreadedGenerator
-from database.models import KhojUser, Subscription
+from database.models import KhojUser, Subscription, ChatModelOptions
 from database.adapters import ConversationAdapters
 
 
@@ -114,6 +119,65 @@ async def agenerate_chat_response(*args):
     return await loop.run_in_executor(executor, generate_chat_response, *args)
 
 
+async def generate_online_subqueries(q: str) -> List[str]:
+    """
+    Generate subqueries from the given query
+    """
+    utc_date = datetime.utcnow().strftime("%Y-%m-%d")
+    online_queries_prompt = prompts.online_search_conversation_subqueries.format(
+        current_date=utc_date,
+        query=q,
+    )
+
+    response = await send_message_to_model_wrapper(online_queries_prompt)
+
+    # Validate that the response is a non-empty, JSON-serializable list
+    try:
+        response = response.strip()
+        response = json.loads(response)
+        response = [q.strip() for q in response if q.strip()]
+        if not isinstance(response, list) or not response or len(response) == 0:
+            logger.error(f"Invalid response for constructing subqueries: {response}")
+            return [q]
+        return response
+    except Exception as e:
+        logger.error(f"Invalid response for constructing subqueries: {response}")
+        return [q]
+
+
+async def send_message_to_model_wrapper(
+    message: str,
+):
+    conversation_config = await ConversationAdapters.aget_default_conversation_config()
+
+    if conversation_config is None:
+        raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
+
+    if conversation_config.model_type == "offline":
+        if state.gpt4all_processor_config is None or state.gpt4all_processor_config.loaded_model is None:
+            state.gpt4all_processor_config = GPT4AllProcessorModel(conversation_config.chat_model)
+
+        loaded_model = state.gpt4all_processor_config.loaded_model
+        return send_message_to_model_offline(
+            message=message,
+            loaded_model=loaded_model,
+            model=conversation_config.chat_model,
+            streaming=False,
+        )
+
+    elif conversation_config.model_type == "openai":
+        openai_chat_config = await ConversationAdapters.aget_openai_conversation_config()
+        api_key = openai_chat_config.api_key
+        chat_model = conversation_config.chat_model
+        return send_message_to_model(
+            message=message,
+            api_key=api_key,
+            model=chat_model,
+        )
+    else:
+        raise HTTPException(status_code=500, detail="Invalid conversation config")
+
+
 def generate_chat_response(
     q: str,
     meta_log: dict,
@@ -163,12 +227,8 @@ def generate_chat_response(
             meta_log=meta_log,
         )
 
-        offline_chat_config = ConversationAdapters.get_offline_chat_conversation_config()
-        conversation_config = ConversationAdapters.get_conversation_config(user)
-        if conversation_config is None:
-            conversation_config = ConversationAdapters.get_default_conversation_config()
-        openai_chat_config = ConversationAdapters.get_openai_conversation_config()
-        if offline_chat_config and offline_chat_config.enabled and conversation_config.model_type == "offline":
+        conversation_config = ConversationAdapters.get_valid_conversation_config(user)
+        if conversation_config.model_type == "offline":
             if state.gpt4all_processor_config is None or state.gpt4all_processor_config.loaded_model is None:
                 state.gpt4all_processor_config = GPT4AllProcessorModel(conversation_config.chat_model)
 
@@ -186,7 +246,8 @@ def generate_chat_response(
                 tokenizer_name=conversation_config.tokenizer,
             )
 
-        elif openai_chat_config and conversation_config.model_type == "openai":
+        elif conversation_config.model_type == "openai":
+            openai_chat_config = ConversationAdapters.get_openai_conversation_config()
             api_key = openai_chat_config.api_key
             chat_model = conversation_config.chat_model
             chat_response = converse(

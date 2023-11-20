@@ -147,35 +147,38 @@ To get started, just start typing below. You can also type / to see a list of co
 
         function processOnlineReferences(referenceSection, onlineContext) {
             let numOnlineReferences = 0;
-            if (onlineContext.organic && onlineContext.organic.length > 0) {
-                numOnlineReferences += onlineContext.organic.length;
-                for (let index in onlineContext.organic) {
-                    let reference = onlineContext.organic[index];
+            for (let subquery in onlineContext) {
+                let onlineReference = onlineContext[subquery];
+                if (onlineReference.organic && onlineReference.organic.length > 0) {
+                    numOnlineReferences += onlineReference.organic.length;
+                    for (let index in onlineReference.organic) {
+                        let reference = onlineReference.organic[index];
                     let polishedReference = generateOnlineReference(reference, index);
                     referenceSection.appendChild(polishedReference);
+                    }
                 }
-            }
 
-            if (onlineContext.knowledgeGraph && onlineContext.knowledgeGraph.length > 0) {
-                numOnlineReferences += onlineContext.knowledgeGraph.length;
-                for (let index in onlineContext.knowledgeGraph) {
-                    let reference = onlineContext.knowledgeGraph[index];
+                if (onlineReference.knowledgeGraph && onlineReference.knowledgeGraph.length > 0) {
+                    numOnlineReferences += onlineReference.knowledgeGraph.length;
+                    for (let index in onlineReference.knowledgeGraph) {
+                        let reference = onlineReference.knowledgeGraph[index];
                     let polishedReference = generateOnlineReference(reference, index);
                     referenceSection.appendChild(polishedReference);
+                    }
                 }
-            }
 
-            if (onlineContext.peopleAlsoAsk && onlineContext.peopleAlsoAsk.length > 0) {
-                numOnlineReferences += onlineContext.peopleAlsoAsk.length;
-                for (let index in onlineContext.peopleAlsoAsk) {
-                    let reference = onlineContext.peopleAlsoAsk[index];
-                    let polishedReference = generateOnlineReference(reference, index);
-                    referenceSection.appendChild(polishedReference);
+                if (onlineReference.peopleAlsoAsk && onlineReference.peopleAlsoAsk.length > 0) {
+                    numOnlineReferences += onlineReference.peopleAlsoAsk.length;
+                    for (let index in onlineReference.peopleAlsoAsk) {
+                        let reference = onlineReference.peopleAlsoAsk[index];
+                        let polishedReference = generateOnlineReference(reference, index);
+                        referenceSection.appendChild(polishedReference);
+                    }
                 }
-            }
+        }
 
             return numOnlineReferences;
-        }
+                    }
 
         function renderMessageWithReference(message, by, context=null, dt=null, onlineContext=null) {
             if (context == null && onlineContext == null) {
@@ -355,7 +358,6 @@ To get started, just start typing below. You can also type / to see a list of co
                                 const rawReferenceAsJson = JSON.parse(rawReference);
                                 references = document.createElement('div');
                                 references.classList.add("references");
-
 
                                 let referenceExpandButton = document.createElement('button');
                                 referenceExpandButton.classList.add("reference-expand-button");

@@ -137,30 +137,33 @@
 
         function processOnlineReferences(referenceSection, onlineContext) {
             let numOnlineReferences = 0;
-            if (onlineContext.organic && onlineContext.organic.length > 0) {
-                numOnlineReferences += onlineContext.organic.length;
-                for (let index in onlineContext.organic) {
-                    let reference = onlineContext.organic[index];
-                    let polishedReference = generateOnlineReference(reference, index);
-                    referenceSection.appendChild(polishedReference);
+            for (let subquery in onlineContext) {
+                let onlineReference = onlineContext[subquery];
+                if (onlineReference.organic && onlineReference.organic.length > 0) {
+                    numOnlineReferences += onlineReference.organic.length;
+                    for (let index in onlineReference.organic) {
+                        let reference = onlineReference.organic[index];
+                        let polishedReference = generateOnlineReference(reference, index);
+                        referenceSection.appendChild(polishedReference);
+                    }
                 }
-            }
 
-            if (onlineContext.knowledgeGraph && onlineContext.knowledgeGraph.length > 0) {
-                numOnlineReferences += onlineContext.knowledgeGraph.length;
-                for (let index in onlineContext.knowledgeGraph) {
-                    let reference = onlineContext.knowledgeGraph[index];
-                    let polishedReference = generateOnlineReference(reference, index);
-                    referenceSection.appendChild(polishedReference);
+                if (onlineReference.knowledgeGraph && onlineReference.knowledgeGraph.length > 0) {
+                    numOnlineReferences += onlineReference.knowledgeGraph.length;
+                    for (let index in onlineReference.knowledgeGraph) {
+                        let reference = onlineReference.knowledgeGraph[index];
+                        let polishedReference = generateOnlineReference(reference, index);
+                        referenceSection.appendChild(polishedReference);
+                    }
                 }
-            }
 
-            if (onlineContext.peopleAlsoAsk && onlineContext.peopleAlsoAsk.length > 0) {
-                numOnlineReferences += onlineContext.peopleAlsoAsk.length;
-                for (let index in onlineContext.peopleAlsoAsk) {
-                    let reference = onlineContext.peopleAlsoAsk[index];
-                    let polishedReference = generateOnlineReference(reference, index);
-                    referenceSection.appendChild(polishedReference);
+                if (onlineReference.peopleAlsoAsk && onlineReference.peopleAlsoAsk.length > 0) {
+                    numOnlineReferences += onlineReference.peopleAlsoAsk.length;
+                    for (let index in onlineReference.peopleAlsoAsk) {
+                        let reference = onlineReference.peopleAlsoAsk[index];
+                        let polishedReference = generateOnlineReference(reference, index);
+                        referenceSection.appendChild(polishedReference);
+                    }
                 }
             }
 
@@ -316,14 +319,27 @@
 
                                 let referenceExpandButton = document.createElement('button');
                                 referenceExpandButton.classList.add("reference-expand-button");
-                                let expandButtonText = rawReferenceAsJson.length == 1 ? "1 reference" : `${rawReferenceAsJson.length} references`;
-                                referenceExpandButton.innerHTML = expandButtonText;
 
-                                references.appendChild(referenceExpandButton);
 
                                 let referenceSection = document.createElement('div');
                                 referenceSection.classList.add("reference-section");
                                 referenceSection.classList.add("collapsed");
+
+                                let numReferences = 0;
+
+                                // If rawReferenceAsJson is a list, then count the length
+                                if (Array.isArray(rawReferenceAsJson)) {
+                                    numReferences = rawReferenceAsJson.length;
+
+                                    rawReferenceAsJson.forEach((reference, index) => {
+                                    let polishedReference = generateReference(reference, index);
+                                    referenceSection.appendChild(polishedReference);
+                                });
+                                } else {
+                                    numReferences += processOnlineReferences(referenceSection, rawReferenceAsJson);
+                                }
+
+                                references.appendChild(referenceExpandButton);
 
                                 referenceExpandButton.addEventListener('click', function() {
                                     if (referenceSection.classList.contains("collapsed")) {
@@ -335,10 +351,8 @@
                                     }
                                 });
 
-                                rawReferenceAsJson.forEach((reference, index) => {
-                                    let polishedReference = generateReference(reference, index);
-                                    referenceSection.appendChild(polishedReference);
-                                });
+                                let expandButtonText = numReferences == 1 ? "1 reference" : `${numReferences} references`;
+                                referenceExpandButton.innerHTML = expandButtonText;
                                 references.appendChild(referenceSection);
                                 readStream();
                             } else {
@@ -419,7 +433,7 @@
             const khojToken = await window.tokenAPI.getToken();
             const headers = { 'Authorization': `Bearer ${khojToken}` };
 
-            fetch(`${hostURL}/api/chat/history?client=web`, { headers })
+            fetch(`${hostURL}/api/chat/history?client=desktop`, { headers })
                 .then(response => response.json())
                 .then(data => {
                     if (data.detail) {

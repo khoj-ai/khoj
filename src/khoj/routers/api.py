@@ -597,7 +597,7 @@ async def chat(
 
     elif conversation_command == ConversationCommand.Online:
         try:
-            online_results = search_with_google(defiltered_query)
+            online_results = await search_with_google(defiltered_query)
         except ValueError as e:
             return StreamingResponse(
                 iter(["Please set your SERPER_DEV_API_KEY to get started with online searches 🌐"]),
