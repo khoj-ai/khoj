@@ -100,16 +100,17 @@ class OrgToEntries(TextToEntries):
                 continue
 
             todo_str = f"{parsed_entry.todo} " if parsed_entry.todo else ""
-            # Prepend filename as top heading to entry
-            filename = Path(entry_to_file_map[parsed_entry]).stem
+
+            # Prepend ancestor headings, filename as top heading to entry for context
+            ancestors_trail = " / ".join(parsed_entry.ancestors) or Path(entry_to_file_map[parsed_entry])
             if parsed_entry.heading:
-                heading = f"* {filename}\n** {todo_str}{parsed_entry.heading}."
+                heading = f"* Path: {ancestors_trail}\n** {todo_str}{parsed_entry.heading}."
             else:
-                heading = f"* {filename}."
+                heading = f"* Path: {ancestors_trail}."
 
             compiled = heading
             if state.verbose > 2:
-                logger.debug(f"Title: {parsed_entry.heading}")
+                logger.debug(f"Title: {heading}")
 
             if parsed_entry.tags:
                 tags_str = " ".join(parsed_entry.tags)

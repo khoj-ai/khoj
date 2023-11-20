@@ -69,7 +69,7 @@ def test_index_update_with_user2_inaccessible_user1(client, api_user2: KhojApiUs
 
     # Assert
     assert update_response.status_code == 200
-    assert len(results) == 4
+    assert len(results) == 5
     for result in results:
         assert result["additional"]["file"] not in source_file_symbol
 

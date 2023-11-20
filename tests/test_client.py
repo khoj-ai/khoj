@@ -321,7 +321,7 @@ def test_notes_search_with_include_filter(client, sample_org_data, default_user:
     assert response.status_code == 200
     # assert actual_data contains word "Emacs"
     search_result = response.json()[0]["entry"]
-    assert "Emacs" in search_result
+    assert "emacs" in search_result
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -345,6 +345,27 @@ def test_notes_search_with_exclude_filter(client, sample_org_data, default_user:
     # assert actual_data does not contains word "clone"
     search_result = response.json()[0]["entry"]
     assert "clone" not in search_result
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.django_db(transaction=True)
+def test_notes_search_requires_parent_context(
+    client, search_config: SearchConfig, sample_org_data, default_user: KhojUser
+):
+    # Arrange
+    headers = {"Authorization": "Bearer kk-secret"}
+    text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)
+    user_query = quote("Install Khoj on Emacs")
+
+    # Act
+    response = client.get(f"/api/search?q={user_query}&n=1&t=org&r=true&max_distance=0.18", headers=headers)
+
+    # Assert
+    assert response.status_code == 200
+
+    assert len(response.json()) == 1, "Expected only 1 result"
+    search_result = response.json()[0]["entry"]
+    assert "Emacs load path" in search_result, "Expected 'Emacs load path' in search result"
 
 
 # ----------------------------------------------------------------------------------------------------

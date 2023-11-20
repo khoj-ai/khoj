@@ -27,9 +27,9 @@ class GoogleUser(models.Model):
     sub = models.CharField(max_length=200)
     azp = models.CharField(max_length=200)
     email = models.CharField(max_length=200)
-    name = models.CharField(max_length=200)
-    given_name = models.CharField(max_length=200)
-    family_name = models.CharField(max_length=200)
+    name = models.CharField(max_length=200, null=True, default=None, blank=True)
+    given_name = models.CharField(max_length=200, null=True, default=None, blank=True)
+    family_name = models.CharField(max_length=200, null=True, default=None, blank=True)
     picture = models.CharField(max_length=200, null=True, default=None)
     locale = models.CharField(max_length=200)
 

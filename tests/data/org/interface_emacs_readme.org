@@ -4,10 +4,9 @@
 ** Requirements
    - Install and Run [[https://github.com/khoj-ai/khoj][khoj]]
 
-** Installation
-   - Direct Install
+** Install
+*** Direct
      - Put ~khoj.el~ in your Emacs load path. For e.g ~/.emacs.d/lisp
-
      - Load via ~use-package~ in your ~/.emacs.d/init.el or .emacs file by adding below snippet
        #+begin_src elisp
          ;; Khoj Package
@@ -16,7 +15,7 @@
            :bind ("C-c s" . 'khoj))
        #+end_src
 
-   - Use [[https://github.com/quelpa/quelpa#installation][Quelpa]]
+*** Using [[https://github.com/quelpa/quelpa#installation][Quelpa]]
      - Ensure [[https://github.com/quelpa/quelpa#installation][Quelpa]], [[https://github.com/quelpa/quelpa-use-package#installation][quelpa-use-package]] are installed
      - Add below snippet to your ~/.emacs.d/init.el or .emacs config file and execute it.
        #+begin_src elisp
@@ -28,17 +27,10 @@
 
 ** Usage
    1. Call ~khoj~ using keybinding ~C-c s~ or ~M-x khoj~
-
    2. Enter Query in Natural Language
-
       e.g "What is the meaning of life?" "What are my life goals?"
-
    3. Wait for results
-
       *Note: It takes about 15s on a Mac M1 and a ~100K lines corpus of org-mode files*
-
    4. (Optional) Narrow down results further
-
       Include/Exclude specific words from results by adding to query
-
       e.g "What is the meaning of life? -god +none"

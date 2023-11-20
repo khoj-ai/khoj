@@ -3,6 +3,25 @@ from khoj.search_filter.word_filter import WordFilter
 from khoj.utils.rawconfig import Entry
 
 
+# Test
+# ----------------------------------------------------------------------------------------------------
+def test_no_word_filter():
+    # Arrange
+    word_filter = WordFilter()
+    q_with_no_filter = "head tail"
+
+    # Act
+    can_filter = word_filter.can_filter(q_with_no_filter)
+    filter_terms = word_filter.get_filter_terms(q_with_no_filter)
+
+    # Assert
+    assert can_filter == False
+    assert filter_terms == []
+
+
+# ----------------------------------------------------------------------------------------------------
+
+
 def test_word_exclude_filter():
     # Arrange
     word_filter = WordFilter()
@@ -15,6 +34,7 @@ def test_word_exclude_filter():
     assert can_filter == True
 
 
+# ----------------------------------------------------------------------------------------------------
 def test_word_include_filter():
     # Arrange
     word_filter = WordFilter()
@@ -27,6 +47,7 @@ def test_word_include_filter():
     assert can_filter == True
 
 
+# ----------------------------------------------------------------------------------------------------
 def test_word_include_and_exclude_filter():
     # Arrange
     word_filter = WordFilter()
@@ -39,6 +60,7 @@ def test_word_include_and_exclude_filter():
     assert can_filter == True
 
 
+# ----------------------------------------------------------------------------------------------------
 def test_get_word_filter_terms():
     # Arrange
     word_filter = WordFilter()

@@ -45,9 +45,10 @@ def test_configure_heading_entry_to_jsonl(tmp_path):
             assert is_none_or_empty(jsonl_data)
 
 
-def test_entry_split_when_exceeds_max_words(tmp_path):
+def test_entry_split_when_exceeds_max_words():
     "Ensure entries with compiled words exceeding max_words are split."
     # Arrange
+    tmp_path = "/tmp/test.org"
     entry = f"""*** Heading
     \t\r
     Body Line
@@ -55,7 +56,7 @@ def test_entry_split_when_exceeds_max_words(tmp_path):
     data = {
         f"{tmp_path}": entry,
     }
-    expected_heading = f"* {tmp_path.stem}\n** Heading"
+    expected_heading = f"* Path: {tmp_path}\n** Heading"
 
     # Act
     # Extract Entries from specified Org files

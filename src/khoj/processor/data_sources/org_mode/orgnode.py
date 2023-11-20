@@ -80,6 +80,7 @@ def makelist(file, filename):
     }  # populated from #+SEQ_TODO line
     level = ""
     heading = ""
+    ancestor_headings = []
     bodytext = ""
     introtext = ""
     tags = list()  # set of all tags in headline
@@ -98,7 +99,7 @@ def makelist(file, filename):
         heading_search = re.search(r"^(\*+)\s(.*?)\s*$", line)
         if heading_search:  # we are processing a heading line
             if heading:  # if we have are on second heading, append first heading to headings list
-                thisNode = Orgnode(level, heading, bodytext, tags)
+                thisNode = Orgnode(level, heading, bodytext, tags, ancestor_headings)
                 if closed_date:
                     thisNode.closed = closed_date
                     closed_date = ""
@@ -114,6 +115,8 @@ def makelist(file, filename):
                 thisNode.properties = property_map
                 nodelist.append(thisNode)
             property_map = {"LINE": f"file:{normalize_filename(filename)}::{ctr}"}
+            previous_level = level
+            previous_heading = heading
             level = heading_search.group(1)
             heading = heading_search.group(2)
             bodytext = ""
@@ -126,6 +129,17 @@ def makelist(file, filename):
                     for parsedtag in parsedtags.split(":"):
                         if parsedtag != "":
                             tags.append(parsedtag)
+
+            # Add previous heading to ancestors if current heading is deeper than previous level
+            if len(level) > len(previous_level) and previous_heading:
+                ancestor_headings.append(previous_heading)
+            # Remove last ancestor(s) if current heading is shallower than previous level
+            elif len(level) < len(previous_level):
+                for _ in range(len(level), len(previous_level)):
+                    if not ancestor_headings or len(ancestor_headings) == 0:
+                        break
+                    ancestor_headings.pop()
+
         else:  # we are processing a non-heading line
             if line[:10] == "#+SEQ_TODO":
                 kwlist = re.findall(r"([A-Z]+)\(", line)
@@ -216,7 +230,7 @@ def makelist(file, filename):
         nodelist = [thisNode] + nodelist
     # write out last heading node
     if heading:
-        thisNode = Orgnode(level, heading, bodytext, tags)
+        thisNode = Orgnode(level, heading, bodytext, tags, ancestor_headings)
         thisNode.properties = property_map
         if sched_date:
             thisNode.scheduled = sched_date
@@ -243,6 +257,9 @@ def makelist(file, filename):
             n.priority = priority_search.group(1)
             n.heading = priority_search.group(2)
 
+        # Prefix filepath/title to ancestors
+        n.ancestors = [file_title] + n.ancestors
+
         # Set SOURCE property to a file+heading based org-mode link to the entry
         if n.level == 0:
             n.properties["LINE"] = f"file:{normalize_filename(filename)}::0"
@@ -261,7 +278,7 @@ class Orgnode(object):
     with the headline.
     """
 
-    def __init__(self, level, headline, body, tags):
+    def __init__(self, level, headline, body, tags, ancestor_headings=[]):
         """
         Create an Orgnode object given the parameters of level (as the
         raw asterisks), headline text (including the TODO tag), and
@@ -279,8 +296,21 @@ class Orgnode(object):
         self._closed = ""  # Closed date
         self._properties = dict()
         self._logbook = list()  # List of clock-in, clock-out tuples representing logbook entries
+        self._ancestor_headings = ancestor_headings.copy()
 
-        # Look for priority in headline and transfer to prty field
+    @property
+    def ancestors(self) -> List[str]:
+        """
+        Return the ancestor headings of the node
+        """
+        return self._ancestor_headings
+
+    @ancestors.setter
+    def ancestors(self, new_ancestors):
+        """
+        Update the ancestor headings of the node
+        """
+        self._ancestor_headings = new_ancestors
 
     @property
     def heading(self):
