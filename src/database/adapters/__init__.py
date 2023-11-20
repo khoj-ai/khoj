@@ -4,7 +4,6 @@ from datetime import date, datetime
 import secrets
 from typing import Type, List
 from datetime import date, timezone
-import random
 
 from django.db import models
 from django.contrib.sessions.backends.db import SessionStore
