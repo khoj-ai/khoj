@@ -51,9 +51,16 @@ app = FastAPI()
 django_app = get_asgi_application()
 
 # Add CORS middleware
+KHOJ_DOMAIN = os.getenv("KHOJ_DOMAIN", "app.khoj.dev")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["app://obsidian.md", "http://localhost:*", "https://app.khoj.dev/*", "app://khoj.dev"],
+    allow_origins=[
+        "app://obsidian.md",
+        "http://localhost:*",
+        "http://127.0.0.1:*",
+        f"https://{KHOJ_DOMAIN}",
+        "app://khoj.dev",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
