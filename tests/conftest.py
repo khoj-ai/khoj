@@ -1,48 +1,40 @@
 # External Packages
 import os
-from fastapi.testclient import TestClient
 from pathlib import Path
-import pytest
-from fastapi.staticfiles import StaticFiles
-from fastapi import FastAPI
-import os
-from fastapi import FastAPI
 
+import pytest
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.testclient import TestClient
 
 # Internal Packages
-from khoj.configure import configure_routes, configure_search_types, configure_middleware
-from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
+from khoj.configure import configure_middleware, configure_routes, configure_search_types
+from khoj.database.models import (
+    GithubConfig,
+    GithubRepoConfig,
+    KhojApiUser,
+    KhojUser,
+    LocalMarkdownConfig,
+    LocalOrgConfig,
+    LocalPlaintextConfig,
+)
+from khoj.processor.data_sources.org_mode.org_to_entries import OrgToEntries
 from khoj.processor.data_sources.plaintext.plaintext_to_entries import PlaintextToEntries
+from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
+from khoj.routers.indexer import configure_content
 from khoj.search_type import image_search, text_search
+from khoj.utils import fs_syncer, state
 from khoj.utils.config import SearchModels
 from khoj.utils.constants import web_directory
 from khoj.utils.helpers import resolve_absolute_path
-from khoj.utils.rawconfig import (
-    ContentConfig,
-    ImageContentConfig,
-    SearchConfig,
-    ImageSearchConfig,
-)
-from khoj.utils import state, fs_syncer
-from khoj.routers.indexer import configure_content
-from khoj.processor.data_sources.org_mode.org_to_entries import OrgToEntries
-from database.models import (
-    KhojApiUser,
-    LocalOrgConfig,
-    LocalMarkdownConfig,
-    LocalPlaintextConfig,
-    GithubConfig,
-    KhojUser,
-    GithubRepoConfig,
-)
-
+from khoj.utils.rawconfig import ContentConfig, ImageContentConfig, ImageSearchConfig, SearchConfig
 from tests.helpers import (
-    UserFactory,
     ChatModelOptionsFactory,
-    OpenAIProcessorConversationConfigFactory,
     OfflineChatProcessorConversationConfigFactory,
-    UserConversationProcessorConfigFactory,
+    OpenAIProcessorConversationConfigFactory,
     SubscriptionFactory,
+    UserConversationProcessorConfigFactory,
+    UserFactory,
 )
 
 

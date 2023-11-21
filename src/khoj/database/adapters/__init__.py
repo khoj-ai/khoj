@@ -1,44 +1,40 @@
 import math
-from typing import Optional, Type, List
-from datetime import date, datetime
 import secrets
-from typing import Type, List
-from datetime import date, timezone
-
-from django.db import models
-from django.contrib.sessions.backends.db import SessionStore
-from pgvector.django import CosineDistance
-from django.db.models.manager import BaseManager
-from django.db.models import Q
-from torch import Tensor
+from datetime import date, datetime, timezone
+from typing import List, Optional, Type
 
 # Import sync_to_async from Django Channels
 from asgiref.sync import sync_to_async
-
+from django.contrib.sessions.backends.db import SessionStore
+from django.db import models
+from django.db.models import Q
+from django.db.models.manager import BaseManager
 from fastapi import HTTPException
+from pgvector.django import CosineDistance
+from torch import Tensor
 
-from database.models import (
-    KhojUser,
+from khoj.database.models import (
+    ChatModelOptions,
+    Conversation,
+    Entry,
+    GithubConfig,
+    GithubRepoConfig,
     GoogleUser,
     KhojApiUser,
+    KhojUser,
     NotionConfig,
-    GithubConfig,
-    Entry,
-    GithubRepoConfig,
-    Conversation,
-    ChatModelOptions,
+    OfflineChatProcessorConversationConfig,
+    OpenAIProcessorConversationConfig,
     SearchModelConfig,
     Subscription,
     UserConversationConfig,
-    OpenAIProcessorConversationConfig,
-    OfflineChatProcessorConversationConfig,
 )
-from khoj.utils.helpers import generate_random_name
+from khoj.search_filter.date_filter import DateFilter
+from khoj.search_filter.file_filter import FileFilter
+from khoj.search_filter.word_filter import WordFilter
 from khoj.utils import state
 from khoj.utils.config import GPT4AllProcessorModel
-from khoj.search_filter.word_filter import WordFilter
-from khoj.search_filter.file_filter import FileFilter
-from khoj.search_filter.date_filter import DateFilter
+from khoj.utils.helpers import generate_random_name
 
 
 async def set_notion_config(token: str, user: KhojUser):

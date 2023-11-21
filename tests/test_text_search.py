@@ -1,19 +1,20 @@
 # System Packages
-import logging
-from pathlib import Path
-import os
 import asyncio
+import logging
+import os
+from pathlib import Path
 
 # External Packages
 import pytest
 
+from khoj.database.models import Entry, GithubConfig, KhojUser, LocalOrgConfig
+from khoj.processor.data_sources.github.github_to_entries import GithubToEntries
+from khoj.processor.data_sources.org_mode.org_to_entries import OrgToEntries
+
 # Internal Packages
 from khoj.search_type import text_search
-from khoj.utils.rawconfig import ContentConfig, SearchConfig
-from khoj.processor.data_sources.org_mode.org_to_entries import OrgToEntries
-from khoj.processor.data_sources.github.github_to_entries import GithubToEntries
 from khoj.utils.fs_syncer import collect_files, get_org_files
-from database.models import LocalOrgConfig, KhojUser, Entry, GithubConfig
+from khoj.utils.rawconfig import ContentConfig, SearchConfig
 
 logger = logging.getLogger(__name__)
 

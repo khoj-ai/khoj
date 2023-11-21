@@ -10,7 +10,7 @@ from starlette.authentication import requires
 import stripe
 
 # Internal Packages
-from database import adapters
+from khoj.database import adapters
 
 
 # Stripe integration for Khoj Cloud Subscription

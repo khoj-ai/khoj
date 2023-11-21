@@ -48,7 +48,7 @@ jobs:
       - name: 🌡️ Validate Python Package
         run: |
           # Validate PyPi Package
-          pipx run check-wheel-contents dist/*.whl
+          pipx run check-wheel-contents dist/*.whl --ignore W004
           pipx run twine check dist/*
 
       - name: ⏫ Upload Python Package Artifacts

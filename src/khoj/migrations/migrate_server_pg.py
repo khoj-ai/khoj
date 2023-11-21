@@ -60,7 +60,7 @@ import logging
 from packaging import version
 
 from khoj.utils.yaml import load_config_from_file, save_config_to_file
-from database.models import (
+from khoj.database.models import (
     OpenAIProcessorConversationConfig,
     OfflineChatProcessorConversationConfig,
     ChatModelOptions,

@@ -1,7 +1,7 @@
 import factory
 import os
 
-from database.models import (
+from khoj.database.models import (
     KhojUser,
     KhojApiUser,
     ChatModelOptions,

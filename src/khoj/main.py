@@ -1,3 +1,7 @@
+""" Main module for Khoj Assistant
+   isort:skip_file
+"""
+
 # Standard Packages
 import os
 import sys
@@ -25,7 +29,7 @@ from django.core.asgi import get_asgi_application
 from django.core.management import call_command
 
 # Initialize Django
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "app.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "khoj.app.settings")
 django.setup()
 
 # Initialize Django Database

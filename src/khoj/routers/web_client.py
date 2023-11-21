@@ -8,8 +8,8 @@ from fastapi import Request
 from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from starlette.authentication import requires
-from database import adapters
-from database.models import KhojUser
+from khoj.database import adapters
+from khoj.database.models import KhojUser
 from khoj.utils.rawconfig import (
     GithubContentConfig,
     GithubRepoConfig,
@@ -18,7 +18,7 @@ from khoj.utils.rawconfig import (
 
 # Internal Packages
 from khoj.utils import constants, state
-from database.adapters import (
+from khoj.database.adapters import (
     EntryAdapters,
     get_user_github_config,
     get_user_notion_config,
