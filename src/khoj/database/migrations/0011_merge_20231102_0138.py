@@ -2,6 +2,8 @@
 
 from django.db import migrations
 
+from typing import List, Any
+
 
 class Migration(migrations.Migration):
     dependencies = [
@@ -9,4 +11,4 @@ class Migration(migrations.Migration):
         ("database", "0010_rename_embeddings_entry_and_more"),
     ]
 
-    operations = []
+    operations = List[Any] = []
