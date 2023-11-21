@@ -9,6 +9,7 @@ repos:
   hooks:
   - id: isort
     name: isort (python)
+    args: ["--profile", "black", "--filter-files"]
 
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v4.4.0
