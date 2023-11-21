@@ -11,4 +11,4 @@ class Migration(migrations.Migration):
         ("database", "0010_rename_embeddings_entry_and_more"),
     ]
 
-    operations = List[Any] = []
+    operations: List[Any] = []
