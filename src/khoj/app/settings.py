@@ -26,13 +26,13 @@ SECRET_KEY = os.getenv("KHOJ_DJANGO_SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("KHOJ_DEBUG") == "True"
 
-ALLOWED_HOSTS = [".khoj.dev", "localhost", "127.0.0.1", "[::1]", "beta.khoj.dev"]
+# All Subdomains of KHOJ_DOMAIN are trusted
+KHOJ_DOMAIN = os.getenv("KHOJ_DOMAIN", "khoj.dev")
+ALLOWED_HOSTS = [f".{KHOJ_DOMAIN}", "localhost", "127.0.0.1", "[::1]"]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://app.khoj.dev",
-    "https://beta.khoj.dev",
-    "https://khoj.dev",
-    "https://*.khoj.dev",
+    f"https://*.{KHOJ_DOMAIN}",
+    f"https://{KHOJ_DOMAIN}",
 ]
 
 COOKIE_SAMESITE = "None"
@@ -40,8 +40,8 @@ if DEBUG:
     SESSION_COOKIE_DOMAIN = "localhost"
     CSRF_COOKIE_DOMAIN = "localhost"
 else:
-    SESSION_COOKIE_DOMAIN = "khoj.dev"
-    CSRF_COOKIE_DOMAIN = "khoj.dev"
+    SESSION_COOKIE_DOMAIN = KHOJ_DOMAIN
+    CSRF_COOKIE_DOMAIN = KHOJ_DOMAIN
 
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
