@@ -20,8 +20,8 @@ from starlette.authentication import (
 )
 
 # Internal Packages
-from database.models import KhojUser, Subscription
-from database.adapters import get_all_users, get_or_create_search_model
+from khoj.database.models import KhojUser, Subscription
+from khoj.database.adapters import get_all_users, get_or_create_search_model
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
 from khoj.routers.indexer import configure_content, load_content, configure_search
 from khoj.utils import constants, state
@@ -45,7 +45,7 @@ class UserAuthenticationBackend(AuthenticationBackend):
     def __init__(
         self,
     ):
-        from database.models import KhojUser, KhojApiUser
+        from khoj.database.models import KhojUser, KhojApiUser
 
         self.khojuser_manager = KhojUser.objects
         self.khojapiuser_manager = KhojApiUser.objects

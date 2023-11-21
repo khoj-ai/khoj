@@ -13,8 +13,8 @@ from khoj.utils.helpers import is_none_or_empty, timer, batcher
 # Internal Packages
 from khoj.utils.rawconfig import Entry
 from khoj.search_filter.date_filter import DateFilter
-from database.models import KhojUser, Entry as DbEntry, EntryDates
-from database.adapters import EntryAdapters
+from khoj.database.models import KhojUser, Entry as DbEntry, EntryDates
+from khoj.database.adapters import EntryAdapters
 
 
 logger = logging.getLogger(__name__)

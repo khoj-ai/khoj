@@ -13,7 +13,7 @@ from khoj.utils.rawconfig import ContentConfig, SearchConfig
 from khoj.processor.org_mode.org_to_entries import OrgToEntries
 from khoj.processor.github.github_to_entries import GithubToEntries
 from khoj.utils.fs_syncer import collect_files, get_org_files
-from database.models import LocalOrgConfig, KhojUser, Entry, GithubConfig
+from khoj.database.models import LocalOrgConfig, KhojUser, Entry, GithubConfig
 
 logger = logging.getLogger(__name__)
 

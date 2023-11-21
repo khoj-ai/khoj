@@ -18,8 +18,8 @@ from khoj.utils.helpers import ConversationCommand, log_telemetry
 from khoj.processor.conversation.openai.gpt import converse
 from khoj.processor.conversation.gpt4all.chat_model import converse_offline
 from khoj.processor.conversation.utils import message_to_log, ThreadedGenerator
-from database.models import KhojUser, Subscription
-from database.adapters import ConversationAdapters
+from khoj.database.models import KhojUser, Subscription
+from khoj.database.adapters import ConversationAdapters
 
 
 logger = logging.getLogger(__name__)

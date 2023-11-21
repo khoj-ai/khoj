@@ -17,7 +17,7 @@ RUN sed -i 's/dynamic = \["version"\]/version = "0.0.0"/' pyproject.toml && \
 COPY . .
 
 # Set the PYTHONPATH environment variable in order for it to find the Django app.
-ENV PYTHONPATH=/app/src:$PYTHONPATH
+ENV PYTHONPATH=/app/src/khoj:$PYTHONPATH
 
 # Run the Application
 # There are more arguments required for the application to run,

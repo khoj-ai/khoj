@@ -17,7 +17,7 @@ from asgiref.sync import sync_to_async
 
 from fastapi import HTTPException
 
-from database.models import (
+from khoj.database.models import (
     KhojUser,
     GoogleUser,
     KhojApiUser,

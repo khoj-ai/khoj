@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 
 # Register your models here.
 
-from database.models import (
+from khoj.database.models import (
     KhojUser,
     ChatModelOptions,
     OpenAIProcessorConversationConfig,

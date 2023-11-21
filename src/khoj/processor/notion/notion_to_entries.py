@@ -10,7 +10,7 @@ from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry, NotionContentConfig
 from khoj.processor.text_to_entries import TextToEntries
 from khoj.utils.rawconfig import Entry
-from database.models import Entry as DbEntry, KhojUser, NotionConfig
+from khoj.database.models import Entry as DbEntry, KhojUser, NotionConfig
 
 from enum import Enum
 

@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from khoj.utils.helpers import get_absolute_path, is_none_or_empty
 from khoj.utils.rawconfig import TextContentConfig
 from khoj.utils.config import SearchType
-from database.models import LocalMarkdownConfig, LocalOrgConfig, LocalPdfConfig, LocalPlaintextConfig
+from khoj.database.models import LocalMarkdownConfig, LocalOrgConfig, LocalPdfConfig, LocalPlaintextConfig
 
 logger = logging.getLogger(__name__)
 

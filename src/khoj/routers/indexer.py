@@ -30,7 +30,7 @@ from khoj.utils.config import (
     ContentIndex,
     SearchModels,
 )
-from database.models import (
+from khoj.database.models import (
     KhojUser,
     GithubConfig,
     NotionConfig,

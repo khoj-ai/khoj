@@ -44,9 +44,9 @@ from khoj.processor.conversation.openai.gpt import extract_questions
 from khoj.processor.conversation.gpt4all.chat_model import extract_questions_offline
 from fastapi.requests import Request
 
-from database import adapters
-from database.adapters import EntryAdapters, ConversationAdapters
-from database.models import (
+from khoj.database import adapters
+from khoj.database.adapters import EntryAdapters, ConversationAdapters
+from khoj.database.models import (
     LocalMarkdownConfig,
     LocalOrgConfig,
     LocalPdfConfig,

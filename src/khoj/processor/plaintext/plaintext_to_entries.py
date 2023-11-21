@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 from khoj.processor.text_to_entries import TextToEntries
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry
-from database.models import Entry as DbEntry, KhojUser
+from khoj.database.models import Entry as DbEntry, KhojUser
 
 
 logger = logging.getLogger(__name__)

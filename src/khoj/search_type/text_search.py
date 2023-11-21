@@ -19,8 +19,8 @@ from khoj.utils.state import SearchType
 from khoj.utils.rawconfig import SearchResponse, Entry
 from khoj.utils.jsonl import load_jsonl
 from khoj.processor.text_to_entries import TextToEntries
-from database.adapters import EntryAdapters
-from database.models import KhojUser, Entry as DbEntry
+from khoj.database.adapters import EntryAdapters
+from khoj.database.models import KhojUser, Entry as DbEntry
 
 logger = logging.getLogger(__name__)
 

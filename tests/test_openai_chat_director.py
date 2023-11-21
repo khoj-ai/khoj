@@ -10,7 +10,7 @@ from khoj.processor.conversation import prompts
 # Internal Packages
 from khoj.processor.conversation.utils import message_to_log
 from tests.helpers import ConversationFactory
-from database.models import KhojUser
+from khoj.database.models import KhojUser
 
 # Initialize variables for tests
 api_key = os.getenv("OPENAI_API_KEY")
