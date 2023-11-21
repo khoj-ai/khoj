@@ -7,6 +7,7 @@ app_env_filepath = "~/.khoj/env"
 telemetry_server = "https://khoj.beta.haletic.com/v1/telemetry"
 content_directory = "~/.khoj/content/"
 default_offline_chat_model = "mistral-7b-instruct-v0.1.Q4_0.gguf"
+default_online_chat_model = "gpt-4"
 
 empty_config = {
     "search-type": {

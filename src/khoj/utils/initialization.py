@@ -8,7 +8,8 @@ from database.models import (
     ChatModelOptions,
 )
 
-from khoj.utils.constants import default_offline_chat_model
+from khoj.utils.constants import default_offline_chat_model, default_online_chat_model
+from khoj.processor.conversation.utils import model_to_prompt_size, model_to_tokenizer
 
 from database.adapters import ConversationAdapters
 
@@ -30,11 +31,6 @@ def initialization():
         logger.info(
             "🗣️  Configure chat models available to your server. You can always update these at /server/admin using the credentials of your admin account"
         )
-        try:
-            # Some environments don't support interactive input. We catch the exception and return if that's the case. The admin can still configure their settings from the admin page.
-            input()
-        except EOFError:
-            return
 
         try:
             # Note: gpt4all package is not available on all devices.
@@ -47,15 +43,27 @@ def initialization():
                 OfflineChatProcessorConversationConfig.objects.create(enabled=True)
 
                 offline_chat_model = input(
-                    f"Enter the name of the offline chat model you want to use, based on the models in HuggingFace (press enter to use the default: {default_offline_chat_model}): "
+                    f"Enter the offline chat model you want to use, See GPT4All for supported models (default: {default_offline_chat_model}): "
                 )
                 if offline_chat_model == "":
                     ChatModelOptions.objects.create(
                         chat_model=default_offline_chat_model, model_type=ChatModelOptions.ModelType.OFFLINE
                     )
                 else:
-                    max_tokens = input("Enter the maximum number of tokens to use for the offline chat model:")
-                    tokenizer = input("Enter the tokenizer to use for the offline chat model:")
+                    default_max_tokens = model_to_prompt_size.get(offline_chat_model, 2000)
+                    max_tokens = input(
+                        f"Enter the maximum number of tokens to use for the offline chat model (default {default_max_tokens}):"
+                    )
+                    max_tokens = max_tokens or default_max_tokens
+
+                    default_tokenizer = model_to_tokenizer.get(
+                        offline_chat_model, "hf-internal-testing/llama-tokenizer"
+                    )
+                    tokenizer = input(
+                        f"Enter the tokenizer to use for the offline chat model (default: {default_tokenizer}):"
+                    )
+                    tokenizer = tokenizer or default_tokenizer
+
                     ChatModelOptions.objects.create(
                         chat_model=offline_chat_model,
                         model_type=ChatModelOptions.ModelType.OFFLINE,
@@ -71,10 +79,19 @@ def initialization():
             logger.info("🗣️ Setting up OpenAI chat model")
             api_key = input("Enter your OpenAI API key: ")
             OpenAIProcessorConversationConfig.objects.create(api_key=api_key)
-            openai_chat_model = input("Enter the name of the OpenAI chat model you want to use: ")
-            max_tokens = input("Enter the maximum number of tokens to use for the OpenAI chat model:")
+
+            openai_chat_model = input(
+                f"Enter the OpenAI chat model you want to use (default: {default_online_chat_model}): "
+            )
+            openai_chat_model = openai_chat_model or default_online_chat_model
+
+            default_max_tokens = model_to_prompt_size.get(openai_chat_model, 2000)
+            max_tokens = input(
+                f"Enter the maximum number of tokens to use for the OpenAI chat model (default: {default_max_tokens}): "
+            )
+            max_tokens = max_tokens or default_max_tokens
             ChatModelOptions.objects.create(
-                chat_model=openai_chat_model, model_type=ChatModelOptions.ModelType.OPENAI, max_tokens=max_tokens
+                chat_model=openai_chat_model, model_type=ChatModelOptions.ModelType.OPENAI, max_prompt_size=max_tokens
             )
 
         logger.info("🗣️  Chat model configuration complete")
@@ -94,5 +111,8 @@ def initialization():
             try:
                 _create_chat_configuration()
                 break
+            # Some environments don't support interactive input. We catch the exception and return if that's the case. The admin can still configure their settings from the admin page.
+            except EOFError:
+                return
             except Exception as e:
                 logger.error(f"🚨 Failed to create chat configuration: {e}", exc_info=True)
