@@ -87,27 +87,18 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
     }
 
     async getSuggestions(query: string): Promise<SearchResult[]> {
-        // Query Khoj backend for search results
+        // Setup Query Khoj backend for search results
         let encodedQuery = encodeURIComponent(query);
         let searchUrl = `${this.setting.khojUrl}/api/search?q=${encodedQuery}&n=${this.setting.resultsCount}&r=${this.rerank}&client=obsidian`;
         let headers = { 'Authorization': `Bearer ${this.setting.khojApiKey}` }
 
-        // Get search results for markdown and pdf files
-        let mdResponse = await request({ url: `${searchUrl}&t=markdown`, headers: headers });
-        let pdfResponse = await request({ url: `${searchUrl}&t=pdf`, headers: headers });
+        // Get search results from Khoj backend
+        let response = await request({ url: `${searchUrl}`, headers: headers });
 
         // Parse search results
-        let mdData = JSON.parse(mdResponse)
+        let results = JSON.parse(response)
             .filter((result: any) => !this.find_similar_notes || !result.additional.file.endsWith(this.app.workspace.getActiveFile()?.path))
-            .map((result: any) => { return { entry: result.entry, score: result.score, file: result.additional.file }; });
-        let pdfData = JSON.parse(pdfResponse)
-            .filter((result: any) => !this.find_similar_notes || !result.additional.file.endsWith(this.app.workspace.getActiveFile()?.path))
-            .map((result: any) => { return { entry: `## ${result.additional.compiled}`, score: result.score, file: result.additional.file } as SearchResult; })
-
-        // Combine markdown and PDF results and sort them by score
-        let results = mdData.concat(pdfData)
-            .sort((a: any, b: any) => a.score - b.score)
-            .map((result: any) => { return { entry: result.entry, file: result.file } as SearchResult; })
+            .map((result: any) => { return { entry: result.entry, file: result.additional.file } as SearchResult; });
 
         this.query = query;
         return results;
