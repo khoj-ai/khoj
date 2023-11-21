@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 SECRET_KEY = os.getenv("KHOJ_DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("KHOJ_DEBUG", "False") == "True"
+DEBUG = os.getenv("KHOJ_DEBUG") == "True"
 
 ALLOWED_HOSTS = [".khoj.dev", "localhost", "127.0.0.1", "[::1]", "beta.khoj.dev"]
 

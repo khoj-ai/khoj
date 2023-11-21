@@ -3,6 +3,8 @@
 """
 
 # Standard Packages
+from contextlib import redirect_stdout
+import io
 import os
 import sys
 import locale
@@ -33,10 +35,14 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "khoj.app.settings")
 django.setup()
 
 # Initialize Django Database
-call_command("migrate", "--noinput")
+db_migrate_output = io.StringIO()
+with redirect_stdout(db_migrate_output):
+    call_command("migrate", "--noinput")
 
 # Initialize Django Static Files
-call_command("collectstatic", "--noinput")
+collectstatic_output = io.StringIO()
+with redirect_stdout(collectstatic_output):
+    call_command("collectstatic", "--noinput")
 
 # Initialize the Application Server
 app = FastAPI()
@@ -79,13 +85,15 @@ def run(should_start_server=True):
     args = cli(state.cli_args)
     set_state(args)
 
-    logger.info(f"🚒 Initializing Khoj v{state.khoj_version}")
-
     # Set Logging Level
     if args.verbose == 0:
         logger.setLevel(logging.INFO)
     elif args.verbose >= 1:
         logger.setLevel(logging.DEBUG)
+
+    logger.info(f"🚒 Initializing Khoj v{state.khoj_version}")
+    logger.info(f"📦 Initializing DB:\n{db_migrate_output.getvalue().strip()}")
+    logger.debug(f"🌍 Initializing Web Client:\n{collectstatic_output.getvalue().strip()}")
 
     initialization()
 
