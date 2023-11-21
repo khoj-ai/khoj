@@ -106,7 +106,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
 
         // Combine markdown and PDF results and sort them by score
         let results = mdData.concat(pdfData)
-            .sort((a: any, b: any) => b.score - a.score)
+            .sort((a: any, b: any) => a.score - b.score)
             .map((result: any) => { return { entry: result.entry, file: result.file } as SearchResult; })
 
         this.query = query;
