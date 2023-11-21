@@ -1,4 +1,3 @@
-# Standard Packages
 import asyncio
 import logging
 from typing import Dict, Optional, Union
@@ -175,6 +174,9 @@ def configure_content(
     content_index = ContentIndex()
 
     success = True
+    if t == None:
+        t = state.SearchType.All
+
     if t is not None and t in [type.value for type in state.SearchType]:
         t = state.SearchType(t)
 
@@ -301,7 +303,7 @@ def configure_content(
         # Initialize Notion Search
         notion_config = NotionConfig.objects.filter(user=user).first()
         if (
-            search_type == state.SearchType.All.value or search_type in state.SearchType.Notion.value
+            search_type == state.SearchType.All.value or search_type == state.SearchType.Notion.value
         ) and notion_config:
             logger.info("🔌 Setting up search for notion")
             text_search.setup(
@@ -314,7 +316,7 @@ def configure_content(
             )
 
     except Exception as e:
-        logger.error(f"🚨 Failed to setup GitHub: {e}", exc_info=True)
+        logger.error(f"🚨 Failed to setup Notion: {e}", exc_info=True)
         success = False
 
     # Invalidate Query Cache
