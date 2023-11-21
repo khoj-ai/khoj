@@ -14,7 +14,7 @@ from pathlib import Path
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
 
 # Quick-start development settings - unsuitable for production
@@ -53,7 +53,7 @@ SESSION_COOKIE_SAMESITE = "None"
 INSTALLED_APPS = [
     "django.contrib.auth",
     "django.contrib.contenttypes",
-    "database.apps.DatabaseConfig",
+    "khoj.database.apps.DatabaseConfig",
     "django.contrib.admin",
     "django.contrib.sessions",
     "django.contrib.messages",

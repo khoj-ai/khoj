@@ -26,7 +26,7 @@ from khoj.utils.rawconfig import (
 from khoj.utils import state, fs_syncer
 from khoj.routers.indexer import configure_content
 from khoj.processor.org_mode.org_to_entries import OrgToEntries
-from database.models import (
+from khoj.database.models import (
     KhojApiUser,
     LocalOrgConfig,
     LocalMarkdownConfig,

@@ -15,8 +15,8 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 
 # Internal Packages
-from database.adapters import get_khoj_tokens, get_or_create_user, create_khoj_token, delete_khoj_token
-from database.models import KhojApiUser
+from khoj.database.adapters import get_khoj_tokens, get_or_create_user, create_khoj_token, delete_khoj_token
+from khoj.database.models import KhojApiUser
 from khoj.routers.helpers import update_telemetry_state
 from khoj.utils import state
 
