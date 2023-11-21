@@ -147,6 +147,7 @@ def collate_results(hits, dedupe=True):
                     "score": hit.distance,
                     "corpus_id": str(hit.corpus_id),
                     "additional": {
+                        "source": hit.file_source,
                         "file": hit.file_path,
                         "compiled": hit.compiled,
                         "heading": hit.heading,
@@ -169,6 +170,7 @@ def deduplicated_search_responses(hits: List[SearchResponse]):
                     "score": hit.score,
                     "corpus_id": hit.corpus_id,
                     "additional": {
+                        "source": hit.additional["source"],
                         "file": hit.additional["file"],
                         "compiled": hit.additional["compiled"],
                         "heading": hit.additional["heading"],
