@@ -1,3 +1,7 @@
+""" Main module for Khoj Assistant
+   isort:skip_file
+"""
+
 # Standard Packages
 import os
 import sys
