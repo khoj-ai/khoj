@@ -3,7 +3,7 @@ name: test
 on:
   pull_request:
     paths:
-      - src/**
+      - src/khoj/**
       - tests/**
       - config/**
       - pyproject.toml
