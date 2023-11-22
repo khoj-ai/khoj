@@ -6,6 +6,7 @@ from khoj.database.models import (
     OfflineChatProcessorConversationConfig,
     OpenAIProcessorConversationConfig,
     ChatModelOptions,
+    SpeechToTextModelOptions,
 )
 
 from khoj.utils.constants import default_offline_chat_model, default_online_chat_model
@@ -92,6 +93,15 @@ def initialization():
             max_tokens = max_tokens or default_max_tokens
             ChatModelOptions.objects.create(
                 chat_model=openai_chat_model, model_type=ChatModelOptions.ModelType.OPENAI, max_prompt_size=max_tokens
+            )
+
+            default_speech2text_model = "whisper-1"
+            openai_speech2text_model = input(
+                f"Enter the OpenAI speech to text model you want to use (default: {default_speech2text_model}): "
+            )
+            openai_speech2text_model = openai_speech2text_model or default_speech2text_model
+            SpeechToTextModelOptions.objects.create(
+                model_name=openai_speech2text_model, model_type=SpeechToTextModelOptions.ModelType.OPENAI
             )
 
         logger.info("🗣️  Chat model configuration complete")

@@ -9,12 +9,14 @@ from khoj.database.models import (
     OpenAIProcessorConversationConfig,
     OfflineChatProcessorConversationConfig,
     SearchModelConfig,
+    SpeechToTextModelOptions,
     Subscription,
 )
 
 admin.site.register(KhojUser, UserAdmin)
 
 admin.site.register(ChatModelOptions)
+admin.site.register(SpeechToTextModelOptions)
 admin.site.register(OpenAIProcessorConversationConfig)
 admin.site.register(OfflineChatProcessorConversationConfig)
 admin.site.register(SearchModelConfig)

@@ -28,6 +28,7 @@ from khoj.database.models import (
     Conversation,
     ChatModelOptions,
     SearchModelConfig,
+    SpeechToTextModelOptions,
     Subscription,
     UserConversationConfig,
     OpenAIProcessorConversationConfig,
@@ -338,6 +339,10 @@ class ConversationAdapters:
     @staticmethod
     async def get_openai_chat_config():
         return await OpenAIProcessorConversationConfig.objects.filter().afirst()
+
+    @staticmethod
+    async def get_speech_to_text_config():
+        return await SpeechToTextModelOptions.objects.filter().afirst()
 
 
 class EntryAdapters:
