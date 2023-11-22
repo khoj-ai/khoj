@@ -377,6 +377,62 @@
                 chat();
             }
         }
+
+        let mediaRecorder;
+        async function speechToText() {
+            const speakButton = document.getElementById('speak-button');
+            const speakButtonImg = document.getElementById('speak-button-img');
+            const chatInput = document.getElementById('chat-input');
+
+            const hostURL = await window.hostURLAPI.getURL();
+            let url = `${hostURL}/api/speak?client=desktop`;
+            const khojToken = await window.tokenAPI.getToken();
+            const headers = { 'Authorization': `Bearer ${khojToken}` };
+
+            const sendToServer = (audioBlob) => {
+                const formData = new FormData();
+                formData.append('file', audioBlob);
+
+                fetch(url, { method: 'POST', body: formData, headers})
+                    .then(response => response.ok ? response.json() : Promise.reject(response))
+                    .then(data => { chatInput.value += data.text; })
+                    .catch(err => err.status == 422 ? console.error("Configure speech-to-text model on server.") : console.error("Failed to transcribe audio"));
+            };
+
+            const handleRecording = (stream) => {
+                const audioChunks = [];
+                const recordingConfig = { mimeType: 'audio/webm' };
+                mediaRecorder = new MediaRecorder(stream, recordingConfig);
+
+                mediaRecorder.addEventListener("dataavailable", function(event) {
+                    if (event.data.size > 0) audioChunks.push(event.data);
+                });
+
+                mediaRecorder.addEventListener("stop", function() {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    sendToServer(audioBlob);
+                });
+
+                mediaRecorder.start();
+                speakButtonImg.src = './assets/icons/stop-solid.svg';
+                speakButtonImg.alt = 'Stop Speaking';
+            };
+
+            // Toggle recording
+            if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+                navigator.mediaDevices
+                .getUserMedia({ audio: true })
+                .then(handleRecording)
+                .catch((e) => {
+                    console.error(e);
+                });
+            } else if (mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                speakButtonImg.src = './assets/icons/microphone-solid.svg';
+                speakButtonImg.alt = 'Speak';
+            }
+        }
+
     </script>
     <body>
         <div id="khoj-empty-container" class="khoj-empty-container">
@@ -400,7 +456,12 @@
         <!-- Chat Footer -->
         <div id="chat-footer">
             <div id="chat-tooltip" style="display: none;"></div>
-            <textarea id="chat-input" class="option" oninput="onChatInput()" onkeydown=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands, or just type your questions and hit enter."></textarea>
+            <div id="input-row">
+                <textarea id="chat-input" class="option" oninput="onChatInput()" onkeydown=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands, or just type your questions and hit enter."></textarea>
+                <button id="speak-button" onclick="speechToText()">
+                    <img id="speak-button-img" src="./assets/icons/microphone-solid.svg" alt="Speak"></img>
+                </button>
+            </div>
         </div>
     </body>
 
@@ -514,15 +575,17 @@
 
         #chat-footer {
             padding: 0;
+            margin: 8px;
             display: grid;
             grid-template-columns: minmax(70px, 100%);
             grid-column-gap: 10px;
             grid-row-gap: 10px;
         }
-        #chat-footer > * {
-            padding: 15px;
-            border-radius: 5px;
-            border: 1px solid #475569;
+        #input-row {
+            display: grid;
+            grid-template-columns: auto 32px;
+            grid-column-gap: 10px;
+            grid-row-gap: 10px;
             background: #f9fafc
         }
         .option:hover {
@@ -542,6 +605,26 @@
         }
         #chat-input:focus {
             outline: none !important;
+        }
+        #speak-button {
+            background: var(--background-color);
+            border: none;
+            border-radius: 5px;
+            padding: 5px;
+            font-size: 14px;
+            font-weight: 300;
+            line-height: 1.5em;
+            cursor: pointer;
+            transition: background 0.3s ease-in-out;
+        }
+        #speak-button:hover {
+            background: var(--primary-hover);
+        }
+        #speak-button:active {
+            background: var(--primary-active);
+        }
+        #speak-button-img {
+            width: 24px;
         }
 
         .option-enabled {
