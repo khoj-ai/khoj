@@ -18,8 +18,8 @@ from khoj.database.models import (
     LocalOrgConfig,
     LocalPlaintextConfig,
 )
-from khoj.processor.data_sources.org_mode.org_to_entries import OrgToEntries
-from khoj.processor.data_sources.plaintext.plaintext_to_entries import PlaintextToEntries
+from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
+from khoj.processor.content.plaintext.plaintext_to_entries import PlaintextToEntries
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
 from khoj.routers.indexer import configure_content
 from khoj.search_type import image_search, text_search

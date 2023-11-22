@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 from khoj.database.models import KhojUser, LocalPlaintextConfig
-from khoj.processor.data_sources.plaintext.plaintext_to_entries import PlaintextToEntries
+from khoj.processor.content.plaintext.plaintext_to_entries import PlaintextToEntries
 
 # Internal Packages
 from khoj.utils.fs_syncer import get_plaintext_files

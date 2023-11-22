@@ -7,7 +7,7 @@ from khoj.database.models import Entry as DbEntry
 from khoj.database.models import KhojUser
 
 # Internal Packages
-from khoj.processor.data_sources.org_mode import orgnode
+from khoj.processor.content.org_mode import orgnode
 from khoj.processor.text_to_entries import TextToEntries
 from khoj.utils import state
 from khoj.utils.helpers import timer

@@ -9,8 +9,8 @@ import requests
 
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import GithubConfig, KhojUser
-from khoj.processor.data_sources.markdown.markdown_to_entries import MarkdownToEntries
-from khoj.processor.data_sources.org_mode.org_to_entries import OrgToEntries
+from khoj.processor.content.markdown.markdown_to_entries import MarkdownToEntries
+from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
 from khoj.processor.text_to_entries import TextToEntries
 
 # Internal Packages

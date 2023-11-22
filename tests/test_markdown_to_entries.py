@@ -4,7 +4,7 @@ from pathlib import Path
 import os
 
 # Internal Packages
-from khoj.processor.data_sources.markdown.markdown_to_entries import MarkdownToEntries
+from khoj.processor.content.markdown.markdown_to_entries import MarkdownToEntries
 from khoj.utils.fs_syncer import get_markdown_files
 from khoj.utils.rawconfig import TextContentConfig
 

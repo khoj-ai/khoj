@@ -7,12 +7,12 @@ from pydantic import BaseModel
 from starlette.authentication import requires
 
 from khoj.database.models import GithubConfig, KhojUser, NotionConfig
-from khoj.processor.data_sources.github.github_to_entries import GithubToEntries
-from khoj.processor.data_sources.markdown.markdown_to_entries import MarkdownToEntries
-from khoj.processor.data_sources.notion.notion_to_entries import NotionToEntries
-from khoj.processor.data_sources.org_mode.org_to_entries import OrgToEntries
-from khoj.processor.data_sources.pdf.pdf_to_entries import PdfToEntries
-from khoj.processor.data_sources.plaintext.plaintext_to_entries import PlaintextToEntries
+from khoj.processor.content.github.github_to_entries import GithubToEntries
+from khoj.processor.content.markdown.markdown_to_entries import MarkdownToEntries
+from khoj.processor.content.notion.notion_to_entries import NotionToEntries
+from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
+from khoj.processor.content.pdf.pdf_to_entries import PdfToEntries
+from khoj.processor.content.plaintext.plaintext_to_entries import PlaintextToEntries
 from khoj.routers.helpers import update_telemetry_state
 from khoj.search_type import image_search, text_search
 from khoj.utils import constants, state

@@ -13,7 +13,7 @@ from PIL import Image
 from khoj.configure import configure_routes, configure_search_types
 from khoj.database.adapters import EntryAdapters
 from khoj.database.models import KhojApiUser, KhojUser
-from khoj.processor.data_sources.org_mode.org_to_entries import OrgToEntries
+from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
 from khoj.search_type import image_search, text_search
 from khoj.utils import state
 from khoj.utils.rawconfig import ContentConfig, SearchConfig
