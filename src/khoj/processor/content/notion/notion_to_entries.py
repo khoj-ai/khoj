@@ -8,7 +8,7 @@ import requests
 
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import KhojUser, NotionConfig
-from khoj.processor.text_to_entries import TextToEntries
+from khoj.processor.content.text_to_entries import TextToEntries
 
 # Internal Packages
 from khoj.utils.helpers import timer

@@ -11,7 +11,7 @@ from khoj.database.models import Entry as DbEntry
 from khoj.database.models import KhojUser
 
 # Internal Packages
-from khoj.processor.text_to_entries import TextToEntries
+from khoj.processor.content.text_to_entries import TextToEntries
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry
 
