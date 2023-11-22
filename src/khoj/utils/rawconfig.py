@@ -72,6 +72,9 @@ class ImageSearchConfig(ConfigBase):
     encoder_type: Optional[str] = None
     model_directory: Optional[Path] = None
 
+    class Config:
+        protected_namespaces = ()
+
 
 class SearchConfig(ConfigBase):
     image: Optional[ImageSearchConfig] = None

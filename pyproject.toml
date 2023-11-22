@@ -46,7 +46,7 @@ dependencies = [
     "tiktoken >= 0.3.2",
     "tenacity >= 8.2.2",
     "pillow == 9.3.0",
-    "pydantic >= 1.10.10",
+    "pydantic >= 2.0.0",
     "pyyaml == 6.0",
     "rich >= 13.3.1",
     "schedule == 1.1.0",
@@ -127,6 +127,9 @@ warn_unused_ignores = false
 
 [tool.black]
 line-length = 120
+
+[tool.isort]
+profile = "black"
 
 [tool.pytest.ini_options]
 addopts = "--strict-markers"

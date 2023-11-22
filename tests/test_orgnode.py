@@ -2,7 +2,7 @@
 import datetime
 
 # Internal Packages
-from khoj.processor.data_sources.org_mode import orgnode
+from khoj.processor.content.org_mode import orgnode
 
 
 # Test

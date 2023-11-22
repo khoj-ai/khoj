@@ -1,6 +1,7 @@
 # Standard Packages
 import os
 import urllib.parse
+from urllib.parse import quote
 
 # External Packages
 import pytest
@@ -10,7 +11,7 @@ from khoj.processor.conversation import prompts
 # Internal Packages
 from khoj.processor.conversation.utils import message_to_log
 from tests.helpers import ConversationFactory
-from database.models import KhojUser
+from khoj.database.models import KhojUser
 
 # Initialize variables for tests
 api_key = os.getenv("OPENAI_API_KEY")
@@ -48,6 +49,26 @@ def test_chat_with_no_chat_history_or_retrieved_content(chat_client):
 
     # Assert
     expected_responses = ["Khoj", "khoj"]
+    assert response.status_code == 200
+    assert any([expected_response in response_message for expected_response in expected_responses]), (
+        "Expected assistants name, [K|k]hoj, in response but got: " + response_message
+    )
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
+@pytest.mark.django_db(transaction=True)
+def test_chat_with_online_content(chat_client):
+    # Act
+    q = "/online give me the link to paul graham's essay how to do great work"
+    encoded_q = quote(q, safe="")
+    response = chat_client.get(f"/api/chat?q={encoded_q}&stream=true")
+    response_message = response.content.decode("utf-8")
+
+    response_message = response_message.split("### compiled references")[0]
+
+    # Assert
+    expected_responses = ["http://www.paulgraham.com/greatwork.html"]
     assert response.status_code == 200
     assert any([expected_response in response_message for expected_response in expected_responses]), (
         "Expected assistants name, [K|k]hoj, in response but got: " + response_message

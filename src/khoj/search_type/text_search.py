@@ -18,9 +18,9 @@ from khoj.utils.models import BaseEncoder
 from khoj.utils.state import SearchType
 from khoj.utils.rawconfig import SearchResponse, Entry
 from khoj.utils.jsonl import load_jsonl
-from khoj.processor.text_to_entries import TextToEntries
-from database.adapters import EntryAdapters
-from database.models import KhojUser, Entry as DbEntry
+from khoj.processor.content.text_to_entries import TextToEntries
+from khoj.database.adapters import EntryAdapters
+from khoj.database.models import KhojUser, Entry as DbEntry
 
 logger = logging.getLogger(__name__)
 
@@ -141,12 +141,13 @@ def collate_results(hits, dedupe=True):
 
         else:
             hit_ids.add(hit.corpus_id)
-            yield SearchResponse.parse_obj(
+            yield SearchResponse.model_validate(
                 {
                     "entry": hit.raw,
                     "score": hit.distance,
                     "corpus_id": str(hit.corpus_id),
                     "additional": {
+                        "source": hit.file_source,
                         "file": hit.file_path,
                         "compiled": hit.compiled,
                         "heading": hit.heading,
@@ -169,6 +170,7 @@ def deduplicated_search_responses(hits: List[SearchResponse]):
                     "score": hit.score,
                     "corpus_id": hit.corpus_id,
                     "additional": {
+                        "source": hit.additional["source"],
                         "file": hit.additional["file"],
                         "compiled": hit.additional["compiled"],
                         "heading": hit.additional["heading"],

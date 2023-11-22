@@ -1,64 +1,63 @@
 # Standard Packages
 import concurrent.futures
+import json
+import logging
 import math
 import time
-import logging
-import json
-from typing import List, Optional, Union, Any, Dict
+from typing import Any, Dict, List, Optional, Union
+
+from asgiref.sync import sync_to_async
 
 # External Packages
-from fastapi import APIRouter, Depends, HTTPException, Header, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi.requests import Request
+from fastapi.responses import Response, StreamingResponse
 from starlette.authentication import requires
-from asgiref.sync import sync_to_async
 
 # Internal Packages
 from khoj.configure import configure_server
-from khoj.search_type import image_search, text_search
-from khoj.search_filter.date_filter import DateFilter
-from khoj.search_filter.file_filter import FileFilter
-from khoj.search_filter.word_filter import WordFilter
-from khoj.utils.config import TextSearchModel, GPT4AllProcessorModel
-from khoj.utils.helpers import ConversationCommand, is_none_or_empty, timer, command_descriptions
-from khoj.utils.rawconfig import (
-    FullConfig,
-    SearchConfig,
-    SearchResponse,
-    GithubContentConfig,
-    NotionContentConfig,
-)
-from khoj.utils.state import SearchType
-from khoj.utils import state, constants
-from khoj.utils.helpers import AsyncIteratorWrapper, get_device
-from fastapi.responses import StreamingResponse, Response
-from khoj.routers.helpers import (
-    CommonQueryParams,
-    get_conversation_command,
-    validate_conversation_config,
-    agenerate_chat_response,
-    update_telemetry_state,
-    is_ready_to_chat,
-    ApiUserRateLimiter,
-)
-from khoj.processor.conversation.prompts import help_message, no_entries_found
-from khoj.processor.conversation.openai.gpt import extract_questions
-from khoj.processor.conversation.gpt4all.chat_model import extract_questions_offline
-from khoj.processor.tools.online_search import search_with_google
-from fastapi.requests import Request
-
-from database import adapters
-from database.adapters import EntryAdapters, ConversationAdapters
-from database.models import (
+from khoj.database import adapters
+from khoj.database.adapters import ConversationAdapters, EntryAdapters
+from khoj.database.models import ChatModelOptions
+from khoj.database.models import Entry as DbEntry
+from khoj.database.models import (
+    GithubConfig,
+    KhojUser,
     LocalMarkdownConfig,
     LocalOrgConfig,
     LocalPdfConfig,
     LocalPlaintextConfig,
-    KhojUser,
-    Entry as DbEntry,
-    GithubConfig,
     NotionConfig,
-    ChatModelOptions,
 )
-
+from khoj.processor.conversation.gpt4all.chat_model import extract_questions_offline
+from khoj.processor.conversation.openai.gpt import extract_questions
+from khoj.processor.conversation.prompts import help_message, no_entries_found
+from khoj.processor.tools.online_search import search_with_google
+from khoj.routers.helpers import (
+    ApiUserRateLimiter,
+    CommonQueryParams,
+    agenerate_chat_response,
+    get_conversation_command,
+    is_ready_to_chat,
+    update_telemetry_state,
+    validate_conversation_config,
+)
+from khoj.search_filter.date_filter import DateFilter
+from khoj.search_filter.file_filter import FileFilter
+from khoj.search_filter.word_filter import WordFilter
+from khoj.search_type import image_search, text_search
+from khoj.utils import constants, state
+from khoj.utils.config import GPT4AllProcessorModel, TextSearchModel
+from khoj.utils.helpers import (
+    AsyncIteratorWrapper,
+    ConversationCommand,
+    command_descriptions,
+    get_device,
+    is_none_or_empty,
+    timer,
+)
+from khoj.utils.rawconfig import FullConfig, GithubContentConfig, NotionContentConfig, SearchConfig, SearchResponse
+from khoj.utils.state import SearchType
 
 # Initialize Router
 api = APIRouter()

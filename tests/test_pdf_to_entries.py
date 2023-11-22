@@ -3,7 +3,7 @@ import json
 import os
 
 # Internal Packages
-from khoj.processor.data_sources.pdf.pdf_to_entries import PdfToEntries
+from khoj.processor.content.pdf.pdf_to_entries import PdfToEntries
 
 from khoj.utils.fs_syncer import get_pdf_files
 from khoj.utils.rawconfig import TextContentConfig
