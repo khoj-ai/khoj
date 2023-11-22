@@ -112,14 +112,14 @@
                 } else if (
                     item.additional.file.endsWith(".md") ||
                     item.additional.file.endsWith(".markdown") ||
-                        (item.additional.file.includes("issues") && item.additional.file.includes("github.com")) ||
-                        (item.additional.file.includes("commit") && item.additional.file.includes("github.com"))
+                        (item.additional.file.includes("issues") && item.additional.source === "github") ||
+                        (item.additional.file.includes("commit") && item.additional.source === "github")
                     )
                 {
                     html += render_markdown(query, [item]);
                 } else if (item.additional.file.endsWith(".pdf")) {
                     html += render_pdf(query, [item]);
-                } else if (item.additional.file.includes("notion.so")) {
+                } else if (item.additional.source === "notion") {
                     html += `<div class="results-notion">` + `<b><a href="${item.additional.file}">${item.additional.heading}</a></b>` + `<p>${item.entry}</p>` + `</div>`;
                 } else if (item.additional.file.endsWith(".html")) {
                     html += render_html(query, [item]);

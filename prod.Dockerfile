@@ -20,7 +20,7 @@ COPY . .
 RUN apt install vim -y
 
 # Set the PYTHONPATH environment variable in order for it to find the Django app.
-ENV PYTHONPATH=/app/src/khoj:$PYTHONPATH
+ENV PYTHONPATH=/app/src:$PYTHONPATH
 
 # Run the Application
 # There are more arguments required for the application to run,

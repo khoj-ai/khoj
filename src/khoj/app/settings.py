@@ -14,7 +14,7 @@ from pathlib import Path
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Quick-start development settings - unsuitable for production
@@ -24,15 +24,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 SECRET_KEY = os.getenv("KHOJ_DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("KHOJ_DEBUG", "False") == "True"
+DEBUG = os.getenv("KHOJ_DEBUG") == "True"
 
-ALLOWED_HOSTS = [".khoj.dev", "localhost", "127.0.0.1", "[::1]", "beta.khoj.dev"]
+# All Subdomains of KHOJ_DOMAIN are trusted
+KHOJ_DOMAIN = os.getenv("KHOJ_DOMAIN", "khoj.dev")
+ALLOWED_HOSTS = [f".{KHOJ_DOMAIN}", "localhost", "127.0.0.1", "[::1]"]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://app.khoj.dev",
-    "https://beta.khoj.dev",
-    "https://khoj.dev",
-    "https://*.khoj.dev",
+    f"https://*.{KHOJ_DOMAIN}",
+    f"https://{KHOJ_DOMAIN}",
 ]
 
 COOKIE_SAMESITE = "None"
@@ -40,8 +40,8 @@ if DEBUG:
     SESSION_COOKIE_DOMAIN = "localhost"
     CSRF_COOKIE_DOMAIN = "localhost"
 else:
-    SESSION_COOKIE_DOMAIN = "khoj.dev"
-    CSRF_COOKIE_DOMAIN = "khoj.dev"
+    SESSION_COOKIE_DOMAIN = KHOJ_DOMAIN
+    CSRF_COOKIE_DOMAIN = KHOJ_DOMAIN
 
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
@@ -143,7 +143,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_ROOT = BASE_DIR / "static"
-STATICFILES_DIRS = [BASE_DIR / "src/khoj/interface/web"]
+STATICFILES_DIRS = [BASE_DIR / "interface/web"]
 STATIC_URL = "/static/"
 
 # Default primary key field type

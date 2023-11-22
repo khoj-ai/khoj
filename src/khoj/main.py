@@ -3,6 +3,8 @@
 """
 
 # Standard Packages
+from contextlib import redirect_stdout
+import io
 import os
 import sys
 import locale
@@ -33,10 +35,14 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "khoj.app.settings")
 django.setup()
 
 # Initialize Django Database
-call_command("migrate", "--noinput")
+db_migrate_output = io.StringIO()
+with redirect_stdout(db_migrate_output):
+    call_command("migrate", "--noinput")
 
 # Initialize Django Static Files
-call_command("collectstatic", "--noinput")
+collectstatic_output = io.StringIO()
+with redirect_stdout(collectstatic_output):
+    call_command("collectstatic", "--noinput")
 
 # Initialize the Application Server
 app = FastAPI()
@@ -45,9 +51,16 @@ app = FastAPI()
 django_app = get_asgi_application()
 
 # Add CORS middleware
+KHOJ_DOMAIN = os.getenv("KHOJ_DOMAIN", "app.khoj.dev")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["app://obsidian.md", "http://localhost:*", "https://app.khoj.dev/*", "app://khoj.dev"],
+    allow_origins=[
+        "app://obsidian.md",
+        "http://localhost:*",
+        "http://127.0.0.1:*",
+        f"https://{KHOJ_DOMAIN}",
+        "app://khoj.dev",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -79,13 +92,15 @@ def run(should_start_server=True):
     args = cli(state.cli_args)
     set_state(args)
 
-    logger.info(f"🚒 Initializing Khoj v{state.khoj_version}")
-
     # Set Logging Level
     if args.verbose == 0:
         logger.setLevel(logging.INFO)
     elif args.verbose >= 1:
         logger.setLevel(logging.DEBUG)
+
+    logger.info(f"🚒 Initializing Khoj v{state.khoj_version}")
+    logger.info(f"📦 Initializing DB:\n{db_migrate_output.getvalue().strip()}")
+    logger.debug(f"🌍 Initializing Web Client:\n{collectstatic_output.getvalue().strip()}")
 
     initialization()
 
@@ -107,10 +122,10 @@ def run(should_start_server=True):
 
     #  Mount Django and Static Files
     app.mount("/server", django_app, name="server")
-    static_dir = "static"
+    static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
     if not os.path.exists(static_dir):
         os.mkdir(static_dir)
-    app.mount(f"/{static_dir}", StaticFiles(directory=static_dir), name=static_dir)
+    app.mount(f"/static", StaticFiles(directory=static_dir), name=static_dir)
 
     # Configure Middleware
     configure_middleware(app)

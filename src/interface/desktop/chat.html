@@ -120,7 +120,8 @@
             // Create a new div for the chat message text and append it to the chat message
             let chatMessageText = document.createElement('div');
             chatMessageText.className = `chat-message-text ${by}`;
-            chatMessageText.innerHTML = formattedMessage;
+            let textNode = document.createTextNode(formattedMessage);
+            chatMessageText.appendChild(textNode);
             chatMessage.appendChild(chatMessageText);
 
             // Append annotations div to the chat message
