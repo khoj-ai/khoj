@@ -153,6 +153,9 @@ The optional steps below allow using Khoj from within an existing application li
 - **Khoj Emacs**:<br />
 [Install](/emacs?id=setup) khoj.el
 
+#### Setup host URL
+To configure your host URL on your clients when self-hosting, use `http://127.0.0.1:42110`. This is the default value for the `KHOJ_HOST` environment variable. Note that `localhost` will not work.
+
 ### 5. Use Khoj 🚀
 
 You can head to http://localhost:42110 to use the web interface. You can also use the desktop client to search and chat.
