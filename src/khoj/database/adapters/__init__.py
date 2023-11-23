@@ -1,9 +1,9 @@
 import math
+import random
 import secrets
 from datetime import date, datetime, timezone
 from typing import List, Optional, Type
 
-# Import sync_to_async from Django Channels
 from asgiref.sync import sync_to_async
 from django.contrib.sessions.backends.db import SessionStore
 from django.db import models
@@ -28,6 +28,9 @@ from khoj.database.models import (
     SearchModelConfig,
     Subscription,
     UserConversationConfig,
+    OpenAIProcessorConversationConfig,
+    OfflineChatProcessorConversationConfig,
+    ReflectiveQuestion,
 )
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
@@ -336,6 +339,25 @@ class ConversationAdapters:
     @staticmethod
     async def get_openai_chat_config():
         return await OpenAIProcessorConversationConfig.objects.filter().afirst()
+
+    @staticmethod
+    async def aget_conversation_starters(user: KhojUser):
+        all_questions = []
+        if await ReflectiveQuestion.objects.filter(user=user).aexists():
+            all_questions = await sync_to_async(ReflectiveQuestion.objects.filter(user=user).values_list)(
+                "question", flat=True
+            )
+
+        all_questions = await sync_to_async(ReflectiveQuestion.objects.filter(user=None).values_list)(
+            "question", flat=True
+        )
+
+        max_results = 3
+        all_questions = await sync_to_async(list)(all_questions)
+        if len(all_questions) < max_results:
+            return all_questions
+
+        return random.sample(all_questions, max_results)
 
     @staticmethod
     def get_valid_conversation_config(user: KhojUser):

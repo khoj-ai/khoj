@@ -153,8 +153,8 @@ To get started, just start typing below. You can also type / to see a list of co
                     numOnlineReferences += onlineReference.organic.length;
                     for (let index in onlineReference.organic) {
                         let reference = onlineReference.organic[index];
-                    let polishedReference = generateOnlineReference(reference, index);
-                    referenceSection.appendChild(polishedReference);
+                        let polishedReference = generateOnlineReference(reference, index);
+                        referenceSection.appendChild(polishedReference);
                     }
                 }
 
@@ -162,8 +162,8 @@ To get started, just start typing below. You can also type / to see a list of co
                     numOnlineReferences += onlineReference.knowledgeGraph.length;
                     for (let index in onlineReference.knowledgeGraph) {
                         let reference = onlineReference.knowledgeGraph[index];
-                    let polishedReference = generateOnlineReference(reference, index);
-                    referenceSection.appendChild(polishedReference);
+                        let polishedReference = generateOnlineReference(reference, index);
+                        referenceSection.appendChild(polishedReference);
                     }
                 }
 
@@ -426,6 +426,9 @@ To get started, just start typing below. You can also type / to see a list of co
             let chatInput = document.getElementById("chat-input");
             chatInput.value = chatInput.value.trimStart();
 
+            let questionStarterSuggestions = document.getElementById("question-starters");
+            questionStarterSuggestions.style.display = "none";
+
             if (chatInput.value.startsWith("/") && chatInput.value.split(" ").length === 1) {
                 let chatTooltip = document.getElementById("chat-tooltip");
                 chatTooltip.style.display = "block";
@@ -505,6 +508,31 @@ To get started, just start typing below. You can also type / to see a list of co
                     return;
                 });
 
+            fetch('/api/chat/starters')
+                .then(response => response.json())
+                .then(data => {
+                    // Render chat options, if any
+                    if (data) {
+                        let questionStarterSuggestions = document.getElementById("question-starters");
+                        for (let index in data) {
+                            let questionStarter = data[index];
+                            let questionStarterButton = document.createElement('button');
+                            questionStarterButton.innerHTML = questionStarter;
+                            questionStarterButton.classList.add("question-starter");
+                            questionStarterButton.addEventListener('click', function() {
+                                questionStarterSuggestions.style.display = "none";
+                                document.getElementById("chat-input").value = questionStarter;
+                                chat();
+                            });
+                            questionStarterSuggestions.appendChild(questionStarterButton);
+                        }
+                        questionStarterSuggestions.style.display = "grid";
+                    }
+                })
+                .catch(err => {
+                    return;
+                });
+
             // Fill query field with value passed in URL query parameters, if any.
             var query_via_url = new URLSearchParams(window.location.search).get("q");
             if (query_via_url) {
@@ -523,6 +551,9 @@ To get started, just start typing below. You can also type / to see a list of co
 
         <!-- Chat Body -->
         <div id="chat-body"></div>
+
+        <!-- Chat Suggestions -->
+        <div id="question-starters" style="display: none;"></div>
 
         <!-- Chat Footer -->
         <div id="chat-footer">
@@ -582,6 +613,28 @@ To get started, just start typing below. You can also type / to see a list of co
             grid-column-gap: 10px;
             grid-row-gap: 10px;
             margin: 10px;
+        }
+
+        div#question-starters {
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            grid-column-gap: 8px;
+        }
+
+        button.question-starter {
+            background: var(--background-color);
+            color: var(--main-text-color);
+            border: 1px solid var(--main-text-color);
+            border-radius: 5px;
+            padding: 5px;
+            font-size: 14px;
+            font-weight: 300;
+            line-height: 1.5em;
+            cursor: pointer;
+            transition: background 0.2s ease-in-out;
+            text-align: left;
+            max-height: 75px;
+            transition: max-height 0.3s ease-in-out;
+            overflow: hidden;
         }
 
         button.reference-button {
