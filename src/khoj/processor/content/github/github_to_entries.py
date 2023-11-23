@@ -2,19 +2,20 @@
 import logging
 import time
 from datetime import datetime
-from typing import Dict, List, Union, Tuple
+from typing import Dict, List, Tuple, Union
 
 # External Packages
 import requests
 
+from khoj.database.models import Entry as DbEntry
+from khoj.database.models import GithubConfig, KhojUser
+from khoj.processor.content.markdown.markdown_to_entries import MarkdownToEntries
+from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
+from khoj.processor.content.text_to_entries import TextToEntries
+
 # Internal Packages
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry, GithubContentConfig, GithubRepoConfig
-from khoj.processor.markdown.markdown_to_entries import MarkdownToEntries
-from khoj.processor.org_mode.org_to_entries import OrgToEntries
-from khoj.processor.text_to_entries import TextToEntries
-from khoj.database.models import Entry as DbEntry, GithubConfig, KhojUser
-
 
 logger = logging.getLogger(__name__)
 

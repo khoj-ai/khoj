@@ -1,5 +1,6 @@
 # Standard Packages
 import urllib.parse
+from urllib.parse import quote
 
 # External Packages
 import pytest
@@ -48,6 +49,26 @@ def test_chat_with_no_chat_history_or_retrieved_content_gpt4all(client_offline_c
 
     # Assert
     expected_responses = ["Khoj", "khoj"]
+    assert response.status_code == 200
+    assert any([expected_response in response_message for expected_response in expected_responses]), (
+        "Expected assistants name, [K|k]hoj, in response but got: " + response_message
+    )
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
+@pytest.mark.django_db(transaction=True)
+def test_chat_with_online_content(chat_client):
+    # Act
+    q = "/online give me the link to paul graham's essay how to do great work"
+    encoded_q = quote(q, safe="")
+    response = chat_client.get(f"/api/chat?q={encoded_q}&stream=true")
+    response_message = response.content.decode("utf-8")
+
+    response_message = response_message.split("### compiled references")[0]
+
+    # Assert
+    expected_responses = ["http://www.paulgraham.com/greatwork.html"]
     assert response.status_code == 200
     assert any([expected_response in response_message for expected_response in expected_responses]), (
         "Expected assistants name, [K|k]hoj, in response but got: " + response_message
