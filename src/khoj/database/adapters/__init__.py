@@ -1,7 +1,7 @@
 import math
 import random
 import secrets
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 from typing import List, Optional, Type
 from enum import Enum
 
@@ -140,6 +140,10 @@ def subscription_to_state(subscription: Subscription) -> str:
     if not subscription:
         return SubscriptionState.INVALID.value
     elif subscription.type == Subscription.Type.TRIAL:
+        # Trial subscription is valid for 7 days
+        if datetime.now(tz=timezone.utc) - subscription.created_at > timedelta(days=7):
+            return SubscriptionState.EXPIRED.value
+
         return SubscriptionState.TRIAL.value
     elif subscription.is_recurring and subscription.renewal_date >= datetime.now(tz=timezone.utc):
         return SubscriptionState.SUBSCRIBED.value

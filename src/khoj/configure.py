@@ -77,7 +77,10 @@ class UserAuthenticationBackend(AuthenticationBackend):
             if user:
                 if state.billing_enabled:
                     subscription_state = await aget_user_subscription_state(user)
-                    subscribed = subscription_state == SubscriptionState.SUBSCRIBED.value
+                    subscribed = (
+                        subscription_state == SubscriptionState.SUBSCRIBED.value
+                        or subscription_state == SubscriptionState.TRIAL.value
+                    )
                     if subscribed:
                         return AuthCredentials(["authenticated", "subscribed"]), AuthenticatedKhojUser(
                             user_with_token.user
@@ -97,7 +100,10 @@ class UserAuthenticationBackend(AuthenticationBackend):
             if user_with_token:
                 if state.billing_enabled:
                     subscription_state = await aget_user_subscription_state(user_with_token.user)
-                    subscribed = subscription_state == SubscriptionState.SUBSCRIBED.value
+                    subscribed = (
+                        subscription_state == SubscriptionState.SUBSCRIBED.value
+                        or subscription_state == SubscriptionState.TRIAL.value
+                    )
                     if subscribed:
                         return AuthCredentials(["authenticated", "subscribed"]), AuthenticatedKhojUser(
                             user_with_token.user
