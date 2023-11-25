@@ -405,14 +405,14 @@ Auto invokes setup steps on calling main entrypoint."
                         ;; render response from indexing API endpoint on server
                         (lambda (status)
                           (if (not status)
-                              (message "khoj.el: %scontent index %supdated" (if content-type (format "%s " content-type) "") (if force "force " ""))
+                              (message "khoj.el: %scontent index %supdated" (if content-type (format "%s " content-type) "all ") (if force "force " ""))
                             (with-current-buffer (current-buffer)
-                              (goto-char "\n\n")
-                              (message "khoj.el: Failed to %supdate %s content index. Status: %s. Response: %s"
+                              (search-forward "\n\n" nil t)
+                              (message "khoj.el: Failed to %supdate %s content index. Status: %s%s"
                                        (if force "force " "")
-                                       content-type
-                                       status
-                                       (string-trim (buffer-substring-no-properties (point) (point-max)))))))
+                                       (if content-type (format "%s " content-type) "all")
+                                       (string-trim (format "%s %s" (nth 1 (nth 1 status)) (nth 2 (nth 1 status))))
+                                       (if (> (- (point-max) (point)) 0) (format ". Response: %s" (string-trim (buffer-substring-no-properties (point) (point-max)))) "")))))
                         nil t t)))
     (setq khoj--indexed-files files-to-index)))
 
