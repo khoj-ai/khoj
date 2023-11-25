@@ -21,7 +21,12 @@ from starlette.authentication import (
 
 # Internal Packages
 from khoj.database.models import KhojUser, Subscription
-from khoj.database.adapters import get_all_users, get_or_create_search_model
+from khoj.database.adapters import (
+    get_all_users,
+    get_or_create_search_model,
+    aget_user_subscription_state,
+    SubscriptionState,
+)
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
 from khoj.routers.indexer import configure_content, load_content, configure_search
 from khoj.utils import constants, state
@@ -70,7 +75,11 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 .afirst()
             )
             if user:
-                return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
+                subscription_state = await aget_user_subscription_state(user)
+                subscribed = subscription_state == SubscriptionState.SUBSCRIBED.value
+                if subscribed:
+                    return AuthCredentials(["authenticated", "subscribed"]), AuthenticatedKhojUser(user)
+                return AuthCredentials(["authenticated", "subscribed"]), AuthenticatedKhojUser(user)
         if len(request.headers.get("Authorization", "").split("Bearer ")) == 2:
             # Get bearer token from header
             bearer_token = request.headers["Authorization"].split("Bearer ")[1]
@@ -82,11 +91,15 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 .afirst()
             )
             if user_with_token:
+                subscription_state = await aget_user_subscription_state(user_with_token.user)
+                subscribed = subscription_state == SubscriptionState.SUBSCRIBED.value
+                if subscribed:
+                    return AuthCredentials(["authenticated", "subscribed"]), AuthenticatedKhojUser(user_with_token.user)
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user_with_token.user)
         if state.anonymous_mode:
             user = await self.khojuser_manager.filter(username="default").prefetch_related("subscription").afirst()
             if user:
-                return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
+                return AuthCredentials(["authenticated", "subscribed"]), AuthenticatedKhojUser(user)
 
         return AuthCredentials(), UnauthenticatedUser()
 

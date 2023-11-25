@@ -12,7 +12,7 @@ from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.requests import Request
 from fastapi.responses import Response, StreamingResponse
-from starlette.authentication import requires
+from starlette.authentication import requires, has_required_scope
 
 # Internal Packages
 from khoj.configure import configure_server

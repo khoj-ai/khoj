@@ -3,6 +3,7 @@ import random
 import secrets
 from datetime import date, datetime, timezone
 from typing import List, Optional, Type
+from enum import Enum
 
 from asgiref.sync import sync_to_async
 from django.contrib.sessions.backends.db import SessionStore
@@ -38,6 +39,14 @@ from khoj.search_filter.word_filter import WordFilter
 from khoj.utils import state
 from khoj.utils.config import GPT4AllProcessorModel
 from khoj.utils.helpers import generate_random_name
+
+
+class SubscriptionState(Enum):
+    TRIAL = "trial"
+    SUBSCRIBED = "subscribed"
+    UNSUBSCRIBED = "unsubscribed"
+    EXPIRED = "expired"
+    INVALID = "invalid"
 
 
 async def set_notion_config(token: str, user: KhojUser):
@@ -127,22 +136,34 @@ async def set_user_subscription(
         return None
 
 
+def subscription_to_state(subscription: Subscription) -> str:
+    if not subscription:
+        return SubscriptionState.INVALID.value
+    elif subscription.type == Subscription.Type.TRIAL:
+        return SubscriptionState.TRIAL.value
+    elif subscription.is_recurring and subscription.renewal_date >= datetime.now(tz=timezone.utc):
+        return SubscriptionState.SUBSCRIBED.value
+    elif not subscription.is_recurring and subscription.renewal_date >= datetime.now(tz=timezone.utc):
+        return SubscriptionState.UNSUBSCRIBED.value
+    elif not subscription.is_recurring and subscription.renewal_date < datetime.now(tz=timezone.utc):
+        return SubscriptionState.EXPIRED.value
+    return SubscriptionState.INVALID.value
+
+
 def get_user_subscription_state(email: str) -> str:
     """Get subscription state of user
     Valid state transitions: trial -> subscribed <-> unsubscribed OR expired
     """
     user_subscription = Subscription.objects.filter(user__email=email).first()
-    if not user_subscription:
-        return "trial"
-    elif user_subscription.type == Subscription.Type.TRIAL:
-        return "trial"
-    elif user_subscription.is_recurring and user_subscription.renewal_date >= datetime.now(tz=timezone.utc):
-        return "subscribed"
-    elif not user_subscription.is_recurring and user_subscription.renewal_date >= datetime.now(tz=timezone.utc):
-        return "unsubscribed"
-    elif not user_subscription.is_recurring and user_subscription.renewal_date < datetime.now(tz=timezone.utc):
-        return "expired"
-    return "invalid"
+    return subscription_to_state(user_subscription)
+
+
+async def aget_user_subscription_state(email: str) -> str:
+    """Get subscription state of user
+    Valid state transitions: trial -> subscribed <-> unsubscribed OR expired
+    """
+    user_subscription = await Subscription.objects.filter(user__email=email).afirst()
+    return subscription_to_state(user_subscription)
 
 
 async def get_user_by_email(email: str) -> KhojUser:
