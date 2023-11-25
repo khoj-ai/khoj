@@ -11,6 +11,7 @@ from typing import Annotated, Any, Dict, Iterator, List, Optional, Tuple, Union
 
 # External Packages
 from fastapi import Depends, Header, HTTPException, Request
+from starlette.authentication import has_required_scope
 
 from khoj.database.adapters import ConversationAdapters
 from khoj.database.models import KhojUser, Subscription
@@ -270,13 +271,15 @@ def generate_chat_response(
 
 
 class ApiUserRateLimiter:
-    def __init__(self, requests: int, window: int):
+    def __init__(self, requests: int, subscribed_requests: int, window: int):
         self.requests = requests
+        self.subscribed_requests = subscribed_requests
         self.window = window
         self.cache: dict[str, list[float]] = defaultdict(list)
 
     def __call__(self, request: Request):
         user: KhojUser = request.user.object
+        subscribed = has_required_scope(request, ["subscribed"])
         user_requests = self.cache[user.uuid]
 
         # Remove requests outside of the time window
@@ -285,8 +288,10 @@ class ApiUserRateLimiter:
             user_requests.pop(0)
 
         # Check if the user has exceeded the rate limit
-        if len(user_requests) >= self.requests:
+        if subscribed and len(user_requests) >= self.subscribed_requests:
             raise HTTPException(status_code=429, detail="Too Many Requests")
+        if not subscribed and len(user_requests) >= self.requests:
+            raise HTTPException(status_code=429, detail="Too Many Requests. Subscribe to increase your rate limit.")
 
         # Add the current request to the cache
         user_requests.append(time())
