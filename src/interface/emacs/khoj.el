@@ -98,6 +98,11 @@
   :group 'khoj
   :type 'string)
 
+(defcustom khoj-auto-index t
+  "Should content be automatically re-indexed every `khoj-index-interval' seconds."
+  :group 'khoj
+  :type 'boolean)
+
 (defcustom khoj-index-interval 3600
   "Interval (in seconds) to wait before updating content index."
   :group 'khoj
@@ -444,8 +449,9 @@ Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request.
 (when khoj--index-timer
     (cancel-timer khoj--index-timer))
 ;; Send files to index on server every `khoj-index-interval' seconds
-(setq khoj--index-timer
-      (run-with-timer 60 khoj-index-interval 'khoj--server-index-files))
+(when khoj-auto-index
+  (setq khoj--index-timer
+        (run-with-timer 60 khoj-index-interval 'khoj--server-index-files)))
 
 
 ;; -------------------------------------------
