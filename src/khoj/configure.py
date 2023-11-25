@@ -106,8 +106,8 @@ class UserAuthenticationBackend(AuthenticationBackend):
                         return AuthCredentials(["authenticated", "subscribed"]), AuthenticatedKhojUser(
                             user_with_token.user
                         )
-                    return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
-                return AuthCredentials(["authenticated", "subscribed"]), AuthenticatedKhojUser(user)
+                    return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user_with_token.user)
+                return AuthCredentials(["authenticated", "subscribed"]), AuthenticatedKhojUser(user_with_token.user)
         if state.anonymous_mode:
             user = await self.khojuser_manager.filter(username="default").prefetch_related("subscription").afirst()
             if user:
