@@ -75,11 +75,14 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 .afirst()
             )
             if user:
-                subscription_state = await aget_user_subscription_state(user)
-                subscribed = subscription_state == SubscriptionState.SUBSCRIBED.value
-                if subscribed:
-                    return AuthCredentials(["authenticated", "subscribed"]), AuthenticatedKhojUser(user)
-                return AuthCredentials(["authenticated", "subscribed"]), AuthenticatedKhojUser(user)
+                if state.billing_enabled:
+                    subscription_state = await aget_user_subscription_state(user)
+                    subscribed = subscription_state == SubscriptionState.SUBSCRIBED.value
+                    if subscribed:
+                        return AuthCredentials(["authenticated", "subscribed"]), AuthenticatedKhojUser(
+                            user_with_token.user
+                        )
+                return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
         if len(request.headers.get("Authorization", "").split("Bearer ")) == 2:
             # Get bearer token from header
             bearer_token = request.headers["Authorization"].split("Bearer ")[1]
@@ -91,10 +94,13 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 .afirst()
             )
             if user_with_token:
-                subscription_state = await aget_user_subscription_state(user_with_token.user)
-                subscribed = subscription_state == SubscriptionState.SUBSCRIBED.value
-                if subscribed:
-                    return AuthCredentials(["authenticated", "subscribed"]), AuthenticatedKhojUser(user_with_token.user)
+                if state.billing_enabled:
+                    subscription_state = await aget_user_subscription_state(user_with_token.user)
+                    subscribed = subscription_state == SubscriptionState.SUBSCRIBED.value
+                    if subscribed:
+                        return AuthCredentials(["authenticated", "subscribed"]), AuthenticatedKhojUser(
+                            user_with_token.user
+                        )
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user_with_token.user)
         if state.anonymous_mode:
             user = await self.khojuser_manager.filter(username="default").prefetch_related("subscription").afirst()
