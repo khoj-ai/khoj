@@ -9,10 +9,10 @@ from typing import Any, Dict, List, Optional, Union
 from asgiref.sync import sync_to_async
 
 # External Packages
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.requests import Request
 from fastapi.responses import Response, StreamingResponse
-from starlette.authentication import requires, has_required_scope
+from starlette.authentication import requires
 
 # Internal Packages
 from khoj.configure import configure_server

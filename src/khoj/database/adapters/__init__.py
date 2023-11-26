@@ -1,6 +1,7 @@
 import math
 import random
 import secrets
+import sys
 from datetime import date, datetime, timezone, timedelta
 from typing import List, Optional, Type
 from enum import Enum
@@ -473,6 +474,12 @@ class EntryAdapters:
     @staticmethod
     async def adelete_all_entries(user: KhojUser):
         return await Entry.objects.filter(user=user).adelete()
+
+    @staticmethod
+    def get_size_of_indexed_data_in_mb(user: KhojUser):
+        entries = Entry.objects.filter(user=user).iterator()
+        total_size = sum(sys.getsizeof(entry.compiled) for entry in entries)
+        return total_size / 1024 / 1024
 
     @staticmethod
     def apply_filters(user: KhojUser, query: str, file_type_filter: str = None):

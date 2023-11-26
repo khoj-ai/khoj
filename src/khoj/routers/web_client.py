@@ -1,6 +1,8 @@
 # System Packages
 import json
 import os
+import math
+from datetime import timedelta
 
 # External Packages
 from fastapi import APIRouter
@@ -137,8 +139,9 @@ def config_page(request: Request):
     subscription_renewal_date = (
         user_subscription.renewal_date.strftime("%d %b %Y")
         if user_subscription and user_subscription.renewal_date
-        else None
+        else (user_subscription.created_at + timedelta(days=7)).strftime("%d %b %Y")
     )
+    indexed_data_size_in_mb = math.ceil(EntryAdapters.get_size_of_indexed_data_in_mb(user))
 
     enabled_content_source = set(EntryAdapters.get_unique_file_sources(user))
     successfully_configured = {
@@ -169,6 +172,7 @@ def config_page(request: Request):
             "khoj_cloud_subscription_url": os.getenv("KHOJ_CLOUD_SUBSCRIPTION_URL"),
             "is_active": has_required_scope(request, ["subscribed"]),
             "has_documents": has_documents,
+            "indexed_data_size_in_mb": indexed_data_size_in_mb,
         },
     )
 

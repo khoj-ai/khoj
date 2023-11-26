@@ -80,6 +80,7 @@ class UserAuthenticationBackend(AuthenticationBackend):
                     subscribed = (
                         subscription_state == SubscriptionState.SUBSCRIBED.value
                         or subscription_state == SubscriptionState.TRIAL.value
+                        or subscription_state == SubscriptionState.UNSUBSCRIBED.value
                     )
                     if subscribed:
                         return AuthCredentials(["authenticated", "subscribed"]), AuthenticatedKhojUser(user)
@@ -101,6 +102,7 @@ class UserAuthenticationBackend(AuthenticationBackend):
                     subscribed = (
                         subscription_state == SubscriptionState.SUBSCRIBED.value
                         or subscription_state == SubscriptionState.TRIAL.value
+                        or subscription_state == SubscriptionState.UNSUBSCRIBED.value
                     )
                     if subscribed:
                         return AuthCredentials(["authenticated", "subscribed"]), AuthenticatedKhojUser(

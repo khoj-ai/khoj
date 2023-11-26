@@ -127,6 +127,34 @@ def test_regenerate_with_invalid_content_type(client):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
+def test_index_update_big_files(client):
+    state.billing_enabled = True
+    # Arrange
+    files = get_big_size_sample_files_data()
+    headers = {"Authorization": "Bearer kk-secret"}
+
+    # Act
+    response = client.post("/api/v1/index/update", files=files, headers=headers)
+
+    # Assert
+    assert response.status_code == 429
+
+
+@pytest.mark.django_db(transaction=True)
+def test_index_update_big_files_no_billing(client):
+    # Arrange
+    files = get_big_size_sample_files_data()
+    headers = {"Authorization": "Bearer kk-secret"}
+
+    # Act
+    response = client.post("/api/v1/index/update", files=files, headers=headers)
+
+    # Assert
+    assert response.status_code == 200
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.django_db(transaction=True)
 def test_index_update(client):
     # Arrange
     files = get_sample_files_data()
@@ -420,4 +448,14 @@ def get_sample_files_data():
             ("path/to/filename1.md", "## Studying anthropological records from the Fatimid caliphate", "text/markdown"),
         ),
         ("files", ("path/to/filename2.md", "**Understanding science through the lens of art**", "text/markdown")),
+    ]
+
+
+def get_big_size_sample_files_data():
+    big_text = "a" * (25 * 1024 * 1024)  # a string of approximately 25 MB
+    return [
+        (
+            "files",
+            ("path/to/filename.org", big_text, "text/org"),
+        )
     ]
