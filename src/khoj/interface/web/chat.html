@@ -543,6 +543,18 @@ To get started, just start typing below. You can also type / to see a list of co
             }
         }
 
+        function flashStatusInChatInput(message) {
+            // Get chat input element and original placeholder
+            let chatInput = document.getElementById("chat-input");
+            let originalPlaceholder = chatInput.placeholder;
+            // Set placeholder to message
+            chatInput.placeholder = message;
+            // Reset placeholder after 2 seconds
+            setTimeout(() => {
+                chatInput.placeholder = originalPlaceholder;
+            }, 2000);
+        }
+
         function clearConversationHistory() {
             let chatInput = document.getElementById("chat-input");
             let originalPlaceholder = chatInput.placeholder;
@@ -553,15 +565,10 @@ To get started, just start typing below. You can also type / to see a list of co
                 .then(data => {
                     chatBody.innerHTML = "";
                     loadChat();
-                    chatInput.placeholder = "Cleared conversation history";
+                    flashStatusInChatInput("🗑 Cleared conversation history");
                 })
                 .catch(err => {
-                    chatInput.placeholder = "Failed to clear conversation history";
-                })
-                .finally(() => {
-                    setTimeout(() => {
-                        chatInput.placeholder = originalPlaceholder;
-                    }, 2000);
+                    flashStatusInChatInput("⛔️ Failed to clear conversation history");
                 });
         }
 
@@ -578,7 +585,11 @@ To get started, just start typing below. You can also type / to see a list of co
                 fetch('/api/speak?client=web', { method: 'POST', body: formData })
                     .then(response => response.ok ? response.json() : Promise.reject(response))
                     .then(data => { chatInput.value += data.text; })
-                    .catch(err => err.status == 422 ? console.error("Configure speech-to-text model on server.") : console.error("Failed to transcribe audio"));
+                    .catch(err => {
+                        err.status == 422
+                        ? flashStatusInChatInput("⛔️ Configure speech-to-text model on server.")
+                        : flashStatusInChatInput("⛔️ Failed to transcribe audio")
+                    });
             };
 
             const handleRecording = (stream) => {
@@ -597,7 +608,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
                 mediaRecorder.start();
                 speakButtonImg.src = '/static/assets/icons/stop-solid.svg';
-                speakButtonImg.alt = 'Stop Speaking';
+                speakButtonImg.alt = 'Stop Transcription';
             };
 
             // Toggle recording
@@ -606,12 +617,12 @@ To get started, just start typing below. You can also type / to see a list of co
                 .getUserMedia({ audio: true })
                 .then(handleRecording)
                 .catch((e) => {
-                    console.error(e);
+                    flashStatusInChatInput("⛔️ Failed to access microphone");
                 });
             } else if (mediaRecorder.state === 'recording') {
                 mediaRecorder.stop();
                 speakButtonImg.src = '/static/assets/icons/microphone-solid.svg';
-                speakButtonImg.alt = 'Speak';
+                speakButtonImg.alt = 'Transcribe';
             }
         }
     </script>
@@ -635,7 +646,7 @@ To get started, just start typing below. You can also type / to see a list of co
             <div id="input-row">
                 <textarea id="chat-input" class="option" oninput="onChatInput()" onkeydown=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands, or just type your questions and hit enter."></textarea>
                 <button id="speak-button" class="input-row-button" onclick="speechToText()">
-                    <img id="speak-button-img" class="input-row-button-img" src="/static/assets/icons/microphone-solid.svg" alt="Speak"></img>
+                    <img id="speak-button-img" class="input-row-button-img" src="/static/assets/icons/microphone-solid.svg" alt="Transcribe"></img>
                 </button>
                 <button class="input-row-button" onclick="clearConversationHistory()">
                     <img class="input-row-button-img" src="/static/assets/icons/trash-solid.svg" alt="Clear Chat History"></img>
