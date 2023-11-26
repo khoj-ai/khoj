@@ -9,4 +9,4 @@ class Migration(migrations.Migration):
         ("database", "0020_speechtotextmodeloptions_and_more"),
     ]
 
-    operations = []
+    operations: list = []
