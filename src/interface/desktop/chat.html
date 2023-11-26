@@ -515,6 +515,32 @@
                 chat();
             }
         }
+
+        async function clearConversationHistory() {
+            let chatInput = document.getElementById("chat-input");
+            let originalPlaceholder = chatInput.placeholder;
+            let chatBody = document.getElementById("chat-body");
+
+            const hostURL = await window.hostURLAPI.getURL();
+            const khojToken = await window.tokenAPI.getToken();
+            const headers = { 'Authorization': `Bearer ${khojToken}` };
+
+            fetch(`${hostURL}/api/chat/history?client=desktop`, { method: "DELETE", headers })
+                .then(response => response.ok ? response.json() : Promise.reject(response))
+                .then(data => {
+                    chatBody.innerHTML = "";
+                    loadChat();
+                    chatInput.placeholder = "Cleared conversation history";
+                })
+                .catch(err => {
+                    chatInput.placeholder = "Failed to clear conversation history";
+                })
+                .finally(() => {
+                    setTimeout(() => {
+                        chatInput.placeholder = originalPlaceholder;
+                    }, 2000);
+                });
+        }
     </script>
     <body>
         <div id="khoj-empty-container" class="khoj-empty-container">
@@ -541,7 +567,12 @@
         <!-- Chat Footer -->
         <div id="chat-footer">
             <div id="chat-tooltip" style="display: none;"></div>
-            <textarea id="chat-input" class="option" oninput="onChatInput()" onkeydown=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands, or just type your questions and hit enter."></textarea>
+            <div id="input-row">
+                <textarea id="chat-input" class="option" oninput="onChatInput()" onkeydown=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands, or just type your questions and hit enter."></textarea>
+                <button class="input-row-button" onclick="clearConversationHistory()">
+                    <img class="input-rown-button-img" src="./assets/icons/trash-solid.svg" alt="Clear Chat History"></img>
+                </button>
+            </div>
         </div>
     </body>
 
@@ -655,15 +686,17 @@
 
         #chat-footer {
             padding: 0;
+            margin: 8px;
             display: grid;
             grid-template-columns: minmax(70px, 100%);
             grid-column-gap: 10px;
             grid-row-gap: 10px;
         }
-        #chat-footer > * {
-            padding: 15px;
-            border-radius: 5px;
-            border: 1px solid #475569;
+        #input-row {
+            display: grid;
+            grid-template-columns: auto 32px;
+            grid-column-gap: 10px;
+            grid-row-gap: 10px;
             background: #f9fafc
         }
         .option:hover {
@@ -683,6 +716,26 @@
         }
         #chat-input:focus {
             outline: none !important;
+        }
+        .input-row-button {
+            background: var(--background-color);
+            border: none;
+            border-radius: 5px;
+            padding: 5px;
+            font-size: 14px;
+            font-weight: 300;
+            line-height: 1.5em;
+            cursor: pointer;
+            transition: background 0.3s ease-in-out;
+        }
+        .input-row-button:hover {
+            background: var(--primary-hover);
+        }
+        .input-row-button:active {
+            background: var(--primary-active);
+        }
+        .input-row-button-img {
+            width: 24px;
         }
 
         .option-enabled {

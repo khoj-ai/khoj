@@ -545,6 +545,27 @@ def chat_history(
     return {"status": "ok", "response": meta_log.get("chat", [])}
 
 
+@api.delete("/chat/history")
+@requires(["authenticated"])
+async def clear_chat_history(
+    request: Request,
+    common: CommonQueryParams,
+):
+    user = request.user.object
+
+    # Clear Conversation History
+    await ConversationAdapters.adelete_conversation_by_user(user)
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="clear_chat_history",
+        **common.__dict__,
+    )
+
+    return {"status": "ok", "message": "Conversation history cleared"}
+
+
 @api.get("/chat/options", response_class=Response)
 @requires(["authenticated"])
 async def chat_options(
