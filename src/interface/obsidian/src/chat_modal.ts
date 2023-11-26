@@ -1,4 +1,4 @@
-import { App, Modal, request, setIcon } from 'obsidian';
+import { App, Modal, RequestUrlParam, request, requestUrl, setIcon } from 'obsidian';
 import { KhojSetting } from 'src/settings';
 import fetch from "node-fetch";
 
@@ -50,6 +50,16 @@ export class KhojChatModal extends Modal {
                 }
             })
         chatInput.addEventListener('change', (event) => { this.result = (<HTMLInputElement>event.target).value });
+
+        let transcribe = inputRow.createEl("button", {
+            text: "Transcribe",
+            attr: {
+                id: "khoj-transcribe",
+                class: "khoj-transcribe khoj-input-row-button",
+            },
+        })
+        transcribe.addEventListener('click', async (_) => { await this.speechToText() });
+        setIcon(transcribe, "mic");
 
         let clearChat = inputRow.createEl("button", {
             text: "Clear History",
@@ -205,9 +215,19 @@ export class KhojChatModal extends Modal {
         }
     }
 
-    async clearConversationHistory() {
+    flashStatusInChatInput(message: string) {
+        // Get chat input element and original placeholder
         let chatInput = <HTMLInputElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
         let originalPlaceholder = chatInput.placeholder;
+        // Set placeholder to message
+        chatInput.placeholder = message;
+        // Reset placeholder after 2 seconds
+        setTimeout(() => {
+            chatInput.placeholder = originalPlaceholder;
+        }, 2000);
+    }
+
+    async clearConversationHistory() {
         let chatBody = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
 
         let response = await request({
@@ -224,15 +244,84 @@ export class KhojChatModal extends Modal {
                 // If conversation history is cleared successfully, clear chat logs from modal
                 chatBody.innerHTML = "";
                 await this.getChatHistory();
-                chatInput.placeholder = result.message;
+                this.flashStatusInChatInput(result.message);
             }
         } catch (err) {
-            chatInput.placeholder = "Failed to clear conversation history";
-        } finally {
-            // Reset to original placeholder text after some time
-            setTimeout(() => {
-                chatInput.placeholder = originalPlaceholder;
-            }, 2000);
+            this.flashStatusInChatInput("Failed to clear conversation history");
+        }
+    }
+
+    mediaRecorder: MediaRecorder | undefined;
+    async speechToText() {
+        const transcribeButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("khoj-transcribe")[0];
+        const chatInput = <HTMLInputElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+
+        const generateRequestBody = async (audioBlob: Blob, boundary_string: string) => {
+            const boundary = `------${boundary_string}`;
+            const chunks: ArrayBuffer[] = [];
+
+            chunks.push(new TextEncoder().encode(`${boundary}\r\n`));
+            chunks.push(new TextEncoder().encode(`Content-Disposition: form-data; name="file"; filename="blob"\r\nContent-Type: "application/octet-stream"\r\n\r\n`));
+            chunks.push(await audioBlob.arrayBuffer());
+            chunks.push(new TextEncoder().encode('\r\n'));
+
+            await Promise.all(chunks);
+            chunks.push(new TextEncoder().encode(`${boundary}--\r\n`));
+            return await new Blob(chunks).arrayBuffer();
+        };
+
+        const sendToServer = async (audioBlob: Blob) => {
+            const boundary_string = `Boundary${Math.random().toString(36).slice(2)}`;
+            const requestBody = await generateRequestBody(audioBlob, boundary_string);
+
+            const response = await requestUrl({
+                url: `${this.setting.khojUrl}/api/speak?client=obsidian`,
+                method: 'POST',
+                headers: { "Authorization": `Bearer ${this.setting.khojApiKey}` },
+                contentType: `multipart/form-data; boundary=----${boundary_string}`,
+                body: requestBody,
+            });
+
+            // Parse response from Khoj backend
+            if (response.status === 200) {
+                console.log(response);
+                chatInput.value += response.json.text;
+            } else if (response.status === 422) {
+                throw new Error("⛔️ Failed to transcribe audio");
+            } else {
+                throw new Error("⛔️ Configure speech-to-text model on server.");
+            }
+        };
+
+        const handleRecording = (stream: MediaStream) => {
+            const audioChunks: Blob[] = [];
+            const recordingConfig = { mimeType: 'audio/webm' };
+            this.mediaRecorder = new MediaRecorder(stream, recordingConfig);
+
+            this.mediaRecorder.addEventListener("dataavailable", function(event) {
+                if (event.data.size > 0) audioChunks.push(event.data);
+            });
+
+            this.mediaRecorder.addEventListener("stop", async function() {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                await sendToServer(audioBlob);
+            });
+
+            this.mediaRecorder.start();
+            setIcon(transcribeButton, "mic-off");
+        };
+
+        // Toggle recording
+        if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') {
+            navigator.mediaDevices
+                .getUserMedia({ audio: true })
+                .then(handleRecording)
+                .catch((e) => {
+                    this.flashStatusInChatInput("⛔️ Failed to access microphone");
+                });
+        } else if (this.mediaRecorder.state === 'recording') {
+            this.mediaRecorder.stop();
+            setIcon(transcribeButton, "mic");
         }
     }
 }
