@@ -112,7 +112,7 @@ If your plugin does not need CSS, delete this file.
 }
 .khoj-input-row {
     display: grid;
-    grid-template-columns: auto 32px;
+    grid-template-columns: auto 32px 32px;
     grid-column-gap: 10px;
     grid-row-gap: 10px;
     background: var(--background-primary);
