@@ -595,6 +595,11 @@ async def transcribe(request: Request, common: CommonQueryParams, file: UploadFi
     audio_filename = f"{user.uuid}-{str(uuid.uuid4())}.webm"
     user_message: str = None
 
+    # If the file is too large, return an unprocessable entity error
+    if file.size > 10 * 1024 * 1024:
+        logger.warning(f"Audio file too large to transcribe. Audio file size: {file.size}. Exceeds 10Mb limit.")
+        return Response(content="Audio size larger than 10Mb limit", status_code=422)
+
     # Transcribe the audio from the request
     try:
         # Store the audio from the request in a temporary file
@@ -627,7 +632,7 @@ async def transcribe(request: Request, common: CommonQueryParams, file: UploadFi
     update_telemetry_state(
         request=request,
         telemetry_type="api",
-        api="speech_to_text",
+        api="transcribe",
         **common.__dict__,
     )
 
