@@ -31,6 +31,10 @@ contextBridge.exposeInMainWorld('updateStateAPI', {
     onUpdateState: (callback) => ipcRenderer.on('update-state', callback)
 })
 
+contextBridge.exposeInMainWorld('needsSubscriptionAPI', {
+    onNeedsSubscription: (callback) => ipcRenderer.on('needsSubscription', callback)
+})
+
 contextBridge.exposeInMainWorld('removeFileAPI', {
     removeFile: (filePath) => ipcRenderer.invoke('removeFile', filePath)
 })
