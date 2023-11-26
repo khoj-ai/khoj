@@ -10,10 +10,9 @@ import uuid
 
 # External Packages
 from asgiref.sync import sync_to_async
-from fastapi import APIRouter, Depends, File, Header, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.requests import Request
 from fastapi.responses import Response, StreamingResponse
-import openai
 from starlette.authentication import requires
 
 # Internal Packages
@@ -33,6 +32,7 @@ from khoj.database.models import (
 )
 from khoj.processor.conversation.gpt4all.chat_model import extract_questions_offline
 from khoj.processor.conversation.openai.gpt import extract_questions
+from khoj.processor.conversation.openai.whisper import transcribe_audio
 from khoj.processor.conversation.prompts import help_message, no_entries_found
 from khoj.processor.tools.online_search import search_with_google
 from khoj.routers.helpers import (
@@ -589,7 +589,7 @@ async def chat_options(
 
 @api.post("/speak")
 @requires(["authenticated"])
-async def transcribe_audio(request: Request, common: CommonQueryParams, file: UploadFile = File(...)):
+async def transcribe(request: Request, common: CommonQueryParams, file: UploadFile = File(...)):
     user: KhojUser = request.user.object
     audio_filename = f"{user.uuid}-{str(uuid.uuid4())}.webm"
     user_message: str = None
@@ -611,10 +611,7 @@ async def transcribe_audio(request: Request, common: CommonQueryParams, file: Up
         elif speech_to_text_config.model_type == ChatModelOptions.ModelType.OPENAI:
             api_key = openai_chat_config.api_key
             speech2text_model = speech_to_text_config.model_name
-            response = await sync_to_async(openai.Audio.translate)(
-                model=speech2text_model, file=audio_file, api_key=api_key
-            )
-            user_message = response["text"]
+            user_message = await transcribe_audio(model=speech2text_model, audio_file=audio_file, api_key=api_key)
     finally:
         # Close and Delete the temporary audio file
         audio_file.close()
