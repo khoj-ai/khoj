@@ -80,7 +80,7 @@ class GPT4AllProcessorConfig:
 class GPT4AllProcessorModel:
     def __init__(
         self,
-        chat_model: str = "llama-2-7b-chat.ggmlv3.q4_0.bin",
+        chat_model: str = "mistral-7b-instruct-v0.1.Q4_0.gguf",
     ):
         self.chat_model = chat_model
         self.loaded_model = None
