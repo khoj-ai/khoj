@@ -128,8 +128,8 @@ def test_regenerate_with_invalid_content_type(client):
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
 def test_index_update_big_files(client):
-    state.billing_enabled = True
     # Arrange
+    state.billing_enabled = True
     files = get_big_size_sample_files_data()
     headers = {"Authorization": "Bearer kk-secret"}
 
@@ -143,6 +143,7 @@ def test_index_update_big_files(client):
 @pytest.mark.django_db(transaction=True)
 def test_index_update_big_files_no_billing(client):
     # Arrange
+    state.billing_enabled = False
     files = get_big_size_sample_files_data()
     headers = {"Authorization": "Bearer kk-secret"}
 
