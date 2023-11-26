@@ -19,8 +19,8 @@ except ModuleNotFoundError as e:
     print("There was an error importing GPT4All. Please run pip install gpt4all in order to install it.")
 
 # Internal Packages
-from khoj.processor.conversation.gpt4all.chat_model import converse_offline, extract_questions_offline, filter_questions
-from khoj.processor.conversation.gpt4all.utils import download_model
+from khoj.processor.conversation.offline.chat_model import converse_offline, extract_questions_offline, filter_questions
+from khoj.processor.conversation.offline.utils import download_model
 
 from khoj.processor.conversation.utils import message_to_log
 

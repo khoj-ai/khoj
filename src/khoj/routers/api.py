@@ -30,7 +30,7 @@ from khoj.database.models import (
     LocalPlaintextConfig,
     NotionConfig,
 )
-from khoj.processor.conversation.gpt4all.chat_model import extract_questions_offline
+from khoj.processor.conversation.offline.chat_model import extract_questions_offline
 from khoj.processor.conversation.openai.gpt import extract_questions
 from khoj.processor.conversation.openai.whisper import transcribe_audio
 from khoj.processor.conversation.prompts import help_message, no_entries_found

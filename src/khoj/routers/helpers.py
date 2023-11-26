@@ -15,7 +15,7 @@ from fastapi import Depends, Header, HTTPException, Request
 from khoj.database.adapters import ConversationAdapters
 from khoj.database.models import KhojUser, Subscription
 from khoj.processor.conversation import prompts
-from khoj.processor.conversation.gpt4all.chat_model import converse_offline, send_message_to_model_offline
+from khoj.processor.conversation.offline.chat_model import converse_offline, send_message_to_model_offline
 from khoj.processor.conversation.openai.gpt import converse, send_message_to_model
 from khoj.processor.conversation.utils import ThreadedGenerator, message_to_log
 
