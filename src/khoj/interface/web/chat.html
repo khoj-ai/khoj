@@ -581,7 +581,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 const formData = new FormData();
                 formData.append('file', audioBlob);
 
-                fetch('/api/speak?client=web', { method: 'POST', body: formData })
+                fetch('/api/transcribe?client=web', { method: 'POST', body: formData })
                     .then(response => response.ok ? response.json() : Promise.reject(response))
                     .then(data => { chatInput.value += data.text; })
                     .catch(err => {

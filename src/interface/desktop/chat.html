@@ -555,7 +555,7 @@
             const chatInput = document.getElementById('chat-input');
 
             const hostURL = await window.hostURLAPI.getURL();
-            let url = `${hostURL}/api/speak?client=desktop`;
+            let url = `${hostURL}/api/transcribe?client=desktop`;
             const khojToken = await window.tokenAPI.getToken();
             const headers = { 'Authorization': `Bearer ${khojToken}` };
 

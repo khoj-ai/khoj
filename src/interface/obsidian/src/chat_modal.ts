@@ -275,7 +275,7 @@ export class KhojChatModal extends Modal {
             const requestBody = await generateRequestBody(audioBlob, boundary_string);
 
             const response = await requestUrl({
-                url: `${this.setting.khojUrl}/api/speak?client=obsidian`,
+                url: `${this.setting.khojUrl}/api/transcribe?client=obsidian`,
                 method: 'POST',
                 headers: { "Authorization": `Bearer ${this.setting.khojApiKey}` },
                 contentType: `multipart/form-data; boundary=----${boundary_string}`,

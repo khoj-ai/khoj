@@ -588,7 +588,7 @@ async def chat_options(
     return Response(content=json.dumps(cmd_options), media_type="application/json", status_code=200)
 
 
-@api.post("/speak")
+@api.post("/transcribe")
 @requires(["authenticated"])
 async def transcribe(request: Request, common: CommonQueryParams, file: UploadFile = File(...)):
     user: KhojUser = request.user.object
