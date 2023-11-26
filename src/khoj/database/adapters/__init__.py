@@ -260,6 +260,10 @@ class ConversationAdapters:
         return await Conversation.objects.acreate(user=user)
 
     @staticmethod
+    async def adelete_conversation_by_user(user: KhojUser):
+        return await Conversation.objects.filter(user=user).adelete()
+
+    @staticmethod
     def has_any_conversation_config(user: KhojUser):
         return ChatModelOptions.objects.filter(user=user).exists()
 

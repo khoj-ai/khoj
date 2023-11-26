@@ -1,4 +1,4 @@
-import { App, Modal, request } from 'obsidian';
+import { App, Modal, request, setIcon } from 'obsidian';
 import { KhojSetting } from 'src/settings';
 import fetch from "node-fetch";
 
@@ -38,7 +38,8 @@ export class KhojChatModal extends Modal {
         await this.getChatHistory();
 
         // Add chat input field
-        const chatInput = contentEl.createEl("input",
+        let inputRow = contentEl.createDiv("khoj-input-row");
+        const chatInput = inputRow.createEl("input",
             {
                 attr: {
                     type: "text",
@@ -49,6 +50,15 @@ export class KhojChatModal extends Modal {
                 }
             })
         chatInput.addEventListener('change', (event) => { this.result = (<HTMLInputElement>event.target).value });
+
+        let clearChat = inputRow.createEl("button", {
+            text: "Clear History",
+            attr: {
+                class: "khoj-input-row-button",
+            },
+        })
+        clearChat.addEventListener('click', async (_) => { await this.clearConversationHistory() });
+        setIcon(clearChat, "trash");
 
         // Scroll to bottom of modal, till the send message input box
         this.modalEl.scrollTop = this.modalEl.scrollHeight;
@@ -192,6 +202,37 @@ export class KhojChatModal extends Modal {
             }
         } catch (err) {
             this.renderIncrementalMessage(responseElement, "Sorry, unable to get response from Khoj backend ❤️‍🩹. Contact developer for help at team@khoj.dev or <a href='https://discord.gg/BDgyabRM6e'>in Discord</a>")
+        }
+    }
+
+    async clearConversationHistory() {
+        let chatInput = <HTMLInputElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        let originalPlaceholder = chatInput.placeholder;
+        let chatBody = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
+
+        let response = await request({
+            url: `${this.setting.khojUrl}/api/chat/history?client=web`,
+            method: "DELETE",
+            headers: { "Authorization": `Bearer ${this.setting.khojApiKey}` },
+        })
+        try {
+            let result = JSON.parse(response);
+            if (result.status !== "ok") {
+                // Throw error if conversation history isn't cleared
+                throw new Error("Failed to clear conversation history");
+            } else {
+                // If conversation history is cleared successfully, clear chat logs from modal
+                chatBody.innerHTML = "";
+                await this.getChatHistory();
+                chatInput.placeholder = result.message;
+            }
+        } catch (err) {
+            chatInput.placeholder = "Failed to clear conversation history";
+        } finally {
+            // Reset to original placeholder text after some time
+            setTimeout(() => {
+                chatInput.placeholder = originalPlaceholder;
+            }, 2000);
         }
     }
 }

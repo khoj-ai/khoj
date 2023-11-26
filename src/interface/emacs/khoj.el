@@ -98,6 +98,11 @@
   :group 'khoj
   :type 'string)
 
+(defcustom khoj-auto-index t
+  "Should content be automatically re-indexed every `khoj-index-interval' seconds."
+  :group 'khoj
+  :type 'boolean)
+
 (defcustom khoj-index-interval 3600
   "Interval (in seconds) to wait before updating content index."
   :group 'khoj
@@ -405,14 +410,16 @@ Auto invokes setup steps on calling main entrypoint."
                         ;; render response from indexing API endpoint on server
                         (lambda (status)
                           (if (not status)
-                              (message "khoj.el: %scontent index %supdated" (if content-type (format "%s " content-type) "") (if force "force " ""))
-                            (with-current-buffer (current-buffer)
-                              (goto-char "\n\n")
-                              (message "khoj.el: Failed to %supdate %s content index. Status: %s. Response: %s"
-                                       (if force "force " "")
-                                       content-type
-                                       status
-                                       (string-trim (buffer-substring-no-properties (point) (point-max)))))))
+                              (message "khoj.el: %scontent index %supdated" (if content-type (format "%s " content-type) "all ") (if force "force " ""))
+                            (progn
+                              (khoj--delete-open-network-connections-to-server)
+                              (with-current-buffer (current-buffer)
+                                (search-forward "\n\n" nil t)
+                                (message "khoj.el: Failed to %supdate %s content index. Status: %s%s"
+                                         (if force "force " "")
+                                         (if content-type (format "%s " content-type) "all")
+                                         (string-trim (format "%s %s" (nth 1 (nth 1 status)) (nth 2 (nth 1 status))))
+                                         (if (> (- (point-max) (point)) 0) (format ". Response: %s" (string-trim (buffer-substring-no-properties (point) (point-max)))) ""))))))
                         nil t t)))
     (setq khoj--indexed-files files-to-index)))
 
@@ -444,8 +451,9 @@ Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request.
 (when khoj--index-timer
     (cancel-timer khoj--index-timer))
 ;; Send files to index on server every `khoj-index-interval' seconds
-(setq khoj--index-timer
-      (run-with-timer 60 khoj-index-interval 'khoj--server-index-files))
+(when khoj-auto-index
+  (setq khoj--index-timer
+        (run-with-timer 60 khoj-index-interval 'khoj--server-index-files)))
 
 
 ;; -------------------------------------------
@@ -858,7 +866,7 @@ RECEIVE-DATE is the message receive date."
     (let ((proc-buf (buffer-name (process-buffer proc)))
           (khoj-network-proc-buf (string-join (split-string khoj-server-url "://") " ")))
       (when (string-match (format "%s" khoj-network-proc-buf) proc-buf)
-        (delete-process proc)))))
+        (ignore-errors (delete-process proc))))))
 
 (defun khoj--teardown-incremental-search ()
   "Teardown hooks used for incremental search."
