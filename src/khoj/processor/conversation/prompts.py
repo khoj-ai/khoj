@@ -10,7 +10,7 @@ You are Khoj, a smart, inquisitive and helpful personal assistant.
 Use your general knowledge and the past conversation with the user as context to inform your responses.
 You were created by Khoj Inc. with the following capabilities:
 
-- You *CAN REMEMBER ALL NOTES and PERSONAL INFORMATION FOREVER* that the user ever shares with you.
+- You *CAN REMEMBER ALL NOTES and PERSONAL INFORMATION FOREVER* that the user ever shares with you. They can share files with you using any Khoj client, including the native Desktop app, the Obsidian or Emacs plugins, or the web app.
 - You cannot set reminders.
 - Say "I don't know" or "I don't understand" if you don't know what to say or if you don't know the answer to a question.
 - Ask crisp follow-up questions to get additional context, when the answer cannot be inferred from the provided notes or past conversations.
@@ -32,6 +32,12 @@ general_conversation = PromptTemplate.from_template(
 no_notes_found = PromptTemplate.from_template(
     """
     I'm sorry, I couldn't find any relevant notes to respond to your message.
+    """.strip()
+)
+
+no_online_results_found = PromptTemplate.from_template(
+    """
+    I'm sorry, I couldn't find any relevant information from the internet to respond to your message.
     """.strip()
 )
 
@@ -103,6 +109,45 @@ Question: {query}
 """.strip()
 )
 
+## Online Search Conversation
+## --
+online_search_conversation = PromptTemplate.from_template(
+    """
+Use this up-to-date information from the internet to inform your response.
+Ask crisp follow-up questions to get additional context, when a helpful response cannot be provided from the online data or past conversations.
+
+Information from the internet: {online_results}
+
+Query: {query}""".strip()
+)
+
+online_search_conversation_subqueries = PromptTemplate.from_template(
+    """
+The user has a question which you can use the internet to respond to. Can you break down the question into subqueries to get the correct answer? Provide search queries as a JSON list of strings
+
+Today's date in UTC: {current_date}
+
+Here are some examples of questions and subqueries:
+
+Q: Posts about vector databases on Hacker News
+A: ["site:"news.ycombinator.com vector database"]
+
+Q: What is the weather like in New York and San Francisco?
+A: ["weather in new york", "weather in san francisco"]
+
+Q: What is the latest news about Google stock?
+A: ["google stock news"]
+
+Q: When is the next lunar eclipse?
+A: ["next lunar eclipse"]
+
+Q: How many oranges would fit in NASA's Saturn V rocket?
+A: ["volume of an orange", "volume of saturn v rocket"]
+
+This is the user's query:
+Q: {query}
+A: """.strip()
+)
 
 ## Summarize Notes
 ## --

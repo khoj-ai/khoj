@@ -1,66 +1,65 @@
 # Standard Packages
 import concurrent.futures
+import json
+import logging
 import math
 import os
 import time
-import logging
-import json
-from typing import Annotated, List, Optional, Union, Any
+from typing import Any, Dict, List, Optional, Union
 import uuid
 
 # External Packages
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
+from asgiref.sync import sync_to_async
+from fastapi import APIRouter, Depends, File, Header, HTTPException, Request, UploadFile
+from fastapi.requests import Request
+from fastapi.responses import Response, StreamingResponse
 import openai
 from starlette.authentication import requires
-from asgiref.sync import sync_to_async
 
 # Internal Packages
 from khoj.configure import configure_server
-from khoj.search_type import image_search, text_search
-from khoj.search_filter.date_filter import DateFilter
-from khoj.search_filter.file_filter import FileFilter
-from khoj.search_filter.word_filter import WordFilter
-from khoj.utils.config import TextSearchModel, GPT4AllProcessorModel
-from khoj.utils.helpers import ConversationCommand, is_none_or_empty, timer, command_descriptions
-from khoj.utils.rawconfig import (
-    FullConfig,
-    SearchConfig,
-    SearchResponse,
-    GithubContentConfig,
-    NotionContentConfig,
-)
-from khoj.utils.state import SearchType
-from khoj.utils import state, constants
-from khoj.utils.helpers import AsyncIteratorWrapper, get_device
-from fastapi.responses import StreamingResponse, Response
-from khoj.routers.helpers import (
-    CommonQueryParams,
-    get_conversation_command,
-    validate_conversation_config,
-    agenerate_chat_response,
-    update_telemetry_state,
-    is_ready_to_chat,
-    ApiUserRateLimiter,
-)
-from khoj.processor.conversation.prompts import help_message, no_entries_found
-from khoj.processor.conversation.openai.gpt import extract_questions
-from khoj.processor.conversation.gpt4all.chat_model import extract_questions_offline
-from fastapi.requests import Request
-
 from khoj.database import adapters
-from khoj.database.adapters import EntryAdapters, ConversationAdapters
+from khoj.database.adapters import ConversationAdapters, EntryAdapters
+from khoj.database.models import ChatModelOptions
+from khoj.database.models import Entry as DbEntry
 from khoj.database.models import (
+    GithubConfig,
+    KhojUser,
     LocalMarkdownConfig,
     LocalOrgConfig,
     LocalPdfConfig,
     LocalPlaintextConfig,
-    KhojUser,
-    Entry as DbEntry,
-    GithubConfig,
     NotionConfig,
-    ChatModelOptions,
 )
-
+from khoj.processor.conversation.gpt4all.chat_model import extract_questions_offline
+from khoj.processor.conversation.openai.gpt import extract_questions
+from khoj.processor.conversation.prompts import help_message, no_entries_found
+from khoj.processor.tools.online_search import search_with_google
+from khoj.routers.helpers import (
+    ApiUserRateLimiter,
+    CommonQueryParams,
+    agenerate_chat_response,
+    get_conversation_command,
+    is_ready_to_chat,
+    update_telemetry_state,
+    validate_conversation_config,
+)
+from khoj.search_filter.date_filter import DateFilter
+from khoj.search_filter.file_filter import FileFilter
+from khoj.search_filter.word_filter import WordFilter
+from khoj.search_type import image_search, text_search
+from khoj.utils import constants, state
+from khoj.utils.config import GPT4AllProcessorModel, TextSearchModel
+from khoj.utils.helpers import (
+    AsyncIteratorWrapper,
+    ConversationCommand,
+    command_descriptions,
+    get_device,
+    is_none_or_empty,
+    timer,
+)
+from khoj.utils.rawconfig import FullConfig, GithubContentConfig, NotionContentConfig, SearchConfig, SearchResponse
+from khoj.utils.state import SearchType
 
 # Initialize Router
 api = APIRouter()
@@ -515,6 +514,17 @@ def update(
     return {"status": "ok", "message": "khoj reloaded"}
 
 
+@api.get("/chat/starters", response_class=Response)
+@requires(["authenticated"])
+async def chat_starters(
+    request: Request,
+    common: CommonQueryParams,
+) -> Response:
+    user: KhojUser = request.user.object
+    starter_questions = await ConversationAdapters.aget_conversation_starters(user)
+    return Response(content=json.dumps(starter_questions), media_type="application/json", status_code=200)
+
+
 @api.get("/chat/history")
 @requires(["authenticated"])
 def chat_history(
@@ -535,6 +545,27 @@ def chat_history(
     )
 
     return {"status": "ok", "response": meta_log.get("chat", [])}
+
+
+@api.delete("/chat/history")
+@requires(["authenticated"])
+async def clear_chat_history(
+    request: Request,
+    common: CommonQueryParams,
+):
+    user = request.user.object
+
+    # Clear Conversation History
+    await ConversationAdapters.adelete_conversation_by_user(user)
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="clear_chat_history",
+        **common.__dict__,
+    )
+
+    return {"status": "ok", "message": "Conversation history cleared"}
 
 
 @api.get("/chat/options", response_class=Response)
@@ -628,6 +659,7 @@ async def chat(
     compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
         request, common, meta_log, q, (n or 5), (d or math.inf), conversation_command
     )
+    online_results: Dict = dict()
 
     if conversation_command == ConversationCommand.Default and is_none_or_empty(compiled_references):
         conversation_command = ConversationCommand.General
@@ -644,11 +676,22 @@ async def chat(
         no_entries_found_format = no_entries_found.format()
         return StreamingResponse(iter([no_entries_found_format]), media_type="text/event-stream", status_code=200)
 
+    elif conversation_command == ConversationCommand.Online:
+        try:
+            online_results = await search_with_google(defiltered_query)
+        except ValueError as e:
+            return StreamingResponse(
+                iter(["Please set your SERPER_DEV_API_KEY to get started with online searches 🌐"]),
+                media_type="text/event-stream",
+                status_code=200,
+            )
+
     # Get the (streamed) chat response from the LLM of choice.
     llm_response, chat_metadata = await agenerate_chat_response(
         defiltered_query,
         meta_log,
         compiled_references,
+        online_results,
         inferred_queries,
         conversation_command,
         user,
@@ -701,7 +744,7 @@ async def extract_references_and_questions(
     compiled_references: List[Any] = []
     inferred_queries: List[str] = []
 
-    if conversation_type == ConversationCommand.General:
+    if conversation_type == ConversationCommand.General or conversation_type == ConversationCommand.Online:
         return compiled_references, inferred_queries, q
 
     if not await sync_to_async(EntryAdapters.user_has_entries)(user=user):

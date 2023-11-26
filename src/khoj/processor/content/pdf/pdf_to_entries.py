@@ -1,18 +1,19 @@
 # Standard Packages
-import os
-import logging
-from typing import List, Tuple
 import base64
+import logging
+import os
+from typing import List, Tuple
 
 # External Packages
 from langchain.document_loaders import PyMuPDFLoader
 
+from khoj.database.models import Entry as DbEntry
+from khoj.database.models import KhojUser
+
 # Internal Packages
-from khoj.processor.text_to_entries import TextToEntries
+from khoj.processor.content.text_to_entries import TextToEntries
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry
-from khoj.database.models import Entry as DbEntry, KhojUser
-
 
 logger = logging.getLogger(__name__)
 

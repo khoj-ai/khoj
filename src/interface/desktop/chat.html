@@ -60,6 +60,52 @@
             return referenceButton;
         }
 
+        function generateOnlineReference(reference, index) {
+
+            // Generate HTML for Chat Reference
+            let title = reference.title;
+            let link = reference.link;
+            let snippet = reference.snippet;
+            let question = reference.question;
+            if (question) {
+                question = `<b>Question:</b> ${question}<br><br>`;
+            } else {
+                question = "";
+            }
+
+            let linkElement = document.createElement('a');
+            linkElement.setAttribute('href', link);
+            linkElement.setAttribute('target', '_blank');
+            linkElement.setAttribute('rel', 'noopener noreferrer');
+            linkElement.classList.add("inline-chat-link");
+            linkElement.classList.add("reference-link");
+            linkElement.setAttribute('title', title);
+            linkElement.innerHTML = title;
+
+            let referenceButton = document.createElement('button');
+            referenceButton.innerHTML = linkElement.outerHTML;
+            referenceButton.id = `ref-${index}`;
+            referenceButton.classList.add("reference-button");
+            referenceButton.classList.add("collapsed");
+            referenceButton.tabIndex = 0;
+
+            // Add event listener to toggle full reference on click
+            referenceButton.addEventListener('click', function() {
+                console.log(`Toggling ref-${index}`)
+                if (this.classList.contains("collapsed")) {
+                    this.classList.remove("collapsed");
+                    this.classList.add("expanded");
+                    this.innerHTML = linkElement.outerHTML + `<br><br>${question + snippet}`;
+                } else {
+                    this.classList.add("collapsed");
+                    this.classList.remove("expanded");
+                    this.innerHTML = linkElement.outerHTML;
+                }
+            });
+
+            return referenceButton;
+        }
+
         function renderMessage(message, by, dt=null, annotations=null) {
             let message_time = formatDate(dt ?? new Date());
             let by_name =  by == "khoj" ? "🏮 Khoj" : "🤔 You";
@@ -90,8 +136,48 @@
             chatBody.scrollTop = chatBody.scrollHeight;
         }
 
-        function renderMessageWithReference(message, by, context=null, dt=null) {
-            if (context == null || context.length == 0) {
+        function processOnlineReferences(referenceSection, onlineContext) {
+            let numOnlineReferences = 0;
+            for (let subquery in onlineContext) {
+                let onlineReference = onlineContext[subquery];
+                if (onlineReference.organic && onlineReference.organic.length > 0) {
+                    numOnlineReferences += onlineReference.organic.length;
+                    for (let index in onlineReference.organic) {
+                        let reference = onlineReference.organic[index];
+                        let polishedReference = generateOnlineReference(reference, index);
+                        referenceSection.appendChild(polishedReference);
+                    }
+                }
+
+                if (onlineReference.knowledgeGraph && onlineReference.knowledgeGraph.length > 0) {
+                    numOnlineReferences += onlineReference.knowledgeGraph.length;
+                    for (let index in onlineReference.knowledgeGraph) {
+                        let reference = onlineReference.knowledgeGraph[index];
+                        let polishedReference = generateOnlineReference(reference, index);
+                        referenceSection.appendChild(polishedReference);
+                    }
+                }
+
+                if (onlineReference.peopleAlsoAsk && onlineReference.peopleAlsoAsk.length > 0) {
+                    numOnlineReferences += onlineReference.peopleAlsoAsk.length;
+                    for (let index in onlineReference.peopleAlsoAsk) {
+                        let reference = onlineReference.peopleAlsoAsk[index];
+                        let polishedReference = generateOnlineReference(reference, index);
+                        referenceSection.appendChild(polishedReference);
+                    }
+                }
+            }
+
+            return numOnlineReferences;
+        }
+
+        function renderMessageWithReference(message, by, context=null, dt=null, onlineContext=null) {
+            if (context == null && onlineContext == null) {
+                renderMessage(message, by, dt);
+                return;
+            }
+
+            if ((context && context.length == 0) && (onlineContext == null || (onlineContext && Object.keys(onlineContext).length == 0))) {
                 renderMessage(message, by, dt);
                 return;
             }
@@ -100,8 +186,11 @@
 
             let referenceExpandButton = document.createElement('button');
             referenceExpandButton.classList.add("reference-expand-button");
-            let expandButtonText = context.length == 1 ? "1 reference" : `${context.length} references`;
-            referenceExpandButton.innerHTML = expandButtonText;
+            let numReferences = 0;
+
+            if (context) {
+                numReferences += context.length;
+            }
 
             references.appendChild(referenceExpandButton);
 
@@ -127,6 +216,14 @@
                     referenceSection.appendChild(polishedReference);
                 }
             }
+
+            if (onlineContext) {
+                numReferences += processOnlineReferences(referenceSection, onlineContext);
+            }
+
+            let expandButtonText = numReferences == 1 ? "1 reference" : `${numReferences} references`;
+            referenceExpandButton.innerHTML = expandButtonText;
+
             references.appendChild(referenceSection);
 
             renderMessage(message, by, dt, references);
@@ -140,6 +237,8 @@
             newHTML = newHTML.replace(/__([\s\S]*?)__/g, '<u>$1</u>');
             // Remove any text between <s>[INST] and </s> tags. These are spurious instructions for the AI chat model.
             newHTML = newHTML.replace(/<s>\[INST\].+(<\/s>)?/g, '');
+            // For any text that has single backticks, replace them with <code> tags
+            newHTML = newHTML.replace(/`([^`]+)`/g, '<code class="chat-response">$1</code>');
             return newHTML;
         }
 
@@ -221,14 +320,27 @@
 
                                 let referenceExpandButton = document.createElement('button');
                                 referenceExpandButton.classList.add("reference-expand-button");
-                                let expandButtonText = rawReferenceAsJson.length == 1 ? "1 reference" : `${rawReferenceAsJson.length} references`;
-                                referenceExpandButton.innerHTML = expandButtonText;
 
-                                references.appendChild(referenceExpandButton);
 
                                 let referenceSection = document.createElement('div');
                                 referenceSection.classList.add("reference-section");
                                 referenceSection.classList.add("collapsed");
+
+                                let numReferences = 0;
+
+                                // If rawReferenceAsJson is a list, then count the length
+                                if (Array.isArray(rawReferenceAsJson)) {
+                                    numReferences = rawReferenceAsJson.length;
+
+                                    rawReferenceAsJson.forEach((reference, index) => {
+                                    let polishedReference = generateReference(reference, index);
+                                    referenceSection.appendChild(polishedReference);
+                                });
+                                } else {
+                                    numReferences += processOnlineReferences(referenceSection, rawReferenceAsJson);
+                                }
+
+                                references.appendChild(referenceExpandButton);
 
                                 referenceExpandButton.addEventListener('click', function() {
                                     if (referenceSection.classList.contains("collapsed")) {
@@ -240,10 +352,8 @@
                                     }
                                 });
 
-                                rawReferenceAsJson.forEach((reference, index) => {
-                                    let polishedReference = generateReference(reference, index);
-                                    referenceSection.appendChild(polishedReference);
-                                });
+                                let expandButtonText = numReferences == 1 ? "1 reference" : `${numReferences} references`;
+                                referenceExpandButton.innerHTML = expandButtonText;
                                 references.appendChild(referenceSection);
                                 readStream();
                             } else {
@@ -275,6 +385,9 @@
         function onChatInput() {
             let chatInput = document.getElementById("chat-input");
             chatInput.value = chatInput.value.trimStart();
+
+            let questionStarterSuggestions = document.getElementById("question-starters");
+            questionStarterSuggestions.style.display = "none";
 
             if (chatInput.value.startsWith("/") && chatInput.value.split(" ").length === 1) {
                 let chatTooltip = document.getElementById("chat-tooltip");
@@ -324,7 +437,7 @@
             const khojToken = await window.tokenAPI.getToken();
             const headers = { 'Authorization': `Bearer ${khojToken}` };
 
-            fetch(`${hostURL}/api/chat/history?client=web`, { headers })
+            fetch(`${hostURL}/api/chat/history?client=desktop`, { headers })
                 .then(response => response.json())
                 .then(data => {
                     if (data.detail) {
@@ -351,8 +464,33 @@
                 .then(response => {
                     // Render conversation history, if any
                     response.forEach(chat_log => {
-                        renderMessageWithReference(chat_log.message, chat_log.by, chat_log.context, new Date(chat_log.created));
+                        renderMessageWithReference(chat_log.message, chat_log.by, chat_log.context, new Date(chat_log.created), chat_log.onlineContext);
                     });
+                })
+                .catch(err => {
+                    return;
+                });
+
+            fetch(`${hostURL}/api/chat/starters?client=desktop`, { headers })
+                .then(response => response.json())
+                .then(data => {
+                    // Render chat options, if any
+                    if (data) {
+                        let questionStarterSuggestions = document.getElementById("question-starters");
+                        for (let index in data) {
+                            let questionStarter = data[index];
+                            let questionStarterButton = document.createElement('button');
+                            questionStarterButton.innerHTML = questionStarter;
+                            questionStarterButton.classList.add("question-starter");
+                            questionStarterButton.addEventListener('click', function() {
+                                questionStarterSuggestions.style.display = "none";
+                                document.getElementById("chat-input").value = questionStarter;
+                                chat();
+                            });
+                            questionStarterSuggestions.appendChild(questionStarterButton);
+                        }
+                        questionStarterSuggestions.style.display = "grid";
+                    }
                 })
                 .catch(err => {
                     return;
@@ -376,6 +514,32 @@
                 document.getElementById("chat-input").value = query_via_url;
                 chat();
             }
+        }
+
+        async function clearConversationHistory() {
+            let chatInput = document.getElementById("chat-input");
+            let originalPlaceholder = chatInput.placeholder;
+            let chatBody = document.getElementById("chat-body");
+
+            const hostURL = await window.hostURLAPI.getURL();
+            const khojToken = await window.tokenAPI.getToken();
+            const headers = { 'Authorization': `Bearer ${khojToken}` };
+
+            fetch(`${hostURL}/api/chat/history?client=desktop`, { method: "DELETE", headers })
+                .then(response => response.ok ? response.json() : Promise.reject(response))
+                .then(data => {
+                    chatBody.innerHTML = "";
+                    loadChat();
+                    chatInput.placeholder = "Cleared conversation history";
+                })
+                .catch(err => {
+                    chatInput.placeholder = "Failed to clear conversation history";
+                })
+                .finally(() => {
+                    setTimeout(() => {
+                        chatInput.placeholder = originalPlaceholder;
+                    }, 2000);
+                });
         }
 
         let mediaRecorder;
@@ -453,13 +617,19 @@
         <!-- Chat Body -->
         <div id="chat-body"></div>
 
+        <!-- Chat Suggestions -->
+        <div id="question-starters" style="display: none;"></div>
+
         <!-- Chat Footer -->
         <div id="chat-footer">
             <div id="chat-tooltip" style="display: none;"></div>
             <div id="input-row">
                 <textarea id="chat-input" class="option" oninput="onChatInput()" onkeydown=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands, or just type your questions and hit enter."></textarea>
-                <button id="speak-button" onclick="speechToText()">
-                    <img id="speak-button-img" src="./assets/icons/microphone-solid.svg" alt="Speak"></img>
+                <button id="speak-button" class="input-row-button" onclick="speechToText()">
+                    <img id="speak-button-img" src="input-row-button-img" src="./assets/icons/microphone-solid.svg" alt="Speak"></img>
+                </button>
+                <button id="clear-chat" class="input-row-button" onclick="clearConversationHistory()">
+                    <img class="input-row-button-img" src="./assets/icons/trash-solid.svg" alt="Clear Chat History"></img>
                 </button>
             </div>
         </div>
@@ -583,7 +753,7 @@
         }
         #input-row {
             display: grid;
-            grid-template-columns: auto 32px;
+            grid-template-columns: auto 32px 32px;
             grid-column-gap: 10px;
             grid-row-gap: 10px;
             background: #f9fafc
@@ -606,7 +776,7 @@
         #chat-input:focus {
             outline: none !important;
         }
-        #speak-button {
+        .input-row-button {
             background: var(--background-color);
             border: none;
             border-radius: 5px;
@@ -617,13 +787,13 @@
             cursor: pointer;
             transition: background 0.3s ease-in-out;
         }
-        #speak-button:hover {
+        .input-row-button:hover {
             background: var(--primary-hover);
         }
-        #speak-button:active {
+        .input-row-button:active {
             background: var(--primary-active);
         }
-        #speak-button-img {
+        .input-row-button-img {
             width: 24px;
         }
 
@@ -655,6 +825,38 @@
             grid-column-gap: 10px;
             grid-row-gap: 10px;
             margin: 10px;
+        }
+
+        div#question-starters {
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            grid-column-gap: 8px;
+        }
+
+        button.question-starter {
+            background: var(--background-color);
+            color: var(--main-text-color);
+            border: 1px solid var(--main-text-color);
+            border-radius: 5px;
+            padding: 5px;
+            font-size: 14px;
+            font-weight: 300;
+            line-height: 1.5em;
+            cursor: pointer;
+            transition: background 0.2s ease-in-out;
+            text-align: left;
+            max-height: 75px;
+            transition: max-height 0.3s ease-in-out;
+            overflow: hidden;
+        }
+
+        code.chat-response {
+            background: var(--primary-hover);
+            color: var(--primary-inverse);
+            border-radius: 5px;
+            padding: 5px;
+            font-size: 14px;
+            font-weight: 300;
+            line-height: 1.5em;
         }
 
         button.reference-button {

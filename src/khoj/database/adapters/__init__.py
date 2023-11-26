@@ -1,43 +1,44 @@
 import math
-from typing import Optional, Type, List
-from datetime import date, datetime
+import random
 import secrets
-from typing import Type, List
-from datetime import date, timezone
+from datetime import date, datetime, timezone
+from typing import List, Optional, Type
 
-from django.db import models
+from asgiref.sync import sync_to_async
 from django.contrib.sessions.backends.db import SessionStore
-from pgvector.django import CosineDistance
-from django.db.models.manager import BaseManager
+from django.db import models
 from django.db.models import Q
+from django.db.models.manager import BaseManager
+from fastapi import HTTPException
+from pgvector.django import CosineDistance
 from torch import Tensor
 
-# Import sync_to_async from Django Channels
-from asgiref.sync import sync_to_async
-
-from fastapi import HTTPException
-
 from khoj.database.models import (
-    KhojUser,
+    ChatModelOptions,
+    Conversation,
+    Entry,
+    GithubConfig,
+    GithubRepoConfig,
     GoogleUser,
     KhojApiUser,
+    KhojUser,
     NotionConfig,
-    GithubConfig,
-    Entry,
-    GithubRepoConfig,
-    Conversation,
-    ChatModelOptions,
+    OfflineChatProcessorConversationConfig,
+    OpenAIProcessorConversationConfig,
     SearchModelConfig,
     SpeechToTextModelOptions,
     Subscription,
     UserConversationConfig,
     OpenAIProcessorConversationConfig,
     OfflineChatProcessorConversationConfig,
+    ReflectiveQuestion,
 )
-from khoj.utils.helpers import generate_random_name
-from khoj.search_filter.word_filter import WordFilter
-from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.date_filter import DateFilter
+from khoj.search_filter.file_filter import FileFilter
+from khoj.search_filter.word_filter import WordFilter
+from khoj.utils import state
+from khoj.utils.config import GPT4AllProcessorModel
+from khoj.utils.helpers import generate_random_name
 
 
 async def set_notion_config(token: str, user: KhojUser):
@@ -234,6 +235,10 @@ class ConversationAdapters:
         return await Conversation.objects.acreate(user=user)
 
     @staticmethod
+    async def adelete_conversation_by_user(user: KhojUser):
+        return await Conversation.objects.filter(user=user).adelete()
+
+    @staticmethod
     def has_any_conversation_config(user: KhojUser):
         return ChatModelOptions.objects.filter(user=user).exists()
 
@@ -343,6 +348,45 @@ class ConversationAdapters:
     @staticmethod
     async def get_speech_to_text_config():
         return await SpeechToTextModelOptions.objects.filter().afirst()
+
+    @staticmethod
+    async def aget_conversation_starters(user: KhojUser):
+        all_questions = []
+        if await ReflectiveQuestion.objects.filter(user=user).aexists():
+            all_questions = await sync_to_async(ReflectiveQuestion.objects.filter(user=user).values_list)(
+                "question", flat=True
+            )
+
+        all_questions = await sync_to_async(ReflectiveQuestion.objects.filter(user=None).values_list)(
+            "question", flat=True
+        )
+
+        max_results = 3
+        all_questions = await sync_to_async(list)(all_questions)
+        if len(all_questions) < max_results:
+            return all_questions
+
+        return random.sample(all_questions, max_results)
+
+    @staticmethod
+    def get_valid_conversation_config(user: KhojUser):
+        offline_chat_config = ConversationAdapters.get_offline_chat_conversation_config()
+        conversation_config = ConversationAdapters.get_conversation_config(user)
+        if conversation_config is None:
+            conversation_config = ConversationAdapters.get_default_conversation_config()
+
+        if offline_chat_config and offline_chat_config.enabled and conversation_config.model_type == "offline":
+            if state.gpt4all_processor_config is None or state.gpt4all_processor_config.loaded_model is None:
+                state.gpt4all_processor_config = GPT4AllProcessorModel(conversation_config.chat_model)
+
+            return conversation_config
+
+        openai_chat_config = ConversationAdapters.get_openai_conversation_config()
+        if openai_chat_config and conversation_config.model_type == "openai":
+            return conversation_config
+
+        else:
+            raise ValueError("Invalid conversation config - either configure offline chat or openai chat")
 
 
 class EntryAdapters:

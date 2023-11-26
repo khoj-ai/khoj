@@ -69,9 +69,16 @@ def completion_with_backoff(**kwargs):
     reraise=True,
 )
 def chat_completion_with_backoff(
-    messages, compiled_references, model_name, temperature, openai_api_key=None, completion_func=None, model_kwargs=None
+    messages,
+    compiled_references,
+    online_results,
+    model_name,
+    temperature,
+    openai_api_key=None,
+    completion_func=None,
+    model_kwargs=None,
 ):
-    g = ThreadedGenerator(compiled_references, completion_func=completion_func)
+    g = ThreadedGenerator(compiled_references, online_results, completion_func=completion_func)
     t = Thread(target=llm_thread, args=(g, messages, model_name, temperature, openai_api_key, model_kwargs))
     t.start()
     return g

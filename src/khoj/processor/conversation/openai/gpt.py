@@ -100,8 +100,30 @@ def extract_questions(
     return questions
 
 
+def send_message_to_model(
+    message,
+    api_key,
+    model,
+):
+    """
+    Send message to model
+    """
+    messages = [ChatMessage(content=message, role="assistant")]
+
+    # Get Response from GPT
+    return completion_with_backoff(
+        messages=messages,
+        model_name=model,
+        temperature=0,
+        max_tokens=100,
+        model_kwargs={"stop": ["A: ", "\n"]},
+        openai_api_key=api_key,
+    )
+
+
 def converse(
     references,
+    online_results,
     user_query,
     conversation_log={},
     model: str = "gpt-3.5-turbo",
@@ -123,6 +145,13 @@ def converse(
     if conversation_command == ConversationCommand.Notes and is_none_or_empty(compiled_references):
         completion_func(chat_response=prompts.no_notes_found.format())
         return iter([prompts.no_notes_found.format()])
+    elif conversation_command == ConversationCommand.Online and is_none_or_empty(online_results):
+        completion_func(chat_response=prompts.no_online_results_found.format())
+        return iter([prompts.no_online_results_found.format()])
+    elif conversation_command == ConversationCommand.Online:
+        conversation_primer = prompts.online_search_conversation.format(
+            query=user_query, online_results=str(online_results)
+        )
     elif conversation_command == ConversationCommand.General or is_none_or_empty(compiled_references):
         conversation_primer = prompts.general_conversation.format(query=user_query)
     else:
@@ -144,6 +173,7 @@ def converse(
     return chat_completion_with_backoff(
         messages=messages,
         compiled_references=references,
+        online_results=online_results,
         model_name=model,
         temperature=temperature,
         openai_api_key=api_key,

@@ -1,7 +1,7 @@
 {
 	"id": "khoj",
 	"name": "Khoj",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "0.15.0",
 	"description": "An AI copilot for your Second Brain",
 	"author": "Khoj Inc.",

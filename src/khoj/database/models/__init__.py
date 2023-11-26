@@ -150,6 +150,11 @@ class Conversation(BaseModel):
     conversation_log = models.JSONField(default=dict)
 
 
+class ReflectiveQuestion(BaseModel):
+    question = models.CharField(max_length=500)
+    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
+
+
 class Entry(BaseModel):
     class EntryType(models.TextChoices):
         IMAGE = "image"
