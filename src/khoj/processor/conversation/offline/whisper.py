@@ -6,7 +6,7 @@ import whisper
 from khoj.utils import state
 
 
-async def transcribe_audio_offline(audio_filename: str, model: str) -> str | None:
+async def transcribe_audio_offline(audio_filename: str, model: str) -> str:
     """
     Transcribe audio file offline using Whisper
     """

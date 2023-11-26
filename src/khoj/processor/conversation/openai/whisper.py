@@ -6,7 +6,7 @@ from asgiref.sync import sync_to_async
 import openai
 
 
-async def transcribe_audio(audio_file: BufferedReader, model, api_key) -> str | None:
+async def transcribe_audio(audio_file: BufferedReader, model, api_key) -> str:
     """
     Transcribe audio file using Whisper model via OpenAI's API
     """
