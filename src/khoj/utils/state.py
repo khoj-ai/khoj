@@ -21,6 +21,7 @@ embeddings_model: EmbeddingsModel = None
 cross_encoder_model: CrossEncoderModel = None
 content_index = ContentIndex()
 gpt4all_processor_config: GPT4AllProcessorModel = None
+whisper_model = None
 config_file: Path = None
 verbose: int = 0
 host: str = None

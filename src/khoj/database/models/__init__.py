@@ -125,8 +125,8 @@ class SpeechToTextModelOptions(BaseModel):
         OPENAI = "openai"
         OFFLINE = "offline"
 
-    model_name = models.CharField(max_length=200, default="whisper-1")
-    model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OPENAI)
+    model_name = models.CharField(max_length=200, default="base")
+    model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
 
 
 class ChatModelOptions(BaseModel):

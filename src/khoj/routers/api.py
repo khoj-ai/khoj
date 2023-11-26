@@ -31,6 +31,7 @@ from khoj.database.models import (
     NotionConfig,
 )
 from khoj.processor.conversation.offline.chat_model import extract_questions_offline
+from khoj.processor.conversation.offline.whisper import transcribe_audio_offline
 from khoj.processor.conversation.openai.gpt import extract_questions
 from khoj.processor.conversation.openai.whisper import transcribe_audio
 from khoj.processor.conversation.prompts import help_message, no_entries_found
@@ -605,13 +606,16 @@ async def transcribe(request: Request, common: CommonQueryParams, file: UploadFi
         # Send the audio data to the Whisper API
         speech_to_text_config = await ConversationAdapters.get_speech_to_text_config()
         openai_chat_config = await ConversationAdapters.get_openai_chat_config()
-        if not openai_chat_config or not speech_to_text_config:
+        if not speech_to_text_config:
             # If the user has not configured a speech to text model, return an unprocessable entity error
             status_code = 422
-        elif speech_to_text_config.model_type == ChatModelOptions.ModelType.OPENAI:
+        elif openai_chat_config and speech_to_text_config.model_type == ChatModelOptions.ModelType.OPENAI:
             api_key = openai_chat_config.api_key
             speech2text_model = speech_to_text_config.model_name
-            user_message = await transcribe_audio(model=speech2text_model, audio_file=audio_file, api_key=api_key)
+            user_message = await transcribe_audio(audio_file, model=speech2text_model, api_key=api_key)
+        elif speech_to_text_config.model_type == ChatModelOptions.ModelType.OFFLINE:
+            speech2text_model = speech_to_text_config.model_name
+            user_message = await transcribe_audio_offline(audio_filename, model=speech2text_model)
     finally:
         # Close and Delete the temporary audio file
         audio_file.close()

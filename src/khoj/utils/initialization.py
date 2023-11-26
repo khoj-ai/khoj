@@ -74,10 +74,9 @@ def initialization():
         except ModuleNotFoundError as e:
             logger.warning("Offline models are not supported on this device.")
 
-        use_openai_model = input("Use OpenAI chat model? (y/n): ")
-
+        use_openai_model = input("Use OpenAI models? (y/n): ")
         if use_openai_model == "y":
-            logger.info("🗣️ Setting up OpenAI chat model")
+            logger.info("🗣️ Setting up your OpenAI configuration")
             api_key = input("Enter your OpenAI API key: ")
             OpenAIProcessorConversationConfig.objects.create(api_key=api_key)
 
@@ -104,7 +103,25 @@ def initialization():
                 model_name=openai_speech2text_model, model_type=SpeechToTextModelOptions.ModelType.OPENAI
             )
 
-        logger.info("🗣️  Chat model configuration complete")
+        if use_offline_model == "y" or use_openai_model == "y":
+            logger.info("🗣️  Chat model configuration complete")
+
+        use_offline_speech2text_model = input("Use offline speech to text model? (y/n): ")
+        if use_offline_speech2text_model == "y":
+            logger.info("🗣️ Setting up offline speech to text model")
+            # Delete any existing speech to text model options. There can only be one.
+            SpeechToTextModelOptions.objects.all().delete()
+
+            default_offline_speech2text_model = "base"
+            offline_speech2text_model = input(
+                f"Enter the Whisper model to use Offline (default: {default_offline_speech2text_model}): "
+            )
+            offline_speech2text_model = offline_speech2text_model or default_offline_speech2text_model
+            SpeechToTextModelOptions.objects.create(
+                model_name=offline_speech2text_model, model_type=SpeechToTextModelOptions.ModelType.OFFLINE
+            )
+
+            logger.info(f"🗣️  Offline speech to text model configured to {offline_speech2text_model}")
 
     admin_user = KhojUser.objects.filter(is_staff=True).first()
     if admin_user is None:
