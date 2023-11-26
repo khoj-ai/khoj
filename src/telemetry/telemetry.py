@@ -47,7 +47,7 @@ def v1_telemetry(telemetry_data: List[Dict[str, str]]):
 
         # Create a table if it doesn't exist
         cur.execute(
-            """CREATE TABLE IF NOT EXISTS usage (id INTEGER PRIMARY KEY, time TIMESTAMP, type TEXT, server_id TEXT, os TEXT, api TEXT, client TEXT)"""
+            """CREATE TABLE IF NOT EXISTS usage (id INTEGER PRIMARY KEY, time TIMESTAMP, type TEXT, server_id TEXT, os TEXT, api TEXT, client TEXT, server_version TEXT)"""
         )
 
         # Log telemetry data
