@@ -411,13 +411,15 @@ Auto invokes setup steps on calling main entrypoint."
                         (lambda (status)
                           (if (not status)
                               (message "khoj.el: %scontent index %supdated" (if content-type (format "%s " content-type) "all ") (if force "force " ""))
-                            (with-current-buffer (current-buffer)
-                              (search-forward "\n\n" nil t)
-                              (message "khoj.el: Failed to %supdate %s content index. Status: %s%s"
-                                       (if force "force " "")
-                                       (if content-type (format "%s " content-type) "all")
-                                       (string-trim (format "%s %s" (nth 1 (nth 1 status)) (nth 2 (nth 1 status))))
-                                       (if (> (- (point-max) (point)) 0) (format ". Response: %s" (string-trim (buffer-substring-no-properties (point) (point-max)))) "")))))
+                            (progn
+                              (khoj--delete-open-network-connections-to-server)
+                              (with-current-buffer (current-buffer)
+                                (search-forward "\n\n" nil t)
+                                (message "khoj.el: Failed to %supdate %s content index. Status: %s%s"
+                                         (if force "force " "")
+                                         (if content-type (format "%s " content-type) "all")
+                                         (string-trim (format "%s %s" (nth 1 (nth 1 status)) (nth 2 (nth 1 status))))
+                                         (if (> (- (point-max) (point)) 0) (format ". Response: %s" (string-trim (buffer-substring-no-properties (point) (point-max)))) ""))))))
                         nil t t)))
     (setq khoj--indexed-files files-to-index)))
 
@@ -864,7 +866,7 @@ RECEIVE-DATE is the message receive date."
     (let ((proc-buf (buffer-name (process-buffer proc)))
           (khoj-network-proc-buf (string-join (split-string khoj-server-url "://") " ")))
       (when (string-match (format "%s" khoj-network-proc-buf) proc-buf)
-        (delete-process proc)))))
+        (ignore-errors (delete-process proc))))))
 
 (defun khoj--teardown-incremental-search ()
   "Teardown hooks used for incremental search."
