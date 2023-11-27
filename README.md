@@ -28,7 +28,7 @@
 
 ***
 
-Khoj is a desktop application to search and chat with your notes, documents and images.<br />
+Khoj is a web application to search and chat with your notes, documents and images.<br />
 It is an offline-first, open source AI personal assistant accessible from your Emacs, Obsidian or Web browser.<br />
 It works with jpeg, markdown, notion, org-mode, pdf files and github repositories.<br />
 
@@ -41,3 +41,12 @@ It works with jpeg, markdown, notion, org-mode, pdf files and github repositorie
 | Quickly retrieve relevant documents using natural language | Get answers and create content from your existing knowledge base |
 | Does not need internet | Can be configured to work without internet |
 | <img src="https://docs.khoj.dev/assets/khoj_search_on_web.png" width="400px"> | <img src="https://docs.khoj.dev/assets/khoj_chat_on_web.png" width="400px"> |
+
+## Contributors
+Cheers to our awesome contributors! 🎉
+
+<a href="https://github.com/khoj-ai/khoj/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=khoj-ai/khoj" />
+</a>
+
+Made with [contrib.rocks](https://contrib.rocks).

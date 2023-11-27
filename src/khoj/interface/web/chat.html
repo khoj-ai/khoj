@@ -330,15 +330,13 @@ To get started, just start typing below. You can also type / to see a list of co
                 .then(response => {
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
+                    let rawResponse = "";
                     let references = null;
 
                     function readStream() {
                         reader.read().then(({ done, value }) => {
                             if (done) {
-                                // Evaluate the contents of new_response_text.innerHTML after all the data has been streamed
-                                const currentHTML = newResponseText.innerHTML;
-                                newResponseText.innerHTML = "";
-                                newResponseText.appendChild(formatHTMLMessage(currentHTML));
+                                // Append any references after all the data has been streamed
                                 if (references != null) {
                                     newResponseText.appendChild(references);
                                 }
@@ -352,7 +350,9 @@ To get started, just start typing below. You can also type / to see a list of co
 
                             if (chunk.includes("### compiled references:")) {
                                 const additionalResponse = chunk.split("### compiled references:")[0];
-                                newResponseText.innerHTML += additionalResponse;
+                                rawResponse += additionalResponse;
+                                newResponseText.innerHTML = "";
+                                newResponseText.appendChild(formatHTMLMessage(rawResponse));
 
                                 const rawReference = chunk.split("### compiled references:")[1];
                                 const rawReferenceAsJson = JSON.parse(rawReference);
@@ -361,7 +361,6 @@ To get started, just start typing below. You can also type / to see a list of co
 
                                 let referenceExpandButton = document.createElement('button');
                                 referenceExpandButton.classList.add("reference-expand-button");
-
 
                                 let referenceSection = document.createElement('div');
                                 referenceSection.classList.add("reference-section");
@@ -416,7 +415,9 @@ To get started, just start typing below. You can also type / to see a list of co
                                     }
                                 } else {
                                     // If the chunk is not a JSON object, just display it as is
-                                    newResponseText.innerHTML += chunk;
+                                    rawResponse += chunk;
+                                    newResponseText.innerHTML = "";
+                                    newResponseText.appendChild(formatHTMLMessage(rawResponse));
                                     readStream();
                                 }
                             }
@@ -557,6 +558,18 @@ To get started, just start typing below. You can also type / to see a list of co
             }
         }
 
+        function flashStatusInChatInput(message) {
+            // Get chat input element and original placeholder
+            let chatInput = document.getElementById("chat-input");
+            let originalPlaceholder = chatInput.placeholder;
+            // Set placeholder to message
+            chatInput.placeholder = message;
+            // Reset placeholder after 2 seconds
+            setTimeout(() => {
+                chatInput.placeholder = originalPlaceholder;
+            }, 2000);
+        }
+
         function clearConversationHistory() {
             let chatInput = document.getElementById("chat-input");
             let originalPlaceholder = chatInput.placeholder;
@@ -567,16 +580,64 @@ To get started, just start typing below. You can also type / to see a list of co
                 .then(data => {
                     chatBody.innerHTML = "";
                     loadChat();
-                    chatInput.placeholder = "Cleared conversation history";
+                    flashStatusInChatInput("🗑 Cleared conversation history");
                 })
                 .catch(err => {
-                    chatInput.placeholder = "Failed to clear conversation history";
-                })
-                .finally(() => {
-                    setTimeout(() => {
-                        chatInput.placeholder = originalPlaceholder;
-                    }, 2000);
+                    flashStatusInChatInput("⛔️ Failed to clear conversation history");
                 });
+        }
+
+        let mediaRecorder;
+        function speechToText() {
+            const speakButtonImg = document.getElementById('speak-button-img');
+            const chatInput = document.getElementById('chat-input');
+
+            const sendToServer = (audioBlob) => {
+                const formData = new FormData();
+                formData.append('file', audioBlob);
+
+                fetch('/api/transcribe?client=web', { method: 'POST', body: formData })
+                    .then(response => response.ok ? response.json() : Promise.reject(response))
+                    .then(data => { chatInput.value += data.text; })
+                    .catch(err => {
+                        err.status == 422
+                        ? flashStatusInChatInput("⛔️ Configure speech-to-text model on server.")
+                        : flashStatusInChatInput("⛔️ Failed to transcribe audio")
+                    });
+            };
+
+            const handleRecording = (stream) => {
+                const audioChunks = [];
+                const recordingConfig = { mimeType: 'audio/webm' };
+                mediaRecorder = new MediaRecorder(stream, recordingConfig);
+
+                mediaRecorder.addEventListener("dataavailable", function(event) {
+                    if (event.data.size > 0) audioChunks.push(event.data);
+                });
+
+                mediaRecorder.addEventListener("stop", function() {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    sendToServer(audioBlob);
+                });
+
+                mediaRecorder.start();
+                speakButtonImg.src = '/static/assets/icons/stop-solid.svg';
+                speakButtonImg.alt = 'Stop Transcription';
+            };
+
+            // Toggle recording
+            if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+                navigator.mediaDevices
+                .getUserMedia({ audio: true })
+                .then(handleRecording)
+                .catch((e) => {
+                    flashStatusInChatInput("⛔️ Failed to access microphone");
+                });
+            } else if (mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                speakButtonImg.src = '/static/assets/icons/microphone-solid.svg';
+                speakButtonImg.alt = 'Transcribe';
+            }
         }
     </script>
     <body>
@@ -598,8 +659,11 @@ To get started, just start typing below. You can also type / to see a list of co
             <div id="chat-tooltip" style="display: none;"></div>
             <div id="input-row">
                 <textarea id="chat-input" class="option" oninput="onChatInput()" onkeydown=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands, or just type your questions and hit enter."></textarea>
+                <button id="speak-button" class="input-row-button" onclick="speechToText()">
+                    <img id="speak-button-img" class="input-row-button-img" src="/static/assets/icons/microphone-solid.svg" alt="Transcribe"></img>
+                </button>
                 <button class="input-row-button" onclick="clearConversationHistory()">
-                    <img class="input-rown-button-img" src="/static/assets/icons/trash-solid.svg" alt="Clear Chat History"></img>
+                    <img class="input-row-button-img" src="/static/assets/icons/trash-solid.svg" alt="Clear Chat History"></img>
                 </button>
             </div>
         </div>
@@ -763,7 +827,6 @@ To get started, just start typing below. You can also type / to see a list of co
         .chat-message.you {
             margin-right: auto;
             text-align: right;
-            white-space: pre-line;
         }
         /* basic style chat message text */
         .chat-message-text {
@@ -780,7 +843,6 @@ To get started, just start typing below. You can also type / to see a list of co
             color: var(--primary-inverse);
             background: var(--primary);
             margin-left: auto;
-            white-space: pre-line;
         }
         /* Spinner symbol when the chat message is loading */
         .spinner {
@@ -829,6 +891,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
         #chat-footer {
             padding: 0;
+            margin: 8px;
             display: grid;
             grid-template-columns: minmax(70px, 100%);
             grid-column-gap: 10px;
@@ -836,7 +899,7 @@ To get started, just start typing below. You can also type / to see a list of co
         }
         #input-row {
             display: grid;
-            grid-template-columns: auto 32px;
+            grid-template-columns: auto 32px 32px;
             grid-column-gap: 10px;
             grid-row-gap: 10px;
             background: #f9fafc

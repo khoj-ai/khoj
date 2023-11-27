@@ -120,6 +120,15 @@ class OfflineChatProcessorConversationConfig(BaseModel):
     enabled = models.BooleanField(default=False)
 
 
+class SpeechToTextModelOptions(BaseModel):
+    class ModelType(models.TextChoices):
+        OPENAI = "openai"
+        OFFLINE = "offline"
+
+    model_name = models.CharField(max_length=200, default="base")
+    model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
+
+
 class ChatModelOptions(BaseModel):
     class ModelType(models.TextChoices):
         OPENAI = "openai"
@@ -127,8 +136,8 @@ class ChatModelOptions(BaseModel):
 
     max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
     tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)
-    chat_model = models.CharField(max_length=200, default=None, null=True, blank=True)
-    model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OPENAI)
+    chat_model = models.CharField(max_length=200, default="mistral-7b-instruct-v0.1.Q4_0.gguf")
+    model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
 
 
 class UserConversationConfig(BaseModel):

@@ -11,6 +11,12 @@ For Installation, you can either use Docker or install Khoj locally.
 
 ### 1. Installation (Docker)
 
+#### Prerequisites
+1. Install Docker Engine. See [official instructions](https://docs.docker.com/engine/install/).
+2. Ensure you have Docker Compose. See [official instructions](https://docs.docker.com/compose/install/).
+
+#### Setup
+
 Use the sample docker-compose [in Github](https://github.com/khoj-ai/khoj/blob/master/docker-compose.yml) to run Khoj in Docker. Start by configuring all the environment variables to your choosing. Your admin account will automatically be created based on the admin credentials in that file, so pay attention to those. To start the container, run the following command in the same directory as the docker-compose.yml file. This will automatically setup the database and run the Khoj server.
 
 ```shell
@@ -35,7 +41,16 @@ Install [Postgres.app](https://postgresapp.com/). This comes pre-installed with 
 
 #### **Windows**
 
-Use the [recommended installer](https://www.postgresql.org/download/windows/)
+1. Use the [recommended installer](https://www.postgresql.org/download/windows/)
+2. Follow instructions to [Install PgVector](https://github.com/pgvector/pgvector#installation) in case you need to manually install it. Reproduced instructions below for convenience.
+
+```bash
+cd /tmp
+git clone --branch v0.5.1 https://github.com/pgvector/pgvector.git
+cd pgvector
+make
+make install # may need sudo
+```
 
 #### **Linux**
 From [official instructions](https://wiki.postgresql.org/wiki/Apt)
@@ -48,38 +63,30 @@ sudo apt install postgres-16 postgresql-16-pgvector
 
 ##### **From Source**
 1. Follow instructions to [Install Postgres](https://www.postgresql.org/download/)
-2. Follow instructions to [Install PgVector](https://github.com/pgvector/pgvector#installation) in case you need to manually install it. Reproduced instructions below for convenience.
-
-```bash
-cd /tmp
-git clone --branch v0.5.1 https://github.com/pgvector/pgvector.git
-cd pgvector
-make
-make install # may need sudo
-```
+2. Follow instructions to [Install PgVector](https://github.com/pgvector/pgvector#windows) in case you need to manually install it. Windows support is experimental for `pgvector` currently, so we recommend using Docker.
 
 <!-- tabs:end -->
 
 
 ##### Create the Khoj database
 
-Make sure to update your environment variables to match your Postgres configuration if you're using a different name. The default values should work for most people.
+Make sure to update your environment variables to match your Postgres configuration if you're using a different name. The default values should work for most people. When prompted for a password, you can use the default password `postgres`, or configure it to your preference. Make sure to set the environment variable `POSTGRES_PASSWORD` to the same value as the password you set here.
 
 <!-- tabs:start -->
 
 #### **MacOS**
 ```bash
-createdb khoj -U postgres
+createdb khoj -U postgres --password
 ```
 
 #### **Windows**
 ```bash
-createdb khoj -U postgres
+createdb -U postgres khoj --password
 ```
 
 #### **Linux**
 ```bash
-sudo -u postgres createdb khoj
+sudo -u postgres createdb khoj --password
 ```
 
 <!-- tabs:end -->
@@ -139,7 +146,9 @@ You can use our desktop executables to select file paths and folders to index. Y
 To use the desktop client, you need to go to your Khoj server's settings page (http://localhost:42110/config) and copy the API key. Then, paste it into the desktop client's settings page. Once you've done that, you can select files and folders to index.
 
 ### 3. Configure
-1. Go to http://localhost:42110/server/admin and login with your admin credentials. Go to the ChatModelOptions if you want to add additional models for chat.
+1. Go to http://localhost:42110/server/admin and login with your admin credentials.
+    1. Go to [OpenAI settings](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/) in the server admin settings to add an Open AI processor conversation config. This is where you set your API key. Alternatively, you can go to the [offline chat settings](http://localhost:42110/server/admin/database/offlinechatprocessorconversationconfig/) and simply create a new setting with `Enabled` set to `True`.
+    2. Go to the ChatModelOptions if you want to add additional models for chat. For example, you can specify `gpt-4` if you're using OpenAI or `mistral-7b-instruct-v0.1.Q4_0.gguf` if you're using offline chat. Make sure to configure the `type` field to `OpenAI` or `Offline` respectively.
 1. Select files and folders to index [using the desktop client](./setup.md?id=_2-download-the-desktop-client). When you click 'Save', the files will be sent to your server for indexing.
     - Select Notion workspaces and Github repositories to index using the web interface.
 

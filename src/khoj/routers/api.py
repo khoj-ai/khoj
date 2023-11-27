@@ -3,13 +3,14 @@ import concurrent.futures
 import json
 import logging
 import math
+import os
 import time
 from typing import Any, Dict, List, Optional, Union
-
-from asgiref.sync import sync_to_async
+import uuid
 
 # External Packages
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from asgiref.sync import sync_to_async
 from fastapi.requests import Request
 from fastapi.responses import Response, StreamingResponse
 from starlette.authentication import requires
@@ -29,8 +30,10 @@ from khoj.database.models import (
     LocalPlaintextConfig,
     NotionConfig,
 )
-from khoj.processor.conversation.gpt4all.chat_model import extract_questions_offline
+from khoj.processor.conversation.offline.chat_model import extract_questions_offline
+from khoj.processor.conversation.offline.whisper import transcribe_audio_offline
 from khoj.processor.conversation.openai.gpt import extract_questions
+from khoj.processor.conversation.openai.whisper import transcribe_audio
 from khoj.processor.conversation.prompts import help_message, no_entries_found
 from khoj.processor.tools.online_search import search_with_google
 from khoj.routers.helpers import (
@@ -583,6 +586,59 @@ async def chat_options(
         **common.__dict__,
     )
     return Response(content=json.dumps(cmd_options), media_type="application/json", status_code=200)
+
+
+@api.post("/transcribe")
+@requires(["authenticated"])
+async def transcribe(request: Request, common: CommonQueryParams, file: UploadFile = File(...)):
+    user: KhojUser = request.user.object
+    audio_filename = f"{user.uuid}-{str(uuid.uuid4())}.webm"
+    user_message: str = None
+
+    # If the file is too large, return an unprocessable entity error
+    if file.size > 10 * 1024 * 1024:
+        logger.warning(f"Audio file too large to transcribe. Audio file size: {file.size}. Exceeds 10Mb limit.")
+        return Response(content="Audio size larger than 10Mb limit", status_code=422)
+
+    # Transcribe the audio from the request
+    try:
+        # Store the audio from the request in a temporary file
+        audio_data = await file.read()
+        with open(audio_filename, "wb") as audio_file_writer:
+            audio_file_writer.write(audio_data)
+        audio_file = open(audio_filename, "rb")
+
+        # Send the audio data to the Whisper API
+        speech_to_text_config = await ConversationAdapters.get_speech_to_text_config()
+        openai_chat_config = await ConversationAdapters.get_openai_chat_config()
+        if not speech_to_text_config:
+            # If the user has not configured a speech to text model, return an unprocessable entity error
+            status_code = 422
+        elif openai_chat_config and speech_to_text_config.model_type == ChatModelOptions.ModelType.OPENAI:
+            api_key = openai_chat_config.api_key
+            speech2text_model = speech_to_text_config.model_name
+            user_message = await transcribe_audio(audio_file, model=speech2text_model, api_key=api_key)
+        elif speech_to_text_config.model_type == ChatModelOptions.ModelType.OFFLINE:
+            speech2text_model = speech_to_text_config.model_name
+            user_message = await transcribe_audio_offline(audio_filename, model=speech2text_model)
+    finally:
+        # Close and Delete the temporary audio file
+        audio_file.close()
+        os.remove(audio_filename)
+
+    if user_message is None:
+        return Response(status_code=status_code or 500)
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="transcribe",
+        **common.__dict__,
+    )
+
+    # Return the spoken text
+    content = json.dumps({"text": user_message})
+    return Response(content=content, media_type="application/json", status_code=200)
 
 
 @api.get("/chat", response_class=Response)

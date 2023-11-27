@@ -7,6 +7,7 @@ from collections import defaultdict
 # External Packages
 from pathlib import Path
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
+from whisper import Whisper
 
 # Internal Packages
 from khoj.utils import config as utils_config
@@ -21,6 +22,7 @@ embeddings_model: EmbeddingsModel = None
 cross_encoder_model: CrossEncoderModel = None
 content_index = ContentIndex()
 gpt4all_processor_config: GPT4AllProcessorModel = None
+whisper_model: Whisper = None
 config_file: Path = None
 verbose: int = 0
 host: str = None
