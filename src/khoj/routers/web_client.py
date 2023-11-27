@@ -47,7 +47,7 @@ def index(request: Request):
             "request": request,
             "username": user.username,
             "user_photo": user_picture,
-            "is_active": has_required_scope(request, ["subscribed"]),
+            "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
         },
     )
@@ -66,7 +66,7 @@ def index_post(request: Request):
             "request": request,
             "username": user.username,
             "user_photo": user_picture,
-            "is_active": has_required_scope(request, ["subscribed"]),
+            "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
         },
     )
@@ -85,7 +85,7 @@ def search_page(request: Request):
             "request": request,
             "username": user.username,
             "user_photo": user_picture,
-            "is_active": has_required_scope(request, ["subscribed"]),
+            "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
         },
     )
@@ -104,7 +104,7 @@ def chat_page(request: Request):
             "request": request,
             "username": user.username,
             "user_photo": user_picture,
-            "is_active": has_required_scope(request, ["subscribed"]),
+            "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
         },
     )
@@ -170,7 +170,7 @@ def config_page(request: Request):
             "subscription_state": user_subscription_state,
             "subscription_renewal_date": subscription_renewal_date,
             "khoj_cloud_subscription_url": os.getenv("KHOJ_CLOUD_SUBSCRIPTION_URL"),
-            "is_active": has_required_scope(request, ["subscribed"]),
+            "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
             "indexed_data_size_in_mb": indexed_data_size_in_mb,
         },
@@ -211,7 +211,7 @@ def github_config_page(request: Request):
             "current_config": current_config,
             "username": user.username,
             "user_photo": user_picture,
-            "is_active": has_required_scope(request, ["subscribed"]),
+            "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
         },
     )
@@ -238,7 +238,7 @@ def notion_config_page(request: Request):
             "current_config": current_config,
             "username": user.username,
             "user_photo": user_picture,
-            "is_active": has_required_scope(request, ["subscribed"]),
+            "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
         },
     )
@@ -257,7 +257,7 @@ def computer_config_page(request: Request):
             "request": request,
             "username": user.username,
             "user_photo": user_picture,
-            "is_active": has_required_scope(request, ["subscribed"]),
+            "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
         },
     )

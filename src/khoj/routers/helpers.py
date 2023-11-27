@@ -280,7 +280,7 @@ class ApiUserRateLimiter:
 
     def __call__(self, request: Request):
         user: KhojUser = request.user.object
-        subscribed = has_required_scope(request, ["subscribed"])
+        subscribed = has_required_scope(request, ["premium"])
         user_requests = self.cache[user.uuid]
 
         # Remove requests outside of the time window
@@ -314,7 +314,7 @@ class ApiIndexedDataLimiter:
     def __call__(self, request: Request, files: List[UploadFile]):
         if state.billing_enabled is False:
             return
-        subscribed = has_required_scope(request, ["subscribed"])
+        subscribed = has_required_scope(request, ["premium"])
         incoming_data_size_mb = 0
         deletion_file_names = set()
 
