@@ -292,14 +292,13 @@
             .then(response => {
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
+                    let rawResponse = "";
                     let references = null;
 
                     function readStream() {
                         reader.read().then(({ done, value }) => {
                             if (done) {
-                                // Evaluate the contents of new_response_text.innerHTML after all the data has been streamed
-                                const currentHTML = newResponseText.innerHTML;
-                                newResponseText.innerHTML = formatHTMLMessage(currentHTML);
+                                // Append any references after all the data has been streamed
                                 newResponseText.appendChild(references);
                                 document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
                                 return;
@@ -310,13 +309,14 @@
 
                             if (chunk.includes("### compiled references:")) {
                                 const additionalResponse = chunk.split("### compiled references:")[0];
-                                newResponseText.innerHTML += additionalResponse;
+                                rawResponse += additionalResponse;
+                                newResponseText.innerHTML = "";
+                                newResponseText.appendChild(formatHTMLMessage(rawResponse));
 
                                 const rawReference = chunk.split("### compiled references:")[1];
                                 const rawReferenceAsJson = JSON.parse(rawReference);
                                 references = document.createElement('div');
                                 references.classList.add("references");
-
 
                                 let referenceExpandButton = document.createElement('button');
                                 referenceExpandButton.classList.add("reference-expand-button");
@@ -362,7 +362,10 @@
                                     newResponseText.removeChild(loadingSpinner);
                                 }
 
-                                newResponseText.innerHTML += chunk;
+                                rawResponse += chunk;
+                                newResponseText.innerHTML = "";
+                                newResponseText.appendChild(formatHTMLMessage(rawResponse));
+
                                 readStream();
                             }
 

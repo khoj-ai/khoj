@@ -330,15 +330,13 @@ To get started, just start typing below. You can also type / to see a list of co
                 .then(response => {
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
+                    let rawResponse = "";
                     let references = null;
 
                     function readStream() {
                         reader.read().then(({ done, value }) => {
                             if (done) {
-                                // Evaluate the contents of new_response_text.innerHTML after all the data has been streamed
-                                const currentHTML = newResponseText.innerHTML;
-                                newResponseText.innerHTML = "";
-                                newResponseText.appendChild(formatHTMLMessage(currentHTML));
+                                // Append any references after all the data has been streamed
                                 if (references != null) {
                                     newResponseText.appendChild(references);
                                 }
@@ -352,7 +350,9 @@ To get started, just start typing below. You can also type / to see a list of co
 
                             if (chunk.includes("### compiled references:")) {
                                 const additionalResponse = chunk.split("### compiled references:")[0];
-                                newResponseText.innerHTML += additionalResponse;
+                                rawResponse += additionalResponse;
+                                newResponseText.innerHTML = "";
+                                newResponseText.appendChild(formatHTMLMessage(rawResponse));
 
                                 const rawReference = chunk.split("### compiled references:")[1];
                                 const rawReferenceAsJson = JSON.parse(rawReference);
@@ -361,7 +361,6 @@ To get started, just start typing below. You can also type / to see a list of co
 
                                 let referenceExpandButton = document.createElement('button');
                                 referenceExpandButton.classList.add("reference-expand-button");
-
 
                                 let referenceSection = document.createElement('div');
                                 referenceSection.classList.add("reference-section");
@@ -403,7 +402,9 @@ To get started, just start typing below. You can also type / to see a list of co
                                     newResponseText.removeChild(loadingSpinner);
                                 }
 
-                                newResponseText.innerHTML += chunk;
+                                rawResponse += chunk;
+                                newResponseText.innerHTML = "";
+                                newResponseText.appendChild(formatHTMLMessage(rawResponse));
                                 readStream();
                             }
 
