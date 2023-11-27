@@ -618,6 +618,8 @@
                 });
             } else if (mediaRecorder.state === 'recording') {
                 mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                mediaRecorder = null;
                 speakButtonImg.src = './assets/icons/microphone-solid.svg';
                 speakButtonImg.alt = 'Transcribe';
             }

@@ -1,4 +1,4 @@
-import { App, Modal, RequestUrlParam, request, requestUrl, setIcon } from 'obsidian';
+import { App, Modal, request, requestUrl, setIcon } from 'obsidian';
 import { KhojSetting } from 'src/settings';
 import fetch from "node-fetch";
 
@@ -321,6 +321,8 @@ export class KhojChatModal extends Modal {
                 });
         } else if (this.mediaRecorder.state === 'recording') {
             this.mediaRecorder.stop();
+            this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            this.mediaRecorder = undefined;
             setIcon(transcribeButton, "mic");
         }
     }
