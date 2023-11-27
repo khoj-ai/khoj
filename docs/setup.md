@@ -11,6 +11,12 @@ For Installation, you can either use Docker or install Khoj locally.
 
 ### 1. Installation (Docker)
 
+#### Prerequisites
+1. Install Docker Engine. See [official instructions](https://docs.docker.com/engine/install/).
+2. Ensure you have Docker Compose. See [official instructions](https://docs.docker.com/compose/install/).
+
+#### Setup
+
 Use the sample docker-compose [in Github](https://github.com/khoj-ai/khoj/blob/master/docker-compose.yml) to run Khoj in Docker. Start by configuring all the environment variables to your choosing. Your admin account will automatically be created based on the admin credentials in that file, so pay attention to those. To start the container, run the following command in the same directory as the docker-compose.yml file. This will automatically setup the database and run the Khoj server.
 
 ```shell
@@ -35,7 +41,16 @@ Install [Postgres.app](https://postgresapp.com/). This comes pre-installed with 
 
 #### **Windows**
 
-Use the [recommended installer](https://www.postgresql.org/download/windows/)
+1. Use the [recommended installer](https://www.postgresql.org/download/windows/)
+2. Follow instructions to [Install PgVector](https://github.com/pgvector/pgvector#installation) in case you need to manually install it. Reproduced instructions below for convenience.
+
+```bash
+cd /tmp
+git clone --branch v0.5.1 https://github.com/pgvector/pgvector.git
+cd pgvector
+make
+make install # may need sudo
+```
 
 #### **Linux**
 From [official instructions](https://wiki.postgresql.org/wiki/Apt)
@@ -48,38 +63,30 @@ sudo apt install postgres-16 postgresql-16-pgvector
 
 ##### **From Source**
 1. Follow instructions to [Install Postgres](https://www.postgresql.org/download/)
-2. Follow instructions to [Install PgVector](https://github.com/pgvector/pgvector#installation) in case you need to manually install it. Reproduced instructions below for convenience.
-
-```bash
-cd /tmp
-git clone --branch v0.5.1 https://github.com/pgvector/pgvector.git
-cd pgvector
-make
-make install # may need sudo
-```
+2. Follow instructions to [Install PgVector](https://github.com/pgvector/pgvector#windows) in case you need to manually install it. Windows support is experimental for `pgvector` currently, so we recommend using Docker.
 
 <!-- tabs:end -->
 
 
 ##### Create the Khoj database
 
-Make sure to update your environment variables to match your Postgres configuration if you're using a different name. The default values should work for most people.
+Make sure to update your environment variables to match your Postgres configuration if you're using a different name. The default values should work for most people. When prompted for a password, you can use the default password `postgres`, or configure it to your preference. Make sure to set the environment variable `POSTGRES_PASSWORD` to the same value as the password you set here.
 
 <!-- tabs:start -->
 
 #### **MacOS**
 ```bash
-createdb khoj -U postgres
+createdb khoj -U postgres --password
 ```
 
 #### **Windows**
 ```bash
-createdb khoj -U postgres
+createdb -U postgres khoj --password
 ```
 
 #### **Linux**
 ```bash
-sudo -u postgres createdb khoj
+sudo -u postgres createdb khoj --password
 ```
 
 <!-- tabs:end -->
