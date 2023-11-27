@@ -146,7 +146,9 @@ You can use our desktop executables to select file paths and folders to index. Y
 To use the desktop client, you need to go to your Khoj server's settings page (http://localhost:42110/config) and copy the API key. Then, paste it into the desktop client's settings page. Once you've done that, you can select files and folders to index.
 
 ### 3. Configure
-1. Go to http://localhost:42110/server/admin and login with your admin credentials. Go to the ChatModelOptions if you want to add additional models for chat.
+1. Go to http://localhost:42110/server/admin and login with your admin credentials.
+    - Go to [the server admin page](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/) to add an Open AI processor conversation config. This is where you set your API key. Alternatively, you can go to the [offline chat settings](http://localhost:42110/server/admin/database/offlinechatprocessorconversationconfig/) and simply create a new setting with `Enabled` set to `True`.
+    - Go to the ChatModelOptions if you want to add additional models for chat. For example, you can specify `gpt-4` if you're using OpenAI or `mistral-7b-instruct-v0.1.Q4_0.gguf` if you're using offline chat. Make sure to configure the `type` field to `OpenAI` or `Offline` respectively.
 1. Select files and folders to index [using the desktop client](./setup.md?id=_2-download-the-desktop-client). When you click 'Save', the files will be sent to your server for indexing.
     - Select Notion workspaces and Github repositories to index using the web interface.
 
