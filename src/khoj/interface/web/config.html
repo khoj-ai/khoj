@@ -4,7 +4,10 @@
 <div class="page">
     <div id="content" class="section">
         <h2 class="section-title">Content</h2>
-        <p id="indexed-data-size" class="card-description">{{indexed_data_size_in_mb}} MB used</p>
+        <button id="compute-index-size" class="card-button" onclick="getIndexedDataSize()">
+            Data Usage
+        </button>
+        <p id="indexed-data-size" class="card-description"></p>
         <div class="section-cards">
             <div class="card">
                 <div class="card-title-row">
@@ -469,6 +472,15 @@
             .then(response => response.json())
             .then(tokens => {
                 apiKeyList.innerHTML = tokens.map(generateTokenRow).join("");
+            });
+    }
+
+    function getIndexedDataSize() {
+        document.getElementById("indexed-data-size").innerHTML = "Calculating...";
+        fetch('/api/config/index/size')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("indexed-data-size").innerHTML = data.indexed_data_size_in_mb + " MB used";
             });
     }
 
