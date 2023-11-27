@@ -24,11 +24,19 @@ To get started, just start typing below. You can also type / to see a list of co
         let chatOptions = [];
         function copyProgrammaticOutput(event) {
             // Remove the first 4 characters which are the "Copy" button
+            const originalCopyText = event.target.parentNode.textContent.trim().slice(0, 4);
             const programmaticOutput = event.target.parentNode.textContent.trim().slice(4);
             navigator.clipboard.writeText(programmaticOutput).then(() => {
-                console.log("Programmatic output copied to clipboard");
+                event.target.textContent = "✅ Copied to clipboard!";
+                setTimeout(() => {
+                    event.target.textContent = originalCopyText;
+                }, 1000);
             }).catch((error) => {
                 console.error("Error copying programmatic output to clipboard:", error);
+                event.target.textContent = "⛔️ Failed to copy!";
+                setTimeout(() => {
+                    event.target.textContent = originalCopyText;
+                }, 1000);
             });
         }
 
