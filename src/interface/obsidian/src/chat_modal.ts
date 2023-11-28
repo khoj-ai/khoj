@@ -1,4 +1,4 @@
-import { App, Modal, request, requestUrl, setIcon } from 'obsidian';
+import { App, MarkdownRenderer, Modal, request, requestUrl, setIcon } from 'obsidian';
 import { KhojSetting } from 'src/settings';
 import fetch from "node-fetch";
 
@@ -32,10 +32,10 @@ export class KhojChatModal extends Modal {
         contentEl.createEl("h1", ({ attr: { id: "khoj-chat-title" }, text: "Khoj Chat" }));
 
         // Create area for chat logs
-        contentEl.createDiv({ attr: { id: "khoj-chat-body", class: "khoj-chat-body" } });
+        let chatBodyEl = contentEl.createDiv({ attr: { id: "khoj-chat-body", class: "khoj-chat-body" } });
 
         // Get chat history from Khoj backend
-        await this.getChatHistory();
+        await this.getChatHistory(chatBodyEl);
 
         // Add chat input field
         let inputRow = contentEl.createDiv("khoj-input-row");
@@ -49,7 +49,6 @@ export class KhojChatModal extends Modal {
                     class: "khoj-chat-input option"
                 }
             })
-        chatInput.addEventListener('change', (event) => { this.result = (<HTMLInputElement>event.target).value });
 
         let transcribe = inputRow.createEl("button", {
             text: "Transcribe",
@@ -75,52 +74,108 @@ export class KhojChatModal extends Modal {
         chatInput.focus();
     }
 
-    generateReference(messageEl: any, reference: string, index: number) {
-        // Generate HTML for Chat Reference
-        // `<sup><abbr title="${escaped_ref}" tabindex="0">${index}</abbr></sup>`;
+    generateReference(messageEl: Element, reference: string, index: number) {
+        // Escape reference for HTML rendering
         let escaped_ref = reference.replace(/"/g, "&quot;")
-        return messageEl.createEl("sup").createEl("abbr", {
-            attr: {
-                title: escaped_ref,
-                tabindex: "0",
-            },
-            text: `[${index}] `,
+
+        // Generate HTML for Chat Reference
+        let short_ref = escaped_ref.slice(0, 100);
+        short_ref = short_ref.length < escaped_ref.length ? short_ref + "..." : short_ref;
+        let referenceButton = messageEl.createEl('button');
+        referenceButton.innerHTML = short_ref;
+        referenceButton.id = `ref-${index}`;
+        referenceButton.classList.add("reference-button");
+        referenceButton.classList.add("collapsed");
+        referenceButton.tabIndex = 0;
+
+        // Add event listener to toggle full reference on click
+        referenceButton.addEventListener('click', function() {
+            console.log(`Toggling ref-${index}`)
+            if (this.classList.contains("collapsed")) {
+                this.classList.remove("collapsed");
+                this.classList.add("expanded");
+                this.innerHTML = escaped_ref;
+            } else {
+                this.classList.add("collapsed");
+                this.classList.remove("expanded");
+                this.innerHTML = short_ref;
+            }
         });
+
+        return referenceButton;
     }
 
-    renderMessageWithReferences(message: string, sender: string, context?: [string], dt?: Date) {
-        let messageEl = this.renderMessage(message, sender, dt);
-        if (context && !!messageEl) {
-            context.map((reference, index) => this.generateReference(messageEl, reference, index + 1));
+    renderMessageWithReferences(chatEl: Element, message: string, sender: string, context?: string[], dt?: Date) {
+        if (!message) {
+            return;
+        } else if (!context) {
+            this.renderMessage(chatEl, message, sender, dt);
+            return
+        } else if (!!context && context?.length === 0) {
+            this.renderMessage(chatEl, message, sender, dt);
+            return
         }
+        let chatMessageEl = this.renderMessage(chatEl, message, sender, dt);
+        let chatMessageBodyEl = chatMessageEl.getElementsByClassName("khoj-chat-message-text")[0]
+        let references = chatMessageBodyEl.createDiv();
+
+        let referenceExpandButton = references.createEl('button');
+        referenceExpandButton.classList.add("reference-expand-button");
+        let numReferences = 0;
+
+        if (context) {
+            numReferences += context.length;
+        }
+
+        let referenceSection = references.createEl('div');
+        referenceSection.classList.add("reference-section");
+        referenceSection.classList.add("collapsed");
+
+        referenceExpandButton.addEventListener('click', function() {
+            if (referenceSection.classList.contains("collapsed")) {
+                referenceSection.classList.remove("collapsed");
+                referenceSection.classList.add("expanded");
+            } else {
+                referenceSection.classList.add("collapsed");
+                referenceSection.classList.remove("expanded");
+            }
+        });
+
+        references.classList.add("references");
+        if (context) {
+            context.map((reference, index) => {
+                this.generateReference(referenceSection, reference, index + 1);
+            });
+        }
+
+        let expandButtonText = numReferences == 1 ? "1 reference" : `${numReferences} references`;
+        referenceExpandButton.innerHTML = expandButtonText;
     }
 
-    renderMessage(message: string, sender: string, dt?: Date): Element | null {
+    renderMessage(chatEl: Element, message: string, sender: string, dt?: Date): Element {
         let message_time = this.formatDate(dt ?? new Date());
         let emojified_sender = sender == "khoj" ? "🏮 Khoj" : "🤔 You";
 
         // Append message to conversation history HTML element.
         // The chat logs should display above the message input box to follow standard UI semantics
-        let chat_body_el = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
-        let chat_message_el = chat_body_el.createDiv({
+        let chatMessageEl = chatEl.createDiv({
             attr: {
                 "data-meta": `${emojified_sender} at ${message_time}`,
                 class: `khoj-chat-message ${sender}`
             },
-        }).createDiv({
-            attr: {
-                class: `khoj-chat-message-text ${sender}`
-            },
-            text: `${message}`
         })
+        let chat_message_body_el = chatMessageEl.createDiv();
+        chat_message_body_el.addClasses(["khoj-chat-message-text", sender]);
+        let chat_message_body_text_el = chat_message_body_el.createDiv();
+        MarkdownRenderer.renderMarkdown(message, chat_message_body_text_el, '', null);
 
         // Remove user-select: none property to make text selectable
-        chat_message_el.style.userSelect = "text";
+        chatMessageEl.style.userSelect = "text";
 
         // Scroll to bottom after inserting chat messages
         this.modalEl.scrollTop = this.modalEl.scrollHeight;
 
-        return chat_message_el
+        return chatMessageEl
     }
 
     createKhojResponseDiv(dt?: Date): HTMLDivElement {
@@ -147,7 +202,9 @@ export class KhojChatModal extends Modal {
     }
 
     renderIncrementalMessage(htmlElement: HTMLDivElement, additionalMessage: string) {
-        htmlElement.innerHTML += additionalMessage;
+        this.result += additionalMessage;
+        htmlElement.innerHTML = "";
+        MarkdownRenderer.renderMarkdown(this.result, htmlElement, '', null);
         // Scroll to bottom of modal, till the send message input box
         this.modalEl.scrollTop = this.modalEl.scrollHeight;
     }
@@ -159,14 +216,14 @@ export class KhojChatModal extends Modal {
         return `${time_string}, ${date_string}`;
     }
 
-    async getChatHistory(): Promise<void> {
+    async getChatHistory(chatBodyEl: Element): Promise<void> {
         // Get chat history from Khoj backend
         let chatUrl = `${this.setting.khojUrl}/api/chat/history?client=obsidian`;
         let headers = { "Authorization": `Bearer ${this.setting.khojApiKey}` };
         let response = await request({ url: chatUrl, headers: headers });
         let chatLogs = JSON.parse(response).response;
         chatLogs.forEach((chatLog: any) => {
-            this.renderMessageWithReferences(chatLog.message, chatLog.by, chatLog.context, new Date(chatLog.created));
+            this.renderMessageWithReferences(chatBodyEl, chatLog.message, chatLog.by, chatLog.context, new Date(chatLog.created));
         });
     }
 
@@ -175,7 +232,8 @@ export class KhojChatModal extends Modal {
         if (!query || query === "") return;
 
         // Render user query as chat message
-        this.renderMessage(query, "you");
+        let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
+        this.renderMessage(chatBodyEl, query, "you");
 
         // Get chat response from Khoj backend
         let encodedQuery = encodeURIComponent(query);
@@ -203,12 +261,54 @@ export class KhojChatModal extends Modal {
                 responseElement.innerHTML = "";
             }
 
+            this.result = "";
+            responseElement.innerHTML = "";
             for await (const chunk of response.body) {
                 const responseText = chunk.toString();
-                if (responseText.startsWith("### compiled references:")) {
-                    return;
+                if (responseText.includes("### compiled references:")) {
+                    const additionalResponse = responseText.split("### compiled references:")[0];
+                    this.renderIncrementalMessage(responseElement, additionalResponse);
+
+                    const rawReference = responseText.split("### compiled references:")[1];
+                    const rawReferenceAsJson = JSON.parse(rawReference);
+                    let references = responseElement.createDiv();
+                    references.classList.add("references");
+
+                    let referenceExpandButton = references.createEl('button');
+                    referenceExpandButton.classList.add("reference-expand-button");
+
+                    let referenceSection = references.createDiv();
+                    referenceSection.classList.add("reference-section");
+                    referenceSection.classList.add("collapsed");
+
+                    let numReferences = 0;
+
+                    // If rawReferenceAsJson is a list, then count the length
+                    if (Array.isArray(rawReferenceAsJson)) {
+                        numReferences = rawReferenceAsJson.length;
+
+                        rawReferenceAsJson.forEach((reference, index) => {
+                            this.generateReference(referenceSection, reference, index);
+                        });
+                    }
+                    references.appendChild(referenceExpandButton);
+
+                    referenceExpandButton.addEventListener('click', function() {
+                        if (referenceSection.classList.contains("collapsed")) {
+                            referenceSection.classList.remove("collapsed");
+                            referenceSection.classList.add("expanded");
+                        } else {
+                            referenceSection.classList.add("collapsed");
+                            referenceSection.classList.remove("expanded");
+                        }
+                    });
+
+                    let expandButtonText = numReferences == 1 ? "1 reference" : `${numReferences} references`;
+                    referenceExpandButton.innerHTML = expandButtonText;
+                    references.appendChild(referenceSection);
+                } else {
+                    this.renderIncrementalMessage(responseElement, responseText);
                 }
-                this.renderIncrementalMessage(responseElement, responseText);
             }
         } catch (err) {
             this.renderIncrementalMessage(responseElement, "Sorry, unable to get response from Khoj backend ❤️‍🩹. Contact developer for help at team@khoj.dev or <a href='https://discord.gg/BDgyabRM6e'>in Discord</a>")
@@ -243,7 +343,7 @@ export class KhojChatModal extends Modal {
             } else {
                 // If conversation history is cleared successfully, clear chat logs from modal
                 chatBody.innerHTML = "";
-                await this.getChatHistory();
+                await this.getChatHistory(chatBody);
                 this.flashStatusInChatInput(result.message);
             }
         } catch (err) {
