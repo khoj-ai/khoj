@@ -42,15 +42,8 @@ Install [Postgres.app](https://postgresapp.com/). This comes pre-installed with 
 #### **Windows**
 
 1. Use the [recommended installer](https://www.postgresql.org/download/windows/)
-2. Follow instructions to [Install PgVector](https://github.com/pgvector/pgvector#installation) in case you need to manually install it. Reproduced instructions below for convenience.
+2. Follow instructions to [Install PgVector](https://github.com/pgvector/pgvector#windows) in case you need to manually install it. Windows support is experimental for `pgvector` currently, so we recommend using Docker.
 
-```bash
-cd /tmp
-git clone --branch v0.5.1 https://github.com/pgvector/pgvector.git
-cd pgvector
-make
-make install # may need sudo
-```
 
 #### **Linux**
 From [official instructions](https://wiki.postgresql.org/wiki/Apt)
@@ -63,8 +56,15 @@ sudo apt install postgres-16 postgresql-16-pgvector
 
 ##### **From Source**
 1. Follow instructions to [Install Postgres](https://www.postgresql.org/download/)
-2. Follow instructions to [Install PgVector](https://github.com/pgvector/pgvector#windows) in case you need to manually install it. Windows support is experimental for `pgvector` currently, so we recommend using Docker.
+2. Follow instructions to [Install PgVector](https://github.com/pgvector/pgvector#installation) in case you need to manually install it. Reproduced instructions below for convenience.
 
+```bash
+cd /tmp
+git clone --branch v0.5.1 https://github.com/pgvector/pgvector.git
+cd pgvector
+make
+make install # may need sudo
+```
 <!-- tabs:end -->
 
 
