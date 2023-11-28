@@ -72,7 +72,7 @@ def update_telemetry_state(
     metadata: Optional[dict] = None,
 ):
     user: KhojUser = request.user.object if request.user.is_authenticated else None
-    subscription: Subscription = user.subscription if user and user.subscription else None
+    subscription: Subscription = user.subscription if user and hasattr(user, "subscription") else None
     user_state = {
         "client_host": request.client.host if request.client else None,
         "user_agent": user_agent or "unknown",
