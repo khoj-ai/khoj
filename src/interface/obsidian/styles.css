@@ -8,8 +8,9 @@ If your plugin does not need CSS, delete this file.
 */
 
 :root {
-    --khoj-chat-primary: #fee285;
-    --khoj-chat-dark-grey: #475569;
+    --khoj-winter-sun: #f9f5de;
+    --khoj-sun: #fee285;
+    --khoj-storm-grey: #475569;
  }
 
 .khoj-chat {
@@ -29,7 +30,7 @@ If your plugin does not need CSS, delete this file.
 
 #khoj-chat-title {
     font-weight: 200;
-    color: var(--khoj-chat-primary);
+    color: var(--khoj-sun);
 }
 
 #khoj-chat-body {
@@ -68,8 +69,8 @@ If your plugin does not need CSS, delete this file.
 }
 /* color chat bubble by khoj blue */
 .khoj-chat-message-text.khoj {
-    color: var(--khoj-chat-dark-grey);
-    background: var(--khoj-chat-primary);
+    color: var(--khoj-storm-grey);
+    background: var(--khoj-winter-sun);
     margin-left: auto;
     white-space: pre-line;
 }
@@ -80,14 +81,14 @@ If your plugin does not need CSS, delete this file.
     bottom: -2px;
     left: -7px;
     border: 10px solid transparent;
-    border-top-color: var(--khoj-chat-primary);
+    border-top-color: var(--khoj-winter-sun);
     border-bottom: 0;
     transform: rotate(-60deg);
 }
 /* color chat bubble by you dark grey */
 .khoj-chat-message-text.you {
     color: var(--text-on-accent);
-    background: var(--khoj-chat-dark-grey);
+    background: var(--khoj-storm-grey);
     margin-right: auto;
 }
 /* add right protrusion to you chat bubble */
@@ -97,7 +98,7 @@ If your plugin does not need CSS, delete this file.
     top: 91%;
     right: -2px;
     border: 10px solid transparent;
-    border-left-color: var(--khoj-chat-dark-grey);
+    border-left-color: var(--khoj-storm-grey);
     border-right: 0;
     margin-top: -10px;
     transform: rotate(-60deg)

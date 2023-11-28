@@ -2,8 +2,8 @@
 /* Can be forced with data-theme="light" */
 [data-theme="light"],
 :root:not([data-theme="dark"]) {
-    --primary: #fee285;
-    --primary-hover: #fcc50b;
+    --primary: #f9f5de;
+    --primary-hover: #fee285;
     --primary-focus: rgba(255, 179, 0, 0.125);
     --primary-inverse: rgba(0, 0, 0, 0.75);
     --background-color: #f5f4f3;
@@ -17,8 +17,8 @@
 /* Automatically enabled if user has Dark mode enabled */
 @media only screen and (prefers-color-scheme: dark) {
     :root:not([data-theme]) {
-        --primary: #fee285;
-        --primary-hover: #fcc50b;
+        --primary: #f9f5de;
+        --primary-hover: #fee285;
         --primary-focus: rgba(255, 179, 0, 0.25);
         --primary-inverse: rgba(0, 0, 0, 0.75);
         --background-color: #f5f4f3;
