@@ -9,7 +9,7 @@ These are the general setup instructions for Khoj.
 
 For Installation, you can either use Docker or install Khoj locally.
 
-### 1. Installation (Docker)
+### Installation Option 1 (Docker)
 
 #### Prerequisites
 1. Install Docker Engine. See [official instructions](https://docs.docker.com/engine/install/).
@@ -25,7 +25,7 @@ docker-compose up
 
 Khoj should now be running at http://localhost:42110. You can see the web UI in your browser.
 
-### 1. Installation (Local)
+### Installation Option 2 (Local)
 
 #### Prerequisites
 
