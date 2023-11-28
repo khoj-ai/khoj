@@ -123,6 +123,40 @@ python -m pip install khoj-assistant
 
 ##### Local Server Start
 
+Before getting started, configure the following environment variables in your terminal for the first run
+
+<!-- tabs:start -->
+
+#### **MacOS**
+
+```shell
+export KHOJ_ADMIN_EMAIL=<your-email>
+export KHOJ_ADMIN_PASSWORD=<your-password>
+```
+
+#### **Windows**
+
+If you're using PowerShell:
+```shell
+$env:KHOJ_ADMIN_EMAIL="<your-email>"
+$env:KHOJ_ADMIN_PASSWORD="<your-password>"
+```
+
+If you're using a Unix shell:
+```shell
+export KHOJ_ADMIN_EMAIL="<your-email>"
+export KHOJ_ADMIN_PASSWORD="<your-password>"
+```
+
+#### **Linux**
+
+```shell
+export KHOJ_ADMIN_EMAIL=<your-email>
+export KHOJ_ADMIN_PASSWORD=<your-password>
+```
+
+<!-- tabs:end -->
+
 Run the following command from your terminal to start the Khoj backend and open Khoj in your browser.
 
 ```shell
