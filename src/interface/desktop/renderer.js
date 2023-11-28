@@ -1,7 +1,7 @@
 const setFolderButton = document.getElementById('update-folder');
 const setFileButton = document.getElementById('update-file');
-const showKey = document.getElementById('show-key');
 const loadingBar = document.getElementById('loading-bar');
+const needsSubscriptionElement = document.getElementById('needs-subscription');
 
 async function removeFile(filePath) {
     const updatedFiles = await window.removeFileAPI.removeFile(filePath);
@@ -163,6 +163,15 @@ window.updateStateAPI.onUpdateState((event, state) => {
     }
     const options = { hour: '2-digit', minute: '2-digit' };
     syncStatusElement.innerHTML = `⏱️ Synced at ${currentTime.toLocaleTimeString(undefined, options)}. Next sync at ${nextSyncTime.toLocaleTimeString(undefined, options)}.`;
+});
+
+window.needsSubscriptionAPI.onNeedsSubscription((event, needsSubscription) => {
+    console.log("needs subscription", needsSubscription);
+    if (needsSubscription) {
+        needsSubscriptionElement.style.display = 'block';
+    } else {
+        needsSubscriptionElement.style.display = 'none';
+    }
 });
 
 const urlInput = document.getElementById('khoj-host-url');

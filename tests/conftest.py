@@ -104,6 +104,24 @@ def default_user3():
 
 @pytest.mark.django_db
 @pytest.fixture
+def default_user4():
+    """
+    This user should not have a valid subscription
+    """
+    if KhojUser.objects.filter(username="default4").exists():
+        return KhojUser.objects.get(username="default4")
+
+    user = KhojUser.objects.create(
+        username="default4",
+        email="default4@example.com",
+        password="default4",
+    )
+    SubscriptionFactory(user=user, renewal_date=None)
+    return user
+
+
+@pytest.mark.django_db
+@pytest.fixture
 def api_user(default_user):
     if KhojApiUser.objects.filter(user=default_user).exists():
         return KhojApiUser.objects.get(user=default_user)
@@ -138,6 +156,19 @@ def api_user3(default_user3):
         user=default_user3,
         name="api-key",
         token="kk-diff-secret-3",
+    )
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def api_user4(default_user4):
+    if KhojApiUser.objects.filter(user=default_user4).exists():
+        return KhojApiUser.objects.get(user=default_user4)
+
+    return KhojApiUser.objects.create(
+        user=default_user4,
+        name="api-key",
+        token="kk-diff-secret-4",
     )
 
 

@@ -2,7 +2,7 @@ import asyncio
 import logging
 from typing import Dict, Optional, Union
 
-from fastapi import APIRouter, Header, Request, Response, UploadFile
+from fastapi import APIRouter, Header, Request, Response, UploadFile, Depends
 from pydantic import BaseModel
 from starlette.authentication import requires
 
@@ -18,6 +18,7 @@ from khoj.search_type import image_search, text_search
 from khoj.utils import constants, state
 from khoj.utils.config import ContentIndex, SearchModels
 from khoj.utils.helpers import LRU, get_file_type
+from khoj.routers.helpers import ApiIndexedDataLimiter
 from khoj.utils.rawconfig import ContentConfig, FullConfig, SearchConfig
 from khoj.utils.yaml import save_config_to_file_updated_state
 
@@ -53,6 +54,14 @@ async def update(
     user_agent: Optional[str] = Header(None),
     referer: Optional[str] = Header(None),
     host: Optional[str] = Header(None),
+    indexed_data_limiter: ApiIndexedDataLimiter = Depends(
+        ApiIndexedDataLimiter(
+            incoming_entries_size_limit=10,
+            subscribed_incoming_entries_size_limit=25,
+            total_entries_size_limit=10,
+            subscribed_total_entries_size_limit=100,
+        )
+    ),
 ):
     user = request.user.object
     try:
@@ -92,7 +101,7 @@ async def update(
             logger.info("📬 Initializing content index on first run.")
             default_full_config = FullConfig(
                 content_type=None,
-                search_type=SearchConfig.parse_obj(constants.default_config["search-type"]),
+                search_type=SearchConfig.model_validate(constants.default_config["search-type"]),
                 processor=None,
             )
             state.config = default_full_config
@@ -116,7 +125,7 @@ async def update(
             configure_content,
             state.content_index,
             state.config.content_type,
-            indexer_input.dict(),
+            indexer_input.model_dump(),
             state.search_models,
             force,
             t,

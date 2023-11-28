@@ -9,8 +9,8 @@ from typing import Any, Dict, List, Optional, Union
 import uuid
 
 # External Packages
-from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from asgiref.sync import sync_to_async
 from fastapi.requests import Request
 from fastapi.responses import Response, StreamingResponse
 from starlette.authentication import requires
@@ -334,6 +334,18 @@ def get_default_config_data():
     return constants.empty_config
 
 
+@api.get("/config/index/size", response_model=Dict[str, int])
+@requires(["authenticated"])
+async def get_indexed_data_size(request: Request, common: CommonQueryParams):
+    user = request.user.object
+    indexed_data_size_in_mb = await sync_to_async(EntryAdapters.get_size_of_indexed_data_in_mb)(user)
+    return Response(
+        content=json.dumps({"indexed_data_size_in_mb": math.ceil(indexed_data_size_in_mb)}),
+        media_type="application/json",
+        status_code=200,
+    )
+
+
 @api.get("/config/types", response_model=List[str])
 @requires(["authenticated"])
 def get_config_types(
@@ -650,8 +662,8 @@ async def chat(
     n: Optional[int] = 5,
     d: Optional[float] = 0.18,
     stream: Optional[bool] = False,
-    rate_limiter_per_minute=Depends(ApiUserRateLimiter(requests=30, window=60)),
-    rate_limiter_per_day=Depends(ApiUserRateLimiter(requests=500, window=60 * 60 * 24)),
+    rate_limiter_per_minute=Depends(ApiUserRateLimiter(requests=10, subscribed_requests=60, window=60)),
+    rate_limiter_per_day=Depends(ApiUserRateLimiter(requests=10, subscribed_requests=600, window=60 * 60 * 24)),
 ) -> Response:
     user = request.user.object
 

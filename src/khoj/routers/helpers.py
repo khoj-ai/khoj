@@ -9,10 +9,12 @@ from functools import partial
 from time import time
 from typing import Annotated, Any, Dict, Iterator, List, Optional, Tuple, Union
 
-# External Packages
-from fastapi import Depends, Header, HTTPException, Request
+from fastapi import Depends, Header, HTTPException, Request, UploadFile
+from starlette.authentication import has_required_scope
+from asgiref.sync import sync_to_async
 
-from khoj.database.adapters import ConversationAdapters
+
+from khoj.database.adapters import ConversationAdapters, EntryAdapters
 from khoj.database.models import KhojUser, Subscription
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.chat_model import converse_offline, send_message_to_model_offline
@@ -270,13 +272,15 @@ def generate_chat_response(
 
 
 class ApiUserRateLimiter:
-    def __init__(self, requests: int, window: int):
+    def __init__(self, requests: int, subscribed_requests: int, window: int):
         self.requests = requests
+        self.subscribed_requests = subscribed_requests
         self.window = window
         self.cache: dict[str, list[float]] = defaultdict(list)
 
     def __call__(self, request: Request):
         user: KhojUser = request.user.object
+        subscribed = has_required_scope(request, ["premium"])
         user_requests = self.cache[user.uuid]
 
         # Remove requests outside of the time window
@@ -285,11 +289,67 @@ class ApiUserRateLimiter:
             user_requests.pop(0)
 
         # Check if the user has exceeded the rate limit
-        if len(user_requests) >= self.requests:
+        if subscribed and len(user_requests) >= self.subscribed_requests:
             raise HTTPException(status_code=429, detail="Too Many Requests")
+        if not subscribed and len(user_requests) >= self.requests:
+            raise HTTPException(status_code=429, detail="Too Many Requests. Subscribe to increase your rate limit.")
 
         # Add the current request to the cache
         user_requests.append(time())
+
+
+class ApiIndexedDataLimiter:
+    def __init__(
+        self,
+        incoming_entries_size_limit: float,
+        subscribed_incoming_entries_size_limit: float,
+        total_entries_size_limit: float,
+        subscribed_total_entries_size_limit: float,
+    ):
+        self.num_entries_size = incoming_entries_size_limit
+        self.subscribed_num_entries_size = subscribed_incoming_entries_size_limit
+        self.total_entries_size_limit = total_entries_size_limit
+        self.subscribed_total_entries_size = subscribed_total_entries_size_limit
+
+    def __call__(self, request: Request, files: List[UploadFile]):
+        if state.billing_enabled is False:
+            return
+        subscribed = has_required_scope(request, ["premium"])
+        incoming_data_size_mb = 0
+        deletion_file_names = set()
+
+        if not request.user.is_authenticated:
+            return
+
+        user: KhojUser = request.user.object
+
+        for file in files:
+            if file.size == 0:
+                deletion_file_names.add(file.filename)
+
+            incoming_data_size_mb += file.size / 1024 / 1024
+
+        num_deleted_entries = 0
+        for file_path in deletion_file_names:
+            deleted_count = EntryAdapters.delete_entry_by_file(user, file_path)
+            num_deleted_entries += deleted_count
+
+        logger.info(f"Deleted {num_deleted_entries} entries for user: {user}.")
+
+        if subscribed and incoming_data_size_mb >= self.subscribed_num_entries_size:
+            raise HTTPException(status_code=429, detail="Too much data indexed.")
+        if not subscribed and incoming_data_size_mb >= self.num_entries_size:
+            raise HTTPException(
+                status_code=429, detail="Too much data indexed. Subscribe to increase your data index limit."
+            )
+
+        user_size_data = EntryAdapters.get_size_of_indexed_data_in_mb(user)
+        if subscribed and user_size_data + incoming_data_size_mb >= self.subscribed_total_entries_size:
+            raise HTTPException(status_code=429, detail="Too much data indexed.")
+        if not subscribed and user_size_data + incoming_data_size_mb >= self.total_entries_size_limit:
+            raise HTTPException(
+                status_code=429, detail="Too much data indexed. Subscribe to increase your data index limit."
+            )
 
 
 class CommonQueryParamsClass:

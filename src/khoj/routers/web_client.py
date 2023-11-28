@@ -1,13 +1,15 @@
 # System Packages
 import json
 import os
+import math
+from datetime import timedelta
 
 # External Packages
 from fastapi import APIRouter
 from fastapi import Request
 from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from starlette.authentication import requires
+from starlette.authentication import requires, has_required_scope
 from khoj.database import adapters
 from khoj.database.models import KhojUser
 from khoj.utils.rawconfig import (
@@ -37,7 +39,6 @@ templates = Jinja2Templates(directory=constants.web_directory)
 def index(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
-    user_subscription_state = get_user_subscription_state(user.email)
     has_documents = EntryAdapters.user_has_entries(user=user)
 
     return templates.TemplateResponse(
@@ -46,7 +47,7 @@ def index(request: Request):
             "request": request,
             "username": user.username,
             "user_photo": user_picture,
-            "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
+            "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
         },
     )
@@ -57,7 +58,6 @@ def index(request: Request):
 def index_post(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
-    user_subscription_state = get_user_subscription_state(user.email)
     has_documents = EntryAdapters.user_has_entries(user=user)
 
     return templates.TemplateResponse(
@@ -66,7 +66,7 @@ def index_post(request: Request):
             "request": request,
             "username": user.username,
             "user_photo": user_picture,
-            "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
+            "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
         },
     )
@@ -77,7 +77,6 @@ def index_post(request: Request):
 def search_page(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
-    user_subscription_state = get_user_subscription_state(user.email)
     has_documents = EntryAdapters.user_has_entries(user=user)
 
     return templates.TemplateResponse(
@@ -86,7 +85,7 @@ def search_page(request: Request):
             "request": request,
             "username": user.username,
             "user_photo": user_picture,
-            "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
+            "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
         },
     )
@@ -97,7 +96,6 @@ def search_page(request: Request):
 def chat_page(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
-    user_subscription_state = get_user_subscription_state(user.email)
     has_documents = EntryAdapters.user_has_entries(user=user)
 
     return templates.TemplateResponse(
@@ -106,7 +104,7 @@ def chat_page(request: Request):
             "request": request,
             "username": user.username,
             "user_photo": user_picture,
-            "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
+            "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
         },
     )
@@ -141,7 +139,7 @@ def config_page(request: Request):
     subscription_renewal_date = (
         user_subscription.renewal_date.strftime("%d %b %Y")
         if user_subscription and user_subscription.renewal_date
-        else None
+        else (user_subscription.created_at + timedelta(days=7)).strftime("%d %b %Y")
     )
 
     enabled_content_source = set(EntryAdapters.get_unique_file_sources(user))
@@ -171,7 +169,7 @@ def config_page(request: Request):
             "subscription_state": user_subscription_state,
             "subscription_renewal_date": subscription_renewal_date,
             "khoj_cloud_subscription_url": os.getenv("KHOJ_CLOUD_SUBSCRIPTION_URL"),
-            "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
+            "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
         },
     )
@@ -182,7 +180,6 @@ def config_page(request: Request):
 def github_config_page(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
-    user_subscription_state = get_user_subscription_state(user.email)
     has_documents = EntryAdapters.user_has_entries(user=user)
     current_github_config = get_user_github_config(user)
 
@@ -212,7 +209,7 @@ def github_config_page(request: Request):
             "current_config": current_config,
             "username": user.username,
             "user_photo": user_picture,
-            "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
+            "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
         },
     )
@@ -223,7 +220,6 @@ def github_config_page(request: Request):
 def notion_config_page(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
-    user_subscription_state = adapters.get_user_subscription(user.email)
     has_documents = EntryAdapters.user_has_entries(user=user)
     current_notion_config = get_user_notion_config(user)
 
@@ -240,7 +236,7 @@ def notion_config_page(request: Request):
             "current_config": current_config,
             "username": user.username,
             "user_photo": user_picture,
-            "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
+            "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
         },
     )
@@ -251,7 +247,6 @@ def notion_config_page(request: Request):
 def computer_config_page(request: Request):
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
-    user_subscription_state = get_user_subscription_state(user.email)
     has_documents = EntryAdapters.user_has_entries(user=user)
 
     return templates.TemplateResponse(
@@ -260,7 +255,7 @@ def computer_config_page(request: Request):
             "request": request,
             "username": user.username,
             "user_photo": user_picture,
-            "is_active": user_subscription_state == "subscribed" or user_subscription_state == "unsubscribed",
+            "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
         },
     )

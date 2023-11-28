@@ -402,10 +402,24 @@ To get started, just start typing below. You can also type / to see a list of co
                                     newResponseText.removeChild(loadingSpinner);
                                 }
 
-                                rawResponse += chunk;
-                                newResponseText.innerHTML = "";
-                                newResponseText.appendChild(formatHTMLMessage(rawResponse));
-                                readStream();
+                                // Try to parse the chunk as a JSON object. It will be a JSON object if there is an error.
+                                if (chunk.startsWith("{") && chunk.endsWith("}")) {
+                                    try {
+                                        const responseAsJson = JSON.parse(chunk);
+                                        if (responseAsJson.detail) {
+                                            newResponseText.innerHTML += responseAsJson.detail;
+                                        }
+                                    } catch (error) {
+                                        // If the chunk is not a JSON object, just display it as is
+                                        newResponseText.innerHTML += chunk;
+                                    }
+                                } else {
+                                    // If the chunk is not a JSON object, just display it as is
+                                    rawResponse += chunk;
+                                    newResponseText.innerHTML = "";
+                                    newResponseText.appendChild(formatHTMLMessage(rawResponse));
+                                    readStream();
+                                }
                             }
 
                             // Scroll to bottom of chat window as chat response is streamed

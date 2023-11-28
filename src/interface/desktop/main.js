@@ -198,6 +198,11 @@ function pushDataToKhoj (regenerate = false) {
             })
             .catch(error => {
                 console.error(error);
+                if (error.response.status == 429) {
+                    const win = BrowserWindow.getAllWindows()[0];
+                    if (win) win.webContents.send('needsSubscription', true);
+                    if (win) win.webContents.send('update-state', state);
+                }
                 state['completed'] = false
             })
             .finally(() => {
@@ -394,6 +399,11 @@ app.whenReady().then(() => {
     ipcMain.on('update-state', (event, arg) => {
         console.log(arg);
         event.reply('update-state', arg);
+    });
+
+    ipcMain.on('needsSubscription', (event, arg) => {
+        console.log(arg);
+        event.reply('needsSubscription', arg);
     });
 
     ipcMain.on('navigate', (event, page) => {

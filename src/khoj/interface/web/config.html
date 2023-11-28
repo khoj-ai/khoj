@@ -4,6 +4,10 @@
 <div class="page">
     <div id="content" class="section">
         <h2 class="section-title">Content</h2>
+        <button id="compute-index-size" class="card-button" onclick="getIndexedDataSize()">
+            Data Usage
+        </button>
+        <p id="indexed-data-size" class="card-description"></p>
         <div class="section-cards">
             <div class="card">
                 <div class="card-title-row">
@@ -191,7 +195,7 @@
                     <p id="trial-description"
                        class="card-description"
                        style="display: {% if subscription_state != 'trial' %}none{% endif %}">
-                        Subscribe to Khoj Cloud
+                        Subscribe to Khoj Cloud. See <a href="https://khoj.dev/pricing">pricing</a> for details.
                     </p>
                     <p id="unsubscribe-description"
                        class="card-description"
@@ -468,6 +472,15 @@
             .then(response => response.json())
             .then(tokens => {
                 apiKeyList.innerHTML = tokens.map(generateTokenRow).join("");
+            });
+    }
+
+    function getIndexedDataSize() {
+        document.getElementById("indexed-data-size").innerHTML = "Calculating...";
+        fetch('/api/config/index/size')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("indexed-data-size").innerHTML = data.indexed_data_size_in_mb + " MB used";
             });
     }
 
