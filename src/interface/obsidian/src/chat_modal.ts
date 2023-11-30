@@ -241,6 +241,7 @@ export class KhojChatModal extends Modal {
         let responseElement = this.createKhojResponseDiv();
 
         // Temporary status message to indicate that Khoj is thinking
+        this.result = "";
         this.renderIncrementalMessage(responseElement, "🤔");
 
         let response = await fetch(chatUrl, {
