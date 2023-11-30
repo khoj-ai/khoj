@@ -169,6 +169,7 @@ button.reference-button {
 button.reference-button.expanded {
     height: auto;
     max-height: none;
+    white-space: pre-wrap;
 }
 button.reference-button::before {
     content: "▶";
