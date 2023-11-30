@@ -13,6 +13,13 @@ If your plugin does not need CSS, delete this file.
     --khoj-storm-grey: #475569;
  }
 
+.khoj-chat p {
+    margin: 0;
+}
+.khoj-chat pre {
+    text-wrap: unset;
+}
+
 .khoj-chat {
     display: grid;
     background: var(--background-primary);
@@ -103,6 +110,114 @@ If your plugin does not need CSS, delete this file.
     margin-top: -10px;
     transform: rotate(-60deg)
 }
+
+.option-enabled {
+    box-shadow: 0 0 12px rgb(119, 156, 46);
+}
+
+code.chat-response {
+    background: var(--khoj-sun);
+    color: var(--khoj-storm-grey);
+    border-radius: 5px;
+    padding: 5px;
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1.5em;
+}
+
+div.collapsed {
+    display: none;
+}
+div.expanded {
+    display: block;
+}
+div.reference {
+    display: grid;
+    grid-template-rows: auto;
+    grid-auto-flow: row;
+    grid-column-gap: 10px;
+    grid-row-gap: 10px;
+    margin: 10px;
+}
+div.expanded.reference-section {
+    display: grid;
+    grid-template-rows: auto;
+    grid-auto-flow: row;
+    grid-column-gap: 10px;
+    grid-row-gap: 10px;
+    margin: 10px;
+}
+button.reference-button {
+    background: var(--color-base-00);
+    color: var(--color-base-100);
+    border: 1px solid var(--khoj-storm-grey);
+    border-radius: 5px;
+    padding: 5px;
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1.5em;
+    cursor: pointer;
+    transition: background 0.2s ease-in-out;
+    text-align: left;
+    max-height: 75px;
+    height: auto;
+    transition: max-height 0.3s ease-in-out;
+    overflow: hidden;
+    display: inline-block;
+    text-wrap: inherit;
+}
+button.reference-button.expanded {
+    height: auto;
+    max-height: none;
+    white-space: pre-wrap;
+}
+button.reference-button::before {
+    content: "▶";
+    margin-right: 5px;
+    display: inline-block;
+    transition: transform 0.3s ease-in-out;
+}
+button.reference-button:active:before,
+button.reference-button[aria-expanded="true"]::before {
+    transform: rotate(90deg);
+}
+button.reference-expand-button {
+    background: var(--color-base-00);
+    color: var(--color-base-100);
+    border: 1px solid var(--khoj-storm-grey);
+    border-radius: 5px;
+    padding: 5px;
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1.5em;
+    cursor: pointer;
+    transition: background 0.2s ease-in-out;
+    text-align: left;
+}
+button.reference-expand-button:hover {
+    background: var(--khoj-sun);
+    color: var(--color-base-00);
+}
+a.inline-chat-link {
+    color: #475569;
+    text-decoration: none;
+    border-bottom: 1px dotted #475569;
+}
+a.reference-link {
+    color: var(--khoj-storm-grey);
+    border-bottom: 1px dotted var(--khoj-storm-grey);
+}
+
+button.copy-button {
+    display: block;
+    border-radius: 4px;
+    background-color: var(--color-base-00);
+}
+button.copy-button:hover {
+    background: #f5f5f5;
+    cursor: pointer;
+}
+
 
 #khoj-chat-footer {
     padding: 0;

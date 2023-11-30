@@ -8,17 +8,26 @@
         <link rel="manifest" href="/static/khoj_chat.webmanifest">
         <link rel="stylesheet" href="./assets/khoj.css">
     </head>
+    <script type="text/javascript" src="./assets/markdown-it.min.js"></script>
     <script src="./utils.js"></script>
 
     <script>
         let chatOptions = [];
         function copyProgrammaticOutput(event) {
             // Remove the first 4 characters which are the "Copy" button
+            const originalCopyText = event.target.parentNode.textContent.trim().slice(0, 4);
             const programmaticOutput = event.target.parentNode.textContent.trim().slice(4);
             navigator.clipboard.writeText(programmaticOutput).then(() => {
-                console.log("Programmatic output copied to clipboard");
+                event.target.textContent = "✅ Copied to clipboard!";
+                setTimeout(() => {
+                    event.target.textContent = originalCopyText;
+                }, 1000);
             }).catch((error) => {
                 console.error("Error copying programmatic output to clipboard:", error);
+                event.target.textContent = "⛔️ Failed to copy!";
+                setTimeout(() => {
+                    event.target.textContent = originalCopyText;
+                }, 1000);
             });
         }
 
@@ -120,8 +129,7 @@
             // Create a new div for the chat message text and append it to the chat message
             let chatMessageText = document.createElement('div');
             chatMessageText.className = `chat-message-text ${by}`;
-            let textNode = document.createTextNode(formattedMessage);
-            chatMessageText.appendChild(textNode);
+            chatMessageText.appendChild(formattedMessage);
             chatMessage.appendChild(chatMessageText);
 
             // Append annotations div to the chat message
@@ -230,16 +238,49 @@
         }
 
         function formatHTMLMessage(htmlMessage) {
-            // Replace any ``` with <div class="programmatic-output">
-            let newHTML = htmlMessage.replace(/```([\s\S]*?)```/g, '<div class="programmatic-output"><button class="copy-button" onclick="copyProgrammaticOutput(event)">Copy</button>$1</div>');
-            // Replace any ** with <b> and __ with <u>
-            newHTML = newHTML.replace(/\*\*([\s\S]*?)\*\*/g, '<b>$1</b>');
-            newHTML = newHTML.replace(/__([\s\S]*?)__/g, '<u>$1</u>');
+            var md = window.markdownit();
+            let newHTML = htmlMessage;
+
             // Remove any text between <s>[INST] and </s> tags. These are spurious instructions for the AI chat model.
             newHTML = newHTML.replace(/<s>\[INST\].+(<\/s>)?/g, '');
-            // For any text that has single backticks, replace them with <code> tags
-            newHTML = newHTML.replace(/`([^`]+)`/g, '<code class="chat-response">$1</code>');
-            return newHTML;
+
+            // Render markdown
+            newHTML = md.render(newHTML);
+            // Get any elements with a class that starts with "language"
+            let element = document.createElement('div');
+            element.innerHTML = newHTML;
+            let codeBlockElements = element.querySelectorAll('[class^="language-"]');
+            // For each element, add a parent div with the class "programmatic-output"
+            codeBlockElements.forEach((codeElement) => {
+                // Create the parent div
+                let parentDiv = document.createElement('div');
+                parentDiv.classList.add("programmatic-output");
+                // Add the parent div before the code element
+                codeElement.parentNode.insertBefore(parentDiv, codeElement);
+                // Move the code element into the parent div
+                parentDiv.appendChild(codeElement);
+                // Add a copy button to each element
+                let copyButton = document.createElement('button');
+                copyButton.classList.add("copy-button");
+                copyButton.innerHTML = "Copy";
+                copyButton.addEventListener('click', copyProgrammaticOutput);
+                codeElement.prepend(copyButton);
+            });
+
+            // Get all code elements that have no class.
+            let codeElements = element.querySelectorAll('code:not([class])');
+            codeElements.forEach((codeElement) => {
+                // Add the class "chat-response" to each element
+                codeElement.classList.add("chat-response");
+            });
+
+            let anchorElements = element.querySelectorAll('a');
+            anchorElements.forEach((anchorElement) => {
+                // Add the class "inline-chat-link" to each element
+                anchorElement.classList.add("inline-chat-link");
+            });
+
+            return element
         }
 
         async function chat() {
@@ -299,8 +340,11 @@
                         reader.read().then(({ done, value }) => {
                             if (done) {
                                 // Append any references after all the data has been streamed
-                                newResponseText.appendChild(references);
+                                if (references != null) {
+                                    newResponseText.appendChild(references);
+                                }
                                 document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+                                document.getElementById("chat-input").removeAttribute("disabled");
                                 return;
                             }
 
@@ -320,7 +364,6 @@
 
                                 let referenceExpandButton = document.createElement('button');
                                 referenceExpandButton.classList.add("reference-expand-button");
-
 
                                 let referenceSection = document.createElement('div');
                                 referenceSection.classList.add("reference-section");
@@ -387,7 +430,6 @@
                         });
                     }
                     readStream();
-                    document.getElementById("chat-input").removeAttribute("disabled");
                 });
         }
 
@@ -618,6 +660,8 @@
                 });
             } else if (mediaRecorder.state === 'recording') {
                 mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                mediaRecorder = null;
                 speakButtonImg.src = './assets/icons/microphone-solid.svg';
                 speakButtonImg.alt = 'Transcribe';
             }
@@ -901,6 +945,7 @@
         }
         button.reference-button.expanded {
             max-height: none;
+            white-space: pre-wrap;
         }
 
         button.reference-button::before {
@@ -933,7 +978,6 @@
             background: var(--primary-hover);
         }
 
-
         .option-enabled:focus {
             outline: none !important;
             border:1px solid #475569;
@@ -944,6 +988,25 @@
             color: #475569;
             text-decoration: none;
             border-bottom: 1px dotted #475569;
+        }
+
+        a.reference-link {
+            color: var(--main-text-color);
+            border-bottom: 1px dotted var(--main-text-color);
+        }
+
+        button.copy-button {
+            display: block;
+            border-radius: 4px;
+            background-color: var(--background-color);
+        }
+        button.copy-button:hover {
+            background: #f5f5f5;
+            cursor: pointer;
+        }
+
+        pre {
+            text-wrap: unset;
         }
 
         div.khoj-empty-container {
@@ -1017,6 +1080,10 @@
 
         a.khoj-logo {
             text-align: center;
+        }
+
+        p {
+            margin: 0;
         }
 
         div.programmatic-output {
