@@ -341,7 +341,7 @@ def load_content(
     search_models: SearchModels,
 ):
     if content_config is None:
-        logger.warning("🚨 No Content configuration available.")
+        logger.debug("🚨 No Content configuration available.")
         return None
     if content_index is None:
         content_index = ContentIndex()

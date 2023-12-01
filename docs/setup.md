@@ -186,6 +186,9 @@ To use the desktop client, you need to go to your Khoj server's settings page (h
 1. Select files and folders to index [using the desktop client](./setup.md?id=_2-download-the-desktop-client). When you click 'Save', the files will be sent to your server for indexing.
     - Select Notion workspaces and Github repositories to index using the web interface.
 
+
+> Note: Using Safari on Mac? You might not be able to login to the admin panel. Try using Chrome or Firefox instead.
+
 ### 4. Install Client Plugins (Optional)
 Khoj exposes a web interface to search, chat and configure by default.<br />
 The optional steps below allow using Khoj from within an existing application like Obsidian or Emacs.
