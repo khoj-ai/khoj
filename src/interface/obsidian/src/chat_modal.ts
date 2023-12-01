@@ -167,7 +167,8 @@ export class KhojChatModal extends Modal {
         let chat_message_body_el = chatMessageEl.createDiv();
         chat_message_body_el.addClasses(["khoj-chat-message-text", sender]);
         let chat_message_body_text_el = chat_message_body_el.createDiv();
-        MarkdownRenderer.renderMarkdown(message, chat_message_body_text_el, '', null);
+        // @ts-ignore
+        MarkdownRenderer.renderMarkdown(message, chat_message_body_text_el, null, null);
 
         // Remove user-select: none property to make text selectable
         chatMessageEl.style.userSelect = "text";
@@ -204,7 +205,8 @@ export class KhojChatModal extends Modal {
     renderIncrementalMessage(htmlElement: HTMLDivElement, additionalMessage: string) {
         this.result += additionalMessage;
         htmlElement.innerHTML = "";
-        MarkdownRenderer.renderMarkdown(this.result, htmlElement, '', null);
+        // @ts-ignore
+        MarkdownRenderer.renderMarkdown(this.result, htmlElement, null, null);
         // Scroll to bottom of modal, till the send message input box
         this.modalEl.scrollTop = this.modalEl.scrollHeight;
     }
