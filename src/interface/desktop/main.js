@@ -110,6 +110,21 @@ function filenameToMimeType (filename) {
     }
 }
 
+function processDirectory(filesToPush, folder) {
+    const files = fs.readdirSync(folder.path, { withFileTypes: true, recursive: true });
+
+    for (const file of files) {
+        console.log(file);
+        if (file.isFile() && validFileTypes.includes(file.name.split('.').pop())) {
+            filesToPush.push(path.join(folder.path, file.name));
+        }
+
+        if (file.isDirectory()) {
+            processDirectory(filesToPush, {'path': path.join(folder.path, file.name)});
+        }
+    }
+}
+
 function pushDataToKhoj (regenerate = false) {
     // Don't sync if token or hostURL is not set or if already syncing
     if (store.get('khojToken') === '' || store.get('hostURL') === '' || syncing === true) {
@@ -132,12 +147,7 @@ function pushDataToKhoj (regenerate = false) {
 
     // Collect paths of all indexable files in configured folders
     for (const folder of folders) {
-        const files = fs.readdirSync(folder.path, { withFileTypes: true });
-        for (const file of files) {
-            if (file.isFile() && validFileTypes.includes(file.name.split('.').pop())) {
-                filesToPush.push(path.join(folder.path, file.name));
-            }
-        }
+        processDirectory(filesToPush, folder);
     }
 
     const lastSync = store.get('lastSync') || [];
