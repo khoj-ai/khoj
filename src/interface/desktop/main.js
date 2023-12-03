@@ -516,7 +516,8 @@ openWindow = (page) => {
 }
 
 app.whenReady().then(() => {
-    const icon = nativeImage.createFromPath('assets/icons/favicon-20x20.png')
+    const iconPath = path.join(__dirname, './assets/icons/favicon-20x20.png')
+    const icon = nativeImage.createFromPath(iconPath)
     tray = new Tray(icon)
 
     const contextMenu = Menu.buildFromTemplate([
