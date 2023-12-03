@@ -36,11 +36,11 @@ class StreamingChatCallbackHandler(StreamingStdOutCallbackHandler):
 
 @retry(
     retry=(
-        retry_if_exception_type(openai.error.Timeout)
-        | retry_if_exception_type(openai.error.APIError)
-        | retry_if_exception_type(openai.error.APIConnectionError)
-        | retry_if_exception_type(openai.error.RateLimitError)
-        | retry_if_exception_type(openai.error.ServiceUnavailableError)
+        retry_if_exception_type(openai._exceptions.APITimeoutError)
+        | retry_if_exception_type(openai._exceptions.APIError)
+        | retry_if_exception_type(openai._exceptions.APIConnectionError)
+        | retry_if_exception_type(openai._exceptions.RateLimitError)
+        | retry_if_exception_type(openai._exceptions.APIStatusError)
     ),
     wait=wait_random_exponential(min=1, max=10),
     stop=stop_after_attempt(3),
@@ -57,11 +57,11 @@ def completion_with_backoff(**kwargs):
 
 @retry(
     retry=(
-        retry_if_exception_type(openai.error.Timeout)
-        | retry_if_exception_type(openai.error.APIError)
-        | retry_if_exception_type(openai.error.APIConnectionError)
-        | retry_if_exception_type(openai.error.RateLimitError)
-        | retry_if_exception_type(openai.error.ServiceUnavailableError)
+        retry_if_exception_type(openai._exceptions.APITimeoutError)
+        | retry_if_exception_type(openai._exceptions.APIError)
+        | retry_if_exception_type(openai._exceptions.APIConnectionError)
+        | retry_if_exception_type(openai._exceptions.RateLimitError)
+        | retry_if_exception_type(openai._exceptions.APIStatusError)
     ),
     wait=wait_exponential(multiplier=1, min=4, max=10),
     stop=stop_after_attempt(3),

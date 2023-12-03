@@ -32,7 +32,7 @@ class OpenAI(BaseEncoder):
             raise Exception(
                 f"Set OpenAI API key under processor-config > conversation > openai-api-key in config file: {state.config_file}"
             )
-        openai.api_key = state.processor_config.conversation.openai_model.api_key
+        self.openai_client = openai.OpenAI(api_key=state.processor_config.conversation.openai_model.api_key)
         self.embedding_dimensions = None
 
     def encode(self, entries, device=None, **kwargs):
@@ -43,7 +43,7 @@ class OpenAI(BaseEncoder):
             processed_entry = entries[index].replace("\n", " ")
 
             try:
-                response = openai.Embedding.create(input=processed_entry, model=self.model_name)
+                response = self.openai_client.embeddings.create(input=processed_entry, model=self.model_name)
                 embedding_tensors += [torch.tensor(response.data[0].embedding, device=device)]
                 # Use current models embedding dimension, once available
                 # Else default to embedding dimensions of the text-embedding-ada-002 model
