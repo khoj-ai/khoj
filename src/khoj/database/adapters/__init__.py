@@ -41,7 +41,6 @@ from khoj.search_filter.word_filter import WordFilter
 from khoj.utils import state
 from khoj.utils.config import GPT4AllProcessorModel
 from khoj.utils.helpers import generate_random_name
-from khoj.database.adapters import get_or_create_user_by_email
 
 
 class SubscriptionState(Enum):
