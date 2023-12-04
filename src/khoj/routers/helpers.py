@@ -9,22 +9,22 @@ from functools import partial
 from time import time
 from typing import Annotated, Any, Dict, Iterator, List, Optional, Tuple, Union
 
+# External Packages
 from fastapi import Depends, Header, HTTPException, Request, UploadFile
+import openai
 from starlette.authentication import has_required_scope
-from asgiref.sync import sync_to_async
 
-
+# Internal Packages
 from khoj.database.adapters import ConversationAdapters, EntryAdapters
-from khoj.database.models import KhojUser, Subscription
+from khoj.database.models import KhojUser, Subscription, TextToImageModelConfig
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.chat_model import converse_offline, send_message_to_model_offline
 from khoj.processor.conversation.openai.gpt import converse, send_message_to_model
 from khoj.processor.conversation.utils import ThreadedGenerator, save_to_conversation_log
-
-# Internal Packages
 from khoj.utils import state
 from khoj.utils.config import GPT4AllProcessorModel
 from khoj.utils.helpers import ConversationCommand, log_telemetry
+
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +102,8 @@ def get_conversation_command(query: str, any_references: bool = False) -> Conver
         return ConversationCommand.General
     elif query.startswith("/online"):
         return ConversationCommand.Online
+    elif query.startswith("/image"):
+        return ConversationCommand.Image
     # If no relevant notes found for the given query
     elif not any_references:
         return ConversationCommand.General
@@ -246,6 +248,29 @@ def generate_chat_response(
         raise HTTPException(status_code=500, detail=str(e))
 
     return chat_response, metadata
+
+
+async def text_to_image(message: str) -> Tuple[Optional[str], int]:
+    status_code = 200
+    image_url = None
+
+    # Send the audio data to the Whisper API
+    text_to_image_config = await ConversationAdapters.aget_text_to_image_model_config()
+    openai_chat_config = await ConversationAdapters.get_openai_chat_config()
+    if not text_to_image_config:
+        # If the user has not configured a text to image model, return an unprocessable entity error
+        status_code = 422
+    elif openai_chat_config and text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
+        client = openai.OpenAI(api_key=openai_chat_config.api_key)
+        text2image_model = text_to_image_config.model_name
+        try:
+            response = client.images.generate(prompt=message, model=text2image_model)
+            image_url = response.data[0].url
+        except openai.OpenAIError as e:
+            logger.error(f"Image Generation failed with {e.http_status}: {e.error}")
+            status_code = 500
+
+    return image_url, status_code
 
 
 class ApiUserRateLimiter:

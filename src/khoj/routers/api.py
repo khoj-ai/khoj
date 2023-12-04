@@ -35,12 +35,14 @@ from khoj.processor.conversation.offline.whisper import transcribe_audio_offline
 from khoj.processor.conversation.openai.gpt import extract_questions
 from khoj.processor.conversation.openai.whisper import transcribe_audio
 from khoj.processor.conversation.prompts import help_message, no_entries_found
+from khoj.processor.conversation.utils import save_to_conversation_log
 from khoj.processor.tools.online_search import search_with_google
 from khoj.routers.helpers import (
     ApiUserRateLimiter,
     CommonQueryParams,
     agenerate_chat_response,
     get_conversation_command,
+    text_to_image,
     is_ready_to_chat,
     update_telemetry_state,
     validate_conversation_config,
@@ -665,7 +667,7 @@ async def chat(
     rate_limiter_per_minute=Depends(ApiUserRateLimiter(requests=10, subscribed_requests=60, window=60)),
     rate_limiter_per_day=Depends(ApiUserRateLimiter(requests=10, subscribed_requests=600, window=60 * 60 * 24)),
 ) -> Response:
-    user = request.user.object
+    user: KhojUser = request.user.object
 
     await is_ready_to_chat(user)
     conversation_command = get_conversation_command(query=q, any_references=True)
@@ -703,6 +705,11 @@ async def chat(
                 media_type="text/event-stream",
                 status_code=200,
             )
+    elif conversation_command == ConversationCommand.Image:
+        image_url, status_code = await text_to_image(q)
+        await sync_to_async(save_to_conversation_log)(q, image_url, user, meta_log, intent_type="text-to-image")
+        content_obj = {"imageUrl": image_url, "intentType": "text-to-image"}
+        return Response(content=json.dumps(content_obj), media_type="application/json", status_code=status_code)
 
     # Get the (streamed) chat response from the LLM of choice.
     llm_response, chat_metadata = await agenerate_chat_response(
