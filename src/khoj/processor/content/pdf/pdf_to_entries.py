@@ -28,7 +28,7 @@ class PdfToEntries(TextToEntries):
     ) -> Tuple[int, int]:
         # Extract required fields from config
         if not full_corpus:
-            deletion_file_names = set([file for file in files if files[file] == ""])
+            deletion_file_names = set([file for file in files if files[file] == b""])
             files_to_process = set(files) - deletion_file_names
             files = {file: files[file] for file in files_to_process}
         else:
