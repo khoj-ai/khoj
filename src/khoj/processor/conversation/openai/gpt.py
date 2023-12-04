@@ -123,8 +123,8 @@ def send_message_to_model(
 
 def converse(
     references,
-    online_results,
     user_query,
+    online_results=[],
     conversation_log={},
     model: str = "gpt-3.5-turbo",
     api_key: Optional[str] = None,

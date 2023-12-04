@@ -251,9 +251,9 @@ def generate_chat_response(
             chat_model = conversation_config.chat_model
             chat_response = converse(
                 compiled_references,
-                online_results,
                 q,
-                meta_log,
+                online_results=online_results,
+                conversation_log=meta_log,
                 model=chat_model,
                 api_key=api_key,
                 completion_func=partial_completion,
