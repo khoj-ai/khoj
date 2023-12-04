@@ -19,7 +19,7 @@ from khoj.database.models import KhojUser, Subscription
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.chat_model import converse_offline, send_message_to_model_offline
 from khoj.processor.conversation.openai.gpt import converse, send_message_to_model
-from khoj.processor.conversation.utils import ThreadedGenerator, message_to_log
+from khoj.processor.conversation.utils import ThreadedGenerator, save_to_conversation_log
 
 # Internal Packages
 from khoj.utils import state
@@ -186,30 +186,7 @@ def generate_chat_response(
     conversation_command: ConversationCommand = ConversationCommand.Default,
     user: KhojUser = None,
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
-    def _save_to_conversation_log(
-        q: str,
-        chat_response: str,
-        user_message_time: str,
-        compiled_references: List[str],
-        online_results: Dict[str, Any],
-        inferred_queries: List[str],
-        meta_log,
-    ):
-        updated_conversation = message_to_log(
-            user_message=q,
-            chat_response=chat_response,
-            user_message_metadata={"created": user_message_time},
-            khoj_message_metadata={
-                "context": compiled_references,
-                "intent": {"inferred-queries": inferred_queries},
-                "onlineContext": online_results,
-            },
-            conversation_log=meta_log.get("chat", []),
-        )
-        ConversationAdapters.save_conversation(user, {"chat": updated_conversation})
-
     # Initialize Variables
-    user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     chat_response = None
     logger.debug(f"Conversation Type: {conversation_command.name}")
 
@@ -217,13 +194,13 @@ def generate_chat_response(
 
     try:
         partial_completion = partial(
-            _save_to_conversation_log,
+            save_to_conversation_log,
             q,
-            user_message_time=user_message_time,
+            user=user,
+            meta_log=meta_log,
             compiled_references=compiled_references,
             online_results=online_results,
             inferred_queries=inferred_queries,
-            meta_log=meta_log,
         )
 
         conversation_config = ConversationAdapters.get_valid_conversation_config(user)
