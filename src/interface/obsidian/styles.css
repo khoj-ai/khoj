@@ -217,7 +217,9 @@ button.copy-button:hover {
     background: #f5f5f5;
     cursor: pointer;
 }
-
+img {
+    max-width: 60%;
+}
 
 #khoj-chat-footer {
     padding: 0;

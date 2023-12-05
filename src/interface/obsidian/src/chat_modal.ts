@@ -105,15 +105,19 @@ export class KhojChatModal extends Modal {
         return referenceButton;
     }
 
-    renderMessageWithReferences(chatEl: Element, message: string, sender: string, context?: string[], dt?: Date) {
+    renderMessageWithReferences(chatEl: Element, message: string, sender: string, context?: string[], dt?: Date, intentType?: string) {
         if (!message) {
+            return;
+        } else if (intentType === "text-to-image") {
+            let imageMarkdown = `![](${message})`;
+            this.renderMessage(chatEl, imageMarkdown, sender, dt);
             return;
         } else if (!context) {
             this.renderMessage(chatEl, message, sender, dt);
-            return
+            return;
         } else if (!!context && context?.length === 0) {
             this.renderMessage(chatEl, message, sender, dt);
-            return
+            return;
         }
         let chatMessageEl = this.renderMessage(chatEl, message, sender, dt);
         let chatMessageBodyEl = chatMessageEl.getElementsByClassName("khoj-chat-message-text")[0]
@@ -225,7 +229,7 @@ export class KhojChatModal extends Modal {
         let response = await request({ url: chatUrl, headers: headers });
         let chatLogs = JSON.parse(response).response;
         chatLogs.forEach((chatLog: any) => {
-            this.renderMessageWithReferences(chatBodyEl, chatLog.message, chatLog.by, chatLog.context, new Date(chatLog.created));
+            this.renderMessageWithReferences(chatBodyEl, chatLog.message, chatLog.by, chatLog.context, new Date(chatLog.created), chatLog.intent?.type);
         });
     }
 
@@ -267,7 +271,7 @@ export class KhojChatModal extends Modal {
             this.result = "";
             responseElement.innerHTML = "";
             for await (const chunk of response.body) {
-                const responseText = chunk.toString();
+                let responseText = chunk.toString();
                 if (responseText.includes("### compiled references:")) {
                     const additionalResponse = responseText.split("### compiled references:")[0];
                     this.renderIncrementalMessage(responseElement, additionalResponse);
@@ -310,6 +314,23 @@ export class KhojChatModal extends Modal {
                     referenceExpandButton.innerHTML = expandButtonText;
                     references.appendChild(referenceSection);
                 } else {
+                    if (responseText.startsWith("{") && responseText.endsWith("}")) {
+                        try {
+                            const responseAsJson = JSON.parse(responseText);
+                            if (responseAsJson.imageUrl) {
+                                responseText = `![${query}](${responseAsJson.imageUrl})`;
+                            } else if (responseAsJson.detail) {
+                                responseText = responseAsJson.detail;
+                            }
+                        } catch (error) {
+                            // If the chunk is not a JSON object, just display it as is
+                            continue;
+                        }
+                    } else {
+                        // If the chunk is not a JSON object, just display it as is
+                        continue;
+                    }
+
                     this.renderIncrementalMessage(responseElement, responseText);
                 }
             }
