@@ -179,7 +179,13 @@
             return numOnlineReferences;
         }
 
-        function renderMessageWithReference(message, by, context=null, dt=null, onlineContext=null) {
+        function renderMessageWithReference(message, by, context=null, dt=null, onlineContext=null, intentType=null) {
+            if (intentType === "text-to-image") {
+                let imageMarkdown = `![](${message})`;
+                renderMessage(imageMarkdown, by, dt);
+                return;
+            }
+
             if (context == null && onlineContext == null) {
                 renderMessage(message, by, dt);
                 return;
@@ -243,6 +249,26 @@
 
             // Remove any text between <s>[INST] and </s> tags. These are spurious instructions for the AI chat model.
             newHTML = newHTML.replace(/<s>\[INST\].+(<\/s>)?/g, '');
+
+            // Customize the rendering of images
+            md.renderer.rules.image = function(tokens, idx, options, env, self) {
+                let token = tokens[idx];
+
+                // Get image source url. Only render images with src links
+                let srcIndex = token.attrIndex('src');
+                if (srcIndex < 0) { return ''; }
+                let src = token.attrs[srcIndex][1];
+
+                // Wrap the image in a link
+                var aStart = `<a href="${src}" target="_blank">`;
+                var aEnd = '</a>';
+
+                // Add class="text-to-image" to images
+                token.attrPush(['class', 'text-to-image']);
+
+                // Use the default renderer to render image markdown format
+                return aStart + self.renderToken(tokens, idx, options) + aEnd;
+            };
 
             // Render markdown
             newHTML = md.render(newHTML);
@@ -404,16 +430,23 @@
                                 if (newResponseText.getElementsByClassName("spinner").length > 0) {
                                     newResponseText.removeChild(loadingSpinner);
                                 }
+
                                 // Try to parse the chunk as a JSON object. It will be a JSON object if there is an error.
                                 if (chunk.startsWith("{") && chunk.endsWith("}")) {
                                     try {
                                         const responseAsJson = JSON.parse(chunk);
+                                        if (responseAsJson.imageUrl) {
+                                            rawResponse += `![${query}](${responseAsJson.imageUrl})`;
+                                        }
                                         if (responseAsJson.detail) {
-                                            newResponseText.innerHTML += responseAsJson.detail;
+                                            rawResponse += responseAsJson.detail;
                                         }
                                     } catch (error) {
                                         // If the chunk is not a JSON object, just display it as is
-                                        newResponseText.innerHTML += chunk;
+                                        rawResponse += chunk;
+                                    } finally {
+                                        newResponseText.innerHTML = "";
+                                        newResponseText.appendChild(formatHTMLMessage(rawResponse));
                                     }
                                 } else {
                                     // If the chunk is not a JSON object, just display it as is
@@ -522,7 +555,7 @@
                 .then(response => {
                     // Render conversation history, if any
                     response.forEach(chat_log => {
-                        renderMessageWithReference(chat_log.message, chat_log.by, chat_log.context, new Date(chat_log.created), chat_log.onlineContext);
+                        renderMessageWithReference(chat_log.message, chat_log.by, chat_log.context, new Date(chat_log.created), chat_log.onlineContext, chat_log.intent?.type);
                     });
                 })
                 .catch(err => {
@@ -810,6 +843,9 @@
             margin-top: -10px;
             transform: rotate(-60deg)
         }
+        img.text-to-image {
+            max-width: 60%;
+        }
 
         #chat-footer {
             padding: 0;
@@ -1049,6 +1085,9 @@
                 padding: 0;
                 margin: 4px;
                 grid-template-columns: auto;
+            }
+            img.text-to-image {
+                max-width: 100%;
             }
         }
         @media only screen and (min-width: 600px) {
