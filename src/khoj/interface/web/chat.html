@@ -350,113 +350,122 @@ To get started, just start typing below. You can also type / to see a list of co
             let chatInput = document.getElementById("chat-input");
             chatInput.classList.remove("option-enabled");
 
-            // Call specified Khoj API which returns a streamed response of type text/plain
+            // Call specified Khoj API
             let response = await fetch(url);
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
             let rawResponse = "";
-            let references = null;
+            const contentType = response.headers.get("content-type");
 
-            function readStream() {
-                reader.read().then(({ done, value }) => {
-                    if (done) {
-                        // Append any references after all the data has been streamed
-                        if (references != null) {
-                            newResponseText.appendChild(references);
-                        }
-                        document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
-                        document.getElementById("chat-input").removeAttribute("disabled");
-                        return;
+            if (contentType === "application/json") {
+                // Handle JSON response
+                try {
+                    const responseAsJson = await response.json();
+                    if (responseAsJson.image) {
+                        // If response has image field, response is a generated image.
+                        rawResponse += `![${query}](data:image/png;base64,${responseAsJson.image})`;
                     }
+                    if (responseAsJson.detail) {
+                        // If response has detail field, response is an error message.
+                        rawResponse += responseAsJson.detail;
+                    }
+                } catch (error) {
+                    // If the chunk is not a JSON object, just display it as is
+                    rawResponse += chunk;
+                } finally {
+                    newResponseText.innerHTML = "";
+                    newResponseText.appendChild(formatHTMLMessage(rawResponse));
 
-                    // Decode message chunk from stream
-                    const chunk = decoder.decode(value, { stream: true });
+                    document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+                    document.getElementById("chat-input").removeAttribute("disabled");
+                }
+            } else {
+                // Handle streamed response of type text/event-stream or text/plain
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let references = null;
 
-                    if (chunk.includes("### compiled references:")) {
-                        const additionalResponse = chunk.split("### compiled references:")[0];
-                        rawResponse += additionalResponse;
-                        newResponseText.innerHTML = "";
-                        newResponseText.appendChild(formatHTMLMessage(rawResponse));
+                readStream();
 
-                        const rawReference = chunk.split("### compiled references:")[1];
-                        const rawReferenceAsJson = JSON.parse(rawReference);
-                        references = document.createElement('div');
-                        references.classList.add("references");
-
-                        let referenceExpandButton = document.createElement('button');
-                        referenceExpandButton.classList.add("reference-expand-button");
-
-                        let referenceSection = document.createElement('div');
-                        referenceSection.classList.add("reference-section");
-                        referenceSection.classList.add("collapsed");
-
-                        let numReferences = 0;
-
-                        // If rawReferenceAsJson is a list, then count the length
-                        if (Array.isArray(rawReferenceAsJson)) {
-                            numReferences = rawReferenceAsJson.length;
-
-                            rawReferenceAsJson.forEach((reference, index) => {
-                            let polishedReference = generateReference(reference, index);
-                            referenceSection.appendChild(polishedReference);
-                        });
-                        } else {
-                            numReferences += processOnlineReferences(referenceSection, rawReferenceAsJson);
+                function readStream() {
+                    reader.read().then(({ done, value }) => {
+                        if (done) {
+                            // Append any references after all the data has been streamed
+                            if (references != null) {
+                                newResponseText.appendChild(references);
+                            }
+                            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+                            document.getElementById("chat-input").removeAttribute("disabled");
+                            return;
                         }
 
-                        references.appendChild(referenceExpandButton);
+                        // Decode message chunk from stream
+                        const chunk = decoder.decode(value, { stream: true });
 
-                        referenceExpandButton.addEventListener('click', function() {
-                            if (referenceSection.classList.contains("collapsed")) {
-                                referenceSection.classList.remove("collapsed");
-                                referenceSection.classList.add("expanded");
+                        if (chunk.includes("### compiled references:")) {
+                            const additionalResponse = chunk.split("### compiled references:")[0];
+                            rawResponse += additionalResponse;
+                            newResponseText.innerHTML = "";
+                            newResponseText.appendChild(formatHTMLMessage(rawResponse));
+
+                            const rawReference = chunk.split("### compiled references:")[1];
+                            const rawReferenceAsJson = JSON.parse(rawReference);
+                            references = document.createElement('div');
+                            references.classList.add("references");
+
+                            let referenceExpandButton = document.createElement('button');
+                            referenceExpandButton.classList.add("reference-expand-button");
+
+                            let referenceSection = document.createElement('div');
+                            referenceSection.classList.add("reference-section");
+                            referenceSection.classList.add("collapsed");
+
+                            let numReferences = 0;
+
+                            // If rawReferenceAsJson is a list, then count the length
+                            if (Array.isArray(rawReferenceAsJson)) {
+                                numReferences = rawReferenceAsJson.length;
+
+                                rawReferenceAsJson.forEach((reference, index) => {
+                                let polishedReference = generateReference(reference, index);
+                                referenceSection.appendChild(polishedReference);
+                            });
                             } else {
-                                referenceSection.classList.add("collapsed");
-                                referenceSection.classList.remove("expanded");
+                                numReferences += processOnlineReferences(referenceSection, rawReferenceAsJson);
                             }
-                        });
 
-                        let expandButtonText = numReferences == 1 ? "1 reference" : `${numReferences} references`;
-                        referenceExpandButton.innerHTML = expandButtonText;
-                        references.appendChild(referenceSection);
-                        readStream();
-                    } else {
-                        // Display response from Khoj
-                        if (newResponseText.getElementsByClassName("spinner").length > 0) {
-                            newResponseText.removeChild(loadingSpinner);
-                        }
+                            references.appendChild(referenceExpandButton);
 
-                        // Try to parse the chunk as a JSON object. It will be a JSON object if there is an error.
-                        if (chunk.startsWith("{") && chunk.endsWith("}")) {
-                            try {
-                                const responseAsJson = JSON.parse(chunk);
-                                if (responseAsJson.image) {
-                                    rawResponse += `![${query}](data:image/png;base64,${responseAsJson.image})`;
+                            referenceExpandButton.addEventListener('click', function() {
+                                if (referenceSection.classList.contains("collapsed")) {
+                                    referenceSection.classList.remove("collapsed");
+                                    referenceSection.classList.add("expanded");
+                                } else {
+                                    referenceSection.classList.add("collapsed");
+                                    referenceSection.classList.remove("expanded");
                                 }
-                                if (responseAsJson.detail) {
-                                    rawResponse += responseAsJson.detail;
-                                }
-                            } catch (error) {
-                                // If the chunk is not a JSON object, just display it as is
-                                rawResponse += chunk;
-                            } finally {
-                                newResponseText.innerHTML = "";
-                                newResponseText.appendChild(formatHTMLMessage(rawResponse));
-                            }
+                            });
+
+                            let expandButtonText = numReferences == 1 ? "1 reference" : `${numReferences} references`;
+                            referenceExpandButton.innerHTML = expandButtonText;
+                            references.appendChild(referenceSection);
+                            readStream();
                         } else {
+                            // Display response from Khoj
+                            if (newResponseText.getElementsByClassName("spinner").length > 0) {
+                                newResponseText.removeChild(loadingSpinner);
+                            }
+
                             // If the chunk is not a JSON object, just display it as is
                             rawResponse += chunk;
                             newResponseText.innerHTML = "";
                             newResponseText.appendChild(formatHTMLMessage(rawResponse));
                             readStream();
                         }
-                    }
+                    });
 
                     // Scroll to bottom of chat window as chat response is streamed
                     document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
-                });
+                };
             }
-            readStream();
         };
 
         function incrementalChat(event) {
