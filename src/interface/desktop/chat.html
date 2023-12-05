@@ -181,7 +181,7 @@
 
         function renderMessageWithReference(message, by, context=null, dt=null, onlineContext=null, intentType=null) {
             if (intentType === "text-to-image") {
-                let imageMarkdown = `![](${message})`;
+                let imageMarkdown = `![](data:image/png;base64,${message})`;
                 renderMessage(imageMarkdown, by, dt);
                 return;
             }
@@ -254,20 +254,11 @@
             md.renderer.rules.image = function(tokens, idx, options, env, self) {
                 let token = tokens[idx];
 
-                // Get image source url. Only render images with src links
-                let srcIndex = token.attrIndex('src');
-                if (srcIndex < 0) { return ''; }
-                let src = token.attrs[srcIndex][1];
-
-                // Wrap the image in a link
-                var aStart = `<a href="${src}" target="_blank">`;
-                var aEnd = '</a>';
-
                 // Add class="text-to-image" to images
                 token.attrPush(['class', 'text-to-image']);
 
                 // Use the default renderer to render image markdown format
-                return aStart + self.renderToken(tokens, idx, options) + aEnd;
+                return self.renderToken(tokens, idx, options);
             };
 
             // Render markdown
@@ -435,8 +426,8 @@
                                 if (chunk.startsWith("{") && chunk.endsWith("}")) {
                                     try {
                                         const responseAsJson = JSON.parse(chunk);
-                                        if (responseAsJson.imageUrl) {
-                                            rawResponse += `![${query}](${responseAsJson.imageUrl})`;
+                                        if (responseAsJson.image) {
+                                            rawResponse += `![${query}](data:image/png;base64,${responseAsJson.image})`;
                                         }
                                         if (responseAsJson.detail) {
                                             rawResponse += responseAsJson.detail;

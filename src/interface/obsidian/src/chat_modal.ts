@@ -109,7 +109,7 @@ export class KhojChatModal extends Modal {
         if (!message) {
             return;
         } else if (intentType === "text-to-image") {
-            let imageMarkdown = `![](${message})`;
+            let imageMarkdown = `![](data:image/png;base64,${message})`;
             this.renderMessage(chatEl, imageMarkdown, sender, dt);
             return;
         } else if (!context) {
@@ -317,8 +317,8 @@ export class KhojChatModal extends Modal {
                     if (responseText.startsWith("{") && responseText.endsWith("}")) {
                         try {
                             const responseAsJson = JSON.parse(responseText);
-                            if (responseAsJson.imageUrl) {
-                                responseText = `![${query}](${responseAsJson.imageUrl})`;
+                            if (responseAsJson.image) {
+                                responseText = `![${query}](data:image/png;base64,${responseAsJson.image})`;
                             } else if (responseAsJson.detail) {
                                 responseText = responseAsJson.detail;
                             }

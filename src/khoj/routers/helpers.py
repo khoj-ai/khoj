@@ -252,7 +252,7 @@ def generate_chat_response(
 
 async def text_to_image(message: str) -> Tuple[Optional[str], int]:
     status_code = 200
-    image_url = None
+    image = None
 
     # Send the audio data to the Whisper API
     text_to_image_config = await ConversationAdapters.aget_text_to_image_model_config()
@@ -264,13 +264,13 @@ async def text_to_image(message: str) -> Tuple[Optional[str], int]:
         client = openai.OpenAI(api_key=openai_chat_config.api_key)
         text2image_model = text_to_image_config.model_name
         try:
-            response = client.images.generate(prompt=message, model=text2image_model)
-            image_url = response.data[0].url
+            response = client.images.generate(prompt=message, model=text2image_model, response_format="b64_json")
+            image = response.data[0].b64_json
         except openai.OpenAIError as e:
             logger.error(f"Image Generation failed with {e.http_status}: {e.error}")
             status_code = 500
 
-    return image_url, status_code
+    return image, status_code
 
 
 class ApiUserRateLimiter:
