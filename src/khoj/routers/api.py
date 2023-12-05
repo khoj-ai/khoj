@@ -19,7 +19,7 @@ from starlette.authentication import requires
 from khoj.configure import configure_server
 from khoj.database import adapters
 from khoj.database.adapters import ConversationAdapters, EntryAdapters
-from khoj.database.models import ChatModelOptions
+from khoj.database.models import ChatModelOptions, SpeechToTextModelOptions
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import (
     GithubConfig,
@@ -624,17 +624,15 @@ async def transcribe(request: Request, common: CommonQueryParams, file: UploadFi
 
         # Send the audio data to the Whisper API
         speech_to_text_config = await ConversationAdapters.get_speech_to_text_config()
-        openai_chat_config = await ConversationAdapters.get_openai_chat_config()
         if not speech_to_text_config:
             # If the user has not configured a speech to text model, return an unsupported on server error
             status_code = 501
-        elif openai_chat_config and speech_to_text_config.model_type == ChatModelOptions.ModelType.OPENAI:
-            api_key = openai_chat_config.api_key
+        elif state.openai_client and speech_to_text_config.model_type == SpeechToTextModelOptions.ModelType.OPENAI:
             speech2text_model = speech_to_text_config.model_name
-            user_message = await transcribe_audio(audio_file, model=speech2text_model, api_key=api_key)
-        elif speech_to_text_config.model_type == ChatModelOptions.ModelType.OFFLINE:
+            user_message = await transcribe_audio(audio_file, speech2text_model, client=state.openai_client)
+        elif speech_to_text_config.model_type == SpeechToTextModelOptions.ModelType.OFFLINE:
             speech2text_model = speech_to_text_config.model_name
-            user_message = await transcribe_audio_offline(audio_filename, model=speech2text_model)
+            user_message = await transcribe_audio_offline(audio_filename, speech2text_model)
     finally:
         # Close and Delete the temporary audio file
         audio_file.close()
@@ -793,7 +791,6 @@ async def extract_references_and_questions(
         conversation_config = await ConversationAdapters.aget_conversation_config(user)
         if conversation_config is None:
             conversation_config = await ConversationAdapters.aget_default_conversation_config()
-        openai_chat_config = await ConversationAdapters.aget_openai_conversation_config()
         if (
             offline_chat_config
             and offline_chat_config.enabled
@@ -810,7 +807,7 @@ async def extract_references_and_questions(
             inferred_queries = extract_questions_offline(
                 defiltered_query, loaded_model=loaded_model, conversation_log=meta_log, should_extract_questions=False
             )
-        elif openai_chat_config and conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
+        elif conversation_config and conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
             openai_chat_config = await ConversationAdapters.get_openai_chat_config()
             openai_chat = await ConversationAdapters.get_openai_chat()
             api_key = openai_chat_config.api_key

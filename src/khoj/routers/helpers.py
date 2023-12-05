@@ -256,15 +256,15 @@ async def text_to_image(message: str) -> Tuple[Optional[str], int]:
 
     # Send the audio data to the Whisper API
     text_to_image_config = await ConversationAdapters.aget_text_to_image_model_config()
-    openai_chat_config = await ConversationAdapters.get_openai_chat_config()
     if not text_to_image_config:
         # If the user has not configured a text to image model, return an unsupported on server error
         status_code = 501
-    elif openai_chat_config and text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
-        client = openai.OpenAI(api_key=openai_chat_config.api_key)
+    elif state.openai_client and text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
         text2image_model = text_to_image_config.model_name
         try:
-            response = client.images.generate(prompt=message, model=text2image_model, response_format="b64_json")
+            response = state.openai_client.images.generate(
+                prompt=message, model=text2image_model, response_format="b64_json"
+            )
             image = response.data[0].b64_json
         except openai.OpenAIError as e:
             logger.error(f"Image Generation failed with {e.http_status}: {e.error}")

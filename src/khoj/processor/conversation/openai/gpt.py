@@ -41,7 +41,7 @@ def extract_questions(
         [
             f'Q: {chat["intent"]["query"]}\n\n{chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}\n\n{chat["message"]}\n\n'
             for chat in conversation_log.get("chat", [])[-4:]
-            if chat["by"] == "khoj"
+            if chat["by"] == "khoj" and chat["intent"].get("type") != "text-to-image"
         ]
     )
 
