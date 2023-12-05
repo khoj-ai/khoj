@@ -14,7 +14,7 @@ from khoj.utils.helpers import is_none_or_empty, timer, batcher
 from khoj.utils.rawconfig import Entry
 from khoj.search_filter.date_filter import DateFilter
 from khoj.database.models import KhojUser, Entry as DbEntry, EntryDates
-from khoj.database.adapters import EntryAdapters
+from khoj.database.adapters import EntryAdapters, get_default_search_model
 
 
 logger = logging.getLogger(__name__)
@@ -112,7 +112,8 @@ class TextToEntries(ABC):
         with timer("Generated embeddings for entries to add to database in", logger):
             entries_to_process = [hash_to_current_entries[hashed_val] for hashed_val in hashes_to_process]
             data_to_embed = [getattr(entry, key) for entry in entries_to_process]
-            embeddings += self.embeddings_model.embed_documents(data_to_embed)
+            model = get_default_search_model()
+            embeddings += self.embeddings_model[model.name].embed_documents(data_to_embed)
 
         added_entries: list[DbEntry] = []
         with timer("Added entries to database in", logger):

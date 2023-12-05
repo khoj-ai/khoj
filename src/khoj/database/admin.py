@@ -12,6 +12,7 @@ from khoj.database.models import (
     SpeechToTextModelOptions,
     Subscription,
     ReflectiveQuestion,
+    UserSearchModelConfig,
 )
 
 admin.site.register(KhojUser, UserAdmin)
@@ -23,3 +24,4 @@ admin.site.register(OfflineChatProcessorConversationConfig)
 admin.site.register(SearchModelConfig)
 admin.site.register(Subscription)
 admin.site.register(ReflectiveQuestion)
+admin.site.register(UserSearchModelConfig)

@@ -18,7 +18,7 @@ from starlette.authentication import requires
 # Internal Packages
 from khoj.configure import configure_server
 from khoj.database import adapters
-from khoj.database.adapters import ConversationAdapters, EntryAdapters
+from khoj.database.adapters import ConversationAdapters, EntryAdapters, get_default_search_model
 from khoj.database.models import ChatModelOptions
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import (
@@ -412,7 +412,8 @@ async def search(
         ]
         if text_search_models:
             with timer("Encoding query took", logger=logger):
-                encoded_asymmetric_query = state.embeddings_model.embed_query(defiltered_query)
+                search_model = await sync_to_async(get_default_search_model)()
+                encoded_asymmetric_query = state.embeddings_model[search_model.name].embed_query(defiltered_query)
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         if t in [

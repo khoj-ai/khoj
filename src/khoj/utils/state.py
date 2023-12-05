@@ -18,7 +18,7 @@ from khoj.utils.rawconfig import FullConfig
 # Application Global State
 config = FullConfig()
 search_models = SearchModels()
-embeddings_model: EmbeddingsModel = None
+embeddings_model: Dict[str, EmbeddingsModel] = None
 cross_encoder_model: CrossEncoderModel = None
 content_index = ContentIndex()
 gpt4all_processor_config: GPT4AllProcessorModel = None
