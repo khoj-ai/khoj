@@ -258,8 +258,8 @@ async def text_to_image(message: str) -> Tuple[Optional[str], int]:
     text_to_image_config = await ConversationAdapters.aget_text_to_image_model_config()
     openai_chat_config = await ConversationAdapters.get_openai_chat_config()
     if not text_to_image_config:
-        # If the user has not configured a text to image model, return an unprocessable entity error
-        status_code = 422
+        # If the user has not configured a text to image model, return an unsupported on server error
+        status_code = 501
     elif openai_chat_config and text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
         client = openai.OpenAI(api_key=openai_chat_config.api_key)
         text2image_model = text_to_image_config.model_name

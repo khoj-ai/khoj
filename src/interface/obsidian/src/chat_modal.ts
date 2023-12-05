@@ -410,10 +410,12 @@ export class KhojChatModal extends Modal {
             if (response.status === 200) {
                 console.log(response);
                 chatInput.value += response.json.text;
-            } else if (response.status === 422) {
-                throw new Error("⛔️ Failed to transcribe audio");
-            } else {
+            } else if (response.status === 501) {
                 throw new Error("⛔️ Configure speech-to-text model on server.");
+            } else if (response.status === 422) {
+                throw new Error("⛔️ Audio file to large to process.");
+            } else {
+                throw new Error("⛔️ Failed to transcribe audio.");
             }
         };
 

@@ -638,9 +638,13 @@ To get started, just start typing below. You can also type / to see a list of co
                     .then(response => response.ok ? response.json() : Promise.reject(response))
                     .then(data => { chatInput.value += data.text; })
                     .catch(err => {
-                        err.status == 422
-                        ? flashStatusInChatInput("⛔️ Configure speech-to-text model on server.")
-                        : flashStatusInChatInput("⛔️ Failed to transcribe audio")
+                        if (err.status === 501) {
+                          flashStatusInChatInput("⛔️ Configure speech-to-text model on server.")
+                        } else if (err.status === 422) {
+                          flashStatusInChatInput("⛔️ Audio file to large to process.")
+                        } else {
+                          flashStatusInChatInput("⛔️ Failed to transcribe audio.")
+                        }
                     });
             };
 

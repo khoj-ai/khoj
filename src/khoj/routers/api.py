@@ -626,8 +626,8 @@ async def transcribe(request: Request, common: CommonQueryParams, file: UploadFi
         speech_to_text_config = await ConversationAdapters.get_speech_to_text_config()
         openai_chat_config = await ConversationAdapters.get_openai_chat_config()
         if not speech_to_text_config:
-            # If the user has not configured a speech to text model, return an unprocessable entity error
-            status_code = 422
+            # If the user has not configured a speech to text model, return an unsupported on server error
+            status_code = 501
         elif openai_chat_config and speech_to_text_config.model_type == ChatModelOptions.ModelType.OPENAI:
             api_key = openai_chat_config.api_key
             speech2text_model = speech_to_text_config.model_name
