@@ -3,6 +3,7 @@ import base64
 import logging
 import os
 from typing import List, Tuple
+from datetime import datetime
 
 # External Packages
 from langchain.document_loaders import PyMuPDFLoader
@@ -66,7 +67,8 @@ class PdfToEntries(TextToEntries):
         for pdf_file in pdf_files:
             try:
                 # Write the PDF file to a temporary file, as it is stored in byte format in the pdf_file object and the PDF Loader expects a file path
-                tmp_file = f"tmp_pdf_file.pdf"
+                timestamp_now = datetime.utcnow().timestamp()
+                tmp_file = f"tmp_pdf_file_{timestamp_now}.pdf"
                 with open(f"{tmp_file}", "wb") as f:
                     bytes = pdf_files[pdf_file]
                     f.write(bytes)
