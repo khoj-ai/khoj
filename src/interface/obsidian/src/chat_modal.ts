@@ -2,6 +2,12 @@ import { App, MarkdownRenderer, Modal, request, requestUrl, setIcon } from 'obsi
 import { KhojSetting } from 'src/settings';
 import fetch from "node-fetch";
 
+export interface ChatJsonResult {
+    image?: string;
+    detail?: string;
+}
+
+
 export class KhojChatModal extends Modal {
     result: string;
     setting: KhojSetting;
@@ -270,6 +276,23 @@ export class KhojChatModal extends Modal {
 
             this.result = "";
             responseElement.innerHTML = "";
+            if (response.headers.get("content-type") == "application/json") {
+                let responseText = ""
+                try {
+                    const responseAsJson = await response.json() as ChatJsonResult;
+                    if (responseAsJson.image) {
+                        responseText = `![${query}](data:image/png;base64,${responseAsJson.image})`;
+                    } else if (responseAsJson.detail) {
+                        responseText = responseAsJson.detail;
+                    }
+                } catch (error) {
+                    // If the chunk is not a JSON object, just display it as is
+                    responseText = response.body.read().toString()
+                } finally {
+                    this.renderIncrementalMessage(responseElement, responseText);
+                }
+            }
+
             for await (const chunk of response.body) {
                 let responseText = chunk.toString();
                 if (responseText.includes("### compiled references:")) {
@@ -315,17 +338,6 @@ export class KhojChatModal extends Modal {
                     references.appendChild(referenceSection);
                 } else {
                     if (responseText.startsWith("{") && responseText.endsWith("}")) {
-                        try {
-                            const responseAsJson = JSON.parse(responseText);
-                            if (responseAsJson.image) {
-                                responseText = `![${query}](data:image/png;base64,${responseAsJson.image})`;
-                            } else if (responseAsJson.detail) {
-                                responseText = responseAsJson.detail;
-                            }
-                        } catch (error) {
-                            // If the chunk is not a JSON object, just display it as is
-                            continue;
-                        }
                     } else {
                         // If the chunk is not a JSON object, just display it as is
                         continue;
