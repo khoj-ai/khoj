@@ -22,17 +22,9 @@ class BaseEncoder(ABC):
 
 
 class OpenAI(BaseEncoder):
-    def __init__(self, model_name, device=None):
+    def __init__(self, model_name, client: openai.OpenAI, device=None):
         self.model_name = model_name
-        if (
-            not state.processor_config
-            or not state.processor_config.conversation
-            or not state.processor_config.conversation.openai_model
-        ):
-            raise Exception(
-                f"Set OpenAI API key under processor-config > conversation > openai-api-key in config file: {state.config_file}"
-            )
-        openai.api_key = state.processor_config.conversation.openai_model.api_key
+        self.openai_client = client
         self.embedding_dimensions = None
 
     def encode(self, entries, device=None, **kwargs):
@@ -43,7 +35,7 @@ class OpenAI(BaseEncoder):
             processed_entry = entries[index].replace("\n", " ")
 
             try:
-                response = openai.Embedding.create(input=processed_entry, model=self.model_name)
+                response = self.openai_client.embeddings.create(input=processed_entry, model=self.model_name)
                 embedding_tensors += [torch.tensor(response.data[0].embedding, device=device)]
                 # Use current models embedding dimension, once available
                 # Else default to embedding dimensions of the text-embedding-ada-002 model

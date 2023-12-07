@@ -7,6 +7,7 @@ from khoj.database.models import (
     OpenAIProcessorConversationConfig,
     ChatModelOptions,
     SpeechToTextModelOptions,
+    TextToImageModelConfig,
 )
 
 from khoj.utils.constants import default_offline_chat_model, default_online_chat_model
@@ -101,6 +102,15 @@ def initialization():
             openai_speech2text_model = openai_speech2text_model or default_speech2text_model
             SpeechToTextModelOptions.objects.create(
                 model_name=openai_speech2text_model, model_type=SpeechToTextModelOptions.ModelType.OPENAI
+            )
+
+            default_text_to_image_model = "dall-e-3"
+            openai_text_to_image_model = input(
+                f"Enter the OpenAI text to image model you want to use (default: {default_text_to_image_model}): "
+            )
+            openai_speech2text_model = openai_text_to_image_model or default_text_to_image_model
+            TextToImageModelConfig.objects.create(
+                model_name=openai_text_to_image_model, model_type=TextToImageModelConfig.ModelType.OPENAI
             )
 
         if use_offline_model == "y" or use_openai_model == "y":

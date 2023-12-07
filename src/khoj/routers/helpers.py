@@ -9,22 +9,22 @@ from functools import partial
 from time import time
 from typing import Annotated, Any, Dict, Iterator, List, Optional, Tuple, Union
 
+# External Packages
 from fastapi import Depends, Header, HTTPException, Request, UploadFile
+import openai
 from starlette.authentication import has_required_scope
-from asgiref.sync import sync_to_async
 
-
+# Internal Packages
 from khoj.database.adapters import ConversationAdapters, EntryAdapters
-from khoj.database.models import KhojUser, Subscription
+from khoj.database.models import KhojUser, Subscription, TextToImageModelConfig
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.chat_model import converse_offline, send_message_to_model_offline
 from khoj.processor.conversation.openai.gpt import converse, send_message_to_model
-from khoj.processor.conversation.utils import ThreadedGenerator, message_to_log
-
-# Internal Packages
+from khoj.processor.conversation.utils import ThreadedGenerator, save_to_conversation_log
 from khoj.utils import state
 from khoj.utils.config import GPT4AllProcessorModel
 from khoj.utils.helpers import ConversationCommand, log_telemetry
+
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +102,8 @@ def get_conversation_command(query: str, any_references: bool = False) -> Conver
         return ConversationCommand.General
     elif query.startswith("/online"):
         return ConversationCommand.Online
+    elif query.startswith("/image"):
+        return ConversationCommand.Image
     # If no relevant notes found for the given query
     elif not any_references:
         return ConversationCommand.General
@@ -186,30 +188,7 @@ def generate_chat_response(
     conversation_command: ConversationCommand = ConversationCommand.Default,
     user: KhojUser = None,
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
-    def _save_to_conversation_log(
-        q: str,
-        chat_response: str,
-        user_message_time: str,
-        compiled_references: List[str],
-        online_results: Dict[str, Any],
-        inferred_queries: List[str],
-        meta_log,
-    ):
-        updated_conversation = message_to_log(
-            user_message=q,
-            chat_response=chat_response,
-            user_message_metadata={"created": user_message_time},
-            khoj_message_metadata={
-                "context": compiled_references,
-                "intent": {"inferred-queries": inferred_queries},
-                "onlineContext": online_results,
-            },
-            conversation_log=meta_log.get("chat", []),
-        )
-        ConversationAdapters.save_conversation(user, {"chat": updated_conversation})
-
     # Initialize Variables
-    user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     chat_response = None
     logger.debug(f"Conversation Type: {conversation_command.name}")
 
@@ -217,13 +196,13 @@ def generate_chat_response(
 
     try:
         partial_completion = partial(
-            _save_to_conversation_log,
+            save_to_conversation_log,
             q,
-            user_message_time=user_message_time,
+            user=user,
+            meta_log=meta_log,
             compiled_references=compiled_references,
             online_results=online_results,
             inferred_queries=inferred_queries,
-            meta_log=meta_log,
         )
 
         conversation_config = ConversationAdapters.get_valid_conversation_config(user)
@@ -251,9 +230,9 @@ def generate_chat_response(
             chat_model = conversation_config.chat_model
             chat_response = converse(
                 compiled_references,
-                online_results,
                 q,
-                meta_log,
+                online_results=online_results,
+                conversation_log=meta_log,
                 model=chat_model,
                 api_key=api_key,
                 completion_func=partial_completion,
@@ -269,6 +248,29 @@ def generate_chat_response(
         raise HTTPException(status_code=500, detail=str(e))
 
     return chat_response, metadata
+
+
+async def text_to_image(message: str) -> Tuple[Optional[str], int]:
+    status_code = 200
+    image = None
+
+    # Send the audio data to the Whisper API
+    text_to_image_config = await ConversationAdapters.aget_text_to_image_model_config()
+    if not text_to_image_config:
+        # If the user has not configured a text to image model, return an unsupported on server error
+        status_code = 501
+    elif state.openai_client and text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
+        text2image_model = text_to_image_config.model_name
+        try:
+            response = state.openai_client.images.generate(
+                prompt=message, model=text2image_model, response_format="b64_json"
+            )
+            image = response.data[0].b64_json
+        except openai.OpenAIError as e:
+            logger.error(f"Image Generation failed with {e.http_status}: {e.error}")
+            status_code = 500
+
+    return image, status_code
 
 
 class ApiUserRateLimiter:

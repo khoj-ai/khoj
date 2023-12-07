@@ -19,7 +19,7 @@ from starlette.authentication import requires
 from khoj.configure import configure_server
 from khoj.database import adapters
 from khoj.database.adapters import ConversationAdapters, EntryAdapters
-from khoj.database.models import ChatModelOptions
+from khoj.database.models import ChatModelOptions, SpeechToTextModelOptions
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import (
     GithubConfig,
@@ -35,12 +35,14 @@ from khoj.processor.conversation.offline.whisper import transcribe_audio_offline
 from khoj.processor.conversation.openai.gpt import extract_questions
 from khoj.processor.conversation.openai.whisper import transcribe_audio
 from khoj.processor.conversation.prompts import help_message, no_entries_found
+from khoj.processor.conversation.utils import save_to_conversation_log
 from khoj.processor.tools.online_search import search_with_google
 from khoj.routers.helpers import (
     ApiUserRateLimiter,
     CommonQueryParams,
     agenerate_chat_response,
     get_conversation_command,
+    text_to_image,
     is_ready_to_chat,
     update_telemetry_state,
     validate_conversation_config,
@@ -622,17 +624,15 @@ async def transcribe(request: Request, common: CommonQueryParams, file: UploadFi
 
         # Send the audio data to the Whisper API
         speech_to_text_config = await ConversationAdapters.get_speech_to_text_config()
-        openai_chat_config = await ConversationAdapters.get_openai_chat_config()
         if not speech_to_text_config:
-            # If the user has not configured a speech to text model, return an unprocessable entity error
-            status_code = 422
-        elif openai_chat_config and speech_to_text_config.model_type == ChatModelOptions.ModelType.OPENAI:
-            api_key = openai_chat_config.api_key
+            # If the user has not configured a speech to text model, return an unsupported on server error
+            status_code = 501
+        elif state.openai_client and speech_to_text_config.model_type == SpeechToTextModelOptions.ModelType.OPENAI:
             speech2text_model = speech_to_text_config.model_name
-            user_message = await transcribe_audio(audio_file, model=speech2text_model, api_key=api_key)
-        elif speech_to_text_config.model_type == ChatModelOptions.ModelType.OFFLINE:
+            user_message = await transcribe_audio(audio_file, speech2text_model, client=state.openai_client)
+        elif speech_to_text_config.model_type == SpeechToTextModelOptions.ModelType.OFFLINE:
             speech2text_model = speech_to_text_config.model_name
-            user_message = await transcribe_audio_offline(audio_filename, model=speech2text_model)
+            user_message = await transcribe_audio_offline(audio_filename, speech2text_model)
     finally:
         # Close and Delete the temporary audio file
         audio_file.close()
@@ -665,7 +665,7 @@ async def chat(
     rate_limiter_per_minute=Depends(ApiUserRateLimiter(requests=10, subscribed_requests=60, window=60)),
     rate_limiter_per_day=Depends(ApiUserRateLimiter(requests=10, subscribed_requests=600, window=60 * 60 * 24)),
 ) -> Response:
-    user = request.user.object
+    user: KhojUser = request.user.object
 
     await is_ready_to_chat(user)
     conversation_command = get_conversation_command(query=q, any_references=True)
@@ -703,6 +703,11 @@ async def chat(
                 media_type="text/event-stream",
                 status_code=200,
             )
+    elif conversation_command == ConversationCommand.Image:
+        image, status_code = await text_to_image(q)
+        await sync_to_async(save_to_conversation_log)(q, image, user, meta_log, intent_type="text-to-image")
+        content_obj = {"image": image, "intentType": "text-to-image"}
+        return Response(content=json.dumps(content_obj), media_type="application/json", status_code=status_code)
 
     # Get the (streamed) chat response from the LLM of choice.
     llm_response, chat_metadata = await agenerate_chat_response(
@@ -786,7 +791,6 @@ async def extract_references_and_questions(
         conversation_config = await ConversationAdapters.aget_conversation_config(user)
         if conversation_config is None:
             conversation_config = await ConversationAdapters.aget_default_conversation_config()
-        openai_chat_config = await ConversationAdapters.aget_openai_conversation_config()
         if (
             offline_chat_config
             and offline_chat_config.enabled
@@ -803,7 +807,7 @@ async def extract_references_and_questions(
             inferred_queries = extract_questions_offline(
                 defiltered_query, loaded_model=loaded_model, conversation_log=meta_log, should_extract_questions=False
             )
-        elif openai_chat_config and conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
+        elif conversation_config and conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
             openai_chat_config = await ConversationAdapters.get_openai_chat_config()
             openai_chat = await ConversationAdapters.get_openai_chat()
             api_key = openai_chat_config.api_key

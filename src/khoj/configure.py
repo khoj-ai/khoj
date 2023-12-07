@@ -7,6 +7,7 @@ import requests
 import os
 
 # External Packages
+import openai
 import schedule
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.authentication import AuthenticationMiddleware
@@ -22,6 +23,7 @@ from starlette.authentication import (
 # Internal Packages
 from khoj.database.models import KhojUser, Subscription
 from khoj.database.adapters import (
+    ConversationAdapters,
     get_all_users,
     get_or_create_search_model,
     aget_user_subscription_state,
@@ -137,6 +139,10 @@ def configure_server(
         logger.info(f"🚨 Khoj is not configured.\nInitializing it with a default config.")
         config = FullConfig()
     state.config = config
+
+    if ConversationAdapters.has_valid_openai_conversation_config():
+        openai_config = ConversationAdapters.get_openai_conversation_config()
+        state.openai_client = openai.OpenAI(api_key=openai_config.api_key)
 
     # Initialize Search Models from Config and initialize content
     try:

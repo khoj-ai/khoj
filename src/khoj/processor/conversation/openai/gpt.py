@@ -41,7 +41,7 @@ def extract_questions(
         [
             f'Q: {chat["intent"]["query"]}\n\n{chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}\n\n{chat["message"]}\n\n'
             for chat in conversation_log.get("chat", [])[-4:]
-            if chat["by"] == "khoj"
+            if chat["by"] == "khoj" and chat["intent"].get("type") != "text-to-image"
         ]
     )
 
@@ -123,8 +123,8 @@ def send_message_to_model(
 
 def converse(
     references,
-    online_results,
     user_query,
+    online_results=[],
     conversation_log={},
     model: str = "gpt-3.5-turbo",
     api_key: Optional[str] = None,
