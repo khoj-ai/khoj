@@ -46,6 +46,7 @@ from khoj.routers.helpers import (
     is_ready_to_chat,
     update_telemetry_state,
     validate_conversation_config,
+    ConversationCommandRateLimiter,
 )
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
@@ -67,6 +68,7 @@ from khoj.utils.state import SearchType
 # Initialize Router
 api = APIRouter()
 logger = logging.getLogger(__name__)
+conversation_command_rate_limiter = ConversationCommandRateLimiter(trial_rate_limit=5, subscribed_rate_limit=100)
 
 
 def map_config_to_object(content_source: str):
@@ -669,6 +671,8 @@ async def chat(
 
     await is_ready_to_chat(user)
     conversation_command = get_conversation_command(query=q, any_references=True)
+
+    conversation_command_rate_limiter.update_and_check_if_valid(request, conversation_command)
 
     q = q.replace(f"/{conversation_command.value}", "").strip()
 
