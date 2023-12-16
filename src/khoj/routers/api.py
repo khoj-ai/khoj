@@ -606,7 +606,13 @@ async def chat_options(
 
 @api.post("/transcribe")
 @requires(["authenticated"])
-async def transcribe(request: Request, common: CommonQueryParams, file: UploadFile = File(...)):
+async def transcribe(
+    request: Request,
+    common: CommonQueryParams,
+    file: UploadFile = File(...),
+    rate_limiter_per_minute=Depends(ApiUserRateLimiter(requests=1, subscribed_requests=10, window=60)),
+    rate_limiter_per_day=Depends(ApiUserRateLimiter(requests=10, subscribed_requests=600, window=60 * 60 * 24)),
+):
     user: KhojUser = request.user.object
     audio_filename = f"{user.uuid}-{str(uuid.uuid4())}.webm"
     user_message: str = None
