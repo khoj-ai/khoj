@@ -267,7 +267,7 @@ async def text_to_image(message: str) -> Tuple[Optional[str], int]:
             )
             image = response.data[0].b64_json
         except openai.OpenAIError as e:
-            logger.error(f"Image Generation failed with {e.http_status}: {e.error}")
+            logger.error(f"Image Generation failed with {e}", exc_info=True)
             status_code = 500
 
     return image, status_code
@@ -302,7 +302,7 @@ class ApiUserRateLimiter:
 
 class ConversationCommandRateLimiter:
     def __init__(self, trial_rate_limit: int, subscribed_rate_limit: int):
-        self.cache = defaultdict(lambda: defaultdict(list))
+        self.cache: Dict[str, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
         self.trial_rate_limit = trial_rate_limit
         self.subscribed_rate_limit = subscribed_rate_limit
         self.restricted_commands = [ConversationCommand.Online, ConversationCommand.Image]
@@ -351,7 +351,7 @@ class ApiIndexedDataLimiter:
         if state.billing_enabled is False:
             return
         subscribed = has_required_scope(request, ["premium"])
-        incoming_data_size_mb = 0
+        incoming_data_size_mb = 0.0
         deletion_file_names = set()
 
         if not request.user.is_authenticated:
