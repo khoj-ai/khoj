@@ -286,7 +286,7 @@ async def text_to_image(message: str) -> Tuple[Optional[str], int]:
             logger.error(f"Image Generation failed with {e}", exc_info=True)
             status_code = 500
 
-    return image, status_code
+    return image, status_code, improved_image_prompt
 
 
 class ApiUserRateLimiter:

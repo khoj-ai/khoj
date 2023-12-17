@@ -179,9 +179,14 @@
             return numOnlineReferences;
         }
 
-        function renderMessageWithReference(message, by, context=null, dt=null, onlineContext=null, intentType=null) {
+        function renderMessageWithReference(message, by, context=null, dt=null, onlineContext=null, intentType=null, inferredQueries=null) {
             if (intentType === "text-to-image") {
                 let imageMarkdown = `![](data:image/png;base64,${message})`;
+                imageMarkdown += "\n\n";
+                if (inferredQueries) {
+                    const inferredQuery = inferredQueries?.[0];
+                    imageMarkdown += `**Inferred Query**: ${inferredQuery}`;
+                }
                 renderMessage(imageMarkdown, by, dt);
                 return;
             }
@@ -357,6 +362,11 @@
                     if (responseAsJson.image) {
                         // If response has image field, response is a generated image.
                         rawResponse += `![${query}](data:image/png;base64,${responseAsJson.image})`;
+                        rawResponse += "\n\n";
+                        const inferredQueries = responseAsJson.inferredQueries?.[0];
+                        if (inferredQueries) {
+                            rawResponse += `**Inferred Query**: ${inferredQueries}`;
+                        }
                     }
                     if (responseAsJson.detail) {
                         // If response has detail field, response is an error message.
@@ -454,7 +464,13 @@
                                 try {
                                     const responseAsJson = JSON.parse(chunk);
                                     if (responseAsJson.image) {
+                                        // If response has image field, response is a generated image.
                                         rawResponse += `![${query}](data:image/png;base64,${responseAsJson.image})`;
+                                        rawResponse += "\n\n";
+                                        const inferredQueries = responseAsJson.inferredQueries?.[0];
+                                        if (inferredQueries) {
+                                            rawResponse += `**Inferred Query**: ${inferredQueries}`;
+                                        }
                                     }
                                     if (responseAsJson.detail) {
                                         rawResponse += responseAsJson.detail;
@@ -572,7 +588,7 @@
                 .then(response => {
                     // Render conversation history, if any
                     response.forEach(chat_log => {
-                        renderMessageWithReference(chat_log.message, chat_log.by, chat_log.context, new Date(chat_log.created), chat_log.onlineContext, chat_log.intent?.type);
+                        renderMessageWithReference(chat_log.message, chat_log.by, chat_log.context, new Date(chat_log.created), chat_log.onlineContext, chat_log.intent?.type, chat_log.intent?.["inferred-queries"]);
                     });
                 })
                 .catch(err => {
@@ -906,9 +922,9 @@
             border: 1px solid var(--main-text-color);
             box-shadow: 0 0 11px #aaa;
             border-radius: 5px;
-            padding: 5px;
             font-size: 14px;
             font-weight: 300;
+            padding: 0;
             line-height: 1.5em;
             cursor: pointer;
             transition: background 0.3s ease-in-out;
