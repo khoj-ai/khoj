@@ -109,6 +109,18 @@ Question: {query}
 """.strip()
 )
 
+## Image Generation
+## --
+
+image_generation_improve_prompt = PromptTemplate.from_template(
+    """
+Generate a detailed prompt to generate an image based on the following description. Update the query below to improve the image generation. Add additional context to the query to improve the image generation.
+
+Query: {query}
+
+Improved Query:"""
+)
+
 ## Online Search Conversation
 ## --
 online_search_conversation = PromptTemplate.from_template(
@@ -295,10 +307,13 @@ Q:"""
 # --
 help_message = PromptTemplate.from_template(
     """
-**/notes**: Chat using the information in your knowledge base.
-**/general**: Chat using just Khoj's general knowledge. This will not search against your notes.
-**/default**: Chat using your knowledge base and Khoj's general knowledge for context.
-**/help**: Show this help message.
+- **/notes**: Chat using the information in your knowledge base.
+- **/general**: Chat using just Khoj's general knowledge. This will not search against your notes.
+- **/default**: Chat using your knowledge base and Khoj's general knowledge for context.
+- **/online**: Chat using the internet as a source of information.
+- **/image**: Generate an image based on your message.
+- **/help**: Show this help message.
+
 
 You are using the **{model}** model on the **{device}**.
 **version**: {version}

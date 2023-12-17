@@ -952,7 +952,7 @@ To get started, just start typing below. You can also type / to see a list of co
             grid-template-columns: auto 32px 32px;
             grid-column-gap: 10px;
             grid-row-gap: 10px;
-            background: #f9fafc
+            background: var(--background-color);
         }
         .option:hover {
             box-shadow: 0 0 11px #aaa;
@@ -974,9 +974,9 @@ To get started, just start typing below. You can also type / to see a list of co
         }
         .input-row-button {
             background: var(--background-color);
-            border: none;
+            border: 1px solid var(--main-text-color);
+            box-shadow: 0 0 11px #aaa;
             border-radius: 5px;
-            padding: 5px;
             font-size: 14px;
             font-weight: 300;
             line-height: 1.5em;
