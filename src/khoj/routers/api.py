@@ -714,6 +714,13 @@ async def chat(
                 status_code=200,
             )
     elif conversation_command == ConversationCommand.Image:
+        update_telemetry_state(
+            request=request,
+            telemetry_type="api",
+            api="chat",
+            metadata={"conversation_command": conversation_command.value},
+            **common.__dict__,
+        )
         image, status_code = await text_to_image(q)
         if image is None:
             content_obj = {
