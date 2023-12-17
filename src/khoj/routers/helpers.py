@@ -146,6 +146,20 @@ async def generate_online_subqueries(q: str) -> List[str]:
         return [q]
 
 
+async def generate_better_image_prompt(q: str) -> str:
+    """
+    Generate a better image prompt from the given query
+    """
+
+    image_prompt = prompts.image_generation_improve_prompt.format(
+        query=q,
+    )
+
+    response = await send_message_to_model_wrapper(image_prompt)
+
+    return response.strip()
+
+
 async def send_message_to_model_wrapper(
     message: str,
 ):
@@ -170,11 +184,13 @@ async def send_message_to_model_wrapper(
         openai_chat_config = await ConversationAdapters.aget_openai_conversation_config()
         api_key = openai_chat_config.api_key
         chat_model = conversation_config.chat_model
-        return send_message_to_model(
+        openai_response = send_message_to_model(
             message=message,
             api_key=api_key,
             model=chat_model,
         )
+
+        return openai_response.content
     else:
         raise HTTPException(status_code=500, detail="Invalid conversation config")
 
@@ -250,27 +266,27 @@ def generate_chat_response(
     return chat_response, metadata
 
 
-async def text_to_image(message: str) -> Tuple[Optional[str], int]:
+async def text_to_image(message: str) -> Tuple[Optional[str], int, Optional[str]]:
     status_code = 200
     image = None
 
-    # Send the audio data to the Whisper API
     text_to_image_config = await ConversationAdapters.aget_text_to_image_model_config()
     if not text_to_image_config:
         # If the user has not configured a text to image model, return an unsupported on server error
         status_code = 501
     elif state.openai_client and text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
         text2image_model = text_to_image_config.model_name
+        improved_image_prompt = await generate_better_image_prompt(message)
         try:
             response = state.openai_client.images.generate(
-                prompt=message, model=text2image_model, response_format="b64_json"
+                prompt=improved_image_prompt, model=text2image_model, response_format="b64_json"
             )
             image = response.data[0].b64_json
         except openai.OpenAIError as e:
             logger.error(f"Image Generation failed with {e}", exc_info=True)
             status_code = 500
 
-    return image, status_code
+    return image, status_code, improved_image_prompt
 
 
 class ApiUserRateLimiter:

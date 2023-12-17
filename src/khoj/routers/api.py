@@ -721,7 +721,7 @@ async def chat(
             metadata={"conversation_command": conversation_command.value},
             **common.__dict__,
         )
-        image, status_code = await text_to_image(q)
+        image, status_code, improved_image_prompt = await text_to_image(q)
         if image is None:
             content_obj = {
                 "image": image,
@@ -729,8 +729,10 @@ async def chat(
                 "detail": "Failed to generate image. Make sure your image generation configuration is set.",
             }
             return Response(content=json.dumps(content_obj), media_type="application/json", status_code=status_code)
-        await sync_to_async(save_to_conversation_log)(q, image, user, meta_log, intent_type="text-to-image")
-        content_obj = {"image": image, "intentType": "text-to-image"}
+        await sync_to_async(save_to_conversation_log)(
+            q, image, user, meta_log, intent_type="text-to-image", inferred_queries=[improved_image_prompt]
+        )
+        content_obj = {"image": image, "intentType": "text-to-image", "inferredQueries": [improved_image_prompt]}  # type: ignore
         return Response(content=json.dumps(content_obj), media_type="application/json", status_code=status_code)
 
     # Get the (streamed) chat response from the LLM of choice.
