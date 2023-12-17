@@ -266,7 +266,7 @@ def generate_chat_response(
     return chat_response, metadata
 
 
-async def text_to_image(message: str) -> Tuple[Optional[str], int]:
+async def text_to_image(message: str) -> Tuple[Optional[str], int, Optional[str]]:
     status_code = 200
     image = None
 
