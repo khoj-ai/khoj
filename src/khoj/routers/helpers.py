@@ -267,7 +267,7 @@ async def text_to_image(message: str) -> Tuple[Optional[str], int]:
             )
             image = response.data[0].b64_json
         except openai.OpenAIError as e:
-            logger.error(f"Image Generation failed with {e.http_status}: {e.error}")
+            logger.error(f"Image Generation failed with {e}", exc_info=True)
             status_code = 500
 
     return image, status_code
@@ -300,6 +300,40 @@ class ApiUserRateLimiter:
         user_requests.append(time())
 
 
+class ConversationCommandRateLimiter:
+    def __init__(self, trial_rate_limit: int, subscribed_rate_limit: int):
+        self.cache: Dict[str, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
+        self.trial_rate_limit = trial_rate_limit
+        self.subscribed_rate_limit = subscribed_rate_limit
+        self.restricted_commands = [ConversationCommand.Online, ConversationCommand.Image]
+
+    def update_and_check_if_valid(self, request: Request, conversation_command: ConversationCommand):
+        if state.billing_enabled is False:
+            return
+
+        if not request.user.is_authenticated:
+            return
+
+        if conversation_command not in self.restricted_commands:
+            return
+
+        user: KhojUser = request.user.object
+        user_cache = self.cache[user.uuid]
+        subscribed = has_required_scope(request, ["premium"])
+        user_cache[conversation_command].append(time())
+
+        # Remove requests outside of the 24-hr time window
+        cutoff = time() - 60 * 60 * 24
+        while user_cache[conversation_command] and user_cache[conversation_command][0] < cutoff:
+            user_cache[conversation_command].pop(0)
+
+        if subscribed and len(user_cache[conversation_command]) > self.subscribed_rate_limit:
+            raise HTTPException(status_code=429, detail="Too Many Requests")
+        if not subscribed and len(user_cache[conversation_command]) > self.trial_rate_limit:
+            raise HTTPException(status_code=429, detail="Too Many Requests. Subscribe to increase your rate limit.")
+        return
+
+
 class ApiIndexedDataLimiter:
     def __init__(
         self,
@@ -317,7 +351,7 @@ class ApiIndexedDataLimiter:
         if state.billing_enabled is False:
             return
         subscribed = has_required_scope(request, ["premium"])
-        incoming_data_size_mb = 0
+        incoming_data_size_mb = 0.0
         deletion_file_names = set()
 
         if not request.user.is_authenticated:

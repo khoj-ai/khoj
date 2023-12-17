@@ -46,6 +46,7 @@ from khoj.routers.helpers import (
     is_ready_to_chat,
     update_telemetry_state,
     validate_conversation_config,
+    ConversationCommandRateLimiter,
 )
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
@@ -67,6 +68,7 @@ from khoj.utils.state import SearchType
 # Initialize Router
 api = APIRouter()
 logger = logging.getLogger(__name__)
+conversation_command_rate_limiter = ConversationCommandRateLimiter(trial_rate_limit=5, subscribed_rate_limit=100)
 
 
 def map_config_to_object(content_source: str):
@@ -604,7 +606,13 @@ async def chat_options(
 
 @api.post("/transcribe")
 @requires(["authenticated"])
-async def transcribe(request: Request, common: CommonQueryParams, file: UploadFile = File(...)):
+async def transcribe(
+    request: Request,
+    common: CommonQueryParams,
+    file: UploadFile = File(...),
+    rate_limiter_per_minute=Depends(ApiUserRateLimiter(requests=1, subscribed_requests=10, window=60)),
+    rate_limiter_per_day=Depends(ApiUserRateLimiter(requests=10, subscribed_requests=600, window=60 * 60 * 24)),
+):
     user: KhojUser = request.user.object
     audio_filename = f"{user.uuid}-{str(uuid.uuid4())}.webm"
     user_message: str = None
@@ -669,6 +677,8 @@ async def chat(
 
     await is_ready_to_chat(user)
     conversation_command = get_conversation_command(query=q, any_references=True)
+
+    conversation_command_rate_limiter.update_and_check_if_valid(request, conversation_command)
 
     q = q.replace(f"/{conversation_command.value}", "").strip()
 

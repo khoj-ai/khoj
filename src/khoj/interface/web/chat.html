@@ -642,6 +642,8 @@ To get started, just start typing below. You can also type / to see a list of co
                           flashStatusInChatInput("⛔️ Configure speech-to-text model on server.")
                         } else if (err.status === 422) {
                           flashStatusInChatInput("⛔️ Audio file to large to process.")
+                        } else if (err.status === 429) {
+                            flashStatusInChatInput("⛔️ " + err.statusText);
                         } else {
                           flashStatusInChatInput("⛔️ Failed to transcribe audio.")
                         }
