@@ -715,6 +715,13 @@ async def chat(
             )
     elif conversation_command == ConversationCommand.Image:
         image, status_code = await text_to_image(q)
+        if image is None:
+            content_obj = {
+                "image": image,
+                "intentType": "text-to-image",
+                "detail": "Failed to generate image. Make sure your image generation configuration is set.",
+            }
+            return Response(content=json.dumps(content_obj), media_type="application/json", status_code=status_code)
         await sync_to_async(save_to_conversation_log)(q, image, user, meta_log, intent_type="text-to-image")
         content_obj = {"image": image, "intentType": "text-to-image"}
         return Response(content=json.dumps(content_obj), media_type="application/json", status_code=status_code)

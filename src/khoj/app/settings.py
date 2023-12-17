@@ -33,6 +33,9 @@ ALLOWED_HOSTS = [f".{KHOJ_DOMAIN}", "localhost", "127.0.0.1", "[::1]"]
 CSRF_TRUSTED_ORIGINS = [
     f"https://*.{KHOJ_DOMAIN}",
     f"https://{KHOJ_DOMAIN}",
+    f"http://*.{KHOJ_DOMAIN}",
+    f"http://{KHOJ_DOMAIN}",
+    f"https://app.{KHOJ_DOMAIN}",
 ]
 
 COOKIE_SAMESITE = "None"
@@ -42,6 +45,7 @@ if DEBUG or os.getenv("KHOJ_DOMAIN") == None:
 else:
     SESSION_COOKIE_DOMAIN = KHOJ_DOMAIN
     CSRF_COOKIE_DOMAIN = KHOJ_DOMAIN
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTOCOL", "https")
 
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
