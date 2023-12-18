@@ -124,10 +124,10 @@ To get started, just start typing below. You can also type / to see a list of co
             return referenceButton;
         }
 
-        function renderMessage(message, by, dt=null, annotations=null) {
+        function renderMessage(message, by, dt=null, annotations=null, raw=false) {
             let message_time = formatDate(dt ?? new Date());
             let by_name =  by == "khoj" ? "🏮 Khoj" : "🤔 You";
-            let formattedMessage = formatHTMLMessage(message);
+            let formattedMessage = formatHTMLMessage(message, raw);
             let chatBody = document.getElementById("chat-body");
 
             // Create a new div for the chat message
@@ -257,7 +257,7 @@ To get started, just start typing below. You can also type / to see a list of co
             renderMessage(message, by, dt, references);
         }
 
-        function formatHTMLMessage(htmlMessage) {
+        function formatHTMLMessage(htmlMessage, raw=false) {
             var md = window.markdownit();
             let newHTML = htmlMessage;
 
@@ -276,7 +276,7 @@ To get started, just start typing below. You can also type / to see a list of co
             };
 
             // Render markdown
-            newHTML = md.render(newHTML);
+            newHTML = raw ? newHTML : md.render(newHTML);
             // Get any elements with a class that starts with "language"
             let element = document.createElement('div');
             element.innerHTML = newHTML;
@@ -539,7 +539,8 @@ To get started, just start typing below. You can also type / to see a list of co
                 .then(data => {
                     if (data.detail) {
                         // If the server returns a 500 error with detail, render a setup hint.
-                        renderMessage("Hi 👋🏾, to start chatting add available chat models options via <a class='inline-chat-link' href='/server/admin'>the Django Admin panel</a> on the Server", "khoj");
+                        let setupMsg = "Hi 👋🏾, to start chatting add available chat models options via <a class='inline-chat-link' href='/server/admin'>the Django Admin panel</a> on the Server";
+                        renderMessage(setupMsg, "khoj", null, null, true);
 
                         // Disable chat input field and update placeholder text
                         document.getElementById("chat-input").setAttribute("disabled", "disabled");
