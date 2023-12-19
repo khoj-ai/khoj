@@ -112,6 +112,14 @@ class SearchModelConfig(BaseModel):
     cross_encoder = models.CharField(max_length=200, default="cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 
+class TextToImageModelConfig(BaseModel):
+    class ModelType(models.TextChoices):
+        OPENAI = "openai"
+
+    model_name = models.CharField(max_length=200, default="dall-e-3")
+    model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OPENAI)
+
+
 class OpenAIProcessorConversationConfig(BaseModel):
     api_key = models.CharField(max_length=200)
 

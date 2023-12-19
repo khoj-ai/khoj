@@ -7,6 +7,7 @@ import requests
 import os
 
 # External Packages
+import openai
 import schedule
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.authentication import AuthenticationMiddleware
@@ -22,6 +23,7 @@ from starlette.authentication import (
 # Internal Packages
 from khoj.database.models import KhojUser, Subscription
 from khoj.database.adapters import (
+    ConversationAdapters,
     get_all_users,
     get_or_create_search_models,
     aget_user_subscription_state,
@@ -75,17 +77,18 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 .afirst()
             )
             if user:
-                if state.billing_enabled:
-                    subscription_state = await aget_user_subscription_state(user)
-                    subscribed = (
-                        subscription_state == SubscriptionState.SUBSCRIBED.value
-                        or subscription_state == SubscriptionState.TRIAL.value
-                        or subscription_state == SubscriptionState.UNSUBSCRIBED.value
-                    )
-                    if subscribed:
-                        return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(user)
-                    return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
-                return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(user)
+                if not state.billing_enabled:
+                    return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(user)
+
+                subscription_state = await aget_user_subscription_state(user)
+                subscribed = (
+                    subscription_state == SubscriptionState.SUBSCRIBED.value
+                    or subscription_state == SubscriptionState.TRIAL.value
+                    or subscription_state == SubscriptionState.UNSUBSCRIBED.value
+                )
+                if subscribed:
+                    return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(user)
+                return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
         if len(request.headers.get("Authorization", "").split("Bearer ")) == 2:
             # Get bearer token from header
             bearer_token = request.headers["Authorization"].split("Bearer ")[1]
@@ -97,19 +100,18 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 .afirst()
             )
             if user_with_token:
-                if state.billing_enabled:
-                    subscription_state = await aget_user_subscription_state(user_with_token.user)
-                    subscribed = (
-                        subscription_state == SubscriptionState.SUBSCRIBED.value
-                        or subscription_state == SubscriptionState.TRIAL.value
-                        or subscription_state == SubscriptionState.UNSUBSCRIBED.value
-                    )
-                    if subscribed:
-                        return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(
-                            user_with_token.user
-                        )
-                    return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user_with_token.user)
-                return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(user_with_token.user)
+                if not state.billing_enabled:
+                    return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(user_with_token.user)
+
+                subscription_state = await aget_user_subscription_state(user_with_token.user)
+                subscribed = (
+                    subscription_state == SubscriptionState.SUBSCRIBED.value
+                    or subscription_state == SubscriptionState.TRIAL.value
+                    or subscription_state == SubscriptionState.UNSUBSCRIBED.value
+                )
+                if subscribed:
+                    return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(user_with_token.user)
+                return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user_with_token.user)
         if state.anonymous_mode:
             user = await self.khojuser_manager.filter(username="default").prefetch_related("subscription").afirst()
             if user:
@@ -137,6 +139,10 @@ def configure_server(
         logger.info(f"🚨 Khoj is not configured.\nInitializing it with a default config.")
         config = FullConfig()
     state.config = config
+
+    if ConversationAdapters.has_valid_openai_conversation_config():
+        openai_config = ConversationAdapters.get_openai_conversation_config()
+        state.openai_client = openai.OpenAI(api_key=openai_config.api_key)
 
     # Initialize Search Models from Config and initialize content
     try:

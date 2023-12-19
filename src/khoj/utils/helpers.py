@@ -273,6 +273,7 @@ class ConversationCommand(str, Enum):
     Notes = "notes"
     Help = "help"
     Online = "online"
+    Image = "image"
 
 
 command_descriptions = {
@@ -280,6 +281,7 @@ command_descriptions = {
     ConversationCommand.Notes: "Only talk about information that is available in your knowledge base.",
     ConversationCommand.Default: "The default command when no command specified. It intelligently auto-switches between general and notes mode.",
     ConversationCommand.Online: "Look up information on the internet.",
+    ConversationCommand.Image: "Generate images by describing your imagination in words.",
     ConversationCommand.Help: "Display a help message with all available commands and other metadata.",
 }
 

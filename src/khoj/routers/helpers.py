@@ -9,22 +9,22 @@ from functools import partial
 from time import time
 from typing import Annotated, Any, Dict, Iterator, List, Optional, Tuple, Union
 
+# External Packages
 from fastapi import Depends, Header, HTTPException, Request, UploadFile
+import openai
 from starlette.authentication import has_required_scope
-from asgiref.sync import sync_to_async
 
-
+# Internal Packages
 from khoj.database.adapters import ConversationAdapters, EntryAdapters
-from khoj.database.models import KhojUser, Subscription
+from khoj.database.models import KhojUser, Subscription, TextToImageModelConfig
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.chat_model import converse_offline, send_message_to_model_offline
 from khoj.processor.conversation.openai.gpt import converse, send_message_to_model
-from khoj.processor.conversation.utils import ThreadedGenerator, message_to_log
-
-# Internal Packages
+from khoj.processor.conversation.utils import ThreadedGenerator, save_to_conversation_log
 from khoj.utils import state
 from khoj.utils.config import GPT4AllProcessorModel
 from khoj.utils.helpers import ConversationCommand, log_telemetry
+
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +102,8 @@ def get_conversation_command(query: str, any_references: bool = False) -> Conver
         return ConversationCommand.General
     elif query.startswith("/online"):
         return ConversationCommand.Online
+    elif query.startswith("/image"):
+        return ConversationCommand.Image
     # If no relevant notes found for the given query
     elif not any_references:
         return ConversationCommand.General
@@ -144,6 +146,20 @@ async def generate_online_subqueries(q: str) -> List[str]:
         return [q]
 
 
+async def generate_better_image_prompt(q: str) -> str:
+    """
+    Generate a better image prompt from the given query
+    """
+
+    image_prompt = prompts.image_generation_improve_prompt.format(
+        query=q,
+    )
+
+    response = await send_message_to_model_wrapper(image_prompt)
+
+    return response.strip()
+
+
 async def send_message_to_model_wrapper(
     message: str,
 ):
@@ -168,11 +184,13 @@ async def send_message_to_model_wrapper(
         openai_chat_config = await ConversationAdapters.aget_openai_conversation_config()
         api_key = openai_chat_config.api_key
         chat_model = conversation_config.chat_model
-        return send_message_to_model(
+        openai_response = send_message_to_model(
             message=message,
             api_key=api_key,
             model=chat_model,
         )
+
+        return openai_response.content
     else:
         raise HTTPException(status_code=500, detail="Invalid conversation config")
 
@@ -186,30 +204,7 @@ def generate_chat_response(
     conversation_command: ConversationCommand = ConversationCommand.Default,
     user: KhojUser = None,
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
-    def _save_to_conversation_log(
-        q: str,
-        chat_response: str,
-        user_message_time: str,
-        compiled_references: List[str],
-        online_results: Dict[str, Any],
-        inferred_queries: List[str],
-        meta_log,
-    ):
-        updated_conversation = message_to_log(
-            user_message=q,
-            chat_response=chat_response,
-            user_message_metadata={"created": user_message_time},
-            khoj_message_metadata={
-                "context": compiled_references,
-                "intent": {"inferred-queries": inferred_queries},
-                "onlineContext": online_results,
-            },
-            conversation_log=meta_log.get("chat", []),
-        )
-        ConversationAdapters.save_conversation(user, {"chat": updated_conversation})
-
     # Initialize Variables
-    user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     chat_response = None
     logger.debug(f"Conversation Type: {conversation_command.name}")
 
@@ -217,13 +212,13 @@ def generate_chat_response(
 
     try:
         partial_completion = partial(
-            _save_to_conversation_log,
+            save_to_conversation_log,
             q,
-            user_message_time=user_message_time,
+            user=user,
+            meta_log=meta_log,
             compiled_references=compiled_references,
             online_results=online_results,
             inferred_queries=inferred_queries,
-            meta_log=meta_log,
         )
 
         conversation_config = ConversationAdapters.get_valid_conversation_config(user)
@@ -251,9 +246,9 @@ def generate_chat_response(
             chat_model = conversation_config.chat_model
             chat_response = converse(
                 compiled_references,
-                online_results,
                 q,
-                meta_log,
+                online_results=online_results,
+                conversation_log=meta_log,
                 model=chat_model,
                 api_key=api_key,
                 completion_func=partial_completion,
@@ -269,6 +264,29 @@ def generate_chat_response(
         raise HTTPException(status_code=500, detail=str(e))
 
     return chat_response, metadata
+
+
+async def text_to_image(message: str) -> Tuple[Optional[str], int, Optional[str]]:
+    status_code = 200
+    image = None
+
+    text_to_image_config = await ConversationAdapters.aget_text_to_image_model_config()
+    if not text_to_image_config:
+        # If the user has not configured a text to image model, return an unsupported on server error
+        status_code = 501
+    elif state.openai_client and text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
+        text2image_model = text_to_image_config.model_name
+        improved_image_prompt = await generate_better_image_prompt(message)
+        try:
+            response = state.openai_client.images.generate(
+                prompt=improved_image_prompt, model=text2image_model, response_format="b64_json"
+            )
+            image = response.data[0].b64_json
+        except openai.OpenAIError as e:
+            logger.error(f"Image Generation failed with {e}", exc_info=True)
+            status_code = 500
+
+    return image, status_code, improved_image_prompt
 
 
 class ApiUserRateLimiter:
@@ -298,6 +316,40 @@ class ApiUserRateLimiter:
         user_requests.append(time())
 
 
+class ConversationCommandRateLimiter:
+    def __init__(self, trial_rate_limit: int, subscribed_rate_limit: int):
+        self.cache: Dict[str, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
+        self.trial_rate_limit = trial_rate_limit
+        self.subscribed_rate_limit = subscribed_rate_limit
+        self.restricted_commands = [ConversationCommand.Online, ConversationCommand.Image]
+
+    def update_and_check_if_valid(self, request: Request, conversation_command: ConversationCommand):
+        if state.billing_enabled is False:
+            return
+
+        if not request.user.is_authenticated:
+            return
+
+        if conversation_command not in self.restricted_commands:
+            return
+
+        user: KhojUser = request.user.object
+        user_cache = self.cache[user.uuid]
+        subscribed = has_required_scope(request, ["premium"])
+        user_cache[conversation_command].append(time())
+
+        # Remove requests outside of the 24-hr time window
+        cutoff = time() - 60 * 60 * 24
+        while user_cache[conversation_command] and user_cache[conversation_command][0] < cutoff:
+            user_cache[conversation_command].pop(0)
+
+        if subscribed and len(user_cache[conversation_command]) > self.subscribed_rate_limit:
+            raise HTTPException(status_code=429, detail="Too Many Requests")
+        if not subscribed and len(user_cache[conversation_command]) > self.trial_rate_limit:
+            raise HTTPException(status_code=429, detail="Too Many Requests. Subscribe to increase your rate limit.")
+        return
+
+
 class ApiIndexedDataLimiter:
     def __init__(
         self,
@@ -315,7 +367,7 @@ class ApiIndexedDataLimiter:
         if state.billing_enabled is False:
             return
         subscribed = has_required_scope(request, ["premium"])
-        incoming_data_size_mb = 0
+        incoming_data_size_mb = 0.0
         deletion_file_names = set()
 
         if not request.user.is_authenticated:

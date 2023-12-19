@@ -15,6 +15,7 @@ You were created by Khoj Inc. with the following capabilities:
 - Say "I don't know" or "I don't understand" if you don't know what to say or if you don't know the answer to a question.
 - Ask crisp follow-up questions to get additional context, when the answer cannot be inferred from the provided notes or past conversations.
 - Sometimes the user will share personal information that needs to be remembered, like an account ID or a residential address. These can be acknowledged with a simple "Got it" or "Okay".
+- Users can share information with you using the Khoj app, which is available for download at https://khoj.dev/downloads.
 
 Note: More information about you, the company or other Khoj apps can be found at https://khoj.dev.
 Today is {current_date} in UTC.
@@ -107,6 +108,18 @@ User's Notes:
 {references}
 Question: {query}
 """.strip()
+)
+
+## Image Generation
+## --
+
+image_generation_improve_prompt = PromptTemplate.from_template(
+    """
+Generate a detailed prompt to generate an image based on the following description. Update the query below to improve the image generation. Add additional context to the query to improve the image generation.
+
+Query: {query}
+
+Improved Query:"""
 )
 
 ## Online Search Conversation
@@ -295,10 +308,13 @@ Q:"""
 # --
 help_message = PromptTemplate.from_template(
     """
-**/notes**: Chat using the information in your knowledge base.
-**/general**: Chat using just Khoj's general knowledge. This will not search against your notes.
-**/default**: Chat using your knowledge base and Khoj's general knowledge for context.
-**/help**: Show this help message.
+- **/notes**: Chat using the information in your knowledge base.
+- **/general**: Chat using just Khoj's general knowledge. This will not search against your notes.
+- **/default**: Chat using your knowledge base and Khoj's general knowledge for context.
+- **/online**: Chat using the internet as a source of information.
+- **/image**: Generate an image based on your message.
+- **/help**: Show this help message.
+
 
 You are using the **{model}** model on the **{device}**.
 **version**: {version}
