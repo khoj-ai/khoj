@@ -78,7 +78,7 @@ class ConversationAdmin(admin.ModelAdmin):
 
         return response
 
-    export_selected_objects.short_description = "Export selected conversations"
+    export_selected_objects.short_description = "Export selected conversations"  # type: ignore
 
     def export_selected_minimal_objects(self, request, queryset):
         response = HttpResponse(content_type="text/csv")
@@ -118,7 +118,7 @@ class ConversationAdmin(admin.ModelAdmin):
 
         return response
 
-    export_selected_minimal_objects.short_description = "Export selected conversations (minimal)"
+    export_selected_minimal_objects.short_description = "Export selected conversations (minimal)"  # type: ignore
 
     def get_actions(self, request):
         actions = super().get_actions(request)
