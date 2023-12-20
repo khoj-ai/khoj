@@ -862,3 +862,8 @@ async def extract_references_and_questions(
         compiled_references = [item.additional["compiled"] for item in result_list]
 
     return compiled_references, inferred_queries, defiltered_query
+
+    # health check
+@app.get("/health", status_code=200)
+async def health_check():
+    return {"status": 200}
