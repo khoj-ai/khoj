@@ -217,11 +217,11 @@ export class KhojChatModal extends Modal {
         return chat_message_el
     }
 
-    renderIncrementalMessage(htmlElement: HTMLDivElement, additionalMessage: string) {
+    async renderIncrementalMessage(htmlElement: HTMLDivElement, additionalMessage: string) {
         this.result += additionalMessage;
         htmlElement.innerHTML = "";
         // @ts-ignore
-        MarkdownRenderer.renderMarkdown(this.result, htmlElement, null, null);
+        await MarkdownRenderer.renderMarkdown(this.result, htmlElement, null, null);
         // Scroll to bottom of modal, till the send message input box
         this.modalEl.scrollTop = this.modalEl.scrollHeight;
     }
@@ -277,7 +277,7 @@ export class KhojChatModal extends Modal {
 
         // Temporary status message to indicate that Khoj is thinking
         this.result = "";
-        this.renderIncrementalMessage(responseElement, "🤔");
+        await this.renderIncrementalMessage(responseElement, "🤔");
 
         let response = await fetch(chatUrl, {
             method: "GET",
@@ -312,17 +312,17 @@ export class KhojChatModal extends Modal {
                     // If the chunk is not a JSON object, just display it as is
                     responseText = response.body.read().toString()
                 } finally {
-                    this.renderIncrementalMessage(responseElement, responseText);
+                    await this.renderIncrementalMessage(responseElement, responseText);
                 }
             }
 
             for await (const chunk of response.body) {
                 let responseText = chunk.toString();
                 if (responseText.includes("### compiled references:")) {
-                    const additionalResponse = responseText.split("### compiled references:")[0];
-                    this.renderIncrementalMessage(responseElement, additionalResponse);
+                    const [additionalResponse, rawReference] = responseText.split("### compiled references:", 2);
+                    await this.renderIncrementalMessage(responseElement, additionalResponse);
+                    console.log(`Raw: ${responseText}\nResponse: ${additionalResponse}\nReferences: ${rawReference}`);
 
-                    const rawReference = responseText.split("### compiled references:")[1];
                     const rawReferenceAsJson = JSON.parse(rawReference);
                     let references = responseElement.createDiv();
                     references.classList.add("references");
@@ -360,13 +360,7 @@ export class KhojChatModal extends Modal {
                     referenceExpandButton.innerHTML = expandButtonText;
                     references.appendChild(referenceSection);
                 } else {
-                    if (responseText.startsWith("{") && responseText.endsWith("}")) {
-                    } else {
-                        // If the chunk is not a JSON object, just display it as is
-                        continue;
-                    }
-
-                    this.renderIncrementalMessage(responseElement, responseText);
+                    await this.renderIncrementalMessage(responseElement, responseText);
                 }
             }
         } catch (err) {
