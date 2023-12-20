@@ -493,10 +493,10 @@ async def search(
                     # Collate results
                     results += text_search.collate_results(hits, dedupe=dedupe)
 
-                # Sort results across all content types and take top results
-                results = text_search.rerank_and_sort_results(
-                    results, query=defiltered_query, rank_results=r, search_model_name=search_model.name
-                )[:results_count]
+                    # Sort results across all content types and take top results
+                    results = text_search.rerank_and_sort_results(
+                        results, query=defiltered_query, rank_results=r, search_model_name=search_model.name
+                    )[:results_count]
 
     # Cache results
     if user:

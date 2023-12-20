@@ -257,6 +257,9 @@ def get_user_search_model_or_default(user=None):
 
     if SearchModelConfig.objects.filter(name="default").exists():
         return SearchModelConfig.objects.filter(name="default").first()
+    else:
+        SearchModelConfig.objects.create()
+
     return SearchModelConfig.objects.first()
 
 
