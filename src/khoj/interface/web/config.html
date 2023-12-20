@@ -150,7 +150,7 @@
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/matrix_blob.svg" alt="Chat">
                     <h3 class="card-title">
-                        Text Model
+                        Language
                     </h3>
                 </div>
                 <div class="card-description-row">
@@ -259,6 +259,10 @@
     </div>
     {% endif %}
     <div class="section"></div>
+    </div>
+    <div class="section" id="notification-banner-parent">
+        <div id="notification-banner"></div>
+    </div>
 </div>
 <script>
 
@@ -307,6 +311,13 @@
                 saveSearchModelButton.innerHTML = "Error";
                 saveSearchModelButton.disabled = false;
             }
+
+            let notificationBanner = document.getElementById("notification-banner");
+            notificationBanner.innerHTML = "When updating the search model, be sure to delete all your data and reindex.";
+            notificationBanner.style.display = "block";
+            setTimeout(function() {
+                notificationBanner.style.display = "none";
+            }, 5000);
         })
     };
 
