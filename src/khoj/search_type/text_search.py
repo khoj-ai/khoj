@@ -19,7 +19,7 @@ from khoj.utils.state import SearchType
 from khoj.utils.rawconfig import SearchResponse, Entry
 from khoj.utils.jsonl import load_jsonl
 from khoj.processor.content.text_to_entries import TextToEntries
-from khoj.database.adapters import EntryAdapters, get_default_search_model
+from khoj.database.adapters import EntryAdapters, get_user_search_model_or_default
 from khoj.database.models import KhojUser, Entry as DbEntry
 
 logger = logging.getLogger(__name__)
@@ -115,7 +115,7 @@ async def query(
     # Encode the query using the bi-encoder
     if question_embedding is None:
         with timer("Query Encode Time", logger, state.device):
-            search_model = await sync_to_async(get_default_search_model)()
+            search_model = await sync_to_async(get_user_search_model_or_default)(user)
             question_embedding = state.embeddings_model[search_model.name].embed_query(query)
 
     # Find relevant entries for the query

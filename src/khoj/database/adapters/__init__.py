@@ -32,6 +32,7 @@ from khoj.database.models import (
     SpeechToTextModelOptions,
     Subscription,
     UserConversationConfig,
+    UserSearchModelConfig,
     OpenAIProcessorConversationConfig,
     OfflineChatProcessorConversationConfig,
     ReflectiveQuestion,
@@ -250,7 +251,10 @@ async def set_user_github_config(user: KhojUser, pat_token: str, repos: list):
     return config
 
 
-def get_default_search_model():
+def get_user_search_model_or_default(user=None):
+    if user and UserSearchModelConfig.objects.filter(user=user).exists():
+        return UserSearchModelConfig.objects.filter(user=user).first().setting
+
     if SearchModelConfig.objects.filter(name="default").exists():
         return SearchModelConfig.objects.filter(name="default").first()
     return SearchModelConfig.objects.first()
