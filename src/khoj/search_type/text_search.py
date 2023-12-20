@@ -180,13 +180,13 @@ def deduplicated_search_responses(hits: List[SearchResponse]):
             )
 
 
-def rerank_and_sort_results(hits, query, rank_results):
+def rerank_and_sort_results(hits, query, rank_results, search_model_name):
     # If we have more than one result and reranking is enabled
     rank_results = rank_results and len(list(hits)) > 1
 
     # Score all retrieved entries using the cross-encoder
     if rank_results:
-        hits = cross_encoder_score(query, hits)
+        hits = cross_encoder_score(query, hits, search_model_name)
 
     # Sort results by cross-encoder score followed by bi-encoder score
     hits = sort_results(rank_results=rank_results, hits=hits)
@@ -219,10 +219,10 @@ def setup(
         )
 
 
-def cross_encoder_score(query: str, hits: List[SearchResponse]) -> List[SearchResponse]:
+def cross_encoder_score(query: str, hits: List[SearchResponse], search_model_name: str) -> List[SearchResponse]:
     """Score all retrieved entries using the cross-encoder"""
     with timer("Cross-Encoder Predict Time", logger, state.device):
-        cross_scores = state.cross_encoder_model.predict(query, hits)
+        cross_scores = state.cross_encoder_model[search_model_name].predict(query, hits)
 
     # Convert cross-encoder scores to distances and pass in hits for reranking
     for idx in range(len(cross_scores)):

@@ -269,6 +269,14 @@ def get_or_create_search_models():
     return search_models
 
 
+async def aset_user_search_model(user: KhojUser, search_model_config_id: int):
+    config = await SearchModelConfig.objects.filter(id=search_model_config_id).afirst()
+    if not config:
+        return None
+    new_config, _ = await UserSearchModelConfig.objects.aupdate_or_create(user=user, defaults={"setting": config})
+    return new_config
+
+
 class ConversationAdapters:
     @staticmethod
     def get_conversation_by_user(user: KhojUser):

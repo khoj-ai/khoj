@@ -185,7 +185,7 @@ class Entry(BaseModel):
         GITHUB = "github"
 
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
-    embeddings = VectorField(dimensions=384)
+    embeddings = VectorField(dimensions=None)
     raw = models.TextField()
     compiled = models.TextField()
     heading = models.CharField(max_length=1000, default=None, null=True, blank=True)
