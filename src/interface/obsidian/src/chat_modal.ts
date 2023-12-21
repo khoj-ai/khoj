@@ -255,8 +255,8 @@ export class KhojChatModal extends Modal {
                 });
             }
         } catch (err) {
-            let errorMsg = "Unable to get response from Khoj server ❤️‍🩹. Ensure server is running or contact developers for help at <a href='mailto:team@khoj.dev'>team@khoj.dev</a> or on <a href='https://discord.gg/BDgyabRM6e'>Discord</a>";
-            this.renderMessage(chatBodyEl, errorMsg, "khoj", undefined, true);
+            let errorMsg = "Unable to get response from Khoj server ❤️‍🩹. Ensure server is running or contact developers for help at [team@khoj.dev](mailto:team@khoj.dev) or in [Discord](https://discord.gg/BDgyabRM6e)";
+            this.renderMessage(chatBodyEl, errorMsg, "khoj", undefined);
             return false;
         }
         return true;
@@ -395,9 +395,9 @@ export class KhojChatModal extends Modal {
                 // Throw error if conversation history isn't cleared
                 throw new Error("Failed to clear conversation history");
             } else {
-                // If conversation history is cleared successfully, clear chat logs from modal
-                chatBody.innerHTML = "";
                 let getChatHistoryStatus = await this.getChatHistory(chatBody);
+                // If conversation history is cleared successfully, clear chat logs from modal
+                if (getChatHistoryStatus) chatBody.innerHTML = "";
                 let statusMsg = getChatHistoryStatus ? result.message : "Failed to clear conversation history";
                 this.flashStatusInChatInput(statusMsg);
             }
