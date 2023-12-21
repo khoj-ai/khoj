@@ -16,7 +16,8 @@ on:
   workflow_dispatch:
 
 env:
-  DOCKER_IMAGE_TAG: ${{ github.ref == 'refs/heads/master' && 'latest' || github.ref_name }}
+  # Tag Image with tag name on release, else with 'pre' if push to master
+  DOCKER_IMAGE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || 'pre' }}
 
 jobs:
   build:
@@ -47,7 +48,9 @@ jobs:
           file: Dockerfile
           platforms: linux/amd64, linux/arm64
           push: true
-          tags: ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}
+            ${{ github.ref_type == 'tag' && 'ghcr.io/${{ github.repository }}-cloud:latest' || '' }}
           build-args: |
             VERSION=${{ steps.hatch.outputs.version }}
             PORT=42110
