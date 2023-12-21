@@ -863,6 +863,6 @@ async def extract_references_and_questions(
 
     return compiled_references, inferred_queries, defiltered_query
 
-@app.get("/health")
+@api.get("/health")
 async def health_check():
     return Response(status_code=200)
