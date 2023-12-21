@@ -40,6 +40,10 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.PAT }}
 
+      - name: Get App Version
+        id: hatch
+        run: echo "::set-output name=version::$(pipx run hatch version)"
+
       - name: 📦 Build and Push Docker Image
         uses: docker/build-push-action@v2
         with:
@@ -49,4 +53,5 @@ jobs:
           push: true
           tags: ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }}
           build-args: |
+            VERSION=${{ steps.hatch.outputs.version }}
             PORT=42110
