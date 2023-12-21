@@ -334,7 +334,7 @@ async def update_chat_model(
 
 @api.post("/config/data/search/model", status_code=200)
 @requires(["authenticated"])
-async def update_chat_model(
+async def update_search_model(
     request: Request,
     id: str,
     client: Optional[str] = None,

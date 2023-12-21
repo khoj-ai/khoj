@@ -143,6 +143,13 @@ async def update(
         )
         return Response(content="Failed", status_code=500)
 
+    indexing_metadata = {
+        "num_org": len(org_files),
+        "num_markdown": len(markdown_files),
+        "num_pdf": len(pdf_files),
+        "num_plaintext": len(plaintext_files),
+    }
+
     update_telemetry_state(
         request=request,
         telemetry_type="api",
@@ -151,6 +158,7 @@ async def update(
         user_agent=user_agent,
         referer=referer,
         host=host,
+        metadata=indexing_metadata,
     )
 
     logger.info(f"📪 Content index updated via API call by {client} client")

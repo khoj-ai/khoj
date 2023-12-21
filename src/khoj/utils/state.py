@@ -20,7 +20,7 @@ from khoj.utils.rawconfig import FullConfig
 config = FullConfig()
 search_models = SearchModels()
 embeddings_model: Dict[str, EmbeddingsModel] = None
-cross_encoder_model: CrossEncoderModel = None
+cross_encoder_model: Dict[str, CrossEncoderModel] = None
 content_index = ContentIndex()
 openai_client: OpenAI = None
 gpt4all_processor_config: GPT4AllProcessorModel = None
