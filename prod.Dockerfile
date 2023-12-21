@@ -11,7 +11,8 @@ WORKDIR /app
 # Install Application
 COPY pyproject.toml .
 COPY README.md .
-RUN sed -i 's/dynamic = \["version"\]/version = "0.0.0"/' pyproject.toml && \
+ARG VERSION=0.0.0
+RUN sed -i "s/dynamic = \\[\"version\"\\]/version = \"$VERSION\"/" pyproject.toml && \
     TMPDIR=/home/cache/ pip install --cache-dir=/home/cache/ -e .
 
 # Copy Source Code
