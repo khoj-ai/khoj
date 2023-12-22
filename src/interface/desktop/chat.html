@@ -115,10 +115,10 @@
             return referenceButton;
         }
 
-        function renderMessage(message, by, dt=null, annotations=null) {
+        function renderMessage(message, by, dt=null, annotations=null, raw=false) {
             let message_time = formatDate(dt ?? new Date());
             let by_name =  by == "khoj" ? "🏮 Khoj" : "🤔 You";
-            let formattedMessage = formatHTMLMessage(message);
+            let formattedMessage = formatHTMLMessage(message, raw);
             let chatBody = document.getElementById("chat-body");
 
             // Create a new div for the chat message
@@ -248,7 +248,7 @@
             renderMessage(message, by, dt, references);
         }
 
-        function formatHTMLMessage(htmlMessage) {
+        function formatHTMLMessage(htmlMessage, raw=false) {
             var md = window.markdownit();
             let newHTML = htmlMessage;
 
@@ -267,7 +267,7 @@
             };
 
             // Render markdown
-            newHTML = md.render(newHTML);
+            newHTML = raw ? newHTML : md.render(newHTML);
             // Get any elements with a class that starts with "language"
             let element = document.createElement('div');
             element.innerHTML = newHTML;
@@ -574,7 +574,7 @@
                         .trim()
                         .replace(/(\r\n|\n|\r)/gm, "");
 
-                        renderMessage(first_run_message, "khoj");
+                        renderMessage(first_run_message, "khoj", null, null, true);
 
                         // Disable chat input field and update placeholder text
                         document.getElementById("chat-input").setAttribute("disabled", "disabled");

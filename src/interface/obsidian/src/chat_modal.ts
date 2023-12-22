@@ -41,20 +41,21 @@ export class KhojChatModal extends Modal {
         let chatBodyEl = contentEl.createDiv({ attr: { id: "khoj-chat-body", class: "khoj-chat-body" } });
 
         // Get chat history from Khoj backend
-        await this.getChatHistory(chatBodyEl);
+        let getChatHistorySucessfully = await this.getChatHistory(chatBodyEl);
+        let placeholderText = getChatHistorySucessfully ? "Chat with Khoj [Hit Enter to send message]" : "Configure Khoj to enable chat";
 
         // Add chat input field
         let inputRow = contentEl.createDiv("khoj-input-row");
-        const chatInput = inputRow.createEl("input",
-            {
-                attr: {
-                    type: "text",
-                    id: "khoj-chat-input",
-                    autofocus: "autofocus",
-                    placeholder: "Chat with Khoj [Hit Enter to send message]",
-                    class: "khoj-chat-input option"
-                }
-            })
+        let chatInput = inputRow.createEl("input", {
+            attr: {
+                type: "text",
+                id: "khoj-chat-input",
+                autofocus: "autofocus",
+                placeholder: placeholderText,
+                class: "khoj-chat-input option",
+                disabled: !getChatHistorySucessfully ? "disabled" : null
+            },
+        })
 
         let transcribe = inputRow.createEl("button", {
             text: "Transcribe",
@@ -162,7 +163,7 @@ export class KhojChatModal extends Modal {
         referenceExpandButton.innerHTML = expandButtonText;
     }
 
-    renderMessage(chatEl: Element, message: string, sender: string, dt?: Date): Element {
+    renderMessage(chatEl: Element, message: string, sender: string, dt?: Date, raw: boolean=false): Element {
         let message_time = this.formatDate(dt ?? new Date());
         let emojified_sender = sender == "khoj" ? "🏮 Khoj" : "🤔 You";
 
@@ -177,8 +178,12 @@ export class KhojChatModal extends Modal {
         let chat_message_body_el = chatMessageEl.createDiv();
         chat_message_body_el.addClasses(["khoj-chat-message-text", sender]);
         let chat_message_body_text_el = chat_message_body_el.createDiv();
-        // @ts-ignore
-        MarkdownRenderer.renderMarkdown(message, chat_message_body_text_el, null, null);
+        if (raw) {
+            chat_message_body_text_el.innerHTML = message;
+        } else {
+            // @ts-ignore
+            MarkdownRenderer.renderMarkdown(message, chat_message_body_text_el, null, null);
+        }
 
         // Remove user-select: none property to make text selectable
         chatMessageEl.style.userSelect = "text";
@@ -212,11 +217,11 @@ export class KhojChatModal extends Modal {
         return chat_message_el
     }
 
-    renderIncrementalMessage(htmlElement: HTMLDivElement, additionalMessage: string) {
+    async renderIncrementalMessage(htmlElement: HTMLDivElement, additionalMessage: string) {
         this.result += additionalMessage;
         htmlElement.innerHTML = "";
         // @ts-ignore
-        MarkdownRenderer.renderMarkdown(this.result, htmlElement, null, null);
+        await MarkdownRenderer.renderMarkdown(this.result, htmlElement, null, null);
         // Scroll to bottom of modal, till the send message input box
         this.modalEl.scrollTop = this.modalEl.scrollHeight;
     }
@@ -228,15 +233,33 @@ export class KhojChatModal extends Modal {
         return `${time_string}, ${date_string}`;
     }
 
-    async getChatHistory(chatBodyEl: Element): Promise<void> {
+    async getChatHistory(chatBodyEl: Element): Promise<boolean> {
         // Get chat history from Khoj backend
         let chatUrl = `${this.setting.khojUrl}/api/chat/history?client=obsidian`;
         let headers = { "Authorization": `Bearer ${this.setting.khojApiKey}` };
-        let response = await request({ url: chatUrl, headers: headers });
-        let chatLogs = JSON.parse(response).response;
-        chatLogs.forEach((chatLog: any) => {
-            this.renderMessageWithReferences(chatBodyEl, chatLog.message, chatLog.by, chatLog.context, new Date(chatLog.created), chatLog.intent?.type);
-        });
+
+        try {
+            let response = await fetch(chatUrl, { method: "GET", headers: headers });
+            let responseJson: any = await response.json();
+
+            if (responseJson.detail) {
+                // If the server returns error details in response, render a setup hint.
+                let setupMsg = "Hi 👋🏾, to start chatting add available chat models options via [the Django Admin panel](/server/admin) on the Server";
+                this.renderMessage(chatBodyEl, setupMsg, "khoj", undefined, true);
+
+                return false;
+            } else if (responseJson.response) {
+                let chatLogs = responseJson.response;
+                chatLogs.forEach((chatLog: any) => {
+                    this.renderMessageWithReferences(chatBodyEl, chatLog.message, chatLog.by, chatLog.context, new Date(chatLog.created), chatLog.intent?.type);
+                });
+            }
+        } catch (err) {
+            let errorMsg = "Unable to get response from Khoj server ❤️‍🩹. Ensure server is running or contact developers for help at [team@khoj.dev](mailto:team@khoj.dev) or in [Discord](https://discord.gg/BDgyabRM6e)";
+            this.renderMessage(chatBodyEl, errorMsg, "khoj", undefined);
+            return false;
+        }
+        return true;
     }
 
     async getChatResponse(query: string | undefined | null): Promise<void> {
@@ -254,7 +277,7 @@ export class KhojChatModal extends Modal {
 
         // Temporary status message to indicate that Khoj is thinking
         this.result = "";
-        this.renderIncrementalMessage(responseElement, "🤔");
+        await this.renderIncrementalMessage(responseElement, "🤔");
 
         let response = await fetch(chatUrl, {
             method: "GET",
@@ -289,17 +312,17 @@ export class KhojChatModal extends Modal {
                     // If the chunk is not a JSON object, just display it as is
                     responseText = response.body.read().toString()
                 } finally {
-                    this.renderIncrementalMessage(responseElement, responseText);
+                    await this.renderIncrementalMessage(responseElement, responseText);
                 }
             }
 
             for await (const chunk of response.body) {
                 let responseText = chunk.toString();
                 if (responseText.includes("### compiled references:")) {
-                    const additionalResponse = responseText.split("### compiled references:")[0];
-                    this.renderIncrementalMessage(responseElement, additionalResponse);
+                    const [additionalResponse, rawReference] = responseText.split("### compiled references:", 2);
+                    await this.renderIncrementalMessage(responseElement, additionalResponse);
+                    console.log(`Raw: ${responseText}\nResponse: ${additionalResponse}\nReferences: ${rawReference}`);
 
-                    const rawReference = responseText.split("### compiled references:")[1];
                     const rawReferenceAsJson = JSON.parse(rawReference);
                     let references = responseElement.createDiv();
                     references.classList.add("references");
@@ -337,17 +360,12 @@ export class KhojChatModal extends Modal {
                     referenceExpandButton.innerHTML = expandButtonText;
                     references.appendChild(referenceSection);
                 } else {
-                    if (responseText.startsWith("{") && responseText.endsWith("}")) {
-                    } else {
-                        // If the chunk is not a JSON object, just display it as is
-                        continue;
-                    }
-
-                    this.renderIncrementalMessage(responseElement, responseText);
+                    await this.renderIncrementalMessage(responseElement, responseText);
                 }
             }
         } catch (err) {
-            this.renderIncrementalMessage(responseElement, "Sorry, unable to get response from Khoj backend ❤️‍🩹. Contact developer for help at team@khoj.dev or <a href='https://discord.gg/BDgyabRM6e'>in Discord</a>")
+            let errorMsg = "Sorry, unable to get response from Khoj backend ❤️‍🩹. Contact developer for help at team@khoj.dev or [in Discord](https://discord.gg/BDgyabRM6e)";
+            responseElement.innerHTML = errorMsg
         }
     }
 
@@ -377,10 +395,11 @@ export class KhojChatModal extends Modal {
                 // Throw error if conversation history isn't cleared
                 throw new Error("Failed to clear conversation history");
             } else {
+                let getChatHistoryStatus = await this.getChatHistory(chatBody);
                 // If conversation history is cleared successfully, clear chat logs from modal
-                chatBody.innerHTML = "";
-                await this.getChatHistory(chatBody);
-                this.flashStatusInChatInput(result.message);
+                if (getChatHistoryStatus) chatBody.innerHTML = "";
+                let statusMsg = getChatHistoryStatus ? result.message : "Failed to clear conversation history";
+                this.flashStatusInChatInput(statusMsg);
             }
         } catch (err) {
             this.flashStatusInChatInput("Failed to clear conversation history");
