@@ -244,7 +244,7 @@ export class KhojChatModal extends Modal {
 
             if (responseJson.detail) {
                 // If the server returns error details in response, render a setup hint.
-                let setupMsg = "Hi 👋🏾, to start chatting add available chat models options via <a class='inline-chat-link' href='/server/admin'>the Django Admin panel</a> on the Server";
+                let setupMsg = "Hi 👋🏾, to start chatting add available chat models options via [the Django Admin panel](/server/admin) on the Server";
                 this.renderMessage(chatBodyEl, setupMsg, "khoj", undefined, true);
 
                 return false;
@@ -364,7 +364,7 @@ export class KhojChatModal extends Modal {
                 }
             }
         } catch (err) {
-            let errorMsg = "<p>Sorry, unable to get response from Khoj backend ❤️‍🩹. Contact developer for help at team@khoj.dev or <a href='https://discord.gg/BDgyabRM6e'>in Discord</a></p>";
+            let errorMsg = "Sorry, unable to get response from Khoj backend ❤️‍🩹. Contact developer for help at team@khoj.dev or [in Discord](https://discord.gg/BDgyabRM6e)";
             responseElement.innerHTML = errorMsg
         }
     }
