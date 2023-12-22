@@ -12,6 +12,7 @@ do
             # Bump Desktop app to current version
             cd $project_root/src/interface/desktop
             sed -E -i.bak "s/version\": \"(.*)\",/version\": \"$current_version\",/" package.json
+            rm *.bak
 
             # Bump Obsidian plugin to current version
             cd $project_root/src/interface/obsidian
@@ -37,6 +38,7 @@ do
 
             # Commit changes and tag commit for release
             git add \
+                $project_root/src/interface/desktop/package.json \
                 $project_root/src/interface/obsidian/package.json \
                 $project_root/src/interface/obsidian/manifest.json \
                 $project_root/src/interface/obsidian/versions.json \
@@ -51,6 +53,11 @@ do
             # remove .dev[commits-since-tag] version suffix from hatch computed version number
             next_version=$(touch bump.txt && git add bump.txt && hatch version | sed 's/\.dev.*//g')
             git rm --cached -- bump.txt && rm bump.txt
+
+            # Bump Desktop app to next version
+            cd $project_root/src/interface/desktop
+            sed -E -i.bak "s/version\": \"(.*)\",/version\": \"$current_version\",/" package.json
+            rm *.bak
 
             # Bump Obsidian plugins to next version
             cd $project_root/src/interface/obsidian
@@ -69,6 +76,7 @@ do
 
             # Commit changes
             git add \
+                $project_root/src/interface/desktop/package.json \
                 $project_root/src/interface/obsidian/package.json \
                 $project_root/src/interface/obsidian/manifest.json \
                 $project_root/src/interface/obsidian/versions.json \
