@@ -46,7 +46,7 @@
             let short_ref = escaped_ref.slice(0, 100);
             short_ref = short_ref.length < escaped_ref.length ? short_ref + "..." : short_ref;
             let referenceButton = document.createElement('button');
-            referenceButton.innerHTML = short_ref;
+            referenceButton.textContent = short_ref;
             referenceButton.id = `ref-${index}`;
             referenceButton.classList.add("reference-button");
             referenceButton.classList.add("collapsed");
@@ -58,11 +58,11 @@
                 if (this.classList.contains("collapsed")) {
                     this.classList.remove("collapsed");
                     this.classList.add("expanded");
-                    this.innerHTML = escaped_ref;
+                    this.textContent = escaped_ref;
                 } else {
                     this.classList.add("collapsed");
                     this.classList.remove("expanded");
-                    this.innerHTML = short_ref;
+                    this.textContent = short_ref;
                 }
             });
 

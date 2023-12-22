@@ -89,7 +89,7 @@ export class KhojChatModal extends Modal {
         let short_ref = escaped_ref.slice(0, 100);
         short_ref = short_ref.length < escaped_ref.length ? short_ref + "..." : short_ref;
         let referenceButton = messageEl.createEl('button');
-        referenceButton.innerHTML = short_ref;
+        referenceButton.textContent = short_ref;
         referenceButton.id = `ref-${index}`;
         referenceButton.classList.add("reference-button");
         referenceButton.classList.add("collapsed");
@@ -101,11 +101,11 @@ export class KhojChatModal extends Modal {
             if (this.classList.contains("collapsed")) {
                 this.classList.remove("collapsed");
                 this.classList.add("expanded");
-                this.innerHTML = escaped_ref;
+                this.textContent = escaped_ref;
             } else {
                 this.classList.add("collapsed");
                 this.classList.remove("expanded");
-                this.innerHTML = short_ref;
+                this.textContent = short_ref;
             }
         });
 
@@ -321,7 +321,6 @@ export class KhojChatModal extends Modal {
                 if (responseText.includes("### compiled references:")) {
                     const [additionalResponse, rawReference] = responseText.split("### compiled references:", 2);
                     await this.renderIncrementalMessage(responseElement, additionalResponse);
-                    console.log(`Raw: ${responseText}\nResponse: ${additionalResponse}\nReferences: ${rawReference}`);
 
                     const rawReferenceAsJson = JSON.parse(rawReference);
                     let references = responseElement.createDiv();
