@@ -8,24 +8,47 @@ on:
       - master
     paths:
       - src/khoj/**
-      - config/**
       - pyproject.toml
       - Dockerfile
+      - prod.Dockerfile
       - docker-compose.yml
       - .github/workflows/dockerize.yml
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Docker image tag'
+        default: 'dev'
+      khoj:
+        description: 'Build Khoj docker image'
+        type: boolean
+        default: true
+      khoj-cloud:
+        description: 'Build Khoj cloud docker image'
+        type: boolean
+        default: true
 
 env:
-  # Tag Image with tag name on release, else with 'pre' if push to master
-  DOCKER_IMAGE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || 'pre' }}
+  # Tag Image with tag name on release
+  # else with user specified tag (default 'dev') if triggered via workflow
+  # else with 'pre' (if push to master)
+  DOCKER_IMAGE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || github.event_name == 'workflow_dispatch' && github.event.inputs.tag || 'pre' }}
 
 jobs:
   build:
-    name: Build Docker Image, Push to Container Registry
+    name: Publish Khoj Docker Images
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - 'local'
+          - 'cloud'
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
+        with:
+          # Get all history to correctly infer Khoj version using hatch
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -43,6 +66,7 @@ jobs:
 
       - name: 📦 Build and Push Docker Image
         uses: docker/build-push-action@v2
+        if: (matrix.image == 'local' && github.event_name == 'workflow_dispatch') && github.event.inputs.khoj == 'true' || (matrix.image == 'local' && github.event_name == 'push')
         with:
           context: .
           file: Dockerfile
@@ -50,7 +74,22 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}
-            ${{ github.ref_type == 'tag' && 'ghcr.io/${{ github.repository }}-cloud:latest' || '' }}
+            ${{ github.ref_type == 'tag' && format('ghcr.io/{0}:latest', github.repository) || '' }}
+          build-args: |
+            VERSION=${{ steps.hatch.outputs.version }}
+            PORT=42110
+
+      - name: 📦️⛅️ Build and Push Cloud Docker Image
+        uses: docker/build-push-action@v2
+        if: (matrix.image == 'cloud' && github.event_name == 'workflow_dispatch') && github.event.inputs.khoj-cloud == 'true' || (matrix.image == 'cloud' && github.event_name == 'push')
+        with:
+          context: .
+          file: prod.Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }}
+            ${{ github.ref_type == 'tag' && format('ghcr.io/{0}-cloud:latest', github.repository) || '' }}
           build-args: |
             VERSION=${{ steps.hatch.outputs.version }}
             PORT=42110
