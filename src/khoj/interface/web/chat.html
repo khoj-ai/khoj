@@ -20,7 +20,7 @@ Hi, I am Khoj, your open, personal AI 👋🏽. I can help:
 - 🔎 Search the web for answers to your questions
 - 🎙️ Listen to your audio messages
 
-Download the [🖥️ Desktop app](https://khoj.dev/downloads) to share your documents with me.
+Get the Khoj [Desktop](https://khoj.dev/downloads), [Obsidian](https://docs.khoj.dev/#/obsidian?id=setup) or [Emacs](https://docs.khoj.dev/#/emacs?id=setup) app to search, chat with your 🖥️ computer docs.
 
 To get started, just start typing below. You can also type / to see a list of commands.
 `.trim()
@@ -58,7 +58,7 @@ To get started, just start typing below. You can also type / to see a list of co
             let short_ref = escaped_ref.slice(0, 140);
             short_ref = short_ref.length < escaped_ref.length ? short_ref + "..." : short_ref;
             let referenceButton = document.createElement('button');
-            referenceButton.innerHTML = short_ref;
+            referenceButton.textContent = short_ref;
             referenceButton.id = `ref-${index}`;
             referenceButton.classList.add("reference-button");
             referenceButton.classList.add("collapsed");
@@ -70,11 +70,11 @@ To get started, just start typing below. You can also type / to see a list of co
                 if (this.classList.contains("collapsed")) {
                     this.classList.remove("collapsed");
                     this.classList.add("expanded");
-                    this.innerHTML = escaped_ref;
+                    this.textContent = escaped_ref;
                 } else {
                     this.classList.add("collapsed");
                     this.classList.remove("expanded");
-                    this.innerHTML = short_ref;
+                    this.textContent = short_ref;
                 }
             });
 
@@ -127,10 +127,10 @@ To get started, just start typing below. You can also type / to see a list of co
             return referenceButton;
         }
 
-        function renderMessage(message, by, dt=null, annotations=null) {
+        function renderMessage(message, by, dt=null, annotations=null, raw=false) {
             let message_time = formatDate(dt ?? new Date());
             let by_name =  by == "khoj" ? "🏮 Khoj" : "🤔 You";
-            let formattedMessage = formatHTMLMessage(message);
+            let formattedMessage = formatHTMLMessage(message, raw);
             let chatBody = document.getElementById("chat-body");
 
             // Create a new div for the chat message
@@ -260,7 +260,7 @@ To get started, just start typing below. You can also type / to see a list of co
             renderMessage(message, by, dt, references);
         }
 
-        function formatHTMLMessage(htmlMessage) {
+        function formatHTMLMessage(htmlMessage, raw=false) {
             var md = window.markdownit();
             let newHTML = htmlMessage;
 
@@ -279,7 +279,7 @@ To get started, just start typing below. You can also type / to see a list of co
             };
 
             // Render markdown
-            newHTML = md.render(newHTML);
+            newHTML = raw ? newHTML : md.render(newHTML);
             // Get any elements with a class that starts with "language"
             let element = document.createElement('div');
             element.innerHTML = newHTML;
@@ -438,9 +438,9 @@ To get started, just start typing below. You can also type / to see a list of co
                                 numReferences = rawReferenceAsJson.length;
 
                                 rawReferenceAsJson.forEach((reference, index) => {
-                                let polishedReference = generateReference(reference, index);
-                                referenceSection.appendChild(polishedReference);
-                            });
+                                    let polishedReference = generateReference(reference, index);
+                                    referenceSection.appendChild(polishedReference);
+                                });
                             } else {
                                 numReferences += processOnlineReferences(referenceSection, rawReferenceAsJson);
                             }
@@ -542,7 +542,8 @@ To get started, just start typing below. You can also type / to see a list of co
                 .then(data => {
                     if (data.detail) {
                         // If the server returns a 500 error with detail, render a setup hint.
-                        renderMessage("Hi 👋🏾, to start chatting add available chat models options via <a class='inline-chat-link' href='/server/admin'>the Django Admin panel</a> on the Server", "khoj");
+                        let setupMsg = "Hi 👋🏾, to start chatting add available chat models options via <a class='inline-chat-link' href='/server/admin'>the Django Admin panel</a> on the Server";
+                        renderMessage(setupMsg, "khoj", null, null, true);
 
                         // Disable chat input field and update placeholder text
                         document.getElementById("chat-input").setAttribute("disabled", "disabled");
