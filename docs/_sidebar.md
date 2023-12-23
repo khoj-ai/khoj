@@ -2,8 +2,6 @@
     - [Overview](README.md)
     - [Self-Host](setup.md)
     - [Demos](demos.md)
-- Contributing
-    - [Development](development.md)
 - Use
     - [Features](features.md)
         - [Chat](chat.md)
@@ -16,6 +14,8 @@
     - Online Data Sources
         - [Github](github_integration.md)
         - [Notion](notion_integration.md)
+- Contributing
+    - [Development](development.md)
 - Miscellaneous
     - [Telemetry](telemetry.md)
     - [Advanced](advanced.md)
