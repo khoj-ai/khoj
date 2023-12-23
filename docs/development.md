@@ -6,6 +6,8 @@ To get started with contributing, check out the official GitHub docs on [contrib
 
 Join the [Discord](https://discord.gg/WaxF3SkFPU) server and pick up click the ✅ for the question "Are you interested in becoming a contributor?" in the `#welcome-and-rules` channel. This will give you access to the `#contributors` channel where you can ask questions and get help from other contributors.
 
+If you're looking for a place to get started, check out the list of [Github Issues](https://github.com/khoj-ai/khoj/issues) with the tag `good first issue` to find issues that are good for first-time contributors.
+
 ## Local Server Installation
 ### Using Pip
 #### 1. Install
