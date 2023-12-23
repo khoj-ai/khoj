@@ -30,10 +30,10 @@ search-type:
     ...
 """
 import logging
+
 from packaging import version
 
 from khoj.utils.yaml import load_config_from_file, save_config_to_file
-
 
 logger = logging.getLogger(__name__)
 

@@ -1,13 +1,10 @@
 # Standard Modules
 from urllib.parse import quote
 
-# External Packages
 import pytest
 
 from khoj.database.models import KhojApiUser, KhojUser
 from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
-
-# Internal Packages
 from khoj.search_type import text_search
 
 

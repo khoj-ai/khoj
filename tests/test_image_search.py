@@ -1,18 +1,16 @@
 # Standard Modules
 import logging
 from pathlib import Path
+
+import pytest
 from PIL import Image
 
-# External Packages
-import pytest
-from khoj.utils.config import SearchModels
-
-# Internal Packages
-from khoj.utils.state import content_index, search_models
-from khoj.utils.constants import web_directory
 from khoj.search_type import image_search
+from khoj.utils.config import SearchModels
+from khoj.utils.constants import web_directory
 from khoj.utils.helpers import resolve_absolute_path
 from khoj.utils.rawconfig import ContentConfig, SearchConfig
+from khoj.utils.state import content_index, search_models
 
 
 # Test

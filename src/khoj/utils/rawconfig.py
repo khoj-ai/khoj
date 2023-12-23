@@ -1,13 +1,11 @@
 # System Packages
 import json
-from pathlib import Path
-from typing import List, Dict, Optional
 import uuid
+from pathlib import Path
+from typing import Dict, List, Optional
 
-# External Packages
 from pydantic import BaseModel
 
-# Internal Packages
 from khoj.utils.helpers import to_snake_case_from_dash
 
 

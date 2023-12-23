@@ -1,21 +1,23 @@
-# Standard Packages
 import argparse
+import logging
+import os
 import pathlib
 from importlib.metadata import version
-import os
-import logging
 
 logger = logging.getLogger(__name__)
 
-# Internal Packages
+from khoj.migrations.migrate_offline_chat_default_model import (
+    migrate_offline_chat_default_model,
+)
+from khoj.migrations.migrate_offline_chat_schema import migrate_offline_chat_schema
+from khoj.migrations.migrate_offline_model import migrate_offline_model
+from khoj.migrations.migrate_processor_config_openai import (
+    migrate_processor_conversation_schema,
+)
+from khoj.migrations.migrate_server_pg import migrate_server_pg
+from khoj.migrations.migrate_version import migrate_config_to_version
 from khoj.utils.helpers import resolve_absolute_path
 from khoj.utils.yaml import parse_config_from_file
-from khoj.migrations.migrate_version import migrate_config_to_version
-from khoj.migrations.migrate_processor_config_openai import migrate_processor_conversation_schema
-from khoj.migrations.migrate_offline_model import migrate_offline_model
-from khoj.migrations.migrate_offline_chat_schema import migrate_offline_chat_schema
-from khoj.migrations.migrate_offline_chat_default_model import migrate_offline_chat_default_model
-from khoj.migrations.migrate_server_pg import migrate_server_pg
 
 
 def cli(args=None):

@@ -1,6 +1,4 @@
-# External Packages
 from langchain.prompts import PromptTemplate
-
 
 ## Personality
 ## --

@@ -1,16 +1,17 @@
-import factory
 import os
 
+import factory
+
 from khoj.database.models import (
-    KhojUser,
-    KhojApiUser,
     ChatModelOptions,
+    Conversation,
+    KhojApiUser,
+    KhojUser,
     OfflineChatProcessorConversationConfig,
     OpenAIProcessorConversationConfig,
     SearchModelConfig,
-    UserConversationConfig,
-    Conversation,
     Subscription,
+    UserConversationConfig,
 )
 
 

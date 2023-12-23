@@ -1,13 +1,10 @@
-# Standard Packages
 import urllib.parse
 from urllib.parse import quote
 
-# External Packages
 import pytest
-from freezegun import freeze_time
 from faker import Faker
+from freezegun import freeze_time
 
-# Internal Packages
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import message_to_log
 from tests.helpers import ConversationFactory

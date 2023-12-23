@@ -1,31 +1,28 @@
 # System Packages
 import json
-import os
 import math
+import os
 from datetime import timedelta
 
-# External Packages
-from fastapi import APIRouter
-from fastapi import Request
-from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
+from fastapi import APIRouter, Request
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from starlette.authentication import requires, has_required_scope
+from starlette.authentication import has_required_scope, requires
+
 from khoj.database import adapters
+from khoj.database.adapters import (
+    ConversationAdapters,
+    EntryAdapters,
+    get_user_github_config,
+    get_user_notion_config,
+    get_user_subscription_state,
+)
 from khoj.database.models import KhojUser
+from khoj.utils import constants, state
 from khoj.utils.rawconfig import (
     GithubContentConfig,
     GithubRepoConfig,
     NotionContentConfig,
-)
-
-# Internal Packages
-from khoj.utils import constants, state
-from khoj.database.adapters import (
-    EntryAdapters,
-    get_user_github_config,
-    get_user_notion_config,
-    ConversationAdapters,
-    get_user_subscription_state,
 )
 
 # Initialize Router

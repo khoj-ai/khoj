@@ -1,17 +1,13 @@
-# Standard Packages
-from datetime import datetime, timezone
 import logging
 import os
+from datetime import datetime, timezone
 
-# External Packages
+import stripe
 from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Request
 from starlette.authentication import requires
-import stripe
 
-# Internal Packages
 from khoj.database import adapters
-
 
 # Stripe integration for Khoj Cloud Subscription
 stripe.api_key = os.getenv("STRIPE_API_KEY")

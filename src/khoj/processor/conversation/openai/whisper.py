@@ -1,7 +1,5 @@
-# Standard Packages
 from io import BufferedReader
 
-# External Packages
 from asgiref.sync import sync_to_async
 from openai import OpenAI
 

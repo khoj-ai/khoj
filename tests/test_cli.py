@@ -2,7 +2,6 @@
 from pathlib import Path
 from random import random
 
-# Internal Packages
 from khoj.utils.cli import cli
 from khoj.utils.helpers import resolve_absolute_path
 

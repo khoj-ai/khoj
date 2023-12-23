@@ -4,12 +4,9 @@ from urllib.parse import quote
 
 import pytest
 from fastapi import FastAPI
-
-# External Packages
 from fastapi.testclient import TestClient
 from PIL import Image
 
-# Internal Packages
 from khoj.configure import configure_routes, configure_search_types
 from khoj.database.adapters import EntryAdapters
 from khoj.database.models import KhojApiUser, KhojUser

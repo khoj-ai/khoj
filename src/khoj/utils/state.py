@@ -1,18 +1,15 @@
-# Standard Packages
-from collections import defaultdict
 import os
-from pathlib import Path
 import threading
-from typing import List, Dict
+from collections import defaultdict
+from pathlib import Path
+from typing import Dict, List
 
-# External Packages
 from openai import OpenAI
 from whisper import Whisper
 
-# Internal Packages
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
 from khoj.utils import config as utils_config
-from khoj.utils.config import ContentIndex, SearchModels, GPT4AllProcessorModel
+from khoj.utils.config import ContentIndex, GPT4AllProcessorModel, SearchModels
 from khoj.utils.helpers import LRU, get_device
 from khoj.utils.rawconfig import FullConfig
 

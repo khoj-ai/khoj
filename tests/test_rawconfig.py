@@ -1,8 +1,6 @@
-# External Packages
 import pytest
 
-# Internal Packages
-from khoj.utils.rawconfig import TextContentConfig, ImageContentConfig
+from khoj.utils.rawconfig import ImageContentConfig, TextContentConfig
 
 
 # Test

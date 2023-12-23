@@ -1,13 +1,10 @@
-# Standard Packages
-import numpy as np
-import psutil
-from scipy.stats import linregress
 import secrets
 
-# External Packages
+import numpy as np
+import psutil
 import pytest
+from scipy.stats import linregress
 
-# Internal Packages
 from khoj.processor.embeddings import EmbeddingsModel
 from khoj.utils import helpers
 

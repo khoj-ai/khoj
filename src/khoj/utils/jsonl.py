@@ -1,12 +1,9 @@
-# Standard Packages
-import json
 import gzip
+import json
 import logging
 
-# Internal Packages
 from khoj.utils.constants import empty_escape_sequences
 from khoj.utils.helpers import get_absolute_path
-
 
 logger = logging.getLogger(__name__)
 

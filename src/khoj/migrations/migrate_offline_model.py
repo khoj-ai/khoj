@@ -1,5 +1,6 @@
-import os
 import logging
+import os
+
 from packaging import version
 
 from khoj.utils.yaml import load_config_from_file, save_config_to_file

@@ -1,25 +1,25 @@
-# Standard Packages
 import logging
 import os
 from typing import Optional
 
-# External Packages
+from authlib.integrations.starlette_client import OAuth, OAuthError
 from fastapi import APIRouter
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token
+from starlette.authentication import requires
 from starlette.config import Config
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, RedirectResponse, Response
-from starlette.authentication import requires
-from authlib.integrations.starlette_client import OAuth, OAuthError
 
-from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
-
-# Internal Packages
-from khoj.database.adapters import get_khoj_tokens, get_or_create_user, create_khoj_token, delete_khoj_token
+from khoj.database.adapters import (
+    create_khoj_token,
+    delete_khoj_token,
+    get_khoj_tokens,
+    get_or_create_user,
+)
 from khoj.database.models import KhojApiUser
 from khoj.routers.helpers import update_telemetry_state
 from khoj.utils import state
-
 
 logger = logging.getLogger(__name__)
 

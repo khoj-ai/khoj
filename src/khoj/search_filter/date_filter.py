@@ -1,19 +1,15 @@
-# Standard Packages
-import re
 import logging
+import re
 from collections import defaultdict
-from datetime import timedelta, datetime
-from typing import List
-from dateutil.relativedelta import relativedelta
+from datetime import datetime, timedelta
 from math import inf
+from typing import List
 
-# External Packages
 import dateparser as dtparse
+from dateutil.relativedelta import relativedelta
 
-# Internal Packages
 from khoj.search_filter.base_filter import BaseFilter
 from khoj.utils.helpers import LRU, timer
-
 
 logger = logging.getLogger(__name__)
 
