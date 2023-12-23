@@ -2,6 +2,8 @@
     - [Overview](README.md)
     - [Self-Host](setup.md)
     - [Demos](demos.md)
+- Contributing
+    - [Development](development.md)
 - Use
     - [Features](features.md)
         - [Chat](chat.md)
@@ -19,5 +21,3 @@
     - [Advanced](advanced.md)
     - [Performance](performance.md)
     - [Credits](credits.md)
-- Contributing
-    - [Development](development.md)
