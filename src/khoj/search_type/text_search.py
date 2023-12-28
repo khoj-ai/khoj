@@ -19,7 +19,7 @@ from khoj.utils.state import SearchType
 from khoj.utils.rawconfig import SearchResponse, Entry
 from khoj.utils.jsonl import load_jsonl
 from khoj.processor.content.text_to_entries import TextToEntries
-from khoj.database.adapters import EntryAdapters
+from khoj.database.adapters import EntryAdapters, get_user_search_model_or_default
 from khoj.database.models import KhojUser, Entry as DbEntry
 
 logger = logging.getLogger(__name__)
@@ -115,7 +115,8 @@ async def query(
     # Encode the query using the bi-encoder
     if question_embedding is None:
         with timer("Query Encode Time", logger, state.device):
-            question_embedding = state.embeddings_model.embed_query(query)
+            search_model = await sync_to_async(get_user_search_model_or_default)(user)
+            question_embedding = state.embeddings_model[search_model.name].embed_query(query)
 
     # Find relevant entries for the query
     top_k = 10
@@ -179,13 +180,13 @@ def deduplicated_search_responses(hits: List[SearchResponse]):
             )
 
 
-def rerank_and_sort_results(hits, query, rank_results):
+def rerank_and_sort_results(hits, query, rank_results, search_model_name):
     # If we have more than one result and reranking is enabled
     rank_results = rank_results and len(list(hits)) > 1
 
     # Score all retrieved entries using the cross-encoder
     if rank_results:
-        hits = cross_encoder_score(query, hits)
+        hits = cross_encoder_score(query, hits, search_model_name)
 
     # Sort results by cross-encoder score followed by bi-encoder score
     hits = sort_results(rank_results=rank_results, hits=hits)
@@ -218,10 +219,10 @@ def setup(
         )
 
 
-def cross_encoder_score(query: str, hits: List[SearchResponse]) -> List[SearchResponse]:
+def cross_encoder_score(query: str, hits: List[SearchResponse], search_model_name: str) -> List[SearchResponse]:
     """Score all retrieved entries using the cross-encoder"""
     with timer("Cross-Encoder Predict Time", logger, state.device):
-        cross_scores = state.cross_encoder_model.predict(query, hits)
+        cross_scores = state.cross_encoder_model[search_model_name].predict(query, hits)
 
     # Convert cross-encoder scores to distances and pass in hits for reranking
     for idx in range(len(cross_scores)):

@@ -45,8 +45,10 @@ def enable_db_access_for_all_tests(db):
 
 @pytest.fixture(scope="session")
 def search_config() -> SearchConfig:
-    state.embeddings_model = EmbeddingsModel()
-    state.cross_encoder_model = CrossEncoderModel()
+    state.embeddings_model = dict()
+    state.embeddings_model["default"] = EmbeddingsModel()
+    state.cross_encoder_model = dict()
+    state.cross_encoder_model["default"] = CrossEncoderModel()
 
     model_dir = resolve_absolute_path("~/.khoj/search")
     model_dir.mkdir(parents=True, exist_ok=True)
@@ -317,8 +319,10 @@ def client(
     state.config.content_type = content_config
     state.config.search_type = search_config
     state.SearchType = configure_search_types()
-    state.embeddings_model = EmbeddingsModel()
-    state.cross_encoder_model = CrossEncoderModel()
+    state.embeddings_model = dict()
+    state.embeddings_model["default"] = EmbeddingsModel()
+    state.cross_encoder_model = dict()
+    state.cross_encoder_model["default"] = CrossEncoderModel()
 
     # These lines help us Mock the Search models for these search types
     state.search_models.image_search = image_search.initialize_model(search_config.image)
