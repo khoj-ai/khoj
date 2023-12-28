@@ -1,4 +1,3 @@
-# Standard Packages
 import asyncio
 import json
 import logging
@@ -9,22 +8,25 @@ from functools import partial
 from time import time
 from typing import Annotated, Any, Dict, Iterator, List, Optional, Tuple, Union
 
-# External Packages
-from fastapi import Depends, Header, HTTPException, Request, UploadFile
 import openai
+from fastapi import Depends, Header, HTTPException, Request, UploadFile
 from starlette.authentication import has_required_scope
 
-# Internal Packages
 from khoj.database.adapters import ConversationAdapters, EntryAdapters
 from khoj.database.models import KhojUser, Subscription, TextToImageModelConfig
 from khoj.processor.conversation import prompts
-from khoj.processor.conversation.offline.chat_model import converse_offline, send_message_to_model_offline
+from khoj.processor.conversation.offline.chat_model import (
+    converse_offline,
+    send_message_to_model_offline,
+)
 from khoj.processor.conversation.openai.gpt import converse, send_message_to_model
-from khoj.processor.conversation.utils import ThreadedGenerator, save_to_conversation_log
+from khoj.processor.conversation.utils import (
+    ThreadedGenerator,
+    save_to_conversation_log,
+)
 from khoj.utils import state
 from khoj.utils.config import GPT4AllProcessorModel
 from khoj.utils.helpers import ConversationCommand, log_telemetry
-
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,5 @@
-# Standard Packages
 import logging
 
-# External Packages
 from fastapi import APIRouter
 
 # Initialize Router

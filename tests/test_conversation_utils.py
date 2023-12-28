@@ -1,7 +1,8 @@
-from khoj.processor.conversation import utils
-from langchain.schema import ChatMessage
 import factory
 import tiktoken
+from langchain.schema import ChatMessage
+
+from khoj.processor.conversation import utils
 
 
 class ChatMessageFactory(factory.Factory):

@@ -1,17 +1,13 @@
-# Standard Packages
 import argparse
 import logging
 import os
+import sqlite3
 from typing import Dict, List
 
-# External Packages
-from fastapi import FastAPI
-from fastapi import HTTPException
-from posthog import Posthog
-from dotenv import load_dotenv
-import sqlite3
 import uvicorn
-
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException
+from posthog import Posthog
 
 # Initialize Global App Variables
 app = FastAPI()

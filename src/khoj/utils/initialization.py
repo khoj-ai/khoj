@@ -1,20 +1,17 @@
 import logging
 import os
 
+from khoj.database.adapters import ConversationAdapters
 from khoj.database.models import (
+    ChatModelOptions,
     KhojUser,
     OfflineChatProcessorConversationConfig,
     OpenAIProcessorConversationConfig,
-    ChatModelOptions,
     SpeechToTextModelOptions,
     TextToImageModelConfig,
 )
-
-from khoj.utils.constants import default_offline_chat_model, default_online_chat_model
 from khoj.processor.conversation.utils import model_to_prompt_size, model_to_tokenizer
-
-from khoj.database.adapters import ConversationAdapters
-
+from khoj.utils.constants import default_offline_chat_model, default_online_chat_model
 
 logger = logging.getLogger(__name__)
 

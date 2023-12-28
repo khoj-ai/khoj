@@ -1,7 +1,5 @@
-# Standard Packages
 import datetime
 
-# Internal Packages
 from khoj.processor.content.org_mode import orgnode
 
 

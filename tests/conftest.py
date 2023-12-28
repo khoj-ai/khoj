@@ -1,4 +1,3 @@
-# External Packages
 import os
 from pathlib import Path
 
@@ -7,8 +6,11 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.testclient import TestClient
 
-# Internal Packages
-from khoj.configure import configure_middleware, configure_routes, configure_search_types
+from khoj.configure import (
+    configure_middleware,
+    configure_routes,
+    configure_search_types,
+)
 from khoj.database.models import (
     GithubConfig,
     GithubRepoConfig,
@@ -27,7 +29,12 @@ from khoj.utils import fs_syncer, state
 from khoj.utils.config import SearchModels
 from khoj.utils.constants import web_directory
 from khoj.utils.helpers import resolve_absolute_path
-from khoj.utils.rawconfig import ContentConfig, ImageContentConfig, ImageSearchConfig, SearchConfig
+from khoj.utils.rawconfig import (
+    ContentConfig,
+    ImageContentConfig,
+    ImageSearchConfig,
+    SearchConfig,
+)
 from tests.helpers import (
     ChatModelOptionsFactory,
     OfflineChatProcessorConversationConfigFactory,

@@ -1,43 +1,36 @@
-# Standard Packages
-import logging
 import json
+import logging
+import os
 from enum import Enum
 from typing import Optional
-import requests
-import os
 
-# External Packages
 import openai
+import requests
 import schedule
-from starlette.middleware.sessions import SessionMiddleware
-from starlette.middleware.authentication import AuthenticationMiddleware
-from starlette.requests import HTTPConnection
-
 from starlette.authentication import (
     AuthCredentials,
     AuthenticationBackend,
     SimpleUser,
     UnauthenticatedUser,
 )
+from starlette.middleware.authentication import AuthenticationMiddleware
+from starlette.middleware.sessions import SessionMiddleware
+from starlette.requests import HTTPConnection
 
-# Internal Packages
-from khoj.database.models import KhojUser, Subscription
 from khoj.database.adapters import (
     ConversationAdapters,
+    SubscriptionState,
+    aget_user_subscription_state,
     get_all_users,
     get_or_create_search_models,
-    aget_user_subscription_state,
-    SubscriptionState,
 )
+from khoj.database.models import KhojUser, Subscription
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
-from khoj.routers.indexer import configure_content, load_content, configure_search
+from khoj.routers.indexer import configure_content, configure_search, load_content
 from khoj.utils import constants, state
-from khoj.utils.config import (
-    SearchType,
-)
+from khoj.utils.config import SearchType
 from khoj.utils.fs_syncer import collect_files
 from khoj.utils.rawconfig import FullConfig
-
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +45,7 @@ class UserAuthenticationBackend(AuthenticationBackend):
     def __init__(
         self,
     ):
-        from khoj.database.models import KhojUser, KhojApiUser
+        from khoj.database.models import KhojApiUser, KhojUser
 
         self.khojuser_manager = KhojUser.objects
         self.khojapiuser_manager = KhojApiUser.objects
@@ -190,10 +183,10 @@ def configure_routes(app):
     # Import APIs here to setup search types before while configuring server
     from khoj.routers.api import api
     from khoj.routers.api_beta import api_beta
-    from khoj.routers.web_client import web_client
-    from khoj.routers.indexer import indexer
     from khoj.routers.auth import auth_router
+    from khoj.routers.indexer import indexer
     from khoj.routers.subscription import subscription_router
+    from khoj.routers.web_client import web_client
 
     app.include_router(api, prefix="/api")
     app.include_router(api_beta, prefix="/api/beta")

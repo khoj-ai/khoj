@@ -1,25 +1,26 @@
-# Standard Packages
 import concurrent.futures
 import json
 import logging
 import math
 import os
 import time
-from typing import Any, Dict, List, Optional, Union
 import uuid
+from typing import Any, Dict, List, Optional, Union
 
-# External Packages
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from asgiref.sync import sync_to_async
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.requests import Request
 from fastapi.responses import Response, StreamingResponse
 from starlette.authentication import requires
 
-# Internal Packages
 from khoj.configure import configure_server
 from khoj.database import adapters
-from khoj.database.adapters import ConversationAdapters, EntryAdapters, get_user_search_model_or_default
-from khoj.database.models import ChatModelOptions, SpeechToTextModelOptions
+from khoj.database.adapters import (
+    ConversationAdapters,
+    EntryAdapters,
+    get_user_search_model_or_default,
+)
+from khoj.database.models import ChatModelOptions
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import (
     GithubConfig,
@@ -29,6 +30,7 @@ from khoj.database.models import (
     LocalPdfConfig,
     LocalPlaintextConfig,
     NotionConfig,
+    SpeechToTextModelOptions,
 )
 from khoj.processor.conversation.offline.chat_model import extract_questions_offline
 from khoj.processor.conversation.offline.whisper import transcribe_audio_offline
@@ -40,13 +42,13 @@ from khoj.processor.tools.online_search import search_with_google
 from khoj.routers.helpers import (
     ApiUserRateLimiter,
     CommonQueryParams,
+    ConversationCommandRateLimiter,
     agenerate_chat_response,
     get_conversation_command,
-    text_to_image,
     is_ready_to_chat,
+    text_to_image,
     update_telemetry_state,
     validate_conversation_config,
-    ConversationCommandRateLimiter,
 )
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
@@ -62,7 +64,13 @@ from khoj.utils.helpers import (
     is_none_or_empty,
     timer,
 )
-from khoj.utils.rawconfig import FullConfig, GithubContentConfig, NotionContentConfig, SearchConfig, SearchResponse
+from khoj.utils.rawconfig import (
+    FullConfig,
+    GithubContentConfig,
+    NotionContentConfig,
+    SearchConfig,
+    SearchResponse,
+)
 from khoj.utils.state import SearchType
 
 # Initialize Router

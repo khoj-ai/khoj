@@ -1,26 +1,22 @@
-# Standard Packages
 import logging
 import math
 from pathlib import Path
 from typing import List, Tuple, Type, Union
 
-# External Packages
 import torch
+from asgiref.sync import sync_to_async
 from sentence_transformers import util
 
-from asgiref.sync import sync_to_async
-
-
-# Internal Packages
+from khoj.database.adapters import EntryAdapters, get_user_search_model_or_default
+from khoj.database.models import Entry as DbEntry
+from khoj.database.models import KhojUser
+from khoj.processor.content.text_to_entries import TextToEntries
 from khoj.utils import state
 from khoj.utils.helpers import get_absolute_path, timer
-from khoj.utils.models import BaseEncoder
-from khoj.utils.state import SearchType
-from khoj.utils.rawconfig import SearchResponse, Entry
 from khoj.utils.jsonl import load_jsonl
-from khoj.processor.content.text_to_entries import TextToEntries
-from khoj.database.adapters import EntryAdapters, get_user_search_model_or_default
-from khoj.database.models import KhojUser, Entry as DbEntry
+from khoj.utils.models import BaseEncoder
+from khoj.utils.rawconfig import Entry, SearchResponse
+from khoj.utils.state import SearchType
 
 logger = logging.getLogger(__name__)
 

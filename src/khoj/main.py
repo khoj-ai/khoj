@@ -2,7 +2,7 @@
    isort:skip_file
 """
 
-# Standard Packages
+
 from contextlib import redirect_stdout
 import io
 import os
@@ -18,7 +18,7 @@ from importlib.metadata import version
 warnings.filterwarnings("ignore", message=r"snapshot_download.py has been made private", category=FutureWarning)
 warnings.filterwarnings("ignore", message=r"legacy way to download files from the HF hub,", category=FutureWarning)
 
-# External Packages
+
 import uvicorn
 import django
 from fastapi import FastAPI
@@ -69,7 +69,7 @@ app.add_middleware(
 # Set Locale
 locale.setlocale(locale.LC_ALL, "")
 
-# Internal Packages. We do this after setting up Django so that Django features are accessible to the app.
+# We import these packages after setting up Django so that Django features are accessible to the app.
 from khoj.configure import configure_routes, initialize_server, configure_middleware
 from khoj.utils import state
 from khoj.utils.cli import cli

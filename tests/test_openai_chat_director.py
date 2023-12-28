@@ -1,17 +1,14 @@
-# Standard Packages
 import os
 import urllib.parse
 from urllib.parse import quote
 
-# External Packages
 import pytest
 from freezegun import freeze_time
-from khoj.processor.conversation import prompts
 
-# Internal Packages
+from khoj.database.models import KhojUser
+from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import message_to_log
 from tests.helpers import ConversationFactory
-from khoj.database.models import KhojUser
 
 # Initialize variables for tests
 api_key = os.getenv("OPENAI_API_KEY")

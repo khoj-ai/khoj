@@ -1,22 +1,18 @@
-# Standard Packages
-import logging
 import json
+import logging
 from datetime import datetime, timedelta
 from typing import Optional
 
-# External Packages
 from langchain.schema import ChatMessage
 
-# Internal Packages
-from khoj.utils.constants import empty_escape_sequences
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.openai.utils import (
     chat_completion_with_backoff,
     completion_with_backoff,
 )
 from khoj.processor.conversation.utils import generate_chatml_messages_with_context
+from khoj.utils.constants import empty_escape_sequences
 from khoj.utils.helpers import ConversationCommand, is_none_or_empty
-
 
 logger = logging.getLogger(__name__)
 

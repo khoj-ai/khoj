@@ -1,14 +1,12 @@
-# Standard Packages
-import os
 import logging
-from typing import Any
+import os
 from threading import Thread
+from typing import Any
 
-# External Packages
-from langchain.chat_models import ChatOpenAI
-from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
-from langchain.callbacks.base import BaseCallbackManager
 import openai
+from langchain.callbacks.base import BaseCallbackManager
+from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+from langchain.chat_models import ChatOpenAI
 from tenacity import (
     before_sleep_log,
     retry,
@@ -18,9 +16,7 @@ from tenacity import (
     wait_random_exponential,
 )
 
-# Internal Packages
 from khoj.processor.conversation.utils import ThreadedGenerator
-
 
 logger = logging.getLogger(__name__)
 

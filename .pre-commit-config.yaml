@@ -15,6 +15,13 @@ repos:
   - id: check-toml
   - id: check-yaml
 
+- repo: https://github.com/pycqa/isort
+  rev: 5.12.0
+  hooks:
+  - id: isort
+    name: isort (python)
+    args: ["--profile", "black", "--filter-files"]
+
 - repo: https://github.com/pre-commit/mirrors-mypy
   rev: v1.0.0
   hooks:

@@ -1,16 +1,12 @@
-# Standard Packages
 import logging
 from enum import Enum
 from typing import Tuple
 
-# External Packages
 import requests
 
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import KhojUser, NotionConfig
 from khoj.processor.content.text_to_entries import TextToEntries
-
-# Internal Packages
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry, NotionContentConfig
 
