@@ -343,16 +343,16 @@ async def update_search_model(
 
     new_config = await adapters.aset_user_search_model(user, int(id))
 
-    update_telemetry_state(
-        request=request,
-        telemetry_type="api",
-        api="set_search_model",
-        client=client,
-        metadata={"search_model": new_config.setting.name},
-    )
-
     if new_config is None:
         return {"status": "error", "message": "Model not found"}
+    else:
+        update_telemetry_state(
+            request=request,
+            telemetry_type="api",
+            api="set_search_model",
+            client=client,
+            metadata={"search_model": new_config.setting.name},
+        )
 
     return {"status": "ok"}
 
