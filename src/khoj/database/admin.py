@@ -16,6 +16,7 @@ from khoj.database.models import (
     SpeechToTextModelOptions,
     Subscription,
     TextToImageModelConfig,
+    UserSearchModelConfig,
 )
 
 # Register your models here.
@@ -30,6 +31,7 @@ admin.site.register(OfflineChatProcessorConversationConfig)
 admin.site.register(SearchModelConfig)
 admin.site.register(Subscription)
 admin.site.register(ReflectiveQuestion)
+admin.site.register(UserSearchModelConfig)
 admin.site.register(TextToImageModelConfig)
 
 

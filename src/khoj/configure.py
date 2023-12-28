@@ -22,7 +22,7 @@ from khoj.database.adapters import (
     SubscriptionState,
     aget_user_subscription_state,
     get_all_users,
-    get_or_create_search_model,
+    get_or_create_search_models,
 )
 from khoj.database.models import KhojUser, Subscription
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
@@ -139,8 +139,14 @@ def configure_server(
 
     # Initialize Search Models from Config and initialize content
     try:
-        state.embeddings_model = EmbeddingsModel(get_or_create_search_model().bi_encoder)
-        state.cross_encoder_model = CrossEncoderModel(get_or_create_search_model().cross_encoder)
+        search_models = get_or_create_search_models()
+        state.embeddings_model = dict()
+        state.cross_encoder_model = dict()
+
+        for model in search_models:
+            state.embeddings_model.update({model.name: EmbeddingsModel(model.bi_encoder)})
+            state.cross_encoder_model.update({model.name: CrossEncoderModel(model.cross_encoder)})
+
         state.SearchType = configure_search_types()
         state.search_models = configure_search(state.search_models, state.config.search_type)
         initialize_content(regenerate, search_type, init, user)

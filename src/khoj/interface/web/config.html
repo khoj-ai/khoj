@@ -107,6 +107,26 @@
                     </div>
                 </div>
             </div>
+            <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/web.svg" alt="Language">
+                    <h3 class="card-title">
+                        Language
+                    </h3>
+                </div>
+                <div class="card-description-row">
+                    <select id="search-models">
+                        {% for option in search_model_options %}
+                            <option value="{{ option.id }}" {% if option.id == selected_search_model_config %}selected{% endif %}>{{ option.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="card-action-row">
+                    <button id="save-search-model" class="card-button happy" onclick="updateSearchModel()">
+                        Save
+                    </button>
+                </div>
+            </div>
         </div>
         <div class="general-settings section">
             <div id="status" style="display: none;"></div>
@@ -239,6 +259,10 @@
     </div>
     {% endif %}
     <div class="section"></div>
+    </div>
+    <div class="section" id="notification-banner-parent">
+        <div id="notification-banner"></div>
+    </div>
 </div>
 <script>
 
@@ -263,6 +287,37 @@
                 saveModelButton.innerHTML = "Error";
                 saveModelButton.disabled = false;
             }
+        })
+    };
+
+    function updateSearchModel() {
+        const searchModel = document.getElementById("search-models").value;
+        const saveSearchModelButton = document.getElementById("save-search-model");
+        saveSearchModelButton.disabled = true;
+        saveSearchModelButton.innerHTML = "Saving...";
+
+        fetch('/api/config/data/search/model?id=' + searchModel, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status == "ok") {
+                saveSearchModelButton.innerHTML = "Save";
+                saveSearchModelButton.disabled = false;
+            } else {
+                saveSearchModelButton.innerHTML = "Error";
+                saveSearchModelButton.disabled = false;
+            }
+
+            let notificationBanner = document.getElementById("notification-banner");
+            notificationBanner.innerHTML = "When updating the language model, be sure to delete all your saved content and re-initialize.";
+            notificationBanner.style.display = "block";
+            setTimeout(function() {
+                notificationBanner.style.display = "none";
+            }, 5000);
         })
     };
 

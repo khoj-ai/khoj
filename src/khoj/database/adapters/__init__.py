@@ -33,6 +33,7 @@ from khoj.database.models import (
     Subscription,
     TextToImageModelConfig,
     UserConversationConfig,
+    UserSearchModelConfig,
 )
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
@@ -248,12 +249,33 @@ async def set_user_github_config(user: KhojUser, pat_token: str, repos: list):
     return config
 
 
-def get_or_create_search_model():
-    search_model = SearchModelConfig.objects.filter().first()
-    if not search_model:
-        search_model = SearchModelConfig.objects.create()
+def get_user_search_model_or_default(user=None):
+    if user and UserSearchModelConfig.objects.filter(user=user).exists():
+        return UserSearchModelConfig.objects.filter(user=user).first().setting
 
-    return search_model
+    if SearchModelConfig.objects.filter(name="default").exists():
+        return SearchModelConfig.objects.filter(name="default").first()
+    else:
+        SearchModelConfig.objects.create()
+
+    return SearchModelConfig.objects.first()
+
+
+def get_or_create_search_models():
+    search_models = SearchModelConfig.objects.all()
+    if search_models.count() == 0:
+        SearchModelConfig.objects.create()
+        search_models = SearchModelConfig.objects.all()
+
+    return search_models
+
+
+async def aset_user_search_model(user: KhojUser, search_model_config_id: int):
+    config = await SearchModelConfig.objects.filter(id=search_model_config_id).afirst()
+    if not config:
+        return None
+    new_config, _ = await UserSearchModelConfig.objects.aupdate_or_create(user=user, defaults={"setting": config})
+    return new_config
 
 
 class ConversationAdapters:
