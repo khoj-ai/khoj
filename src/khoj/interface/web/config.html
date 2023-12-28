@@ -107,6 +107,26 @@
                     </div>
                 </div>
             </div>
+            <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/web.svg" alt="Chat">
+                    <h3 class="card-title">
+                        Language
+                    </h3>
+                </div>
+                <div class="card-description-row">
+                    <select id="search-models">
+                        {% for option in search_model_options %}
+                            <option value="{{ option.id }}" {% if option.id == selected_search_model_config %}selected{% endif %}>{{ option.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="card-action-row">
+                    <button id="save-search-model" class="card-button happy" onclick="updateSearchModel()">
+                        Save
+                    </button>
+                </div>
+            </div>
         </div>
         <div class="general-settings section">
             <div id="status" style="display: none;"></div>
@@ -142,26 +162,6 @@
                 </div>
                 <div class="card-action-row">
                     <button id="save-model" class="card-button happy" onclick="updateChatModel()">
-                        Save
-                    </button>
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-title-row">
-                    <img class="card-icon" src="/static/assets/icons/matrix_blob.svg" alt="Chat">
-                    <h3 class="card-title">
-                        Language
-                    </h3>
-                </div>
-                <div class="card-description-row">
-                    <select id="search-models">
-                        {% for option in search_model_options %}
-                            <option value="{{ option.id }}" {% if option.id == selected_search_model_config %}selected{% endif %}>{{ option.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="card-action-row">
-                    <button id="save-search-model" class="card-button happy" onclick="updateSearchModel()">
                         Save
                     </button>
                 </div>
@@ -313,7 +313,7 @@
             }
 
             let notificationBanner = document.getElementById("notification-banner");
-            notificationBanner.innerHTML = "When updating the search model, be sure to delete all your data and reindex.";
+            notificationBanner.innerHTML = "When updating the language model, be sure to delete all your saved content and re-initialize.";
             notificationBanner.style.display = "block";
             setTimeout(function() {
                 notificationBanner.style.display = "none";
