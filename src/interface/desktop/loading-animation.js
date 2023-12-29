@@ -1,4 +1,4 @@
-var $wrap = document.getElementById('loading-animation'),
+let $wrap = document.getElementById('loading-animation'),
 
 canvassize = 380,
 
@@ -29,7 +29,7 @@ mesh = new THREE.Mesh(
     new THREE.TubeGeometry(new (THREE.Curve.create(function() {},
         function(percent) {
 
-            var x = length*Math.sin(pi2*percent),
+            let x = length*Math.sin(pi2*percent),
                 y = radius*Math.cos(pi2*3*percent),
                 z, t;
 
@@ -63,7 +63,7 @@ group.add(ring);
 
 // fake shadow
 (function() {
-    var plain, i;
+    let plain, i;
     for (i = 0; i < 10; i++) {
         plain = new THREE.Mesh(new THREE.PlaneGeometry(length*2+1, radius*3, 1), new THREE.MeshBasicMaterial({color: 0xd1684e, transparent: true, opacity: 0.15}));
         plain.position.z = -2.5+i*0.5;
@@ -94,7 +94,7 @@ function tilt(percent) {
 }
 
 function render() {
-    var progress;
+    let progress;
 
     animatestep = Math.max(0, Math.min(240, toend ? animatestep+1 : animatestep-4));
     acceleration = easing(animatestep, 0, 1, 240);

@@ -68,7 +68,7 @@ const schema = {
 };
 
 let syncing = false;
-var state = {}
+let state = {}
 const store = new Store({ schema });
 
 console.log(store);
@@ -384,7 +384,7 @@ const createWindow = (tab = 'chat.html') => {
         firstRun = false;
 
         // Create splash screen
-        var splash = new BrowserWindow({width: 400, height: 400, transparent: true, frame: false, alwaysOnTop: true});
+        let splash = new BrowserWindow({width: 400, height: 400, transparent: true, frame: false, alwaysOnTop: true});
         splash.setOpacity(1.0);
         splash.setBackgroundColor('#d16b4e');
         splash.loadFile('splash.html');

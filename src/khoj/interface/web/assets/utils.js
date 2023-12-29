@@ -1,6 +1,6 @@
 // Toggle the navigation menu
 function toggleMenu() {
-    var menu = document.getElementById("khoj-nav-menu");
+    let menu = document.getElementById("khoj-nav-menu");
     menu.classList.toggle("show");
 }
 
