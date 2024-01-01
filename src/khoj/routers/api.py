@@ -865,9 +865,8 @@ async def extract_references_and_questions(
             )
         elif conversation_config and conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
             openai_chat_config = await ConversationAdapters.get_openai_chat_config()
-            openai_chat = await ConversationAdapters.get_openai_chat()
             api_key = openai_chat_config.api_key
-            chat_model = openai_chat.chat_model
+            chat_model = conversation_config.chat_model
             inferred_queries = extract_questions(
                 defiltered_query, model=chat_model, api_key=api_key, conversation_log=meta_log
             )
