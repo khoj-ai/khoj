@@ -151,7 +151,7 @@ function pushDataToKhoj (regenerate = false) {
     }
 
     const lastSync = store.get('lastSync') || [];
-    const formData = new FormData();
+    const filesDataToPush = [];
     for (const file of filesToPush) {
         const stats = fs.statSync(file);
         if (!regenerate) {
@@ -167,7 +167,7 @@ function pushDataToKhoj (regenerate = false) {
             let mimeType = filenameToMimeType(file) + (encoding === "utf8" ? "; charset=UTF-8" : "");
             let fileContent = Buffer.from(fs.readFileSync(file, { encoding: encoding }), encoding);
             let fileObj = new Blob([fileContent], { type: mimeType });
-            formData.append('files', fileObj, file);
+            filesDataToPush.push({blob: fileObj, path: file});
             state[file] = {
                 success: true,
             }
@@ -184,49 +184,48 @@ function pushDataToKhoj (regenerate = false) {
     for (const syncedFile of lastSync) {
         if (!filesToPush.includes(syncedFile.path)) {
             fileObj = new Blob([""], { type: filenameToMimeType(syncedFile.path) });
-            formData.append('files', fileObj, syncedFile.path);
+            filesDataToPush.push({blob: fileObj, path: syncedFile.path});
         }
     }
 
     // Send collected files to Khoj server for indexing
-    if (!!formData?.entries()?.next().value) {
-        const hostURL = store.get('hostURL') || KHOJ_URL;
-        const headers = {
-            'Authorization': `Bearer ${store.get("khojToken")}`
-        };
-        axios.post(`${hostURL}/api/v1/index/update?force=${regenerate}&client=desktop`, formData, { headers })
-            .then(response => {
-                console.log(response.data);
-                let lastSync = [];
-                for (const file of filesToPush) {
-                    lastSync.push({
-                        path: file,
-                        datetime: new Date().toISOString()
-                    });
-                }
-                store.set('lastSync', lastSync);
-            })
-            .catch(error => {
-                console.error(error);
-                if (error.response.status == 429) {
-                    const win = BrowserWindow.getAllWindows()[0];
-                    if (win) win.webContents.send('needsSubscription', true);
-                    if (win) win.webContents.send('update-state', state);
-                }
-                state['completed'] = false
-            })
-            .finally(() => {
-                // Syncing complete
-                syncing = false;
-                const win = BrowserWindow.getAllWindows()[0];
-                if (win) win.webContents.send('update-state', state);
-            });
-    } else {
+    const hostURL = store.get('hostURL') || KHOJ_URL;
+    const headers = { 'Authorization': `Bearer ${store.get("khojToken")}` };
+    let requests = [];
+
+    // Request indexing files on server. With upto 1000 files in each request
+    for (let i = 0; i < filesDataToPush.length; i += 1000) {
+        const filesDataGroup = filesDataToPush.slice(i, i + 1000);
+        const formData = new FormData();
+        filesDataGroup.forEach(fileData => { formData.append('files', fileData.blob, fileData.path) });
+        let request = axios.post(`${hostURL}/api/v1/index/update?force=${regenerate}&client=desktop`, formData, { headers });
+        requests.push(request);
+    }
+
+    // Wait for requests batch to finish
+    Promise
+    .all(requests)
+    .then(responses => {
+        const lastSync = filesToPush
+            .filter(file => responses.find(response => response.data.includes(file)))
+            .map(file => ({ path: file, datetime: new Date().toISOString() }));
+        store.set('lastSync', lastSync);
+    })
+    .catch(error => {
+        console.error(error);
+        state["completed"] = false;
+        if (error.response.status === 429) {
+            win = BrowserWindow.getAllWindows()[0]
+            if (win) win.webContents.send('needsSubscription', true);
+            if (win) win.webContents.send('update-state', state);
+        }
+    })
+    .finally(() => {
         // Syncing complete
         syncing = false;
         const win = BrowserWindow.getAllWindows()[0];
         if (win) win.webContents.send('update-state', state);
-    }
+    });
 }
 
 pushDataToKhoj();
