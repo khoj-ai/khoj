@@ -382,7 +382,7 @@ class ConversationAdapters:
         return await OfflineChatProcessorConversationConfig.objects.filter(enabled=True).aexists()
 
     @staticmethod
-    async def get_offline_chat():
+    async def get_default_offline_llm():
         return await ChatModelOptions.objects.filter(model_type="offline").afirst()
 
     @staticmethod
@@ -397,7 +397,7 @@ class ConversationAdapters:
         return await OpenAIProcessorConversationConfig.objects.filter().aexists()
 
     @staticmethod
-    async def get_openai_chat():
+    async def get_default_openai_llm():
         return await ChatModelOptions.objects.filter(model_type="openai").afirst()
 
     @staticmethod
