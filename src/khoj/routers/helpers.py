@@ -113,10 +113,6 @@ def get_conversation_command(query: str, any_references: bool = False) -> Conver
         return ConversationCommand.Default
 
 
-async def construct_conversation_logs(user: KhojUser):
-    return (await ConversationAdapters.aget_conversation_by_user(user)).conversation_log
-
-
 async def agenerate_chat_response(*args):
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(executor, generate_chat_response, *args)
@@ -299,6 +295,8 @@ class ApiUserRateLimiter:
         self.cache: dict[str, list[float]] = defaultdict(list)
 
     def __call__(self, request: Request):
+        if not request.user.is_authenticated:
+            raise HTTPException(status_code=401, detail="Unauthorized")
         user: KhojUser = request.user.object
         subscribed = has_required_scope(request, ["premium"])
         user_requests = self.cache[user.uuid]

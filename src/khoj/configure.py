@@ -18,13 +18,16 @@ from starlette.middleware.sessions import SessionMiddleware
 from starlette.requests import HTTPConnection
 
 from khoj.database.adapters import (
+    ClientApplicationAdapters,
     ConversationAdapters,
     SubscriptionState,
+    aget_or_create_user_by_phone_number,
+    aget_user_by_phone_number,
     aget_user_subscription_state,
     get_all_users,
     get_or_create_search_models,
 )
-from khoj.database.models import KhojUser, Subscription
+from khoj.database.models import ClientApplication, KhojUser, Subscription
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
 from khoj.routers.indexer import configure_content, configure_search, load_content
 from khoj.utils import constants, state
@@ -36,9 +39,10 @@ logger = logging.getLogger(__name__)
 
 
 class AuthenticatedKhojUser(SimpleUser):
-    def __init__(self, user):
+    def __init__(self, user, client_app: Optional[ClientApplication] = None):
         self.object = user
-        super().__init__(user.email)
+        self.client_app = client_app
+        super().__init__(user.username)
 
 
 class UserAuthenticationBackend(AuthenticationBackend):
@@ -105,6 +109,42 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 if subscribed:
                     return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(user_with_token.user)
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user_with_token.user)
+        # Get query params for client_id and client_secret
+        client_id = request.query_params.get("client_id")
+        client_secret = request.query_params.get("client_secret")
+        if client_id and client_secret:
+            # Get the client application
+            client_application = await ClientApplicationAdapters.aget_client_application_by_id(client_id, client_secret)
+            if client_application is None:
+                return AuthCredentials(), UnauthenticatedUser()
+            # Get the identifier used for the user
+            phone_number = request.query_params.get("phone_number")
+            if phone_number is not None:
+                create_if_not_exists = request.query_params.get("create_if_not_exists")
+                if create_if_not_exists:
+                    user = await aget_or_create_user_by_phone_number(phone_number)
+
+            user_with_client = await aget_user_by_phone_number(phone_number)
+            if user_with_client is None:
+                return AuthCredentials(), UnauthenticatedUser()
+
+            if not state.billing_enabled:
+                return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(
+                    user_with_client, client_application
+                )
+
+            subscription_state = await aget_user_subscription_state(user_with_client)
+            subscribed = (
+                subscription_state == SubscriptionState.SUBSCRIBED.value
+                or subscription_state == SubscriptionState.TRIAL.value
+                or subscription_state == SubscriptionState.UNSUBSCRIBED.value
+            )
+            if subscribed:
+                return (
+                    AuthCredentials(["authenticated", "premium"]),
+                    AuthenticatedKhojUser(user_with_client),
+                )
+            return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user_with_client, client_application)
         if state.anonymous_mode:
             user = await self.khojuser_manager.filter(username="default").prefetch_related("subscription").afirst()
             if user:

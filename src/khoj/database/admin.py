@@ -7,6 +7,7 @@ from django.http import HttpResponse
 
 from khoj.database.models import (
     ChatModelOptions,
+    ClientApplication,
     Conversation,
     KhojUser,
     OfflineChatProcessorConversationConfig,
@@ -19,9 +20,6 @@ from khoj.database.models import (
     UserSearchModelConfig,
 )
 
-# Register your models here.
-
-
 admin.site.register(KhojUser, UserAdmin)
 
 admin.site.register(ChatModelOptions)
@@ -33,6 +31,7 @@ admin.site.register(Subscription)
 admin.site.register(ReflectiveQuestion)
 admin.site.register(UserSearchModelConfig)
 admin.site.register(TextToImageModelConfig)
+admin.site.register(ClientApplication)
 
 
 @admin.register(Conversation)

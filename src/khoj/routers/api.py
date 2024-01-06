@@ -712,7 +712,7 @@ async def chat(
 
     q = q.replace(f"/{conversation_command.value}", "").strip()
 
-    meta_log = (await ConversationAdapters.aget_conversation_by_user(user)).conversation_log
+    meta_log = (await ConversationAdapters.aget_conversation_by_user(user, request.user.client_app)).conversation_log
 
     compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
         request, common, meta_log, q, (n or 5), (d or math.inf), conversation_command
@@ -732,7 +732,11 @@ async def chat(
 
     elif conversation_command == ConversationCommand.Notes and not await EntryAdapters.auser_has_entries(user):
         no_entries_found_format = no_entries_found.format()
-        return StreamingResponse(iter([no_entries_found_format]), media_type="text/event-stream", status_code=200)
+        if stream:
+            return StreamingResponse(iter([no_entries_found_format]), media_type="text/event-stream", status_code=200)
+        else:
+            response_obj = {"response": no_entries_found_format}
+            return Response(content=json.dumps(response_obj), media_type="text/plain", status_code=200)
 
     elif conversation_command == ConversationCommand.Online:
         try:
