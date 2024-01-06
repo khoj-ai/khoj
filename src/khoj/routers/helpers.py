@@ -13,7 +13,12 @@ from fastapi import Depends, Header, HTTPException, Request, UploadFile
 from starlette.authentication import has_required_scope
 
 from khoj.database.adapters import ConversationAdapters, EntryAdapters
-from khoj.database.models import KhojUser, Subscription, TextToImageModelConfig
+from khoj.database.models import (
+    ClientApplication,
+    KhojUser,
+    Subscription,
+    TextToImageModelConfig,
+)
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.chat_model import (
     converse_offline,
@@ -74,6 +79,7 @@ def update_telemetry_state(
     metadata: Optional[dict] = None,
 ):
     user: KhojUser = request.user.object if request.user.is_authenticated else None
+    client_app: ClientApplication = request.user.client_app if request.user.is_authenticated else None
     subscription: Subscription = user.subscription if user and hasattr(user, "subscription") else None
     user_state = {
         "client_host": request.client.host if request.client else None,
@@ -83,6 +89,7 @@ def update_telemetry_state(
         "server_id": str(user.uuid) if user else None,
         "subscription_type": subscription.type if subscription else None,
         "is_recurring": subscription.is_recurring if subscription else None,
+        "client_id": str(client_app.name) if client_app else None,
     }
 
     if metadata:
