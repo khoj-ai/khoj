@@ -700,8 +700,8 @@ async def chat(
     n: Optional[int] = 5,
     d: Optional[float] = 0.18,
     stream: Optional[bool] = False,
-    rate_limiter_per_minute=Depends(ApiUserRateLimiter(requests=10, subscribed_requests=60, window=60)),
-    rate_limiter_per_day=Depends(ApiUserRateLimiter(requests=10, subscribed_requests=600, window=60 * 60 * 24)),
+    rate_limiter_per_minute=Depends(ApiUserRateLimiter(requests=5, subscribed_requests=60, window=60)),
+    rate_limiter_per_day=Depends(ApiUserRateLimiter(requests=5, subscribed_requests=600, window=60 * 60 * 24)),
 ) -> Response:
     user: KhojUser = request.user.object
 

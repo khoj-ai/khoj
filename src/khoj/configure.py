@@ -119,6 +119,8 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 return AuthCredentials(), UnauthenticatedUser()
             # Get the identifier used for the user
             phone_number = request.query_params.get("phone_number")
+            if not phone_number.startswith("+"):
+                phone_number = f"+{phone_number}"
             if phone_number is not None:
                 create_if_not_exists = request.query_params.get("create_if_not_exists")
                 if create_if_not_exists:

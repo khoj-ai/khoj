@@ -20,7 +20,24 @@ from khoj.database.models import (
     UserSearchModelConfig,
 )
 
-admin.site.register(KhojUser, UserAdmin)
+
+class KhojUserAdmin(UserAdmin):
+    list_display = (
+        "id",
+        "email",
+        "username",
+        "is_active",
+        "is_staff",
+        "is_superuser",
+        "phone_number",
+    )
+    search_fields = ("email", "username", "phone_number")
+    filter_horizontal = ("groups", "user_permissions")
+
+    fieldsets = (("Personal info", {"fields": ("phone_number",)}),) + UserAdmin.fieldsets
+
+
+admin.site.register(KhojUser, KhojUserAdmin)
 
 admin.site.register(ChatModelOptions)
 admin.site.register(SpeechToTextModelOptions)
