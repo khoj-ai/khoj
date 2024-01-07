@@ -44,17 +44,18 @@ const config = {
       ({
         docs: {
           sidebarPath: './sidebars.js',
+          routeBasePath: '/',
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+            'https://github.com/khoj-ai/khoj/tree/master/documentation/',
         },
         blog: {
           showReadingTime: true,
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+            'https://github.com/khoj-ai/khoj/tree/master/documentation/blog/',
         },
         theme: {
           customCss: './src/css/custom.css',
@@ -111,7 +112,7 @@ const config = {
             items: [
               {
                 label: 'Get Started',
-                to: '/docs/get-started/overview',
+                to: '/',
               },
             ],
           },

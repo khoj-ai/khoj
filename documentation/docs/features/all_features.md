@@ -6,11 +6,11 @@ sidebar_position: 1
 
 Khoj supports a variety of features, including search and chat with a wide range of data sources and interfaces.
 
-#### [Search](/docs/features/search.md)
+#### [Search](/features/search)
   - **Local**: Your personal data stays local. All search and indexing is done on your machine.
   - **Incremental**: Incremental search for a fast, search-as-you-type experience
 
-#### [Chat](/docs/features/chat.md)
+#### [Chat](/features/chat)
   - **Faster answers**: Find answers faster, smoother than search. No need to manually scan through your notes to find answers.
   - **Iterative discovery**: Iteratively explore and (re-)discover your notes
   - **Assisted creativity**: Smoothly weave across answers retrieval and content generation
@@ -19,7 +19,7 @@ Khoj supports a variety of features, including search and chat with a wide range
   - **Natural**: Advanced natural language understanding using Transformer based ML Models
   - **Pluggable**: Modular architecture makes it easy to plug in new data sources, frontends and ML models
   - **Multiple Sources**: Index your Org-mode and Markdown notes, PDF files, Github repositories, and Photos
-  - **Multiple Interfaces**: Interact from your [Web Browser](/docs/clients/web.md), [Emacs](/docs/clients/emacs) or [Obsidian](/docs/clients/obsidian)
+  - **Multiple Interfaces**: Interact from your [Web Browser](/clients/web), [Emacs](/clients/emacs) or [Obsidian](/clients/obsidian)
 
 ### Supported Interfaces
 
@@ -31,5 +31,5 @@ Khoj supports a variety of features, including search and chat with a wide range
 - markdown
 - org-mode
 - pdf
-- [github](/docs/online-data-sources/github_integration.md)
-- [notion](/docs/online-data-sources/notion_integration.md)
+- [github](/online-data-sources/github_integration)
+- [notion](/online-data-sources/notion_integration)
