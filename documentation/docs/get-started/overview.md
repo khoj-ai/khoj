@@ -4,30 +4,20 @@ sidebar_position: 0
 
 # Overview
 
-Learn about Khoj and its features.
-
 <p align="center"><img src="/img/khoj-logo-sideways-500.png" width="200" alt="Khoj Logo"></img></p>
 
 <div align="center">
-
-[![test](https://github.com/khoj-ai/khoj/actions/workflows/test.yml/badge.svg)](https://github.com/khoj-ai/khoj/actions/workflows/test.yml)
-[![dockerize](https://github.com/khoj-ai/khoj/actions/workflows/dockerize.yml/badge.svg)](https://github.com/khoj-ai/khoj/pkgs/container/khoj)
-[![pypi](https://github.com/khoj-ai/khoj/actions/workflows/pypi.yml/badge.svg)](https://pypi.org/project/khoj-assistant/)
-
+  <b>An AI copilot for your Second Brain</b>
 </div>
 
-<div align="center">
-<b>An AI copilot for your Second Brain</b>
-
-</div>
-
+<br />
 <div align="center">
 
-[📜 Explore Code](https://github.com/khoj-ai/khoj)
-<span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-[🌍 Try Khoj Cloud](https://khoj.dev)
-<span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-[💬 Get Involved](https://discord.gg/BDgyabRM6e)
+  [📜 Explore Code](https://github.com/khoj-ai/khoj)
+  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+  [🌍 Try Khoj Cloud](https://khoj.dev)
+  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+  [💬 Get Involved](https://discord.gg/BDgyabRM6e)
 
 </div>
 
@@ -46,9 +36,9 @@ Welcome to the Khoj Docs! This is the best place to get setup and explore Khoj's
 - [Read these instructions](/get-started/setup.mdx) to self-host a private instance of Khoj
 
 ## At a Glance
-<img src="https://docs.khoj.dev/assets/khoj_search_on_web.png" width="400px" />
+<img src="https://docs.khoj.dev/img/khoj_search_on_web.png" width="400px" />
 <span>&nbsp;&nbsp;</span>
-<img src="https://docs.khoj.dev/assets/khoj_chat_on_web.png" width="400px" />
+<img src="https://docs.khoj.dev/img/khoj_chat_on_web.png" width="400px" />
 
 #### [Search](/features/search.md)
   - **Natural**: Use natural language queries to quickly find relevant notes and documents.

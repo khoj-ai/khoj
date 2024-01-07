@@ -4,18 +4,15 @@ sidebar_position: 2
 
 # Emacs
 
-Use Khoj with Emacs to search your Second Brain from within Emacs.
-
-<h1><img src="/img/khoj-logo-sideways-500.png" width="200" alt="Khoj Logo" /> Emacs</h1>
-
-> An AI copilot for your Second Brain in Emacs
-
-<img src="https://stable.melpa.org/packages/khoj-badge.svg" width="150" alt="Melpa Stable Badge" />
+<img src="https://stable.melpa.org/packages/khoj-badge.svg" width="130" alt="Melpa Stable Badge" />
 <img src="https://melpa.org/packages/khoj-badge.svg" width="150" alt="Melpa Badge" />
 
 <img src="https://github.com/khoj-ai/khoj/actions/workflows/build_khoj_el.yml/badge.svg" width="150" alt="Build Badge" />
 <img src="https://github.com/khoj-ai/khoj/actions/workflows/test_khoj_el.yml/badge.svg" width="150" alt="Test Badge" />
 
+<br />
+<br />
+> Query your Second Brain from Emacs
 
 ## Features
 - **Chat**
