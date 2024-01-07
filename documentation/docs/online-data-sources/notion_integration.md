@@ -1,6 +1,6 @@
 # Notion Integration
 
-The Notion integration allows you to search/chat with your Notion workspaces. [Notion](notion.so/) is a platform people use for taking notes, especially for collaboration.
+The Notion integration allows you to search/chat with your Notion workspaces. [Notion](https://notion.so/) is a platform people use for taking notes, especially for collaboration.
 
 We haven't setup a fancy integration with OAuth yet, so this integration still requires some effort on your end to generate an API key.
 

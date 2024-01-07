@@ -14,9 +14,9 @@ import TabItem from '@theme/TabItem';
 These are the general setup instructions for Khoj.
 
 - Make sure [python](https://realpython.com/installing-python/) and [pip](https://pip.pypa.io/en/stable/installation/) are installed on your machine
-- Check the [Khoj Emacs docs](/emacs?id=setup) to setup Khoj with Emacs<br />
+- Check the [Khoj Emacs docs](/docs/clients/emacs?id=setup) to setup Khoj with Emacs<br />
   It's simpler as it can skip the server *install*, *run* and *configure* step below.
-- Check the [Khoj Obsidian docs](/obsidian?id=_2-setup-plugin) to setup Khoj with Obsidian<br />
+- Check the [Khoj Obsidian docs](/docs/clients/obsidian?id=_2-setup-plugin) to setup Khoj with Obsidian<br />
   Its simpler as it can skip the *configure* step below.
 
 For Installation, you can either use Docker or install Khoj locally.
@@ -171,21 +171,24 @@ To use the desktop client, you need to go to your Khoj server's settings page (h
 1. Go to http://localhost:42110/server/admin and login with your admin credentials.
     1. Go to [OpenAI settings](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/) in the server admin settings to add an Open AI processor conversation config. This is where you set your API key. Alternatively, you can go to the [offline chat settings](http://localhost:42110/server/admin/database/offlinechatprocessorconversationconfig/) and simply create a new setting with `Enabled` set to `True`.
     2. Go to the ChatModelOptions if you want to add additional models for chat. For example, you can specify `gpt-4` if you're using OpenAI or `mistral-7b-instruct-v0.1.Q4_0.gguf` if you're using offline chat. Make sure to configure the `type` field to `OpenAI` or `Offline` respectively.
-1. Select files and folders to index [using the desktop client](./get-started/setup?id=_2-download-the-desktop-client). When you click 'Save', the files will be sent to your server for indexing.
+1. Select files and folders to index [using the desktop client](/docs/get-started/setup?id=_2-download-the-desktop-client). When you click 'Save', the files will be sent to your server for indexing.
     - Select Notion workspaces and Github repositories to index using the web interface.
 
 
-> Note: Using Safari on Mac? You might not be able to login to the admin panel. Try using Chrome or Firefox instead.
+:::tip[Note]
+Using Safari on Mac? You might not be able to login to the admin panel. Try using Chrome or Firefox instead.
+:::
+
 
 ### 4. Install Client Plugins (Optional)
 Khoj exposes a web interface to search, chat and configure by default.<br />
 The optional steps below allow using Khoj from within an existing application like Obsidian or Emacs.
 
 - **Khoj Obsidian**:<br />
-[Install](./docs/clients/obsidian?id=_2-setup-plugin) the Khoj Obsidian plugin
+[Install](/docs/clients/obsidian?id=_2-setup-plugin) the Khoj Obsidian plugin
 
 - **Khoj Emacs**:<br />
-[Install](./docs/clients/emacs?id=setup) khoj.el
+[Install](/docs/clients/emacs?id=setup) khoj.el
 
 #### Setup host URL
 To configure your host URL on your clients when self-hosting, use `http://127.0.0.1:42110`. This is the default value for the `KHOJ_HOST` environment variable. Note that `localhost` will not work.
@@ -197,62 +200,62 @@ You can head to http://localhost:42110 to use the web interface. You can also us
 ## Upgrade
 ### Upgrade Khoj Server
 
-
-#### **Local Setup**
-
-```shell
-pip install --upgrade khoj-assistant
+```mdx-code-block
+  <Tabs groupId="environment">
+    <TabItem value="localsetup" label="Local Setup">
+      ```shell
+      pip install --upgrade khoj-assistant
+      ```
+      *Note: To upgrade to the latest pre-release version of the khoj server run below command*
+    </TabItem>
+    <TabItem value="docker" label="Docker">
+      From the same directory where you have your `docker-compose` file, this will fetch the latest build and upgrade your server.
+      ```shell
+      docker-compose up --build
+      ```
+    </TabItem>
+    <TabItem value="emacs" label="Emacs">
+    - Use your Emacs Package Manager to Upgrade
+    - See [khoj.el package setup](/docs/clients/emacs?id=setup) for details
+    </TabItem>
+    <TabItem value="obsidian" label="Obsidian">
+      - Upgrade via the Community plugins tab on the settings pane in the Obsidian app
+      - See the [khoj plugin setup](/docs/clients/obsidian?id=_2-setup-plugin) for details
+    </TabItem>
+  </Tabs>
 ```
-
-*Note: To upgrade to the latest pre-release version of the khoj server run below command*
-```shell
-# Maps to the latest commit on the master branch
-pip install --upgrade --pre khoj-assistant
-```
-
-#### **Docker**
-From the same directory where you have your `docker-compose` file, this will fetch the latest build and upgrade your server.
-
-```shell
-docker-compose up --build
-```
-
-
-
-### Upgrade Khoj on Emacs
-- Use your Emacs Package Manager to Upgrade
-- See [khoj.el package setup](./docs/clients/emacs?id=setup) for details
-
-### Upgrade Khoj on Obsidian
-- Upgrade via the Community plugins tab on the settings pane in the Obsidian app
-- See the [khoj plugin setup](./docs/clients/obsidian?id=_2-setup-plugin) for details
 
 ## Uninstall
 ### Uninstall Khoj Server
 
-<!-- tabs:start -->
+```mdx-code-block
+  <Tabs groupId="environment">
+    <TabItem value="localsetup" label="Local Setup">
+    ```shell
+    # uninstall khoj server
+    pip uninstall khoj-assistant
 
-#### **Local**
+    # delete khoj postgres db
+    dropdb khoj -U postgres
+    ```
+    </TabItem>
+    <TabItem value="docker" label="Docker">
+    From the same directory where you have your `docker-compose` file, run the command below to remove the server to delete its containers, networks, images and volumes.
 
-```shell
-# uninstall khoj server
-pip uninstall khoj-assistant
-
-# delete khoj postgres db
-dropdb khoj -U postgres
+    ```shell
+    docker-compose down --volumes
+    ```
+    </TabItem>
+    <TabItem value="emacs" label="Emacs">
+    Uninstall the khoj Emacs, or desktop client in the standard way from Emacs or your OS respectively
+    You can also `rm -rf ~/.khoj` to remove the Khoj data directory if did a local install.
+    </TabItem>
+    <TabItem value="obsidian" label="Obsidian">
+    Uninstall the khoj Obisidan, or desktop client in the standard way from Obsidian or your OS respectively
+    You can also `rm -rf ~/.khoj` to remove the Khoj data directory if did a local install.
+    </TabItem>
+  </Tabs>
 ```
-
-#### **Docker**
-From the same directory where you have your `docker-compose` file, run the command below to remove the server to delete its containers, networks, images and volumes.
-
-```shell
-docker-compose down --volumes
-```
-
-<!-- tabs:end -->
-
-### Uninstall Khoj Clients
-Uninstall the khoj emacs, obsidian or desktop client in the standard way from Emacs, Obsidian or your OS respectively
 
 ## Troubleshoot
 
