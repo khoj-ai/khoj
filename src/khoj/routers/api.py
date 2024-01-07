@@ -853,8 +853,8 @@ async def extract_references_and_questions(
             and conversation_config.model_type == ChatModelOptions.ModelType.OFFLINE
         ):
             using_offline_chat = True
-            offline_chat = await ConversationAdapters.get_offline_chat()
-            chat_model = offline_chat.chat_model
+            default_offline_llm = await ConversationAdapters.get_default_offline_llm()
+            chat_model = default_offline_llm.chat_model
             if state.gpt4all_processor_config is None:
                 state.gpt4all_processor_config = GPT4AllProcessorModel(chat_model=chat_model)
 
@@ -865,9 +865,9 @@ async def extract_references_and_questions(
             )
         elif conversation_config and conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
             openai_chat_config = await ConversationAdapters.get_openai_chat_config()
-            openai_chat = await ConversationAdapters.get_openai_chat()
+            default_openai_llm = await ConversationAdapters.get_default_openai_llm()
             api_key = openai_chat_config.api_key
-            chat_model = openai_chat.chat_model
+            chat_model = default_openai_llm.chat_model
             inferred_queries = extract_questions(
                 defiltered_query, model=chat_model, api_key=api_key, conversation_log=meta_log
             )

@@ -6,7 +6,7 @@
 ;;         Saba Imran <saba@khoj.dev>
 ;; Description: An AI copilot for your Second Brain
 ;; Keywords: search, chat, org-mode, outlines, markdown, pdf, image
-;; Version: 1.2.0
+;; Version: 1.2.1
 ;; Package-Requires: ((emacs "27.1") (transient "0.3.0") (dash "2.19.1"))
 ;; URL: https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs
 
@@ -241,13 +241,26 @@ for example), set this to the full interpreter path."
           (member val '("python" "python3" "pythonw" "py")))
   :group 'khoj)
 
-(defcustom khoj-org-files (org-agenda-files t t)
+(defcustom khoj-org-files nil
   "List of org-files to index on khoj server."
   :type '(repeat string)
   :group 'khoj)
 
 (defcustom khoj-org-directories nil
   "List of directories with `org-mode' files to index on khoj server."
+  :type '(repeat string)
+  :group 'khoj)
+
+(make-obsolete-variable 'khoj-org-directories 'khoj-index-directories "1.2.0" 'set)
+(make-obsolete-variable 'khoj-org-files 'khoj-index-files "1.2.0" 'set)
+
+(defcustom khoj-index-files (org-agenda-files t t)
+  "List of org, markdown, pdf and other plaintext to index on khoj server."
+  :type '(repeat string)
+  :group 'khoj)
+
+(defcustom khoj-index-directories nil
+  "List of directories with org, markdown, pdf and other plaintext files to index on khoj server."
   :type '(repeat string)
   :group 'khoj)
 
@@ -395,12 +408,16 @@ Auto invokes setup steps on calling main entrypoint."
   "Send files at `FILE-PATHS' to the Khoj server to index for search and chat.
 `FORCE' re-indexes all files of `CONTENT-TYPE' even if they are already indexed."
   (interactive)
-  (let ((boundary (format "-------------------------%d" (random (expt 10 10))))
-        (files-to-index (or file-paths
-                            (append (mapcan (lambda (dir) (directory-files-recursively dir "\\.org$")) khoj-org-directories) khoj-org-files)))
-        (type-query (if (or (equal content-type "all") (not content-type)) "" (format "t=%s" content-type)))
-        (inhibit-message t)
-        (message-log-max nil))
+  (let* ((boundary (format "-------------------------%d" (random (expt 10 10))))
+         ;; Use `khoj-index-directories', `khoj-index-files' when set, else fallback to `khoj-org-directories', `khoj-org-files'
+         ;; This is a temporary change. `khoj-org-directories', `khoj-org-files' are deprecated. They will be removed in a future release
+         (content-directories (or khoj-index-directories khoj-org-directories))
+         (content-files (or khoj-index-files khoj-org-files))
+         (files-to-index (or file-paths
+                             (append (mapcan (lambda (dir) (directory-files-recursively dir "\\.\\(org\\|md\\|markdown\\|pdf\\|txt\\|rst\\|xml\\|htm\\|html\\)$")) content-directories) content-files)))
+         (type-query (if (or (equal content-type "all") (not content-type)) "" (format "t=%s" content-type)))
+         (inhibit-message t)
+         (message-log-max nil))
     (let ((url-request-method "POST")
           (url-request-data (khoj--render-files-as-request-body files-to-index khoj--indexed-files boundary))
           (url-request-extra-headers `(("content-type" . ,(format "multipart/form-data; boundary=%s" boundary))
@@ -430,20 +447,30 @@ Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request.
     (set-buffer-multibyte nil)
     (insert "\n")
     (dolist (file-to-index files-to-index)
+      ;; find file content-type. Choose from org, markdown, pdf, plaintext
+      (let ((content-type (cond ((string-match "\\.org$" file-to-index) "text/org")
+                                ((string-match "\\.\\(md\\|markdown\\)$" file-to-index) "text/markdown")
+                                ((string-match "\\.pdf$" file-to-index) "application/pdf")
+                                (t "text/plain"))))
       (insert (format "--%s\r\n" boundary))
       (insert (format "Content-Disposition: form-data; name=\"files\"; filename=\"%s\"\r\n" file-to-index))
-      (insert "Content-Type: text/org\r\n\r\n")
+      (insert (format "Content-Type: %s\r\n\r\n" content-type))
       (insert (with-temp-buffer
                 (insert-file-contents-literally file-to-index)
                 (buffer-string)))
-      (insert "\r\n"))
+      (insert "\r\n")))
     (dolist (file-to-index previously-indexed-files)
       (when (not (member file-to-index files-to-index))
-        (insert (format "--%s\r\n" boundary))
-        (insert (format "Content-Disposition: form-data; name=\"files\"; filename=\"%s\"\r\n" file-to-index))
-        (insert "Content-Type: text/org\r\n\r\n")
-        (insert "")
-        (insert "\r\n")))
+        ;; find file content-type. Choose from org, markdown, pdf, plaintext
+        (let ((content-type (cond ((string-match "\\.org$" file-to-index) "text/org")
+                                  ((string-match "\\.\\(md\\|markdown\\)$" file-to-index) "text/markdown")
+                                  ((string-match "\\.pdf$" file-to-index) "application/pdf")
+                                  (t "text/plain"))))
+          (insert (format "--%s\r\n" boundary))
+          (insert (format "Content-Disposition: form-data; name=\"files\"; filename=\"%s\"\r\n" file-to-index))
+          (insert "Content-Type: text/org\r\n\r\n")
+          (insert "")
+          (insert "\r\n"))))
     (insert (format "--%s--\r\n" boundary))
     (buffer-string)))
 
