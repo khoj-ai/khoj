@@ -1,4 +1,4 @@
-name: build and deploy github pages
+name: build and deploy github pages for documentation
 on:
   push:
     branches:
@@ -20,6 +20,7 @@ jobs:
             node-version: 16.x
             cache: yarn
         - name: Install dependencies
+          working-directory: documentation
           run: yarn install --frozen-lockfile --non-interactive
         - name: Build
           run: yarn build
