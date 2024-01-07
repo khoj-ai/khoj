@@ -26,11 +26,11 @@ slug: /
 Welcome to the Khoj Docs! This is the best place to get setup and explore Khoj's features.
 
 - Khoj is an open source, personal AI
-- You can [chat](/features/chat) with it about anything. When relevant, it'll use any notes or documents you shared with it to respond
+- You can [chat](/features/chat) with it about anything. It'll use files you shared with it to respond, when relevant
 - Quickly [find](/features/search) relevant notes and documents using natural language
 - It understands pdf, plaintext, markdown, org-mode files, [notion pages](/online-data-sources/notion_integration) and [github repositories](/online-data-sources/github_integration)
 - Access it from your [Emacs](/clients/emacs), [Obsidian](/clients/obsidian), [Web browser](/clients/web) or the [Khoj Desktop app](/clients/desktop)
-- You can self-host Khoj on your consumer hardware or share it with your family, friends or team from your private cloud
+- Use [cloud](https://app.khoj.dev/login) to access your Khoj anytime from anywhere, [self-host](/get-started/setup) on consumer hardware for privacy
 
 ## Quickstart
 - [Try Khoj Cloud](https://app.khoj.dev) to get started quickly
