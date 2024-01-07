@@ -7,6 +7,7 @@ from typing import Optional
 import openai
 import requests
 import schedule
+from fastapi import Response
 from starlette.authentication import (
     AuthCredentials,
     AuthenticationBackend,
@@ -112,8 +113,15 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user_with_token.user)
         # Get query params for client_id and client_secret
         client_id = request.query_params.get("client_id")
-        client_secret = request.query_params.get("client_secret")
-        if client_id and client_secret:
+        if client_id:
+            # Get the client secret, which is passed in the Authorization header
+            client_secret = request.headers["Authorization"].split("Bearer ")[1]
+            if not client_secret:
+                return Response(
+                    status_code=401,
+                    content="Please provide a client secret in the Authorization header with a client_id query param.",
+                )
+
             # Get the client application
             client_application = await ClientApplicationAdapters.aget_client_application_by_id(client_id, client_secret)
             if client_application is None:
