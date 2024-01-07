@@ -4,18 +4,15 @@ sidebar_position: 2
 
 # Emacs
 
-Use Khoj with Emacs to search your Second Brain from within Emacs.
-
-<h1><img src="/img/khoj-logo-sideways-500.png" width="200" alt="Khoj Logo" /> Emacs</h1>
-
-> An AI copilot for your Second Brain in Emacs
-
-<img src="https://stable.melpa.org/packages/khoj-badge.svg" width="150" alt="Melpa Stable Badge" />
+<img src="https://stable.melpa.org/packages/khoj-badge.svg" width="130" alt="Melpa Stable Badge" />
 <img src="https://melpa.org/packages/khoj-badge.svg" width="150" alt="Melpa Badge" />
 
 <img src="https://github.com/khoj-ai/khoj/actions/workflows/build_khoj_el.yml/badge.svg" width="150" alt="Build Badge" />
 <img src="https://github.com/khoj-ai/khoj/actions/workflows/test_khoj_el.yml/badge.svg" width="150" alt="Test Badge" />
 
+<br />
+<br />
+> Query your Second Brain from Emacs
 
 ## Features
 - **Chat**
@@ -90,13 +87,13 @@ M-x package-install khoj
 
 ## Use
 ### Search
-See [Khoj Search](/features/search.md) for details
+See [Khoj Search](/features/search) for details
 1. Hit  `C-c s s` (or `M-x khoj RET s`) to open khoj search
 2. Enter your query in natural language<br/>
   E.g *"What is the meaning of life?"*, *"My life goals for 2023"*
 
 ### Chat
-See [Khoj Chat](/features/chat.md) for details
+See [Khoj Chat](/features/chat) for details
 1. Hit `C-c s c` (or `M-x khoj RET c`) to open khoj chat
 2. Ask questions in a natural, conversational style<br/>
   E.g *"When did I file my taxes last year?"*

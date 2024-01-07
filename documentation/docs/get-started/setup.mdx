@@ -14,9 +14,9 @@ import TabItem from '@theme/TabItem';
 These are the general setup instructions for Khoj.
 
 - Make sure [python](https://realpython.com/installing-python/) and [pip](https://pip.pypa.io/en/stable/installation/) are installed on your machine
-- Check the [Khoj Emacs docs](/docs/clients/emacs?id=setup) to setup Khoj with Emacs<br />
+- Check the [Khoj Emacs docs](/clients/emacs#setup) to setup Khoj with Emacs<br />
   It's simpler as it can skip the server *install*, *run* and *configure* step below.
-- Check the [Khoj Obsidian docs](/docs/clients/obsidian?id=_2-setup-plugin) to setup Khoj with Obsidian<br />
+- Check the [Khoj Obsidian docs](/clients/obsidian#setup) to setup Khoj with Obsidian<br />
   Its simpler as it can skip the *configure* step below.
 
 For Installation, you can either use Docker or install Khoj locally.
@@ -171,7 +171,7 @@ To use the desktop client, you need to go to your Khoj server's settings page (h
 1. Go to http://localhost:42110/server/admin and login with your admin credentials.
     1. Go to [OpenAI settings](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/) in the server admin settings to add an Open AI processor conversation config. This is where you set your API key. Alternatively, you can go to the [offline chat settings](http://localhost:42110/server/admin/database/offlinechatprocessorconversationconfig/) and simply create a new setting with `Enabled` set to `True`.
     2. Go to the ChatModelOptions if you want to add additional models for chat. For example, you can specify `gpt-4` if you're using OpenAI or `mistral-7b-instruct-v0.1.Q4_0.gguf` if you're using offline chat. Make sure to configure the `type` field to `OpenAI` or `Offline` respectively.
-1. Select files and folders to index [using the desktop client](/docs/get-started/setup?id=_2-download-the-desktop-client). When you click 'Save', the files will be sent to your server for indexing.
+1. Select files and folders to index [using the desktop client](/get-started/setup#2-download-the-desktop-client). When you click 'Save', the files will be sent to your server for indexing.
     - Select Notion workspaces and Github repositories to index using the web interface.
 
 
@@ -185,10 +185,10 @@ Khoj exposes a web interface to search, chat and configure by default.<br />
 The optional steps below allow using Khoj from within an existing application like Obsidian or Emacs.
 
 - **Khoj Obsidian**:<br />
-[Install](/docs/clients/obsidian?id=_2-setup-plugin) the Khoj Obsidian plugin
+[Install](/clients/obsidian#setup) the Khoj Obsidian plugin
 
 - **Khoj Emacs**:<br />
-[Install](/docs/clients/emacs?id=setup) khoj.el
+[Install](/clients/emacs#setup) khoj.el
 
 #### Setup host URL
 To configure your host URL on your clients when self-hosting, use `http://127.0.0.1:42110`. This is the default value for the `KHOJ_HOST` environment variable. Note that `localhost` will not work.
@@ -216,11 +216,11 @@ You can head to http://localhost:42110 to use the web interface. You can also us
     </TabItem>
     <TabItem value="emacs" label="Emacs">
     - Use your Emacs Package Manager to Upgrade
-    - See [khoj.el package setup](/docs/clients/emacs?id=setup) for details
+    - See [khoj.el package setup](/clients/emacs#setup) for details
     </TabItem>
     <TabItem value="obsidian" label="Obsidian">
       - Upgrade via the Community plugins tab on the settings pane in the Obsidian app
-      - See the [khoj plugin setup](/docs/clients/obsidian?id=_2-setup-plugin) for details
+      - See the [khoj plugin setup](/clients/obsidian#setup) for details
     </TabItem>
   </Tabs>
 ```

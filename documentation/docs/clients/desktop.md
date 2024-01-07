@@ -4,10 +4,11 @@ sidebar_position: 1
 
 # Desktop
 
-Get started with using the Desktop app to index any supported files with Khoj.
-<h1><img src="/img/khoj-logo-sideways-500.png" width="200" alt="Khoj Logo" /> Desktop</h1>
+> Query your Second Brain from your machine
 
-> An AI copilot for your Second Brain
+Use the Desktop app to chat and search with Khoj.
+You can also sync any relevant files with Khoj using the app.
+Khoj will use these files to provide contextual reponses when you search or chat.
 
 ## Features
 - **Chat**
