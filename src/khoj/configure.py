@@ -33,6 +33,7 @@ from khoj.routers.indexer import configure_content, configure_search, load_conte
 from khoj.utils import constants, state
 from khoj.utils.config import SearchType
 from khoj.utils.fs_syncer import collect_files
+from khoj.utils.helpers import is_none_or_empty
 from khoj.utils.rawconfig import FullConfig
 
 logger = logging.getLogger(__name__)
@@ -119,23 +120,25 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 return AuthCredentials(), UnauthenticatedUser()
             # Get the identifier used for the user
             phone_number = request.query_params.get("phone_number")
+            if is_none_or_empty(phone_number):
+                return AuthCredentials(), UnauthenticatedUser()
+
             if not phone_number.startswith("+"):
                 phone_number = f"+{phone_number}"
-            if phone_number is not None:
-                create_if_not_exists = request.query_params.get("create_if_not_exists")
-                if create_if_not_exists:
-                    user = await aget_or_create_user_by_phone_number(phone_number)
 
-            user_with_client = await aget_user_by_phone_number(phone_number)
-            if user_with_client is None:
+            create_if_not_exists = request.query_params.get("create_if_not_exists")
+            if create_if_not_exists:
+                user = await aget_or_create_user_by_phone_number(phone_number)
+            else:
+                user = await aget_user_by_phone_number(phone_number)
+
+            if user is None:
                 return AuthCredentials(), UnauthenticatedUser()
 
             if not state.billing_enabled:
-                return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(
-                    user_with_client, client_application
-                )
+                return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(user, client_application)
 
-            subscription_state = await aget_user_subscription_state(user_with_client)
+            subscription_state = await aget_user_subscription_state(user)
             subscribed = (
                 subscription_state == SubscriptionState.SUBSCRIBED.value
                 or subscription_state == SubscriptionState.TRIAL.value
@@ -144,9 +147,9 @@ class UserAuthenticationBackend(AuthenticationBackend):
             if subscribed:
                 return (
                     AuthCredentials(["authenticated", "premium"]),
-                    AuthenticatedKhojUser(user_with_client),
+                    AuthenticatedKhojUser(user),
                 )
-            return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user_with_client, client_application)
+            return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user, client_application)
         if state.anonymous_mode:
             user = await self.khojuser_manager.filter(username="default").prefetch_related("subscription").afirst()
             if user:

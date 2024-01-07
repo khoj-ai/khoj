@@ -41,7 +41,7 @@ from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
 from khoj.utils import state
 from khoj.utils.config import GPT4AllProcessorModel
-from khoj.utils.helpers import generate_random_name
+from khoj.utils.helpers import generate_random_name, is_none_or_empty
 
 
 class SubscriptionState(Enum):
@@ -87,6 +87,8 @@ async def get_or_create_user(token: dict) -> KhojUser:
 
 
 async def aget_or_create_user_by_phone_number(phone_number: str) -> KhojUser:
+    if is_none_or_empty(phone_number):
+        return None
     user = await aget_user_by_phone_number(phone_number)
     if not user:
         user = await acreate_user_by_phone_number(phone_number)
@@ -94,6 +96,8 @@ async def aget_or_create_user_by_phone_number(phone_number: str) -> KhojUser:
 
 
 async def acreate_user_by_phone_number(phone_number: str) -> KhojUser:
+    if is_none_or_empty(phone_number):
+        return None
     user, _ = await KhojUser.objects.filter(phone_number=phone_number).aupdate_or_create(
         defaults={"username": phone_number, "phone_number": phone_number}
     )
@@ -215,6 +219,8 @@ async def get_user_by_token(token: dict) -> KhojUser:
 
 
 async def aget_user_by_phone_number(phone_number: str) -> KhojUser:
+    if is_none_or_empty(phone_number):
+        return None
     return await KhojUser.objects.filter(phone_number=phone_number).prefetch_related("subscription").afirst()
 
 
