@@ -4,6 +4,8 @@
  * work well for content-centric websites.
  */
 
+ @import url('https://fonts.googleapis.com/css2?family=Source+Sans+3&display=swap');
+
 /* You can override the default Infima variables here. */
 :root {
   --ifm-color-primary: #fcc50b;
@@ -14,6 +16,7 @@
   --ifm-color-primary-lighter: #fcc50b;
   --ifm-color-primary-lightest: #fcc50b;
   --ifm-code-font-size: 95%;
+  --ifm-heading-font-family: 'Source Sans 3', sans-serif;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
 }
 
@@ -27,4 +30,8 @@
   --ifm-color-primary-lighter: #fcc50b;
   --ifm-color-primary-lightest: #fcc50b;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+body {
+  font-family: 'Source Sans 3', sans-serif;
 }
