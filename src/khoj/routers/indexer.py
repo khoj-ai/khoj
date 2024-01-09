@@ -148,7 +148,8 @@ async def update(
 
     logger.info(f"📪 Content index updated via API call by {client} client")
 
-    return Response(content="OK", status_code=200)
+    indexed_filenames = ",".join(file for ctype in index_files for file in index_files[ctype])
+    return Response(content=indexed_filenames, status_code=200)
 
 
 def configure_search(search_models: SearchModels, search_config: Optional[SearchConfig]) -> Optional[SearchModels]:
