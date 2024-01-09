@@ -114,8 +114,8 @@ function processDirectory(filesToPush, folder) {
     const files = fs.readdirSync(folder.path, { withFileTypes: true, recursive: true });
 
     for (const file of files) {
-        console.log(file);
         if (file.isFile() && validFileTypes.includes(file.name.split('.').pop())) {
+            console.log(`Add ${file.name} in ${folder.path} for indexing`);
             filesToPush.push(path.join(folder.path, file.name));
         }
 
@@ -214,17 +214,20 @@ function pushDataToKhoj (regenerate = false) {
     .catch(error => {
         console.error(error);
         state["completed"] = false;
-        if (error.response.status === 429) {
-            win = BrowserWindow.getAllWindows()[0]
-            if (win) win.webContents.send('needsSubscription', true);
-            if (win) win.webContents.send('update-state', state);
+        if (error?.response?.status === 429 && (win = BrowserWindow.getAllWindows()[0])) {
+            state["error"] = `Looks like you're out of space to sync your files. <a href="https://app.khoj.dev/config">Upgrade your plan</a> to unlock more space.`;
+        } else if (error?.code === 'ECONNREFUSED') {
+            state["error"] = `Could not connect to Khoj server. Ensure you can connect to it at ${error.address}:${error.port}.`;
+        } else {
+            state["error"] = `Sync was unsuccessful at ${currentTime.toLocaleTimeString()}. Contact team@khoj.dev to report this issue.`;
         }
     })
     .finally(() => {
         // Syncing complete
         syncing = false;
-        const win = BrowserWindow.getAllWindows()[0];
-        if (win) win.webContents.send('update-state', state);
+        if (win = BrowserWindow.getAllWindows()[0]) {
+            win.webContents.send('update-state', state);
+        }
     });
 }
 

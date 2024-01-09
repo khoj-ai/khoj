@@ -158,7 +158,7 @@ window.updateStateAPI.onUpdateState((event, state) => {
     nextSyncTime = new Date();
     nextSyncTime.setMinutes(Math.ceil((nextSyncTime.getMinutes() + 1) / 10) * 10);
     if (state.completed == false) {
-        syncStatusElement.innerHTML = `Sync was unsuccessful at ${currentTime.toLocaleTimeString()}. Contact team@khoj.dev to report this issue.`;
+        if (state.error) syncStatusElement.innerHTML = state.error;
         return;
     }
     const options = { hour: '2-digit', minute: '2-digit' };
