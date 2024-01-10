@@ -55,7 +55,7 @@ from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
 from khoj.search_type import image_search, text_search
 from khoj.utils import constants, state
-from khoj.utils.config import GPT4AllProcessorModel, TextSearchModel
+from khoj.utils.config import GPT4AllProcessorModel
 from khoj.utils.helpers import (
     AsyncIteratorWrapper,
     ConversationCommand,

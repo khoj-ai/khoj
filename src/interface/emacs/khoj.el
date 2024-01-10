@@ -432,7 +432,7 @@ Auto invokes setup steps on calling main entrypoint."
                               (khoj--delete-open-network-connections-to-server)
                               (with-current-buffer (current-buffer)
                                 (search-forward "\n\n" nil t)
-                                (message "khoj.el: Failed to %supdate %s content index. Status: %s%s"
+                                (message "khoj.el: Failed to %supdate %scontent index. Status: %s%s"
                                          (if force "force " "")
                                          (if content-type (format "%s " content-type) "all")
                                          (string-trim (format "%s %s" (nth 1 (nth 1 status)) (nth 2 (nth 1 status))))
