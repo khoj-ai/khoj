@@ -461,6 +461,20 @@ def test_user_no_data_returns_empty(client, sample_org_data, api_user3: KhojApiU
     assert response.json() == []
 
 
+@pytest.mark.django_db(transaction=True)
+def test_chat_with_unauthenticated_user(chat_client_with_auth, api_user2: KhojApiUser):
+    # Arrange
+    headers = {"Authorization": f"Bearer {api_user2.token}"}
+
+    # Act
+    auth_response = chat_client_with_auth.get(f'/api/chat?q="Hello!"&stream=true', headers=headers)
+    no_auth_response = chat_client_with_auth.get(f'/api/chat?q="Hello!"&stream=true')
+
+    # Assert
+    assert auth_response.status_code == 200
+    assert no_auth_response.status_code == 403
+
+
 def get_sample_files_data():
     return [
         ("files", ("path/to/filename.org", "* practicing piano", "text/org")),
