@@ -182,7 +182,6 @@ def initialize_content(regenerate: bool, search_type: Optional[SearchType] = Non
 def configure_routes(app):
     # Import APIs here to setup search types before while configuring server
     from khoj.routers.api import api
-    from khoj.routers.api_beta import api_beta
     from khoj.routers.api_config import api_config
     from khoj.routers.auth import auth_router
     from khoj.routers.indexer import indexer
@@ -190,7 +189,6 @@ def configure_routes(app):
     from khoj.routers.web_client import web_client
 
     app.include_router(api, prefix="/api")
-    app.include_router(api_beta, prefix="/api/beta")
     app.include_router(api_config, prefix="/api/config")
     app.include_router(indexer, prefix="/api/v1/index")
     if state.billing_enabled:
