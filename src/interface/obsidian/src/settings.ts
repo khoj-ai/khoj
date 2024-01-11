@@ -42,7 +42,7 @@ export class KhojSettingTab extends PluginSettingTab {
             .addText(text => text
                 .setValue(`${this.plugin.settings.khojUrl}`)
                 .onChange(async (value) => {
-                    this.plugin.settings.khojUrl = value.trim();
+                    this.plugin.settings.khojUrl = value.trim().replace(/\/$/, '');
                     await this.plugin.saveSettings();
                     containerEl.firstElementChild?.setText(this.getBackendStatusMessage());
                 }));
