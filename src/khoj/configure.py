@@ -1,12 +1,14 @@
 import json
 import logging
 import os
+from datetime import datetime
 from enum import Enum
 from typing import Optional
 
 import openai
 import requests
 import schedule
+from django.utils.timezone import make_aware
 from starlette.authentication import (
     AuthCredentials,
     AuthenticationBackend,
@@ -59,7 +61,8 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 email="default@example.com",
                 password="default",
             )
-            Subscription.objects.create(user=default_user, type="standard", renewal_date="2100-04-01")
+            renewal_date = make_aware(datetime.strptime("2100-04-01", "%Y-%m-%d"))
+            Subscription.objects.create(user=default_user, type="standard", renewal_date=renewal_date)
 
     async def authenticate(self, request: HTTPConnection):
         current_user = request.session.get("user")

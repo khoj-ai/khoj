@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 auth_router = APIRouter()
 
 if not state.anonymous_mode and not (os.environ.get("GOOGLE_CLIENT_ID") and os.environ.get("GOOGLE_CLIENT_SECRET")):
-    logger.warn(
+    logger.warning(
         "🚨 Use --anonymous-mode flag to disable Google OAuth or set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET environment variables to enable it"
     )
 else:

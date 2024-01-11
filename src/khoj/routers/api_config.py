@@ -349,7 +349,7 @@ def get_config_types(
     configured_content_types = list(enabled_file_types)
 
     if state.config and state.config.content_type:
-        for ctype in state.config.content_type.dict(exclude_none=True):
+        for ctype in state.config.content_type.model_dump(exclude_none=True):
             configured_content_types.append(ctype)
 
     return [
