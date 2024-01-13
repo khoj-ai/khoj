@@ -144,7 +144,9 @@ def configure_server(
         state.cross_encoder_model = dict()
 
         for model in search_models:
-            state.embeddings_model.update({model.name: EmbeddingsModel(model.bi_encoder)})
+            state.embeddings_model.update(
+                {model.name: EmbeddingsModel(model.bi_encoder, model.huggingface_inference_endpoint)}
+            )
             state.cross_encoder_model.update({model.name: CrossEncoderModel(model.cross_encoder)})
 
         state.SearchType = configure_search_types()
