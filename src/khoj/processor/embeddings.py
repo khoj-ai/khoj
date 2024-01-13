@@ -5,14 +5,11 @@ import requests
 import tqdm
 from sentence_transformers import CrossEncoder, SentenceTransformer
 from torch import nn
-from transformers import pipeline
 
 from khoj.utils.helpers import get_device
 from khoj.utils.rawconfig import SearchResponse
 
-# HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/pipeline/feature-extraction"
-HUGGINGFACE_API_URL = "https://payq4vr5o66jq4ua.us-east-1.aws.endpoints.huggingface.cloud"
-# HUGGINGFACE_API_URL = "https://ak9xrn5rtbbla1hb.us-east-1.aws.endpoints.huggingface.cloud"
+HUGGINGFACE_API_URL = os.getenv("HUGGINGFACE_INFERENCE_API_URL")
 
 
 class EmbeddingsModel:
