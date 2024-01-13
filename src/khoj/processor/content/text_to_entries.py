@@ -1,6 +1,5 @@
 import hashlib
 import logging
-import os
 import uuid
 from abc import ABC, abstractmethod
 from itertools import repeat
