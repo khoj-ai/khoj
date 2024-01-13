@@ -6,12 +6,11 @@ from abc import ABC, abstractmethod
 from itertools import repeat
 from typing import Any, Callable, List, Set, Tuple
 
-import requests
 from tqdm import tqdm
 
 from khoj.database.adapters import EntryAdapters, get_user_search_model_or_default
 from khoj.database.models import Entry as DbEntry
-from khoj.database.models import EntryDates, KhojUser, SearchModelConfig
+from khoj.database.models import EntryDates, KhojUser
 from khoj.search_filter.date_filter import DateFilter
 from khoj.utils import state
 from khoj.utils.helpers import batcher, is_none_or_empty, timer
@@ -19,13 +18,10 @@ from khoj.utils.rawconfig import Entry
 
 logger = logging.getLogger(__name__)
 
-HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/pipeline/feature-extraction"
-
 
 class TextToEntries(ABC):
     def __init__(self, config: Any = None):
         self.embeddings_model = state.embeddings_model
-        self.huggingface_api_key = os.getenv("HUGGINGFACE_API_KEY")
         self.config = config
         self.date_filter = DateFilter()
 
@@ -41,7 +37,7 @@ class TextToEntries(ABC):
 
     @staticmethod
     def split_entries_by_max_tokens(
-        entries: List[Entry], max_tokens: int = 100, max_word_length: int = 500
+        entries: List[Entry], max_tokens: int = 256, max_word_length: int = 500
     ) -> List[Entry]:
         "Split entries if compiled entry length exceeds the max tokens supported by the ML model."
         chunked_entries: List[Entry] = []
