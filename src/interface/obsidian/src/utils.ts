@@ -55,9 +55,8 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
     }
 
     // Iterate through all indexable files in vault, 1000 at a time
-    let batchResponseSuccess = true;
-    let batchResponseThrottled = false;
-    for (let i = 0; i < fileData.length && !batchResponseThrottled; i += 1000) {
+    let error_message = null;
+    for (let i = 0; i < fileData.length; i += 1000) {
         const filesGroup = fileData.slice(i, i + 1000);
         const formData = new FormData();
         filesGroup.forEach(fileItem => { formData.append('files', fileItem.blob, fileItem.path) });
@@ -71,15 +70,20 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
         });
 
         if (!response.ok) {
-            batchResponseSuccess = false;
-            batchResponseThrottled = response.status === 429;
+            if (response.status === 429) {
+                error_message = `❗️Failed to sync your content with Khoj server. Requests were throttled. Upgrade your subscription or try again later.`;
+                break;
+            } else if (response.status === 404) {
+                error_message = `❗️Could not connect to Khoj server. Ensure you can connect to it.`;
+                break;
+            } else {
+                error_message = `❗️Failed to sync your content with Khoj server. Raise issue on Khoj Discord or Github\nError: ${response.statusText}`;
+            }
         }
     }
 
-    if (batchResponseThrottled) {
-        new Notice(`❗️Failed to update Khoj content index. Requests were throttled. Upgrade your subscription or try again later.`);
-    } else if (!batchResponseSuccess) {
-        new Notice(`❗️Failed to update Khoj content index. Ensure Khoj server connected or raise issue on Khoj Discord/Github\nError: ${response.statusText}`);
+    if (error_message) {
+        new Notice(error_message);
     } else {
         console.log(`✅ Refreshed Khoj content index. Updated: ${countOfFilesToIndex} files, Deleted: ${countOfFilesToDelete} files.`);
     }
