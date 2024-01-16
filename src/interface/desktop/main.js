@@ -208,7 +208,10 @@ function pushDataToKhoj (regenerate = false) {
             })
             .catch(error => {
                 console.error(error);
-                if (error.response.status == 429) {
+                if (error.code == 'ECONNREFUSED') {
+                    const win = BrowserWindow.getAllWindows()[0];
+                    if (win) win.webContents.send('update-state', state);
+                } else if (error.response.status == 429) {
                     const win = BrowserWindow.getAllWindows()[0];
                     if (win) win.webContents.send('needsSubscription', true);
                     if (win) win.webContents.send('update-state', state);

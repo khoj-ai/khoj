@@ -1,3 +1,4 @@
+import os
 import urllib.parse
 from urllib.parse import quote
 
@@ -53,6 +54,7 @@ def test_chat_with_no_chat_history_or_retrieved_content_gpt4all(client_offline_c
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.skipif(os.getenv("SERPER_DEV_API_KEY") is None, reason="requires SERPER_DEV_API_KEY")
 @pytest.mark.chatquality
 @pytest.mark.django_db(transaction=True)
 def test_chat_with_online_content(chat_client):

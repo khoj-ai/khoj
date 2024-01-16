@@ -6,6 +6,7 @@ import os
 import time
 import uuid
 from typing import Any, Dict, List, Optional, Union
+from urllib.parse import unquote
 
 from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
@@ -362,6 +363,7 @@ async def chat(
     rate_limiter_per_day=Depends(ApiUserRateLimiter(requests=10, subscribed_requests=600, window=60 * 60 * 24)),
 ) -> Response:
     user: KhojUser = request.user.object
+    q = unquote(q)
 
     await is_ready_to_chat(user)
     conversation_command = get_conversation_command(query=q, any_references=True)
