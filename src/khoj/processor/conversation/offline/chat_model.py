@@ -123,9 +123,9 @@ def filter_questions(questions: List[str]):
 
 
 def converse_offline(
-    references,
-    online_results,
     user_query,
+    references=[],
+    online_results=[],
     conversation_log={},
     model: str = "mistral-7b-instruct-v0.1.Q4_0.gguf",
     loaded_model: Union[Any, None] = None,
