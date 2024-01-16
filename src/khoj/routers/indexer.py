@@ -148,7 +148,7 @@ async def update(
 
     logger.info(f"📪 Content index updated via API call by {client} client")
 
-    indexed_filenames = ",".join(file for ctype in index_files for file in index_files[ctype])
+    indexed_filenames = ",".join(file for ctype in index_files for file in index_files[ctype]) or ""
     return Response(content=indexed_filenames, status_code=200)
 
 
