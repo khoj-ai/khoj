@@ -31,40 +31,59 @@ function fileExtensionToMimeType (extension: string): string {
 export async function updateContentIndex(vault: Vault, setting: KhojSetting, lastSyncedFiles: TFile[], regenerate: boolean = false): Promise<TFile[]> {
     // Get all markdown, pdf files in the vault
     console.log(`Khoj: Updating Khoj content index...`)
-    const files = vault.getFiles().filter(file => file.extension === 'md' || file.extension === 'pdf');
-    const binaryFileTypes = ['pdf', 'png', 'jpg', 'jpeg']
+    const files = vault.getFiles().filter(file => file.extension === 'md' || file.extension === 'markdown' || file.extension === 'pdf');
+    const binaryFileTypes = ['pdf']
     let countOfFilesToIndex = 0;
     let countOfFilesToDelete = 0;
 
     // Add all files to index as multipart form data
-    const formData = new FormData();
+    const fileData = [];
     for (const file of files) {
         countOfFilesToIndex++;
         const encoding = binaryFileTypes.includes(file.extension) ? "binary" : "utf8";
         const mimeType = fileExtensionToMimeType(file.extension) + (encoding === "utf8" ? "; charset=UTF-8" : "");
         const fileContent = encoding == 'binary' ? await vault.readBinary(file) : await vault.read(file);
-        formData.append('files', new Blob([fileContent], { type: mimeType }), file.path);
+        fileData.push({blob: new Blob([fileContent], { type: mimeType }), path: file.path});
     }
 
     // Add any previously synced files to be deleted to multipart form data
     for (const lastSyncedFile of lastSyncedFiles) {
         if (!files.includes(lastSyncedFile)) {
             countOfFilesToDelete++;
-            formData.append('files', new Blob([]), lastSyncedFile.path);
+            fileData.push({blob: new Blob([]), path: lastSyncedFile.path});
         }
     }
 
-    // Call Khoj backend to update index with all markdown, pdf files
-    const response = await fetch(`${setting.khojUrl}/api/v1/index/update?force=${regenerate}&client=obsidian`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${setting.khojApiKey}`,
-        },
-        body: formData,
-    });
+    // Iterate through all indexable files in vault, 1000 at a time
+    let error_message = null;
+    for (let i = 0; i < fileData.length; i += 1000) {
+        const filesGroup = fileData.slice(i, i + 1000);
+        const formData = new FormData();
+        filesGroup.forEach(fileItem => { formData.append('files', fileItem.blob, fileItem.path) });
+        // Call Khoj backend to update index with all markdown, pdf files
+        const response = await fetch(`${setting.khojUrl}/api/v1/index/update?force=${regenerate}&client=obsidian`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${setting.khojApiKey}`,
+            },
+            body: formData,
+        });
 
-    if (!response.ok) {
-        new Notice(`❗️Failed to update Khoj content index. Ensure Khoj server connected or raise issue on Khoj Discord/Github\nError: ${response.statusText}`);
+        if (!response.ok) {
+            if (response.status === 429) {
+                error_message = `❗️Failed to sync your content with Khoj server. Requests were throttled. Upgrade your subscription or try again later.`;
+                break;
+            } else if (response.status === 404) {
+                error_message = `❗️Could not connect to Khoj server. Ensure you can connect to it.`;
+                break;
+            } else {
+                error_message = `❗️Failed to sync your content with Khoj server. Raise issue on Khoj Discord or Github\nError: ${response.statusText}`;
+            }
+        }
+    }
+
+    if (error_message) {
+        new Notice(error_message);
     } else {
         console.log(`✅ Refreshed Khoj content index. Updated: ${countOfFilesToIndex} files, Deleted: ${countOfFilesToDelete} files.`);
     }
@@ -92,7 +111,7 @@ export async function createNote(name: string, newLeaf = false): Promise<void> {
       console.error('Khoj: Could not create note.\n' + (e as any).message);
       throw e
     }
-  }
+}
 
 export async function createNoteAndCloseModal(query: string, modal: Modal, opt?: { newLeaf: boolean }): Promise<void> {
     try {

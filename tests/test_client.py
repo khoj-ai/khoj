@@ -169,6 +169,7 @@ def test_index_update_normal_file_unsubscribed(client, api_user4: KhojApiUser):
     assert response.status_code == 200
 
 
+# ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
 def test_index_update_big_files_no_billing(client):
     # Arrange
@@ -195,6 +196,26 @@ def test_index_update(client):
 
     # Assert
     assert response.status_code == 200
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.django_db(transaction=True)
+def test_index_update_fails_if_more_than_1000_files(client, api_user4: KhojApiUser):
+    # Arrange
+    api_token = api_user4.token
+    state.billing_enabled = True
+    files = [("files", (f"path/to/filename{i}.org", f"Symphony No {i}", "text/org")) for i in range(1001)]
+
+    headers = {"Authorization": f"Bearer {api_token}"}
+
+    # Act
+    ok_response = client.post("/api/v1/index/update", files=files[:1000], headers=headers)
+    bad_response = client.post("/api/v1/index/update", files=files, headers=headers)
+
+    # Assert
+    assert ok_response.status_code == 200
+    assert bad_response.status_code == 400
+    assert bad_response.content.decode("utf-8") == '{"detail":"Too many files. Maximum number of files is 1000."}'
 
 
 # ----------------------------------------------------------------------------------------------------

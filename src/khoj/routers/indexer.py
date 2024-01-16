@@ -63,37 +63,23 @@ async def update(
     ),
 ):
     user = request.user.object
+    index_files: Dict[str, Dict[str, str]] = {"org": {}, "markdown": {}, "pdf": {}, "plaintext": {}}
     try:
         logger.info(f"📬 Updating content index via API call by {client} client")
-        org_files: Dict[str, str] = {}
-        markdown_files: Dict[str, str] = {}
-        pdf_files: Dict[str, bytes] = {}
-        plaintext_files: Dict[str, str] = {}
-
         for file in files:
             file_type, encoding = get_file_type(file.content_type)
-            dict_to_update = None
-            if file_type == "org":
-                dict_to_update = org_files
-            elif file_type == "markdown":
-                dict_to_update = markdown_files
-            elif file_type == "pdf":
-                dict_to_update = pdf_files  # type: ignore
-            elif file_type == "plaintext":
-                dict_to_update = plaintext_files
-
-            if dict_to_update is not None:
-                dict_to_update[file.filename] = (
+            if file_type in index_files:
+                index_files[file_type][file.filename] = (
                     file.file.read().decode("utf-8") if encoding == "utf-8" else file.file.read()  # type: ignore
                 )
             else:
                 logger.warning(f"Skipped indexing unsupported file type sent by {client} client: {file.filename}")
 
         indexer_input = IndexerInput(
-            org=org_files,
-            markdown=markdown_files,
-            pdf=pdf_files,
-            plaintext=plaintext_files,
+            org=index_files["org"],
+            markdown=index_files["markdown"],
+            pdf=index_files["pdf"],
+            plaintext=index_files["plaintext"],
         )
 
         if state.config == None:
@@ -143,10 +129,10 @@ async def update(
         return Response(content="Failed", status_code=500)
 
     indexing_metadata = {
-        "num_org": len(org_files),
-        "num_markdown": len(markdown_files),
-        "num_pdf": len(pdf_files),
-        "num_plaintext": len(plaintext_files),
+        "num_org": len(index_files["org"]),
+        "num_markdown": len(index_files["markdown"]),
+        "num_pdf": len(index_files["pdf"]),
+        "num_plaintext": len(index_files["plaintext"]),
     }
 
     update_telemetry_state(
@@ -162,7 +148,8 @@ async def update(
 
     logger.info(f"📪 Content index updated via API call by {client} client")
 
-    return Response(content="OK", status_code=200)
+    indexed_filenames = ",".join(file for ctype in index_files for file in index_files[ctype]) or ""
+    return Response(content=indexed_filenames, status_code=200)
 
 
 def configure_search(search_models: SearchModels, search_config: Optional[SearchConfig]) -> Optional[SearchModels]:
