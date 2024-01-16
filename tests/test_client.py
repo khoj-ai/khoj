@@ -1,4 +1,5 @@
 # Standard Modules
+import os
 from io import BytesIO
 from urllib.parse import quote
 
@@ -461,6 +462,7 @@ def test_user_no_data_returns_empty(client, sample_org_data, api_user3: KhojApiU
     assert response.json() == []
 
 
+@pytest.mark.skipif(os.getenv("OPENAI_API_KEY") is None, reason="requires OPENAI_API_KEY")
 @pytest.mark.django_db(transaction=True)
 def test_chat_with_unauthenticated_user(chat_client_with_auth, api_user2: KhojApiUser):
     # Arrange
