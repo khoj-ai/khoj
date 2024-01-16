@@ -1,4 +1,5 @@
 # Standard Modules
+import os
 from io import BytesIO
 from urllib.parse import quote
 
@@ -480,6 +481,21 @@ def test_user_no_data_returns_empty(client, sample_org_data, api_user3: KhojApiU
     # assert actual response has no data as the default_user3, though other users have data
     assert len(response.json()) == 0
     assert response.json() == []
+
+
+@pytest.mark.skipif(os.getenv("OPENAI_API_KEY") is None, reason="requires OPENAI_API_KEY")
+@pytest.mark.django_db(transaction=True)
+def test_chat_with_unauthenticated_user(chat_client_with_auth, api_user2: KhojApiUser):
+    # Arrange
+    headers = {"Authorization": f"Bearer {api_user2.token}"}
+
+    # Act
+    auth_response = chat_client_with_auth.get(f'/api/chat?q="Hello!"&stream=true', headers=headers)
+    no_auth_response = chat_client_with_auth.get(f'/api/chat?q="Hello!"&stream=true')
+
+    # Assert
+    assert auth_response.status_code == 200
+    assert no_auth_response.status_code == 403
 
 
 def get_sample_files_data():

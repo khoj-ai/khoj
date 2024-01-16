@@ -37,7 +37,7 @@ async def subscribe(request: Request):
         "customer.subscription.updated",
         "customer.subscription.deleted",
     }:
-        logger.warn(f"Unhandled Stripe event type: {event['type']}")
+        logger.warning(f"Unhandled Stripe event type: {event['type']}")
         return {"success": False}
 
     # Retrieve the customer's details

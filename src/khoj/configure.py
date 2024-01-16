@@ -1,12 +1,14 @@
 import json
 import logging
 import os
+from datetime import datetime
 from enum import Enum
 from typing import Optional
 
 import openai
 import requests
 import schedule
+from django.utils.timezone import make_aware
 from starlette.authentication import (
     AuthCredentials,
     AuthenticationBackend,
@@ -59,7 +61,8 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 email="default@example.com",
                 password="default",
             )
-            Subscription.objects.create(user=default_user, type="standard", renewal_date="2100-04-01")
+            renewal_date = make_aware(datetime.strptime("2100-04-01", "%Y-%m-%d"))
+            Subscription.objects.create(user=default_user, type="standard", renewal_date=renewal_date)
 
     async def authenticate(self, request: HTTPConnection):
         current_user = request.session.get("user")
@@ -190,14 +193,14 @@ def initialize_content(regenerate: bool, search_type: Optional[SearchType] = Non
 def configure_routes(app):
     # Import APIs here to setup search types before while configuring server
     from khoj.routers.api import api
-    from khoj.routers.api_beta import api_beta
+    from khoj.routers.api_config import api_config
     from khoj.routers.auth import auth_router
     from khoj.routers.indexer import indexer
     from khoj.routers.subscription import subscription_router
     from khoj.routers.web_client import web_client
 
     app.include_router(api, prefix="/api")
-    app.include_router(api_beta, prefix="/api/beta")
+    app.include_router(api_config, prefix="/api/config")
     app.include_router(indexer, prefix="/api/v1/index")
     if state.billing_enabled:
         logger.info("💳 Enabled Billing")
