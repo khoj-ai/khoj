@@ -348,7 +348,7 @@ Auto invokes setup steps on calling main entrypoint."
       t
     ;; else general check via ping to khoj-server-url
     (if (ignore-errors
-          (url-retrieve-synchronously (format "%s/api/config/data/default" khoj-server-url)))
+          (url-retrieve-synchronously (format "%s/api/health" khoj-server-url)))
         ;; Successful ping to non-emacs khoj server indicates it is started and ready.
         ;; So update ready state tracker variable (and implicitly return true for started)
         (setq khoj--server-ready? t)
@@ -603,22 +603,6 @@ Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request.
 ;; --------------
 ;; Query Khoj API
 ;; --------------
-
-(defun khoj--post-new-config (config)
-  "Configure khoj server with provided CONFIG."
-  ;; POST provided config to khoj server
-  (let ((url-request-method "POST")
-        (url-request-extra-headers `(("Content-Type" . "application/json")
-                                     ("Authorization" . ,(format "Bearer %s" khoj-api-key))))
-        (url-request-data (encode-coding-string (json-encode-alist config) 'utf-8))
-        (config-url (format "%s/api/config/data" khoj-server-url)))
-    (with-current-buffer (url-retrieve-synchronously config-url)
-      (buffer-string)))
-  ;; Update index on khoj server after configuration update
-  (let ((khoj--server-ready? nil)
-        (url-request-extra-headers `(("Authorization" . ,(format "\"Bearer %s\"" khoj-api-key)))))
-    (url-retrieve (format "%s/api/update?client=emacs" khoj-server-url) #'identity)))
-
 (defun khoj--get-enabled-content-types ()
   "Get content types enabled for search from API."
   (let ((config-url (format "%s/api/config/types" khoj-server-url))

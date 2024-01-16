@@ -97,49 +97,6 @@ def _initialize_config():
         state.config.search_type = SearchConfig.model_validate(constants.default_config["search-type"])
 
 
-@api_config.get("/data", response_model=FullConfig)
-@requires(["authenticated"])
-def get_config_data(request: Request):
-    user = request.user.object
-    EntryAdapters.get_unique_file_types(user)
-
-    return state.config
-
-
-@api_config.post("/data")
-@requires(["authenticated"])
-async def set_config_data(
-    request: Request,
-    updated_config: FullConfig,
-    client: Optional[str] = None,
-):
-    user = request.user.object
-    await map_config_to_db(updated_config, user)
-
-    configuration_update_metadata = {}
-
-    enabled_content = await sync_to_async(EntryAdapters.get_unique_file_types)(user)
-
-    if state.config.content_type is not None:
-        configuration_update_metadata["github"] = "github" in enabled_content
-        configuration_update_metadata["notion"] = "notion" in enabled_content
-        configuration_update_metadata["org"] = "org" in enabled_content
-        configuration_update_metadata["pdf"] = "pdf" in enabled_content
-        configuration_update_metadata["markdown"] = "markdown" in enabled_content
-
-    if state.config.processor is not None:
-        configuration_update_metadata["conversation_processor"] = state.config.processor.conversation is not None
-
-    update_telemetry_state(
-        request=request,
-        telemetry_type="api",
-        api="set_config",
-        client=client,
-        metadata=configuration_update_metadata,
-    )
-    return state.config
-
-
 @api_config.post("/data/content-source/github", status_code=200)
 @requires(["authenticated"])
 async def set_content_config_github_data(
@@ -322,11 +279,6 @@ async def update_search_model(
 
 
 # Create Routes
-@api_config.get("/data/default")
-def get_default_config_data():
-    return constants.empty_config
-
-
 @api_config.get("/index/size", response_model=Dict[str, int])
 @requires(["authenticated"])
 async def get_indexed_data_size(request: Request, common: CommonQueryParams):
