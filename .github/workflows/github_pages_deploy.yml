@@ -1,0 +1,46 @@
+name: build and deploy github pages for documentation
+on:
+  push:
+    branches:
+      - 'master'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+    deploy:
+      environment:
+        name: github-pages
+        url: https://docs.khoj.dev
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v3
+        # 👇 Build steps
+        - name: Set up Node.js
+          uses: actions/setup-node@v3
+          with:
+            node-version: 18.x
+            cache: yarn
+            cache-dependency-path: documentation/yarn.lock
+        - name: Install dependencies
+          run: |
+            cd documentation
+            yarn install --frozen-lockfile --non-interactive
+        - name: Build
+          run: |
+            cd documentation
+            yarn build
+        # 👆 Build steps
+        - name: Setup Pages
+          uses: actions/configure-pages@v3
+        - name: Upload artifact
+          uses: actions/upload-pages-artifact@v2
+          with:
+            # 👇 Specify build output path
+            path: documentation/build
+        - name: Deploy to GitHub Pages
+          id: deployment
+          uses: actions/deploy-pages@v2
