@@ -68,11 +68,25 @@ class EmbeddingsModel:
 
 
 class CrossEncoderModel:
-    def __init__(self, model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"):
+    def __init__(
+        self,
+        model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2",
+        cross_encoder_inference_endpoint: str = None,
+        cross_encoder_inference_endpoint_api_key: str = None,
+    ):
         self.model_name = model_name
         self.cross_encoder_model = CrossEncoder(model_name=self.model_name, device=get_device())
+        self.inference_endpoint = cross_encoder_inference_endpoint
+        self.api_key = cross_encoder_inference_endpoint_api_key
 
     def predict(self, query, hits: List[SearchResponse], key: str = "compiled"):
+        if self.api_key is not None and self.inference_endpoint is not None:
+            target_url = f"{self.inference_endpoint}"
+            payload = {"inputs": {"query": query, "passages": [hit.additional[key] for hit in hits]}}
+            headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
+            response = requests.post(target_url, json=payload, headers=headers)
+            return response.json()["scores"]
+
         cross_inp = [[query, hit.additional[key]] for hit in hits]
         cross_scores = self.cross_encoder_model.predict(cross_inp, activation_fct=nn.Sigmoid())
         return cross_scores
