@@ -80,7 +80,11 @@ class CrossEncoderModel:
         self.api_key = cross_encoder_inference_endpoint_api_key
 
     def predict(self, query, hits: List[SearchResponse], key: str = "compiled"):
-        if self.api_key is not None and self.inference_endpoint is not None:
+        if (
+            self.api_key is not None
+            and self.inference_endpoint is not None
+            and "huggingface" in self.inference_endpoint
+        ):
             target_url = f"{self.inference_endpoint}"
             payload = {"inputs": {"query": query, "passages": [hit.additional[key] for hit in hits]}}
             headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
