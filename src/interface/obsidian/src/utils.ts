@@ -1,4 +1,4 @@
-import { FileSystemAdapter, Notice, Vault, Modal, TFile } from 'obsidian';
+import { FileSystemAdapter, Notice, Vault, Modal, TFile, request } from 'obsidian';
 import { KhojSetting } from 'src/settings'
 
 export function getVaultAbsolutePath(vault: Vault): string {
@@ -122,4 +122,51 @@ export async function createNoteAndCloseModal(query: string, modal: Modal, opt?:
         return
     }
     modal.close();
+}
+
+export async function canConnectToBackend(
+    khojUrl: string,
+    khojApiKey: string,
+    showNotice: boolean = false
+): Promise<{ connectedToBackend: boolean; statusMessage: string, userEmail: string }> {
+    let connectedToBackend = false;
+    let userEmail: string = '';
+
+    if (!!khojUrl) {
+        let headers  = !!khojApiKey ? { "Authorization": `Bearer ${khojApiKey}` } : undefined;
+        await request({ url: `${khojUrl}/api/health`, method: "GET", headers: headers })
+        .then(response => {
+            connectedToBackend = true;
+            userEmail = JSON.parse(response)?.email;
+        })
+        .catch(error => {
+            connectedToBackend = false;
+            console.log(`Khoj connection error:\n\n${error}`);
+        });
+    }
+
+    let statusMessage: string = getBackendStatusMessage(connectedToBackend, userEmail, khojUrl, khojApiKey);
+    if (showNotice) new Notice(statusMessage);
+    return { connectedToBackend, statusMessage, userEmail };
+}
+
+export function getBackendStatusMessage(
+    connectedToServer: boolean,
+    userEmail: string,
+    khojUrl: string,
+    khojApiKey: string
+): string {
+    // Welcome message with default settings. Khoj cloud always expects an API key.
+    if (!!khojApiKey && khojUrl === 'https://app.khoj.dev')
+        return `🌈 Welcome to Khoj! Get your API key from ${khojUrl}/config#clients and set it in the Khoj plugin settings on Obsidian`;
+
+    if (!connectedToServer)
+        return `❗️Could not connect to Khoj at ${khojUrl}. Ensure your can access it`;
+    else if (!userEmail)
+        return `✅ Connected to Khoj. ❗️Get a valid API key from ${khojUrl}/config#clients to log in`;
+    else if (userEmail === 'default@example.com')
+        // Logged in as default user in anonymous mode
+        return `✅ Signed in to Khoj`;
+    else
+        return `✅ Signed in to Khoj as ${userEmail}`;
 }
