@@ -46,11 +46,8 @@ export default class Khoj extends Plugin {
         });
 
         // Create an icon in the left ribbon.
-        this.addRibbonIcon('search', 'Khoj', (_: MouseEvent) => {
-            // Called when the user clicks the icon.
-            this.settings.connectedToBackend
-                ? new KhojSearchModal(this.app, this.settings).open()
-                : new Notice(`❗️Ensure Khoj backend is running and Khoj URL is pointing to it in the plugin settings`);
+        this.addRibbonIcon('message-circle', 'Khoj', (_: MouseEvent) => {
+            new KhojChatModal(this.app, this.settings).open()
         });
 
         // Add a settings tab so the user can configure khoj
