@@ -16,33 +16,21 @@ export default class Khoj extends Plugin {
         this.addCommand({
             id: 'search',
             name: 'Search',
-            checkCallback: (checking) => {
-                if (!checking && this.settings.connectedToBackend)
-                    new KhojSearchModal(this.app, this.settings).open();
-                return this.settings.connectedToBackend;
-            }
+            callback: () => { new KhojSearchModal(this.app, this.settings).open(); }
         });
 
         // Add similar notes command. It can only be triggered from the editor
         this.addCommand({
             id: 'similar',
             name: 'Find similar notes',
-            editorCheckCallback: (checking) => {
-                if (!checking && this.settings.connectedToBackend)
-                    new KhojSearchModal(this.app, this.settings, true).open();
-                return this.settings.connectedToBackend;
-            }
+            editorCallback: () => { new KhojSearchModal(this.app, this.settings, true).open(); }
         });
 
         // Add chat command. It can be triggered from anywhere
         this.addCommand({
             id: 'chat',
             name: 'Chat',
-            checkCallback: (checking) => {
-                if (!checking && this.settings.connectedToBackend)
-                    new KhojChatModal(this.app, this.settings).open();
-                return this.settings.connectedToBackend;
-            }
+            callback: () => { new KhojChatModal(this.app, this.settings).open(); }
         });
 
         // Create an icon in the left ribbon.
