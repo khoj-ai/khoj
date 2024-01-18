@@ -3,6 +3,7 @@ import uuid
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from pgvector.django import VectorField
+from phonenumber_field.modelfields import PhoneNumberField
 
 
 class BaseModel(models.Model):
@@ -13,8 +14,18 @@ class BaseModel(models.Model):
         abstract = True
 
 
+class ClientApplication(BaseModel):
+    name = models.CharField(max_length=200)
+    client_id = models.CharField(max_length=200)
+    client_secret = models.CharField(max_length=200)
+
+    def __str__(self):
+        return self.name
+
+
 class KhojUser(AbstractUser):
     uuid = models.UUIDField(models.UUIDField(default=uuid.uuid4, editable=False))
+    phone_number = PhoneNumberField(null=True, default=None, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.uuid:
@@ -165,6 +176,7 @@ class UserSearchModelConfig(BaseModel):
 class Conversation(BaseModel):
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
     conversation_log = models.JSONField(default=dict)
+    client = models.ForeignKey(ClientApplication, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
 
 class ReflectiveQuestion(BaseModel):

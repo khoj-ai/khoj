@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import stripe
 from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Request
+from fastapi.responses import Response
 from starlette.authentication import requires
 
 from khoj.database import adapters
@@ -69,7 +70,7 @@ async def subscribe(request: Request):
         )
         success = user is not None
 
-    logger.info(f'Stripe subscription {event["type"]} for {customer["email"]}')
+    logger.info(f'Stripe subscription {event["type"]} for {customer_email}')
     return {"success": success}
 
 
