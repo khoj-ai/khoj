@@ -182,7 +182,7 @@ export class KhojChatModal extends Modal {
             chat_message_body_text_el.innerHTML = message;
         } else {
             // @ts-ignore
-            MarkdownRenderer.renderMarkdown(message, chat_message_body_text_el, null, null);
+            MarkdownRenderer.renderMarkdown(message, chat_message_body_text_el, '', null);
         }
 
         // Remove user-select: none property to make text selectable
@@ -221,7 +221,7 @@ export class KhojChatModal extends Modal {
         this.result += additionalMessage;
         htmlElement.innerHTML = "";
         // @ts-ignore
-        await MarkdownRenderer.renderMarkdown(this.result, htmlElement, null, null);
+        await MarkdownRenderer.renderMarkdown(this.result, htmlElement, '', null);
         // Scroll to bottom of modal, till the send message input box
         this.modalEl.scrollTop = this.modalEl.scrollHeight;
     }
