@@ -89,7 +89,9 @@ async def get_or_create_user_by_email(email: str) -> KhojUser:
     user, _ = await KhojUser.objects.filter(email=email).aupdate_or_create(defaults={"username": email, "email": email})
     await user.asave()
 
-    await Subscription.objects.acreate(user=user, type="trial")
+    user_subscription = await Subscription.objects.filter(user=user).afirst()
+    if not user_subscription:
+        await Subscription.objects.acreate(user=user, type="trial")
 
     return user
 
@@ -124,30 +126,20 @@ def get_user_subscription(email: str) -> Optional[Subscription]:
 async def set_user_subscription(
     email: str, is_recurring=None, renewal_date=None, type="standard"
 ) -> Optional[Subscription]:
-    # Get or create the user object
+    # Get or create the user object and their subscription
     user = await get_or_create_user_by_email(email)
-
     user_subscription = await Subscription.objects.filter(user=user).afirst()
-    if not user_subscription:
-        user = await get_user_by_email(email)
-        if not user:
-            return None
-        user_subscription = await Subscription.objects.acreate(
-            user=user, type=type, is_recurring=is_recurring, renewal_date=renewal_date
-        )
-        return user_subscription
-    elif user_subscription:
-        user_subscription.type = type
-        if is_recurring is not None:
-            user_subscription.is_recurring = is_recurring
-        if renewal_date is False:
-            user_subscription.renewal_date = None
-        elif renewal_date is not None:
-            user_subscription.renewal_date = renewal_date
-        await user_subscription.asave()
-        return user_subscription
-    else:
-        return None
+
+    # Update the user subscription state
+    user_subscription.type = type
+    if is_recurring is not None:
+        user_subscription.is_recurring = is_recurring
+    if renewal_date is False:
+        user_subscription.renewal_date = None
+    elif renewal_date is not None:
+        user_subscription.renewal_date = renewal_date
+    await user_subscription.asave()
+    return user_subscription
 
 
 def subscription_to_state(subscription: Subscription) -> str:
