@@ -278,7 +278,28 @@ async def update_search_model(
     return {"status": "ok"}
 
 
-# Create Routes
+@api_config.post("/data/phone", status_code=200)
+@requires(["authenticated"])
+async def update_phone_number(
+    request: Request,
+    phone_number: str,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+
+    await adapters.aset_user_phone_number(user, phone_number)
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="set_phone_number",
+        client=client,
+        metadata={"phone_number": phone_number},
+    )
+
+    return {"status": "ok"}
+
+
 @api_config.get("/index/size", response_model=Dict[str, int])
 @requires(["authenticated"])
 async def get_indexed_data_size(request: Request, common: CommonQueryParams):

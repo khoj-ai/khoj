@@ -577,7 +577,33 @@
     const iti = window.intlTelInput(phoneInputField, {
         initialCountry: "us",
         separateDialCode: true,
+        utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js",
     });
+
+    const errorMap = ["Invalid number", "Invalid country code", "Too short", "Too long", "Invalid number"];
+
+    const whastsaapVerifyButton = document.getElementById("whatspp-verify");
+    whastsaapVerifyButton.addEventListener("click", () => {
+        console.log(iti.getValidationError());
+        if (iti.getValidationError() != -99) {
+            alert(errorMap[iti.getValidationError()]);
+        } else {
+            alert("Valid number");
+            const mobileNumber = iti.getNumber();
+            fetch('/api/config/whatsapp/phone?mobile_number=' + mobileNumber, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status == "ok") {
+                    window.location.href = "/config/whatsapp/phone-number";
+                }
+            })
+        }
+    })
 
 
 </script>
