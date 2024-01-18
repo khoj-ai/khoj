@@ -51,7 +51,7 @@ async def subscribe(request: Request):
     if event_type in {"invoice.paid"}:
         # Mark the user as subscribed and update the next renewal date on payment
         subscription = stripe.Subscription.list(customer=customer_id).data[0]
-        renewal_date = datetime.fromtimestamp(subscription["current_period_end"], tz=timezone.utc)
+        renewal_date = datetime.fromtimestamp(subscription["lines"]["data"][0]["period"]["end"], tz=timezone.utc)
         user = await adapters.set_user_subscription(customer_email, is_recurring=True, renewal_date=renewal_date)
         success = user is not None
     elif event_type in {"customer.subscription.updated"}:
@@ -69,7 +69,7 @@ async def subscribe(request: Request):
         )
         success = user is not None
 
-    logger.info(f'Stripe subscription {event["type"]} for {customer["email"]}')
+    logger.info(f'Stripe subscription {event["type"]} for {customer_email}')
     return {"success": success}
 
 
