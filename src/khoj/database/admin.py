@@ -7,6 +7,7 @@ from django.http import HttpResponse
 
 from khoj.database.models import (
     ChatModelOptions,
+    ClientApplication,
     Conversation,
     KhojUser,
     OfflineChatProcessorConversationConfig,
@@ -19,10 +20,24 @@ from khoj.database.models import (
     UserSearchModelConfig,
 )
 
-# Register your models here.
+
+class KhojUserAdmin(UserAdmin):
+    list_display = (
+        "id",
+        "email",
+        "username",
+        "is_active",
+        "is_staff",
+        "is_superuser",
+        "phone_number",
+    )
+    search_fields = ("email", "username", "phone_number")
+    filter_horizontal = ("groups", "user_permissions")
+
+    fieldsets = (("Personal info", {"fields": ("phone_number",)}),) + UserAdmin.fieldsets
 
 
-admin.site.register(KhojUser, UserAdmin)
+admin.site.register(KhojUser, KhojUserAdmin)
 
 admin.site.register(ChatModelOptions)
 admin.site.register(SpeechToTextModelOptions)
@@ -33,6 +48,7 @@ admin.site.register(Subscription)
 admin.site.register(ReflectiveQuestion)
 admin.site.register(UserSearchModelConfig)
 admin.site.register(TextToImageModelConfig)
+admin.site.register(ClientApplication)
 
 
 @admin.register(Conversation)

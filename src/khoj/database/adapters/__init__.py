@@ -17,6 +17,7 @@ from torch import Tensor
 
 from khoj.database.models import (
     ChatModelOptions,
+    ClientApplication,
     Conversation,
     Entry,
     GithubConfig,
@@ -40,7 +41,7 @@ from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
 from khoj.utils import state
 from khoj.utils.config import GPT4AllProcessorModel
-from khoj.utils.helpers import generate_random_name
+from khoj.utils.helpers import generate_random_name, is_none_or_empty
 
 
 class SubscriptionState(Enum):
@@ -82,6 +83,28 @@ async def get_or_create_user(token: dict) -> KhojUser:
     user = await get_user_by_token(token)
     if not user:
         user = await create_user_by_google_token(token)
+    return user
+
+
+async def aget_or_create_user_by_phone_number(phone_number: str) -> KhojUser:
+    if is_none_or_empty(phone_number):
+        return None
+    user = await aget_user_by_phone_number(phone_number)
+    if not user:
+        user = await acreate_user_by_phone_number(phone_number)
+    return user
+
+
+async def acreate_user_by_phone_number(phone_number: str) -> KhojUser:
+    if is_none_or_empty(phone_number):
+        return None
+    user, _ = await KhojUser.objects.filter(phone_number=phone_number).aupdate_or_create(
+        defaults={"username": phone_number, "phone_number": phone_number}
+    )
+    await user.asave()
+
+    await Subscription.objects.acreate(user=user, type="trial")
+
     return user
 
 
@@ -187,6 +210,12 @@ async def get_user_by_token(token: dict) -> KhojUser:
     return google_user.user
 
 
+async def aget_user_by_phone_number(phone_number: str) -> KhojUser:
+    if is_none_or_empty(phone_number):
+        return None
+    return await KhojUser.objects.filter(phone_number=phone_number).prefetch_related("subscription").afirst()
+
+
 async def retrieve_user(session_id: str) -> KhojUser:
     session = SessionStore(session_key=session_id)
     if not await sync_to_async(session.exists)(session_key=session_id):
@@ -270,6 +299,12 @@ async def aset_user_search_model(user: KhojUser, search_model_config_id: int):
     return new_config
 
 
+class ClientApplicationAdapters:
+    @staticmethod
+    async def aget_client_application_by_id(client_id: str, client_secret: str):
+        return await ClientApplication.objects.filter(client_id=client_id, client_secret=client_secret).afirst()
+
+
 class ConversationAdapters:
     @staticmethod
     def get_conversation_by_user(user: KhojUser):
@@ -279,11 +314,11 @@ class ConversationAdapters:
         return Conversation.objects.create(user=user)
 
     @staticmethod
-    async def aget_conversation_by_user(user: KhojUser):
-        conversation = Conversation.objects.filter(user=user)
+    async def aget_conversation_by_user(user: KhojUser, client_application: ClientApplication = None):
+        conversation = Conversation.objects.filter(user=user, client=client_application)
         if await conversation.aexists():
             return await conversation.afirst()
-        return await Conversation.objects.acreate(user=user)
+        return await Conversation.objects.acreate(user=user, client=client_application)
 
     @staticmethod
     async def adelete_conversation_by_user(user: KhojUser):
