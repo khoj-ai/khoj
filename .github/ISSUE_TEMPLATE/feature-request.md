@@ -7,5 +7,5 @@ assignees: ''
 
 ---
 
-**Describe the feature you'd like**
+## Describe the feature you'd like
 A clear and concise description of what you want to happen. Include any relevant links or screenshots or inspiration.
