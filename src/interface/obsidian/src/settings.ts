@@ -1,6 +1,6 @@
 import { App, Notice, PluginSettingTab, Setting, TFile } from 'obsidian';
 import Khoj from 'src/main';
-import { updateContentIndex } from './utils';
+import { canConnectToBackend, getBackendStatusMessage, updateContentIndex } from './utils';
 
 export interface KhojSetting {
     resultsCount: number;
@@ -9,6 +9,7 @@ export interface KhojSetting {
     connectedToBackend: boolean;
     autoConfigure: boolean;
     lastSyncedFiles: TFile[];
+    userEmail: string;
 }
 
 export const DEFAULT_SETTINGS: KhojSetting = {
@@ -17,7 +18,8 @@ export const DEFAULT_SETTINGS: KhojSetting = {
     khojApiKey: '',
     connectedToBackend: false,
     autoConfigure: true,
-    lastSyncedFiles: []
+    lastSyncedFiles: [],
+    userEmail: '',
 }
 
 export class KhojSettingTab extends PluginSettingTab {
@@ -33,7 +35,15 @@ export class KhojSettingTab extends PluginSettingTab {
         containerEl.empty();
 
         // Add notice whether able to connect to khoj backend or not
-        containerEl.createEl('small', { text: this.getBackendStatusMessage() });
+        let backendStatusEl = containerEl.createEl('small', {
+            text: getBackendStatusMessage(
+                this.plugin.settings.connectedToBackend,
+                this.plugin.settings.userEmail,
+                this.plugin.settings.khojUrl,
+                this.plugin.settings.khojApiKey
+            )}
+        );
+        let backendStatusMessage: string = '';
 
         // Add khoj settings configurable from the plugin settings tab
         new Setting(containerEl)
@@ -43,8 +53,14 @@ export class KhojSettingTab extends PluginSettingTab {
                 .setValue(`${this.plugin.settings.khojUrl}`)
                 .onChange(async (value) => {
                     this.plugin.settings.khojUrl = value.trim().replace(/\/$/, '');
+                    ({
+                        connectedToBackend: this.plugin.settings.connectedToBackend,
+                        userEmail: this.plugin.settings.userEmail,
+                        statusMessage: backendStatusMessage,
+                    } = await canConnectToBackend(this.plugin.settings.khojUrl, this.plugin.settings.khojApiKey));
+
                     await this.plugin.saveSettings();
-                    containerEl.firstElementChild?.setText(this.getBackendStatusMessage());
+                    backendStatusEl.setText(backendStatusMessage);
                 }));
         new Setting(containerEl)
             .setName('Khoj API Key')
@@ -53,7 +69,13 @@ export class KhojSettingTab extends PluginSettingTab {
                 .setValue(`${this.plugin.settings.khojApiKey}`)
                 .onChange(async (value) => {
                     this.plugin.settings.khojApiKey = value.trim();
+                    ({
+                        connectedToBackend: this.plugin.settings.connectedToBackend,
+                        userEmail: this.plugin.settings.userEmail,
+                        statusMessage: backendStatusMessage,
+                    } = await canConnectToBackend(this.plugin.settings.khojUrl, this.plugin.settings.khojApiKey));
                     await this.plugin.saveSettings();
+                    backendStatusEl.setText(backendStatusMessage);
                 }));
         new Setting(containerEl)
             .setName('Results Count')
@@ -122,11 +144,5 @@ export class KhojSettingTab extends PluginSettingTab {
                     indexVaultSetting = indexVaultSetting.setDisabled(false);
                 })
             );
-    }
-
-    getBackendStatusMessage() {
-        return !this.plugin.settings.connectedToBackend
-            ? '❗Disconnected from Khoj backend. Ensure Khoj backend is running and Khoj URL is correctly set below.'
-            : '✅ Connected to Khoj backend.';
     }
 }

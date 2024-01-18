@@ -554,6 +554,8 @@ async def extract_references_and_questions(
     return compiled_references, inferred_queries, defiltered_query
 
 
-@api.get("/health")
-async def health_check():
-    return Response(status_code=200)
+@api.get("/health", response_class=Response)
+@requires(["authenticated"], status_code=200)
+def health_check(request: Request) -> Response:
+    response_obj = {"email": request.user.object.email}
+    return Response(content=json.dumps(response_obj), media_type="application/json", status_code=200)
