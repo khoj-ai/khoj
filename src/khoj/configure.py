@@ -156,7 +156,15 @@ def configure_server(
                     )
                 }
             )
-            state.cross_encoder_model.update({model.name: CrossEncoderModel(model.cross_encoder)})
+            state.cross_encoder_model.update(
+                {
+                    model.name: CrossEncoderModel(
+                        model.cross_encoder,
+                        model.cross_encoder_inference_endpoint,
+                        model.cross_encoder_inference_endpoint_api_key,
+                    )
+                }
+            )
 
         state.SearchType = configure_search_types()
         state.search_models = configure_search(state.search_models, state.config.search_type)
