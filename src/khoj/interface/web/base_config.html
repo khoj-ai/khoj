@@ -7,6 +7,8 @@
         <title>Khoj - Settings</title>
         <link rel="stylesheet" href="/static/assets/pico.min.css">
         <link rel="stylesheet" href="/static/assets/khoj.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.13/js/intlTelInput.min.js"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.13/css/intlTelInput.css">
     </head>
     <script type="text/javascript" src="/static/assets/utils.js"></script>
     <body class="khoj-configure">
@@ -328,6 +330,20 @@
         a {
             color: #3b82f6;
             text-decoration: none;
+        }
+
+        div#phone-number-input-element {
+            display: flex;
+            align-items: center;
+        }
+
+        p#phone-number-plus {
+            padding: 8px;
+        }
+
+        input#country-code-phone-number-input {
+            max-width: 100px;
+            margin-right: 8px;
         }
 
         @media screen and (max-width: 700px) {

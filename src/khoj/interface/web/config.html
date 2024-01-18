@@ -194,6 +194,23 @@
                 </button>
             </div>
         </div>
+        <div id="phone-number-input-id" class="api-settings">
+            <div class="card-title-row">
+                <img class="card-icon" src="/static/assets/icons/key.svg" alt="API Key">
+                <h3 class="card-title">WhatsApp</h3>
+            </div>
+            <div class="card-description-row">
+                <p id="api-settings-card-description" class="card-description">Configure your settings to connect your Khoj account to WhatsApp</p>
+            </div>
+            <div id="phone-number-input-element" class="card-action-row">
+                <input type="text" id="mobile_code" class="form-control" placeholder="Phone Number" name="name">
+            </div>
+            <div class="card-action-row">
+                <button id="whatspp-verify" class="card-button happy" href="/config/whatsapp/phone-number">
+                    Verify
+                </button>
+            </div>
+        </div>
     </div>
     {% if billing_enabled %}
     <div id="billing" class="section">
@@ -555,5 +572,13 @@
             }
         })
     }
+
+    var phoneInputField = document.querySelector("#mobile_code");
+    const iti = window.intlTelInput(phoneInputField, {
+        initialCountry: "us",
+        separateDialCode: true,
+    });
+
+
 </script>
 {% endblock %}
