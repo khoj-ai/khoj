@@ -48,6 +48,7 @@ class EmbeddingsModel:
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json",
             }
+            embeddings = []
             with tqdm.tqdm(total=len(docs)) as pbar:
                 for i in range(0, len(docs), 1000):
                     payload = {"inputs": docs[i : i + 1000]}
