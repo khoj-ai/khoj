@@ -124,7 +124,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
         let result_el = el.createEl("div", { cls: 'khoj-result-entry' })
 
         // @ts-ignore
-        MarkdownRenderer.renderMarkdown(snipped_entry + entry_snipped_indicator, result_el, null, null);
+        MarkdownRenderer.renderMarkdown(snipped_entry + entry_snipped_indicator, result_el, result.file, null);
     }
 
     async onChooseSuggestion(result: SearchResult, _: MouseEvent | KeyboardEvent) {
