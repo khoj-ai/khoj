@@ -1,4 +1,5 @@
 # Standard Modules
+import os
 from io import BytesIO
 from urllib.parse import quote
 
@@ -169,6 +170,7 @@ def test_index_update_normal_file_unsubscribed(client, api_user4: KhojApiUser):
     assert response.status_code == 200
 
 
+# ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
 def test_index_update_big_files_no_billing(client):
     # Arrange
@@ -195,6 +197,26 @@ def test_index_update(client):
 
     # Assert
     assert response.status_code == 200
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.django_db(transaction=True)
+def test_index_update_fails_if_more_than_1000_files(client, api_user4: KhojApiUser):
+    # Arrange
+    api_token = api_user4.token
+    state.billing_enabled = True
+    files = [("files", (f"path/to/filename{i}.org", f"Symphony No {i}", "text/org")) for i in range(1001)]
+
+    headers = {"Authorization": f"Bearer {api_token}"}
+
+    # Act
+    ok_response = client.post("/api/v1/index/update", files=files[:1000], headers=headers)
+    bad_response = client.post("/api/v1/index/update", files=files, headers=headers)
+
+    # Assert
+    assert ok_response.status_code == 200
+    assert bad_response.status_code == 400
+    assert bad_response.content.decode("utf-8") == '{"detail":"Too many files. Maximum number of files is 1000."}'
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -459,6 +481,21 @@ def test_user_no_data_returns_empty(client, sample_org_data, api_user3: KhojApiU
     # assert actual response has no data as the default_user3, though other users have data
     assert len(response.json()) == 0
     assert response.json() == []
+
+
+@pytest.mark.skipif(os.getenv("OPENAI_API_KEY") is None, reason="requires OPENAI_API_KEY")
+@pytest.mark.django_db(transaction=True)
+def test_chat_with_unauthenticated_user(chat_client_with_auth, api_user2: KhojApiUser):
+    # Arrange
+    headers = {"Authorization": f"Bearer {api_user2.token}"}
+
+    # Act
+    auth_response = chat_client_with_auth.get(f'/api/chat?q="Hello!"&stream=true', headers=headers)
+    no_auth_response = chat_client_with_auth.get(f'/api/chat?q="Hello!"&stream=true')
+
+    # Assert
+    assert auth_response.status_code == 200
+    assert no_auth_response.status_code == 403
 
 
 def get_sample_files_data():

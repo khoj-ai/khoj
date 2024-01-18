@@ -3,7 +3,7 @@ FROM ubuntu:jammy
 LABEL org.opencontainers.image.source https://github.com/khoj-ai/khoj
 
 # Install System Dependencies
-RUN apt update -y && apt -y install python3-pip git
+RUN apt update -y && apt -y install python3-pip git swig
 
 WORKDIR /app
 

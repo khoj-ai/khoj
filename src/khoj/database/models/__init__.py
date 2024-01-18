@@ -121,6 +121,10 @@ class SearchModelConfig(BaseModel):
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.TEXT)
     bi_encoder = models.CharField(max_length=200, default="thenlper/gte-small")
     cross_encoder = models.CharField(max_length=200, default="cross-encoder/ms-marco-MiniLM-L-6-v2")
+    embeddings_inference_endpoint = models.CharField(max_length=200, default=None, null=True, blank=True)
+    embeddings_inference_endpoint_api_key = models.CharField(max_length=200, default=None, null=True, blank=True)
+    cross_encoder_inference_endpoint = models.CharField(max_length=200, default=None, null=True, blank=True)
+    cross_encoder_inference_endpoint_api_key = models.CharField(max_length=200, default=None, null=True, blank=True)
 
 
 class TextToImageModelConfig(BaseModel):

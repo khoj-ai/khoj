@@ -38,7 +38,7 @@ async def subscribe(request: Request):
         "customer.subscription.updated",
         "customer.subscription.deleted",
     }:
-        logger.warn(f"Unhandled Stripe event type: {event['type']}")
+        logger.warning(f"Unhandled Stripe event type: {event['type']}")
         return {"success": False}
 
     # Retrieve the customer's details
@@ -70,8 +70,8 @@ async def subscribe(request: Request):
         )
         success = user is not None
 
-    logger.info(f'Stripe subscription {event["type"]} for {customer["email"]}')
-    return Response(status=(200 if success else 500))
+    logger.info(f'Stripe subscription {event["type"]} for {customer_email}')
+    return {"success": success}
 
 
 @subscription_router.patch("")

@@ -302,8 +302,11 @@ class ApiUserRateLimiter:
         self.cache: dict[str, list[float]] = defaultdict(list)
 
     def __call__(self, request: Request):
+        # Rate limiting is disabled if user unauthenticated.
+        # Other systems handle authentication
         if not request.user.is_authenticated:
-            raise HTTPException(status_code=401, detail="Unauthorized")
+            return
+
         user: KhojUser = request.user.object
         subscribed = has_required_scope(request, ["premium"])
         user_requests = self.cache[user.uuid]

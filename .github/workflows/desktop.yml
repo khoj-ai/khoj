@@ -46,3 +46,54 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           npx todesktop release --latest --force
+
+      - name: ⤵️ Get Desktop Apps
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          build_no=`npx todesktop builds --latest | tail -n 1 | awk -F'/' '{print $NF}'`
+          sleep 900  # wait for 15 minutes for the build to be available
+          wget https://download.khoj.dev/builds/$build_no/mac/dmg/arm64 -O khoj-${{ github.ref_name }}-arm64.dmg
+          wget https://download.khoj.dev/builds/$build_no/mac/dmg/x64 -O khoj-${{ github.ref_name }}-x64.dmg
+          wget https://download.khoj.dev/builds/$build_no/windows/nsis/x64 -O khoj-${{ github.ref_name }}-x64.exe
+          wget https://download.khoj.dev/builds/$build_no/linux/deb/x64 -O khoj-${{ github.ref_name }}-x64.deb
+          wget https://download.khoj.dev/builds/$build_no/linux/appImage/x64 -O khoj-${{ github.ref_name }}-x64.AppImage
+
+      - name: ⏫ Upload Mac ARM App
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v3
+        with:
+          if-no-files-found: warn
+          name: khoj-${{ github.ref_name }}-arm64.dmg
+          path: src/interface/desktop/khoj-${{ github.ref_name }}-arm64.dmg
+
+      - name: ⏫ Upload Mac x64 App
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v3
+        with:
+          if-no-files-found: warn
+          name: khoj-${{ github.ref_name }}-x64.dmg
+          path: src/interface/desktop/khoj-${{ github.ref_name }}-x64.dmg
+
+      - name: ⏫ Upload Windows App
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v3
+        with:
+          if-no-files-found: warn
+          name: khoj-${{ github.ref_name }}-x64.exe
+          path: src/interface/desktop/khoj-${{ github.ref_name }}-x64.exe
+
+      - name: ⏫ Upload Debian App
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v3
+        with:
+          if-no-files-found: warn
+          name: khoj-${{ github.ref_name }}-x64.deb
+          path: src/interface/desktop/khoj-${{ github.ref_name }}-x64.deb
+
+      - name: ⏫ Upload Linux App Image
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v3
+        with:
+          if-no-files-found: warn
+          name: khoj-${{ github.ref_name }}-x64.AppImage
+          path: src/interface/desktop/khoj-${{ github.ref_name }}-x64.AppImage

@@ -6,7 +6,7 @@ from typing import Any
 import openai
 from langchain.callbacks.base import BaseCallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
-from langchain.chat_models import ChatOpenAI
+from langchain_community.chat_models import ChatOpenAI
 from tenacity import (
     before_sleep_log,
     retry,

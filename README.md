@@ -40,7 +40,7 @@ It works with jpeg, markdown, notion, org-mode, pdf files and github repositorie
 |:---------:|:-------:|
 | Quickly retrieve relevant documents using natural language | Get answers and create content from your existing knowledge base |
 | Does not need internet | Can be configured to work without internet |
-| <img src="https://docs.khoj.dev/assets/khoj_search_on_web.png" width="400px"> | <img src="https://docs.khoj.dev/assets/khoj_chat_on_web.png" width="400px"> |
+| <img src="https://docs.khoj.dev/img/khoj_search_on_web.png" width="400px"> | <img src="https://docs.khoj.dev/img/khoj_chat_on_web.png" width="400px"> |
 
 ## Contributors
 Cheers to our awesome contributors! 🎉

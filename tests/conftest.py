@@ -254,51 +254,45 @@ def md_content_config():
 
 @pytest.fixture(scope="function")
 def chat_client(search_config: SearchConfig, default_user2: KhojUser):
-    # Initialize app state
-    state.config.search_type = search_config
-    state.SearchType = configure_search_types()
+    return chat_client_builder(search_config, default_user2, require_auth=False)
 
-    LocalMarkdownConfig.objects.create(
-        input_files=None,
-        input_filter=["tests/data/markdown/*.markdown"],
-        user=default_user2,
-    )
 
-    # Index Markdown Content for Search
-    all_files = fs_syncer.collect_files(user=default_user2)
-    state.content_index, _ = configure_content(
-        state.content_index, state.config.content_type, all_files, state.search_models, user=default_user2
-    )
-
-    # Initialize Processor from Config
-    if os.getenv("OPENAI_API_KEY"):
-        chat_model = ChatModelOptionsFactory(chat_model="gpt-3.5-turbo", model_type="openai")
-        OpenAIProcessorConversationConfigFactory()
-        UserConversationProcessorConfigFactory(user=default_user2, setting=chat_model)
-
-    state.anonymous_mode = True
-
-    app = FastAPI()
-
-    configure_routes(app)
-    configure_middleware(app)
-    app.mount("/static", StaticFiles(directory=web_directory), name="static")
-    return TestClient(app)
+@pytest.fixture(scope="function")
+def chat_client_with_auth(search_config: SearchConfig, default_user2: KhojUser):
+    return chat_client_builder(search_config, default_user2, require_auth=True)
 
 
 @pytest.fixture(scope="function")
 def chat_client_no_background(search_config: SearchConfig, default_user2: KhojUser):
+    return chat_client_builder(search_config, default_user2, index_content=False, require_auth=False)
+
+
+@pytest.mark.django_db
+def chat_client_builder(search_config, user, index_content=True, require_auth=False):
     # Initialize app state
     state.config.search_type = search_config
     state.SearchType = configure_search_types()
+
+    if index_content:
+        LocalMarkdownConfig.objects.create(
+            input_files=None,
+            input_filter=["tests/data/markdown/*.markdown"],
+            user=user,
+        )
+
+        # Index Markdown Content for Search
+        all_files = fs_syncer.collect_files(user=user)
+        state.content_index, _ = configure_content(
+            state.content_index, state.config.content_type, all_files, state.search_models, user=user
+        )
 
     # Initialize Processor from Config
     if os.getenv("OPENAI_API_KEY"):
         chat_model = ChatModelOptionsFactory(chat_model="gpt-3.5-turbo", model_type="openai")
         OpenAIProcessorConversationConfigFactory()
-        UserConversationProcessorConfigFactory(user=default_user2, setting=chat_model)
+        UserConversationProcessorConfigFactory(user=user, setting=chat_model)
 
-    state.anonymous_mode = True
+    state.anonymous_mode = not require_auth
 
     app = FastAPI()
 

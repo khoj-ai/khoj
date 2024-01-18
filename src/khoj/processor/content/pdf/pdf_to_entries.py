@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 from typing import List, Tuple
 
-from langchain.document_loaders import PyMuPDFLoader
+from langchain_community.document_loaders import PyMuPDFLoader
 
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import KhojUser
