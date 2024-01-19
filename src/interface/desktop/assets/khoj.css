@@ -1,5 +1,7 @@
 /* Amber Light scheme (Default) */
 /* Can be forced with data-theme="light" */
+@import url('https://fonts.googleapis.com/css2?family=Tajawal&display=swap');
+
 [data-theme="light"],
 :root:not([data-theme="dark"]) {
     --primary: #f9f5de;
@@ -12,6 +14,7 @@
     --water: #44b9da;
     --leaf: #7b990a;
     --flower: #d1684e;
+    --font-family: 'Tajawal', sans-serif !important;
 }
 
 /* Amber Dark scheme (Auto) */
@@ -28,6 +31,7 @@
         --water: #44b9da;
         --leaf: #7b990a;
         --flower: #d1684e;
+        --font-family: 'Tajawal', sans-serif !important;
     }
 }
 /* Amber Dark scheme (Forced) */
@@ -43,6 +47,7 @@
     --water: #44b9da;
     --leaf: #7b990a;
     --flower: #d1684e;
+    --font-family: 'Tajawal', sans-serif !important;
 }
 /* Amber (Common styles) */
 :root {
@@ -50,12 +55,13 @@
     --form-element-focus-color: var(--primary-focus);
     --switch-color: var(--primary-inverse);
     --switch-checked-background-color: var(--primary);
+    --font-family: 'Tajawal', sans-serif !important;
 }
 
 .khoj-configure {
     display: grid;
     grid-template-columns: 1fr;
-    font-family: roboto, karma, segoe ui, sans-serif;
+    font-family: var(--font-family);
     font-weight: 300;
 }
 
