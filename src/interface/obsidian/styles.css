@@ -230,36 +230,30 @@ img {
 }
 .khoj-input-row {
     display: grid;
-    grid-template-columns: auto 32px 32px;
+    grid-template-columns: 32px auto 32px 32px;
     grid-column-gap: 10px;
     grid-row-gap: 10px;
     background: var(--background-primary);
+    margin: 0 0 0 -8px;
 }
 #khoj-chat-input.option:hover {
     box-shadow: 0 0 11px var(--background-modifier-box-shadow);
 }
 #khoj-chat-input {
     font-size: var(--font-ui-medium);
-    padding: 25px 20px;
+    padding: 0 0 0 12px;
+    border-radius: 16px;
+    height: 32px;
 }
 .khoj-input-row-button {
-    background: var(--background-primary);
-    border: none;
-    border-radius: 5px;
-    padding: 5px;
+    border-radius: 50%;
+    padding: 4px;
     --icon-size: var(--icon-size);
-    height: auto;
-    font-size: 14px;
-    font-weight: 300;
-    line-height: 1.5em;
-    cursor: pointer;
-    transition: background 0.3s ease-in-out;
 }
-.khoj-input-row-button:hover {
-    background: var(--background-modifier-hover);
-}
-.khoj-input-row-button:active {
-    background: var(--background-modifier-active);
+#khoj-chat-send .svg-icon {
+    background: var(--khoj-sun);
+    border-radius: 50%;
+    color: #222;
 }
 
 @media (pointer: coarse), (hover: none) {

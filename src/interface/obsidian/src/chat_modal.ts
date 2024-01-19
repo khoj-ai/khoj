@@ -17,17 +17,19 @@ export class KhojChatModal extends Modal {
         this.setting = setting;
 
         // Register Modal Keybindings to send user message
-        this.scope.register([], 'Enter', async () => {
-            // Get text in chat input elmenet
-            let input_el = <HTMLInputElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        this.scope.register([], 'Enter', async () => { await this.chat() });
+    }
 
-            // Clear text after extracting message to send
-            let user_message = input_el.value;
-            input_el.value = "";
+    async chat() {
+        // Get text in chat input element
+        let input_el = <HTMLInputElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
 
-            // Get and render chat response to user message
-            await this.getChatResponse(user_message);
-        });
+        // Clear text after extracting message to send
+        let user_message = input_el.value.trim();
+        input_el.value = "";
+
+        // Get and render chat response to user message
+        await this.getChatResponse(user_message);
     }
 
     async onOpen() {
@@ -42,10 +44,19 @@ export class KhojChatModal extends Modal {
 
         // Get chat history from Khoj backend
         let getChatHistorySucessfully = await this.getChatHistory(chatBodyEl);
-        let placeholderText = getChatHistorySucessfully ? "Chat with Khoj [Hit Enter to send message]" : "Configure Khoj to enable chat";
+        let placeholderText = getChatHistorySucessfully ? "Message" : "Configure Khoj to enable chat";
 
         // Add chat input field
         let inputRow = contentEl.createDiv("khoj-input-row");
+        let clearChat = inputRow.createEl("button", {
+            text: "Clear History",
+            attr: {
+                class: "khoj-input-row-button clickable-icon",
+            },
+        })
+        clearChat.addEventListener('click', async (_) => { await this.clearConversationHistory() });
+        setIcon(clearChat, "trash");
+
         let chatInput = inputRow.createEl("input", {
             attr: {
                 type: "text",
@@ -61,20 +72,21 @@ export class KhojChatModal extends Modal {
             text: "Transcribe",
             attr: {
                 id: "khoj-transcribe",
-                class: "khoj-transcribe khoj-input-row-button",
+                class: "khoj-input-row-button clickable-icon ",
             },
         })
         transcribe.addEventListener('click', async (_) => { await this.speechToText() });
         setIcon(transcribe, "mic");
 
-        let clearChat = inputRow.createEl("button", {
-            text: "Clear History",
+        let send = inputRow.createEl("button", {
+            text: "Send",
             attr: {
-                class: "khoj-input-row-button",
+                id: "khoj-chat-send",
+                class: "khoj-input-row-button clickable-icon",
             },
         })
-        clearChat.addEventListener('click', async (_) => { await this.clearConversationHistory() });
-        setIcon(clearChat, "trash");
+        send.addEventListener('click', async (_) => { await this.chat() });
+        setIcon(send, "arrow-up-circle");
 
         // Scroll to bottom of modal, till the send message input box
         this.modalEl.scrollTop = this.modalEl.scrollHeight;
