@@ -174,6 +174,7 @@ def config_page(request: Request):
             "khoj_cloud_subscription_url": os.getenv("KHOJ_CLOUD_SUBSCRIPTION_URL"),
             "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
+            "phone_number": user.phone_number,
         },
     )
 

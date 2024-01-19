@@ -95,6 +95,36 @@ async def aget_or_create_user_by_phone_number(phone_number: str) -> KhojUser:
     return user
 
 
+async def aset_user_phone_number(user: KhojUser, phone_number: str) -> KhojUser:
+    if is_none_or_empty(phone_number):
+        return None
+    phone_number = phone_number.strip()
+    if not phone_number.startswith("+"):
+        phone_number = f"+{phone_number}"
+    existing_user_with_phone_number = await aget_user_by_phone_number(phone_number)
+    if existing_user_with_phone_number:
+        if is_none_or_empty(existing_user_with_phone_number.email):
+            # Transfer conversation history to the new user. If they don't have an associated email, they are effectively a new user
+            async for conversation in Conversation.objects.filter(user=existing_user_with_phone_number).aiterator():
+                conversation.user = user
+                await conversation.asave()
+
+            await existing_user_with_phone_number.adelete()
+        else:
+            raise HTTPException(status_code=400, detail="Phone number already exists")
+
+    user.phone_number = phone_number
+    await user.asave()
+    return user
+
+
+async def aremove_phone_number(user: KhojUser) -> KhojUser:
+    user.phone_number = None
+    user.verified_phone_number = False
+    await user.asave()
+    return user
+
+
 async def acreate_user_by_phone_number(phone_number: str) -> KhojUser:
     if is_none_or_empty(phone_number):
         return None
@@ -213,7 +243,11 @@ async def get_user_by_token(token: dict) -> KhojUser:
 async def aget_user_by_phone_number(phone_number: str) -> KhojUser:
     if is_none_or_empty(phone_number):
         return None
-    return await KhojUser.objects.filter(phone_number=phone_number).prefetch_related("subscription").afirst()
+    return (
+        await KhojUser.objects.filter(phone_number=phone_number, verified_phone_number=True)
+        .prefetch_related("subscription")
+        .afirst()
+    )
 
 
 async def retrieve_user(session_id: str) -> KhojUser:

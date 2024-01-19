@@ -26,6 +26,7 @@ class ClientApplication(BaseModel):
 class KhojUser(AbstractUser):
     uuid = models.UUIDField(models.UUIDField(default=uuid.uuid4, editable=False))
     phone_number = PhoneNumberField(null=True, default=None, blank=True)
+    verified_phone_number = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if not self.uuid:

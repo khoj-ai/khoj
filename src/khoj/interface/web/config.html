@@ -203,11 +203,20 @@
                 <p id="api-settings-card-description" class="card-description">Configure your settings to connect your Khoj account to WhatsApp</p>
             </div>
             <div id="phone-number-input-element" class="card-action-row">
-                <input type="text" id="mobile_code" class="form-control" placeholder="Phone Number" name="name">
+                <input type="text" id="mobile_code" class="form-control" placeholder="Phone Number" name="name" value="{{ phone_number }}">
+            </div>
+            <div id="phone-number-update-callback" class="card-action-row" style="display: none;">
             </div>
             <div class="card-action-row">
-                <button id="whatspp-verify" class="card-button happy" href="/config/whatsapp/phone-number">
-                    Verify
+                <button id="whatsapp-verify" class="card-button happy" style="display: none;">
+                    Get OTP on WhatsApp and Verify
+                </button>
+                <button id="whatsapp-remove" class="card-button" style="display: none;">
+                    Remove
+                </button>
+                <input type="number" maxlength="6" id="whatsapp_otp" class="whatsapp_otp" placeholder="OTP" name="otp_code" style="display: none;">
+                <button id="whatsapp-verify-otp" class="card-button happy" style="display: none;">
+                    Verify OTP
                 </button>
             </div>
         </div>
@@ -575,22 +584,74 @@
 
     var phoneInputField = document.querySelector("#mobile_code");
     const iti = window.intlTelInput(phoneInputField, {
-        initialCountry: "us",
+        initialCountry: "auto",
+        geoIpLookup: callback => {
+            fetch("https://ipapi.co/json")
+            .then(res => res.json())
+            .then(data => callback(data.country_code))
+            .catch(() => callback("us"))
+        },
         separateDialCode: true,
         utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js",
     });
 
     const errorMap = ["Invalid number", "Invalid country code", "Too short", "Too long", "Invalid number"];
+    const phoneNumberUpdateCallback = document.getElementById("phone-number-update-callback");
 
-    const whastsaapVerifyButton = document.getElementById("whatspp-verify");
-    whastsaapVerifyButton.addEventListener("click", () => {
+    const phonenumberVerifyButton = document.getElementById("whatsapp-verify");
+    const phonenumberRemoveButton = document.getElementById("whatsapp-remove");
+    const phonenumberVerifyOTPButton = document.getElementById("whatsapp-verify-otp");
+    const phonenumberOTPInput = document.getElementById("whatsapp_otp");
+
+    let phoneNumber = {{ phone_number }};
+
+    if (phoneNumber != null) {
+        phonenumberVerifyButton.style.display = "none";
+        phonenumberRemoveButton.style.display = "";
+    } else {
+        phonenumberVerifyButton.style.display = "";
+        phonenumberRemoveButton.style.display = "none";
+    }
+
+    phoneInputField.addEventListener("keyup", () => {
+        if (iti.isValidNumber() == false) {
+            phonenumberVerifyButton.style.display = "none";
+            phonenumberRemoveButton.style.display = "none";
+        } else {
+            phonenumberVerifyButton.style.display = "";
+            phonenumberRemoveButton.style.display = "none";
+        }
+    })
+
+    phonenumberRemoveButton.addEventListener("click", () => {
+        fetch('/api/config/data/phone', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status == "ok") {
+                phonenumberVerifyButton.style.display = "";
+                phonenumberRemoveButton.style.display = "none";
+                phoneInputField
+            }
+        })
+    })
+
+    phonenumberVerifyButton.addEventListener("click", () => {
         console.log(iti.getValidationError());
-        if (iti.getValidationError() != -99) {
-            alert(errorMap[iti.getValidationError()]);
+        if (iti.isValidNumber() == false) {
+            phoneNumberUpdateCallback.innerHTML = "Invalid phone number: " + errorMap[iti.getValidationError()];
+            phoneNumberUpdateCallback.style.display = "block";
+            setTimeout(function() {
+                phoneNumberUpdateCallback.style.display = "none";
+            }, 5000);
         } else {
             alert("Valid number");
             const mobileNumber = iti.getNumber();
-            fetch('/api/config/whatsapp/phone?mobile_number=' + mobileNumber, {
+            fetch('/api/config/data/phone?phone_number=' + mobileNumber, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -599,10 +660,73 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status == "ok") {
-                    window.location.href = "/config/whatsapp/phone-number";
+                    phonenumberVerifyOTPButton.style.display = "block";
+                    phonenumberOTPInput.style.display = "block";
+                    phonenumberVerifyButton.style.display = "none";
+                } else {
+                    phoneNumberUpdateCallback.innerHTML = "Error updating phone number";
+                    phoneNumberUpdateCallback.style.display = "block";
+                    setTimeout(function() {
+                        phoneNumberUpdateCallback.style.display = "none";
+                    }, 5000);
                 }
             })
+            .catch((error) => {
+                console.error('Error:', error);
+                phoneNumberUpdateCallback.innerHTML = "Error updating phone number";
+                phoneNumberUpdateCallback.style.display = "block";
+                setTimeout(function() {
+                    phoneNumberUpdateCallback.style.display = "none";
+                }, 5000);
+            });
         }
+    })
+
+    phonenumberVerifyOTPButton.addEventListener("click", () => {
+        const otp = phonenumberOTPInput.value;
+        if (otp.length != 6) {
+            phoneNumberUpdateCallback.innerHTML = "Your OTP should be exactly 6 digits";
+            phoneNumberUpdateCallback.style.display = "block";
+            setTimeout(function() {
+                phoneNumberUpdateCallback.style.display = "none";
+            }, 5000);
+            return;
+        }
+
+        fetch('/api/config/data/phone/otp?code=' + otp, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status == "ok") {
+                phoneNumberUpdateCallback.innerHTML = "Phone number updated";
+                phoneNumberUpdateCallback.style.display = "block";
+                phonenumberRemoveButton.style.display = "";
+                phonenumberVerifyButton.style.display = "none";
+                phonenumberVerifyOTPButton.style.display = "none";
+                phonenumberOTPInput.style.display = "none";
+                setTimeout(function() {
+                    phoneNumberUpdateCallback.style.display = "none";
+                }, 5000);
+            } else {
+                phoneNumberUpdateCallback.innerHTML = "Error updating phone number";
+                phoneNumberUpdateCallback.style.display = "block";
+                setTimeout(function() {
+                    phoneNumberUpdateCallback.style.display = "none";
+                }, 5000);
+            }
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+            phoneNumberUpdateCallback.innerHTML = "Error updating phone number";
+            phoneNumberUpdateCallback.style.display = "block";
+            setTimeout(function() {
+                phoneNumberUpdateCallback.style.display = "none";
+            }, 5000);
+        });
     })
 
 

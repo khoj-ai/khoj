@@ -22,6 +22,7 @@ from khoj.database.models import (
     NotionConfig,
 )
 from khoj.routers.helpers import CommonQueryParams, update_telemetry_state
+from khoj.routers.twilio import create_otp, is_twilio_enabled, verify_otp
 from khoj.utils import constants, state
 from khoj.utils.rawconfig import (
     FullConfig,
@@ -289,6 +290,11 @@ async def update_phone_number(
 
     await adapters.aset_user_phone_number(user, phone_number)
 
+    if is_twilio_enabled():
+        create_otp(user)
+    else:
+        logger.warning("Phone verification is not enabled")
+
     update_telemetry_state(
         request=request,
         telemetry_type="api",
@@ -297,6 +303,49 @@ async def update_phone_number(
         metadata={"phone_number": phone_number},
     )
 
+    return {"status": "ok"}
+
+
+@api_config.delete("/data/phone", status_code=200)
+@requires(["authenticated"])
+async def delete_phone_number(
+    request: Request,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+
+    await adapters.aremove_phone_number(user)
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="delete_phone_number",
+        client=client,
+    )
+
+    return {"status": "ok"}
+
+
+@api_config.post("/data/phone/otp", status_code=200)
+@requires(["authenticated"])
+async def verify_mobile_otp(
+    request: Request,
+    code: str,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="verify_otp",
+        client=client,
+    )
+
+    if is_twilio_enabled() and not verify_otp(user, code):
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+
+    user.verified_phone_number = True
     return {"status": "ok"}
 
 
