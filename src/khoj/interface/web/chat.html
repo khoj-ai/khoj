@@ -651,7 +651,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
                 fetch('/api/transcribe?client=web', { method: 'POST', body: formData })
                     .then(response => response.ok ? response.json() : Promise.reject(response))
-                    .then(data => { chatInput.value += data.text; })
+                    .then(data => { chatInput.value += data.text.trimStart(); autoResize(); })
                     .catch(err => {
                         if (err.status === 501) {
                           flashStatusInChatInput("⛔️ Configure speech-to-text model on server.")
@@ -987,6 +987,7 @@ To get started, just start typing below. You can also type / to see a list of co
             grid-column-gap: 10px;
             grid-row-gap: 10px;
             background: var(--background-color);
+            align-items: center;
         }
         .option:hover {
             box-shadow: 0 0 11px #aaa;

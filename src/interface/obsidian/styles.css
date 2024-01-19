@@ -235,6 +235,7 @@ img {
     grid-row-gap: 10px;
     background: var(--background-primary);
     margin: 0 0 0 -8px;
+    align-items: center;
 }
 #khoj-chat-input.option:hover {
     box-shadow: 0 0 11px var(--background-modifier-box-shadow);

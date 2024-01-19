@@ -690,7 +690,7 @@
 
                 fetch(url, { method: 'POST', body: formData, headers})
                     .then(response => response.ok ? response.json() : Promise.reject(response))
-                    .then(data => { chatInput.value += data.text; })
+                    .then(data => { chatInput.value += data.text.trimStart(); autoResize(); })
                     .catch(err => {
                         if (err.status === 501) {
                           flashStatusInChatInput("⛔️ Configure speech-to-text model on server.")
@@ -917,7 +917,8 @@
             grid-template-columns: 32px auto 32px 40px;
             grid-column-gap: 10px;
             grid-row-gap: 10px;
-            background: #f9fafc
+            background: #f9fafc;
+            align-items: center;
         }
         .option:hover {
             box-shadow: 0 0 11px #aaa;

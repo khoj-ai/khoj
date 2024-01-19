@@ -453,7 +453,8 @@ export class KhojChatModal extends Modal {
             // Parse response from Khoj backend
             if (response.status === 200) {
                 console.log(response);
-                chatInput.value += response.json.text;
+                chatInput.value += response.json.text.trimStart();
+                this.autoResize();
             } else if (response.status === 501) {
                 throw new Error("⛔️ Configure speech-to-text model on server.");
             } else if (response.status === 422) {
