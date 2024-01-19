@@ -599,7 +599,7 @@
                 .then(response => response.json())
                 .then(data => {
                     // Render chat options, if any
-                    if (data) {
+                    if (data.length > 0) {
                         let questionStarterSuggestions = document.getElementById("question-starters");
                         for (let index in data) {
                             let questionStarter = data[index];
