@@ -22,11 +22,12 @@ export class KhojChatModal extends Modal {
 
     async chat() {
         // Get text in chat input element
-        let input_el = <HTMLInputElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        let input_el = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
 
         // Clear text after extracting message to send
         let user_message = input_el.value.trim();
         input_el.value = "";
+        this.autoResize();
 
         // Get and render chat response to user message
         await this.getChatResponse(user_message);
@@ -57,9 +58,8 @@ export class KhojChatModal extends Modal {
         clearChat.addEventListener('click', async (_) => { await this.clearConversationHistory() });
         setIcon(clearChat, "trash");
 
-        let chatInput = inputRow.createEl("input", {
+        let chatInput = inputRow.createEl("textarea", {
             attr: {
-                type: "text",
                 id: "khoj-chat-input",
                 autofocus: "autofocus",
                 placeholder: placeholderText,
@@ -67,12 +67,14 @@ export class KhojChatModal extends Modal {
                 disabled: !getChatHistorySucessfully ? "disabled" : null
             },
         })
+        chatInput.addEventListener('input', (_) => { this.onChatInput() });
+        chatInput.addEventListener('keydown', (event) => { this.incrementalChat(event) });
 
         let transcribe = inputRow.createEl("button", {
             text: "Transcribe",
             attr: {
                 id: "khoj-transcribe",
-                class: "khoj-input-row-button clickable-icon ",
+                class: "khoj-transcribe khoj-input-row-button clickable-icon ",
             },
         })
         transcribe.addEventListener('click', async (_) => { await this.speechToText() });
@@ -382,7 +384,7 @@ export class KhojChatModal extends Modal {
 
     flashStatusInChatInput(message: string) {
         // Get chat input element and original placeholder
-        let chatInput = <HTMLInputElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        let chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
         let originalPlaceholder = chatInput.placeholder;
         // Set placeholder to message
         chatInput.placeholder = message;
@@ -420,7 +422,7 @@ export class KhojChatModal extends Modal {
     mediaRecorder: MediaRecorder | undefined;
     async speechToText() {
         const transcribeButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("khoj-transcribe")[0];
-        const chatInput = <HTMLInputElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
 
         const generateRequestBody = async (audioBlob: Blob, boundary_string: string) => {
             const boundary = `------${boundary_string}`;
@@ -493,5 +495,29 @@ export class KhojChatModal extends Modal {
             this.mediaRecorder = undefined;
             setIcon(transcribeButton, "mic");
         }
+    }
+
+    incrementalChat(event: KeyboardEvent) {
+        if (!event.shiftKey && event.key === 'Enter') {
+            event.preventDefault();
+            this.chat();
+        }
+    }
+
+    onChatInput() {
+        const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        chatInput.value = chatInput.value.trimStart();
+
+        this.autoResize();
+    }
+
+    autoResize() {
+        const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        const scrollTop = chatInput.scrollTop;
+        chatInput.style.height = '0';
+        const scrollHeight = chatInput.scrollHeight + 8;  // +8 accounts for padding
+        chatInput.style.height = Math.min(scrollHeight, 200) + 'px';
+        chatInput.scrollTop = scrollTop;
+        this.modalEl.scrollTop = this.modalEl.scrollHeight;
     }
 }
