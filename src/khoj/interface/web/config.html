@@ -196,11 +196,15 @@
         </div>
         <div id="phone-number-input-id" class="api-settings">
             <div class="card-title-row">
-                <img class="card-icon" src="/static/assets/icons/key.svg" alt="API Key">
+                <img class="card-icon" src="/static/assets/icons/whatsapp.svg" alt="WhatsApp icon">
                 <h3 class="card-title">WhatsApp</h3>
             </div>
             <div class="card-description-row">
-                <p id="api-settings-card-description" class="card-description">Configure your settings to connect your Khoj account to WhatsApp</p>
+                {% if phone_number %}
+                    <p id="api-settings-card-description" class="card-description">Your number is connected. You can now send messages to Khoj on WhatsApp.</p>
+                {% else %}
+                    <p id="api-settings-card-description" class="card-description">Connect your number to Khoj to send messages on WhatsApp.</p>
+                {% endif %}
             </div>
             <div id="phone-number-input-element" class="card-action-row">
                 <input type="text" id="mobile_code" class="form-control" placeholder="Phone Number" name="name" value="{{ phone_number }}">
