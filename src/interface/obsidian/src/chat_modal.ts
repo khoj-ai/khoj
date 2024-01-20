@@ -77,18 +77,22 @@ export class KhojChatModal extends Modal {
                 class: "khoj-transcribe khoj-input-row-button clickable-icon ",
             },
         })
-        transcribe.addEventListener('click', async (_) => { await this.speechToText() });
+        transcribe.addEventListener('mousedown', async (event) => { await this.speechToText(event) });
+        transcribe.addEventListener('mouseup', async (event) => { await this.speechToText(event) });
+        transcribe.addEventListener('touchstart', async (event) => { await this.speechToText(event) });
+        transcribe.addEventListener('touchend', async (event) => { await this.speechToText(event) });
         setIcon(transcribe, "mic");
 
         let send = inputRow.createEl("button", {
             text: "Send",
             attr: {
                 id: "khoj-chat-send",
-                class: "khoj-input-row-button clickable-icon",
+                class: "khoj-chat-send khoj-input-row-button clickable-icon",
             },
         })
-        send.addEventListener('click', async (_) => { await this.chat() });
         setIcon(send, "arrow-up-circle");
+        let sendImg = <SVGElement>send.getElementsByClassName("lucide-arrow-up-circle")[0]
+        sendImg.addEventListener('click', async (_) => { await this.chat() });
 
         // Scroll to bottom of modal, till the send message input box
         this.modalEl.scrollTop = this.modalEl.scrollHeight;
@@ -419,10 +423,13 @@ export class KhojChatModal extends Modal {
         }
     }
 
+    sendMessageTimeout: NodeJS.Timeout | undefined;
     mediaRecorder: MediaRecorder | undefined;
-    async speechToText() {
+    async speechToText(event: MouseEvent | TouchEvent) {
+        event.preventDefault();
         const transcribeButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("khoj-transcribe")[0];
         const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        const sendButton = <HTMLButtonElement>this.modalEl.getElementsByClassName("khoj-chat-send")[0]
 
         const generateRequestBody = async (audioBlob: Blob, boundary_string: string) => {
             const boundary = `------${boundary_string}`;
@@ -462,6 +469,28 @@ export class KhojChatModal extends Modal {
             } else {
                 throw new Error("⛔️ Failed to transcribe audio.");
             }
+
+            // Don't auto-send empty messages
+            if (chatInput.value.length === 0) return;
+
+            // Show stop auto-send button. It stops auto-send when clicked
+            setIcon(sendButton, "stop-circle");
+            let stopSendButtonImg = <SVGElement>sendButton.getElementsByClassName("lucide-stop-circle")[0]
+            stopSendButtonImg.addEventListener('click', (_) => { this.cancelSendMessage() });
+
+            // Start the countdown timer UI
+            stopSendButtonImg.getElementsByTagName("circle")[0].style.animation = "countdown 3s linear 1 forwards";
+
+            // Auto send message after 3 seconds
+            this.sendMessageTimeout = setTimeout(() => {
+                // Stop the countdown timer UI
+                setIcon(sendButton, "arrow-up-circle")
+                let sendImg = <SVGElement>sendButton.getElementsByClassName("lucide-arrow-up-circle")[0]
+                sendImg.addEventListener('click', async (_) => { await this.chat() });
+
+                // Send message
+                this.chat();
+            }, 3000);
         };
 
         const handleRecording = (stream: MediaStream) => {
@@ -497,6 +526,17 @@ export class KhojChatModal extends Modal {
             setIcon(transcribeButton, "mic");
         }
     }
+
+    cancelSendMessage() {
+        // Cancel the auto-send chat message timer if the stop-send-button is clicked
+        clearTimeout(this.sendMessageTimeout);
+
+        // Revert to showing send-button and hide the stop-send-button
+        let sendButton = <HTMLButtonElement>this.modalEl.getElementsByClassName("khoj-chat-send")[0];
+        setIcon(sendButton, "arrow-up-circle");
+        let sendImg = <SVGElement>sendButton.getElementsByClassName("lucide-arrow-up-circle")[0]
+        sendImg.addEventListener('click', async (_) => { await this.chat() });
+    };
 
     incrementalChat(event: KeyboardEvent) {
         if (!event.shiftKey && event.key === 'Enter') {
