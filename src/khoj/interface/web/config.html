@@ -207,7 +207,11 @@
                 {% endif %}
             </div>
             <div id="phone-number-input-element" class="card-action-row">
-                <input type="text" id="mobile_code" class="form-control" placeholder="Phone Number" name="name" value="{{ phone_number }}">
+                {% if phone_number %}
+                    <input type="text" id="mobile_code" class="form-control" placeholder="Phone Number" name="name" value="{{ phone_number }}">
+                {% else %}
+                    <input type="text" id="mobile_code" class="form-control" placeholder="Phone Number" name="name">
+                {% endif %}
             </div>
             <div id="phone-number-update-callback" class="card-action-row" style="display: none;">
             </div>
@@ -607,12 +611,23 @@
     const phonenumberVerifyOTPButton = document.getElementById("whatsapp-verify-otp");
     const phonenumberOTPInput = document.getElementById("whatsapp_otp");
 
-    let phoneNumber = {{ phone_number }};
+    let preExistingPhoneNumber = "{{ phone_number }}";
+    let isPhoneNumberVerified = "{{ is_phone_number_verified }}";
+    let isTwilioEnabled = "{{ is_twilio_enabled }}";
 
-    if (phoneNumber != null) {
+    if (preExistingPhoneNumber != "None" && (isPhoneNumberVerified == "True" || isPhoneNumberVerified == "true")) {
         phonenumberVerifyButton.style.display = "none";
         phonenumberRemoveButton.style.display = "";
-    } else {
+    } else if (preExistingPhoneNumber != "None" && (isPhoneNumberVerified == "False" || isPhoneNumberVerified == "false")) {
+        if (isTwilioEnabled == "True" || isTwilioEnabled == "true") {
+            phonenumberVerifyButton.style.display = "";
+            phonenumberRemoveButton.style.display = "none";
+        } else {
+            phonenumberVerifyButton.style.display = "none";
+            phonenumberRemoveButton.style.display = "none";
+        }
+    }
+    else {
         phonenumberVerifyButton.style.display = "";
         phonenumberRemoveButton.style.display = "none";
     }
@@ -628,7 +643,7 @@
     })
 
     phonenumberRemoveButton.addEventListener("click", () => {
-        fetch('/api/config/data/phone', {
+        fetch('/api/config/phone', {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -655,7 +670,7 @@
         } else {
             alert("Valid number");
             const mobileNumber = iti.getNumber();
-            fetch('/api/config/data/phone?phone_number=' + mobileNumber, {
+            fetch('/api/config/phone?phone_number=' + mobileNumber, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -664,9 +679,18 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status == "ok") {
-                    phonenumberVerifyOTPButton.style.display = "block";
-                    phonenumberOTPInput.style.display = "block";
+                    if (isTwilioEnabled == "True" || isTwilioEnabled == "true") {
+                        phoneNumberUpdateCallback.innerHTML = "OTP sent to your phone number";
+                        phonenumberVerifyOTPButton.style.display = "block";
+                        phonenumberOTPInput.style.display = "block";
+                    } else {
+                        phoneNumberUpdateCallback.innerHTML = "Phone number updated";
+                    }
                     phonenumberVerifyButton.style.display = "none";
+                    phoneNumberUpdateCallback.style.display = "block";
+                    setTimeout(function() {
+                        phoneNumberUpdateCallback.style.display = "none";
+                    }, 5000);
                 } else {
                     phoneNumberUpdateCallback.innerHTML = "Error updating phone number";
                     phoneNumberUpdateCallback.style.display = "block";
@@ -697,7 +721,7 @@
             return;
         }
 
-        fetch('/api/config/data/phone/otp?code=' + otp, {
+        fetch('/api/config/phone/verify?code=' + otp, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

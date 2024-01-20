@@ -1,6 +1,5 @@
 # System Packages
 import json
-import math
 import os
 from datetime import timedelta
 
@@ -18,6 +17,7 @@ from khoj.database.adapters import (
     get_user_subscription_state,
 )
 from khoj.database.models import KhojUser
+from khoj.routers.twilio import is_twilio_enabled
 from khoj.utils import constants, state
 from khoj.utils.rawconfig import (
     GithubContentConfig,
@@ -175,6 +175,8 @@ def config_page(request: Request):
             "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
             "phone_number": user.phone_number,
+            "is_twilio_enabled": is_twilio_enabled(),
+            "is_phone_number_verified": user.verified_phone_number,
         },
     )
 

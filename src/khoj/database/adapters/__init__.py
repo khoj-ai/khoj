@@ -102,7 +102,7 @@ async def aset_user_phone_number(user: KhojUser, phone_number: str) -> KhojUser:
     if not phone_number.startswith("+"):
         phone_number = f"+{phone_number}"
     existing_user_with_phone_number = await aget_user_by_phone_number(phone_number)
-    if existing_user_with_phone_number:
+    if existing_user_with_phone_number and existing_user_with_phone_number.id != user.id:
         if is_none_or_empty(existing_user_with_phone_number.email):
             # Transfer conversation history to the new user. If they don't have an associated email, they are effectively a new user
             async for conversation in Conversation.objects.filter(user=existing_user_with_phone_number).aiterator():

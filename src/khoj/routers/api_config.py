@@ -279,7 +279,7 @@ async def update_search_model(
     return {"status": "ok"}
 
 
-@api_config.post("/data/phone", status_code=200)
+@api_config.post("/phone", status_code=200)
 @requires(["authenticated"])
 async def update_phone_number(
     request: Request,
@@ -306,7 +306,7 @@ async def update_phone_number(
     return {"status": "ok"}
 
 
-@api_config.delete("/data/phone", status_code=200)
+@api_config.delete("/phone", status_code=200)
 @requires(["authenticated"])
 async def delete_phone_number(
     request: Request,
@@ -326,19 +326,19 @@ async def delete_phone_number(
     return {"status": "ok"}
 
 
-@api_config.post("/data/phone/otp", status_code=200)
+@api_config.post("/phone/verify", status_code=200)
 @requires(["authenticated"])
 async def verify_mobile_otp(
     request: Request,
     code: str,
     client: Optional[str] = None,
 ):
-    user = request.user.object
+    user: KhojUser = request.user.object
 
     update_telemetry_state(
         request=request,
         telemetry_type="api",
-        api="verify_otp",
+        api="verify_phone_number",
         client=client,
     )
 
@@ -346,6 +346,7 @@ async def verify_mobile_otp(
         raise HTTPException(status_code=400, detail="Invalid OTP")
 
     user.verified_phone_number = True
+    await user.asave()
     return {"status": "ok"}
 
 
