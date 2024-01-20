@@ -78,9 +78,9 @@ export class KhojChatModal extends Modal {
             },
         })
         transcribe.addEventListener('mousedown', async (event) => { await this.speechToText(event) });
-        transcribe.addEventListener('mouseup', async (event) => { await this.speechToText(event) });
         transcribe.addEventListener('touchstart', async (event) => { await this.speechToText(event) });
         transcribe.addEventListener('touchend', async (event) => { await this.speechToText(event) });
+        transcribe.addEventListener('touchcancel', async (event) => { await this.speechToText(event) });
         setIcon(transcribe, "mic");
 
         let send = inputRow.createEl("button", {
@@ -512,14 +512,14 @@ export class KhojChatModal extends Modal {
         };
 
         // Toggle recording
-        if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') {
+        if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive' || event.type === 'touchstart') {
             navigator.mediaDevices
                 .getUserMedia({ audio: true })
-                .then(handleRecording)
+                ?.then(handleRecording)
                 .catch((e) => {
                     this.flashStatusInChatInput("⛔️ Failed to access microphone");
                 });
-        } else if (this.mediaRecorder.state === 'recording') {
+        } else if (this.mediaRecorder.state === 'recording' || event.type === 'touchend' || event.type === 'touchcancel') {
             this.mediaRecorder.stop();
             this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
             this.mediaRecorder = undefined;
