@@ -17,17 +17,20 @@ export class KhojChatModal extends Modal {
         this.setting = setting;
 
         // Register Modal Keybindings to send user message
-        this.scope.register([], 'Enter', async () => {
-            // Get text in chat input elmenet
-            let input_el = <HTMLInputElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        this.scope.register([], 'Enter', async () => { await this.chat() });
+    }
 
-            // Clear text after extracting message to send
-            let user_message = input_el.value;
-            input_el.value = "";
+    async chat() {
+        // Get text in chat input element
+        let input_el = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
 
-            // Get and render chat response to user message
-            await this.getChatResponse(user_message);
-        });
+        // Clear text after extracting message to send
+        let user_message = input_el.value.trim();
+        input_el.value = "";
+        this.autoResize();
+
+        // Get and render chat response to user message
+        await this.getChatResponse(user_message);
     }
 
     async onOpen() {
@@ -42,13 +45,21 @@ export class KhojChatModal extends Modal {
 
         // Get chat history from Khoj backend
         let getChatHistorySucessfully = await this.getChatHistory(chatBodyEl);
-        let placeholderText = getChatHistorySucessfully ? "Chat with Khoj [Hit Enter to send message]" : "Configure Khoj to enable chat";
+        let placeholderText = getChatHistorySucessfully ? "Message" : "Configure Khoj to enable chat";
 
         // Add chat input field
         let inputRow = contentEl.createDiv("khoj-input-row");
-        let chatInput = inputRow.createEl("input", {
+        let clearChat = inputRow.createEl("button", {
+            text: "Clear History",
             attr: {
-                type: "text",
+                class: "khoj-input-row-button clickable-icon",
+            },
+        })
+        clearChat.addEventListener('click', async (_) => { await this.clearConversationHistory() });
+        setIcon(clearChat, "trash");
+
+        let chatInput = inputRow.createEl("textarea", {
+            attr: {
                 id: "khoj-chat-input",
                 autofocus: "autofocus",
                 placeholder: placeholderText,
@@ -56,25 +67,32 @@ export class KhojChatModal extends Modal {
                 disabled: !getChatHistorySucessfully ? "disabled" : null
             },
         })
+        chatInput.addEventListener('input', (_) => { this.onChatInput() });
+        chatInput.addEventListener('keydown', (event) => { this.incrementalChat(event) });
 
         let transcribe = inputRow.createEl("button", {
             text: "Transcribe",
             attr: {
                 id: "khoj-transcribe",
-                class: "khoj-transcribe khoj-input-row-button",
+                class: "khoj-transcribe khoj-input-row-button clickable-icon ",
             },
         })
-        transcribe.addEventListener('click', async (_) => { await this.speechToText() });
+        transcribe.addEventListener('mousedown', async (event) => { await this.speechToText(event) });
+        transcribe.addEventListener('touchstart', async (event) => { await this.speechToText(event) });
+        transcribe.addEventListener('touchend', async (event) => { await this.speechToText(event) });
+        transcribe.addEventListener('touchcancel', async (event) => { await this.speechToText(event) });
         setIcon(transcribe, "mic");
 
-        let clearChat = inputRow.createEl("button", {
-            text: "Clear History",
+        let send = inputRow.createEl("button", {
+            text: "Send",
             attr: {
-                class: "khoj-input-row-button",
+                id: "khoj-chat-send",
+                class: "khoj-chat-send khoj-input-row-button clickable-icon",
             },
         })
-        clearChat.addEventListener('click', async (_) => { await this.clearConversationHistory() });
-        setIcon(clearChat, "trash");
+        setIcon(send, "arrow-up-circle");
+        let sendImg = <SVGElement>send.getElementsByClassName("lucide-arrow-up-circle")[0]
+        sendImg.addEventListener('click', async (_) => { await this.chat() });
 
         // Scroll to bottom of modal, till the send message input box
         this.modalEl.scrollTop = this.modalEl.scrollHeight;
@@ -370,7 +388,7 @@ export class KhojChatModal extends Modal {
 
     flashStatusInChatInput(message: string) {
         // Get chat input element and original placeholder
-        let chatInput = <HTMLInputElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        let chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
         let originalPlaceholder = chatInput.placeholder;
         // Set placeholder to message
         chatInput.placeholder = message;
@@ -405,10 +423,13 @@ export class KhojChatModal extends Modal {
         }
     }
 
+    sendMessageTimeout: NodeJS.Timeout | undefined;
     mediaRecorder: MediaRecorder | undefined;
-    async speechToText() {
+    async speechToText(event: MouseEvent | TouchEvent) {
+        event.preventDefault();
         const transcribeButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("khoj-transcribe")[0];
-        const chatInput = <HTMLInputElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        const sendButton = <HTMLButtonElement>this.modalEl.getElementsByClassName("khoj-chat-send")[0]
 
         const generateRequestBody = async (audioBlob: Blob, boundary_string: string) => {
             const boundary = `------${boundary_string}`;
@@ -439,7 +460,8 @@ export class KhojChatModal extends Modal {
             // Parse response from Khoj backend
             if (response.status === 200) {
                 console.log(response);
-                chatInput.value += response.json.text;
+                chatInput.value += response.json.text.trimStart();
+                this.autoResize();
             } else if (response.status === 501) {
                 throw new Error("⛔️ Configure speech-to-text model on server.");
             } else if (response.status === 422) {
@@ -447,6 +469,28 @@ export class KhojChatModal extends Modal {
             } else {
                 throw new Error("⛔️ Failed to transcribe audio.");
             }
+
+            // Don't auto-send empty messages
+            if (chatInput.value.length === 0) return;
+
+            // Show stop auto-send button. It stops auto-send when clicked
+            setIcon(sendButton, "stop-circle");
+            let stopSendButtonImg = <SVGElement>sendButton.getElementsByClassName("lucide-stop-circle")[0]
+            stopSendButtonImg.addEventListener('click', (_) => { this.cancelSendMessage() });
+
+            // Start the countdown timer UI
+            stopSendButtonImg.getElementsByTagName("circle")[0].style.animation = "countdown 3s linear 1 forwards";
+
+            // Auto send message after 3 seconds
+            this.sendMessageTimeout = setTimeout(() => {
+                // Stop the countdown timer UI
+                setIcon(sendButton, "arrow-up-circle")
+                let sendImg = <SVGElement>sendButton.getElementsByClassName("lucide-arrow-up-circle")[0]
+                sendImg.addEventListener('click', async (_) => { await this.chat() });
+
+                // Send message
+                this.chat();
+            }, 3000);
         };
 
         const handleRecording = (stream: MediaStream) => {
@@ -468,18 +512,53 @@ export class KhojChatModal extends Modal {
         };
 
         // Toggle recording
-        if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') {
+        if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive' || event.type === 'touchstart') {
             navigator.mediaDevices
                 .getUserMedia({ audio: true })
-                .then(handleRecording)
+                ?.then(handleRecording)
                 .catch((e) => {
                     this.flashStatusInChatInput("⛔️ Failed to access microphone");
                 });
-        } else if (this.mediaRecorder.state === 'recording') {
+        } else if (this.mediaRecorder.state === 'recording' || event.type === 'touchend' || event.type === 'touchcancel') {
             this.mediaRecorder.stop();
             this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
             this.mediaRecorder = undefined;
             setIcon(transcribeButton, "mic");
         }
+    }
+
+    cancelSendMessage() {
+        // Cancel the auto-send chat message timer if the stop-send-button is clicked
+        clearTimeout(this.sendMessageTimeout);
+
+        // Revert to showing send-button and hide the stop-send-button
+        let sendButton = <HTMLButtonElement>this.modalEl.getElementsByClassName("khoj-chat-send")[0];
+        setIcon(sendButton, "arrow-up-circle");
+        let sendImg = <SVGElement>sendButton.getElementsByClassName("lucide-arrow-up-circle")[0]
+        sendImg.addEventListener('click', async (_) => { await this.chat() });
+    };
+
+    incrementalChat(event: KeyboardEvent) {
+        if (!event.shiftKey && event.key === 'Enter') {
+            event.preventDefault();
+            this.chat();
+        }
+    }
+
+    onChatInput() {
+        const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        chatInput.value = chatInput.value.trimStart();
+
+        this.autoResize();
+    }
+
+    autoResize() {
+        const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        const scrollTop = chatInput.scrollTop;
+        chatInput.style.height = '0';
+        const scrollHeight = chatInput.scrollHeight + 8;  // +8 accounts for padding
+        chatInput.style.height = Math.min(scrollHeight, 200) + 'px';
+        chatInput.scrollTop = scrollTop;
+        this.modalEl.scrollTop = this.modalEl.scrollHeight;
     }
 }
