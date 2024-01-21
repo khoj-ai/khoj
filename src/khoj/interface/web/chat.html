@@ -528,7 +528,7 @@ To get started, just start typing below. You can also type / to see a list of co
             const textarea = document.getElementById('chat-input');
             const scrollTop = textarea.scrollTop;
             textarea.style.height = '0';
-            const scrollHeight = textarea.scrollHeight;
+            const scrollHeight = textarea.scrollHeight + 8;  // +8 accounts for padding
             textarea.style.height = Math.min(scrollHeight, 200) + 'px';
             textarea.scrollTop = scrollTop;
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
@@ -581,7 +581,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 .then(response => response.json())
                 .then(data => {
                     // Render chat options, if any
-                    if (data) {
+                    if (data.length > 0) {
                         let questionStarterSuggestions = document.getElementById("question-starters");
                         for (let index in data) {
                             let questionStarter = data[index];
@@ -639,9 +639,14 @@ To get started, just start typing below. You can also type / to see a list of co
                 });
         }
 
+        let sendMessageTimeout;
         let mediaRecorder;
-        function speechToText() {
+        function speechToText(event) {
+            event.preventDefault();
             const speakButtonImg = document.getElementById('speak-button-img');
+            const stopRecordButtonImg = document.getElementById('stop-record-button-img');
+            const sendButtonImg = document.getElementById('send-button-img');
+            const stopSendButtonImg = document.getElementById('stop-send-button-img');
             const chatInput = document.getElementById('chat-input');
 
             const sendToServer = (audioBlob) => {
@@ -650,7 +655,30 @@ To get started, just start typing below. You can also type / to see a list of co
 
                 fetch('/api/transcribe?client=web', { method: 'POST', body: formData })
                     .then(response => response.ok ? response.json() : Promise.reject(response))
-                    .then(data => { chatInput.value += data.text; })
+                    .then(data => { chatInput.value += data.text.trimStart(); autoResize(); })
+                    .then(() => {
+                        // Don't auto-send empty messages
+                        if (chatInput.value.length === 0) return;
+
+                        // Send message after 3 seconds, unless stop send button is clicked
+                        sendButtonImg.style.display = 'none';
+                        stopSendButtonImg.style.display = 'initial';
+
+                        // Start the countdown timer UI
+                        document.getElementById('countdown-circle').style.animation = "countdown 3s linear 1 forwards";
+
+                        sendMessageTimeout = setTimeout(() => {
+                            // Revert to showing send-button and hide the stop-send-button
+                            sendButtonImg.style.display = 'initial';
+                            stopSendButtonImg.style.display = 'none';
+
+                            // Stop the countdown timer UI
+                            document.getElementById('countdown-circle').style.animation = "none";
+
+                            // Send message
+                            chat();
+                        }, 3000);
+                    })
                     .catch(err => {
                         if (err.status === 501) {
                           flashStatusInChatInput("⛔️ Configure speech-to-text model on server.")
@@ -679,26 +707,38 @@ To get started, just start typing below. You can also type / to see a list of co
                 });
 
                 mediaRecorder.start();
-                speakButtonImg.src = '/static/assets/icons/stop-solid.svg';
-                speakButtonImg.alt = 'Stop Transcription';
+                speakButtonImg.style.display = 'none';
+                stopRecordButtonImg.style.display = 'initial';
             };
 
             // Toggle recording
-            if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+            if (!mediaRecorder || mediaRecorder.state === 'inactive' || event.type === 'touchstart') {
                 navigator.mediaDevices
-                .getUserMedia({ audio: true })
+                ?.getUserMedia({ audio: true })
                 .then(handleRecording)
                 .catch((e) => {
                     flashStatusInChatInput("⛔️ Failed to access microphone");
                 });
-            } else if (mediaRecorder.state === 'recording') {
+            } else if (mediaRecorder.state === 'recording' || event.type === 'touchend' || event.type === 'touchcancel') {
                 mediaRecorder.stop();
                 mediaRecorder.stream.getTracks().forEach(track => track.stop());
                 mediaRecorder = null;
-                speakButtonImg.src = '/static/assets/icons/microphone-solid.svg';
-                speakButtonImg.alt = 'Transcribe';
+                speakButtonImg.style.display = 'initial';
+                stopRecordButtonImg.style.display = 'none';
             }
         }
+
+        function cancelSendMessage() {
+            // Cancel the chat() call if the stop-send-button is clicked
+            clearTimeout(sendMessageTimeout);
+
+            // Revert to showing send-button and hide the stop-send-button
+            document.getElementById('stop-send-button-img').style.display = 'none';
+            document.getElementById('send-button-img').style.display = 'initial';
+
+            // Stop the countdown timer UI
+            document.getElementById('countdown-circle').style.animation = "none";
+        };
     </script>
     <body>
         <div id="khoj-empty-container" class="khoj-empty-container">
@@ -718,12 +758,36 @@ To get started, just start typing below. You can also type / to see a list of co
         <div id="chat-footer">
             <div id="chat-tooltip" style="display: none;"></div>
             <div id="input-row">
-                <textarea id="chat-input" class="option" oninput="onChatInput()" onkeydown=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands, or just type your questions and hit enter."></textarea>
-                <button id="speak-button" class="input-row-button" onclick="speechToText()">
-                    <img id="speak-button-img" class="input-row-button-img" src="/static/assets/icons/microphone-solid.svg" alt="Transcribe"></img>
+                <button id="clear-chat-button" class="input-row-button" onclick="clearConversationHistory()">
+                    <svg class="input-row-button-img" alt="Clear Chat History" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+                        <rect width="128" height="128" fill="none"/>
+                        <line x1="216" y1="56" x2="40" y2="56" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
+                        <line x1="104" y1="104" x2="104" y2="168" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
+                        <line x1="152" y1="104" x2="152" y2="168" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
+                        <path d="M200,56V208a8,8,0,0,1-8,8H64a8,8,0,0,1-8-8V56" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
+                        <path d="M168,56V40a16,16,0,0,0-16-16H104A16,16,0,0,0,88,40V56" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
+                    </svg>
                 </button>
-                <button class="input-row-button" onclick="clearConversationHistory()">
-                    <img class="input-row-button-img" src="/static/assets/icons/trash-solid.svg" alt="Clear Chat History"></img>
+                <textarea id="chat-input" class="option" oninput="onChatInput()" onkeydown=incrementalChat(event) autofocus="autofocus" placeholder="Message"></textarea>
+                <button id="speak-button" class="input-row-button"
+                    ontouchstart="speechToText(event)" ontouchend="speechToText(event)" ontouchcancel="speechToText(event)" onmousedown="speechToText(event)">
+                    <svg id="speak-button-img" class="input-row-button-img" alt="Transcribe" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M3.5 6.5A.5.5 0 0 1 4 7v1a4 4 0 0 0 8 0V7a.5.5 0 0 1 1 0v1a5 5 0 0 1-4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 .5-.5z"/>
+                        <path d="M10 8a2 2 0 1 1-4 0V3a2 2 0 1 1 4 0v5zM8 0a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V3a3 3 0 0 0-3-3z"/>
+                    </svg>
+                    <svg id="stop-record-button-img" style="display: none" class="input-row-button-img" alt="Stop Transcribing" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                        <path d="M5 6.5A1.5 1.5 0 0 1 6.5 5h3A1.5 1.5 0 0 1 11 6.5v3A1.5 1.5 0 0 1 9.5 11h-3A1.5 1.5 0 0 1 5 9.5v-3z"/>
+                    </svg>
+                </button>
+                <button id="send-button" class="input-row-button" alt="Send message">
+                    <svg id="send-button-img" onclick="chat()" class="input-row-button-img" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8zm15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11.5z"/>
+                    </svg>
+                    <svg id="stop-send-button-img" onclick="cancelSendMessage()" style="display: none" class="input-row-button-img" alt="Stop Message Send" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <circle id="countdown-circle" class="countdown-circle" cx="8" cy="8" r="7" />
+                        <path d="M5 6.5A1.5 1.5 0 0 1 6.5 5h3A1.5 1.5 0 0 1 11 6.5v3A1.5 1.5 0 0 1 9.5 11h-3A1.5 1.5 0 0 1 5 9.5v-3z"/>
+                    </svg>
                 </button>
             </div>
         </div>
@@ -743,7 +807,7 @@ To get started, just start typing below. You can also type / to see a list of co
             background: var(--background-color);
             color: var(--main-text-color);
             text-align: center;
-            font-family: roboto, karma, segoe ui, sans-serif;
+            font-family: var(--font-family);
             font-size: 20px;
             font-weight: 300;
             line-height: 1.5em;
@@ -802,6 +866,9 @@ To get started, just start typing below. You can also type / to see a list of co
             max-height: 75px;
             transition: max-height 0.3s ease-in-out;
             overflow: hidden;
+        }
+        button.question-starter:hover {
+            background: var(--primary-hover);
         }
 
         button.reference-button {
@@ -963,23 +1030,25 @@ To get started, just start typing below. You can also type / to see a list of co
         }
         #input-row {
             display: grid;
-            grid-template-columns: auto 32px 32px;
+            grid-template-columns: 32px auto 32px 40px;
             grid-column-gap: 10px;
             grid-row-gap: 10px;
             background: var(--background-color);
+            align-items: center;
         }
         .option:hover {
             box-shadow: 0 0 11px #aaa;
         }
         #chat-input {
-            font-family: roboto, karma, segoe ui, sans-serif;
+            font-family: var(--font-family);
             font-size: medium;
-            height: 54px;
+            height: 36px;
+            border-radius: 16px;
             resize: none;
             overflow-y: hidden;
             max-height: 200px;
             box-sizing: border-box;
-            padding: 15px;
+            padding: 4px 0 0 12px;
             line-height: 1.5em;
             margin: 0;
         }
@@ -988,15 +1057,18 @@ To get started, just start typing below. You can also type / to see a list of co
         }
         .input-row-button {
             background: var(--background-color);
-            border: 1px solid var(--main-text-color);
-            box-shadow: 0 0 11px #aaa;
-            border-radius: 5px;
-            padding: 0px;
+            border: none;
+            box-shadow: none;
+            border-radius: 50%;
             font-size: 14px;
             font-weight: 300;
             line-height: 1.5em;
             cursor: pointer;
             transition: background 0.3s ease-in-out;
+            width: 40px;
+            height: 40px;
+            margin-top: -2px;
+            margin-left: -5px;
         }
         .input-row-button:hover {
             background: var(--primary-hover);
@@ -1006,8 +1078,43 @@ To get started, just start typing below. You can also type / to see a list of co
         }
         .input-row-button-img {
             width: 24px;
+            height: 24px;
+        }
+        #send-button {
+            padding: 0;
+            position: relative;
+        }
+        #send-button-img {
+            width: 28px;
+            height: 28px;
+            background: var(--primary-hover);
+            border-radius: 50%;
         }
 
+        #stop-send-button-img {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 28px;
+            height: 28px;
+            transform: rotateY(-180deg) rotateZ(-90deg);
+        }
+        #countdown-circle {
+            stroke-dasharray: 44px;  /* The circumference of the circle with 7px radius */
+            stroke-dashoffset: 0px;
+            stroke-linecap: round;
+            stroke-width: 1px;
+            stroke: var(--main-text-color);
+            fill: none;
+        }
+        @keyframes countdown {
+            from {
+                stroke-dashoffset: 0px;
+            }
+            to {
+                stroke-dashoffset: -44px;  /* The circumference of the circle with 7px radius */
+            }
+        }
 
         .option-enabled {
             box-shadow: 0 0 12px rgb(119, 156, 46);
@@ -1082,6 +1189,9 @@ To get started, just start typing below. You can also type / to see a list of co
             }
             img.text-to-image {
                 max-width: 100%;
+            }
+            #clear-chat-button {
+                margin-left: 0;
             }
         }
         @media only screen and (min-width: 700px) {
