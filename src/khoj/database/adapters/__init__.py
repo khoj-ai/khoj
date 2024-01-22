@@ -245,8 +245,11 @@ async def aget_user_by_phone_number(phone_number: str) -> KhojUser:
         return None
     matched_user = await KhojUser.objects.filter(phone_number=phone_number).prefetch_related("subscription").afirst()
 
+    if not matched_user:
+        return None
+
     # If the user with this phone number does not have an email account with Khoj, return the user
-    if matched_user.email is None:
+    if is_none_or_empty(matched_user.email):
         return matched_user
 
     # If the user has an email account with Khoj and a verified number, return the user
@@ -347,11 +350,11 @@ class ClientApplicationAdapters:
 
 class ConversationAdapters:
     @staticmethod
-    def get_conversation_by_user(user: KhojUser):
-        conversation = Conversation.objects.filter(user=user)
+    def get_conversation_by_user(user: KhojUser, client_application: ClientApplication = None):
+        conversation = Conversation.objects.filter(user=user, client=client_application)
         if conversation.exists():
             return conversation.first()
-        return Conversation.objects.create(user=user)
+        return Conversation.objects.create(user=user, client=client_application)
 
     @staticmethod
     async def aget_conversation_by_user(user: KhojUser, client_application: ClientApplication = None):
@@ -423,12 +426,12 @@ class ConversationAdapters:
         return await ChatModelOptions.objects.filter().afirst()
 
     @staticmethod
-    def save_conversation(user: KhojUser, conversation_log: dict):
-        conversation = Conversation.objects.filter(user=user)
+    def save_conversation(user: KhojUser, conversation_log: dict, client_application: ClientApplication = None):
+        conversation = Conversation.objects.filter(user=user, client=client_application)
         if conversation.exists():
             conversation.update(conversation_log=conversation_log)
         else:
-            Conversation.objects.create(user=user, conversation_log=conversation_log)
+            Conversation.objects.create(user=user, conversation_log=conversation_log, client=client_application)
 
     @staticmethod
     def get_conversation_processor_options():
