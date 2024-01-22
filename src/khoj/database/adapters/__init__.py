@@ -243,11 +243,17 @@ async def get_user_by_token(token: dict) -> KhojUser:
 async def aget_user_by_phone_number(phone_number: str) -> KhojUser:
     if is_none_or_empty(phone_number):
         return None
-    return (
-        await KhojUser.objects.filter(phone_number=phone_number, verified_phone_number=True)
-        .prefetch_related("subscription")
-        .afirst()
-    )
+    matched_user = await KhojUser.objects.filter(phone_number=phone_number).prefetch_related("subscription").afirst()
+
+    # If the user with this phone number does not have an email account with Khoj, return the user
+    if matched_user.email is None:
+        return matched_user
+
+    # If the user has an email account with Khoj and a verified number, return the user
+    if matched_user.verified_phone_number:
+        return matched_user
+
+    return None
 
 
 async def retrieve_user(session_id: str) -> KhojUser:
