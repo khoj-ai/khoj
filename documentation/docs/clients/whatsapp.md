@@ -6,13 +6,13 @@ sidebar_position: 5
 
 > Query your Second Brain from WhatsApp
 
-Without any desktop clients, you can start chatting with Khoj on WhatsApp. Bear in mind you do need one of the desktop clients in order to share and sync your data with Khoj. The WhatsApp AI bot will work right away for answering generic queries and using Khoj in default mode.
+Text [+1 (848) 800 4242](https://wa.me/18488004242) or scan [this QR code](https://khoj.dev/whatsapp) on your phone to chat with Khoj on WhatsApp.
 
-[Click here to get started](https://khoj.dev/whatsapp). You can scan the QR code from your phone, or directly text the number `+1 (848) 800 4242` on WhatsApp.
+Without any desktop clients, you can start chatting with Khoj on WhatsApp. Bear in mind you do need one of the desktop clients in order to share and sync your data with Khoj. The WhatsApp AI bot will work right away for answering generic queries and using Khoj in default mode.
 
 In order to use Khoj on WhatsApp with your own data, you need to setup a Khoj Cloud account and connect your WhatsApp account to it. This is a one time setup and you can do it from the [Khoj Cloud config page](https://app.khoj.dev/config).
 
-You might hit a usage limit for the WhatsApp bot, in which case you can upgrade to a paid plan on Khoj Cloud.
+If you hit usage limits for the WhatsApp bot, upgrade to [a paid plan](https://khoj.dev/pricing) on Khoj Cloud.
 
 ## Features
 
