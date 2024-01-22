@@ -201,9 +201,9 @@
             </div>
             <div class="card-description-row">
                 {% if phone_number %}
-                    <p id="api-settings-card-description" class="card-description">Your number is connected. You can now send messages to Khoj on WhatsApp.</p>
+                    <p id="api-settings-card-description-verified" class="card-description">Your number is connected. You can now send messages to Khoj on WhatsApp by texting <code>+1 848 800 4242</code>. Learn more about the integration <a href="https://docs.khoj.dev/clients/whatsapp">here</a>.</p>
                 {% else %}
-                    <p id="api-settings-card-description" class="card-description">Connect your number to Khoj to send messages on WhatsApp. Learn more about the integration <a href="https://docs.khoj.dev/clients/whatsapp">here</a>.</p>
+                    <p id="api-settings-card-description-unverfied" class="card-description">Connect your number to Khoj to send messages on WhatsApp. Learn more about the integration <a href="https://docs.khoj.dev/clients/whatsapp">here</a>.</p>
                 {% endif %}
             </div>
             <div id="phone-number-input-element" class="card-action-row">
@@ -610,6 +610,8 @@
     const phonenumberRemoveButton = document.getElementById("whatsapp-remove");
     const phonenumberVerifyOTPButton = document.getElementById("whatsapp-verify-otp");
     const phonenumberOTPInput = document.getElementById("whatsapp_otp");
+    const phonenumberVerfiedText = document.getElementById("api-settings-card-description-verified");
+    const phonenumberUnverfiedText = document.getElementById("api-settings-card-description-unverfied");
 
     let preExistingPhoneNumber = "{{ phone_number }}";
     let isPhoneNumberVerified = "{{ is_phone_number_verified }}";
@@ -654,7 +656,8 @@
             if (data.status == "ok") {
                 phonenumberVerifyButton.style.display = "";
                 phonenumberRemoveButton.style.display = "none";
-                phoneInputField
+                phonenumberVerfiedText.style.display = "none";
+                phonenumberUnverfiedText.style.display = "block";
             }
         })
     })
@@ -684,7 +687,9 @@
                         phonenumberVerifyOTPButton.style.display = "block";
                         phonenumberOTPInput.style.display = "block";
                     } else {
+                        phonenumberVerfiedText.style.display = "block";
                         phoneNumberUpdateCallback.innerHTML = "Phone number updated";
+                        phonenumberUnverfiedText.style.display = "none";
                     }
                     phonenumberVerifyButton.style.display = "none";
                     phoneNumberUpdateCallback.style.display = "block";
@@ -731,6 +736,8 @@
         .then(data => {
             if (data.status == "ok") {
                 phoneNumberUpdateCallback.innerHTML = "Phone number updated";
+                phonenumberVerfiedText.style.display = "block";
+                phonenumberUnverfiedText.style.display = "none";
                 phoneNumberUpdateCallback.style.display = "block";
                 phonenumberRemoveButton.style.display = "";
                 phonenumberVerifyButton.style.display = "none";
