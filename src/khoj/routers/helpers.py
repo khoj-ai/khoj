@@ -208,6 +208,7 @@ def generate_chat_response(
     inferred_queries: List[str] = [],
     conversation_command: ConversationCommand = ConversationCommand.Default,
     user: KhojUser = None,
+    client_application: ClientApplication = None,
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
     chat_response = None
@@ -224,6 +225,7 @@ def generate_chat_response(
             compiled_references=compiled_references,
             online_results=online_results,
             inferred_queries=inferred_queries,
+            client_application=client_application,
         )
 
         conversation_config = ConversationAdapters.get_valid_conversation_config(user)

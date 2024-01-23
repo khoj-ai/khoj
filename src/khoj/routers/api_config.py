@@ -22,6 +22,7 @@ from khoj.database.models import (
     NotionConfig,
 )
 from khoj.routers.helpers import CommonQueryParams, update_telemetry_state
+from khoj.routers.twilio import create_otp, is_twilio_enabled, verify_otp
 from khoj.utils import constants, state
 from khoj.utils.rawconfig import (
     FullConfig,
@@ -278,7 +279,77 @@ async def update_search_model(
     return {"status": "ok"}
 
 
-# Create Routes
+@api_config.post("/phone", status_code=200)
+@requires(["authenticated"])
+async def update_phone_number(
+    request: Request,
+    phone_number: str,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+
+    await adapters.aset_user_phone_number(user, phone_number)
+
+    if is_twilio_enabled():
+        create_otp(user)
+    else:
+        logger.warning("Phone verification is not enabled")
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="set_phone_number",
+        client=client,
+        metadata={"phone_number": phone_number},
+    )
+
+    return {"status": "ok"}
+
+
+@api_config.delete("/phone", status_code=200)
+@requires(["authenticated"])
+async def delete_phone_number(
+    request: Request,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+
+    await adapters.aremove_phone_number(user)
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="delete_phone_number",
+        client=client,
+    )
+
+    return {"status": "ok"}
+
+
+@api_config.post("/phone/verify", status_code=200)
+@requires(["authenticated"])
+async def verify_mobile_otp(
+    request: Request,
+    code: str,
+    client: Optional[str] = None,
+):
+    user: KhojUser = request.user.object
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="verify_phone_number",
+        client=client,
+    )
+
+    if is_twilio_enabled() and not verify_otp(user, code):
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+
+    user.verified_phone_number = True
+    await user.asave()
+    return {"status": "ok"}
+
+
 @api_config.get("/index/size", response_model=Dict[str, int])
 @requires(["authenticated"])
 async def get_indexed_data_size(request: Request, common: CommonQueryParams):

@@ -194,6 +194,37 @@
                 </button>
             </div>
         </div>
+        <div id="phone-number-input-id" class="api-settings">
+            <div class="card-title-row">
+                <img class="card-icon" src="/static/assets/icons/whatsapp.svg" alt="WhatsApp icon">
+                <h3 class="card-title">WhatsApp</h3>
+            </div>
+            <div class="card-description-row">
+                <p id="api-settings-card-description-verified" class="card-description" style="{{ 'display: none;' if not phone_number else '' }}">Your number is connected. You can now chat with Khoj on WhatsApp at <a href="https://wa.me/18488004242">+1-848-800-4242</a>. Learn more about the integration <a href="https://docs.khoj.dev/clients/whatsapp">here</a>.</p>
+                <p id="api-settings-card-description-unverified" class="card-description" style="{{ 'display: none;' if phone_number else '' }}">Connect your number to chat with Khoj on WhatsApp. Learn more about the integration <a href="https://docs.khoj.dev/clients/whatsapp">here</a>.</p>
+            </div>
+            <div id="phone-number-input-element" class="card-action-row">
+                {% if phone_number %}
+                    <input type="text" id="mobile_code" class="form-control" placeholder="Phone Number" name="name" value="{{ phone_number }}">
+                {% else %}
+                    <input type="text" id="mobile_code" class="form-control" placeholder="Phone Number" name="name">
+                {% endif %}
+            </div>
+            <div id="phone-number-update-callback" class="card-action-row" style="display: none;">
+            </div>
+            <div class="card-action-row">
+                <button id="whatsapp-verify" class="card-button happy" style="display: none;">
+                    Get OTP on WhatsApp and Verify
+                </button>
+                <button id="whatsapp-remove" class="card-button" style="display: none;">
+                    Remove
+                </button>
+                <input type="number" maxlength="6" id="whatsapp_otp" class="whatsapp_otp" placeholder="OTP" name="otp_code" style="display: none;">
+                <button id="whatsapp-verify-otp" class="card-button happy" style="display: none;">
+                    Verify OTP
+                </button>
+            </div>
+        </div>
     </div>
     {% if billing_enabled %}
     <div id="billing" class="section">
@@ -555,5 +586,181 @@
             }
         })
     }
+
+    var phoneInputField = document.querySelector("#mobile_code");
+    const iti = window.intlTelInput(phoneInputField, {
+        initialCountry: "auto",
+        geoIpLookup: callback => {
+            fetch("https://ipapi.co/json")
+            .then(res => res.json())
+            .then(data => callback(data.country_code))
+            .catch(() => callback("us"))
+        },
+        separateDialCode: true,
+        utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js",
+    });
+
+    const errorMap = ["Invalid number", "Invalid country code", "Too short", "Too long", "Invalid number"];
+    const phoneNumberUpdateCallback = document.getElementById("phone-number-update-callback");
+
+    const phonenumberVerifyButton = document.getElementById("whatsapp-verify");
+    const phonenumberRemoveButton = document.getElementById("whatsapp-remove");
+    const phonenumberVerifyOTPButton = document.getElementById("whatsapp-verify-otp");
+    const phonenumberOTPInput = document.getElementById("whatsapp_otp");
+    const phonenumberVerifiedText = document.getElementById("api-settings-card-description-verified");
+    const phonenumberUnverifiedText = document.getElementById("api-settings-card-description-unverified");
+
+    let preExistingPhoneNumber = "{{ phone_number }}";
+    let isPhoneNumberVerified = "{{ is_phone_number_verified }}";
+    let isTwilioEnabled = "{{ is_twilio_enabled }}";
+
+    if (preExistingPhoneNumber != "None" && (isPhoneNumberVerified == "True" || isPhoneNumberVerified == "true")) {
+        phonenumberVerifyButton.style.display = "none";
+        phonenumberRemoveButton.style.display = "";
+    } else if (preExistingPhoneNumber != "None" && (isPhoneNumberVerified == "False" || isPhoneNumberVerified == "false")) {
+        if (isTwilioEnabled == "True" || isTwilioEnabled == "true") {
+            phonenumberVerifyButton.style.display = "";
+            phonenumberRemoveButton.style.display = "none";
+        } else {
+            phonenumberVerifyButton.style.display = "none";
+            phonenumberRemoveButton.style.display = "none";
+        }
+    }
+    else {
+        phonenumberVerifyButton.style.display = "";
+        phonenumberRemoveButton.style.display = "none";
+    }
+
+    phoneInputField.addEventListener("keyup", () => {
+        if (iti.isValidNumber() == false) {
+            phonenumberVerifyButton.style.display = "none";
+            phonenumberRemoveButton.style.display = "none";
+        } else {
+            phonenumberVerifyButton.style.display = "";
+            phonenumberRemoveButton.style.display = "none";
+        }
+    })
+
+    phonenumberRemoveButton.addEventListener("click", () => {
+        fetch('/api/config/phone', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status == "ok") {
+                phonenumberVerifyButton.style.display = "";
+                phonenumberRemoveButton.style.display = "none";
+                phonenumberVerifiedText.style.display = "none";
+                phonenumberUnverifiedText.style.display = "block";
+            }
+        })
+    })
+
+    phonenumberVerifyButton.addEventListener("click", () => {
+        console.log(iti.getValidationError());
+        if (iti.isValidNumber() == false) {
+            phoneNumberUpdateCallback.innerHTML = "Invalid phone number: " + errorMap[iti.getValidationError()];
+            phoneNumberUpdateCallback.style.display = "block";
+            setTimeout(function() {
+                phoneNumberUpdateCallback.style.display = "none";
+            }, 5000);
+        } else {
+            alert("Valid number");
+            const mobileNumber = iti.getNumber();
+            fetch('/api/config/phone?phone_number=' + mobileNumber, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status == "ok") {
+                    if (isTwilioEnabled == "True" || isTwilioEnabled == "true") {
+                        phoneNumberUpdateCallback.innerHTML = "OTP sent to your phone number";
+                        phonenumberVerifyOTPButton.style.display = "block";
+                        phonenumberOTPInput.style.display = "block";
+                    } else {
+                        phonenumberVerifiedText.style.display = "block";
+                        phoneNumberUpdateCallback.innerHTML = "Phone number updated";
+                        phonenumberUnverifiedText.style.display = "none";
+                    }
+                    phonenumberVerifyButton.style.display = "none";
+                    phoneNumberUpdateCallback.style.display = "block";
+                    setTimeout(function() {
+                        phoneNumberUpdateCallback.style.display = "none";
+                    }, 5000);
+                } else {
+                    phoneNumberUpdateCallback.innerHTML = "Error updating phone number";
+                    phoneNumberUpdateCallback.style.display = "block";
+                    setTimeout(function() {
+                        phoneNumberUpdateCallback.style.display = "none";
+                    }, 5000);
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                phoneNumberUpdateCallback.innerHTML = "Error updating phone number";
+                phoneNumberUpdateCallback.style.display = "block";
+                setTimeout(function() {
+                    phoneNumberUpdateCallback.style.display = "none";
+                }, 5000);
+            });
+        }
+    })
+
+    phonenumberVerifyOTPButton.addEventListener("click", () => {
+        const otp = phonenumberOTPInput.value;
+        if (otp.length != 6) {
+            phoneNumberUpdateCallback.innerHTML = "Your OTP should be exactly 6 digits";
+            phoneNumberUpdateCallback.style.display = "block";
+            setTimeout(function() {
+                phoneNumberUpdateCallback.style.display = "none";
+            }, 5000);
+            return;
+        }
+
+        fetch('/api/config/phone/verify?code=' + otp, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status == "ok") {
+                phoneNumberUpdateCallback.innerHTML = "Phone number updated";
+                phonenumberVerifiedText.style.display = "block";
+                phonenumberUnverifiedText.style.display = "none";
+                phoneNumberUpdateCallback.style.display = "block";
+                phonenumberRemoveButton.style.display = "";
+                phonenumberVerifyButton.style.display = "none";
+                phonenumberVerifyOTPButton.style.display = "none";
+                phonenumberOTPInput.style.display = "none";
+                setTimeout(function() {
+                    phoneNumberUpdateCallback.style.display = "none";
+                }, 5000);
+            } else {
+                phoneNumberUpdateCallback.innerHTML = "Error updating phone number";
+                phoneNumberUpdateCallback.style.display = "block";
+                setTimeout(function() {
+                    phoneNumberUpdateCallback.style.display = "none";
+                }, 5000);
+            }
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+            phoneNumberUpdateCallback.innerHTML = "Error updating phone number";
+            phoneNumberUpdateCallback.style.display = "block";
+            setTimeout(function() {
+                phoneNumberUpdateCallback.style.display = "none";
+            }, 5000);
+        });
+    })
+
+
 </script>
 {% endblock %}

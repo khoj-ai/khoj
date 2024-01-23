@@ -10,7 +10,7 @@ from langchain.schema import ChatMessage
 from transformers import AutoTokenizer
 
 from khoj.database.adapters import ConversationAdapters
-from khoj.database.models import KhojUser
+from khoj.database.models import ClientApplication, KhojUser
 from khoj.utils.helpers import merge_dicts
 
 logger = logging.getLogger(__name__)
@@ -98,6 +98,7 @@ def save_to_conversation_log(
     online_results: Dict[str, Any] = {},
     inferred_queries: List[str] = [],
     intent_type: str = "remember",
+    client_application: ClientApplication = None,
 ):
     user_message_time = user_message_time or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     updated_conversation = message_to_log(
@@ -111,7 +112,7 @@ def save_to_conversation_log(
         },
         conversation_log=meta_log.get("chat", []),
     )
-    ConversationAdapters.save_conversation(user, {"chat": updated_conversation})
+    ConversationAdapters.save_conversation(user, {"chat": updated_conversation}, client_application=client_application)
 
 
 def generate_chatml_messages_with_context(

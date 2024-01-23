@@ -241,7 +241,9 @@ def chat_history(
     validate_conversation_config()
 
     # Load Conversation History
-    meta_log = ConversationAdapters.get_conversation_by_user(user=user).conversation_log
+    meta_log = ConversationAdapters.get_conversation_by_user(
+        user=user, client_application=request.user.client_app
+    ).conversation_log
 
     update_telemetry_state(
         request=request,
@@ -424,7 +426,13 @@ async def chat(
             }
             return Response(content=json.dumps(content_obj), media_type="application/json", status_code=status_code)
         await sync_to_async(save_to_conversation_log)(
-            q, image, user, meta_log, intent_type="text-to-image", inferred_queries=[improved_image_prompt]
+            q,
+            image,
+            user,
+            meta_log,
+            intent_type="text-to-image",
+            inferred_queries=[improved_image_prompt],
+            client_application=request.user.client_app,
         )
         content_obj = {"image": image, "intentType": "text-to-image", "inferredQueries": [improved_image_prompt]}  # type: ignore
         return Response(content=json.dumps(content_obj), media_type="application/json", status_code=status_code)
@@ -438,6 +446,7 @@ async def chat(
         inferred_queries,
         conversation_command,
         user,
+        request.user.client_app,
     )
 
     chat_metadata.update({"conversation_command": conversation_command.value})

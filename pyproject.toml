@@ -78,6 +78,7 @@ dependencies = [
     "openai-whisper >= 20231117",
     "django-phonenumber-field == 7.3.0",
     "phonenumbers == 8.13.27",
+    "twilio == 8.11"
 ]
 dynamic = ["version"]
 

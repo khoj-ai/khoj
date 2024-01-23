@@ -58,6 +58,7 @@ class ConversationAdmin(admin.ModelAdmin):
         "user",
         "created_at",
         "updated_at",
+        "client",
     )
     search_fields = ("conversation_id",)
     ordering = ("-created_at",)
