@@ -668,7 +668,6 @@
                 phoneNumberUpdateCallback.style.display = "none";
             }, 5000);
         } else {
-            alert("Valid number");
             const mobileNumber = iti.getNumber();
             fetch('/api/config/phone?phone_number=' + mobileNumber, {
                 method: 'POST',
