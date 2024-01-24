@@ -402,7 +402,7 @@ async def chat(
 
     elif conversation_command == ConversationCommand.Online:
         try:
-            online_results = await search_with_google(defiltered_query)
+            online_results = await search_with_google(defiltered_query, meta_log)
         except ValueError as e:
             return StreamingResponse(
                 iter(["Please set your SERPER_DEV_API_KEY to get started with online searches 🌐"]),
@@ -417,7 +417,7 @@ async def chat(
             metadata={"conversation_command": conversation_command.value},
             **common.__dict__,
         )
-        image, status_code, improved_image_prompt = await text_to_image(q)
+        image, status_code, improved_image_prompt = await text_to_image(q, meta_log)
         if image is None:
             content_obj = {
                 "image": image,
@@ -538,7 +538,7 @@ async def extract_references_and_questions(
             )
         elif conversation_config and conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
             openai_chat_config = await ConversationAdapters.get_openai_chat_config()
-            default_openai_llm = await ConversationAdapters.get_default_openai_llm()
+            default_openai_llm = await ConversationAdapters.aget_default_openai_llm()
             api_key = openai_chat_config.api_key
             chat_model = default_openai_llm.chat_model
             inferred_queries = extract_questions(

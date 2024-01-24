@@ -113,7 +113,10 @@ Question: {query}
 
 image_generation_improve_prompt = PromptTemplate.from_template(
     """
-Generate a detailed prompt to generate an image based on the following description. Update the query below to improve the image generation. Add additional context to the query to improve the image generation.
+You are a talented creator. Generate a detailed prompt to generate an image based on the following description. Update the query below to improve the image generation. Add additional context to the query to improve the image generation. Make sure to retain any important information from the query. Use the conversation log to inform your response.
+
+Conversation Log:
+{chat_history}
 
 Query: {query}
 
@@ -132,33 +135,6 @@ Information from the internet: {online_results}
 Query: {query}""".strip()
 )
 
-online_search_conversation_subqueries = PromptTemplate.from_template(
-    """
-The user has a question which you can use the internet to respond to. Can you break down the question into subqueries to get the correct answer? Provide search queries as a JSON list of strings
-
-Today's date in UTC: {current_date}
-
-Here are some examples of questions and subqueries:
-
-Q: Posts about vector databases on Hacker News
-A: ["site:"news.ycombinator.com vector database"]
-
-Q: What is the weather like in New York and San Francisco?
-A: ["weather in new york", "weather in san francisco"]
-
-Q: What is the latest news about Google stock?
-A: ["google stock news"]
-
-Q: When is the next lunar eclipse?
-A: ["next lunar eclipse"]
-
-Q: How many oranges would fit in NASA's Saturn V rocket?
-A: ["volume of an orange", "volume of saturn v rocket"]
-
-This is the user's query:
-Q: {query}
-A: """.strip()
-)
 
 ## Summarize Notes
 ## --
@@ -278,6 +254,54 @@ A: Yesterday's note contains the following information: ...
 {chat_history}
 Q: {text}
 
+"""
+)
+
+online_search_conversation_subqueries = PromptTemplate.from_template(
+    """
+You are Khoj, an extremely smart and helpful search assistant. You are tasked with constructing a search query to answer the user's question.
+- You will receive the conversation history as context.
+- Add as much context from the previous questions and answers as required into your search queries.
+- Break messages into multiple search queries when required to retrieve the relevant information.
+- You have access to the internet to retrieve information.
+
+What searches, if any, will you need to perform to answer the users question?
+Provide search queries as a JSON list of strings
+Current Date: {current_date}
+
+History:
+User: I like to use Hacker News to get my tech news.
+Khoj: Hacker News is an online forum for sharing and discussing the latest tech news. It is a great place to learn about new technologies and startups.
+
+Q: Posts about vector databases on Hacker News
+A: ["site:"news.ycombinator.com vector database"]
+
+History:
+User: I'm currently living in New York but I'm thinking about moving to San Francisco.
+Khoj: New York is a great city to live in. It has a lot of great restaurants and museums. San Francisco is also a great city to live in. It has a lot of great restaurants and museums.
+
+Q: What is the weather like in New York and San Francisco?
+A: ["weather in new york", "weather in san francisco"]
+
+History:
+User: I'm thinking of my next vacation idea. Ideally, I want to see something new and exciting.
+Khoj: You could time your next trip with the next lunar eclipse, as that would be a novel experience.
+
+Q: When is the next lunar eclipse?
+A: ["next lunar eclipse"]
+
+History:
+User: I need to transport a lot of oranges to the moon. Are there any rockets that can fit a lot of oranges?
+Khoj: NASA's Saturn V rocket frequently makes lunar trips and has a large cargo capacity.
+
+Q: How many oranges would fit in NASA's Saturn V rocket?
+A: ["volume of an orange", "volume of saturn v rocket"]
+
+History:
+{chat_history}
+
+Q: {query}
+A:
 """
 )
 
