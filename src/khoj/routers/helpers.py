@@ -125,14 +125,21 @@ async def agenerate_chat_response(*args):
     return await loop.run_in_executor(executor, generate_chat_response, *args)
 
 
-async def generate_online_subqueries(q: str) -> List[str]:
+async def generate_online_subqueries(q: str, conversation_history: dict) -> List[str]:
     """
     Generate subqueries from the given query
     """
+    chat_history = ""
+    for chat in conversation_history.get("chat", [])[-4:]:
+        if chat["by"] == "khoj" and chat["intent"].get("type") == "remember":
+            chat_history += f"User: {chat['intent']['query']}\n"
+            chat_history += f"Khoj: {chat['message']}\n"
+
     utc_date = datetime.utcnow().strftime("%Y-%m-%d")
     online_queries_prompt = prompts.online_search_conversation_subqueries.format(
         current_date=utc_date,
         query=q,
+        chat_history=chat_history,
     )
 
     response = await send_message_to_model_wrapper(online_queries_prompt)
@@ -151,13 +158,14 @@ async def generate_online_subqueries(q: str) -> List[str]:
         return [q]
 
 
-async def generate_better_image_prompt(q: str) -> str:
+async def generate_better_image_prompt(q: str, conversation_history: str) -> str:
     """
     Generate a better image prompt from the given query
     """
 
     image_prompt = prompts.image_generation_improve_prompt.format(
         query=q,
+        chat_history=conversation_history,
     )
 
     response = await send_message_to_model_wrapper(image_prompt)
@@ -273,7 +281,7 @@ def generate_chat_response(
     return chat_response, metadata
 
 
-async def text_to_image(message: str) -> Tuple[Optional[str], int, Optional[str]]:
+async def text_to_image(message: str, conversation_log: dict) -> Tuple[Optional[str], int, Optional[str]]:
     status_code = 200
     image = None
 
@@ -283,7 +291,12 @@ async def text_to_image(message: str) -> Tuple[Optional[str], int, Optional[str]
         status_code = 501
     elif state.openai_client and text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
         text2image_model = text_to_image_config.model_name
-        improved_image_prompt = await generate_better_image_prompt(message)
+        chat_history = ""
+        for chat in conversation_log.get("chat", [])[-4:]:
+            if chat["by"] == "khoj" and chat["intent"].get("type") == "remember":
+                chat_history += f"Q: {chat['intent']['query']}\n"
+                chat_history += f"A: {chat['message']}\n"
+        improved_image_prompt = await generate_better_image_prompt(message, chat_history)
         try:
             response = state.openai_client.images.generate(
                 prompt=improved_image_prompt, model=text2image_model, response_format="b64_json"

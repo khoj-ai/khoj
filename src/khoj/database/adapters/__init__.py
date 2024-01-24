@@ -467,7 +467,7 @@ class ConversationAdapters:
         return await OpenAIProcessorConversationConfig.objects.filter().aexists()
 
     @staticmethod
-    async def get_default_openai_llm():
+    async def aget_default_openai_llm():
         return await ChatModelOptions.objects.filter(model_type="openai").afirst()
 
     @staticmethod

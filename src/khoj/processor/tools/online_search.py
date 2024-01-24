@@ -13,7 +13,7 @@ SERPER_DEV_API_KEY = os.getenv("SERPER_DEV_API_KEY")
 url = "https://google.serper.dev/search"
 
 
-async def search_with_google(query: str):
+async def search_with_google(query: str, conversation_history: dict):
     def _search_with_google(subquery: str):
         payload = json.dumps(
             {
@@ -42,7 +42,7 @@ async def search_with_google(query: str):
         raise ValueError("SERPER_DEV_API_KEY is not set")
 
     # Breakdown the query into subqueries to get the correct answer
-    subqueries = await generate_online_subqueries(query)
+    subqueries = await generate_online_subqueries(query, conversation_history)
 
     response_dict = {}
 
