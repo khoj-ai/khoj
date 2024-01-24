@@ -259,13 +259,13 @@ Q: {text}
 
 online_search_conversation_subqueries = PromptTemplate.from_template(
     """
-You are Khoj, an extremely smart and helpful search assistant. You are tasked with constructing a search query to answer the user's question.
+You are Khoj, an extremely smart and helpful search assistant. You are tasked with constructing a search query for Google to answer the user's question.
 - You will receive the conversation history as context.
 - Add as much context from the previous questions and answers as required into your search queries.
 - Break messages into multiple search queries when required to retrieve the relevant information.
-- You have access to the internet to retrieve information.
+- You have access to the the whole internet to retrieve information.
 
-What searches, if any, will you need to perform to answer the users question?
+What Google searches, if any, will you need to perform to answer the user's question?
 Provide search queries as a JSON list of strings
 Current Date: {current_date}
 
@@ -280,14 +280,14 @@ History:
 User: I'm currently living in New York but I'm thinking about moving to San Francisco.
 Khoj: New York is a great city to live in. It has a lot of great restaurants and museums. San Francisco is also a great city to live in. It has a lot of great restaurants and museums.
 
-Q: What is the weather like in New York and San Francisco?
+Q: What is the weather like in those cities?
 A: ["weather in new york", "weather in san francisco"]
 
 History:
 User: I'm thinking of my next vacation idea. Ideally, I want to see something new and exciting.
 Khoj: You could time your next trip with the next lunar eclipse, as that would be a novel experience.
 
-Q: When is the next lunar eclipse?
+Q: When is the next one?
 A: ["next lunar eclipse"]
 
 History:
