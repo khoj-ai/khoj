@@ -158,7 +158,7 @@ async def generate_online_subqueries(q: str, conversation_history: dict) -> List
         return [q]
 
 
-async def generate_better_image_prompt(q: str, conversation_history: dict) -> str:
+async def generate_better_image_prompt(q: str, conversation_history: str) -> str:
     """
     Generate a better image prompt from the given query
     """
