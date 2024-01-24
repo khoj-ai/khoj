@@ -45,7 +45,10 @@ with redirect_stdout(collectstatic_output):
     call_command("collectstatic", "--noinput")
 
 # Initialize the Application Server
-app = FastAPI()
+if os.getenv("KHOJ_DEBUG", "false").lower() == "true":
+    app = FastAPI(debug=True)
+else:
+    app = FastAPI(docs_url=None)  # Disable Swagger UI in production
 
 # Get Django Application
 django_app = get_asgi_application()
