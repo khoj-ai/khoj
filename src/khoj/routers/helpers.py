@@ -131,7 +131,7 @@ async def generate_online_subqueries(q: str, conversation_history: dict) -> List
     """
     chat_history = ""
     for chat in conversation_history.get("chat", [])[-4:]:
-        if chat["by"] == "khoj" and chat["intent"].get("type") != "text-to-image":
+        if chat["by"] == "khoj" and chat["intent"].get("type") == "remember":
             chat_history += f"User: {chat['intent']['query']}\n"
             chat_history += f"Khoj: {chat['message']}\n"
 
@@ -293,7 +293,7 @@ async def text_to_image(message: str, conversation_log: dict) -> Tuple[Optional[
         text2image_model = text_to_image_config.model_name
         chat_history = ""
         for chat in conversation_log.get("chat", [])[-4:]:
-            if chat["by"] == "khoj" and chat["intent"].get("type") != "text-to-image":
+            if chat["by"] == "khoj" and chat["intent"].get("type") == "remember":
                 chat_history += f"Q: {chat['intent']['query']}\n"
                 chat_history += f"A: {chat['message']}\n"
         improved_image_prompt = await generate_better_image_prompt(message, chat_history)
