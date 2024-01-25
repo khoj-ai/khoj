@@ -33,7 +33,7 @@ See the official [Obsidian Plugin Docs](https://help.obsidian.md/Extending+Obsid
 
 ## Use
 ### Chat
-Run *Khoj: Chat* from the [Command Palette](https://help.obsidian.md/Plugins/Command+palette) and ask questions in a natural, conversational style.<br />
+Click the *Khoj chat* icon 💬 on the [Ribbon](https://help.obsidian.md/User+interface/Workspace/Ribbon) or run *Khoj: Chat* from the [Command Palette](https://help.obsidian.md/Plugins/Command+palette) and ask questions in a natural, conversational style.<br />
 E.g *"When did I file my taxes last year?"*
 
 See [Khoj Chat](/features/chat) for more details
@@ -42,7 +42,7 @@ See [Khoj Chat](/features/chat) for more details
 To see other notes similar to the current one, run *Khoj: Find Similar Notes* from the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
 
 ### Search
-Click the *Khoj search* icon 🔎 on the [Ribbon](https://help.obsidian.md/User+interface/Workspace/Ribbon) or run *Khoj: Search* from the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
+Run *Khoj: Search* from the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
 
 See [Khoj Search](/features/search) for more details. Use [query filters](/miscellaneous/advanced#query-filters) to limit entries to search
 
