@@ -9,6 +9,7 @@ from khoj.routers.helpers import generate_online_subqueries
 logger = logging.getLogger(__name__)
 
 SERPER_DEV_API_KEY = os.getenv("SERPER_DEV_API_KEY")
+OLOSTEP_API_KEY = os.getenv("OLOSTEP_API_KEY")
 
 url = "https://google.serper.dev/search"
 

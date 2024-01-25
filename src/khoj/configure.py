@@ -311,7 +311,8 @@ def upload_telemetry():
         return
 
     try:
-        logger.debug(f"📡 Upload usage telemetry to {constants.telemetry_server}:\n{state.telemetry}")
+        logger.info(f"📡 Uploading telemetry to {constants.telemetry_server}...")
+        logger.debug(f"Telemetry state:\n{state.telemetry}")
         for log in state.telemetry:
             for field in log:
                 # Check if the value for the field is JSON serializable
@@ -319,7 +320,8 @@ def upload_telemetry():
                     json.dumps(log[field])
                 except TypeError:
                     log[field] = str(log[field])
-        requests.post(constants.telemetry_server, json=state.telemetry)
+        response = requests.post(constants.telemetry_server, json=state.telemetry)
+        response.raise_for_status()
     except Exception as e:
         logger.error(f"📡 Error uploading telemetry: {e}", exc_info=True)
     else:
