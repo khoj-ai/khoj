@@ -275,7 +275,7 @@ def configure_middleware(app):
     app.add_middleware(SessionMiddleware, secret_key=os.environ.get("KHOJ_DJANGO_SECRET_KEY", "!secret"))
 
 
-@schedule.repeat(schedule.every(61).minutes)
+@schedule.repeat(schedule.every(22).to(26).hours)
 def update_search_index():
     try:
         logger.info("📬 Updating content index via Scheduler")
