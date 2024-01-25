@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "khoj-assistant"
 description = "An AI copilot for your Second Brain"
 readme = "README.md"
-license = "GPL-3.0-or-later"
+license = "AGPL-3.0-or-later"
 requires-python = ">=3.8"
 authors = [
     { name = "Debanjum Singh Solanky, Saba Imran" },
