@@ -86,9 +86,9 @@ def update_telemetry_state(
         "user_agent": user_agent or "unknown",
         "referer": referer or "unknown",
         "host": host or "unknown",
-        "server_id": str(user.uuid),
-        "subscription_type": subscription.type,
-        "is_recurring": subscription.is_recurring,
+        "server_id": str(user.uuid) if user else None,
+        "subscription_type": subscription.type if subscription else None,
+        "is_recurring": subscription.is_recurring if subscription else None,
         "client_id": str(client_app.name) if client_app else "default",
     }
 
