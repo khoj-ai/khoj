@@ -109,7 +109,6 @@ def send_message_to_model(
     return completion_with_backoff(
         messages=messages,
         model=model,
-        model_kwargs={"stop": ["A: ", "\n"]},
         openai_api_key=api_key,
     )
 

@@ -18,7 +18,7 @@ model_to_prompt_size = {
     "gpt-3.5-turbo": 3000,
     "gpt-4": 7000,
     "gpt-4-1106-preview": 7000,
-    "gpt-4-turbo-preview": 4000,
+    "gpt-4-turbo-preview": 7000,
     "llama-2-7b-chat.ggmlv3.q4_0.bin": 1548,
     "gpt-3.5-turbo-16k": 15000,
     "mistral-7b-instruct-v0.1.Q4_0.gguf": 1548,

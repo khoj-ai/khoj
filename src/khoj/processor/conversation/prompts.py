@@ -259,7 +259,7 @@ Q: {text}
 
 system_prompt_extract_relevant_information = """As a professional analyst, create a comprehensive report of the most relevant information from a web page in response to a user's query. The text provided is directly from within the web page. The report you create should be multiple paragraphs, and it should represent the content of the website. Tell the user exactly what the website says in response to their query, while adhering to these guidelines:
 
-1. Answer the user's query as specifically as possible. Be verbose. Include many supporting details from the website.
+1. Answer the user's query as specifically as possible. Include many supporting details from the website.
 2. Craft a report that is detailed, thorough, in-depth, and complex, while maintaining clarity.
 3. Rely strictly on the provided text, without including external information.
 4. Format the report in multiple paragraphs with a clear structure.
@@ -279,7 +279,7 @@ Collate the relevant information from the website to answer the target query.
 
 online_search_conversation_subqueries = PromptTemplate.from_template(
     """
-You are Khoj, an extremely smart and helpful search assistant. You are tasked with constructing a search query for Google to answer the user's question.
+You are Khoj, an extremely smart and helpful search assistant. You are tasked with constructing **up to three** search queries for Google to answer the user's question.
 - You will receive the conversation history as context.
 - Add as much context from the previous questions and answers as required into your search queries.
 - Break messages into multiple search queries when required to retrieve the relevant information.
