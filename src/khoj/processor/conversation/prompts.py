@@ -257,6 +257,26 @@ Q: {text}
 """
 )
 
+system_prompt_extract_relevant_information = """As a professional analyst, create a comprehensive report of the most relevant information from a web page in response to a user's query. The text provided is directly from within the web page. The report you create should be multiple paragraphs, and it should represent the content of the website. Tell the user exactly what the website says in response to their query, while adhering to these guidelines:
+
+1. Answer the user's query as specifically as possible. Be verbose. Include many supporting details from the website.
+2. Craft a report that is detailed, thorough, in-depth, and complex, while maintaining clarity.
+3. Rely strictly on the provided text, without including external information.
+4. Format the report in multiple paragraphs with a clear structure.
+5. Be as specific as possible in your answer to the user's query.
+6. Reproduce as much of the provided text as possible, while maintaining readability.
+""".strip()
+
+extract_relevant_information = PromptTemplate.from_template(
+    """
+Target Query: {query}
+
+Web Pages: {corpus}
+
+Collate the relevant information from the website to answer the target query.
+""".strip()
+)
+
 online_search_conversation_subqueries = PromptTemplate.from_template(
     """
 You are Khoj, an extremely smart and helpful search assistant. You are tasked with constructing a search query for Google to answer the user's question.
@@ -266,9 +286,10 @@ You are Khoj, an extremely smart and helpful search assistant. You are tasked wi
 - You have access to the the whole internet to retrieve information.
 
 What Google searches, if any, will you need to perform to answer the user's question?
-Provide search queries as a JSON list of strings
+Provide search queries as a list of strings
 Current Date: {current_date}
 
+Here are some examples:
 History:
 User: I like to use Hacker News to get my tech news.
 Khoj: Hacker News is an online forum for sharing and discussing the latest tech news. It is a great place to learn about new technologies and startups.
@@ -297,6 +318,7 @@ Khoj: NASA's Saturn V rocket frequently makes lunar trips and has a large cargo 
 Q: How many oranges would fit in NASA's Saturn V rocket?
 A: ["volume of an orange", "volume of saturn v rocket"]
 
+Now it's your turn to construct a search query for Google to answer the user's question.
 History:
 {chat_history}
 

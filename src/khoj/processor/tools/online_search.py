@@ -4,14 +4,33 @@ import os
 
 import requests
 
-from khoj.routers.helpers import generate_online_subqueries
+from khoj.routers.helpers import extract_relevant_info, generate_online_subqueries
+from khoj.utils.helpers import is_none_or_empty
 
 logger = logging.getLogger(__name__)
 
 SERPER_DEV_API_KEY = os.getenv("SERPER_DEV_API_KEY")
 OLOSTEP_API_KEY = os.getenv("OLOSTEP_API_KEY")
 
-url = "https://google.serper.dev/search"
+SERPER_DEV_URL = "https://google.serper.dev/search"
+
+OLOSTEP_API_URL = "https://agent.olostep.com/olostep-p2p-incomingAPI"
+
+OLOSTEP_QUERY_PARAMS = {
+    "token": OLOSTEP_API_KEY,
+    "timeout": 35,  # seconds
+    "waitBeforeScraping": 1,  # seconds
+    "saveHtml": False,
+    "saveMarkdown": True,
+    "removeCSSselectors": "default",
+    "htmlTransformer": "none",
+    "removeImages": True,
+    "fastLane": True,
+    # Similar to Stripe's API, the expand parameters avoid the need to make a second API call
+    # to retrieve the dataset (from the dataset API) if you only need the markdown or html.
+    "expandMarkdown": True,
+    "expandHtml": False,
+}
 
 
 async def search_with_google(query: str, conversation_history: dict):
@@ -24,7 +43,7 @@ async def search_with_google(query: str, conversation_history: dict):
 
         headers = {"X-API-KEY": SERPER_DEV_API_KEY, "Content-Type": "application/json"}
 
-        response = requests.request("POST", url, headers=headers, data=payload)
+        response = requests.request("POST", SERPER_DEV_URL, headers=headers, data=payload)
 
         if response.status_code != 200:
             logger.error(response.text)
@@ -51,4 +70,39 @@ async def search_with_google(query: str, conversation_history: dict):
         logger.info(f"Searching with Google for '{subquery}'")
         response_dict[subquery] = _search_with_google(subquery)
 
+    extracted_content = {}
+    if is_none_or_empty(OLOSTEP_API_KEY):
+        logger.warning("OLOSTEP_API_KEY is not set. Skipping web scraping.")
+        return response_dict
+
+    for subquery in response_dict:
+        # If a high quality answer is not found, search the web pages of the first 3 organic results
+        if is_none_or_empty(response_dict[subquery].get("answerBox")):
+            extracted_content[subquery] = []
+            for result in response_dict[subquery].get("organic")[:1]:
+                logger.info(f"Searching web page of '{result['link']}'")
+                try:
+                    extracted_content[subquery].append(search_with_olostep(result["link"]).strip())
+                except Exception as e:
+                    logger.error(e, exc_info=True)
+                    continue
+            extracted_relevant_content = await extract_relevant_info(subquery, extracted_content)
+            response_dict[subquery]["extracted_content"] = extracted_relevant_content
+
     return response_dict
+
+
+def search_with_olostep(web_url: str) -> str:
+    if OLOSTEP_API_KEY is None:
+        raise ValueError("OLOSTEP_API_KEY is not set")
+
+    web_scraping_params = OLOSTEP_QUERY_PARAMS.copy()
+    web_scraping_params["url"] = web_url
+
+    response = requests.request("GET", OLOSTEP_API_URL, params=web_scraping_params)
+
+    if response.status_code != 200:
+        logger.error(response, exc_info=True)
+        return None
+
+    return response.json()["markdown_content"]
