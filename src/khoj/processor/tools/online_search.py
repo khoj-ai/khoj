@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from typing import Dict, List, Union
 
 import requests
 
@@ -70,7 +71,7 @@ async def search_with_google(query: str, conversation_history: dict):
         logger.info(f"Searching with Google for '{subquery}'")
         response_dict[subquery] = _search_with_google(subquery)
 
-    extracted_content = {}
+    extracted_content: Dict[str, List] = {}
     if is_none_or_empty(OLOSTEP_API_KEY):
         logger.warning("OLOSTEP_API_KEY is not set. Skipping web scraping.")
         return response_dict
@@ -96,7 +97,7 @@ def search_with_olostep(web_url: str) -> str:
     if OLOSTEP_API_KEY is None:
         raise ValueError("OLOSTEP_API_KEY is not set")
 
-    web_scraping_params = OLOSTEP_QUERY_PARAMS.copy()
+    web_scraping_params: Dict[str, Union[str, int, bool]] = OLOSTEP_QUERY_PARAMS.copy()  # type: ignore
     web_scraping_params["url"] = web_url
 
     response = requests.request("GET", OLOSTEP_API_URL, params=web_scraping_params)
