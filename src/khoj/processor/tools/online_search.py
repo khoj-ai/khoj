@@ -18,7 +18,6 @@ SERPER_DEV_URL = "https://google.serper.dev/search"
 OLOSTEP_API_URL = "https://agent.olostep.com/olostep-p2p-incomingAPI"
 
 OLOSTEP_QUERY_PARAMS = {
-    "token": OLOSTEP_API_KEY,
     "timeout": 35,  # seconds
     "waitBeforeScraping": 1,  # seconds
     "saveHtml": False,
@@ -97,10 +96,12 @@ def search_with_olostep(web_url: str) -> str:
     if OLOSTEP_API_KEY is None:
         raise ValueError("OLOSTEP_API_KEY is not set")
 
+    headers = {"Authorization": f"Bearer {OLOSTEP_API_KEY}"}
+
     web_scraping_params: Dict[str, Union[str, int, bool]] = OLOSTEP_QUERY_PARAMS.copy()  # type: ignore
     web_scraping_params["url"] = web_url
 
-    response = requests.request("GET", OLOSTEP_API_URL, params=web_scraping_params)
+    response = requests.request("GET", OLOSTEP_API_URL, params=web_scraping_params, headers=headers)
 
     if response.status_code != 200:
         logger.error(response, exc_info=True)
