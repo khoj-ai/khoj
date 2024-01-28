@@ -194,7 +194,9 @@
                 </button>
             </div>
         </div>
-        <div id="phone-number-input-id" class="api-settings">
+    </div>
+    <div id="whatsapp" class="section">
+        <div id="phone-number-input-card" class="api-settings">
             <div class="card-title-row">
                 <img class="card-icon" src="/static/assets/icons/whatsapp.svg" alt="WhatsApp icon">
                 <h3 class="card-title">WhatsApp</h3>
@@ -610,15 +612,21 @@
     const phonenumberVerifiedText = document.getElementById("api-settings-card-description-verified");
     const phonenumberUnverifiedText = document.getElementById("api-settings-card-description-unverified");
 
-    let preExistingPhoneNumber = "{{ phone_number }}";
+    const preExistingPhoneNumber = "{{ phone_number }}";
     let isPhoneNumberVerified = "{{ is_phone_number_verified }}";
     let isTwilioEnabled = "{{ is_twilio_enabled }}";
+    isPhoneNumberVerified = isPhoneNumberVerified.toLowerCase();
+    isTwilioEnabled = isTwilioEnabled.toLowerCase();
 
-    if (preExistingPhoneNumber != "None" && (isPhoneNumberVerified == "True" || isPhoneNumberVerified == "true")) {
+    if (isTwilioEnabled !== "true" ) {
+        const phoneNumberVerificationCard = document.getElementById("phone-number-input-card");
+        phoneNumberVerificationCard.style.display = "none";
+    }
+    if (preExistingPhoneNumber != "None" && isPhoneNumberVerified === "true") {
         phonenumberVerifyButton.style.display = "none";
         phonenumberRemoveButton.style.display = "";
-    } else if (preExistingPhoneNumber != "None" && (isPhoneNumberVerified == "False" || isPhoneNumberVerified == "false")) {
-        if (isTwilioEnabled == "True" || isTwilioEnabled == "true") {
+    } else if (preExistingPhoneNumber != "None" && isPhoneNumberVerified === "false") {
+        if (isTwilioEnabled == "true") {
             phonenumberVerifyButton.style.display = "";
             phonenumberRemoveButton.style.display = "none";
         } else {
@@ -759,7 +767,5 @@
             }, 5000);
         });
     })
-
-
 </script>
 {% endblock %}

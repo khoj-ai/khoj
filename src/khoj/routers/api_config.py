@@ -294,6 +294,7 @@ async def update_phone_number(
         create_otp(user)
     else:
         logger.warning("Phone verification is not enabled")
+        return {"status": "unsupported"}
 
     update_telemetry_state(
         request=request,
