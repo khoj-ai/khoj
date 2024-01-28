@@ -3,7 +3,7 @@ import json
 import logging
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from functools import partial
 from time import time
 from typing import Annotated, Any, Dict, Iterator, List, Optional, Tuple, Union
@@ -18,6 +18,7 @@ from khoj.database.models import (
     KhojUser,
     Subscription,
     TextToImageModelConfig,
+    UserRequests,
 )
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.chat_model import (
@@ -310,11 +311,11 @@ async def text_to_image(message: str, conversation_log: dict) -> Tuple[Optional[
 
 
 class ApiUserRateLimiter:
-    def __init__(self, requests: int, subscribed_requests: int, window: int):
+    def __init__(self, requests: int, subscribed_requests: int, window: int, slug: str):
         self.requests = requests
         self.subscribed_requests = subscribed_requests
         self.window = window
-        self.cache: dict[str, list[float]] = defaultdict(list)
+        self.slug = slug
 
     def __call__(self, request: Request):
         # Rate limiting is disabled if user unauthenticated.
@@ -324,21 +325,19 @@ class ApiUserRateLimiter:
 
         user: KhojUser = request.user.object
         subscribed = has_required_scope(request, ["premium"])
-        user_requests = self.cache[user.uuid]
 
         # Remove requests outside of the time window
-        cutoff = time() - self.window
-        while user_requests and user_requests[0] < cutoff:
-            user_requests.pop(0)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(seconds=self.window)
+        count_requests = UserRequests.objects.filter(user=user, created_at__gte=cutoff, slug=self.slug).count()
 
         # Check if the user has exceeded the rate limit
-        if subscribed and len(user_requests) >= self.subscribed_requests:
+        if subscribed and count_requests >= self.subscribed_requests:
             raise HTTPException(status_code=429, detail="Too Many Requests")
-        if not subscribed and len(user_requests) >= self.requests:
+        if not subscribed and count_requests >= self.requests:
             raise HTTPException(status_code=429, detail="Too Many Requests. Subscribe to increase your rate limit.")
 
         # Add the current request to the cache
-        user_requests.append(time())
+        UserRequests.objects.create(user=user, slug=self.slug)
 
 
 class ConversationCommandRateLimiter:

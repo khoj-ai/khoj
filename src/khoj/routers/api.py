@@ -301,8 +301,12 @@ async def transcribe(
     request: Request,
     common: CommonQueryParams,
     file: UploadFile = File(...),
-    rate_limiter_per_minute=Depends(ApiUserRateLimiter(requests=1, subscribed_requests=10, window=60)),
-    rate_limiter_per_day=Depends(ApiUserRateLimiter(requests=10, subscribed_requests=600, window=60 * 60 * 24)),
+    rate_limiter_per_minute=Depends(
+        ApiUserRateLimiter(requests=1, subscribed_requests=10, window=60, slug="transcribe_minute")
+    ),
+    rate_limiter_per_day=Depends(
+        ApiUserRateLimiter(requests=10, subscribed_requests=600, window=60 * 60 * 24, slug="transcribe_day")
+    ),
 ):
     user: KhojUser = request.user.object
     audio_filename = f"{user.uuid}-{str(uuid.uuid4())}.webm"
@@ -361,8 +365,12 @@ async def chat(
     n: Optional[int] = 5,
     d: Optional[float] = 0.18,
     stream: Optional[bool] = False,
-    rate_limiter_per_minute=Depends(ApiUserRateLimiter(requests=5, subscribed_requests=60, window=60)),
-    rate_limiter_per_day=Depends(ApiUserRateLimiter(requests=5, subscribed_requests=600, window=60 * 60 * 24)),
+    rate_limiter_per_minute=Depends(
+        ApiUserRateLimiter(requests=5, subscribed_requests=60, window=60, slug="chat_minute")
+    ),
+    rate_limiter_per_day=Depends(
+        ApiUserRateLimiter(requests=5, subscribed_requests=600, window=60 * 60 * 24, slug="chat_day")
+    ),
 ) -> Response:
     user: KhojUser = request.user.object
     q = unquote(q)

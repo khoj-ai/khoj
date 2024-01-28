@@ -223,3 +223,9 @@ class EntryDates(BaseModel):
         indexes = [
             models.Index(fields=["date"]),
         ]
+
+
+class UserRequests(BaseModel):
+    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
+    request = models.CharField(max_length=200)
+    slug = models.CharField(max_length=200)
