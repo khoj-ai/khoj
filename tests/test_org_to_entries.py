@@ -54,12 +54,12 @@ def test_entry_split_when_exceeds_max_words():
     # Extract Entries from specified Org files
     entries = OrgToEntries.extract_org_entries(org_files=data)
 
-    # Split each entry from specified Org files by max words
-    entries = TextToEntries.split_entries_by_max_tokens(entries, max_tokens=4)
+    # Split each entry from specified Org files by max tokens
+    entries = TextToEntries.split_entries_by_max_tokens(entries, max_tokens=6)
 
     # Assert
     assert len(entries) == 2
-    # Ensure compiled entries split by max_words start with entry heading (for search context)
+    # Ensure compiled entries split by max tokens start with entry heading (for search context)
     assert all([entry.compiled.startswith(expected_heading) for entry in entries])
 
 
