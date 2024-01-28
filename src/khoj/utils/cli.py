@@ -16,7 +16,7 @@ from khoj.migrations.migrate_processor_config_openai import (
 )
 from khoj.migrations.migrate_server_pg import migrate_server_pg
 from khoj.migrations.migrate_version import migrate_config_to_version
-from khoj.utils.helpers import resolve_absolute_path
+from khoj.utils.helpers import in_debug_mode, resolve_absolute_path
 from khoj.utils.yaml import parse_config_from_file
 
 
@@ -73,7 +73,7 @@ def cli(args=None):
     else:
         args = run_migrations(args)
         args.config = parse_config_from_file(args.config_file)
-        if os.environ.get("KHOJ_DEBUG"):
+        if in_debug_mode():
             args.config.app.should_log_telemetry = False
 
     return args

@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import os
 from pathlib import Path
 
+from khoj.utils.helpers import in_debug_mode
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -24,7 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("KHOJ_DJANGO_SECRET_KEY", "!secret")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("KHOJ_DEBUG") == "True"
+DEBUG = in_debug_mode()
 
 # All Subdomains of KHOJ_DOMAIN are trusted
 KHOJ_DOMAIN = os.getenv("KHOJ_DOMAIN", "khoj.dev")

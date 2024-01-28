@@ -317,3 +317,9 @@ def batcher(iterable, max_n):
         if not chunk:
             return
         yield (x for x in chunk if x is not None)
+
+
+def in_debug_mode():
+    """Check if Khoj is running in debug mode.
+    Set KHOJ_DEBUG environment variable to true to enable debug mode."""
+    return os.getenv("KHOJ_DEBUG", "false").lower() == "true"
