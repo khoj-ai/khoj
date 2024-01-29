@@ -14,6 +14,7 @@ from starlette.authentication import has_required_scope
 
 from khoj.database.adapters import ConversationAdapters, EntryAdapters
 from khoj.database.models import (
+    ChatModelOptions,
     ClientApplication,
     KhojUser,
     Subscription,
@@ -27,6 +28,7 @@ from khoj.processor.conversation.offline.chat_model import (
 from khoj.processor.conversation.openai.gpt import converse, send_message_to_model
 from khoj.processor.conversation.utils import (
     ThreadedGenerator,
+    generate_chatml_messages_with_context,
     save_to_conversation_log,
 )
 from khoj.utils import state
@@ -158,6 +160,24 @@ async def generate_online_subqueries(q: str, conversation_history: dict) -> List
         return [q]
 
 
+async def extract_relevant_info(q: str, corpus: dict) -> List[str]:
+    """
+    Given a target corpus, extract the most relevant info given a query
+    """
+
+    key = list(corpus.keys())[0]
+    extract_relevant_information = prompts.extract_relevant_information.format(
+        query=q,
+        corpus=corpus[key],
+    )
+
+    response = await send_message_to_model_wrapper(
+        extract_relevant_information, prompts.system_prompt_extract_relevant_information
+    )
+
+    return response.strip()
+
+
 async def generate_better_image_prompt(q: str, conversation_history: str) -> str:
     """
     Generate a better image prompt from the given query
@@ -175,11 +195,16 @@ async def generate_better_image_prompt(q: str, conversation_history: str) -> str
 
 async def send_message_to_model_wrapper(
     message: str,
+    system_message: str = "",
 ):
-    conversation_config = await ConversationAdapters.aget_default_conversation_config()
+    conversation_config: ChatModelOptions = await ConversationAdapters.aget_default_conversation_config()
 
     if conversation_config is None:
         raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
+
+    truncated_messages = generate_chatml_messages_with_context(
+        user_message=message, system_message=system_message, model_name=conversation_config.chat_model
+    )
 
     if conversation_config.model_type == "offline":
         if state.gpt4all_processor_config is None or state.gpt4all_processor_config.loaded_model is None:
@@ -187,10 +212,11 @@ async def send_message_to_model_wrapper(
 
         loaded_model = state.gpt4all_processor_config.loaded_model
         return send_message_to_model_offline(
-            message=message,
+            message=truncated_messages[-1].content,
             loaded_model=loaded_model,
             model=conversation_config.chat_model,
             streaming=False,
+            system_message=truncated_messages[0].content,
         )
 
     elif conversation_config.model_type == "openai":
@@ -198,12 +224,12 @@ async def send_message_to_model_wrapper(
         api_key = openai_chat_config.api_key
         chat_model = conversation_config.chat_model
         openai_response = send_message_to_model(
-            message=message,
+            messages=truncated_messages,
             api_key=api_key,
             model=chat_model,
         )
 
-        return openai_response.content
+        return openai_response
     else:
         raise HTTPException(status_code=500, detail="Invalid conversation config")
 
