@@ -15,8 +15,10 @@ from khoj.utils.helpers import merge_dicts
 
 logger = logging.getLogger(__name__)
 model_to_prompt_size = {
-    "gpt-3.5-turbo": 4096,
-    "gpt-4": 8192,
+    "gpt-3.5-turbo": 3000,
+    "gpt-4": 7000,
+    "gpt-4-1106-preview": 7000,
+    "gpt-4-turbo-preview": 7000,
     "llama-2-7b-chat.ggmlv3.q4_0.bin": 1548,
     "gpt-3.5-turbo-16k": 15000,
     "mistral-7b-instruct-v0.1.Q4_0.gguf": 1548,
@@ -194,6 +196,7 @@ def truncate_messages(
         assert type(system_message.content) == str
         current_message = "\n".join(messages[0].content.split("\n")[:-1]) if type(messages[0].content) == str else ""
         original_question = "\n".join(messages[0].content.split("\n")[-1:]) if type(messages[0].content) == str else ""
+        original_question = f"\n{original_question}"
         original_question_tokens = len(encoder.encode(original_question))
         remaining_tokens = max_prompt_size - original_question_tokens - system_message_tokens
         truncated_message = encoder.decode(encoder.encode(current_message)[:remaining_tokens]).strip()

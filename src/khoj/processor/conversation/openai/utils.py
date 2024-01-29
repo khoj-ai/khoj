@@ -6,7 +6,7 @@ from typing import Any
 import openai
 from langchain.callbacks.base import BaseCallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
-from langchain_community.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from tenacity import (
     before_sleep_log,
     retry,
@@ -48,7 +48,10 @@ def completion_with_backoff(**kwargs):
     if not "openai_api_key" in kwargs:
         kwargs["openai_api_key"] = os.getenv("OPENAI_API_KEY")
     llm = ChatOpenAI(**kwargs, request_timeout=20, max_retries=1)
-    return llm(messages=messages)
+    aggregated_response = ""
+    for chunk in llm.stream(messages):
+        aggregated_response += chunk.content
+    return aggregated_response
 
 
 @retry(
