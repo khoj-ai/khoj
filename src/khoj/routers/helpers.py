@@ -332,9 +332,12 @@ class ApiUserRateLimiter:
 
         # Check if the user has exceeded the rate limit
         if subscribed and count_requests >= self.subscribed_requests:
-            raise HTTPException(status_code=429, detail="Too Many Requests")
+            raise HTTPException(status_code=429, detail="Slow down! Too Many Requests")
         if not subscribed and count_requests >= self.requests:
-            raise HTTPException(status_code=429, detail="Too Many Requests. Subscribe to increase your rate limit.")
+            raise HTTPException(
+                status_code=429,
+                detail="You've exceeded your usage limit for today. Come back tomorrow or subscribe to increase your rate limit at https://app.khoj.dev/config.",
+            )
 
         # Add the current request to the cache
         UserRequests.objects.create(user=user, slug=self.slug)
@@ -368,9 +371,12 @@ class ConversationCommandRateLimiter:
             user_cache[conversation_command].pop(0)
 
         if subscribed and len(user_cache[conversation_command]) > self.subscribed_rate_limit:
-            raise HTTPException(status_code=429, detail="Too Many Requests")
+            raise HTTPException(status_code=429, detail="Slow down! Too Many Requests")
         if not subscribed and len(user_cache[conversation_command]) > self.trial_rate_limit:
-            raise HTTPException(status_code=429, detail="Too Many Requests. Subscribe to increase your rate limit.")
+            raise HTTPException(
+                status_code=429,
+                detail="You've exceeded your usage limit for today. Come back tomorrow or subscribe to increase your rate limit at https://app.khoj.dev/config.",
+            )
         return
 
 
