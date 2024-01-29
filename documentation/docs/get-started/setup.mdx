@@ -5,6 +5,10 @@ sidebar_position: 1
 # Self-Host
 Learn about how to self-host Khoj on your own machine.
 
+Benefits to self-hosting:
+1. **Privacy**: Your data will never have to leave your private network. You can even use Khoj without an internet connection if deployed on your personal computer.
+2. **Customization**: You can customize Khoj to your liking, from models, to host URL, to feature enablement.
+
 ```mdx-code-block
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
@@ -163,9 +167,9 @@ Note: To start Khoj automatically in the background use [Task scheduler](https:/
 
 You can use our desktop executables to select file paths and folders to index. You can simply select the folders or files, and they'll be automatically uploaded to the server. Once you specify a file or file path, you don't need to update the configuration again; it will grab any data diffs dynamically over time.
 
-**To download the latest desktop client, go to https://download.khoj.dev** and the correct executable for your OS will automatically start downloading. Once downloaded, you can configure your folders for indexing using the settings tab. To set your chat configuration, you'll have to use the web interface for the Khoj server you setup in the previous step.
+**To download the latest desktop client, go to https://download.khoj.dev** and the correct executable for your OS will automatically start downloading. You can also go to https://khoj.dev/downloads to explicitly download your image of choice. Once downloaded, you can configure your folders for indexing using the settings tab. To set your chat configuration, you'll have to use the web interface for the Khoj server you setup in the previous step.
 
-To use the desktop client, you need to go to your Khoj server's settings page (http://localhost:42110/config) and copy the API key. Then, paste it into the desktop client's settings page. Once you've done that, you can select files and folders to index.
+To use the desktop client, you need to go to your Khoj server's settings page (http://localhost:42110/config) and copy the API key. Then, paste it into the desktop client's settings page. Once you've done that, you can select files and folders to index. Set the desktop client settings to use `http://127.0.0.1:42110` as the host URL.
 
 ### 3. Configure
 1. Go to http://localhost:42110/server/admin and login with your admin credentials.
@@ -191,7 +195,7 @@ The optional steps below allow using Khoj from within an existing application li
 [Install](/clients/emacs#setup) khoj.el
 
 #### Setup host URL
-To configure your host URL on your clients when self-hosting, use `http://127.0.0.1:42110`. This is the default value for the `KHOJ_HOST` environment variable. Note that `localhost` will not work.
+To configure your host URL on your clients when self-hosting, use `http://127.0.0.1:42110`. This is the default port for the Khoj server. Note that `localhost` will not work.
 
 ### 5. Use Khoj 🚀
 
@@ -269,13 +273,7 @@ You can head to http://localhost:42110 to use the web interface. You can also us
     ```
 - **Refer**: [Issue with Fix](https://github.com/khoj-ai/khoj/issues/82#issuecomment-1241890946) for more details
 
-#### Search starts giving wonky results
-- **Fix**: Open [/api/update?force=true](http://localhost:42110/api/update?force=true) in browser to regenerate index from scratch
-- **Note**: *This is a fix for when you perceive the search results have degraded. Not if you think they've always given wonky results*
 
 #### Khoj in Docker errors out with \"Killed\" in error message
 - **Fix**: Increase RAM available to Docker Containers in Docker Settings
 - **Refer**: [StackOverflow Solution](https://stackoverflow.com/a/50770267), [Configure Resources on Docker for Mac](https://docs.docker.com/desktop/mac/#resources)
-
-#### Khoj errors out complaining about Tensors mismatch or null
-- **Mitigation**: Disable `image` search using the desktop GUI

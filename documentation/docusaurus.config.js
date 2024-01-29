@@ -87,7 +87,7 @@ const config = {
         items: [
           {
             href: 'https://github.com/khoj-ai/khoj',
-            label: '📜 Code',
+            label: '📖 GitHub',
             position: 'right',
           },
           {
@@ -111,6 +111,10 @@ const config = {
               {
                 label: 'Get Started',
                 to: '/',
+              },
+              {
+                label: 'Privacy',
+                to: '/privacy',
               },
               {
                 label: 'Features',
@@ -145,6 +149,14 @@ const config = {
                 label: 'Twitter',
                 href: 'https://twitter.com/khoj_ai',
               },
+              {
+                label: 'GitHub',
+                href: 'https://github.com/khoj-ai/khoj/issues',
+              },
+              {
+                label: 'Email',
+                href: 'mailto:team@khoj.dev',
+              }
             ],
           },
           {
@@ -155,11 +167,11 @@ const config = {
               //   to: '/blog',
               // },
               {
-                label: 'Cloud',
+                label: 'Khoj Cloud',
                 href: 'https://app.khoj.dev/login',
               },
               {
-                label: 'Code',
+                label: 'Open Source',
                 href: 'https://github.com/khoj-ai/khoj',
               },
               {
