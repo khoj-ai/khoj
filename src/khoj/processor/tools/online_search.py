@@ -84,7 +84,7 @@ async def search_with_google(query: str, conversation_history: dict):
                 try:
                     extracted_content[subquery].append(search_with_olostep(result["link"]).strip())
                 except Exception as e:
-                    logger.error(e, exc_info=True)
+                    logger.error(f"Error while searching web page of '{result['link']}': {e}", exc_info=True)
                     continue
             extracted_relevant_content = await extract_relevant_info(subquery, extracted_content)
             response_dict[subquery]["extracted_content"] = extracted_relevant_content
