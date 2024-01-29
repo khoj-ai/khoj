@@ -14,7 +14,7 @@ We don't send any personal information or any information from/about your conten
 
 ## Disable Telemetry
 
-You can opt out of telemetry at any time. To do so,
+If you're self-hosting Khoj, you can opt out of telemetry at any time. To do so,
 1. Open `~/.khoj/khoj.yml`
 2. Set `should-log-telemetry` to `false`
 3. Save the file and restart Khoj

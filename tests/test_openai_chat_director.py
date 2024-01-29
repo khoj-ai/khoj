@@ -74,6 +74,30 @@ def test_chat_with_online_content(chat_client):
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.skipif(
+    os.getenv("SERPER_DEV_API_KEY") is None or os.getenv("OLOSTEP_API_KEY") is None,
+    reason="requires SERPER_DEV_API_KEY and OLOSTEP_API_KEY",
+)
+@pytest.mark.chatquality
+@pytest.mark.django_db(transaction=True)
+def test_chat_with_online_webpage_content(chat_client):
+    # Act
+    q = "/online how many firefighters were involved in the great chicago fire and which year did it take place?"
+    encoded_q = quote(q, safe="")
+    response = chat_client.get(f"/api/chat?q={encoded_q}&stream=true")
+    response_message = response.content.decode("utf-8")
+
+    response_message = response_message.split("### compiled references")[0]
+
+    # Assert
+    expected_responses = ["185", "1871", "horse"]
+    assert response.status_code == 200
+    assert any([expected_response in response_message for expected_response in expected_responses]), (
+        "Expected links or serper not setup in response but got: " + response_message
+    )
+
+
+# ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
 def test_answer_from_chat_history(chat_client, default_user2: KhojUser):

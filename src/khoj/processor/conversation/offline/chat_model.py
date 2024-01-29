@@ -155,8 +155,13 @@ def converse_offline(
         completion_func(chat_response=prompts.no_online_results_found.format())
         return iter([prompts.no_online_results_found.format()])
     elif conversation_command == ConversationCommand.Online:
+        simplified_online_results = online_results.copy()
+        for result in online_results:
+            if online_results[result].get("extracted_content"):
+                simplified_online_results[result] = online_results[result]["extracted_content"]
+
         conversation_primer = prompts.online_search_conversation.format(
-            query=user_query, online_results=str(online_results)
+            query=user_query, online_results=str(simplified_online_results)
         )
     elif conversation_command == ConversationCommand.General or is_none_or_empty(compiled_references_message):
         conversation_primer = user_query
@@ -213,7 +218,7 @@ def llm_thread(g, messages: List[ChatMessage], model: Any):
 
 
 def send_message_to_model_offline(
-    message, loaded_model=None, model="mistral-7b-instruct-v0.1.Q4_0.gguf", streaming=False
+    message, loaded_model=None, model="mistral-7b-instruct-v0.1.Q4_0.gguf", streaming=False, system_message=""
 ):
     try:
         from gpt4all import GPT4All
@@ -224,4 +229,6 @@ def send_message_to_model_offline(
     assert loaded_model is None or isinstance(loaded_model, GPT4All), "loaded_model must be of type GPT4All or None"
     gpt4all_model = loaded_model or GPT4All(model)
 
-    return gpt4all_model.generate(message, max_tokens=200, top_k=2, temp=0, n_batch=512, streaming=streaming)
+    return gpt4all_model.generate(
+        system_message + message, max_tokens=200, top_k=2, temp=0, n_batch=512, streaming=streaming
+    )

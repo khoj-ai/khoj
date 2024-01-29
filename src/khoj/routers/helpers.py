@@ -3,7 +3,7 @@ import json
 import logging
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from functools import partial
 from time import time
 from typing import Annotated, Any, Dict, Iterator, List, Optional, Tuple, Union
@@ -14,10 +14,12 @@ from starlette.authentication import has_required_scope
 
 from khoj.database.adapters import ConversationAdapters, EntryAdapters
 from khoj.database.models import (
+    ChatModelOptions,
     ClientApplication,
     KhojUser,
     Subscription,
     TextToImageModelConfig,
+    UserRequests,
 )
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.chat_model import (
@@ -27,6 +29,7 @@ from khoj.processor.conversation.offline.chat_model import (
 from khoj.processor.conversation.openai.gpt import converse, send_message_to_model
 from khoj.processor.conversation.utils import (
     ThreadedGenerator,
+    generate_chatml_messages_with_context,
     save_to_conversation_log,
 )
 from khoj.utils import state
@@ -89,7 +92,7 @@ def update_telemetry_state(
         "server_id": str(user.uuid) if user else None,
         "subscription_type": subscription.type if subscription else None,
         "is_recurring": subscription.is_recurring if subscription else None,
-        "client_id": str(client_app.name) if client_app else None,
+        "client_id": str(client_app.name) if client_app else "default",
     }
 
     if metadata:
@@ -158,6 +161,24 @@ async def generate_online_subqueries(q: str, conversation_history: dict) -> List
         return [q]
 
 
+async def extract_relevant_info(q: str, corpus: dict) -> List[str]:
+    """
+    Given a target corpus, extract the most relevant info given a query
+    """
+
+    key = list(corpus.keys())[0]
+    extract_relevant_information = prompts.extract_relevant_information.format(
+        query=q,
+        corpus=corpus[key],
+    )
+
+    response = await send_message_to_model_wrapper(
+        extract_relevant_information, prompts.system_prompt_extract_relevant_information
+    )
+
+    return response.strip()
+
+
 async def generate_better_image_prompt(q: str, conversation_history: str) -> str:
     """
     Generate a better image prompt from the given query
@@ -175,11 +196,16 @@ async def generate_better_image_prompt(q: str, conversation_history: str) -> str
 
 async def send_message_to_model_wrapper(
     message: str,
+    system_message: str = "",
 ):
-    conversation_config = await ConversationAdapters.aget_default_conversation_config()
+    conversation_config: ChatModelOptions = await ConversationAdapters.aget_default_conversation_config()
 
     if conversation_config is None:
         raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
+
+    truncated_messages = generate_chatml_messages_with_context(
+        user_message=message, system_message=system_message, model_name=conversation_config.chat_model
+    )
 
     if conversation_config.model_type == "offline":
         if state.gpt4all_processor_config is None or state.gpt4all_processor_config.loaded_model is None:
@@ -187,10 +213,11 @@ async def send_message_to_model_wrapper(
 
         loaded_model = state.gpt4all_processor_config.loaded_model
         return send_message_to_model_offline(
-            message=message,
+            message=truncated_messages[-1].content,
             loaded_model=loaded_model,
             model=conversation_config.chat_model,
             streaming=False,
+            system_message=truncated_messages[0].content,
         )
 
     elif conversation_config.model_type == "openai":
@@ -198,12 +225,12 @@ async def send_message_to_model_wrapper(
         api_key = openai_chat_config.api_key
         chat_model = conversation_config.chat_model
         openai_response = send_message_to_model(
-            message=message,
+            messages=truncated_messages,
             api_key=api_key,
             model=chat_model,
         )
 
-        return openai_response.content
+        return openai_response
     else:
         raise HTTPException(status_code=500, detail="Invalid conversation config")
 
@@ -310,11 +337,11 @@ async def text_to_image(message: str, conversation_log: dict) -> Tuple[Optional[
 
 
 class ApiUserRateLimiter:
-    def __init__(self, requests: int, subscribed_requests: int, window: int):
+    def __init__(self, requests: int, subscribed_requests: int, window: int, slug: str):
         self.requests = requests
         self.subscribed_requests = subscribed_requests
         self.window = window
-        self.cache: dict[str, list[float]] = defaultdict(list)
+        self.slug = slug
 
     def __call__(self, request: Request):
         # Rate limiting is disabled if user unauthenticated.
@@ -324,33 +351,37 @@ class ApiUserRateLimiter:
 
         user: KhojUser = request.user.object
         subscribed = has_required_scope(request, ["premium"])
-        user_requests = self.cache[user.uuid]
 
         # Remove requests outside of the time window
-        cutoff = time() - self.window
-        while user_requests and user_requests[0] < cutoff:
-            user_requests.pop(0)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(seconds=self.window)
+        count_requests = UserRequests.objects.filter(user=user, created_at__gte=cutoff, slug=self.slug).count()
 
         # Check if the user has exceeded the rate limit
-        if subscribed and len(user_requests) >= self.subscribed_requests:
-            raise HTTPException(status_code=429, detail="Too Many Requests")
-        if not subscribed and len(user_requests) >= self.requests:
-            if self.requests == self.subscribed_requests:
-                raise HTTPException(status_code=429, detail="Too Many Requests")
-            raise HTTPException(status_code=429, detail="Too Many Requests. Subscribe to increase your rate limit.")
+        if subscribed and count_requests >= self.subscribed_requests:
+            raise HTTPException(status_code=429, detail="Slow down! Too Many Requests")
+        if not subscribed and count_requests >= self.requests:
+            if self.subscribed_requests == self.requests:
+                raise HTTPException(
+                    status_code=429,
+                    detail="Slow down! Too Many Requests",
+                )
+            raise HTTPException(
+                status_code=429,
+                detail="We're glad you're enjoying Khoj! You've exceeded your usage limit for today. Come back tomorrow or subscribe to increase your rate limit via [your settings](https://app.khoj.dev/config).",
+            )
 
         # Add the current request to the cache
-        user_requests.append(time())
+        UserRequests.objects.create(user=user, slug=self.slug)
 
 
 class ConversationCommandRateLimiter:
-    def __init__(self, trial_rate_limit: int, subscribed_rate_limit: int):
-        self.cache: Dict[str, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
+    def __init__(self, trial_rate_limit: int, subscribed_rate_limit: int, slug: str):
+        self.slug = slug
         self.trial_rate_limit = trial_rate_limit
         self.subscribed_rate_limit = subscribed_rate_limit
         self.restricted_commands = [ConversationCommand.Online, ConversationCommand.Image]
 
-    def update_and_check_if_valid(self, request: Request, conversation_command: ConversationCommand):
+    async def update_and_check_if_valid(self, request: Request, conversation_command: ConversationCommand):
         if state.billing_enabled is False:
             return
 
@@ -361,19 +392,23 @@ class ConversationCommandRateLimiter:
             return
 
         user: KhojUser = request.user.object
-        user_cache = self.cache[user.uuid]
         subscribed = has_required_scope(request, ["premium"])
-        user_cache[conversation_command].append(time())
 
         # Remove requests outside of the 24-hr time window
-        cutoff = time() - 60 * 60 * 24
-        while user_cache[conversation_command] and user_cache[conversation_command][0] < cutoff:
-            user_cache[conversation_command].pop(0)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(seconds=60 * 60 * 24)
+        command_slug = f"{self.slug}_{conversation_command.value}"
+        count_requests = await UserRequests.objects.filter(
+            user=user, created_at__gte=cutoff, slug=command_slug
+        ).acount()
 
-        if subscribed and len(user_cache[conversation_command]) > self.subscribed_rate_limit:
-            raise HTTPException(status_code=429, detail="Too Many Requests")
-        if not subscribed and len(user_cache[conversation_command]) > self.trial_rate_limit:
-            raise HTTPException(status_code=429, detail="Too Many Requests. Subscribe to increase your rate limit.")
+        if subscribed and count_requests >= self.subscribed_rate_limit:
+            raise HTTPException(status_code=429, detail="Slow down! Too Many Requests")
+        if not subscribed and count_requests >= self.trial_rate_limit:
+            raise HTTPException(
+                status_code=429,
+                detail=f"We're glad you're enjoying Khoj! You've exceeded your `/{conversation_command.value}` command usage limit for today. You can increase your rate limit via [your settings](https://app.khoj.dev/config).",
+            )
+        await UserRequests.objects.acreate(user=user, slug=command_slug)
         return
 
 

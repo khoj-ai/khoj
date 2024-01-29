@@ -27,6 +27,7 @@ from khoj.database.adapters import (
     aget_or_create_user_by_phone_number,
     aget_user_by_phone_number,
     aget_user_subscription_state,
+    delete_user_requests,
     get_all_users,
     get_or_create_search_models,
 )
@@ -312,7 +313,7 @@ def configure_search_types():
     return Enum("SearchType", core_search_types)
 
 
-@schedule.repeat(schedule.every(59).minutes)
+@schedule.repeat(schedule.every(13).minutes)
 def upload_telemetry():
     if not state.config or not state.config.app or not state.config.app.should_log_telemetry or not state.telemetry:
         message = "📡 No telemetry to upload" if not state.telemetry else "📡 Telemetry logging disabled"
@@ -320,16 +321,26 @@ def upload_telemetry():
         return
 
     try:
-        logger.debug(f"📡 Upload usage telemetry to {constants.telemetry_server}:\n{state.telemetry}")
+        logger.info(f"📡 Uploading telemetry to {constants.telemetry_server}...")
+        logger.debug(f"Telemetry state:\n{state.telemetry}")
         for log in state.telemetry:
             for field in log:
                 # Check if the value for the field is JSON serializable
+                if log[field] is None:
+                    log[field] = ""
                 try:
                     json.dumps(log[field])
                 except TypeError:
                     log[field] = str(log[field])
-        requests.post(constants.telemetry_server, json=state.telemetry)
+        response = requests.post(constants.telemetry_server, json=state.telemetry)
+        response.raise_for_status()
     except Exception as e:
         logger.error(f"📡 Error uploading telemetry: {e}", exc_info=True)
     else:
         state.telemetry = []
+
+
+@schedule.repeat(schedule.every(31).minutes)
+def delete_old_user_requests():
+    num_deleted = delete_user_requests()
+    logger.info(f"🔥 Deleted {num_deleted} day-old user requests")

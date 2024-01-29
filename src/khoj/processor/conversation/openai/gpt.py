@@ -97,22 +97,18 @@ def extract_questions(
 
 
 def send_message_to_model(
-    message,
+    messages,
     api_key,
     model,
 ):
     """
     Send message to model
     """
-    messages = [ChatMessage(content=message, role="assistant")]
 
     # Get Response from GPT
     return completion_with_backoff(
         messages=messages,
-        model_name=model,
-        temperature=0,
-        max_tokens=100,
-        model_kwargs={"stop": ["A: ", "\n"]},
+        model=model,
         openai_api_key=api_key,
     )
 
@@ -120,7 +116,7 @@ def send_message_to_model(
 def converse(
     references,
     user_query,
-    online_results=[],
+    online_results: Optional[dict] = None,
     conversation_log={},
     model: str = "gpt-3.5-turbo",
     api_key: Optional[str] = None,
@@ -145,8 +141,13 @@ def converse(
         completion_func(chat_response=prompts.no_online_results_found.format())
         return iter([prompts.no_online_results_found.format()])
     elif conversation_command == ConversationCommand.Online:
+        simplified_online_results = online_results.copy()
+        for result in online_results:
+            if online_results[result].get("extracted_content"):
+                simplified_online_results[result] = online_results[result]["extracted_content"]
+
         conversation_primer = prompts.online_search_conversation.format(
-            query=user_query, online_results=str(online_results)
+            query=user_query, online_results=str(simplified_online_results)
         )
     elif conversation_command == ConversationCommand.General or is_none_or_empty(compiled_references):
         conversation_primer = prompts.general_conversation.format(query=user_query)
