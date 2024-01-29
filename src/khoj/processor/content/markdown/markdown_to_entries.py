@@ -4,11 +4,11 @@ from pathlib import Path
 from typing import List, Tuple
 
 import urllib3
+from langchain.text_splitter import MarkdownHeaderTextSplitter
 
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import KhojUser
 from khoj.processor.content.text_to_entries import TextToEntries
-from khoj.utils.constants import empty_escape_sequences
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry
 
@@ -76,16 +76,28 @@ class MarkdownToEntries(TextToEntries):
     def process_single_markdown_file(
         markdown_content: str, markdown_file: Path, entries: List[str], entry_to_file_map: List[Tuple[str, Path]]
     ):
-        markdown_heading_regex = r"^#"
-
+        headers_to_split_on = [("#", "1"), ("##", "2"), ("###", "3"), ("####", "4"), ("#####", "5"), ("######", "6")]
+        reversed_headers_to_split_on = list(reversed(headers_to_split_on))
         markdown_entries_per_file: List[str] = []
-        any_headings = re.search(markdown_heading_regex, markdown_content, flags=re.MULTILINE)
-        for entry in re.split(markdown_heading_regex, markdown_content, flags=re.MULTILINE):
-            # Add heading level as the regex split removed it from entries with headings
-            prefix = "#" if entry.startswith("#") else "# " if any_headings else ""
-            stripped_entry = entry.strip(empty_escape_sequences)
-            if stripped_entry != "":
-                markdown_entries_per_file.append(f"{prefix}{stripped_entry}")
+        previous_section_metadata, current_section_metadata = None, None
+
+        splitter = MarkdownHeaderTextSplitter(headers_to_split_on, strip_headers=False, return_each_line=True)
+        for section in splitter.split_text(markdown_content):
+            current_section_metadata = section.metadata.copy()
+            # Append the section's content to the last entry if the metadata is the same
+            if previous_section_metadata == current_section_metadata:
+                markdown_entries_per_file[-1] = f"{markdown_entries_per_file[-1]}\n{section.page_content}"
+            # Insert new entry with it's heading ancestry, if the section is under a new heading
+            else:
+                # Drop the current heading from the metadata. It is already in the section content
+                if section.metadata:
+                    section.metadata.pop(max(section.metadata))
+                # Prepend the markdown section's heading ancestry
+                for heading in reversed_headers_to_split_on:
+                    if heading[1] in section.metadata:
+                        section.page_content = f"{heading[0]} {section.metadata[heading[1]]}\n{section.page_content}"
+                previous_section_metadata = current_section_metadata
+                markdown_entries_per_file += [section.page_content]
 
         entry_to_file_map += zip(markdown_entries_per_file, [markdown_file] * len(markdown_entries_per_file))
         entries.extend(markdown_entries_per_file)

@@ -1,4 +1,3 @@
-import json
 import os
 from pathlib import Path
 
@@ -7,8 +6,8 @@ from khoj.utils.fs_syncer import get_markdown_files
 from khoj.utils.rawconfig import TextContentConfig
 
 
-def test_markdown_file_with_no_headings_to_jsonl(tmp_path):
-    "Convert files with no heading to jsonl."
+def test_extract_markdown_with_no_headings(tmp_path):
+    "Convert markdown file with no heading to entry format."
     # Arrange
     entry = f"""
     - Bullet point 1
@@ -33,8 +32,8 @@ def test_markdown_file_with_no_headings_to_jsonl(tmp_path):
     assert str(tmp_path) in entries[0].compiled
 
 
-def test_single_markdown_entry_to_jsonl(tmp_path):
-    "Convert markdown entry from single file to jsonl."
+def test_extract_single_markdown_entry(tmp_path):
+    "Convert markdown from single file to entry format."
     # Arrange
     entry = f"""### Heading
     \t\r
@@ -52,8 +51,8 @@ def test_single_markdown_entry_to_jsonl(tmp_path):
     assert len(entries) == 1
 
 
-def test_multiple_markdown_entries_to_jsonl(tmp_path):
-    "Convert multiple markdown entries from single file to jsonl."
+def test_extract_multiple_markdown_entries(tmp_path):
+    "Convert multiple markdown from single file to entry format."
     # Arrange
     entry = f"""
 ### Heading 1
@@ -119,7 +118,8 @@ def test_extract_entries_with_different_level_headings(tmp_path):
     # Arrange
     entry = f"""
 # Heading 1
-## Heading 2
+## Sub-Heading 1.1
+# Heading 2
 """
     data = {
         f"{tmp_path}": entry,
@@ -130,9 +130,35 @@ def test_extract_entries_with_different_level_headings(tmp_path):
     entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data)
 
     # Assert
-    assert len(entries) == 2
+    assert len(entries) == 3
     assert entries[0].raw == "# Heading 1"
-    assert entries[1].raw == "## Heading 2"
+    assert entries[1].raw == "# Heading 1\n## Sub-Heading 1.1", "Ensure entry includes heading ancestory"
+    assert entries[2].raw == "# Heading 2"
+
+
+def test_extract_entries_with_text_before_headings(tmp_path):
+    "Extract markdown entries with some text before any headings."
+    # Arrange
+    entry = f"""
+Text before headings
+# Heading 1
+body line 1
+## Heading 2
+body line 2
+"""
+    data = {
+        f"{tmp_path}": entry,
+    }
+
+    # Act
+    # Extract Entries from specified Markdown files
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=3)
+
+    # Assert
+    assert len(entries) == 3
+    assert entries[0].raw == "Text before headings"
+    assert entries[1].raw == "# Heading 1\nbody line 1"
+    assert entries[2].raw == "# Heading 1\n## Heading 2\nbody line 2", "Ensure raw entry includes heading ancestory"
 
 
 # Helper Functions
