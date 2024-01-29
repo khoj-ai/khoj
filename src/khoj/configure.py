@@ -33,6 +33,7 @@ from khoj.database.adapters import (
 from khoj.database.models import ClientApplication, KhojUser, Subscription
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
 from khoj.routers.indexer import configure_content, configure_search, load_content
+from khoj.routers.twilio import is_twilio_enabled
 from khoj.utils import constants, state
 from khoj.utils.config import SearchType
 from khoj.utils.fs_syncer import collect_files
@@ -257,17 +258,25 @@ def configure_routes(app):
     from khoj.routers.api_config import api_config
     from khoj.routers.auth import auth_router
     from khoj.routers.indexer import indexer
-    from khoj.routers.subscription import subscription_router
     from khoj.routers.web_client import web_client
 
     app.include_router(api, prefix="/api")
     app.include_router(api_config, prefix="/api/config")
     app.include_router(indexer, prefix="/api/v1/index")
-    if state.billing_enabled:
-        logger.info("💳 Enabled Billing")
-        app.include_router(subscription_router, prefix="/api/subscription")
     app.include_router(web_client)
     app.include_router(auth_router, prefix="/auth")
+
+    if state.billing_enabled:
+        from khoj.routers.subscription import subscription_router
+
+        logger.info("💳 Enabled Billing")
+        app.include_router(subscription_router, prefix="/api/subscription")
+
+    if is_twilio_enabled():
+        logger.info("📞 Enabled Twilio")
+        from khoj.routers.api_phone import api_phone
+
+        app.include_router(api_phone, prefix="/api/config/phone")
 
 
 def configure_middleware(app):
