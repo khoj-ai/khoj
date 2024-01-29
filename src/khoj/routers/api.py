@@ -59,7 +59,9 @@ from khoj.utils.state import SearchType
 # Initialize Router
 api = APIRouter()
 logger = logging.getLogger(__name__)
-conversation_command_rate_limiter = ConversationCommandRateLimiter(trial_rate_limit=5, subscribed_rate_limit=100)
+conversation_command_rate_limiter = ConversationCommandRateLimiter(
+    trial_rate_limit=2, subscribed_rate_limit=100, slug="command"
+)
 
 
 @api.get("/search", response_model=List[SearchResponse])
@@ -301,8 +303,12 @@ async def transcribe(
     request: Request,
     common: CommonQueryParams,
     file: UploadFile = File(...),
-    rate_limiter_per_minute=Depends(ApiUserRateLimiter(requests=1, subscribed_requests=10, window=60)),
-    rate_limiter_per_day=Depends(ApiUserRateLimiter(requests=10, subscribed_requests=600, window=60 * 60 * 24)),
+    rate_limiter_per_minute=Depends(
+        ApiUserRateLimiter(requests=1, subscribed_requests=10, window=60, slug="transcribe_minute")
+    ),
+    rate_limiter_per_day=Depends(
+        ApiUserRateLimiter(requests=10, subscribed_requests=600, window=60 * 60 * 24, slug="transcribe_day")
+    ),
 ):
     user: KhojUser = request.user.object
     audio_filename = f"{user.uuid}-{str(uuid.uuid4())}.webm"
@@ -361,8 +367,12 @@ async def chat(
     n: Optional[int] = 5,
     d: Optional[float] = 0.18,
     stream: Optional[bool] = False,
-    rate_limiter_per_minute=Depends(ApiUserRateLimiter(requests=5, subscribed_requests=60, window=60)),
-    rate_limiter_per_day=Depends(ApiUserRateLimiter(requests=5, subscribed_requests=600, window=60 * 60 * 24)),
+    rate_limiter_per_minute=Depends(
+        ApiUserRateLimiter(requests=5, subscribed_requests=60, window=60, slug="chat_minute")
+    ),
+    rate_limiter_per_day=Depends(
+        ApiUserRateLimiter(requests=5, subscribed_requests=600, window=60 * 60 * 24, slug="chat_day")
+    ),
 ) -> Response:
     user: KhojUser = request.user.object
     q = unquote(q)
@@ -370,7 +380,7 @@ async def chat(
     await is_ready_to_chat(user)
     conversation_command = get_conversation_command(query=q, any_references=True)
 
-    conversation_command_rate_limiter.update_and_check_if_valid(request, conversation_command)
+    await conversation_command_rate_limiter.update_and_check_if_valid(request, conversation_command)
 
     q = q.replace(f"/{conversation_command.value}", "").strip()
 

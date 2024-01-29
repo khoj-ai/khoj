@@ -27,6 +27,7 @@ from khoj.database.adapters import (
     aget_or_create_user_by_phone_number,
     aget_user_by_phone_number,
     aget_user_subscription_state,
+    delete_user_requests,
     get_all_users,
     get_or_create_search_models,
 )
@@ -328,3 +329,9 @@ def upload_telemetry():
         logger.error(f"📡 Error uploading telemetry: {e}", exc_info=True)
     else:
         state.telemetry = []
+
+
+@schedule.repeat(schedule.every(31).minutes)
+def delete_old_user_requests():
+    num_deleted = delete_user_requests()
+    logger.info(f"🔥 Deleted {num_deleted} day-old user requests")
