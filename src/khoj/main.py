@@ -14,6 +14,8 @@ import threading
 import warnings
 from importlib.metadata import version
 
+from khoj.utils.helpers import in_debug_mode
+
 # Ignore non-actionable warnings
 warnings.filterwarnings("ignore", message=r"snapshot_download.py has been made private", category=FutureWarning)
 warnings.filterwarnings("ignore", message=r"legacy way to download files from the HF hub,", category=FutureWarning)
@@ -45,7 +47,7 @@ with redirect_stdout(collectstatic_output):
     call_command("collectstatic", "--noinput")
 
 # Initialize the Application Server
-if os.getenv("KHOJ_DEBUG", "false").lower() == "true":
+if in_debug_mode():
     app = FastAPI(debug=True)
 else:
     app = FastAPI(docs_url=None)  # Disable Swagger UI in production

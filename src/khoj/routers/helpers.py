@@ -360,6 +360,11 @@ class ApiUserRateLimiter:
         if subscribed and count_requests >= self.subscribed_requests:
             raise HTTPException(status_code=429, detail="Slow down! Too Many Requests")
         if not subscribed and count_requests >= self.requests:
+            if self.subscribed_requests == self.requests:
+                raise HTTPException(
+                    status_code=429,
+                    detail="Slow down! Too Many Requests",
+                )
             raise HTTPException(
                 status_code=429,
                 detail="We're glad you're enjoying Khoj! You've exceeded your usage limit for today. Come back tomorrow or subscribe to increase your rate limit via [your settings](https://app.khoj.dev/config).",
