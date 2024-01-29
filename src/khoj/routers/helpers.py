@@ -335,6 +335,8 @@ class ApiUserRateLimiter:
         if subscribed and len(user_requests) >= self.subscribed_requests:
             raise HTTPException(status_code=429, detail="Too Many Requests")
         if not subscribed and len(user_requests) >= self.requests:
+            if self.requests == self.subscribed_requests:
+                raise HTTPException(status_code=429, detail="Too Many Requests")
             raise HTTPException(status_code=429, detail="Too Many Requests. Subscribe to increase your rate limit.")
 
         # Add the current request to the cache

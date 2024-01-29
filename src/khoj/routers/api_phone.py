@@ -19,7 +19,9 @@ async def update_phone_number(
     request: Request,
     phone_number: str,
     client: Optional[str] = None,
-    rate_limiter_per_day=Depends(ApiUserRateLimiter(requests=5, subscribed_requests=5, window=60 * 60 * 24)),
+    rate_limiter_per_day=Depends(
+        ApiUserRateLimiter(requests=5, subscribed_requests=5, window=60 * 60 * 24, slug="update_phone")
+    ),
 ):
     user = request.user.object
 
@@ -63,7 +65,9 @@ async def verify_mobile_otp(
     request: Request,
     code: str,
     client: Optional[str] = None,
-    rate_limiter_per_day=Depends(ApiUserRateLimiter(requests=5, subscribed_requests=5, window=60 * 60 * 24)),
+    rate_limiter_per_day=Depends(
+        ApiUserRateLimiter(requests=5, subscribed_requests=5, window=60 * 60 * 24, slug="verify_phone")
+    ),
 ):
     user: KhojUser = request.user.object
 
