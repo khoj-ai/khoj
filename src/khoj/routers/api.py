@@ -59,7 +59,9 @@ from khoj.utils.state import SearchType
 # Initialize Router
 api = APIRouter()
 logger = logging.getLogger(__name__)
-conversation_command_rate_limiter = ConversationCommandRateLimiter(trial_rate_limit=5, subscribed_rate_limit=100)
+conversation_command_rate_limiter = ConversationCommandRateLimiter(
+    trial_rate_limit=2, subscribed_rate_limit=100, slug="command"
+)
 
 
 @api.get("/search", response_model=List[SearchResponse])
@@ -378,7 +380,7 @@ async def chat(
     await is_ready_to_chat(user)
     conversation_command = get_conversation_command(query=q, any_references=True)
 
-    conversation_command_rate_limiter.update_and_check_if_valid(request, conversation_command)
+    await conversation_command_rate_limiter.update_and_check_if_valid(request, conversation_command)
 
     q = q.replace(f"/{conversation_command.value}", "").strip()
 

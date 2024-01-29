@@ -336,7 +336,7 @@ class ApiUserRateLimiter:
         if not subscribed and count_requests >= self.requests:
             raise HTTPException(
                 status_code=429,
-                detail="We're glad you're enjoying Khoj! You've exceeded your usage limit for today. Come back tomorrow or subscribe to increase your rate limit at https://app.khoj.dev/config.",
+                detail="We're glad you're enjoying Khoj! You've exceeded your usage limit for today. Come back tomorrow or subscribe to increase your rate limit via [your settings](https://app.khoj.dev/config).",
             )
 
         # Add the current request to the cache
@@ -344,13 +344,13 @@ class ApiUserRateLimiter:
 
 
 class ConversationCommandRateLimiter:
-    def __init__(self, trial_rate_limit: int, subscribed_rate_limit: int):
-        self.cache: Dict[str, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
+    def __init__(self, trial_rate_limit: int, subscribed_rate_limit: int, slug: str):
+        self.slug = slug
         self.trial_rate_limit = trial_rate_limit
         self.subscribed_rate_limit = subscribed_rate_limit
         self.restricted_commands = [ConversationCommand.Online, ConversationCommand.Image]
 
-    def update_and_check_if_valid(self, request: Request, conversation_command: ConversationCommand):
+    async def update_and_check_if_valid(self, request: Request, conversation_command: ConversationCommand):
         if state.billing_enabled is False:
             return
 
@@ -361,22 +361,23 @@ class ConversationCommandRateLimiter:
             return
 
         user: KhojUser = request.user.object
-        user_cache = self.cache[user.uuid]
         subscribed = has_required_scope(request, ["premium"])
-        user_cache[conversation_command].append(time())
 
         # Remove requests outside of the 24-hr time window
-        cutoff = time() - 60 * 60 * 24
-        while user_cache[conversation_command] and user_cache[conversation_command][0] < cutoff:
-            user_cache[conversation_command].pop(0)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(seconds=60 * 60 * 24)
+        command_slug = f"{self.slug}_{conversation_command.value}"
+        count_requests = await UserRequests.objects.filter(
+            user=user, created_at__gte=cutoff, slug=command_slug
+        ).acount()
 
-        if subscribed and len(user_cache[conversation_command]) > self.subscribed_rate_limit:
+        if subscribed and count_requests >= self.subscribed_rate_limit:
             raise HTTPException(status_code=429, detail="Slow down! Too Many Requests")
-        if not subscribed and len(user_cache[conversation_command]) > self.trial_rate_limit:
+        if not subscribed and count_requests >= self.trial_rate_limit:
             raise HTTPException(
                 status_code=429,
-                detail=f"We're glad you're enjoying Khoj! You've exceeded your command ({conversation_command}) usage limit for today. You can increase your rate limit at https://app.khoj.dev/config.",
+                detail=f"We're glad you're enjoying Khoj! You've exceeded your `/{conversation_command.value}` command usage limit for today. You can increase your rate limit via [your settings](https://app.khoj.dev/config).",
             )
+        await UserRequests.objects.acreate(user=user, slug=command_slug)
         return
 
 
