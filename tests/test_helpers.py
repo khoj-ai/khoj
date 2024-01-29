@@ -1,3 +1,4 @@
+import os
 import secrets
 
 import numpy as np
@@ -6,6 +7,7 @@ import pytest
 from scipy.stats import linregress
 
 from khoj.processor.embeddings import EmbeddingsModel
+from khoj.processor.tools.online_search import search_with_olostep
 from khoj.utils import helpers
 
 
@@ -80,3 +82,18 @@ def test_encode_docs_memory_leak():
     # If slope is positive memory utilization is increasing
     # Positive threshold of 2, from observing memory usage trend on MPS vs CPU device
     assert slope < 2, f"Memory leak suspected on {device}. Memory usage increased at ~{slope:.2f} MB per iteration"
+
+
+@pytest.mark.skipif(os.getenv("OLOSTEP_API_KEY") is None, reason="OLOSTEP_API_KEY is not set")
+def test_olostep_api():
+    # Arrange
+    website = "https://en.wikipedia.org/wiki/Great_Chicago_Fire"
+
+    # Act
+    response = search_with_olostep(website)
+
+    # Assert
+    assert (
+        "An alarm sent from the area near the fire also failed to register at the courthouse where the fire watchmen were"
+        in response
+    )
