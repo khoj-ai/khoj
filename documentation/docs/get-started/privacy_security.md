@@ -14,6 +14,7 @@ Self-hosting isn't for everyone, so we've still taken steps to make Khoj privacy
 1. We store your embeddings and the associated raw text in a secure Postgres DB in our private AWS cloud. We need to store the raw text to be able to re-generate embeddings, compute diffs, and include them for context when you chat with Khoj.
 1. When using the cloud offering, any indexed data you share with Khoj Cloud may be included as context when chatting with Khoj. This means that it may be sent to OpenAI, if you use one of the OpenAI models.
 1. When you use the single-sign-on option with Google, we only receive your name, a link to your profile photo, and your email address.
+1. We collect completely anonymized usage telemetry and send it to [PostHog](https://posthog.com/). This includes data like unique chat requests, unique search requests, unique requests to index data. This is collected to help us understand how people are using Khoj, and to help us prioritize features. We do not upload any of your personal data to PostHog. You can see our telemetry aggregation code [in this file](https://github.com/khoj-ai/khoj/blob/master/src/khoj/routers/helpers.py#L71).
 
 Your data is yours, and we'll never sell it to anyone. We're building Khoj to be a sustainable, open-source alternative to personal AI solutions, and we have no interest in selling your data to make a quick buck.
 
