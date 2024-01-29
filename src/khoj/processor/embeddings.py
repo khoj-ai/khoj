@@ -9,7 +9,6 @@ from tenacity import (
     retry,
     retry_if_exception_type,
     stop_after_attempt,
-    wait_exponential,
     wait_random_exponential,
 )
 from torch import nn
@@ -40,7 +39,7 @@ class EmbeddingsModel:
         return self.embeddings_model.encode([query], show_progress_bar=False, **self.encode_kwargs)[0]
 
     @retry(
-        retry=retry_if_exception_type(Exception),
+        retry=retry_if_exception_type(requests.exceptions.HTTPError),
         wait=wait_random_exponential(multiplier=1, max=10),
         stop=stop_after_attempt(5),
         before_sleep=before_sleep_log(logger, logging.DEBUG),
@@ -55,8 +54,10 @@ class EmbeddingsModel:
             response = requests.post(self.inference_endpoint, json=payload, headers=headers)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            print(f"Error: {e}")
-            print(f"Response: {response.json()}")
+            logger.error(
+                f" Error while calling inference endpoint {self.inference_endpoint} with error {e}, response {response.json()} ",
+                exc_info=True,
+            )
             raise e
         return response.json()["embeddings"]
 
