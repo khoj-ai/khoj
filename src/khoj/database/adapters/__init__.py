@@ -207,6 +207,8 @@ def subscription_to_state(subscription: Subscription) -> str:
         return SubscriptionState.TRIAL.value
     elif subscription.is_recurring and subscription.renewal_date >= datetime.now(tz=timezone.utc):
         return SubscriptionState.SUBSCRIBED.value
+    elif not subscription.is_recurring and subscription.renewal_date is None:
+        return SubscriptionState.EXPIRED.value
     elif not subscription.is_recurring and subscription.renewal_date >= datetime.now(tz=timezone.utc):
         return SubscriptionState.UNSUBSCRIBED.value
     elif not subscription.is_recurring and subscription.renewal_date < datetime.now(tz=timezone.utc):
