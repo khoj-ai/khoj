@@ -27,7 +27,6 @@ from khoj.database.adapters import (
     aget_or_create_user_by_phone_number,
     aget_user_by_phone_number,
     aget_user_subscription_state,
-    aget_user_subscription_state_by_phone,
     delete_user_requests,
     get_all_users,
     get_or_create_search_models,
@@ -108,7 +107,7 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 if not state.billing_enabled:
                     return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(user_with_token.user)
 
-                subscription_state = await aget_user_subscription_state(user_with_token.user.email)
+                subscription_state = await aget_user_subscription_state(user_with_token.user)
                 subscribed = (
                     subscription_state == SubscriptionState.SUBSCRIBED.value
                     or subscription_state == SubscriptionState.TRIAL.value
@@ -152,7 +151,7 @@ class UserAuthenticationBackend(AuthenticationBackend):
             if not state.billing_enabled:
                 return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(user, client_application)
 
-            subscription_state = await aget_user_subscription_state_by_phone(user.phone_number)
+            subscription_state = await aget_user_subscription_state(user)
             subscribed = (
                 subscription_state == SubscriptionState.SUBSCRIBED.value
                 or subscription_state == SubscriptionState.TRIAL.value
