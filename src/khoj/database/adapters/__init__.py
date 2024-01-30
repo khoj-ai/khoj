@@ -230,6 +230,14 @@ async def aget_user_subscription_state(email: str) -> str:
     return subscription_to_state(user_subscription)
 
 
+async def aget_user_subscription_state_by_phone(phone: str) -> str:
+    """Get subscription state of user
+    Valid state transitions: trial -> subscribed <-> unsubscribed OR expired
+    """
+    user_subscription = await Subscription.objects.filter(user__phone_number=phone).afirst()
+    return subscription_to_state(user_subscription)
+
+
 async def get_user_by_email(email: str) -> KhojUser:
     return await KhojUser.objects.filter(email=email).afirst()
 
