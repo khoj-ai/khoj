@@ -84,7 +84,7 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 if not state.billing_enabled:
                     return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(user)
 
-                subscription_state = await aget_user_subscription_state(user.email)
+                subscription_state = await aget_user_subscription_state(user)
                 subscribed = (
                     subscription_state == SubscriptionState.SUBSCRIBED.value
                     or subscription_state == SubscriptionState.TRIAL.value
