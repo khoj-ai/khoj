@@ -343,4 +343,4 @@ def upload_telemetry():
 @schedule.repeat(schedule.every(31).minutes)
 def delete_old_user_requests():
     num_deleted = delete_user_requests()
-    logger.info(f"🔥 Deleted {num_deleted} day-old user requests")
+    logger.info(f"🗑️ Deleted {num_deleted[0]} day-old user requests")
