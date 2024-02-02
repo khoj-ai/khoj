@@ -264,6 +264,27 @@ You can head to http://localhost:42110 to use the web interface. You can also us
   </Tabs>
 ```
 
+## Advanced
+### Use OpenAI compatible LLM API Server
+Use this if you want to use non-standard, open or commercial, local or hosted LLM models for Khoj chat
+1. Install an OpenAI compatible LLM API Server like [LiteLLM](https://docs.litellm.ai/docs/proxy/quick_start), [Llama-cpp-python](https://github.com/abetlen/llama-cpp-python?tab=readme-ov-file#openai-compatible-web-server) etc.
+2. Set `OPENAI_API_BASE="<url-of-your-llm-server>"` environment variables before starting Khoj
+
+#### Sample Setup using LiteLLM and Mistral API
+
+```shell
+# Install LiteLLM
+pip install litellm[proxy]
+
+# Start LiteLLM and use Mistral tiny via Mistral API
+export MISTRAL_API_KEY=<MISTRAL_API_KEY>
+litellm --model mistral/mistral-tiny --drop_params
+
+# Set OpenAI API Base to LiteLLM server URL and start Khoj
+export OPENAI_API_BASE='http://localhost:8000'
+khoj --anonymous-mode
+```
+
 ## Troubleshoot
 
 #### Install fails while building Tokenizer dependency
