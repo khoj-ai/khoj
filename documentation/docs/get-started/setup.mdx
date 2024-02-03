@@ -175,8 +175,8 @@ To use the desktop client, you need to go to your Khoj server's settings page (h
 1. Go to http://localhost:42110/server/admin and login with your admin credentials.
     1. Go to [OpenAI settings](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/) in the server admin settings to add an OpenAI processor conversation config. This is where you set your API key. Alternatively, you can go to the [offline chat settings](http://localhost:42110/server/admin/database/offlinechatprocessorconversationconfig/) and simply create a new setting with `Enabled` set to `True`.
     2. Go to the ChatModelOptions if you want to add additional models for chat.
-       - For example, you can specify `gpt-4` if you're using OpenAI or `mistral-7b-instruct-v0.1.Q4_0.gguf` if you're using offline chat.
-       - Make sure to set the `type` field to `OpenAI` or `Offline` respectively.
+       - Set the `chat-model` field to a supported chat model of your choice. For example, you can specify `gpt-4` if you're using OpenAI or `mistral-7b-instruct-v0.1.Q4_0.gguf` if you're using offline chat.
+       - Make sure to set the `model-type` field to `OpenAI` or `Offline` respectively.
        - The `tokenizer` and `max-prompt-size` fields are optional. Set them only when using a non-standard model (i.e not mistral, gpt or llama2 model).
 1. Select files and folders to index [using the desktop client](/get-started/setup#2-download-the-desktop-client). When you click 'Save', the files will be sent to your server for indexing.
     - Select Notion workspaces and Github repositories to index using the web interface.
@@ -269,6 +269,8 @@ You can head to http://localhost:42110 to use the web interface. You can also us
 Use this if you want to use non-standard, open or commercial, local or hosted LLM models for Khoj chat
 1. Install an OpenAI compatible LLM API Server like [LiteLLM](https://docs.litellm.ai/docs/proxy/quick_start), [Llama-cpp-python](https://github.com/abetlen/llama-cpp-python?tab=readme-ov-file#openai-compatible-web-server) etc.
 2. Set `OPENAI_API_BASE="<url-of-your-llm-server>"` environment variables before starting Khoj
+3. Add ChatModelOptions with `model-type` `OpenAI`, and `chat-model` to anything (e.g `gpt-4`) in the [Configure](#3-configure) step
+4. [Optional] Set an appropriate `tokenizer` and `max-prompt-size` relevant for the actual chat model you're using
 
 #### Sample Setup using LiteLLM and Mistral API
 
