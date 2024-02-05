@@ -1,6 +1,5 @@
 import { App, MarkdownRenderer, Modal, request, requestUrl, setIcon } from 'obsidian';
 import { KhojSetting } from 'src/settings';
-import fetch from "node-fetch";
 
 export interface ChatJsonResult {
     image?: string;
@@ -280,6 +279,68 @@ export class KhojChatModal extends Modal {
         return true;
     }
 
+    async readChatStream(response: Response, responseElement: HTMLDivElement): Promise<void> {
+        // Exit if response body is empty
+        if (response.body == null) return;
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+            const { value, done } = await reader.read();
+
+            // Break if the stream is done
+            if (done) break;
+
+            let responseText = decoder.decode(value);
+            if (responseText.includes("### compiled references:")) {
+                // Render any references used to generate the response
+                const [additionalResponse, rawReference] = responseText.split("### compiled references:", 2);
+                await this.renderIncrementalMessage(responseElement, additionalResponse);
+
+                const rawReferenceAsJson = JSON.parse(rawReference);
+                let references = responseElement.createDiv();
+                references.classList.add("references");
+
+                let referenceExpandButton = references.createEl('button');
+                referenceExpandButton.classList.add("reference-expand-button");
+
+                let referenceSection = references.createDiv();
+                referenceSection.classList.add("reference-section");
+                referenceSection.classList.add("collapsed");
+
+                let numReferences = 0;
+
+                // If rawReferenceAsJson is a list, then count the length
+                if (Array.isArray(rawReferenceAsJson)) {
+                    numReferences = rawReferenceAsJson.length;
+
+                    rawReferenceAsJson.forEach((reference, index) => {
+                        this.generateReference(referenceSection, reference, index);
+                    });
+                }
+                references.appendChild(referenceExpandButton);
+
+                referenceExpandButton.addEventListener('click', function() {
+                    if (referenceSection.classList.contains("collapsed")) {
+                        referenceSection.classList.remove("collapsed");
+                        referenceSection.classList.add("expanded");
+                    } else {
+                        referenceSection.classList.add("collapsed");
+                        referenceSection.classList.remove("expanded");
+                    }
+                });
+
+                let expandButtonText = numReferences == 1 ? "1 reference" : `${numReferences} references`;
+                referenceExpandButton.innerHTML = expandButtonText;
+                references.appendChild(referenceSection);
+            } else {
+                // Render incremental chat response
+                await this.renderIncrementalMessage(responseElement, responseText);
+            }
+        }
+    }
+
     async getChatResponse(query: string | undefined | null): Promise<void> {
         // Exit if query is empty
         if (!query || query === "") return;
@@ -307,14 +368,16 @@ export class KhojChatModal extends Modal {
         })
 
         try {
-            if (response.body == null) {
+            if (response.body === null) {
                 throw new Error("Response body is null");
             }
+
             // Clear thinking status message
             if (responseElement.innerHTML === "🤔") {
                 responseElement.innerHTML = "";
             }
 
+            // Reset collated chat result to empty string
             this.result = "";
             responseElement.innerHTML = "";
             if (response.headers.get("content-type") == "application/json") {
@@ -328,60 +391,17 @@ export class KhojChatModal extends Modal {
                     }
                 } catch (error) {
                     // If the chunk is not a JSON object, just display it as is
-                    responseText = response.body.read().toString()
+                    responseText = await response.text();
                 } finally {
                     await this.renderIncrementalMessage(responseElement, responseText);
                 }
             }
 
-            for await (const chunk of response.body) {
-                let responseText = chunk.toString();
-                if (responseText.includes("### compiled references:")) {
-                    const [additionalResponse, rawReference] = responseText.split("### compiled references:", 2);
-                    await this.renderIncrementalMessage(responseElement, additionalResponse);
-
-                    const rawReferenceAsJson = JSON.parse(rawReference);
-                    let references = responseElement.createDiv();
-                    references.classList.add("references");
-
-                    let referenceExpandButton = references.createEl('button');
-                    referenceExpandButton.classList.add("reference-expand-button");
-
-                    let referenceSection = references.createDiv();
-                    referenceSection.classList.add("reference-section");
-                    referenceSection.classList.add("collapsed");
-
-                    let numReferences = 0;
-
-                    // If rawReferenceAsJson is a list, then count the length
-                    if (Array.isArray(rawReferenceAsJson)) {
-                        numReferences = rawReferenceAsJson.length;
-
-                        rawReferenceAsJson.forEach((reference, index) => {
-                            this.generateReference(referenceSection, reference, index);
-                        });
-                    }
-                    references.appendChild(referenceExpandButton);
-
-                    referenceExpandButton.addEventListener('click', function() {
-                        if (referenceSection.classList.contains("collapsed")) {
-                            referenceSection.classList.remove("collapsed");
-                            referenceSection.classList.add("expanded");
-                        } else {
-                            referenceSection.classList.add("collapsed");
-                            referenceSection.classList.remove("expanded");
-                        }
-                    });
-
-                    let expandButtonText = numReferences == 1 ? "1 reference" : `${numReferences} references`;
-                    referenceExpandButton.innerHTML = expandButtonText;
-                    references.appendChild(referenceSection);
-                } else {
-                    await this.renderIncrementalMessage(responseElement, responseText);
-                }
-            }
+            // Stream and render chat response
+            await this.readChatStream(response, responseElement);
         } catch (err) {
-            let errorMsg = "Sorry, unable to get response from Khoj backend ❤️‍🩹. Contact developer for help at team@khoj.dev or [in Discord](https://discord.gg/BDgyabRM6e)";
+            console.log(`Khoj chat response failed with\n${err}`);
+            let errorMsg = "Sorry, unable to get response from Khoj backend ❤️‍🩹. Retry or contact developers for help at <a href=mailto:'team@khoj.dev'>team@khoj.dev</a> or <a href='https://discord.gg/BDgyabRM6e'>on Discord</a>";
             responseElement.innerHTML = errorMsg
         }
     }
