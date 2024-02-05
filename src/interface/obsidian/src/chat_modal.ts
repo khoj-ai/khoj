@@ -94,7 +94,7 @@ export class KhojChatModal extends Modal {
         sendImg.addEventListener('click', async (_) => { await this.chat() });
 
         // Scroll to bottom of modal, till the send message input box
-        this.modalEl.scrollTop = this.modalEl.scrollHeight;
+        this.scrollChatToBottom();
         chatInput.focus();
     }
 
@@ -206,7 +206,7 @@ export class KhojChatModal extends Modal {
         chatMessageEl.style.userSelect = "text";
 
         // Scroll to bottom after inserting chat messages
-        this.modalEl.scrollTop = this.modalEl.scrollHeight;
+        this.scrollChatToBottom();
 
         return chatMessageEl
     }
@@ -229,7 +229,7 @@ export class KhojChatModal extends Modal {
         })
 
         // Scroll to bottom after inserting chat messages
-        this.modalEl.scrollTop = this.modalEl.scrollHeight;
+        this.scrollChatToBottom();
 
         return chat_message_el
     }
@@ -240,7 +240,7 @@ export class KhojChatModal extends Modal {
         // @ts-ignore
         await MarkdownRenderer.renderMarkdown(this.result, htmlElement, '', null);
         // Scroll to bottom of modal, till the send message input box
-        this.modalEl.scrollTop = this.modalEl.scrollHeight;
+        this.scrollChatToBottom();
     }
 
     formatDate(date: Date): string {
@@ -581,6 +581,11 @@ export class KhojChatModal extends Modal {
         const scrollHeight = chatInput.scrollHeight + 8;  // +8 accounts for padding
         chatInput.style.height = Math.min(scrollHeight, 200) + 'px';
         chatInput.scrollTop = scrollTop;
-        this.modalEl.scrollTop = this.modalEl.scrollHeight;
+        this.scrollChatToBottom();
+    }
+
+    scrollChatToBottom() {
+        let sendButton = <HTMLButtonElement>this.modalEl.getElementsByClassName("khoj-chat-send")[0];
+        sendButton.scrollIntoView({ behavior: "auto", block: "center" });
     }
 }
