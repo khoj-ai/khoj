@@ -54,7 +54,6 @@
 
             // Add event listener to toggle full reference on click
             referenceButton.addEventListener('click', function() {
-                console.log(`Toggling ref-${index}`)
                 if (this.classList.contains("collapsed")) {
                     this.classList.remove("collapsed");
                     this.classList.add("expanded");
@@ -100,7 +99,6 @@
 
             // Add event listener to toggle full reference on click
             referenceButton.addEventListener('click', function() {
-                console.log(`Toggling ref-${index}`)
                 if (this.classList.contains("collapsed")) {
                     this.classList.remove("collapsed");
                     this.classList.add("expanded");
@@ -586,8 +584,10 @@
                     return data.response;
                 })
                 .then(response => {
+
+                    const fullChatLog = response.chat;
                     // Render conversation history, if any
-                    response.forEach(chat_log => {
+                    fullChatLog.forEach(chat_log => {
                         renderMessageWithReference(chat_log.message, chat_log.by, chat_log.context, new Date(chat_log.created), chat_log.onlineContext, chat_log.intent?.type, chat_log.intent?.["inferred-queries"]);
                     });
                 })

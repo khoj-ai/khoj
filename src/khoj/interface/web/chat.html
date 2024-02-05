@@ -66,7 +66,6 @@ To get started, just start typing below. You can also type / to see a list of co
 
             // Add event listener to toggle full reference on click
             referenceButton.addEventListener('click', function() {
-                console.log(`Toggling ref-${index}`)
                 if (this.classList.contains("collapsed")) {
                     this.classList.remove("collapsed");
                     this.classList.add("expanded");
@@ -112,7 +111,6 @@ To get started, just start typing below. You can also type / to see a list of co
 
             // Add event listener to toggle full reference on click
             referenceButton.addEventListener('click', function() {
-                console.log(`Toggling ref-${index}`)
                 if (this.classList.contains("collapsed")) {
                     this.classList.remove("collapsed");
                     this.classList.add("expanded");
@@ -154,6 +152,9 @@ To get started, just start typing below. You can also type / to see a list of co
 
             // Scroll to bottom of chat-body element
             chatBody.scrollTop = chatBody.scrollHeight;
+
+            let chatBodyWrapper = document.getElementById("chat-body-wrapper");
+            chatBodyWrapperHeight = chatBodyWrapper.clientHeight;
         }
 
         function processOnlineReferences(referenceSection, onlineContext) {
@@ -332,11 +333,20 @@ To get started, just start typing below. You can also type / to see a list of co
             document.getElementById("chat-input").value = "";
             autoResize();
             document.getElementById("chat-input").setAttribute("disabled", "disabled");
+            let chat_body = document.getElementById("chat-body");
+
+            let conversationID = chat_body.dataset.conversationId;
+
+            if (!conversationID) {
+                let response = await fetch('/api/chat/sessions', { method: "POST" });
+                let data = await response.json();
+                conversationID = data.conversation_id;
+                chat_body.dataset.conversationId = conversationID;
+            }
 
             // Generate backend API URL to execute query
-            let url = `/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true`;
+            let url = `/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}`;
 
-            let chat_body = document.getElementById("chat-body");
             let new_response = document.createElement("div");
             new_response.classList.add("chat-message", "khoj");
             new_response.attributes["data-meta"] = "🏮 Khoj at " + formatDate(new Date());
@@ -537,7 +547,18 @@ To get started, just start typing below. You can also type / to see a list of co
         window.onload = loadChat;
 
         function loadChat() {
-            fetch('/api/chat/history?client=web')
+            let chatBody = document.getElementById("chat-body");
+            let conversationId = chatBody.dataset.conversationId;
+            let chatHistoryUrl = `/api/chat/history?client=web`;
+            if (conversationId) {
+                chatHistoryUrl += `&conversation_id=${conversationId}`;
+            }
+
+            if (window.screen.width < 700) {
+                handleCollapseSidePanel();
+            }
+
+            fetch(chatHistoryUrl, { method: "GET" })
                 .then(response => response.json())
                 .then(data => {
                     if (data.detail) {
@@ -556,9 +577,69 @@ To get started, just start typing below. You can also type / to see a list of co
                 })
                 .then(response => {
                     // Render conversation history, if any
-                    response.forEach(chat_log => {
-                        renderMessageWithReference(chat_log.message, chat_log.by, chat_log.context, new Date(chat_log.created), chat_log.onlineContext, chat_log.intent?.type, chat_log.intent?.["inferred-queries"]);
+                    conversationId = response.conversation_id;
+
+                    let chatBody = document.getElementById("chat-body");
+                    chatBody.dataset.conversationId = conversationId;
+
+                    const fullChatLog = response.chat || [];
+
+                    fullChatLog.forEach(chat_log => {
+                        if (chat_log.message != null){
+                            renderMessageWithReference(
+                                chat_log.message,
+                                chat_log.by,
+                                chat_log.context,
+                                new Date(chat_log.created),
+                                chat_log.onlineContext,
+                                chat_log.intent?.type,
+                                chat_log.intent?.["inferred-queries"]);
+                        }
+
                     });
+
+                    let chatBodyWrapper = document.getElementById("chat-body-wrapper");
+                    chatBodyWrapperHeight = chatBodyWrapper.clientHeight;
+
+                    chatBody.style.height = chatBodyWrapperHeight;
+                })
+                .catch(err => {
+                    console.log(err);
+                    return;
+                });
+
+            fetch('/api/chat/sessions', { method: "GET" })
+                .then(response => response.json())
+                .then(data => {
+                    let conversationListBody = document.getElementById("conversation-list-body");
+                    conversationListBody.innerHTML = "";
+                    let conversationListBodyHeader = document.getElementById("conversation-list-header");
+
+                    let chatBody = document.getElementById("chat-body");
+                    conversationId = chatBody.dataset.conversationId;
+
+                    if (data.length > 0) {
+                        conversationListBodyHeader.style.display = "block";
+                        for (let index in data) {
+                            let conversation = data[index];
+                            let conversationButton = document.createElement('button');
+                            let incomingConversationId = conversation["conversation_id"];
+                            conversationButton.innerHTML = conversation["slug"] || `Conversation ${incomingConversationId}`;
+                            conversationButton.classList.add("conversation-button");
+                            console.log(incomingConversationId, conversationId)
+                            console.log(conversationId, incomingConversationId)
+                            if (incomingConversationId == conversationId) {
+                                conversationButton.classList.add("selected-conversation");
+                            }
+                            conversationButton.addEventListener('click', function() {
+                                let chatBody = document.getElementById("chat-body");
+                                chatBody.innerHTML = "";
+                                chatBody.dataset.conversationId = incomingConversationId;
+                                loadChat();
+                            });
+                            conversationListBody.appendChild(conversationButton);
+                        }
+                    }
                 })
                 .catch(err => {
                     console.log(err);
@@ -622,15 +703,29 @@ To get started, just start typing below. You can also type / to see a list of co
             }, 2000);
         }
 
+        function createNewConversation() {
+            let chatBody = document.getElementById("chat-body");
+            chatBody.innerHTML = "";
+            flashStatusInChatInput("📝 New conversation started");
+            chatBody.dataset.conversationId = "";
+        }
+
         function clearConversationHistory() {
             let chatInput = document.getElementById("chat-input");
             let originalPlaceholder = chatInput.placeholder;
             let chatBody = document.getElementById("chat-body");
+            let conversationId = chatBody.dataset.conversationId;
 
-            fetch(`/api/chat/history?client=web`, { method: "DELETE" })
+            let deleteURL = `/api/chat/history?client=web`;
+            if (conversationId) {
+                deleteURL += `&conversation_id=${conversationId}`;
+            }
+
+            fetch(deleteURL , { method: "DELETE" })
                 .then(response => response.ok ? response.json() : Promise.reject(response))
                 .then(data => {
                     chatBody.innerHTML = "";
+                    chatBody.dataset.conversationId = "";
                     loadChat();
                     flashStatusInChatInput("🗑 Cleared conversation history");
                 })
@@ -739,6 +834,14 @@ To get started, just start typing below. You can also type / to see a list of co
             // Stop the countdown timer UI
             document.getElementById('countdown-circle').style.animation = "none";
         };
+
+        function handleCollapseSidePanel() {
+            document.getElementById('side-panel').classList.toggle('collapsed');
+            document.getElementById('new-conversation').classList.toggle('collapsed');
+            document.getElementById('existing-conversations').classList.toggle('collapsed');
+
+            document.getElementById('chat-section-wrapper').classList.toggle('mobile-friendly');
+        }
     </script>
     <body>
         <div id="khoj-empty-container" class="khoj-empty-container">
@@ -747,48 +850,81 @@ To get started, just start typing below. You can also type / to see a list of co
         <!--Add Header Logo and Nav Pane-->
         {% import 'utils.html' as utils %}
         {{ utils.heading_pane(user_photo, username, is_active, has_documents) }}
+        <div id="chat-section-wrapper">
+            <div id="side-panel">
+                <div id="collapse-side-panel">
+                    <button
+                        class="side-panel-button"
+                        id="collapse-side-panel-button"
+                        onclick="handleCollapseSidePanel()"
+                    >
+                        <svg class="side-panel-collapse" viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M6 14.5L10.5 14.5V19M19 10.5H14.5L14.5 6" stroke="#121923" stroke-width="1.2"/>
+                            <path d="M10.5 14.5L6 19" stroke="#121923" stroke-width="1.2"/>
+                            <path d="M14.5 10.5L19 6" stroke="#121923" stroke-width="1.2"/>
+                        </svg>
+                    </button>
+                </div>
+                <div id="new-conversation">
+                    <button class="side-panel-button" id="new-conversation-button" onclick="createNewConversation()">
+                        New Topic
+                        <svg class="new-convo-button" viewBox="0 0 35 35" fill="#000000" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M16 0c-8.836 0-16 7.163-16 16s7.163 16 16 16c8.837 0 16-7.163 16-16s-7.163-16-16-16zM16 30.032c-7.72 0-14-6.312-14-14.032s6.28-14 14-14 14 6.28 14 14-6.28 14.032-14 14.032zM23 15h-6v-6c0-0.552-0.448-1-1-1s-1 0.448-1 1v6h-6c-0.552 0-1 0.448-1 1s0.448 1 1 1h6v6c0 0.552 0.448 1 1 1s1-0.448 1-1v-6h6c0.552 0 1-0.448 1-1s-0.448-1-1-1z"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="existing-conversations">
+                    <div id="conversation-list">
+                        <div id="conversation-list-header" style="display: none;">Recent Conversations</div>
+                        <div id="conversation-list-body"></div>
+                    </div>
+                </div>
+            </div>
 
-        <!-- Chat Body -->
-        <div id="chat-body"></div>
+            <div id="chat-body-wrapper">
+                <!-- Chat Body -->
+                <div id="chat-body"></div>
 
-        <!-- Chat Suggestions -->
-        <div id="question-starters" style="display: none;"></div>
+                <!-- Chat Suggestions -->
+                <div id="question-starters" style="display: none;"></div>
 
-        <!-- Chat Footer -->
-        <div id="chat-footer">
-            <div id="chat-tooltip" style="display: none;"></div>
-            <div id="input-row">
-                <button id="clear-chat-button" class="input-row-button" onclick="clearConversationHistory()">
-                    <svg class="input-row-button-img" alt="Clear Chat History" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-                        <rect width="128" height="128" fill="none"/>
-                        <line x1="216" y1="56" x2="40" y2="56" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
-                        <line x1="104" y1="104" x2="104" y2="168" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
-                        <line x1="152" y1="104" x2="152" y2="168" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
-                        <path d="M200,56V208a8,8,0,0,1-8,8H64a8,8,0,0,1-8-8V56" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
-                        <path d="M168,56V40a16,16,0,0,0-16-16H104A16,16,0,0,0,88,40V56" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
-                    </svg>
-                </button>
-                <textarea id="chat-input" class="option" oninput="onChatInput()" onkeydown=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands"></textarea>
-                <button id="speak-button" class="input-row-button"
-                    ontouchstart="speechToText(event)" ontouchend="speechToText(event)" ontouchcancel="speechToText(event)" onmousedown="speechToText(event)">
-                    <svg id="speak-button-img" class="input-row-button-img" alt="Transcribe" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M3.5 6.5A.5.5 0 0 1 4 7v1a4 4 0 0 0 8 0V7a.5.5 0 0 1 1 0v1a5 5 0 0 1-4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 .5-.5z"/>
-                        <path d="M10 8a2 2 0 1 1-4 0V3a2 2 0 1 1 4 0v5zM8 0a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V3a3 3 0 0 0-3-3z"/>
-                    </svg>
-                    <svg id="stop-record-button-img" style="display: none" class="input-row-button-img" alt="Stop Transcribing" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                        <path d="M5 6.5A1.5 1.5 0 0 1 6.5 5h3A1.5 1.5 0 0 1 11 6.5v3A1.5 1.5 0 0 1 9.5 11h-3A1.5 1.5 0 0 1 5 9.5v-3z"/>
-                    </svg>
-                </button>
-                <button id="send-button" class="input-row-button" alt="Send message">
-                    <svg id="send-button-img" onclick="chat()" class="input-row-button-img" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                        <path fill-rule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8zm15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11.5z"/>
-                    </svg>
-                    <svg id="stop-send-button-img" onclick="cancelSendMessage()" style="display: none" class="input-row-button-img" alt="Stop Message Send" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                        <circle id="countdown-circle" class="countdown-circle" cx="8" cy="8" r="7" />
-                        <path d="M5 6.5A1.5 1.5 0 0 1 6.5 5h3A1.5 1.5 0 0 1 11 6.5v3A1.5 1.5 0 0 1 9.5 11h-3A1.5 1.5 0 0 1 5 9.5v-3z"/>
-                    </svg>
-                </button>
+                <!-- Chat Footer -->
+                <div id="chat-footer">
+                    <div id="chat-tooltip" style="display: none;"></div>
+                    <div id="input-row">
+                        <button id="clear-chat-button" class="input-row-button" onclick="clearConversationHistory()">
+                            <svg class="input-row-button-img" alt="Clear Chat History" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+                                <rect width="128" height="128" fill="none"/>
+                                <line x1="216" y1="56" x2="40" y2="56" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
+                                <line x1="104" y1="104" x2="104" y2="168" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
+                                <line x1="152" y1="104" x2="152" y2="168" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
+                                <path d="M200,56V208a8,8,0,0,1-8,8H64a8,8,0,0,1-8-8V56" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
+                                <path d="M168,56V40a16,16,0,0,0-16-16H104A16,16,0,0,0,88,40V56" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
+                            </svg>
+                        </button>
+                        <textarea id="chat-input" class="option" oninput="onChatInput()" onkeydown=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands"></textarea>
+                        <button id="speak-button" class="input-row-button"
+                            ontouchstart="speechToText(event)" ontouchend="speechToText(event)" ontouchcancel="speechToText(event)" onmousedown="speechToText(event)">
+                            <svg id="speak-button-img" class="input-row-button-img" alt="Transcribe" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M3.5 6.5A.5.5 0 0 1 4 7v1a4 4 0 0 0 8 0V7a.5.5 0 0 1 1 0v1a5 5 0 0 1-4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 .5-.5z"/>
+                                <path d="M10 8a2 2 0 1 1-4 0V3a2 2 0 1 1 4 0v5zM8 0a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V3a3 3 0 0 0-3-3z"/>
+                            </svg>
+                            <svg id="stop-record-button-img" style="display: none" class="input-row-button-img" alt="Stop Transcribing" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                <path d="M5 6.5A1.5 1.5 0 0 1 6.5 5h3A1.5 1.5 0 0 1 11 6.5v3A1.5 1.5 0 0 1 9.5 11h-3A1.5 1.5 0 0 1 5 9.5v-3z"/>
+                            </svg>
+                        </button>
+                        <button id="send-button" class="input-row-button" alt="Send message">
+                            <svg id="send-button-img" onclick="chat()" class="input-row-button-img" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8zm15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11.5z"/>
+                            </svg>
+                            <svg id="stop-send-button-img" onclick="cancelSendMessage()" style="display: none" class="input-row-button-img" alt="Stop Message Send" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <circle id="countdown-circle" class="countdown-circle" cx="8" cy="8" r="7" />
+                                <path d="M5 6.5A1.5 1.5 0 0 1 6.5 5h3A1.5 1.5 0 0 1 11 6.5v3A1.5 1.5 0 0 1 9.5 11h-3A1.5 1.5 0 0 1 5 9.5v-3z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </body>
@@ -811,6 +947,8 @@ To get started, just start typing below. You can also type / to see a list of co
             font-size: 20px;
             font-weight: 300;
             line-height: 1.5em;
+            height: 100vh;
+            margin: 0;
         }
         body > * {
             padding: 10px;
@@ -932,11 +1070,56 @@ To get started, just start typing below. You can also type / to see a list of co
             line-height: 1.5em;
         }
 
+        #chat-section-wrapper {
+            display: grid;
+            grid-template-columns: 300px auto;
+            grid-column-gap: 10px;
+            grid-row-gap: 10px;
+            padding: 10px;
+            margin: 10px;
+            overflow-y: scroll;
+        }
+
+        #chat-section-wrapper.mobile-friendly {
+            /* grid-template-columns: 1fr; */
+            grid-template-columns: 64px auto;
+        }
+
+        #chat-body-wrapper {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #side-panel {
+            padding: 10px;
+            background: var(--background-color);
+            border-radius: 5px;
+            box-shadow: 0 0 11px #aaa;
+            overflow-y: scroll;
+            text-align: left;
+            transition: width 0.3s ease-in-out;
+            width: 250px;
+        }
+
+        div#side-panel.collapsed {
+            width: 40px;
+            display: block;
+            overflow: hidden;
+        }
+
+        div#conversation-list-body {
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-gap: 8px;
+        }
+
         #chat-body {
             font-size: medium;
             margin: 0px;
             line-height: 20px;
-            overflow-y: scroll; /* Make chat body scroll to see history */
+            overflow-y: scroll;
+            overflow-x: hidden;
         }
         /* add chat metatdata to bottom of bubble */
         .chat-message::after {
@@ -1070,12 +1253,36 @@ To get started, just start typing below. You can also type / to see a list of co
             margin-top: -2px;
             margin-left: -5px;
         }
+
+        .side-panel-button {
+            background: var(--background-color);
+            border: none;
+            box-shadow: none;
+            font-size: 14px;
+            font-weight: 300;
+            line-height: 1.5em;
+            cursor: pointer;
+            transition: background 0.3s ease-in-out;
+            border-radius: 5%;;
+            font-family: var(--font-family);
+            padding: 8px;
+            font-size: large;
+        }
+
+        svg.side-panel-collapse {
+            width: 30px;
+            height: 30px;
+        }
+
+        .side-panel-button:hover,
         .input-row-button:hover {
             background: var(--primary-hover);
         }
+        .side-panel-button:active,
         .input-row-button:active {
             background: var(--primary-active);
         }
+
         .input-row-button-img {
             width: 24px;
             height: 24px;
@@ -1193,6 +1400,19 @@ To get started, just start typing below. You can also type / to see a list of co
             #clear-chat-button {
                 margin-left: 0;
             }
+/*
+            #chat-section-wrapper {
+                grid-template-columns: 64px auto;
+            } */
+
+            div#side-panel.collapsed {
+                width: 30px;
+            }
+
+            svg.side-panel-collapse {
+                width: 24px;
+                height: 24px;
+            }
         }
         @media only screen and (min-width: 700px) {
             body {
@@ -1207,6 +1427,39 @@ To get started, just start typing below. You can also type / to see a list of co
         div#chat-tooltip {
             text-align: left;
             font-size: medium;
+        }
+
+        svg.new-convo-button {
+            width: 20px;
+            margin-left: 5px;
+        }
+
+        div#new-conversation {
+            text-align: left;
+        }
+
+        button#new-conversation-button {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        button.conversation-button {
+            background: var(--background-color);
+            color: var(--main-text-color);
+            border: 1px solid var(--main-text-color);
+            border-radius: 5px;
+            padding: 5px;
+            font-size: 14px;
+            font-weight: 300;
+            line-height: 1.5em;
+            cursor: pointer;
+            transition: background 0.2s ease-in-out;
+            text-align: left;
+        }
+
+        button.selected-conversation {
+            background: var(--primary-hover) !important;
+            color: var(--primary-inverse) !important;
         }
 
         @keyframes gradient {
