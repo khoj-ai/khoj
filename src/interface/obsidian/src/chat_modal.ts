@@ -253,10 +253,13 @@ export class KhojChatModal extends Modal {
     async getChatHistory(chatBodyEl: Element): Promise<boolean> {
         // Get chat history from Khoj backend
         let chatUrl = `${this.setting.khojUrl}/api/chat/history?client=obsidian`;
-        let headers = { "Authorization": `Bearer ${this.setting.khojApiKey}` };
 
         try {
-            let response = await fetch(chatUrl, { method: "GET", headers: headers });
+            let response = await fetch(chatUrl, {
+                method: "GET",
+                headers: { "Authorization": `Bearer ${this.setting.khojApiKey}` },
+            });
+
             let responseJson: any = await response.json();
 
             if (responseJson.detail) {
@@ -361,7 +364,6 @@ export class KhojChatModal extends Modal {
         let response = await fetch(chatUrl, {
             method: "GET",
             headers: {
-                "Access-Control-Allow-Origin": "*",
                 "Content-Type": "text/event-stream",
                 "Authorization": `Bearer ${this.setting.khojApiKey}`,
             },
@@ -422,7 +424,7 @@ export class KhojChatModal extends Modal {
         let chatBody = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
 
         let response = await request({
-            url: `${this.setting.khojUrl}/api/chat/history?client=web`,
+            url: `${this.setting.khojUrl}/api/chat/history?client=obsidian`,
             method: "DELETE",
             headers: { "Authorization": `Bearer ${this.setting.khojApiKey}` },
         })
