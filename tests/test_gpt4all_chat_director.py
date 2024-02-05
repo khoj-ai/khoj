@@ -426,7 +426,6 @@ def test_answer_chat_history_very_long(client_offline_chat, default_user2):
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
 @pytest.mark.django_db(transaction=True)
 def test_answer_requires_multiple_independent_searches(client_offline_chat):
