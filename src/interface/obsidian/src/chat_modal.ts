@@ -42,10 +42,6 @@ export class KhojChatModal extends Modal {
         // Create area for chat logs
         let chatBodyEl = contentEl.createDiv({ attr: { id: "khoj-chat-body", class: "khoj-chat-body" } });
 
-        // Get chat history from Khoj backend
-        let getChatHistorySucessfully = await this.getChatHistory(chatBodyEl);
-        let placeholderText = getChatHistorySucessfully ? "Message" : "Configure Khoj to enable chat";
-
         // Add chat input field
         let inputRow = contentEl.createDiv("khoj-input-row");
         let clearChat = inputRow.createEl("button", {
@@ -61,9 +57,7 @@ export class KhojChatModal extends Modal {
             attr: {
                 id: "khoj-chat-input",
                 autofocus: "autofocus",
-                placeholder: placeholderText,
                 class: "khoj-chat-input option",
-                disabled: !getChatHistorySucessfully ? "disabled" : null
             },
         })
         chatInput.addEventListener('input', (_) => { this.onChatInput() });
@@ -92,6 +86,12 @@ export class KhojChatModal extends Modal {
         setIcon(send, "arrow-up-circle");
         let sendImg = <SVGElement>send.getElementsByClassName("lucide-arrow-up-circle")[0]
         sendImg.addEventListener('click', async (_) => { await this.chat() });
+
+        // Get chat history from Khoj backend and set chat input state
+        let getChatHistorySucessfully = await this.getChatHistory(chatBodyEl);
+        let placeholderText = getChatHistorySucessfully ? "Message" : "Configure Khoj to enable chat";
+        chatInput.placeholder = placeholderText;
+        chatInput.disabled = !getChatHistorySucessfully;
 
         // Scroll to bottom of modal, till the send message input box
         this.scrollChatToBottom();
