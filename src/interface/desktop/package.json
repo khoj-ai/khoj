@@ -10,7 +10,7 @@
   "main": "main.js",
   "private": false,
   "devDependencies": {
-    "electron": "25.8.4"
+    "electron": "28.2.1"
   },
   "scripts": {
     "start": "yarn electron ."
