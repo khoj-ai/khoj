@@ -631,6 +631,20 @@
                     chatBody.style.height = chatBodyWrapperHeight;
                 })
                 .catch(err => {
+                    // If the server returns a 500 error with detail, render a setup hint.
+                    first_run_message = `Hi 👋🏾, to get started:
+                    <ol>
+                        <li>Generate an API token in the <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToWebSettings()">Khoj Web settings</a></li>
+                        <li>Paste it into the API Key field in the <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToSettings()">Khoj Desktop settings</a></li>
+                    </ol>`
+                    .trim()
+                    .replace(/(\r\n|\n|\r)/gm, "");
+
+                    renderMessage(first_run_message, "khoj", null, null, true);
+
+                    // Disable chat input field and update placeholder text
+                    document.getElementById("chat-input").setAttribute("disabled", "disabled");
+                    document.getElementById("chat-input").setAttribute("placeholder", "Configure Khoj to enable chat");
                     return;
                 });
 
