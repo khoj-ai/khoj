@@ -110,7 +110,7 @@ a.khoj-logo {
     background-color: var(--primary);
 }
 img.khoj-logo {
-    width: min(60vw, 111px);
+    width: min(60vw, 90px);
     max-width: 100%;
     justify-self: center;
 }
@@ -202,7 +202,7 @@ img.khoj-logo {
         grid-auto-flow: column;
         gap: 20px;
         padding: 16px 10px;
-        margin: 0 0 16px 0;
+        margin: 0;
     }
 
     nav.khoj-nav {

@@ -708,6 +708,7 @@ To get started, just start typing below. You can also type / to see a list of co
             chatBody.innerHTML = "";
             flashStatusInChatInput("📝 New conversation started");
             chatBody.dataset.conversationId = "";
+            renderMessage(welcome_message, "khoj");
         }
 
         function clearConversationHistory() {
@@ -852,19 +853,6 @@ To get started, just start typing below. You can also type / to see a list of co
         {{ utils.heading_pane(user_photo, username, is_active, has_documents) }}
         <div id="chat-section-wrapper">
             <div id="side-panel">
-                <div id="collapse-side-panel">
-                    <button
-                        class="side-panel-button"
-                        id="collapse-side-panel-button"
-                        onclick="handleCollapseSidePanel()"
-                    >
-                        <svg class="side-panel-collapse" viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M6 14.5L10.5 14.5V19M19 10.5H14.5L14.5 6" stroke="#121923" stroke-width="1.2"/>
-                            <path d="M10.5 14.5L6 19" stroke="#121923" stroke-width="1.2"/>
-                            <path d="M14.5 10.5L19 6" stroke="#121923" stroke-width="1.2"/>
-                        </svg>
-                    </button>
-                </div>
                 <div id="new-conversation">
                     <button class="side-panel-button" id="new-conversation-button" onclick="createNewConversation()">
                         New Topic
@@ -879,6 +867,17 @@ To get started, just start typing below. You can also type / to see a list of co
                         <div id="conversation-list-body"></div>
                     </div>
                 </div>
+            </div>
+            <div id="collapse-side-panel">
+                <button
+                    class="side-panel-button"
+                    id="collapse-side-panel-button"
+                    onclick="handleCollapseSidePanel()"
+                >
+                    <svg class="side-panel-collapse" viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M7.82054 20.7313C8.21107 21.1218 8.84423 21.1218 9.23476 20.7313L15.8792 14.0868C17.0505 12.9155 17.0508 11.0167 15.88 9.84497L9.3097 3.26958C8.91918 2.87905 8.28601 2.87905 7.89549 3.26958C7.50497 3.6601 7.50497 4.29327 7.89549 4.68379L14.4675 11.2558C14.8581 11.6464 14.8581 12.2795 14.4675 12.67L7.82054 19.317C7.43002 19.7076 7.43002 20.3407 7.82054 20.7313Z" fill="#0F0F0F"/>
+                    </svg>
+                </button>
             </div>
 
             <div id="chat-body-wrapper">
@@ -1072,7 +1071,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
         #chat-section-wrapper {
             display: grid;
-            grid-template-columns: 300px auto;
+            grid-template-columns: auto auto auto;
             grid-column-gap: 10px;
             grid-row-gap: 10px;
             padding: 10px;
@@ -1081,8 +1080,7 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
         #chat-section-wrapper.mobile-friendly {
-            /* grid-template-columns: 1fr; */
-            grid-template-columns: 64px auto;
+            grid-template-columns: auto 30px auto;
         }
 
         #chat-body-wrapper {
@@ -1103,9 +1101,14 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
         div#side-panel.collapsed {
-            width: 40px;
+            width: 1px;
             display: block;
             overflow: hidden;
+        }
+
+        div#collapse-side-panel {
+            align-self: center;
+            justify-self: start;
         }
 
         div#conversation-list-body {
@@ -1127,7 +1130,7 @@ To get started, just start typing below. You can also type / to see a list of co
             display: block;
             font-size: x-small;
             color: var(--main-text-color);
-            margin: -8px 4px 0 -5px;
+            margin: -8px 4px 0px 0px;
         }
         /* move message by khoj to left */
         .chat-message.khoj {
@@ -1400,18 +1403,27 @@ To get started, just start typing below. You can also type / to see a list of co
             #clear-chat-button {
                 margin-left: 0;
             }
-/*
-            #chat-section-wrapper {
-                grid-template-columns: 64px auto;
-            } */
 
             div#side-panel.collapsed {
-                width: 30px;
+                width: 0px;
+                display: block;
+                overflow: hidden;
+                padding: 0;
             }
 
             svg.side-panel-collapse {
                 width: 24px;
                 height: 24px;
+            }
+
+            #chat-body-wrapper {
+                min-width: 0;
+            }
+
+            div#chat-section-wrapper {
+                padding: 4px;
+                margin: 4px;
+                grid-column-gap: 4px;
             }
         }
         @media only screen and (min-width: 700px) {
