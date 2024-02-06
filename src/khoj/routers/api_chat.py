@@ -62,7 +62,6 @@ async def chat_starters(
 def chat_history(
     request: Request,
     common: CommonQueryParams,
-    slug: Optional[str] = None,
     conversation_id: Optional[int] = None,
 ):
     user = request.user.object
@@ -70,12 +69,14 @@ def chat_history(
 
     # Load Conversation History
     conversation = ConversationAdapters.get_conversation_by_user(
-        user=user, client_application=request.user.client_app, conversation_id=conversation_id, slug=slug
+        user=user, client_application=request.user.client_app, conversation_id=conversation_id
     )
 
     meta_log = conversation.conversation_log
 
-    meta_log.update({"conversation_id": conversation.id})
+    meta_log.update(
+        {"conversation_id": conversation.id, "slug": conversation.title if conversation.title else conversation.slug}
+    )
 
     update_telemetry_state(
         request=request,
@@ -92,13 +93,12 @@ def chat_history(
 async def clear_chat_history(
     request: Request,
     common: CommonQueryParams,
-    slug: Optional[str] = None,
     conversation_id: Optional[int] = None,
 ):
     user = request.user.object
 
     # Clear Conversation History
-    await ConversationAdapters.adelete_conversation_by_user(user, request.user.client_app, slug, conversation_id)
+    await ConversationAdapters.adelete_conversation_by_user(user, request.user.client_app, conversation_id)
 
     update_telemetry_state(
         request=request,
@@ -119,9 +119,11 @@ def chat_sessions(
     user = request.user.object
 
     # Load Conversation Sessions
-    sessions = ConversationAdapters.get_conversation_sessions(user, request.user.client_app).values_list("id", "slug")
+    sessions = ConversationAdapters.get_conversation_sessions(user, request.user.client_app).values_list(
+        "id", "slug", "title"
+    )
 
-    session_values = [{"conversation_id": session[0], "slug": session[1]} for session in sessions]
+    session_values = [{"conversation_id": session[0], "slug": session[2] or session[1]} for session in sessions]
 
     update_telemetry_state(
         request=request,
@@ -138,17 +140,13 @@ def chat_sessions(
 async def create_chat_session(
     request: Request,
     common: CommonQueryParams,
-    slug: Optional[str] = None,
 ):
     user = request.user.object
 
-    if slug:
-        slug = slug.strip()[:200]
-
     # Create new Conversation Session
-    conversation = await ConversationAdapters.acreate_conversation_session(user, request.user.client_app, slug)
+    conversation = await ConversationAdapters.acreate_conversation_session(user, request.user.client_app)
 
-    response = {"slug": slug, "conversation_id": conversation.id}
+    response = {"conversation_id": conversation.id}
 
     update_telemetry_state(
         request=request,
@@ -177,6 +175,36 @@ async def chat_options(
         **common.__dict__,
     )
     return Response(content=json.dumps(cmd_options), media_type="application/json", status_code=200)
+
+
+@api_chat.patch("/title", response_class=Response)
+@requires(["authenticated"])
+async def set_conversation_title(
+    request: Request,
+    common: CommonQueryParams,
+    title: str,
+    conversation_id: Optional[int] = None,
+) -> Response:
+    user = request.user.object
+    title = title.strip()[:200]
+
+    # Set Conversation Title
+    conversation = await ConversationAdapters.aset_conversation_title(
+        user, request.user.client_app, conversation_id, title
+    )
+
+    success = True if conversation else False
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="set_conversation_title",
+        **common.__dict__,
+    )
+
+    return Response(
+        content=json.dumps({"status": "ok", "success": success}), media_type="application/json", status_code=200
+    )
 
 
 @api_chat.get("/", response_class=Response)
