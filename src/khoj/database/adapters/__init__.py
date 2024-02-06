@@ -362,7 +362,7 @@ class ConversationAdapters:
     ):
         if conversation_id:
             conversation = Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
-        else:
+        if not conversation_id or not conversation.exists():
             conversation = Conversation.objects.filter(user=user, client=client_application)
         if conversation.exists():
             return conversation.first()

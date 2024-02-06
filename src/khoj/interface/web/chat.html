@@ -578,7 +578,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 .then(response => {
                     // Render conversation history, if any
                     conversationId = response.conversation_id;
-                    const conversationTitle = response.slug || `Conversation ${conversationId}`;
+                    const conversationTitle = response.slug || `New conversation 🌱`;
 
                     let chatBody = document.getElementById("chat-body");
                     chatBody.dataset.conversationId = conversationId;
@@ -626,7 +626,7 @@ To get started, just start typing below. You can also type / to see a list of co
                             let conversation = data[index];
                             let conversationButton = document.createElement('div');
                             let incomingConversationId = conversation["conversation_id"];
-                            const conversationTitle = conversation["slug"] || `Conversation ${incomingConversationId}`;
+                            const conversationTitle = conversation["slug"] || `New conversation 🌱`;
                             conversationButton.innerHTML = conversationTitle;
                             conversationButton.classList.add("conversation-button");
                             if (incomingConversationId == conversationId) {
@@ -1648,9 +1648,7 @@ To get started, just start typing below. You can also type / to see a list of co
             transition: background 0.3s ease-in-out;
             font-family: var(--font-family);
             border-radius: 4px;
-            /* position: absolute; */
             right: 0;
-            /* z-index: 1; */
         }
 
         .conversation-button:hover .three-dot-menu {
@@ -1667,6 +1665,7 @@ To get started, just start typing below. You can also type / to see a list of co
             border: 1px solid var(--main-text-color);
             border-radius: 5px;
             padding: 5px;
+            box-shadow: 0 0 11px #aaa;
         }
 
         div.conversation-button:hover {
