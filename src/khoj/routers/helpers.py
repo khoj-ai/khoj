@@ -34,7 +34,11 @@ from khoj.processor.conversation.utils import (
 )
 from khoj.utils import state
 from khoj.utils.config import GPT4AllProcessorModel
-from khoj.utils.helpers import ConversationCommand, log_telemetry
+from khoj.utils.helpers import (
+    ConversationCommand,
+    log_telemetry,
+    tool_descriptions_for_llm,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +109,15 @@ def update_telemetry_state(
     ]
 
 
+def construct_chat_history(conversation_history: dict, n: int = 4) -> str:
+    chat_history = ""
+    for chat in conversation_history.get("chat", [])[-n:]:
+        if chat["by"] == "khoj" and chat["intent"].get("type") == "remember":
+            chat_history += f"User: {chat['intent']['query']}\n"
+            chat_history += f"Khoj: {chat['message']}\n"
+    return chat_history
+
+
 def get_conversation_command(query: str, any_references: bool = False) -> ConversationCommand:
     if query.startswith("/notes"):
         return ConversationCommand.Notes
@@ -128,15 +141,50 @@ async def agenerate_chat_response(*args):
     return await loop.run_in_executor(executor, generate_chat_response, *args)
 
 
+async def aget_relevant_tools(query: str, conversation_history: dict):
+    """
+    Given a query, determine which of the available tools the agent should use in order to answer appropriately.
+    """
+
+    tool_options = dict()
+
+    for tool, description in tool_descriptions_for_llm.items():
+        tool_options[tool.value] = description
+
+    chat_history = construct_chat_history(conversation_history)
+
+    relevant_tools_prompt = prompts.pick_relevant_tools.format(
+        query=query,
+        tools=str(tool_options),
+        chat_history=chat_history,
+    )
+
+    response = await send_message_to_model_wrapper(relevant_tools_prompt)
+
+    try:
+        response = response.strip()
+        response = json.loads(response)
+        response = [q.strip() for q in response if q.strip()]
+        if not isinstance(response, list) or not response or len(response) == 0:
+            logger.error(f"Invalid response for determining relevant tools: {response}")
+            return tool_options
+
+        final_response = []
+        for llm_suggested_tool in response:
+            if llm_suggested_tool in tool_options.keys():
+                # Check whether the tool exists as a valid ConversationCommand
+                final_response.append(ConversationCommand(llm_suggested_tool))
+        return final_response
+    except Exception as e:
+        logger.error(f"Invalid response for determining relevant tools: {response}")
+        return [ConversationCommand.Default]
+
+
 async def generate_online_subqueries(q: str, conversation_history: dict) -> List[str]:
     """
     Generate subqueries from the given query
     """
-    chat_history = ""
-    for chat in conversation_history.get("chat", [])[-4:]:
-        if chat["by"] == "khoj" and chat["intent"].get("type") == "remember":
-            chat_history += f"User: {chat['intent']['query']}\n"
-            chat_history += f"Khoj: {chat['message']}\n"
+    chat_history = construct_chat_history(conversation_history)
 
     utc_date = datetime.utcnow().strftime("%Y-%m-%d")
     online_queries_prompt = prompts.online_search_conversation_subqueries.format(
@@ -241,14 +289,14 @@ def generate_chat_response(
     compiled_references: List[str] = [],
     online_results: Dict[str, Any] = {},
     inferred_queries: List[str] = [],
-    conversation_command: ConversationCommand = ConversationCommand.Default,
+    conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     user: KhojUser = None,
     client_application: ClientApplication = None,
     conversation_id: int = None,
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
     chat_response = None
-    logger.debug(f"Conversation Type: {conversation_command.name}")
+    logger.debug(f"Conversation Types: {conversation_commands}")
 
     metadata = {}
 
@@ -278,7 +326,7 @@ def generate_chat_response(
                 loaded_model=loaded_model,
                 conversation_log=meta_log,
                 completion_func=partial_completion,
-                conversation_command=conversation_command,
+                conversation_commands=conversation_commands,
                 model=conversation_config.chat_model,
                 max_prompt_size=conversation_config.max_prompt_size,
                 tokenizer_name=conversation_config.tokenizer,
@@ -296,7 +344,7 @@ def generate_chat_response(
                 model=chat_model,
                 api_key=api_key,
                 completion_func=partial_completion,
-                conversation_command=conversation_command,
+                conversation_commands=conversation_commands,
                 max_prompt_size=conversation_config.max_prompt_size,
                 tokenizer_name=conversation_config.tokenizer,
             )
