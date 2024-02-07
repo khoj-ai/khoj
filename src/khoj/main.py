@@ -84,7 +84,7 @@ from khoj.utils.initialization import initialization
 
 # Setup Logger
 rich_handler = RichHandler(rich_tracebacks=True)
-rich_handler.setFormatter(fmt=logging.Formatter(fmt="%(message)s", datefmt="[%X]"))
+rich_handler.setFormatter(fmt=logging.Formatter(fmt="%(message)s", datefmt="[%H:%M:%S.%f]"))
 logging.basicConfig(handlers=[rich_handler])
 
 logger = logging.getLogger("khoj")
