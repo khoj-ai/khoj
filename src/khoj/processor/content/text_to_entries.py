@@ -245,10 +245,5 @@ class TextToEntries(ABC):
         return entries_with_ids
 
     @staticmethod
-    def convert_text_maps_to_jsonl(entries: List[Entry]) -> str:
-        # Convert each entry to JSON and write to JSONL file
-        return "".join([f"{entry.to_json()}\n" for entry in entries])
-
-    @staticmethod
     def clean_field(field: str) -> str:
         return field.replace("\0", "") if not is_none_or_empty(field) else ""
