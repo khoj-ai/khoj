@@ -21,9 +21,6 @@ class OrgToEntries(TextToEntries):
     def process(
         self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None, regenerate: bool = False
     ) -> Tuple[int, int]:
-        # Extract required fields from config
-        index_heading_entries = False
-
         if not full_corpus:
             deletion_file_names = set([file for file in files if files[file] == ""])
             files_to_process = set(files) - deletion_file_names
@@ -32,11 +29,8 @@ class OrgToEntries(TextToEntries):
             deletion_file_names = None
 
         # Extract Entries from specified Org files
-        with timer("Parse entries from org files into OrgNode objects", logger):
-            entry_nodes, file_to_entries = self.extract_org_entries(files)
-
-        with timer("Convert OrgNodes into list of entries", logger):
-            current_entries = self.convert_org_nodes_to_entries(entry_nodes, file_to_entries, index_heading_entries)
+        with timer("Extract entries from specified Org files", logger):
+            current_entries = self.extract_org_entries(files)
 
         with timer("Split entries by max token size supported by model", logger):
             current_entries = self.split_entries_by_max_tokens(current_entries, max_tokens=256)
@@ -57,9 +51,18 @@ class OrgToEntries(TextToEntries):
         return num_new_embeddings, num_deleted_embeddings
 
     @staticmethod
-    def extract_org_entries(org_files: dict[str, str]):
+    def extract_org_entries(org_files: dict[str, str], index_heading_entries: bool = False):
         "Extract entries from specified Org files"
-        entries = []
+        with timer("Parse entries from org files into OrgNode objects", logger):
+            entry_nodes, file_to_entries = OrgToEntries.extract_org_nodes(org_files)
+
+        with timer("Convert OrgNodes into list of entries", logger):
+            return OrgToEntries.convert_org_nodes_to_entries(entry_nodes, file_to_entries, index_heading_entries)
+
+    @staticmethod
+    def extract_org_nodes(org_files: dict[str, str]):
+        "Extract org nodes from specified org files"
+        entry_nodes = []
         entry_to_file_map: List[Tuple[orgnode.Orgnode, str]] = []
         for org_file in org_files:
             filename = org_file
@@ -67,16 +70,17 @@ class OrgToEntries(TextToEntries):
             try:
                 org_file_entries = orgnode.makelist(file, filename)
                 entry_to_file_map += zip(org_file_entries, [org_file] * len(org_file_entries))
-                entries.extend(org_file_entries)
+                entry_nodes.extend(org_file_entries)
             except Exception as e:
                 logger.warning(f"Unable to process file: {org_file}. This file will not be indexed.")
                 logger.warning(e, exc_info=True)
 
-        return entries, dict(entry_to_file_map)
+        return entry_nodes, dict(entry_to_file_map)
 
     @staticmethod
     def process_single_org_file(org_content: str, org_file: str, entries: List, entry_to_file_map: List):
-        # Process single org file. The org parser assumes that the file is a single org file and reads it from a buffer. We'll split the raw conetnt of this file by new line to mimic the same behavior.
+        # Process single org file. The org parser assumes that the file is a single org file and reads it from a buffer.
+        # We'll split the raw content of this file by new line to mimic the same behavior.
         try:
             org_file_entries = orgnode.makelist(org_content, org_file)
             entry_to_file_map += zip(org_file_entries, [org_file] * len(org_file_entries))

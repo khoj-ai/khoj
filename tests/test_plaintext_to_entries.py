@@ -11,10 +11,10 @@ from khoj.utils.rawconfig import TextContentConfig
 def test_plaintext_file(tmp_path):
     "Convert files with no heading to jsonl."
     # Arrange
-    entry = f"""
+    raw_entry = f"""
     Hi, I am a plaintext file and I have some plaintext words.
     """
-    plaintextfile = create_file(tmp_path, entry)
+    plaintextfile = create_file(tmp_path, raw_entry)
 
     filename = plaintextfile.stem
 
@@ -22,17 +22,17 @@ def test_plaintext_file(tmp_path):
     # Extract Entries from specified plaintext files
 
     data = {
-        f"{plaintextfile}": entry,
+        f"{plaintextfile}": raw_entry,
     }
 
-    maps = PlaintextToEntries.convert_plaintext_entries_to_maps(entry_to_file_map=data)
+    entries = PlaintextToEntries.extract_plaintext_entries(entry_to_file_map=data)
 
     # Convert each entry.file to absolute path to make them JSON serializable
-    for map in maps:
-        map.file = str(Path(map.file).absolute())
+    for entry in entries:
+        entry.file = str(Path(entry.file).absolute())
 
     # Process Each Entry from All Notes Files
-    jsonl_string = PlaintextToEntries.convert_entries_to_jsonl(maps)
+    jsonl_string = PlaintextToEntries.convert_entries_to_jsonl(entries)
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
@@ -40,7 +40,7 @@ def test_plaintext_file(tmp_path):
     # Ensure raw entry with no headings do not get heading prefix prepended
     assert not jsonl_data[0]["raw"].startswith("#")
     # Ensure compiled entry has filename prepended as top level heading
-    assert jsonl_data[0]["compiled"] == f"{filename}\n{entry}"
+    assert jsonl_data[0]["compiled"] == f"{filename}\n{raw_entry}"
 
 
 def test_get_plaintext_files(tmp_path):
@@ -98,11 +98,11 @@ def test_parse_html_plaintext_file(content_config, default_user: KhojUser):
     extracted_plaintext_files = get_plaintext_files(config=config)
 
     # Act
-    maps = PlaintextToEntries.convert_plaintext_entries_to_maps(extracted_plaintext_files)
+    entries = PlaintextToEntries.extract_plaintext_entries(extracted_plaintext_files)
 
     # Assert
-    assert len(maps) == 1
-    assert "<div>" not in maps[0].raw
+    assert len(entries) == 1
+    assert "<div>" not in entries[0].raw
 
 
 # Helper Functions

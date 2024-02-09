@@ -21,12 +21,10 @@ def test_markdown_file_with_no_headings_to_jsonl(tmp_path):
 
     # Act
     # Extract Entries from specified Markdown files
-    entry_nodes, file_to_entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data)
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data)
 
     # Process Each Entry from All Notes Files
-    jsonl_string = MarkdownToEntries.convert_markdown_maps_to_jsonl(
-        MarkdownToEntries.convert_markdown_entries_to_maps(entry_nodes, file_to_entries)
-    )
+    jsonl_string = MarkdownToEntries.convert_markdown_maps_to_jsonl(entries)
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
@@ -52,12 +50,10 @@ def test_single_markdown_entry_to_jsonl(tmp_path):
 
     # Act
     # Extract Entries from specified Markdown files
-    entries, entry_to_file_map = MarkdownToEntries.extract_markdown_entries(markdown_files=data)
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data)
 
     # Process Each Entry from All Notes Files
-    jsonl_string = MarkdownToEntries.convert_markdown_maps_to_jsonl(
-        MarkdownToEntries.convert_markdown_entries_to_maps(entries, entry_to_file_map)
-    )
+    jsonl_string = MarkdownToEntries.convert_markdown_maps_to_jsonl(entries)
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
@@ -81,8 +77,7 @@ def test_multiple_markdown_entries_to_jsonl(tmp_path):
 
     # Act
     # Extract Entries from specified Markdown files
-    entry_strings, entry_to_file_map = MarkdownToEntries.extract_markdown_entries(markdown_files=data)
-    entries = MarkdownToEntries.convert_markdown_entries_to_maps(entry_strings, entry_to_file_map)
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data)
 
     # Process Each Entry from All Notes Files
     jsonl_string = MarkdownToEntries.convert_markdown_maps_to_jsonl(entries)
@@ -144,12 +139,12 @@ def test_extract_entries_with_different_level_headings(tmp_path):
 
     # Act
     # Extract Entries from specified Markdown files
-    entries, _ = MarkdownToEntries.extract_markdown_entries(markdown_files=data)
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data)
 
     # Assert
     assert len(entries) == 2
-    assert entries[0] == "# Heading 1"
-    assert entries[1] == "## Heading 2"
+    assert entries[0].raw == "# Heading 1"
+    assert entries[1].raw == "## Heading 2"
 
 
 # Helper Functions

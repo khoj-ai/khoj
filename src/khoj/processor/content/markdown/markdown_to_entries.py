@@ -32,10 +32,8 @@ class MarkdownToEntries(TextToEntries):
             deletion_file_names = None
 
         # Extract Entries from specified Markdown files
-        with timer("Parse entries from Markdown files into dictionaries", logger):
-            current_entries = MarkdownToEntries.convert_markdown_entries_to_maps(
-                *MarkdownToEntries.extract_markdown_entries(files)
-            )
+        with timer("Extract entries from specified Markdown files", logger):
+            current_entries = MarkdownToEntries.extract_markdown_entries(files)
 
         # Split entries by max tokens supported by model
         with timer("Split entries by max token size supported by model", logger):
@@ -57,13 +55,10 @@ class MarkdownToEntries(TextToEntries):
         return num_new_embeddings, num_deleted_embeddings
 
     @staticmethod
-    def extract_markdown_entries(markdown_files):
+    def extract_markdown_entries(markdown_files) -> List[Entry]:
         "Extract entries by heading from specified Markdown files"
-
-        # Regex to extract Markdown Entries by Heading
-
-        entries = []
-        entry_to_file_map = []
+        entries: List[str] = []
+        entry_to_file_map: List[Tuple[str, Path]] = []
         for markdown_file in markdown_files:
             try:
                 markdown_content = markdown_files[markdown_file]
@@ -71,18 +66,19 @@ class MarkdownToEntries(TextToEntries):
                     markdown_content, markdown_file, entries, entry_to_file_map
                 )
             except Exception as e:
-                logger.warning(f"Unable to process file: {markdown_file}. This file will not be indexed.")
-                logger.warning(e, exc_info=True)
+                logger.warning(
+                    f"Unable to process file: {markdown_file}. This file will not be indexed.\n{e}", exc_info=True
+                )
 
-        return entries, dict(entry_to_file_map)
+        return MarkdownToEntries.convert_markdown_entries_to_maps(entries, dict(entry_to_file_map))
 
     @staticmethod
     def process_single_markdown_file(
-        markdown_content: str, markdown_file: Path, entries: List, entry_to_file_map: List
+        markdown_content: str, markdown_file: Path, entries: List[str], entry_to_file_map: List[Tuple[str, Path]]
     ):
         markdown_heading_regex = r"^#"
 
-        markdown_entries_per_file = []
+        markdown_entries_per_file: List[str] = []
         any_headings = re.search(markdown_heading_regex, markdown_content, flags=re.MULTILINE)
         for entry in re.split(markdown_heading_regex, markdown_content, flags=re.MULTILINE):
             # Add heading level as the regex split removed it from entries with headings
@@ -98,7 +94,7 @@ class MarkdownToEntries(TextToEntries):
     @staticmethod
     def convert_markdown_entries_to_maps(parsed_entries: List[str], entry_to_file_map) -> List[Entry]:
         "Convert each Markdown entries into a dictionary"
-        entries = []
+        entries: List[Entry] = []
         for parsed_entry in parsed_entries:
             raw_filename = entry_to_file_map[parsed_entry]
 
