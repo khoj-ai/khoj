@@ -123,8 +123,3 @@ class MarkdownToEntries(TextToEntries):
         logger.debug(f"Converted {len(parsed_entries)} markdown entries to dictionaries")
 
         return entries
-
-    @staticmethod
-    def convert_markdown_maps_to_jsonl(entries: List[Entry]):
-        "Convert each Markdown entry to JSON and collate as JSONL"
-        return "".join([f"{entry.to_json()}\n" for entry in entries])

@@ -227,8 +227,3 @@ class TextToEntries(ABC):
             entries_with_ids = existing_entries_sorted + new_entries_sorted
 
         return entries_with_ids
-
-    @staticmethod
-    def convert_text_maps_to_jsonl(entries: List[Entry]) -> str:
-        # Convert each entry to JSON and write to JSONL file
-        return "".join([f"{entry.to_json()}\n" for entry in entries])

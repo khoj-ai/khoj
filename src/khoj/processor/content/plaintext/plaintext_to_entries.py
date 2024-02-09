@@ -87,8 +87,3 @@ class PlaintextToEntries(TextToEntries):
                 )
             )
         return entries
-
-    @staticmethod
-    def convert_entries_to_jsonl(entries: List[Entry]):
-        "Convert each entry to JSON and collate as JSONL"
-        return "".join([f"{entry.to_json()}\n" for entry in entries])

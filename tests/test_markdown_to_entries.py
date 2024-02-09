@@ -23,16 +23,12 @@ def test_markdown_file_with_no_headings_to_jsonl(tmp_path):
     # Extract Entries from specified Markdown files
     entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data)
 
-    # Process Each Entry from All Notes Files
-    jsonl_string = MarkdownToEntries.convert_markdown_maps_to_jsonl(entries)
-    jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
-
     # Assert
-    assert len(jsonl_data) == 1
+    assert len(entries) == 1
     # Ensure raw entry with no headings do not get heading prefix prepended
-    assert not jsonl_data[0]["raw"].startswith("#")
+    assert not entries[0].raw.startswith("#")
     # Ensure compiled entry has filename prepended as top level heading
-    assert jsonl_data[0]["compiled"].startswith(expected_heading)
+    assert entries[0].compiled.startswith(expected_heading)
 
 
 def test_single_markdown_entry_to_jsonl(tmp_path):
@@ -50,12 +46,8 @@ def test_single_markdown_entry_to_jsonl(tmp_path):
     # Extract Entries from specified Markdown files
     entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data)
 
-    # Process Each Entry from All Notes Files
-    jsonl_string = MarkdownToEntries.convert_markdown_maps_to_jsonl(entries)
-    jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
-
     # Assert
-    assert len(jsonl_data) == 1
+    assert len(entries) == 1
 
 
 def test_multiple_markdown_entries_to_jsonl(tmp_path):
@@ -77,12 +69,8 @@ def test_multiple_markdown_entries_to_jsonl(tmp_path):
     # Extract Entries from specified Markdown files
     entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data)
 
-    # Process Each Entry from All Notes Files
-    jsonl_string = MarkdownToEntries.convert_markdown_maps_to_jsonl(entries)
-    jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
-
     # Assert
-    assert len(jsonl_data) == 2
+    assert len(entries) == 2
     # Ensure entry compiled strings include the markdown files they originate from
     assert all([tmp_path.stem in entry.compiled for entry in entries])
 
