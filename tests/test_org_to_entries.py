@@ -26,18 +26,15 @@ def test_configure_heading_entry_to_jsonl(tmp_path):
     for index_heading_entries in [True, False]:
         # Act
         # Extract entries into jsonl from specified Org files
-        jsonl_string = OrgToEntries.convert_org_entries_to_jsonl(
-            OrgToEntries.extract_org_entries(org_files=data, index_heading_entries=index_heading_entries)
-        )
-        jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
+        entries = OrgToEntries.extract_org_entries(org_files=data, index_heading_entries=index_heading_entries)
 
         # Assert
         if index_heading_entries:
             # Entry with empty body indexed when index_heading_entries set to True
-            assert len(jsonl_data) == 1
+            assert len(entries) == 1
         else:
             # Entry with empty body ignored when index_heading_entries set to False
-            assert is_none_or_empty(jsonl_data)
+            assert is_none_or_empty(entries)
 
 
 def test_entry_split_when_exceeds_max_words():
@@ -58,15 +55,12 @@ def test_entry_split_when_exceeds_max_words():
     entries = OrgToEntries.extract_org_entries(org_files=data)
 
     # Split each entry from specified Org files by max words
-    jsonl_string = OrgToEntries.convert_org_entries_to_jsonl(
-        TextToEntries.split_entries_by_max_tokens(entries, max_tokens=4)
-    )
-    jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
+    entries = TextToEntries.split_entries_by_max_tokens(entries, max_tokens=4)
 
     # Assert
-    assert len(jsonl_data) == 2
+    assert len(entries) == 2
     # Ensure compiled entries split by max_words start with entry heading (for search context)
-    assert all([entry["compiled"].startswith(expected_heading) for entry in jsonl_data])
+    assert all([entry.compiled.startswith(expected_heading) for entry in entries])
 
 
 def test_entry_split_drops_large_words():
@@ -103,11 +97,10 @@ def test_entry_with_body_to_jsonl(tmp_path):
 
     # Act
     # Extract Entries from specified Org files
-    jsonl_string = OrgToEntries.convert_org_entries_to_jsonl(OrgToEntries.extract_org_entries(org_files=data))
-    jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
+    entries = OrgToEntries.extract_org_entries(org_files=data)
 
     # Assert
-    assert len(jsonl_data) == 1
+    assert len(entries) == 1
 
 
 def test_file_with_entry_after_intro_text_to_jsonl(tmp_path):
@@ -127,12 +120,8 @@ Intro text
     # Extract Entries from specified Org files
     entries = OrgToEntries.extract_org_entries(org_files=data)
 
-    # Process Each Entry from All Notes Files
-    jsonl_string = OrgToEntries.convert_org_entries_to_jsonl(entries)
-    jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
-
     # Assert
-    assert len(jsonl_data) == 2
+    assert len(entries) == 2
 
 
 def test_file_with_no_headings_to_jsonl(tmp_path):
@@ -150,12 +139,8 @@ def test_file_with_no_headings_to_jsonl(tmp_path):
     # Extract Entries from specified Org files
     entries = OrgToEntries.extract_org_entries(org_files=data)
 
-    # Process Each Entry from All Notes Files
-    jsonl_string = OrgToEntries.convert_org_entries_to_jsonl(entries)
-    jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
-
     # Assert
-    assert len(jsonl_data) == 1
+    assert len(entries) == 1
 
 
 def test_get_org_files(tmp_path):

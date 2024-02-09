@@ -1,4 +1,3 @@
-import json
 import os
 from pathlib import Path
 
@@ -31,16 +30,12 @@ def test_plaintext_file(tmp_path):
     for entry in entries:
         entry.file = str(Path(entry.file).absolute())
 
-    # Process Each Entry from All Notes Files
-    jsonl_string = PlaintextToEntries.convert_entries_to_jsonl(entries)
-    jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
-
     # Assert
-    assert len(jsonl_data) == 1
+    assert len(entries) == 1
     # Ensure raw entry with no headings do not get heading prefix prepended
-    assert not jsonl_data[0]["raw"].startswith("#")
+    assert not entries[0].raw.startswith("#")
     # Ensure compiled entry has filename prepended as top level heading
-    assert jsonl_data[0]["compiled"] == f"{filename}\n{raw_entry}"
+    assert entries[0].compiled == f"{filename}\n{raw_entry}"
 
 
 def test_get_plaintext_files(tmp_path):

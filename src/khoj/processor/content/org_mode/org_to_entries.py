@@ -146,8 +146,3 @@ class OrgToEntries(TextToEntries):
                 )
 
         return entries
-
-    @staticmethod
-    def convert_org_entries_to_jsonl(entries: Iterable[Entry]) -> str:
-        "Convert each Org-Mode entry to JSON and collate as JSONL"
-        return "".join([f"{entry_dict.to_json()}\n" for entry_dict in entries])

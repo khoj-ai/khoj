@@ -1,4 +1,3 @@
-import json
 import os
 
 from khoj.processor.content.pdf.pdf_to_entries import PdfToEntries
@@ -17,12 +16,8 @@ def test_single_page_pdf_to_jsonl():
     data = {"tests/data/pdf/singlepage.pdf": pdf_bytes}
     entries = PdfToEntries.extract_pdf_entries(pdf_files=data)
 
-    # Process Each Entry from All Pdf Files
-    jsonl_string = PdfToEntries.convert_pdf_maps_to_jsonl(entries)
-    jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
-
     # Assert
-    assert len(jsonl_data) == 1
+    assert len(entries) == 1
 
 
 def test_multi_page_pdf_to_jsonl():
@@ -35,12 +30,8 @@ def test_multi_page_pdf_to_jsonl():
     data = {"tests/data/pdf/multipage.pdf": pdf_bytes}
     entries = PdfToEntries.extract_pdf_entries(pdf_files=data)
 
-    # Process Each Entry from All Pdf Files
-    jsonl_string = PdfToEntries.convert_pdf_maps_to_jsonl(entries)
-    jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
-
     # Assert
-    assert len(jsonl_data) == 6
+    assert len(entries) == 6
 
 
 def test_ocr_page_pdf_to_jsonl():
