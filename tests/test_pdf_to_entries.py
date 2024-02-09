@@ -15,12 +15,10 @@ def test_single_page_pdf_to_jsonl():
         pdf_bytes = f.read()
 
     data = {"tests/data/pdf/singlepage.pdf": pdf_bytes}
-    entries, entry_to_file_map = PdfToEntries.extract_pdf_entries(pdf_files=data)
+    entries = PdfToEntries.extract_pdf_entries(pdf_files=data)
 
     # Process Each Entry from All Pdf Files
-    jsonl_string = PdfToEntries.convert_pdf_maps_to_jsonl(
-        PdfToEntries.convert_pdf_entries_to_maps(entries, entry_to_file_map)
-    )
+    jsonl_string = PdfToEntries.convert_pdf_maps_to_jsonl(entries)
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
@@ -35,12 +33,10 @@ def test_multi_page_pdf_to_jsonl():
         pdf_bytes = f.read()
 
     data = {"tests/data/pdf/multipage.pdf": pdf_bytes}
-    entries, entry_to_file_map = PdfToEntries.extract_pdf_entries(pdf_files=data)
+    entries = PdfToEntries.extract_pdf_entries(pdf_files=data)
 
     # Process Each Entry from All Pdf Files
-    jsonl_string = PdfToEntries.convert_pdf_maps_to_jsonl(
-        PdfToEntries.convert_pdf_entries_to_maps(entries, entry_to_file_map)
-    )
+    jsonl_string = PdfToEntries.convert_pdf_maps_to_jsonl(entries)
     jsonl_data = [json.loads(json_string) for json_string in jsonl_string.splitlines()]
 
     # Assert
@@ -55,10 +51,7 @@ def test_ocr_page_pdf_to_jsonl():
         pdf_bytes = f.read()
 
     data = {"tests/data/pdf/ocr_samples.pdf": pdf_bytes}
-    entries, entry_to_file_map = PdfToEntries.extract_pdf_entries(pdf_files=data)
-
-    # Process Each Entry from All Pdf Files
-    entries = PdfToEntries.convert_pdf_entries_to_maps(entries, entry_to_file_map)
+    entries = PdfToEntries.extract_pdf_entries(pdf_files=data)
 
     assert len(entries) == 1
     assert "playing on a strip of marsh" in entries[0].raw

@@ -32,8 +32,8 @@ class PdfToEntries(TextToEntries):
             deletion_file_names = None
 
         # Extract Entries from specified Pdf files
-        with timer("Parse entries from PDF files into dictionaries", logger):
-            current_entries = PdfToEntries.convert_pdf_entries_to_maps(*PdfToEntries.extract_pdf_entries(files))
+        with timer("Extract entries from specified PDF files", logger):
+            current_entries = PdfToEntries.extract_pdf_entries(files)
 
         # Split entries by max tokens supported by model
         with timer("Split entries by max token size supported by model", logger):
@@ -55,11 +55,11 @@ class PdfToEntries(TextToEntries):
         return num_new_embeddings, num_deleted_embeddings
 
     @staticmethod
-    def extract_pdf_entries(pdf_files):
+    def extract_pdf_entries(pdf_files) -> List[Entry]:
         """Extract entries by page from specified PDF files"""
 
-        entries = []
-        entry_to_location_map = []
+        entries: List[str] = []
+        entry_to_location_map: List[Tuple[str, str]] = []
         for pdf_file in pdf_files:
             try:
                 # Write the PDF file to a temporary file, as it is stored in byte format in the pdf_file object and the PDF Loader expects a file path
@@ -83,7 +83,7 @@ class PdfToEntries(TextToEntries):
                 if os.path.exists(f"{tmp_file}"):
                     os.remove(f"{tmp_file}")
 
-        return entries, dict(entry_to_location_map)
+        return PdfToEntries.convert_pdf_entries_to_maps(entries, dict(entry_to_location_map))
 
     @staticmethod
     def convert_pdf_entries_to_maps(parsed_entries: List[str], entry_to_file_map) -> List[Entry]:
