@@ -31,13 +31,14 @@ class MarkdownToEntries(TextToEntries):
         else:
             deletion_file_names = None
 
+        max_tokens = 256
         # Extract Entries from specified Markdown files
         with timer("Extract entries from specified Markdown files", logger):
-            current_entries = MarkdownToEntries.extract_markdown_entries(files)
+            current_entries = MarkdownToEntries.extract_markdown_entries(files, max_tokens)
 
         # Split entries by max tokens supported by model
         with timer("Split entries by max token size supported by model", logger):
-            current_entries = self.split_entries_by_max_tokens(current_entries, max_tokens=256)
+            current_entries = self.split_entries_by_max_tokens(current_entries, max_tokens)
 
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
@@ -55,7 +56,7 @@ class MarkdownToEntries(TextToEntries):
         return num_new_embeddings, num_deleted_embeddings
 
     @staticmethod
-    def extract_markdown_entries(markdown_files) -> List[Entry]:
+    def extract_markdown_entries(markdown_files, max_tokens=256) -> List[Entry]:
         "Extract entries by heading from specified Markdown files"
         entries: List[str] = []
         entry_to_file_map: List[Tuple[str, Path]] = []
@@ -63,7 +64,7 @@ class MarkdownToEntries(TextToEntries):
             try:
                 markdown_content = markdown_files[markdown_file]
                 entries, entry_to_file_map = MarkdownToEntries.process_single_markdown_file(
-                    markdown_content, markdown_file, entries, entry_to_file_map
+                    markdown_content, markdown_file, entries, entry_to_file_map, max_tokens
                 )
             except Exception as e:
                 logger.warning(
@@ -74,8 +75,17 @@ class MarkdownToEntries(TextToEntries):
 
     @staticmethod
     def process_single_markdown_file(
-        markdown_content: str, markdown_file: Path, entries: List[str], entry_to_file_map: List[Tuple[str, Path]]
+        markdown_content: str,
+        markdown_file: Path,
+        entries: List[str],
+        entry_to_file_map: List[Tuple[str, Path]],
+        max_tokens=256,
     ):
+        if len(TextToEntries.tokenizer(markdown_content)) <= max_tokens:
+            entry_to_file_map += [(markdown_content, markdown_file)]
+            entries.extend([markdown_content])
+            return entries, entry_to_file_map
+
         headers_to_split_on = [("#", "1"), ("##", "2"), ("###", "3"), ("####", "4"), ("#####", "5"), ("######", "6")]
         reversed_headers_to_split_on = list(reversed(headers_to_split_on))
         markdown_entries_per_file: List[str] = []
