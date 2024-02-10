@@ -20,7 +20,7 @@ def test_extract_markdown_with_no_headings(tmp_path):
 
     # Act
     # Extract Entries from specified Markdown files
-    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data)
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=3)
 
     # Assert
     assert len(entries) == 1
@@ -45,7 +45,7 @@ def test_extract_single_markdown_entry(tmp_path):
 
     # Act
     # Extract Entries from specified Markdown files
-    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data)
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=3)
 
     # Assert
     assert len(entries) == 1
@@ -68,7 +68,7 @@ def test_extract_multiple_markdown_entries(tmp_path):
 
     # Act
     # Extract Entries from specified Markdown files
-    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data)
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=3)
 
     # Assert
     assert len(entries) == 2
@@ -127,7 +127,7 @@ def test_extract_entries_with_different_level_headings(tmp_path):
 
     # Act
     # Extract Entries from specified Markdown files
-    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data)
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=3)
 
     # Assert
     assert len(entries) == 3
@@ -159,6 +159,28 @@ body line 2
     assert entries[0].raw == "Text before headings"
     assert entries[1].raw == "# Heading 1\nbody line 1"
     assert entries[2].raw == "# Heading 1\n## Heading 2\nbody line 2", "Ensure raw entry includes heading ancestory"
+
+
+def test_parse_markdown_file_into_single_entry_if_small(tmp_path):
+    "Parse markdown file into single entry if it fits within the token limits."
+    # Arrange
+    entry = f"""
+# Heading 1
+body line 1
+## Subheading 1.1
+body line 1.1
+"""
+    data = {
+        f"{tmp_path}": entry,
+    }
+
+    # Act
+    # Extract Entries from specified Markdown files
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=12)
+
+    # Assert
+    assert len(entries) == 1
+    assert entries[0].raw == entry
 
 
 # Helper Functions
