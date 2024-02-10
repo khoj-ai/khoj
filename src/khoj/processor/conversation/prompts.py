@@ -435,12 +435,12 @@ You are using the **{model}** model on the **{device}**.
 # --
 user_location = PromptTemplate.from_template(
     """
-Location: {location}\n
+User's Location: {location}
 """.strip()
 )
 
 user_name = PromptTemplate.from_template(
     """
-Name: {name}
+User's Name: {name}
 """.strip()
 )
