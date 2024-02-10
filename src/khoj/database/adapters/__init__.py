@@ -173,6 +173,24 @@ async def create_user_by_google_token(token: dict) -> KhojUser:
     return user
 
 
+def set_user_name(user: KhojUser, first_name: str, last_name: str) -> KhojUser:
+    user.first_name = first_name
+    user.last_name = last_name
+    user.save()
+    return user
+
+
+def get_user_name(user: KhojUser):
+    full_name = user.get_full_name()
+    if not is_none_or_empty(full_name):
+        return full_name
+    google_profile: GoogleUser = GoogleUser.objects.filter(user=user).first()
+    if google_profile:
+        return google_profile.given_name
+
+    return None
+
+
 def get_user_subscription(email: str) -> Optional[Subscription]:
     return Subscription.objects.filter(user__email=email).first()
 
@@ -292,13 +310,9 @@ def delete_user_requests(window: timedelta = timedelta(days=1)):
 
 
 async def aget_user_name(user: KhojUser):
-    if user.first_name:
-        if user.last_name:
-            return f"{user.first_name} {user.last_name}".strip()
-        return user.first_name
-    if user.last_name:
-        return user.last_name
-
+    full_name = user.get_full_name()
+    if not is_none_or_empty(full_name):
+        return full_name
     google_profile: GoogleUser = await GoogleUser.objects.filter(user=user).afirst()
     if google_profile:
         return google_profile.given_name

@@ -290,6 +290,38 @@ async def get_indexed_data_size(request: Request, common: CommonQueryParams):
     )
 
 
+@api_config.post("/user/name", status_code=200)
+@requires(["authenticated"])
+def set_user_name(
+    request: Request,
+    name: str,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+
+    split_name = name.split(" ")
+
+    if len(split_name) > 2:
+        raise HTTPException(status_code=400, detail="Name must be in the format: Firstname Lastname")
+
+    if len(split_name) == 1:
+        first_name = split_name[0]
+        last_name = ""
+    else:
+        first_name, last_name = name.split(" ")
+
+    adapters.set_user_name(user, first_name, last_name)
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="set_user_name",
+        client=client,
+    )
+
+    return {"status": "ok"}
+
+
 @api_config.get("/types", response_model=List[str])
 @requires(["authenticated"])
 def get_config_types(
