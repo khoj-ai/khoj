@@ -37,8 +37,8 @@ def test_configure_heading_entry_to_jsonl(tmp_path):
             assert is_none_or_empty(entries)
 
 
-def test_entry_split_when_exceeds_max_words():
-    "Ensure entries with compiled words exceeding max_words are split."
+def test_entry_split_when_exceeds_max_tokens():
+    "Ensure entries with compiled words exceeding max_tokens are split."
     # Arrange
     tmp_path = "/tmp/test.org"
     entry = f"""*** Heading
@@ -81,7 +81,7 @@ def test_entry_split_drops_large_words():
     assert len(processed_entry.compiled.split()) == len(entry_text.split()) - 1
 
 
-def test_entry_with_body_to_jsonl(tmp_path):
+def test_entry_with_body_to_entry(tmp_path):
     "Ensure entries with valid body text are loaded."
     # Arrange
     entry = f"""*** Heading
@@ -97,13 +97,13 @@ def test_entry_with_body_to_jsonl(tmp_path):
 
     # Act
     # Extract Entries from specified Org files
-    entries = OrgToEntries.extract_org_entries(org_files=data)
+    entries = OrgToEntries.extract_org_entries(org_files=data, max_tokens=3)
 
     # Assert
     assert len(entries) == 1
 
 
-def test_file_with_entry_after_intro_text_to_jsonl(tmp_path):
+def test_file_with_entry_after_intro_text_to_entry(tmp_path):
     "Ensure intro text before any headings is indexed."
     # Arrange
     entry = f"""
@@ -188,7 +188,8 @@ def test_extract_entries_with_different_level_headings(tmp_path):
     # Arrange
     entry = f"""
 * Heading 1
-** Heading 2
+** Sub-Heading 1.1
+* Heading 2
 """
     data = {
         f"{tmp_path}": entry,
@@ -199,9 +200,10 @@ def test_extract_entries_with_different_level_headings(tmp_path):
     entries = OrgToEntries.extract_org_entries(org_files=data, index_heading_entries=True)
 
     # Assert
-    assert len(entries) == 2
+    assert len(entries) == 3
     assert f"{entries[0].raw}".startswith("* Heading 1")
-    assert f"{entries[1].raw}".startswith("** Heading 2")
+    assert f"{entries[1].raw}".startswith("** Sub-Heading 1.1")
+    assert f"{entries[2].raw}".startswith("* Heading 2")
 
 
 # Helper Functions
