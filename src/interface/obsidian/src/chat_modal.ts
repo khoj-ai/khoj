@@ -1,6 +1,5 @@
 import { App, MarkdownRenderer, Modal, request, requestUrl, setIcon } from 'obsidian';
 import { KhojSetting } from 'src/settings';
-import fetch from "node-fetch";
 
 export interface ChatJsonResult {
     image?: string;
@@ -43,10 +42,6 @@ export class KhojChatModal extends Modal {
         // Create area for chat logs
         let chatBodyEl = contentEl.createDiv({ attr: { id: "khoj-chat-body", class: "khoj-chat-body" } });
 
-        // Get chat history from Khoj backend
-        let getChatHistorySucessfully = await this.getChatHistory(chatBodyEl);
-        let placeholderText = getChatHistorySucessfully ? "Message" : "Configure Khoj to enable chat";
-
         // Add chat input field
         let inputRow = contentEl.createDiv("khoj-input-row");
         let clearChat = inputRow.createEl("button", {
@@ -62,9 +57,7 @@ export class KhojChatModal extends Modal {
             attr: {
                 id: "khoj-chat-input",
                 autofocus: "autofocus",
-                placeholder: placeholderText,
                 class: "khoj-chat-input option",
-                disabled: !getChatHistorySucessfully ? "disabled" : null
             },
         })
         chatInput.addEventListener('input', (_) => { this.onChatInput() });
@@ -94,8 +87,14 @@ export class KhojChatModal extends Modal {
         let sendImg = <SVGElement>send.getElementsByClassName("lucide-arrow-up-circle")[0]
         sendImg.addEventListener('click', async (_) => { await this.chat() });
 
+        // Get chat history from Khoj backend and set chat input state
+        let getChatHistorySucessfully = await this.getChatHistory(chatBodyEl);
+        let placeholderText = getChatHistorySucessfully ? "Message" : "Configure Khoj to enable chat";
+        chatInput.placeholder = placeholderText;
+        chatInput.disabled = !getChatHistorySucessfully;
+
         // Scroll to bottom of modal, till the send message input box
-        this.modalEl.scrollTop = this.modalEl.scrollHeight;
+        this.scrollChatToBottom();
         chatInput.focus();
     }
 
@@ -207,7 +206,7 @@ export class KhojChatModal extends Modal {
         chatMessageEl.style.userSelect = "text";
 
         // Scroll to bottom after inserting chat messages
-        this.modalEl.scrollTop = this.modalEl.scrollHeight;
+        this.scrollChatToBottom();
 
         return chatMessageEl
     }
@@ -230,7 +229,7 @@ export class KhojChatModal extends Modal {
         })
 
         // Scroll to bottom after inserting chat messages
-        this.modalEl.scrollTop = this.modalEl.scrollHeight;
+        this.scrollChatToBottom();
 
         return chat_message_el
     }
@@ -241,7 +240,7 @@ export class KhojChatModal extends Modal {
         // @ts-ignore
         await MarkdownRenderer.renderMarkdown(this.result, htmlElement, '', null);
         // Scroll to bottom of modal, till the send message input box
-        this.modalEl.scrollTop = this.modalEl.scrollHeight;
+        this.scrollChatToBottom();
     }
 
     formatDate(date: Date): string {
@@ -254,10 +253,13 @@ export class KhojChatModal extends Modal {
     async getChatHistory(chatBodyEl: Element): Promise<boolean> {
         // Get chat history from Khoj backend
         let chatUrl = `${this.setting.khojUrl}/api/chat/history?client=obsidian`;
-        let headers = { "Authorization": `Bearer ${this.setting.khojApiKey}` };
 
         try {
-            let response = await fetch(chatUrl, { method: "GET", headers: headers });
+            let response = await fetch(chatUrl, {
+                method: "GET",
+                headers: { "Authorization": `Bearer ${this.setting.khojApiKey}` },
+            });
+
             let responseJson: any = await response.json();
 
             if (responseJson.detail) {
@@ -280,6 +282,68 @@ export class KhojChatModal extends Modal {
         return true;
     }
 
+    async readChatStream(response: Response, responseElement: HTMLDivElement): Promise<void> {
+        // Exit if response body is empty
+        if (response.body == null) return;
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+            const { value, done } = await reader.read();
+
+            // Break if the stream is done
+            if (done) break;
+
+            let responseText = decoder.decode(value);
+            if (responseText.includes("### compiled references:")) {
+                // Render any references used to generate the response
+                const [additionalResponse, rawReference] = responseText.split("### compiled references:", 2);
+                await this.renderIncrementalMessage(responseElement, additionalResponse);
+
+                const rawReferenceAsJson = JSON.parse(rawReference);
+                let references = responseElement.createDiv();
+                references.classList.add("references");
+
+                let referenceExpandButton = references.createEl('button');
+                referenceExpandButton.classList.add("reference-expand-button");
+
+                let referenceSection = references.createDiv();
+                referenceSection.classList.add("reference-section");
+                referenceSection.classList.add("collapsed");
+
+                let numReferences = 0;
+
+                // If rawReferenceAsJson is a list, then count the length
+                if (Array.isArray(rawReferenceAsJson)) {
+                    numReferences = rawReferenceAsJson.length;
+
+                    rawReferenceAsJson.forEach((reference, index) => {
+                        this.generateReference(referenceSection, reference, index);
+                    });
+                }
+                references.appendChild(referenceExpandButton);
+
+                referenceExpandButton.addEventListener('click', function() {
+                    if (referenceSection.classList.contains("collapsed")) {
+                        referenceSection.classList.remove("collapsed");
+                        referenceSection.classList.add("expanded");
+                    } else {
+                        referenceSection.classList.add("collapsed");
+                        referenceSection.classList.remove("expanded");
+                    }
+                });
+
+                let expandButtonText = numReferences == 1 ? "1 reference" : `${numReferences} references`;
+                referenceExpandButton.innerHTML = expandButtonText;
+                references.appendChild(referenceSection);
+            } else {
+                // Render incremental chat response
+                await this.renderIncrementalMessage(responseElement, responseText);
+            }
+        }
+    }
+
     async getChatResponse(query: string | undefined | null): Promise<void> {
         // Exit if query is empty
         if (!query || query === "") return;
@@ -300,21 +364,22 @@ export class KhojChatModal extends Modal {
         let response = await fetch(chatUrl, {
             method: "GET",
             headers: {
-                "Access-Control-Allow-Origin": "*",
                 "Content-Type": "text/event-stream",
                 "Authorization": `Bearer ${this.setting.khojApiKey}`,
             },
         })
 
         try {
-            if (response.body == null) {
+            if (response.body === null) {
                 throw new Error("Response body is null");
             }
+
             // Clear thinking status message
             if (responseElement.innerHTML === "🤔") {
                 responseElement.innerHTML = "";
             }
 
+            // Reset collated chat result to empty string
             this.result = "";
             responseElement.innerHTML = "";
             if (response.headers.get("content-type") == "application/json") {
@@ -328,60 +393,17 @@ export class KhojChatModal extends Modal {
                     }
                 } catch (error) {
                     // If the chunk is not a JSON object, just display it as is
-                    responseText = response.body.read().toString()
+                    responseText = await response.text();
                 } finally {
                     await this.renderIncrementalMessage(responseElement, responseText);
                 }
             }
 
-            for await (const chunk of response.body) {
-                let responseText = chunk.toString();
-                if (responseText.includes("### compiled references:")) {
-                    const [additionalResponse, rawReference] = responseText.split("### compiled references:", 2);
-                    await this.renderIncrementalMessage(responseElement, additionalResponse);
-
-                    const rawReferenceAsJson = JSON.parse(rawReference);
-                    let references = responseElement.createDiv();
-                    references.classList.add("references");
-
-                    let referenceExpandButton = references.createEl('button');
-                    referenceExpandButton.classList.add("reference-expand-button");
-
-                    let referenceSection = references.createDiv();
-                    referenceSection.classList.add("reference-section");
-                    referenceSection.classList.add("collapsed");
-
-                    let numReferences = 0;
-
-                    // If rawReferenceAsJson is a list, then count the length
-                    if (Array.isArray(rawReferenceAsJson)) {
-                        numReferences = rawReferenceAsJson.length;
-
-                        rawReferenceAsJson.forEach((reference, index) => {
-                            this.generateReference(referenceSection, reference, index);
-                        });
-                    }
-                    references.appendChild(referenceExpandButton);
-
-                    referenceExpandButton.addEventListener('click', function() {
-                        if (referenceSection.classList.contains("collapsed")) {
-                            referenceSection.classList.remove("collapsed");
-                            referenceSection.classList.add("expanded");
-                        } else {
-                            referenceSection.classList.add("collapsed");
-                            referenceSection.classList.remove("expanded");
-                        }
-                    });
-
-                    let expandButtonText = numReferences == 1 ? "1 reference" : `${numReferences} references`;
-                    referenceExpandButton.innerHTML = expandButtonText;
-                    references.appendChild(referenceSection);
-                } else {
-                    await this.renderIncrementalMessage(responseElement, responseText);
-                }
-            }
+            // Stream and render chat response
+            await this.readChatStream(response, responseElement);
         } catch (err) {
-            let errorMsg = "Sorry, unable to get response from Khoj backend ❤️‍🩹. Contact developer for help at team@khoj.dev or [in Discord](https://discord.gg/BDgyabRM6e)";
+            console.log(`Khoj chat response failed with\n${err}`);
+            let errorMsg = "Sorry, unable to get response from Khoj backend ❤️‍🩹. Retry or contact developers for help at <a href=mailto:'team@khoj.dev'>team@khoj.dev</a> or <a href='https://discord.gg/BDgyabRM6e'>on Discord</a>";
             responseElement.innerHTML = errorMsg
         }
     }
@@ -402,7 +424,7 @@ export class KhojChatModal extends Modal {
         let chatBody = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
 
         let response = await request({
-            url: `${this.setting.khojUrl}/api/chat/history?client=web`,
+            url: `${this.setting.khojUrl}/api/chat/history?client=obsidian`,
             method: "DELETE",
             headers: { "Authorization": `Bearer ${this.setting.khojApiKey}` },
         })
@@ -559,6 +581,11 @@ export class KhojChatModal extends Modal {
         const scrollHeight = chatInput.scrollHeight + 8;  // +8 accounts for padding
         chatInput.style.height = Math.min(scrollHeight, 200) + 'px';
         chatInput.scrollTop = scrollTop;
-        this.modalEl.scrollTop = this.modalEl.scrollHeight;
+        this.scrollChatToBottom();
+    }
+
+    scrollChatToBottom() {
+        let sendButton = <HTMLButtonElement>this.modalEl.getElementsByClassName("khoj-chat-send")[0];
+        sendButton.scrollIntoView({ behavior: "auto", block: "center" });
     }
 }

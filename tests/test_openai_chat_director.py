@@ -278,7 +278,7 @@ def test_answer_not_known_using_notes_command(chat_client_no_background, default
 @pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering time aware questions yet")
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-@freeze_time("2023-04-01")
+@freeze_time("2023-04-01", ignore=["transformers"])
 def test_answer_requires_current_date_awareness(chat_client):
     "Chat actor should be able to answer questions relative to current date using provided notes"
     # Act
@@ -296,11 +296,10 @@ def test_answer_requires_current_date_awareness(chat_client):
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-@freeze_time("2023-04-01")
+@freeze_time("2023-04-01", ignore=["transformers"])
 def test_answer_requires_date_aware_aggregation_across_provided_notes(chat_client):
     "Chat director should be able to answer questions that require date aware aggregation across multiple notes"
     # Act
-
     response = chat_client.get(f'/api/chat?q="How much did I spend on dining this year?"&stream=true')
     response_message = response.content.decode("utf-8")
 

@@ -41,7 +41,7 @@ freezegun.configure(extend_ignore_list=["transformers"])
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.xfail(reason="Search actor isn't very date aware nor capable of formatting")
 @pytest.mark.chatquality
-@freeze_time("1984-04-02")
+@freeze_time("1984-04-02", ignore=["transformers"])
 def test_extract_question_with_date_filter_from_relative_day(loaded_model):
     # Act
     response = extract_questions_offline("Where did I go for dinner yesterday?", loaded_model=loaded_model)
@@ -61,7 +61,7 @@ def test_extract_question_with_date_filter_from_relative_day(loaded_model):
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.xfail(reason="Search actor still isn't very date aware nor capable of formatting")
 @pytest.mark.chatquality
-@freeze_time("1984-04-02")
+@freeze_time("1984-04-02", ignore=["transformers"])
 def test_extract_question_with_date_filter_from_relative_month(loaded_model):
     # Act
     response = extract_questions_offline("Which countries did I visit last month?", loaded_model=loaded_model)
@@ -83,7 +83,7 @@ def test_extract_question_with_date_filter_from_relative_month(loaded_model):
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.xfail(reason="Chat actor still isn't very date aware nor capable of formatting")
 @pytest.mark.chatquality
-@freeze_time("1984-04-02")
+@freeze_time("1984-04-02", ignore=["transformers"])
 def test_extract_question_with_date_filter_from_relative_year():
     # Act
     response = extract_questions_offline("Which countries have I visited this year?")
@@ -102,7 +102,7 @@ def test_extract_question_with_date_filter_from_relative_year():
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-@freeze_time("1984-04-02")
+@freeze_time("1984-04-02", ignore=["transformers"])
 def test_extract_question_includes_root_question(loaded_model):
     # Act
     response = extract_questions_offline("Which countries have I visited this year?", loaded_model=loaded_model)
