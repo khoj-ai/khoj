@@ -22,7 +22,11 @@ def download_model(model_name: str):
         # 1. Loading chat model to GPU isn't disabled via CLI and
         # 2. Machine has GPU
         # 3. GPU has enough free memory to load the chat model with max context length of 4096
-        device = "gpu" if state.chat_on_gpu else "cpu"
+        device = (
+            "gpu"
+            if state.chat_on_gpu and gpt4all.pyllmodel.LLModel().list_gpu(chat_model_config["path"], 4096)
+            else "cpu"
+        )
     except ValueError:
         device = "cpu"
     except Exception as e:
