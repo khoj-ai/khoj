@@ -37,7 +37,7 @@ import datetime
 import re
 from os.path import relpath
 from pathlib import Path
-from typing import List
+from typing import Dict, List, Tuple
 
 indent_regex = re.compile(r"^ *")
 
@@ -58,7 +58,7 @@ def makelist_with_filepath(filename):
     return makelist(f, filename)
 
 
-def makelist(file, filename):
+def makelist(file, filename) -> List["Orgnode"]:
     """
     Read an org-mode file and return a list of Orgnode objects
     created from this file.
@@ -80,16 +80,16 @@ def makelist(file, filename):
     }  # populated from #+SEQ_TODO line
     level = ""
     heading = ""
-    ancestor_headings = []
+    ancestor_headings: List[str] = []
     bodytext = ""
     introtext = ""
-    tags = list()  # set of all tags in headline
-    closed_date = ""
-    sched_date = ""
-    deadline_date = ""
-    logbook = list()
+    tags: List[str] = list()  # set of all tags in headline
+    closed_date: datetime.date = None
+    sched_date: datetime.date = None
+    deadline_date: datetime.date = None
+    logbook: List[Tuple[datetime.datetime, datetime.datetime]] = list()
     nodelist: List[Orgnode] = list()
-    property_map = dict()
+    property_map: Dict[str, str] = dict()
     in_properties_drawer = False
     in_logbook_drawer = False
     file_title = f"{filename}"
@@ -102,13 +102,13 @@ def makelist(file, filename):
                 thisNode = Orgnode(level, heading, bodytext, tags, ancestor_headings)
                 if closed_date:
                     thisNode.closed = closed_date
-                    closed_date = ""
+                    closed_date = None
                 if sched_date:
                     thisNode.scheduled = sched_date
-                    sched_date = ""
+                    sched_date = None
                 if deadline_date:
                     thisNode.deadline = deadline_date
-                    deadline_date = ""
+                    deadline_date = None
                 if logbook:
                     thisNode.logbook = logbook
                     logbook = list()
@@ -116,7 +116,7 @@ def makelist(file, filename):
                 nodelist.append(thisNode)
             property_map = {"LINE": f"file:{normalize_filename(filename)}::{ctr}"}
             previous_level = level
-            previous_heading = heading
+            previous_heading: str = heading
             level = heading_search.group(1)
             heading = heading_search.group(2)
             bodytext = ""
