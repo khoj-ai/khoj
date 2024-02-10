@@ -13,6 +13,7 @@ from khoj.processor.conversation.utils import (
 from khoj.utils import state
 from khoj.utils.constants import empty_escape_sequences
 from khoj.utils.helpers import ConversationCommand, is_none_or_empty
+from khoj.utils.rawconfig import LocationData
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,7 @@ def extract_questions_offline(
     conversation_log={},
     use_history: bool = True,
     should_extract_questions: bool = True,
+    location_data: LocationData = None,
 ) -> List[str]:
     """
     Infer search queries to retrieve relevant notes to answer user query
@@ -44,6 +46,8 @@ def extract_questions_offline(
         return all_questions
 
     gpt4all_model = loaded_model or GPT4All(model)
+
+    location = f"{location_data.city}, {location_data.state}, {location_data.country}" if location_data else ""
 
     # Extract Past User Message and Inferred Questions from Conversation Log
     chat_history = ""
@@ -68,6 +72,7 @@ def extract_questions_offline(
         last_year=last_year,
         last_christmas_date=last_christmas_date,
         next_christmas_date=next_christmas_date,
+        location=location,
     )
     message = system_prompt + example_questions
     state.chat_lock.acquire()
@@ -133,6 +138,7 @@ def converse_offline(
     conversation_commands=[ConversationCommand.Default],
     max_prompt_size=None,
     tokenizer_name=None,
+    location_data: LocationData = None,
 ) -> Union[ThreadedGenerator, Iterator[str]]:
     """
     Converse with user using Llama
@@ -149,6 +155,11 @@ def converse_offline(
     compiled_references_message = "\n\n".join({f"{item}" for item in references})
 
     conversation_primer = prompts.query_prompt.format(query=user_query)
+
+    if location_data:
+        location = f"{location_data.city}, {location_data.region}, {location_data.country}"
+        location_prompt = prompts.user_location.format(location=location)
+        conversation_primer = f"{location_prompt}{conversation_primer}"
 
     # Get Conversation Primer appropriate to Conversation Type
     if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(compiled_references_message):

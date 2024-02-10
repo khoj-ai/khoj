@@ -1,7 +1,6 @@
 import asyncio
 import json
 import logging
-from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from functools import partial
@@ -9,6 +8,7 @@ from time import time
 from typing import Annotated, Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import openai
+import requests
 from fastapi import Depends, Header, HTTPException, Request, UploadFile
 from starlette.authentication import has_required_scope
 
@@ -39,6 +39,7 @@ from khoj.utils.helpers import (
     log_telemetry,
     tool_descriptions_for_llm,
 )
+from khoj.utils.rawconfig import LocationData
 
 logger = logging.getLogger(__name__)
 
@@ -180,10 +181,11 @@ async def aget_relevant_tools(query: str, conversation_history: dict):
         return [ConversationCommand.Default]
 
 
-async def generate_online_subqueries(q: str, conversation_history: dict) -> List[str]:
+async def generate_online_subqueries(q: str, conversation_history: dict, location_data: LocationData) -> List[str]:
     """
     Generate subqueries from the given query
     """
+    location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
     chat_history = construct_chat_history(conversation_history)
 
     utc_date = datetime.utcnow().strftime("%Y-%m-%d")
@@ -191,6 +193,7 @@ async def generate_online_subqueries(q: str, conversation_history: dict) -> List
         current_date=utc_date,
         query=q,
         chat_history=chat_history,
+        location=location,
     )
 
     response = await send_message_to_model_wrapper(online_queries_prompt)
@@ -227,14 +230,19 @@ async def extract_relevant_info(q: str, corpus: dict) -> List[str]:
     return response.strip()
 
 
-async def generate_better_image_prompt(q: str, conversation_history: str) -> str:
+async def generate_better_image_prompt(q: str, conversation_history: str, location_data: LocationData) -> str:
     """
     Generate a better image prompt from the given query
     """
 
+    location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
+    today_date = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
+
     image_prompt = prompts.image_generation_improve_prompt.format(
         query=q,
         chat_history=conversation_history,
+        location=location,
+        current_date=today_date,
     )
 
     response = await send_message_to_model_wrapper(image_prompt)
@@ -293,6 +301,7 @@ def generate_chat_response(
     user: KhojUser = None,
     client_application: ClientApplication = None,
     conversation_id: int = None,
+    location_data: LocationData = None,
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
     chat_response = None
@@ -330,6 +339,7 @@ def generate_chat_response(
                 model=conversation_config.chat_model,
                 max_prompt_size=conversation_config.max_prompt_size,
                 tokenizer_name=conversation_config.tokenizer,
+                location_data=location_data,
             )
 
         elif conversation_config.model_type == "openai":
@@ -347,6 +357,7 @@ def generate_chat_response(
                 conversation_commands=conversation_commands,
                 max_prompt_size=conversation_config.max_prompt_size,
                 tokenizer_name=conversation_config.tokenizer,
+                location_data=location_data,
             )
 
         metadata.update({"chat_model": conversation_config.chat_model})
@@ -358,7 +369,9 @@ def generate_chat_response(
     return chat_response, metadata
 
 
-async def text_to_image(message: str, conversation_log: dict) -> Tuple[Optional[str], int, Optional[str]]:
+async def text_to_image(
+    message: str, conversation_log: dict, location_data: LocationData
+) -> Tuple[Optional[str], int, Optional[str]]:
     status_code = 200
     image = None
 
@@ -373,7 +386,7 @@ async def text_to_image(message: str, conversation_log: dict) -> Tuple[Optional[
             if chat["by"] == "khoj" and chat["intent"].get("type") == "remember":
                 chat_history += f"Q: {chat['intent']['query']}\n"
                 chat_history += f"A: {chat['message']}\n"
-        improved_image_prompt = await generate_better_image_prompt(message, chat_history)
+        improved_image_prompt = await generate_better_image_prompt(message, chat_history, location_data=location_data)
         try:
             response = state.openai_client.images.generate(
                 prompt=improved_image_prompt, model=text2image_model, response_format="b64_json"
@@ -384,6 +397,21 @@ async def text_to_image(message: str, conversation_log: dict) -> Tuple[Optional[
             status_code = 500
 
     return image, status_code, improved_image_prompt
+
+
+def get_location_from_ip(ip: str) -> LocationData:
+    try:
+        url = f"https://ipapi.co/{ip}/json"
+        response = requests.get(url)
+        data = response.json()
+        return LocationData(
+            city=data.get("city"),
+            region=data.get("region"),
+            country=data.get("country"),
+        )
+    except Exception as e:
+        logger.error(f"Failed to get location from IP: {ip}", exc_info=True)
+        return None
 
 
 class ApiUserRateLimiter:

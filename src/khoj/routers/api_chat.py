@@ -23,6 +23,7 @@ from khoj.routers.helpers import (
     agenerate_chat_response,
     aget_relevant_tools,
     get_conversation_command,
+    get_location_from_ip,
     is_ready_to_chat,
     text_to_image,
     update_telemetry_state,
@@ -36,6 +37,7 @@ from khoj.utils.helpers import (
     get_device,
     is_none_or_empty,
 )
+from khoj.utils.rawconfig import LocationData
 
 # Initialize Router
 logger = logging.getLogger(__name__)
@@ -219,6 +221,9 @@ async def chat(
     stream: Optional[bool] = False,
     slug: Optional[str] = None,
     conversation_id: Optional[int] = None,
+    city: Optional[str] = None,
+    region: Optional[str] = None,
+    country: Optional[str] = None,
     rate_limiter_per_minute=Depends(
         ApiUserRateLimiter(requests=5, subscribed_requests=60, window=60, slug="chat_minute")
     ),
@@ -253,8 +258,15 @@ async def chat(
     for cmd in conversation_commands:
         q = q.replace(f"/{cmd.value}", "").strip()
 
+    location = None
+
+    if city or region or country:
+        location = LocationData(city=city, region=region, country=country)
+    elif request.client.host:
+        location = get_location_from_ip(request.client.host)
+
     compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
-        request, common, meta_log, q, (n or 5), (d or math.inf), conversation_commands
+        request, common, meta_log, q, (n or 5), (d or math.inf), conversation_commands, location
     )
     online_results: Dict = dict()
 
@@ -269,9 +281,9 @@ async def chat(
     if ConversationCommand.Notes in conversation_commands and is_none_or_empty(compiled_references):
         conversation_commands.remove(ConversationCommand.Notes)
 
-    if ConversationCommand.Online in conversation_commands or ConversationCommand.Default in conversation_commands:
+    if ConversationCommand.Online in conversation_commands:
         try:
-            online_results = await search_with_google(defiltered_query, meta_log)
+            online_results = await search_with_google(defiltered_query, meta_log, location)
         except ValueError as e:
             return StreamingResponse(
                 iter(["Please set your SERPER_DEV_API_KEY to get started with online searches 🌐"]),
@@ -286,7 +298,7 @@ async def chat(
             metadata={"conversation_command": conversation_commands[0].value},
             **common.__dict__,
         )
-        image, status_code, improved_image_prompt = await text_to_image(q, meta_log)
+        image, status_code, improved_image_prompt = await text_to_image(q, meta_log, location_data=location)
         if image is None:
             content_obj = {
                 "image": image,
@@ -318,6 +330,7 @@ async def chat(
         user,
         request.user.client_app,
         conversation_id,
+        location,
     )
 
     chat_metadata.update({"conversation_command": ",".join([cmd.value for cmd in conversation_commands])})

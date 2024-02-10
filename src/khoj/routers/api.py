@@ -28,6 +28,7 @@ from khoj.routers.helpers import (
     ApiUserRateLimiter,
     CommonQueryParams,
     ConversationCommandRateLimiter,
+    LocationData,
     update_telemetry_state,
 )
 from khoj.search_filter.date_filter import DateFilter
@@ -275,6 +276,7 @@ async def extract_references_and_questions(
     n: int,
     d: float,
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
+    location_data: LocationData = None,
 ):
     user = request.user.object if request.user.is_authenticated else None
 
@@ -320,7 +322,11 @@ async def extract_references_and_questions(
             loaded_model = state.gpt4all_processor_config.loaded_model
 
             inferred_queries = extract_questions_offline(
-                defiltered_query, loaded_model=loaded_model, conversation_log=meta_log, should_extract_questions=False
+                defiltered_query,
+                loaded_model=loaded_model,
+                conversation_log=meta_log,
+                should_extract_questions=False,
+                location_data=location_data,
             )
         elif conversation_config and conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
             openai_chat_config = await ConversationAdapters.get_openai_chat_config()
@@ -328,7 +334,11 @@ async def extract_references_and_questions(
             api_key = openai_chat_config.api_key
             chat_model = default_openai_llm.chat_model
             inferred_queries = extract_questions(
-                defiltered_query, model=chat_model, api_key=api_key, conversation_log=meta_log
+                defiltered_query,
+                model=chat_model,
+                api_key=api_key,
+                conversation_log=meta_log,
+                location_data=location_data,
             )
 
     # Collate search results as context for GPT

@@ -43,6 +43,22 @@ To get started, just start typing below. You can also type / to see a list of co
             });
         }
 
+        let region = null;
+        let city = null;
+        let countryName = null;
+
+        fetch("https://ipapi.co/json")
+            .then(response => response.json())
+            .then(data => {
+                region = data.region;
+                city = data.city;
+                countryName = data.country_name;
+            })
+            .catch(err => {
+                console.log(err);
+                return;
+            });
+
         function formatDate(date) {
             // Format date in HH:MM, DD MMM YYYY format
             let time_string = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -345,7 +361,7 @@ To get started, just start typing below. You can also type / to see a list of co
             }
 
             // Generate backend API URL to execute query
-            let url = `/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}`;
+            let url = `/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}&region=${region}&city=${city}&country=${countryName}`;
 
             let new_response = document.createElement("div");
             new_response.classList.add("chat-message", "khoj");
