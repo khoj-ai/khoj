@@ -76,6 +76,131 @@ def test_extract_multiple_markdown_entries(tmp_path):
     assert all([tmp_path.stem in entry.compiled for entry in entries])
 
 
+def test_extract_entries_with_different_level_headings(tmp_path):
+    "Extract markdown entries with different level headings."
+    # Arrange
+    entry = f"""
+# Heading 1
+## Sub-Heading 1.1
+# Heading 2
+"""
+    data = {
+        f"{tmp_path}": entry,
+    }
+
+    # Act
+    # Extract Entries from specified Markdown files
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=3)
+
+    # Assert
+    assert len(entries) == 2
+    assert entries[0].raw == "# Heading 1\n## Sub-Heading 1.1", "Ensure entry includes heading ancestory"
+    assert entries[1].raw == "# Heading 2\n"
+
+
+def test_extract_entries_with_non_incremental_heading_levels(tmp_path):
+    "Extract markdown entries when deeper child level before shallower child level."
+    # Arrange
+    entry = f"""
+# Heading 1
+#### Sub-Heading 1.1
+## Sub-Heading 1.2
+# Heading 2
+"""
+    data = {
+        f"{tmp_path}": entry,
+    }
+
+    # Act
+    # Extract Entries from specified Markdown files
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=3)
+
+    # Assert
+    assert len(entries) == 3
+    assert entries[0].raw == "# Heading 1\n#### Sub-Heading 1.1", "Ensure entry includes heading ancestory"
+    assert entries[1].raw == "# Heading 1\n## Sub-Heading 1.2", "Ensure entry includes heading ancestory"
+    assert entries[2].raw == "# Heading 2\n"
+
+
+def test_extract_entries_with_text_before_headings(tmp_path):
+    "Extract markdown entries with some text before any headings."
+    # Arrange
+    entry = f"""
+Text before headings
+# Heading 1
+body line 1
+## Heading 2
+body line 2
+"""
+    data = {
+        f"{tmp_path}": entry,
+    }
+
+    # Act
+    # Extract Entries from specified Markdown files
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=3)
+
+    # Assert
+    assert len(entries) == 3
+    assert entries[0].raw == "\nText before headings"
+    assert entries[1].raw == "# Heading 1\nbody line 1"
+    assert entries[2].raw == "# Heading 1\n## Heading 2\nbody line 2\n", "Ensure raw entry includes heading ancestory"
+
+
+def test_parse_markdown_file_into_single_entry_if_small(tmp_path):
+    "Parse markdown file into single entry if it fits within the token limits."
+    # Arrange
+    entry = f"""
+# Heading 1
+body line 1
+## Subheading 1.1
+body line 1.1
+"""
+    data = {
+        f"{tmp_path}": entry,
+    }
+
+    # Act
+    # Extract Entries from specified Markdown files
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=12)
+
+    # Assert
+    assert len(entries) == 1
+    assert entries[0].raw == entry
+
+
+def test_parse_markdown_entry_with_children_as_single_entry_if_small(tmp_path):
+    "Parse markdown entry with child headings as single entry if it fits within the tokens limits."
+    # Arrange
+    entry = f"""
+# Heading 1
+body line 1
+## Subheading 1.1
+body line 1.1
+# Heading 2
+body line 2
+## Subheading 2.1
+longer body line 2.1
+"""
+    data = {
+        f"{tmp_path}": entry,
+    }
+
+    # Act
+    # Extract Entries from specified Markdown files
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=12)
+
+    # Assert
+    assert len(entries) == 3
+    assert (
+        entries[0].raw == "# Heading 1\nbody line 1\n## Subheading 1.1\nbody line 1.1"
+    ), "First entry includes children headings"
+    assert entries[1].raw == "# Heading 2\nbody line 2", "Second entry does not include children headings"
+    assert (
+        entries[2].raw == "# Heading 2\n## Subheading 2.1\nlonger body line 2.1\n"
+    ), "Third entry is second entries child heading"
+
+
 def test_get_markdown_files(tmp_path):
     "Ensure Markdown files specified via input-filter, input-files extracted"
     # Arrange
@@ -111,76 +236,6 @@ def test_get_markdown_files(tmp_path):
     # Assert
     assert len(extracted_org_files) == 5
     assert set(extracted_org_files.keys()) == expected_files
-
-
-def test_extract_entries_with_different_level_headings(tmp_path):
-    "Extract markdown entries with different level headings."
-    # Arrange
-    entry = f"""
-# Heading 1
-## Sub-Heading 1.1
-# Heading 2
-"""
-    data = {
-        f"{tmp_path}": entry,
-    }
-
-    # Act
-    # Extract Entries from specified Markdown files
-    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=3)
-
-    # Assert
-    assert len(entries) == 3
-    assert entries[0].raw == "# Heading 1"
-    assert entries[1].raw == "# Heading 1\n## Sub-Heading 1.1", "Ensure entry includes heading ancestory"
-    assert entries[2].raw == "# Heading 2"
-
-
-def test_extract_entries_with_text_before_headings(tmp_path):
-    "Extract markdown entries with some text before any headings."
-    # Arrange
-    entry = f"""
-Text before headings
-# Heading 1
-body line 1
-## Heading 2
-body line 2
-"""
-    data = {
-        f"{tmp_path}": entry,
-    }
-
-    # Act
-    # Extract Entries from specified Markdown files
-    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=3)
-
-    # Assert
-    assert len(entries) == 3
-    assert entries[0].raw == "Text before headings"
-    assert entries[1].raw == "# Heading 1\nbody line 1"
-    assert entries[2].raw == "# Heading 1\n## Heading 2\nbody line 2", "Ensure raw entry includes heading ancestory"
-
-
-def test_parse_markdown_file_into_single_entry_if_small(tmp_path):
-    "Parse markdown file into single entry if it fits within the token limits."
-    # Arrange
-    entry = f"""
-# Heading 1
-body line 1
-## Subheading 1.1
-body line 1.1
-"""
-    data = {
-        f"{tmp_path}": entry,
-    }
-
-    # Act
-    # Extract Entries from specified Markdown files
-    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=12)
-
-    # Assert
-    assert len(entries) == 1
-    assert entries[0].raw == entry
 
 
 # Helper Functions
