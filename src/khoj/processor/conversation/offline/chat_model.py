@@ -171,9 +171,10 @@ def converse_offline(
         )
 
     # Setup Prompt with Primer or Conversation History
+    current_date = datetime.now().strftime("%Y-%m-%d")
     messages = generate_chatml_messages_with_context(
         conversation_primer,
-        prompts.system_prompt_message_gpt4all,
+        prompts.system_prompt_message_gpt4all.format(current_date=current_date),
         conversation_log,
         model_name=model,
         max_prompt_size=max_prompt_size,
@@ -198,7 +199,7 @@ def llm_thread(g, messages: List[ChatMessage], model: Any):
         for message in conversation_history
     ]
 
-    stop_words = ["<s>"]
+    stop_words = ["<s>", "INST]", "Notes:"]
     chat_history = "".join(formatted_messages)
     templated_system_message = prompts.system_prompt_gpt4all.format(message=system_message.content)
     templated_user_message = prompts.user_message_gpt4all.format(message=user_message.content)

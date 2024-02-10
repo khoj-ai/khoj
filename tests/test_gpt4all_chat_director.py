@@ -298,14 +298,16 @@ def test_answer_not_known_using_notes_command(client_offline_chat, default_user2
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering time aware questions yet")
 @pytest.mark.chatquality
 @pytest.mark.django_db(transaction=True)
-@freeze_time("2023-04-01")
+@freeze_time("2023-04-01", ignore=["transformers"])
 def test_answer_requires_current_date_awareness(client_offline_chat):
     "Chat actor should be able to answer questions relative to current date using provided notes"
+    # Arrange
+    query = urllib.parse.quote("Where did I have lunch today?")
+
     # Act
-    response = client_offline_chat.get(f'/api/chat?q="Where did I have lunch today?"&stream=true')
+    response = client_offline_chat.get(f"/api/chat?q={query}&stream=true")
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -320,7 +322,7 @@ def test_answer_requires_current_date_awareness(client_offline_chat):
 @pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
 @pytest.mark.django_db(transaction=True)
-@freeze_time("2023-04-01")
+@freeze_time("2023-04-01", ignore=["transformers"])
 def test_answer_requires_date_aware_aggregation_across_provided_notes(client_offline_chat):
     "Chat director should be able to answer questions that require date aware aggregation across multiple notes"
     # Act
@@ -333,7 +335,6 @@ def test_answer_requires_date_aware_aggregation_across_provided_notes(client_off
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
 @pytest.mark.django_db(transaction=True)
 def test_answer_general_question_not_in_chat_history_or_retrieved_content(client_offline_chat, default_user2):
@@ -425,7 +426,6 @@ def test_answer_chat_history_very_long(client_offline_chat, default_user2):
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
 @pytest.mark.django_db(transaction=True)
 def test_answer_requires_multiple_independent_searches(client_offline_chat):
