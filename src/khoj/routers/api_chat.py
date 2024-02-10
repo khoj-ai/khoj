@@ -269,7 +269,7 @@ async def chat(
     if ConversationCommand.Notes in conversation_commands and is_none_or_empty(compiled_references):
         conversation_commands.remove(ConversationCommand.Notes)
 
-    if ConversationCommand.Online in conversation_commands or ConversationCommand.Default in conversation_commands:
+    if ConversationCommand.Online in conversation_commands:
         try:
             online_results = await search_with_google(defiltered_query, meta_log)
         except ValueError as e:
