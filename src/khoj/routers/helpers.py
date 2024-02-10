@@ -302,6 +302,7 @@ def generate_chat_response(
     client_application: ClientApplication = None,
     conversation_id: int = None,
     location_data: LocationData = None,
+    user_name: Optional[str] = None,
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
     chat_response = None
@@ -340,6 +341,7 @@ def generate_chat_response(
                 max_prompt_size=conversation_config.max_prompt_size,
                 tokenizer_name=conversation_config.tokenizer,
                 location_data=location_data,
+                user_name=user_name,
             )
 
         elif conversation_config.model_type == "openai":
@@ -358,6 +360,7 @@ def generate_chat_response(
                 max_prompt_size=conversation_config.max_prompt_size,
                 tokenizer_name=conversation_config.tokenizer,
                 location_data=location_data,
+                user_name=user_name,
             )
 
         metadata.update({"chat_model": conversation_config.chat_model})
@@ -397,21 +400,6 @@ async def text_to_image(
             status_code = 500
 
     return image, status_code, improved_image_prompt
-
-
-def get_location_from_ip(ip: str) -> LocationData:
-    try:
-        url = f"https://ipapi.co/{ip}/json"
-        response = requests.get(url)
-        data = response.json()
-        return LocationData(
-            city=data.get("city"),
-            region=data.get("region"),
-            country=data.get("country"),
-        )
-    except Exception as e:
-        logger.error(f"Failed to get location from IP: {ip}", exc_info=True)
-        return None
 
 
 class ApiUserRateLimiter:

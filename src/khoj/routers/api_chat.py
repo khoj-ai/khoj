@@ -10,7 +10,7 @@ from fastapi.requests import Request
 from fastapi.responses import Response, StreamingResponse
 from starlette.authentication import requires
 
-from khoj.database.adapters import ConversationAdapters, EntryAdapters
+from khoj.database.adapters import ConversationAdapters, EntryAdapters, aget_user_name
 from khoj.database.models import KhojUser
 from khoj.processor.conversation.prompts import help_message, no_entries_found
 from khoj.processor.conversation.utils import save_to_conversation_log
@@ -23,7 +23,6 @@ from khoj.routers.helpers import (
     agenerate_chat_response,
     aget_relevant_tools,
     get_conversation_command,
-    get_location_from_ip,
     is_ready_to_chat,
     text_to_image,
     update_telemetry_state,
@@ -262,8 +261,8 @@ async def chat(
 
     if city or region or country:
         location = LocationData(city=city, region=region, country=country)
-    elif request.client.host:
-        location = get_location_from_ip(request.client.host)
+
+    user_name = await aget_user_name(user)
 
     compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
         request, common, meta_log, q, (n or 5), (d or math.inf), conversation_commands, location
@@ -331,6 +330,7 @@ async def chat(
         request.user.client_app,
         conversation_id,
         location,
+        user_name,
     )
 
     chat_metadata.update({"conversation_command": ",".join([cmd.value for cmd in conversation_commands])})

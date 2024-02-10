@@ -291,6 +291,21 @@ def delete_user_requests(window: timedelta = timedelta(days=1)):
     return UserRequests.objects.filter(created_at__lte=datetime.now(tz=timezone.utc) - window).delete()
 
 
+async def aget_user_name(user: KhojUser):
+    if user.first_name:
+        if user.last_name:
+            return f"{user.first_name} {user.last_name}".strip()
+        return user.first_name
+    if user.last_name:
+        return user.last_name
+
+    google_profile: GoogleUser = await GoogleUser.objects.filter(user=user).afirst()
+    if google_profile:
+        return google_profile.given_name
+
+    return None
+
+
 async def set_text_content_config(user: KhojUser, object: Type[models.Model], updated_config):
     deduped_files = list(set(updated_config.input_files)) if updated_config.input_files else None
     deduped_filters = list(set(updated_config.input_filter)) if updated_config.input_filter else None

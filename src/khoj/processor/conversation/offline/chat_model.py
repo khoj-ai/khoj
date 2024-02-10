@@ -26,6 +26,7 @@ def extract_questions_offline(
     use_history: bool = True,
     should_extract_questions: bool = True,
     location_data: LocationData = None,
+    user_name: str = None,
 ) -> List[str]:
     """
     Infer search queries to retrieve relevant notes to answer user query
@@ -139,6 +140,7 @@ def converse_offline(
     max_prompt_size=None,
     tokenizer_name=None,
     location_data: LocationData = None,
+    user_name: str = None,
 ) -> Union[ThreadedGenerator, Iterator[str]]:
     """
     Converse with user using Llama
@@ -160,6 +162,10 @@ def converse_offline(
         location = f"{location_data.city}, {location_data.region}, {location_data.country}"
         location_prompt = prompts.user_location.format(location=location)
         conversation_primer = f"{location_prompt}{conversation_primer}"
+
+    if user_name:
+        user_name_prompt = prompts.user_name.format(name=user_name)
+        conversation_primer = f"{user_name_prompt}{conversation_primer}"
 
     # Get Conversation Primer appropriate to Conversation Type
     if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(compiled_references_message):
