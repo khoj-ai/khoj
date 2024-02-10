@@ -1,10 +1,11 @@
 import logging
 from pathlib import Path
-from typing import Iterable, List, Tuple
+from typing import Dict, List, Tuple
 
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import KhojUser
 from khoj.processor.content.org_mode import orgnode
+from khoj.processor.content.org_mode.orgnode import Orgnode
 from khoj.processor.content.text_to_entries import TextToEntries
 from khoj.utils import state
 from khoj.utils.helpers import timer
@@ -51,7 +52,7 @@ class OrgToEntries(TextToEntries):
         return num_new_embeddings, num_deleted_embeddings
 
     @staticmethod
-    def extract_org_entries(org_files: dict[str, str], index_heading_entries: bool = False):
+    def extract_org_entries(org_files: dict[str, str], index_heading_entries: bool = False) -> List[Entry]:
         "Extract entries from specified Org files"
         with timer("Parse entries from org files into OrgNode objects", logger):
             entry_nodes, file_to_entries = OrgToEntries.extract_org_nodes(org_files)
@@ -60,35 +61,35 @@ class OrgToEntries(TextToEntries):
             return OrgToEntries.convert_org_nodes_to_entries(entry_nodes, file_to_entries, index_heading_entries)
 
     @staticmethod
-    def extract_org_nodes(org_files: dict[str, str]):
+    def extract_org_nodes(org_files: dict[str, str]) -> Tuple[List[Orgnode], Dict[Orgnode, str]]:
         "Extract org nodes from specified org files"
-        entry_nodes = []
-        entry_to_file_map: List[Tuple[orgnode.Orgnode, str]] = []
+        entry_nodes: List[Orgnode] = []
+        entry_to_file_map: List[Tuple[Orgnode, str]] = []
         for org_file in org_files:
-            filename = org_file
-            file = org_files[org_file]
-            try:
-                org_file_entries = orgnode.makelist(file, filename)
-                entry_to_file_map += zip(org_file_entries, [org_file] * len(org_file_entries))
-                entry_nodes.extend(org_file_entries)
-            except Exception as e:
-                logger.warning(f"Unable to process file: {org_file}. This file will not be indexed.")
-                logger.warning(e, exc_info=True)
+            org_content = org_files[org_file]
+            entry_nodes, entry_to_file_map = OrgToEntries.process_single_org_file(
+                org_content, org_file, entry_nodes, entry_to_file_map
+            )
 
         return entry_nodes, dict(entry_to_file_map)
 
     @staticmethod
-    def process_single_org_file(org_content: str, org_file: str, entries: List, entry_to_file_map: List):
+    def process_single_org_file(
+        org_content: str,
+        org_file: str,
+        entries: List[Orgnode],
+        entry_to_file_map: List[Tuple[Orgnode, str]],
+    ) -> Tuple[List[Orgnode], List[Tuple[Orgnode, str]]]:
         # Process single org file. The org parser assumes that the file is a single org file and reads it from a buffer.
         # We'll split the raw content of this file by new line to mimic the same behavior.
         try:
             org_file_entries = orgnode.makelist(org_content, org_file)
             entry_to_file_map += zip(org_file_entries, [org_file] * len(org_file_entries))
             entries.extend(org_file_entries)
-            return entries, entry_to_file_map
         except Exception as e:
-            logger.error(f"Error processing file: {org_file} with error: {e}", exc_info=True)
-            return entries, entry_to_file_map
+            logger.error(f"Unable to process file: {org_file}. Skipped indexing it.\nError; {e}", exc_info=True)
+
+        return entries, entry_to_file_map
 
     @staticmethod
     def convert_org_nodes_to_entries(
