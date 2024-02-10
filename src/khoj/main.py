@@ -61,6 +61,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "app://obsidian.md",
+        "capacitor://localhost",  # To allow access from Obsidian iOS app using Capacitor.JS
+        "http://localhost",  # To allow access from Obsidian Android app
         "http://localhost:*",
         "http://127.0.0.1:*",
         f"https://{KHOJ_DOMAIN}",
@@ -82,7 +84,7 @@ from khoj.utils.initialization import initialization
 
 # Setup Logger
 rich_handler = RichHandler(rich_tracebacks=True)
-rich_handler.setFormatter(fmt=logging.Formatter(fmt="%(message)s", datefmt="[%X]"))
+rich_handler.setFormatter(fmt=logging.Formatter(fmt="%(message)s", datefmt="[%H:%M:%S.%f]"))
 logging.basicConfig(handlers=[rich_handler])
 
 logger = logging.getLogger("khoj")
