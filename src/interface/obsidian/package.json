@@ -1,6 +1,6 @@
 {
     "name": "Khoj",
-    "version": "1.5.0",
+    "version": "1.5.1",
     "description": "An AI copilot for your Second Brain",
     "author": "Debanjum Singh Solanky, Saba Imran <team@khoj.dev>",
     "license": "GPL-3.0-or-later",
@@ -25,9 +25,5 @@
         "obsidian": "latest",
         "tslib": "2.4.0",
         "typescript": "4.7.4"
-    },
-    "dependencies": {
-        "@types/node-fetch": "^2.6.4",
-        "node-fetch": "^3.1.0"
     }
 }

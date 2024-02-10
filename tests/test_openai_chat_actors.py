@@ -22,7 +22,7 @@ freezegun.configure(extend_ignore_list=["transformers"])
 # Test
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-@freeze_time("1984-04-02")
+@freeze_time("1984-04-02", ignore=["transformers"])
 def test_extract_question_with_date_filter_from_relative_day():
     # Act
     response = extract_questions("Where did I go for dinner yesterday?")
@@ -41,7 +41,7 @@ def test_extract_question_with_date_filter_from_relative_day():
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-@freeze_time("1984-04-02")
+@freeze_time("1984-04-02", ignore=["transformers"])
 def test_extract_question_with_date_filter_from_relative_month():
     # Act
     response = extract_questions("Which countries did I visit last month?")
@@ -56,7 +56,7 @@ def test_extract_question_with_date_filter_from_relative_month():
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-@freeze_time("1984-04-02")
+@freeze_time("1984-04-02", ignore=["transformers"])
 def test_extract_question_with_date_filter_from_relative_year():
     # Act
     response = extract_questions("Which countries have I visited this year?")
