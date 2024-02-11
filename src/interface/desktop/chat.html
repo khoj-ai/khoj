@@ -326,14 +326,15 @@
 
             let conversationID = chat_body.dataset.conversationId;
 
+            let hostURL = await window.hostURLAPI.getURL();
+
             if (!conversationID) {
-                let response = await fetch('/api/chat/sessions', { method: "POST" });
+                let response = await fetch(`${hostURL}/api/chat/sessions`, { method: "POST" });
                 let data = await response.json();
                 conversationID = data.conversation_id;
                 chat_body.dataset.conversationId = conversationID;
             }
 
-            let hostURL = await window.hostURLAPI.getURL();
 
             // Generate backend API URL to execute query
             let url = `${hostURL}/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}`;
@@ -847,7 +848,7 @@
             flashStatusInChatInput("📝 New conversation started");
             chatBody.dataset.conversationId = "";
             chatBody.dataset.conversationTitle = "";
-            renderMessage(welcome_message, "khoj");
+            renderMessage("Hey 👋🏾, what's up?", "khoj");
         }
 
         async function clearConversationHistory() {
@@ -1280,6 +1281,7 @@
             grid-row-gap: 10px;
             background: #f9fafc;
             align-items: center;
+            background-color: var(--background-color);
         }
         .option:hover {
             box-shadow: 0 0 11px #aaa;
