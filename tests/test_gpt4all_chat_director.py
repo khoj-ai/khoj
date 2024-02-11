@@ -8,6 +8,7 @@ from freezegun import freeze_time
 
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import message_to_log
+from khoj.routers.helpers import aget_relevant_information_sources
 from tests.helpers import ConversationFactory
 
 SKIP_TESTS = True
@@ -440,3 +441,100 @@ def test_answer_requires_multiple_independent_searches(client_offline_chat):
     assert any([expected_response in response_message.lower() for expected_response in expected_responses]), (
         "Expected Xi is older than Namita, but got: " + response_message
     )
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.anyio
+@pytest.mark.django_db(transaction=True)
+async def test_get_correct_tools_online(client_offline_chat):
+    # Arrange
+    user_query = "What's the weather in Patagonia this week?"
+
+    # Act
+    tools = await aget_relevant_information_sources(user_query, {})
+
+    # Assert
+    tools = [tool.value for tool in tools]
+    assert tools == ["online"]
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.anyio
+@pytest.mark.django_db(transaction=True)
+async def test_get_correct_tools_notes(client_offline_chat):
+    # Arrange
+    user_query = "Where did I go for my first battleship training?"
+
+    # Act
+    tools = await aget_relevant_information_sources(user_query, {})
+
+    # Assert
+    tools = [tool.value for tool in tools]
+    assert tools == ["notes"]
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.anyio
+@pytest.mark.django_db(transaction=True)
+async def test_get_correct_tools_online_or_general_and_notes(client_offline_chat):
+    # Arrange
+    user_query = "What's the highest point in Patagonia and have I been there?"
+
+    # Act
+    tools = await aget_relevant_information_sources(user_query, {})
+
+    # Assert
+    tools = [tool.value for tool in tools]
+    assert len(tools) == 2
+    assert "online" or "general" in tools
+    assert "notes" in tools
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.anyio
+@pytest.mark.django_db(transaction=True)
+async def test_get_correct_tools_general(client_offline_chat):
+    # Arrange
+    user_query = "How many noble gases are there?"
+
+    # Act
+    tools = await aget_relevant_information_sources(user_query, {})
+
+    # Assert
+    tools = [tool.value for tool in tools]
+    assert tools == ["general"]
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.anyio
+@pytest.mark.django_db(transaction=True)
+async def test_get_correct_tools_with_chat_history(client_offline_chat):
+    # Arrange
+    user_query = "What's the latest in the Israel/Palestine conflict?"
+    chat_log = [
+        (
+            "Let's talk about the current events around the world.",
+            "Sure, let's discuss the current events. What would you like to know?",
+        ),
+        ("What's up in New York City?", "A Pride parade has recently been held in New York City, on July 31st."),
+    ]
+    chat_history = populate_chat_history(chat_log)
+
+    # Act
+    tools = await aget_relevant_information_sources(user_query, chat_history)
+
+    # Assert
+    tools = [tool.value for tool in tools]
+    assert tools == ["online"]
+
+
+def populate_chat_history(message_list):
+    # Generate conversation logs
+    conversation_log = {"chat": []}
+    for user_message, gpt_message in message_list:
+        conversation_log["chat"] += message_to_log(
+            user_message,
+            gpt_message,
+            {"context": [], "intent": {"query": user_message, "inferred-queries": f'["{user_message}"]'}},
+        )
+    return conversation_log

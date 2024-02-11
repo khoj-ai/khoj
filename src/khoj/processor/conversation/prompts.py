@@ -112,7 +112,6 @@ notes_conversation_gpt4all = PromptTemplate.from_template(
     """
 User's Notes:
 {references}
-Question: {query}
 """.strip()
 )
 
@@ -139,7 +138,13 @@ Use this up-to-date information from the internet to inform your response.
 Ask crisp follow-up questions to get additional context, when a helpful response cannot be provided from the online data or past conversations.
 
 Information from the internet: {online_results}
+""".strip()
+)
 
+## Query prompt
+## --
+query_prompt = PromptTemplate.from_template(
+    """
 Query: {query}""".strip()
 )
 
@@ -282,6 +287,60 @@ Target Query: {query}
 Web Pages: {corpus}
 
 Collate the relevant information from the website to answer the target query.
+""".strip()
+)
+
+pick_relevant_information_collection_tools = PromptTemplate.from_template(
+    """
+You are Khoj, a smart and helpful personal assistant. You have access to a variety of data sources to help you answer the user's question. You can use the data sources listed below to collect more relevant information. You can use any combination of these data sources to answer the user's question. Tell me which data sources you would like to use to answer the user's question.
+
+{tools}
+
+Here are some example responses:
+
+Example 1:
+Chat History:
+User: I'm thinking of moving to a new city. I'm trying to decide between New York and San Francisco.
+AI: Moving to a new city can be challenging. Both New York and San Francisco are great cities to live in. New York is known for its diverse culture and San Francisco is known for its tech scene.
+
+Q: What is the population of each of those cities?
+Khoj: ["online"]
+
+Example 2:
+Chat History:
+User: I've been having a hard time at work. I'm thinking of quitting.
+AI: I'm sorry to hear that. It's important to take care of your mental health. Have you considered talking to your manager about your concerns?
+
+Q: What are the best ways to quit a job?
+Khoj: ["general"]
+
+Example 3:
+Chat History:
+User: I'm thinking of my next vacation idea. Ideally, I want to see something new and exciting.
+AI: Excellent! Taking a vacation is a great way to relax and recharge.
+
+Q: Where did Grandma grow up?
+Khoj: ["notes"]
+
+Example 4:
+Chat History:
+
+Q: I want to make chocolate cake. What was my recipe?
+Khoj: ["notes"]
+
+Example 5:
+Chat History:
+
+Q: What's the latest news with the first company I worked for?
+Khoj: ["notes", "online"]
+
+Now it's your turn to pick the tools you would like to use to answer the user's question. Provide your response as a list of strings.
+
+Chat History:
+{chat_history}
+
+Q: {query}
+A:
 """.strip()
 )
 

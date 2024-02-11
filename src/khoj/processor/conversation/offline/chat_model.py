@@ -130,7 +130,7 @@ def converse_offline(
     model: str = "mistral-7b-instruct-v0.1.Q4_0.gguf",
     loaded_model: Union[Any, None] = None,
     completion_func=None,
-    conversation_command=ConversationCommand.Default,
+    conversation_commands=[ConversationCommand.Default],
     max_prompt_size=None,
     tokenizer_name=None,
 ) -> Union[ThreadedGenerator, Iterator[str]]:
@@ -148,27 +148,24 @@ def converse_offline(
     # Initialize Variables
     compiled_references_message = "\n\n".join({f"{item}" for item in references})
 
+    conversation_primer = prompts.query_prompt.format(query=user_query)
+
     # Get Conversation Primer appropriate to Conversation Type
-    if conversation_command == ConversationCommand.Notes and is_none_or_empty(compiled_references_message):
+    if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(compiled_references_message):
         return iter([prompts.no_notes_found.format()])
-    elif conversation_command == ConversationCommand.Online and is_none_or_empty(online_results):
+    elif conversation_commands == [ConversationCommand.Online] and is_none_or_empty(online_results):
         completion_func(chat_response=prompts.no_online_results_found.format())
         return iter([prompts.no_online_results_found.format()])
-    elif conversation_command == ConversationCommand.Online:
+
+    if ConversationCommand.Online in conversation_commands:
         simplified_online_results = online_results.copy()
         for result in online_results:
             if online_results[result].get("extracted_content"):
                 simplified_online_results[result] = online_results[result]["extracted_content"]
 
-        conversation_primer = prompts.online_search_conversation.format(
-            query=user_query, online_results=str(simplified_online_results)
-        )
-    elif conversation_command == ConversationCommand.General or is_none_or_empty(compiled_references_message):
-        conversation_primer = user_query
-    else:
-        conversation_primer = prompts.notes_conversation_gpt4all.format(
-            query=user_query, references=compiled_references_message
-        )
+        conversation_primer = f"{prompts.online_search_conversation.format(online_results=str(simplified_online_results))}\n{conversation_primer}"
+    if ConversationCommand.Notes in conversation_commands:
+        conversation_primer = f"{prompts.notes_conversation_gpt4all.format(references=compiled_references_message)}\n{conversation_primer}"
 
     # Setup Prompt with Primer or Conversation History
     current_date = datetime.now().strftime("%Y-%m-%d")

@@ -479,7 +479,7 @@ class ConversationAdapters:
         conversation_id: int = None,
         user_message: str = None,
     ):
-        slug = user_message.strip()[:200] if not is_none_or_empty(user_message) else None
+        slug = user_message.strip()[:200] if user_message else None
         if conversation_id:
             conversation = Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
         else:

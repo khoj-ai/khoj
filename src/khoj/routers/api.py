@@ -274,7 +274,7 @@ async def extract_references_and_questions(
     q: str,
     n: int,
     d: float,
-    conversation_type: ConversationCommand = ConversationCommand.Default,
+    conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
 ):
     user = request.user.object if request.user.is_authenticated else None
 
@@ -282,7 +282,7 @@ async def extract_references_and_questions(
     compiled_references: List[Any] = []
     inferred_queries: List[str] = []
 
-    if conversation_type == ConversationCommand.General or conversation_type == ConversationCommand.Online:
+    if not ConversationCommand.Notes in conversation_commands:
         return compiled_references, inferred_queries, q
 
     if not await sync_to_async(EntryAdapters.user_has_entries)(user=user):

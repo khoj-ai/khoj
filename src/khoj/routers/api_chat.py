@@ -21,6 +21,7 @@ from khoj.routers.helpers import (
     CommonQueryParams,
     ConversationCommandRateLimiter,
     agenerate_chat_response,
+    aget_relevant_information_sources,
     get_conversation_command,
     is_ready_to_chat,
     text_to_image,
@@ -207,7 +208,7 @@ async def set_conversation_title(
     )
 
 
-@api_chat.get("", response_class=Response)
+@api_chat.get("/", response_class=Response)
 @requires(["authenticated"])
 async def chat(
     request: Request,
@@ -229,25 +230,9 @@ async def chat(
     q = unquote(q)
 
     await is_ready_to_chat(user)
-    conversation_command = get_conversation_command(query=q, any_references=True)
+    conversation_commands = [get_conversation_command(query=q, any_references=True)]
 
-    await conversation_command_rate_limiter.update_and_check_if_valid(request, conversation_command)
-
-    q = q.replace(f"/{conversation_command.value}", "").strip()
-
-    meta_log = (
-        await ConversationAdapters.aget_conversation_by_user(user, request.user.client_app, conversation_id, slug)
-    ).conversation_log
-
-    compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
-        request, common, meta_log, q, (n or 5), (d or math.inf), conversation_command
-    )
-    online_results: Dict = dict()
-
-    if conversation_command == ConversationCommand.Default and is_none_or_empty(compiled_references):
-        conversation_command = ConversationCommand.General
-
-    elif conversation_command == ConversationCommand.Help:
+    if conversation_commands == [ConversationCommand.Help]:
         conversation_config = await ConversationAdapters.aget_user_conversation_config(user)
         if conversation_config == None:
             conversation_config = await ConversationAdapters.aget_default_conversation_config()
@@ -255,7 +240,23 @@ async def chat(
         formatted_help = help_message.format(model=model_type, version=state.khoj_version, device=get_device())
         return StreamingResponse(iter([formatted_help]), media_type="text/event-stream", status_code=200)
 
-    elif conversation_command == ConversationCommand.Notes and not await EntryAdapters.auser_has_entries(user):
+    meta_log = (
+        await ConversationAdapters.aget_conversation_by_user(user, request.user.client_app, conversation_id, slug)
+    ).conversation_log
+
+    if conversation_commands == [ConversationCommand.Default]:
+        conversation_commands = await aget_relevant_information_sources(q, meta_log)
+
+    for cmd in conversation_commands:
+        await conversation_command_rate_limiter.update_and_check_if_valid(request, cmd)
+        q = q.replace(f"/{cmd.value}", "").strip()
+
+    compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
+        request, common, meta_log, q, (n or 5), (d or math.inf), conversation_commands
+    )
+    online_results: Dict = dict()
+
+    if conversation_commands == [ConversationCommand.Notes] and not await EntryAdapters.auser_has_entries(user):
         no_entries_found_format = no_entries_found.format()
         if stream:
             return StreamingResponse(iter([no_entries_found_format]), media_type="text/event-stream", status_code=200)
@@ -263,7 +264,10 @@ async def chat(
             response_obj = {"response": no_entries_found_format}
             return Response(content=json.dumps(response_obj), media_type="text/plain", status_code=200)
 
-    elif conversation_command == ConversationCommand.Online:
+    if ConversationCommand.Notes in conversation_commands and is_none_or_empty(compiled_references):
+        conversation_commands.remove(ConversationCommand.Notes)
+
+    if ConversationCommand.Online in conversation_commands:
         try:
             online_results = await search_with_google(defiltered_query, meta_log)
         except ValueError as e:
@@ -272,12 +276,12 @@ async def chat(
                 media_type="text/event-stream",
                 status_code=200,
             )
-    elif conversation_command == ConversationCommand.Image:
+    elif conversation_commands == [ConversationCommand.Image]:
         update_telemetry_state(
             request=request,
             telemetry_type="api",
             api="chat",
-            metadata={"conversation_command": conversation_command.value},
+            metadata={"conversation_command": conversation_commands[0].value},
             **common.__dict__,
         )
         image, status_code, improved_image_prompt = await text_to_image(q, meta_log)
@@ -308,13 +312,13 @@ async def chat(
         compiled_references,
         online_results,
         inferred_queries,
-        conversation_command,
+        conversation_commands,
         user,
         request.user.client_app,
         conversation_id,
     )
 
-    chat_metadata.update({"conversation_command": conversation_command.value})
+    chat_metadata.update({"conversation_command": ",".join([cmd.value for cmd in conversation_commands])})
 
     update_telemetry_state(
         request=request,
