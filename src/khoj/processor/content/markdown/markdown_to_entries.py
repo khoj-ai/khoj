@@ -58,7 +58,7 @@ class MarkdownToEntries(TextToEntries):
     def extract_markdown_entries(markdown_files, max_tokens=256) -> List[Entry]:
         "Extract entries by heading from specified Markdown files"
         entries: List[str] = []
-        entry_to_file_map: List[Tuple[str, Path]] = []
+        entry_to_file_map: List[Tuple[str, str]] = []
         for markdown_file in markdown_files:
             try:
                 markdown_content = markdown_files[markdown_file]
@@ -66,7 +66,7 @@ class MarkdownToEntries(TextToEntries):
                     markdown_content, markdown_file, entries, entry_to_file_map, max_tokens
                 )
             except Exception as e:
-                logger.warning(
+                logger.error(
                     f"Unable to process file: {markdown_file}. This file will not be indexed.\n{e}", exc_info=True
                 )
 
@@ -75,12 +75,12 @@ class MarkdownToEntries(TextToEntries):
     @staticmethod
     def process_single_markdown_file(
         markdown_content: str,
-        markdown_file: Path,
+        markdown_file: str,
         entries: List[str],
-        entry_to_file_map: List[Tuple[str, Path]],
+        entry_to_file_map: List[Tuple[str, str]],
         max_tokens=256,
         ancestry: Dict[int, str] = {},
-    ):
+    ) -> Tuple[List[str], List[Tuple[str, str]]]:
         # Prepend the markdown section's heading ancestry
         ancestry_string = "\n".join([f"{'#' * key} {ancestry[key]}" for key in sorted(ancestry.keys())])
         markdown_content_with_ancestry = f"{ancestry_string}{markdown_content}"
