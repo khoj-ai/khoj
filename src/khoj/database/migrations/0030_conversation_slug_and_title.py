@@ -14,4 +14,9 @@ class Migration(migrations.Migration):
             name="slug",
             field=models.CharField(blank=True, default=None, max_length=200, null=True),
         ),
+        migrations.AddField(
+            model_name="conversation",
+            name="title",
+            field=models.CharField(blank=True, default=None, max_length=200, null=True),
+        ),
     ]
