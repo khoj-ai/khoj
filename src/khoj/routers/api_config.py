@@ -308,7 +308,7 @@ def set_user_name(
         first_name = split_name[0]
         last_name = ""
     else:
-        first_name, last_name = name.split(" ")
+        first_name, last_name = split_name[0], split_name[-1]
 
     adapters.set_user_name(user, first_name, last_name)
 
