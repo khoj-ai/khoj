@@ -225,7 +225,8 @@ function pushDataToKhoj (regenerate = false) {
     .finally(() => {
         // Syncing complete
         syncing = false;
-        if (win = BrowserWindow.getAllWindows()[0]) {
+        const win = BrowserWindow.getAllWindows().find(win => win.webContents.getURL().includes('config'));
+        if (win) {
             win.webContents.send('update-state', state);
         }
     });

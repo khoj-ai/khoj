@@ -28,7 +28,6 @@ from khoj.routers.helpers import (
     ApiUserRateLimiter,
     CommonQueryParams,
     ConversationCommandRateLimiter,
-    LocationData,
     update_telemetry_state,
 )
 from khoj.search_filter.date_filter import DateFilter
@@ -38,7 +37,7 @@ from khoj.search_type import image_search, text_search
 from khoj.utils import constants, state
 from khoj.utils.config import GPT4AllProcessorModel
 from khoj.utils.helpers import ConversationCommand, timer
-from khoj.utils.rawconfig import SearchResponse
+from khoj.utils.rawconfig import LocationData, SearchResponse
 from khoj.utils.state import SearchType
 
 # Initialize Router

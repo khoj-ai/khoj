@@ -21,7 +21,7 @@ from khoj.routers.helpers import (
     CommonQueryParams,
     ConversationCommandRateLimiter,
     agenerate_chat_response,
-    aget_relevant_tools,
+    aget_relevant_information_sources,
     get_conversation_command,
     is_ready_to_chat,
     text_to_image,
@@ -249,12 +249,10 @@ async def chat(
     ).conversation_log
 
     if conversation_commands == [ConversationCommand.Default]:
-        conversation_commands = await aget_relevant_tools(q, meta_log)
+        conversation_commands = await aget_relevant_information_sources(q, meta_log)
 
     for cmd in conversation_commands:
         await conversation_command_rate_limiter.update_and_check_if_valid(request, cmd)
-
-    for cmd in conversation_commands:
         q = q.replace(f"/{cmd.value}", "").strip()
 
     location = None
