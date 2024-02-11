@@ -157,6 +157,8 @@ def config_page(request: Request):
     for search_model_option in search_model_options:
         all_search_model_options.append({"name": search_model_option.name, "id": search_model_option.id})
 
+    current_search_model_option = adapters.get_user_search_model_or_default(user)
+
     return templates.TemplateResponse(
         "config.html",
         context={
@@ -166,6 +168,7 @@ def config_page(request: Request):
             "username": user.username,
             "conversation_options": all_conversation_options,
             "search_model_options": all_search_model_options,
+            "selected_search_model_config": current_search_model_option.id,
             "selected_conversation_config": selected_conversation_config.id if selected_conversation_config else None,
             "user_photo": user_picture,
             "billing_enabled": state.billing_enabled,

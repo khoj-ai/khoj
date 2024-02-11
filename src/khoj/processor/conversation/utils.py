@@ -101,6 +101,7 @@ def save_to_conversation_log(
     inferred_queries: List[str] = [],
     intent_type: str = "remember",
     client_application: ClientApplication = None,
+    conversation_id: int = None,
 ):
     user_message_time = user_message_time or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     updated_conversation = message_to_log(
@@ -114,7 +115,13 @@ def save_to_conversation_log(
         },
         conversation_log=meta_log.get("chat", []),
     )
-    ConversationAdapters.save_conversation(user, {"chat": updated_conversation}, client_application=client_application)
+    ConversationAdapters.save_conversation(
+        user,
+        {"chat": updated_conversation},
+        client_application=client_application,
+        conversation_id=conversation_id,
+        user_message=q,
+    )
 
 
 def generate_chatml_messages_with_context(

@@ -107,7 +107,7 @@ a.khoj-nav-selected {
     background-color: var(--primary);
 }
 img.khoj-logo {
-    width: min(60vw, 111px);
+    width: min(60vw, 90px);
     max-width: 100%;
     justify-self: center;
 }
@@ -117,7 +117,7 @@ img.khoj-logo {
         display: grid;
         grid-auto-flow: column;
         gap: 20px;
-        padding: 16px 10px;
+        padding: 12px 10px;
         margin: 0 0 16px 0;
     }
 

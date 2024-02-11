@@ -357,22 +357,61 @@ class ClientApplicationAdapters:
 
 class ConversationAdapters:
     @staticmethod
-    def get_conversation_by_user(user: KhojUser, client_application: ClientApplication = None):
-        conversation = Conversation.objects.filter(user=user, client=client_application)
+    def get_conversation_by_user(
+        user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None
+    ):
+        if conversation_id:
+            conversation = Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
+        if not conversation_id or not conversation.exists():
+            conversation = Conversation.objects.filter(user=user, client=client_application)
         if conversation.exists():
             return conversation.first()
         return Conversation.objects.create(user=user, client=client_application)
 
     @staticmethod
-    async def aget_conversation_by_user(user: KhojUser, client_application: ClientApplication = None):
-        conversation = Conversation.objects.filter(user=user, client=client_application)
-        if await conversation.aexists():
-            return await conversation.afirst()
+    def get_conversation_sessions(user: KhojUser, client_application: ClientApplication = None):
+        return Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at")
+
+    @staticmethod
+    async def aset_conversation_title(
+        user: KhojUser, client_application: ClientApplication, conversation_id: int, title: str
+    ):
+        conversation = await Conversation.objects.filter(
+            user=user, client=client_application, id=conversation_id
+        ).afirst()
+        if conversation:
+            conversation.title = title
+            await conversation.asave()
+            return conversation
+        return None
+
+    @staticmethod
+    def get_conversation_by_id(conversation_id: int):
+        return Conversation.objects.filter(id=conversation_id).first()
+
+    @staticmethod
+    async def acreate_conversation_session(user: KhojUser, client_application: ClientApplication = None):
         return await Conversation.objects.acreate(user=user, client=client_application)
 
     @staticmethod
-    async def adelete_conversation_by_user(user: KhojUser):
-        return await Conversation.objects.filter(user=user).adelete()
+    async def aget_conversation_by_user(
+        user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None, slug: str = None
+    ):
+        if conversation_id:
+            conversation = Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
+        else:
+            conversation = Conversation.objects.filter(user=user, client=client_application, slug=slug)
+        if await conversation.aexists():
+            return await conversation.afirst()
+        return await Conversation.objects.acreate(user=user, client=client_application, slug=slug)
+
+    @staticmethod
+    async def adelete_conversation_by_user(
+        user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None
+    ):
+        if conversation_id:
+            return await Conversation.objects.filter(user=user, client=client_application, id=conversation_id).adelete()
+        return await Conversation.objects.filter(user=user, client=client_application).adelete()
 
     @staticmethod
     def has_any_conversation_config(user: KhojUser):
@@ -433,12 +472,24 @@ class ConversationAdapters:
         return await ChatModelOptions.objects.filter().afirst()
 
     @staticmethod
-    def save_conversation(user: KhojUser, conversation_log: dict, client_application: ClientApplication = None):
-        conversation = Conversation.objects.filter(user=user, client=client_application)
-        if conversation.exists():
-            conversation.update(conversation_log=conversation_log)
+    def save_conversation(
+        user: KhojUser,
+        conversation_log: dict,
+        client_application: ClientApplication = None,
+        conversation_id: int = None,
+        user_message: str = None,
+    ):
+        slug = user_message.strip()[:200] if not is_none_or_empty(user_message) else None
+        if conversation_id:
+            conversation = Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
         else:
-            Conversation.objects.create(user=user, conversation_log=conversation_log, client=client_application)
+            conversation = Conversation.objects.filter(user=user, client=client_application)
+        if conversation.exists():
+            conversation.update(conversation_log=conversation_log, slug=slug)
+        else:
+            Conversation.objects.create(
+                user=user, conversation_log=conversation_log, client=client_application, slug=slug
+            )
 
     @staticmethod
     def get_conversation_processor_options():

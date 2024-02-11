@@ -178,6 +178,8 @@ class Conversation(BaseModel):
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
     conversation_log = models.JSONField(default=dict)
     client = models.ForeignKey(ClientApplication, on_delete=models.CASCADE, default=None, null=True, blank=True)
+    slug = models.CharField(max_length=200, default=None, null=True, blank=True)
+    title = models.CharField(max_length=200, default=None, null=True, blank=True)
 
 
 class ReflectiveQuestion(BaseModel):

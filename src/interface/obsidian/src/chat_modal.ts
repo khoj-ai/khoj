@@ -269,7 +269,7 @@ export class KhojChatModal extends Modal {
 
                 return false;
             } else if (responseJson.response) {
-                let chatLogs = responseJson.response;
+                let chatLogs = responseJson.response.chat;
                 chatLogs.forEach((chatLog: any) => {
                     this.renderMessageWithReferences(chatBodyEl, chatLog.message, chatLog.by, chatLog.context, new Date(chatLog.created), chatLog.intent?.type);
                 });
