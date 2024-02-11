@@ -8,7 +8,7 @@ from freezegun import freeze_time
 
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import message_to_log
-from khoj.routers.helpers import aget_relevant_tools
+from khoj.routers.helpers import aget_relevant_information_sources
 from tests.helpers import ConversationFactory
 
 SKIP_TESTS = True
@@ -451,7 +451,7 @@ async def test_get_correct_tools_online(client_offline_chat):
     user_query = "What's the weather in Patagonia this week?"
 
     # Act
-    tools = await aget_relevant_tools(user_query, {})
+    tools = await aget_relevant_information_sources(user_query, {})
 
     # Assert
     tools = [tool.value for tool in tools]
@@ -466,7 +466,7 @@ async def test_get_correct_tools_notes(client_offline_chat):
     user_query = "Where did I go for my first battleship training?"
 
     # Act
-    tools = await aget_relevant_tools(user_query, {})
+    tools = await aget_relevant_information_sources(user_query, {})
 
     # Assert
     tools = [tool.value for tool in tools]
@@ -481,7 +481,7 @@ async def test_get_correct_tools_online_or_general_and_notes(client_offline_chat
     user_query = "What's the highest point in Patagonia and have I been there?"
 
     # Act
-    tools = await aget_relevant_tools(user_query, {})
+    tools = await aget_relevant_information_sources(user_query, {})
 
     # Assert
     tools = [tool.value for tool in tools]
@@ -498,7 +498,7 @@ async def test_get_correct_tools_general(client_offline_chat):
     user_query = "How many noble gases are there?"
 
     # Act
-    tools = await aget_relevant_tools(user_query, {})
+    tools = await aget_relevant_information_sources(user_query, {})
 
     # Assert
     tools = [tool.value for tool in tools]
@@ -521,7 +521,7 @@ async def test_get_correct_tools_with_chat_history(client_offline_chat):
     chat_history = populate_chat_history(chat_log)
 
     # Act
-    tools = await aget_relevant_tools(user_query, chat_history)
+    tools = await aget_relevant_information_sources(user_query, chat_history)
 
     # Assert
     tools = [tool.value for tool in tools]
