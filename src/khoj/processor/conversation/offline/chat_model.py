@@ -47,7 +47,7 @@ def extract_questions_offline(
 
     gpt4all_model = loaded_model or GPT4All(model)
 
-    location = f"{location_data.city}, {location_data.state}, {location_data.country}" if location_data else "Unknown"
+    location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
 
     # Extract Past User Message and Inferred Questions from Conversation Log
     chat_history = ""

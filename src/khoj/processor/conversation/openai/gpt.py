@@ -33,7 +33,7 @@ def extract_questions(
     def _valid_question(question: str):
         return not is_none_or_empty(question) and question != "[]"
 
-    location = f"{location_data.city}, {location_data.state}, {location_data.country}" if location_data else "Unknown"
+    location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
 
     # Extract Past User Message and Inferred Questions from Conversation Log
     chat_history = "".join(
@@ -142,7 +142,7 @@ def converse(
     conversation_primer = prompts.query_prompt.format(query=user_query)
 
     if location_data:
-        location = f"{location_data.city}, {location_data.state}, {location_data.country}"
+        location = f"{location_data.city}, {location_data.region}, {location_data.country}"
         location_prompt = prompts.user_location.format(location=location)
         conversation_primer = f"{location_prompt}\n{conversation_primer}"
 
