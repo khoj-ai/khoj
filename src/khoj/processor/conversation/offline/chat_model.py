@@ -48,7 +48,14 @@ def extract_questions_offline(
 
     gpt4all_model = loaded_model or GPT4All(model)
 
-    location = f"{location_data.city}, {location_data.state}, {location_data.country}" if location_data else ""
+    if location_data:
+        location = f"{location_data.city}, {location_data.state}, {location_data.country}"
+        location_prompt = prompts.user_location.format(location=location)
+        conversation_primer = f"{location_prompt}\n{conversation_primer}"
+
+    if user_name:
+        user_name_prompt = prompts.user_name.format(name=user_name)
+        conversation_primer = f"{user_name_prompt}\n{conversation_primer}"
 
     # Extract Past User Message and Inferred Questions from Conversation Log
     chat_history = ""
