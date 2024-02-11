@@ -141,7 +141,7 @@ async def agenerate_chat_response(*args):
     return await loop.run_in_executor(executor, generate_chat_response, *args)
 
 
-async def aget_relevant_tools(query: str, conversation_history: dict):
+async def aget_relevant_information_sources(query: str, conversation_history: dict):
     """
     Given a query, determine which of the available tools the agent should use in order to answer appropriately.
     """
@@ -153,7 +153,7 @@ async def aget_relevant_tools(query: str, conversation_history: dict):
 
     chat_history = construct_chat_history(conversation_history)
 
-    relevant_tools_prompt = prompts.pick_relevant_tools.format(
+    relevant_tools_prompt = prompts.pick_relevant_information_collection_tools.format(
         query=query,
         tools=str(tool_options),
         chat_history=chat_history,

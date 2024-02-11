@@ -284,7 +284,7 @@ command_descriptions = {
 
 tool_descriptions_for_llm = {
     ConversationCommand.Default: "Use this if there might be a mix of general and personal knowledge in the question",
-    ConversationCommand.General: "Use this when you can answer the question without any outside information or personal knowledge",
+    ConversationCommand.General: "Use this when you can answer the question without needing any additional online or personal information",
     ConversationCommand.Notes: "Use this when you would like to use the user's personal knowledge base to answer the question",
     ConversationCommand.Online: "Use this when you would like to look up information on the internet",
 }
