@@ -207,7 +207,7 @@ async def set_conversation_title(
     )
 
 
-@api_chat.get("/", response_class=Response)
+@api_chat.get("", response_class=Response)
 @requires(["authenticated"])
 async def chat(
     request: Request,
