@@ -495,12 +495,13 @@ class Orgnode(object):
         if self._priority:
             n = n + "[#" + self._priority + "] "
         n = n + self._heading
-        n = "%-60s " % n  # hack - tags will start in column 62
-        closecolon = ""
-        for t in self._tags:
-            n = n + ":" + t
-            closecolon = ":"
-        n = n + closecolon
+        if self._tags:
+            n = "%-60s " % n  # hack - tags will start in column 62
+            closecolon = ""
+            for t in self._tags:
+                n = n + ":" + t
+                closecolon = ":"
+            n = n + closecolon
         n = n + "\n"
 
         # Get body indentation from first line of body
