@@ -1,5 +1,5 @@
-import json
 import os
+import re
 
 from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
 from khoj.processor.content.text_to_entries import TextToEntries
@@ -8,7 +8,7 @@ from khoj.utils.helpers import is_none_or_empty
 from khoj.utils.rawconfig import Entry, TextContentConfig
 
 
-def test_configure_heading_entry_to_jsonl(tmp_path):
+def test_configure_indexing_heading_only_entries(tmp_path):
     """Ensure entries with empty body are ignored, unless explicitly configured to index heading entries.
     Property drawers not considered Body. Ignore control characters for evaluating if Body empty."""
     # Arrange
@@ -26,7 +26,9 @@ def test_configure_heading_entry_to_jsonl(tmp_path):
     for index_heading_entries in [True, False]:
         # Act
         # Extract entries into jsonl from specified Org files
-        entries = OrgToEntries.extract_org_entries(org_files=data, index_heading_entries=index_heading_entries)
+        entries = OrgToEntries.extract_org_entries(
+            org_files=data, index_heading_entries=index_heading_entries, max_tokens=3
+        )
 
         # Assert
         if index_heading_entries:
@@ -77,8 +79,151 @@ def test_entry_split_drops_large_words():
     processed_entry = TextToEntries.split_entries_by_max_tokens([entry], max_word_length=5)[0]
 
     # Assert
-    # "Heading" dropped from compiled version because its over the set max word limit
+    # (Only) "Heading" dropped from compiled version because its over the set max word limit
+    assert "Heading" not in processed_entry.compiled
     assert len(processed_entry.compiled.split()) == len(entry_text.split()) - 1
+
+
+def test_parse_org_file_into_single_entry_if_small(tmp_path):
+    "Parse org file into single entry if it fits within the token limits."
+    # Arrange
+    original_entry = f"""
+* Heading 1
+body line 1
+** Subheading 1.1
+body line 1.1
+"""
+    data = {
+        f"{tmp_path}": original_entry,
+    }
+    expected_entry = f"""
+* Heading 1
+body line 1
+
+** Subheading 1.1
+body line 1.1
+
+""".lstrip()
+
+    # Act
+    # Extract Entries from specified Org files
+    extracted_entries = OrgToEntries.extract_org_entries(org_files=data, max_tokens=12)
+    for entry in extracted_entries:
+        entry.raw = clean(entry.raw)
+
+    # Assert
+    assert len(extracted_entries) == 1
+    assert entry.raw == expected_entry
+
+
+def test_parse_org_entry_with_children_as_single_entry_if_small(tmp_path):
+    "Parse org entry with child headings as single entry only if it fits within the tokens limits."
+    # Arrange
+    entry = f"""
+* Heading 1
+body line 1
+** Subheading 1.1
+body line 1.1
+* Heading 2
+body line 2
+** Subheading 2.1
+longer body line 2.1
+"""
+    data = {
+        f"{tmp_path}": entry,
+    }
+    first_expected_entry = f"""
+* Path: {tmp_path}
+** Heading 1.
+ body line 1
+
+*** Subheading 1.1.
+ body line 1.1
+
+""".lstrip()
+    second_expected_entry = f"""
+* Path: {tmp_path}
+** Heading 2.
+ body line 2
+
+""".lstrip()
+    third_expected_entry = f"""
+* Path: {tmp_path} / Heading 2
+** Subheading 2.1.
+ longer body line 2.1
+
+""".lstrip()
+
+    # Act
+    # Extract Entries from specified Org files
+    extracted_entries = OrgToEntries.extract_org_entries(org_files=data, max_tokens=12)
+
+    # Assert
+    assert len(extracted_entries) == 3
+    assert extracted_entries[0].compiled == first_expected_entry, "First entry includes children headings"
+    assert extracted_entries[1].compiled == second_expected_entry, "Second entry does not include children headings"
+    assert extracted_entries[2].compiled == third_expected_entry, "Third entry is second entries child heading"
+
+
+def test_separate_sibling_org_entries_if_all_cannot_fit_in_token_limit(tmp_path):
+    "Parse org sibling entries as separate entries only if it fits within the tokens limits."
+    # Arrange
+    entry = f"""
+* Heading 1
+body line 1
+** Subheading 1.1
+body line 1.1
+* Heading 2
+body line 2
+** Subheading 2.1
+body line 2.1
+* Heading 3
+body line 3
+** Subheading 3.1
+body line 3.1
+"""
+    data = {
+        f"{tmp_path}": entry,
+    }
+    first_expected_entry = f"""
+* Path: {tmp_path}
+** Heading 1.
+ body line 1
+
+*** Subheading 1.1.
+ body line 1.1
+
+""".lstrip()
+    second_expected_entry = f"""
+* Path: {tmp_path}
+** Heading 2.
+ body line 2
+
+*** Subheading 2.1.
+ body line 2.1
+
+""".lstrip()
+    third_expected_entry = f"""
+* Path: {tmp_path}
+** Heading 3.
+ body line 3
+
+*** Subheading 3.1.
+ body line 3.1
+
+""".lstrip()
+
+    # Act
+    # Extract Entries from specified Org files
+    # Max tokens = 30 is in the middle of 2 entry (24 tokens) and 3 entry (36 tokens) tokens boundary
+    # Where each sibling entry contains 12 tokens per sibling entry * 3 entries = 36 tokens
+    extracted_entries = OrgToEntries.extract_org_entries(org_files=data, max_tokens=30)
+
+    # Assert
+    assert len(extracted_entries) == 3
+    assert extracted_entries[0].compiled == first_expected_entry, "First entry includes children headings"
+    assert extracted_entries[1].compiled == second_expected_entry, "Second entry includes children headings"
+    assert extracted_entries[2].compiled == third_expected_entry, "Third entry includes children headings"
 
 
 def test_entry_with_body_to_entry(tmp_path):
@@ -118,13 +263,13 @@ Intro text
 
     # Act
     # Extract Entries from specified Org files
-    entries = OrgToEntries.extract_org_entries(org_files=data)
+    entries = OrgToEntries.extract_org_entries(org_files=data, max_tokens=3)
 
     # Assert
     assert len(entries) == 2
 
 
-def test_file_with_no_headings_to_jsonl(tmp_path):
+def test_file_with_no_headings_to_entry(tmp_path):
     "Ensure files with no heading, only body text are loaded."
     # Arrange
     entry = f"""
@@ -137,7 +282,7 @@ def test_file_with_no_headings_to_jsonl(tmp_path):
 
     # Act
     # Extract Entries from specified Org files
-    entries = OrgToEntries.extract_org_entries(org_files=data)
+    entries = OrgToEntries.extract_org_entries(org_files=data, max_tokens=3)
 
     # Assert
     assert len(entries) == 1
@@ -197,13 +342,14 @@ def test_extract_entries_with_different_level_headings(tmp_path):
 
     # Act
     # Extract Entries from specified Org files
-    entries = OrgToEntries.extract_org_entries(org_files=data, index_heading_entries=True)
+    entries = OrgToEntries.extract_org_entries(org_files=data, index_heading_entries=True, max_tokens=3)
+    for entry in entries:
+        entry.raw = clean(f"{entry.raw}")
 
     # Assert
-    assert len(entries) == 3
-    assert f"{entries[0].raw}".startswith("* Heading 1")
-    assert f"{entries[1].raw}".startswith("** Sub-Heading 1.1")
-    assert f"{entries[2].raw}".startswith("* Heading 2")
+    assert len(entries) == 2
+    assert entries[0].raw == "* Heading 1\n** Sub-Heading 1.1\n", "Ensure entry includes heading ancestory"
+    assert entries[1].raw == "* Heading 2\n"
 
 
 # Helper Functions
@@ -213,3 +359,8 @@ def create_file(tmp_path, entry=None, filename="test.org"):
     if entry:
         org_file.write_text(entry)
     return org_file
+
+
+def clean(entry):
+    "Remove properties from entry for easier comparison."
+    return re.sub(r"\n:PROPERTIES:(.*?):END:", "", entry, flags=re.DOTALL)
