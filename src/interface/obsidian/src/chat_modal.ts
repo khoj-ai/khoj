@@ -10,6 +10,9 @@ export interface ChatJsonResult {
 export class KhojChatModal extends Modal {
     result: string;
     setting: KhojSetting;
+    region: string;
+    city: string;
+    countryName: string;
 
     constructor(app: App, setting: KhojSetting) {
         super(app);
@@ -17,6 +20,19 @@ export class KhojChatModal extends Modal {
 
         // Register Modal Keybindings to send user message
         this.scope.register([], 'Enter', async () => { await this.chat() });
+
+
+        fetch("https://ipapi.co/json")
+            .then(response => response.json())
+            .then(data => {
+                this.region = data.region;
+                this.city = data.city;
+                this.countryName = data.country_name;
+            })
+            .catch(err => {
+                console.log(err);
+                return;
+            });
     }
 
     async chat() {
@@ -354,7 +370,7 @@ export class KhojChatModal extends Modal {
 
         // Get chat response from Khoj backend
         let encodedQuery = encodeURIComponent(query);
-        let chatUrl = `${this.setting.khojUrl}/api/chat?q=${encodedQuery}&n=${this.setting.resultsCount}&client=obsidian&stream=true`;
+        let chatUrl = `${this.setting.khojUrl}/api/chat?q=${encodedQuery}&n=${this.setting.resultsCount}&client=obsidian&stream=true&region=${this.region}&city=${this.city}&country=${this.countryName}`;
         let responseElement = this.createKhojResponseDiv();
 
         // Temporary status message to indicate that Khoj is thinking

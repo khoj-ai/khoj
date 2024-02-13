@@ -13,6 +13,7 @@ from khoj.database.adapters import (
     ConversationAdapters,
     EntryAdapters,
     get_user_github_config,
+    get_user_name,
     get_user_notion_config,
     get_user_subscription_state,
 )
@@ -138,6 +139,7 @@ def config_page(request: Request):
         if user_subscription and user_subscription.renewal_date
         else (user_subscription.created_at + timedelta(days=7)).strftime("%d %b %Y")
     )
+    given_name = get_user_name(user)
 
     enabled_content_source = set(EntryAdapters.get_unique_file_sources(user))
     successfully_configured = {
@@ -166,6 +168,7 @@ def config_page(request: Request):
             "current_model_state": successfully_configured,
             "anonymous_mode": state.anonymous_mode,
             "username": user.username,
+            "given_name": given_name,
             "conversation_options": all_conversation_options,
             "search_model_options": all_search_model_options,
             "selected_search_model_config": current_search_model_option.id,

@@ -122,6 +122,9 @@ image_generation_improve_prompt = PromptTemplate.from_template(
     """
 You are a talented creator. Generate a detailed prompt to generate an image based on the following description. Update the query below to improve the image generation. Add additional context to the query to improve the image generation. Make sure to retain any important information from the query. Use the conversation log to inform your response.
 
+Today's Date: {current_date}
+User's Location: {location}
+
 Conversation Log:
 {chat_history}
 
@@ -181,7 +184,7 @@ Answer (in second person):"""
 ## --
 extract_questions_gpt4all_sample = PromptTemplate.from_template(
     """
-<s>[INST] <<SYS>>Current Date: {current_date}<</SYS>> [/INST]</s>
+<s>[INST] <<SYS>>Current Date: {current_date}. User's Location: {location}<</SYS>> [/INST]</s>
 <s>[INST] How was my trip to Cambodia? [/INST]
 How was my trip to Cambodia?</s>
 <s>[INST] Who did I visit the temple with on that trip? [/INST]
@@ -215,6 +218,7 @@ You are Khoj, an extremely smart and helpful search assistant with the ability t
 What searches, if any, will you need to perform to answer the users question?
 Provide search queries as a JSON list of strings
 Current Date: {current_date}
+User's Location: {location}
 
 Q: How was my trip to Cambodia?
 
@@ -355,6 +359,7 @@ You are Khoj, an extremely smart and helpful search assistant. You are tasked wi
 What Google searches, if any, will you need to perform to answer the user's question?
 Provide search queries as a list of strings
 Current Date: {current_date}
+User's Location: {location}
 
 Here are some examples:
 History:
@@ -429,5 +434,19 @@ help_message = PromptTemplate.from_template(
 
 You are using the **{model}** model on the **{device}**.
 **version**: {version}
+""".strip()
+)
+
+# Personalization to the user
+# --
+user_location = PromptTemplate.from_template(
+    """
+User's Location: {location}
+""".strip()
+)
+
+user_name = PromptTemplate.from_template(
+    """
+User's Name: {name}
 """.strip()
 )

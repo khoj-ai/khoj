@@ -7,6 +7,7 @@ import requests
 
 from khoj.routers.helpers import extract_relevant_info, generate_online_subqueries
 from khoj.utils.helpers import is_none_or_empty
+from khoj.utils.rawconfig import LocationData
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ OLOSTEP_QUERY_PARAMS = {
 }
 
 
-async def search_with_google(query: str, conversation_history: dict):
+async def search_with_google(query: str, conversation_history: dict, location: LocationData):
     def _search_with_google(subquery: str):
         payload = json.dumps(
             {
@@ -62,7 +63,7 @@ async def search_with_google(query: str, conversation_history: dict):
         raise ValueError("SERPER_DEV_API_KEY is not set")
 
     # Breakdown the query into subqueries to get the correct answer
-    subqueries = await generate_online_subqueries(query, conversation_history)
+    subqueries = await generate_online_subqueries(query, conversation_history, location)
 
     response_dict = {}
 

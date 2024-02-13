@@ -1,4 +1,3 @@
-import json
 import logging
 from datetime import datetime, timedelta
 from typing import Optional
@@ -13,6 +12,7 @@ from khoj.processor.conversation.openai.utils import (
 from khoj.processor.conversation.utils import generate_chatml_messages_with_context
 from khoj.utils.constants import empty_escape_sequences
 from khoj.utils.helpers import ConversationCommand, is_none_or_empty
+from khoj.utils.rawconfig import LocationData
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +24,7 @@ def extract_questions(
     api_key=None,
     temperature=0,
     max_tokens=100,
+    location_data: LocationData = None,
 ):
     """
     Infer search queries to retrieve relevant notes to answer user query
@@ -31,6 +32,8 @@ def extract_questions(
 
     def _valid_question(question: str):
         return not is_none_or_empty(question) and question != "[]"
+
+    location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
 
     # Extract Past User Message and Inferred Questions from Conversation Log
     chat_history = "".join(
@@ -56,6 +59,7 @@ def extract_questions(
         chat_history=chat_history,
         text=text,
         yesterday_date=(today - timedelta(days=1)).strftime("%Y-%m-%d"),
+        location=location,
     )
     messages = [ChatMessage(content=prompt, role="assistant")]
 
@@ -125,6 +129,8 @@ def converse(
     conversation_commands=[ConversationCommand.Default],
     max_prompt_size=None,
     tokenizer_name=None,
+    location_data: LocationData = None,
+    user_name: str = None,
 ):
     """
     Converse with user using OpenAI's ChatGPT
@@ -134,6 +140,15 @@ def converse(
     compiled_references = "\n\n".join({f"# {item}" for item in references})
 
     conversation_primer = prompts.query_prompt.format(query=user_query)
+
+    if location_data:
+        location = f"{location_data.city}, {location_data.region}, {location_data.country}"
+        location_prompt = prompts.user_location.format(location=location)
+        conversation_primer = f"{location_prompt}\n{conversation_primer}"
+
+    if user_name:
+        user_name_prompt = prompts.user_name.format(name=user_name)
+        conversation_primer = f"{user_name_prompt}\n{conversation_primer}"
 
     # Get Conversation Primer appropriate to Conversation Type
     if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(compiled_references):
