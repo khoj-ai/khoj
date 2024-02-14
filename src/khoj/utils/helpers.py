@@ -331,7 +331,12 @@ def batcher(iterable, max_n):
         yield (x for x in chunk if x is not None)
 
 
+def is_env_var_true(env_var: str, default: str = "false") -> bool:
+    """Get state of boolean environment variable"""
+    return os.getenv(env_var, default).lower() == "true"
+
+
 def in_debug_mode():
     """Check if Khoj is running in debug mode.
     Set KHOJ_DEBUG environment variable to true to enable debug mode."""
-    return os.getenv("KHOJ_DEBUG", "false").lower() == "true"
+    return is_env_var_true("KHOJ_DEBUG")

@@ -177,8 +177,9 @@ def deduplicated_search_responses(hits: List[SearchResponse]):
 
 
 def rerank_and_sort_results(hits, query, rank_results, search_model_name):
-    # If we have more than one result and reranking is enabled
-    rank_results = rank_results and len(list(hits)) > 1
+    # Rerank results if explicitly requested or if device has GPU
+    # AND if we have more than one result
+    rank_results = (rank_results or state.device.type != "cpu") and len(list(hits)) > 1
 
     # Score all retrieved entries using the cross-encoder
     if rank_results:
