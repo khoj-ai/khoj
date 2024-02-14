@@ -65,12 +65,18 @@
     font-weight: 300;
 }
 
-.khoj-header {
+div.khoj-header {
     display: grid;
     grid-auto-flow: column;
     gap: 20px;
-    padding: 16px 0;
+    padding: 24px 16px 0px 0px;
     margin: 0 0 16px 0;
+    -webkit-user-select: none;
+    -webkit-app-region: drag;
+}
+
+a.khoj-nav {
+    -webkit-app-region: no-drag;
 }
 
 nav.khoj-nav {
@@ -117,7 +123,7 @@ img.khoj-logo {
         display: grid;
         grid-auto-flow: column;
         gap: 20px;
-        padding: 12px 10px;
+        padding: 24px 10px 10px 10px;
         margin: 0 0 16px 0;
     }
 

@@ -349,6 +349,7 @@
                 let data = await response.json();
                 conversationID = data.conversation_id;
                 chat_body.dataset.conversationId = conversationID;
+                await refreshChatSessionsPanel();
             }
 
 
@@ -665,6 +666,107 @@
                     return;
                 });
 
+            await refreshChatSessionsPanel();
+
+            fetch(`${hostURL}/api/chat/starters?client=desktop`, { headers })
+                .then(response => response.json())
+                .then(data => {
+                    // Render chat options, if any
+                    if (data.length > 0) {
+                        let questionStarterSuggestions = document.getElementById("question-starters");
+                        for (let index in data) {
+                            let questionStarter = data[index];
+                            let questionStarterButton = document.createElement('button');
+                            questionStarterButton.innerHTML = questionStarter;
+                            questionStarterButton.classList.add("question-starter");
+                            questionStarterButton.addEventListener('click', function() {
+                                questionStarterSuggestions.style.display = "none";
+                                document.getElementById("chat-input").value = questionStarter;
+                                chat();
+                            });
+                            questionStarterSuggestions.appendChild(questionStarterButton);
+                        }
+                        questionStarterSuggestions.style.display = "grid";
+                    }
+                })
+                .catch(err => {
+                    return;
+                });
+
+            fetch(`${hostURL}/api/chat/options`, { headers })
+                .then(response => response.json())
+                .then(data => {
+                    // Render chat options, if any
+                    if (data) {
+                        chatOptions = data;
+                    }
+                })
+                .catch(err => {
+                    return;
+                });
+
+            // Fill query field with value passed in URL query parameters, if any.
+            var query_via_url = new URLSearchParams(window.location.search).get("q");
+            if (query_via_url) {
+                document.getElementById("chat-input").value = query_via_url;
+                chat();
+            }
+        }
+
+        function flashStatusInChatInput(message) {
+            // Get chat input element and original placeholder
+            let chatInput = document.getElementById("chat-input");
+            let originalPlaceholder = chatInput.placeholder;
+            // Set placeholder to message
+            chatInput.placeholder = message;
+            // Reset placeholder after 2 seconds
+            setTimeout(() => {
+                chatInput.placeholder = originalPlaceholder;
+            }, 2000);
+        }
+
+        function createNewConversation() {
+            let chatBody = document.getElementById("chat-body");
+            chatBody.innerHTML = "";
+            flashStatusInChatInput("📝 New conversation started");
+            chatBody.dataset.conversationId = "";
+            chatBody.dataset.conversationTitle = "";
+            renderMessage("Hey 👋🏾, what's up?", "khoj");
+        }
+
+        async function clearConversationHistory() {
+            let chatInput = document.getElementById("chat-input");
+            let originalPlaceholder = chatInput.placeholder;
+            let chatBody = document.getElementById("chat-body");
+            let conversationId = chatBody.dataset.conversationId;
+
+            let deleteURL = `/api/chat/history?client=desktop`;
+            if (conversationId) {
+                deleteURL += `&conversation_id=${conversationId}`;
+            }
+
+            const hostURL = await window.hostURLAPI.getURL();
+            const khojToken = await window.tokenAPI.getToken();
+            const headers = { 'Authorization': `Bearer ${khojToken}` };
+
+            fetch(`${hostURL}${deleteURL}`, { method: "DELETE", headers })
+                .then(response => response.ok ? response.json() : Promise.reject(response))
+                .then(data => {
+                    chatBody.innerHTML = "";
+                    chatBody.dataset.conversationId = "";
+                    chatBody.dataset.conversationTitle = "";
+                    loadChat();
+                    flashStatusInChatInput("🗑 Cleared conversation history");
+                })
+                .catch(err => {
+                    flashStatusInChatInput("⛔️ Failed to clear conversation history");
+                })
+        }
+
+        async function refreshChatSessionsPanel() {
+            const hostURL = await window.hostURLAPI.getURL();
+            const khojToken = await window.tokenAPI.getToken();
+            const headers = { 'Authorization': `Bearer ${khojToken}` };
 
             fetch(`${hostURL}/api/chat/sessions`, { method: "GET", headers })
                 .then(response => response.json())
@@ -799,101 +901,9 @@
                             conversationListBody.appendChild(conversationButton);
                         }
                     }
-                })
-
-            fetch(`${hostURL}/api/chat/starters?client=desktop`, { headers })
-                .then(response => response.json())
-                .then(data => {
-                    // Render chat options, if any
-                    if (data.length > 0) {
-                        let questionStarterSuggestions = document.getElementById("question-starters");
-                        for (let index in data) {
-                            let questionStarter = data[index];
-                            let questionStarterButton = document.createElement('button');
-                            questionStarterButton.innerHTML = questionStarter;
-                            questionStarterButton.classList.add("question-starter");
-                            questionStarterButton.addEventListener('click', function() {
-                                questionStarterSuggestions.style.display = "none";
-                                document.getElementById("chat-input").value = questionStarter;
-                                chat();
-                            });
-                            questionStarterSuggestions.appendChild(questionStarterButton);
-                        }
-                        questionStarterSuggestions.style.display = "grid";
-                    }
-                })
-                .catch(err => {
+                }).catch(err => {
                     return;
-                });
-
-            fetch(`${hostURL}/api/chat/options`, { headers })
-                .then(response => response.json())
-                .then(data => {
-                    // Render chat options, if any
-                    if (data) {
-                        chatOptions = data;
-                    }
-                })
-                .catch(err => {
-                    return;
-                });
-
-            // Fill query field with value passed in URL query parameters, if any.
-            var query_via_url = new URLSearchParams(window.location.search).get("q");
-            if (query_via_url) {
-                document.getElementById("chat-input").value = query_via_url;
-                chat();
-            }
-        }
-
-        function flashStatusInChatInput(message) {
-            // Get chat input element and original placeholder
-            let chatInput = document.getElementById("chat-input");
-            let originalPlaceholder = chatInput.placeholder;
-            // Set placeholder to message
-            chatInput.placeholder = message;
-            // Reset placeholder after 2 seconds
-            setTimeout(() => {
-                chatInput.placeholder = originalPlaceholder;
-            }, 2000);
-        }
-
-        function createNewConversation() {
-            let chatBody = document.getElementById("chat-body");
-            chatBody.innerHTML = "";
-            flashStatusInChatInput("📝 New conversation started");
-            chatBody.dataset.conversationId = "";
-            chatBody.dataset.conversationTitle = "";
-            renderMessage("Hey 👋🏾, what's up?", "khoj");
-        }
-
-        async function clearConversationHistory() {
-            let chatInput = document.getElementById("chat-input");
-            let originalPlaceholder = chatInput.placeholder;
-            let chatBody = document.getElementById("chat-body");
-            let conversationId = chatBody.dataset.conversationId;
-
-            let deleteURL = `/api/chat/history?client=desktop`;
-            if (conversationId) {
-                deleteURL += `&conversation_id=${conversationId}`;
-            }
-
-            const hostURL = await window.hostURLAPI.getURL();
-            const khojToken = await window.tokenAPI.getToken();
-            const headers = { 'Authorization': `Bearer ${khojToken}` };
-
-            fetch(`${hostURL}${deleteURL}`, { method: "DELETE", headers })
-                .then(response => response.ok ? response.json() : Promise.reject(response))
-                .then(data => {
-                    chatBody.innerHTML = "";
-                    chatBody.dataset.conversationId = "";
-                    chatBody.dataset.conversationTitle = "";
-                    loadChat();
-                    flashStatusInChatInput("🗑 Cleared conversation history");
-                })
-                .catch(err => {
-                    flashStatusInChatInput("⛔️ Failed to clear conversation history");
-                })
+            });
         }
 
         let sendMessageTimeout;

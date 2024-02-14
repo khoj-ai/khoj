@@ -356,7 +356,7 @@ const createWindow = (tab = 'chat.html') => {
       width: 800,
       height: 800,
       show: false,
-    //   titleBarStyle: 'hidden',
+      titleBarStyle: 'hidden',
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
         nodeIntegration: true,
