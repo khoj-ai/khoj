@@ -73,6 +73,7 @@ class UserAuthenticationBackend(AuthenticationBackend):
             Subscription.objects.create(user=default_user, type="standard", renewal_date=renewal_date)
 
     async def authenticate(self, request: HTTPConnection):
+        # Request from Web client
         current_user = request.session.get("user")
         if current_user and current_user.get("email"):
             user = (
@@ -93,6 +94,8 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 if subscribed:
                     return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(user)
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
+
+        # Request from Desktop, Emacs, Obsidian clients
         if len(request.headers.get("Authorization", "").split("Bearer ")) == 2:
             # Get bearer token from header
             bearer_token = request.headers["Authorization"].split("Bearer ")[1]
@@ -116,7 +119,8 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 if subscribed:
                     return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(user_with_token.user)
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user_with_token.user)
-        # Get query params for client_id and client_secret
+
+        # Request from Whatsapp client
         client_id = request.query_params.get("client_id")
         if client_id:
             # Get the client secret, which is passed in the Authorization header
@@ -163,6 +167,8 @@ class UserAuthenticationBackend(AuthenticationBackend):
                     AuthenticatedKhojUser(user, client_application),
                 )
             return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user, client_application)
+
+        # No auth required if server in anonymous mode
         if state.anonymous_mode:
             user = await self.khojuser_manager.filter(username="default").prefetch_related("subscription").afirst()
             if user:
@@ -258,28 +264,32 @@ def configure_routes(app):
     from khoj.routers.api import api
     from khoj.routers.api_chat import api_chat
     from khoj.routers.api_config import api_config
-    from khoj.routers.auth import auth_router
     from khoj.routers.indexer import indexer
     from khoj.routers.web_client import web_client
 
     app.include_router(api, prefix="/api")
+    app.include_router(api_chat, prefix="/api/chat")
     app.include_router(api_config, prefix="/api/config")
     app.include_router(indexer, prefix="/api/v1/index")
     app.include_router(web_client)
-    app.include_router(auth_router, prefix="/auth")
-    app.include_router(api_chat, prefix="/api/chat")
+
+    if not state.anonymous_mode:
+        from khoj.routers.auth import auth_router
+
+        app.include_router(auth_router, prefix="/auth")
+        logger.info("🔑 Enabled Authentication")
 
     if state.billing_enabled:
         from khoj.routers.subscription import subscription_router
 
-        logger.info("💳 Enabled Billing")
         app.include_router(subscription_router, prefix="/api/subscription")
+        logger.info("💳 Enabled Billing")
 
     if is_twilio_enabled():
-        logger.info("📞 Enabled Twilio")
         from khoj.routers.api_phone import api_phone
 
         app.include_router(api_phone, prefix="/api/config/phone")
+        logger.info("📞 Enabled Twilio")
 
 
 def configure_middleware(app):

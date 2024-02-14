@@ -1,8 +1,6 @@
 import logging
 import os
 
-from twilio.rest import Client
-
 from khoj.database.models import KhojUser
 
 logger = logging.getLogger(__name__)
@@ -13,6 +11,8 @@ verification_service_sid = os.getenv("TWILIO_VERIFICATION_SID")
 
 twilio_enabled = account_sid is not None and auth_token is not None and verification_service_sid is not None
 if twilio_enabled:
+    from twilio.rest import Client
+
     client = Client(account_sid, auth_token)
 
 

@@ -13,7 +13,7 @@ COPY pyproject.toml .
 COPY README.md .
 ARG VERSION=0.0.0
 RUN sed -i "s/dynamic = \\[\"version\"\\]/version = \"$VERSION\"/" pyproject.toml && \
-    TMPDIR=/home/cache/ pip install --cache-dir=/home/cache/ -e .
+    TMPDIR=/home/cache/ pip install --cache-dir=/home/cache/ -e .[prod]
 
 # Copy Source Code
 COPY . .
