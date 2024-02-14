@@ -94,22 +94,18 @@ prod = [
     "stripe == 7.3.0",
     "twilio == 8.11",
 ]
-test = [
+dev = [
+    "khoj-assistant[prod]",
     "pytest >= 7.1.2",
+    "pytest-xdist[psutil]",
+    "pytest-django == 4.5.2",
+    "pytest-asyncio == 0.21.1",
     "freezegun >= 1.2.0",
     "factory-boy >= 3.2.1",
-    "trio >= 0.22.0",
-    "pytest-xdist",
     "psutil >= 5.8.0",
-]
-dev = [
-    "khoj-assistant[test]",
-    "khoj-assistant[prod]",
     "mypy >= 1.0.1",
     "black >= 23.1.0",
     "pre-commit >= 3.0.4",
-    "pytest-django == 4.5.2",
-    "pytest-asyncio == 0.21.1",
 ]
 
 [tool.hatch.version]
