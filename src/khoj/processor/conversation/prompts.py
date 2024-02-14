@@ -316,7 +316,7 @@ User: I've been having a hard time at work. I'm thinking of quitting.
 AI: I'm sorry to hear that. It's important to take care of your mental health. Have you considered talking to your manager about your concerns?
 
 Q: What are the best ways to quit a job?
-Khoj: ["general"]
+Khoj: ["default"]
 
 Example 3:
 Chat History:
@@ -329,14 +329,14 @@ Khoj: ["notes"]
 Example 4:
 Chat History:
 
-Q: I want to make chocolate cake. What was my recipe?
-Khoj: ["notes"]
+Q: What's the latest news with the first company I worked for?
+Khoj: ["notes", "online"]
 
 Example 5:
 Chat History:
 
-Q: What's the latest news with the first company I worked for?
-Khoj: ["notes", "online"]
+Q: Who is Sandra?
+Khoj: ["default"]
 
 Now it's your turn to pick the tools you would like to use to answer the user's question. Provide your response as a list of strings.
 

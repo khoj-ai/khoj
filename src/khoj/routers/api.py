@@ -283,7 +283,10 @@ async def extract_references_and_questions(
     compiled_references: List[Any] = []
     inferred_queries: List[str] = []
 
-    if not ConversationCommand.Notes in conversation_commands:
+    if (
+        not ConversationCommand.Notes in conversation_commands
+        and not ConversationCommand.Default in conversation_commands
+    ):
         return compiled_references, inferred_queries, q
 
     if not await sync_to_async(EntryAdapters.user_has_entries)(user=user):
