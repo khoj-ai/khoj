@@ -1,4 +1,5 @@
 import logging
+from collections import deque
 from datetime import datetime
 from threading import Thread
 from typing import Any, Iterator, List, Union
@@ -212,21 +213,34 @@ def llm_thread(g, messages: List[ChatMessage], model: Any):
         for message in conversation_history
     ]
 
-    stop_words = ["<s>", "INST]", "Notes:"]
+    stop_phrases = ["<s>", "INST]", "Notes:"]
     chat_history = "".join(formatted_messages)
     templated_system_message = prompts.system_prompt_gpt4all.format(message=system_message.content)
     templated_user_message = prompts.user_message_gpt4all.format(message=user_message.content)
     prompted_message = templated_system_message + chat_history + templated_user_message
+    response_queue: deque[str] = deque(maxlen=3)  # Create a response queue with a maximum length of 3
+    hit_stop_phrase = False
 
     state.chat_lock.acquire()
     response_iterator = send_message_to_model_offline(prompted_message, loaded_model=model, streaming=True)
     try:
         for response in response_iterator:
-            if any(stop_word in response.strip() for stop_word in stop_words):
-                logger.debug(f"Stop response as hit stop word in {response}")
+            response_queue.append(response)
+            hit_stop_phrase = any(stop_phrase in "".join(response_queue) for stop_phrase in stop_phrases)
+            if hit_stop_phrase:
+                logger.debug(f"Stop response as hit stop phrase: {''.join(response_queue)}")
                 break
-            g.send(response)
+            # Start streaming the response at a lag once the queue is full
+            # This allows stop word testing before sending the response
+            if len(response_queue) == response_queue.maxlen:
+                g.send(response_queue[0])
     finally:
+        if not hit_stop_phrase:
+            if len(response_queue) == response_queue.maxlen:
+                # remove already sent reponse chunk
+                response_queue.popleft()
+            # send the remaining response
+            g.send("".join(response_queue))
         state.chat_lock.release()
     g.close()
 
