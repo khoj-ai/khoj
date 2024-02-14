@@ -392,7 +392,7 @@ class ConversationAdapters:
         if conversation_id:
             conversation = Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
         if not conversation_id or not conversation.exists():
-            conversation = Conversation.objects.filter(user=user, client=client_application)
+            conversation = Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at")
         if conversation.exists():
             return conversation.first()
         return Conversation.objects.create(user=user, client=client_application)
@@ -514,7 +514,7 @@ class ConversationAdapters:
         else:
             conversation = Conversation.objects.filter(user=user, client=client_application)
         if conversation.exists():
-            conversation.update(conversation_log=conversation_log, slug=slug)
+            conversation.update(conversation_log=conversation_log, slug=slug, updated_at=datetime.now(tz=timezone.utc))
         else:
             Conversation.objects.create(
                 user=user, conversation_log=conversation_log, client=client_application, slug=slug
