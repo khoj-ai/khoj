@@ -2,10 +2,7 @@ import logging
 import os
 from typing import Optional
 
-from authlib.integrations.starlette_client import OAuth, OAuthError
 from fastapi import APIRouter
-from google.auth.transport import requests as google_requests
-from google.oauth2 import id_token
 from starlette.authentication import requires
 from starlette.config import Config
 from starlette.requests import Request
@@ -17,7 +14,6 @@ from khoj.database.adapters import (
     get_khoj_tokens,
     get_or_create_user,
 )
-from khoj.database.models import KhojApiUser
 from khoj.routers.helpers import update_telemetry_state
 from khoj.utils import state
 
@@ -25,11 +21,23 @@ logger = logging.getLogger(__name__)
 
 auth_router = APIRouter()
 
-if not state.anonymous_mode and not (os.environ.get("GOOGLE_CLIENT_ID") and os.environ.get("GOOGLE_CLIENT_SECRET")):
-    logger.warning(
-        "🚨 Use --anonymous-mode flag to disable Google OAuth or set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET environment variables to enable it"
-    )
-else:
+
+if not state.anonymous_mode:
+    missing_requirements = []
+    from authlib.integrations.starlette_client import OAuth, OAuthError
+
+    try:
+        from google.auth.transport import requests as google_requests
+        from google.oauth2 import id_token
+    except ImportError:
+        missing_requirements += ["Install the Khoj production package with `pip install khoj-assistant[prod]`"]
+    if not os.environ.get("GOOGLE_CLIENT_ID") or not os.environ.get("GOOGLE_CLIENT_SECRET"):
+        missing_requirements += ["Set your GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET as environment variables"]
+    if missing_requirements:
+        requirements_string = "\n   - " + "\n   - ".join(missing_requirements)
+        error_msg = f"🚨 Start Khoj with --anonymous-mode flag or to enable authentication:{requirements_string}"
+        logger.error(error_msg)
+
     config = Config(environ=os.environ)
 
     oauth = OAuth(config)

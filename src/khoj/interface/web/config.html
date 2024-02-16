@@ -187,8 +187,10 @@
             </div>
         </div>
     </div>
+    {% if not anonymous_mode or is_twilio_enabled %}
     <div id="clients" class="section">
         <h2 class="section-title">Clients</h2>
+        {% if not anonymous_mode %}
         <div id="clients-api" class="api-settings">
             <div class="card-title-row">
                 <img class="card-icon" src="/static/assets/icons/key.svg" alt="API Key">
@@ -213,6 +215,8 @@
                 </button>
             </div>
         </div>
+        {% endif %}
+        {% if is_twilio_enabled %}
         <div id="phone-number-input-card" class="api-settings">
             <div class="card-title-row">
                 <img class="card-icon" src="/static/assets/icons/whatsapp.svg" alt="WhatsApp icon">
@@ -244,7 +248,9 @@
                 </button>
             </div>
         </div>
+        {% endif %}
     </div>
+    {% endif %}
     {% if billing_enabled %}
     <div id="billing" class="section">
         <h2 class="section-title">Billing</h2>
