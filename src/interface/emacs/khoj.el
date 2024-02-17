@@ -426,7 +426,7 @@ Auto invokes setup steps on calling main entrypoint."
           (url-retrieve (format "%s/api/v1/index/update?%s&force=%s&client=emacs" khoj-server-url type-query (or force "false"))
                         ;; render response from indexing API endpoint on server
                         (lambda (status)
-                          (if (not status)
+                          (if (not (plist-get status :error))
                               (message "khoj.el: %scontent index %supdated" (if content-type (format "%s " content-type) "all ") (if force "force " ""))
                             (progn
                               (khoj--delete-open-network-connections-to-server)
