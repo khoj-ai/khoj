@@ -181,7 +181,7 @@ def converse_offline(
                 simplified_online_results[result] = online_results[result]["extracted_content"]
 
         conversation_primer = f"{prompts.online_search_conversation.format(online_results=str(simplified_online_results))}\n{conversation_primer}"
-    if ConversationCommand.Notes in conversation_commands:
+    if not is_none_or_empty(compiled_references_message):
         conversation_primer = f"{prompts.notes_conversation_gpt4all.format(references=compiled_references_message)}\n{conversation_primer}"
 
     # Setup Prompt with Primer or Conversation History

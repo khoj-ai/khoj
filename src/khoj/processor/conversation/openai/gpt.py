@@ -152,7 +152,7 @@ def converse(
                 simplified_online_results[result] = online_results[result]["extracted_content"]
 
         conversation_primer = f"{prompts.online_search_conversation.format(online_results=str(simplified_online_results))}\n{conversation_primer}"
-    if ConversationCommand.Notes in conversation_commands:
+    if not is_none_or_empty(compiled_references):
         conversation_primer = f"{prompts.notes_conversation.format(query=user_query, references=compiled_references)}\n{conversation_primer}"
 
     # Setup Prompt with Primer or Conversation History
