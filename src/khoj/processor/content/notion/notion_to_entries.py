@@ -114,9 +114,7 @@ class NotionToEntries(TextToEntries):
 
         current_entries = TextToEntries.split_entries_by_max_tokens(current_entries, max_tokens=256)
 
-        current_entries = self.update_entries_with_ids(current_entries, user=user)
-
-        return current_entries
+        return self.update_entries_with_ids(current_entries, user=user)
 
     def process_page(self, page):
         page_id = page["id"]
