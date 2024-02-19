@@ -234,8 +234,9 @@ class NotionToEntries(TextToEntries):
         elif "Event" in properties:
             title_field = "Event"
         elif title_field not in properties:
-            logger.error(f"Page {page_id} does not have a title field")
-            return None, None
+            logger.warning(f"Title field not found for page {page_id}. Setting title as None...")
+            title = None
+            return title, content
         try:
             title = page["properties"][title_field]["title"][0]["text"]["content"]
         except Exception as e:
