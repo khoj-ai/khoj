@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, shell, session } = require('electron');
 const todesktop = require("@todesktop/runtime");
 const khojPackage = require('./package.json');
 
@@ -401,6 +401,33 @@ async function getUserInfo() {
     }
 }
 
+function addCSPHeaderToSession () {
+    // Get hostURL from store or use default
+    const hostURL = store.get('hostURL') || KHOJ_URL;
+
+    // Construct Content Security Policy
+    const defaultDomains = `'self' ${hostURL} https://app.khoj.dev https://assets.khoj.dev`;
+    const default_src = `default-src ${defaultDomains};`;
+    const script_src = `script-src ${defaultDomains} 'unsafe-inline';`;
+    const connect_src = `connect-src ${hostURL} https://ipapi.co/json;`;
+    const style_src = `style-src ${defaultDomains} 'unsafe-inline' https://fonts.googleapis.com;`;
+    const img_src = `img-src ${defaultDomains} data: https://*.khoj.dev https://*.googleusercontent.com;`;
+    const font_src = `font-src https://fonts.gstatic.com;`;
+    const child_src = `child-src 'none';`;
+    const objectSrc = `object-src 'none';`;
+    const csp = `${default_src} ${script_src} ${connect_src} ${style_src} ${img_src} ${font_src} ${child_src} ${objectSrc}`;
+
+    // Add Content Security Policy to all web requests
+    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+        callback({
+            responseHeaders: {
+                ...details.responseHeaders,
+                'Content-Security-Policy': [csp]
+            }
+        })
+    })
+ }
+
 let firstRun = true;
 let win = null;
 let titleBarStyle = process.platform === 'win32' ? 'default' : 'hidden';
@@ -480,6 +507,8 @@ const createWindow = (tab = 'chat.html') => {
 }
 
 app.whenReady().then(() => {
+    addCSPHeaderToSession();
+
     ipcMain.on('set-title', handleSetTitle);
 
     ipcMain.handle('handleFileOpen', (event, type) => {

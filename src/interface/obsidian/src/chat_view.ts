@@ -80,6 +80,20 @@ export class KhojChatView extends KhojPaneView {
 
         super.onOpen();
 
+        // Construct Content Security Policy
+        let defaultDomains = `'self' ${this.setting.khojUrl} https://app.khoj.dev https://assets.khoj.dev`;
+        const defaultSrc = `default-src ${defaultDomains};`;
+        const scriptSrc = `script-src ${defaultDomains} 'unsafe-inline';`;
+        const connectSrc = `connect-src ${this.setting.khojUrl} https://ipapi.co/json;`;
+        const styleSrc = `style-src ${defaultDomains} 'unsafe-inline';`;
+        const imgSrc = `img-src ${defaultDomains} data: https://*.khoj.dev https://*.googleusercontent.com;`;
+        const childSrc = `child-src 'none';`;
+        const objectSrc = `object-src 'none';`;
+        const csp = `${defaultSrc} ${scriptSrc} ${connectSrc} ${styleSrc} ${imgSrc} ${childSrc} ${objectSrc}`;
+
+        // Add CSP meta tag to the Khoj Chat modal
+        document.head.createEl("meta", { attr: { "http-equiv": "Content-Security-Policy", "content": `${csp}` } });
+
         // Create area for chat logs
         let chatBodyEl = contentEl.createDiv({ attr: { id: "khoj-chat-body", class: "khoj-chat-body" } });
 

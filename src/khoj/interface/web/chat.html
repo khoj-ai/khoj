@@ -4,6 +4,15 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
         <meta property="og:image" content="https://assets.khoj.dev/khoj_hero.png">
+        <meta http-equiv="Content-Security-Policy"
+              content="default-src 'self' https://assets.khoj.dev;
+                       script-src 'self' https://assets.khoj.dev 'unsafe-inline';
+                       connect-src 'self' https://ipapi.co/json;
+                       style-src 'self' https://assets.khoj.dev 'unsafe-inline' https://fonts.googleapis.com;
+                       img-src 'self' data: https://*.khoj.dev https://*.googleusercontent.com;
+                       font-src https://assets.khoj.dev https://fonts.gstatic.com;
+                       child-src 'none';
+                       object-src 'none';">
         <title>Khoj - Chat</title>
 
         <link rel="stylesheet" href="/static/assets/khoj.css?v={{ khoj_version }}">
