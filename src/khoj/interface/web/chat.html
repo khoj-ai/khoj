@@ -358,6 +358,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 let data = await response.json();
                 conversationID = data.conversation_id;
                 chat_body.dataset.conversationId = conversationID;
+                refreshChatSessionsPanel();
             }
 
             // Generate backend API URL to execute query
@@ -626,144 +627,7 @@ To get started, just start typing below. You can also type / to see a list of co
                     return;
                 });
 
-            fetch('/api/chat/sessions', { method: "GET" })
-                .then(response => response.json())
-                .then(data => {
-                    let conversationListBody = document.getElementById("conversation-list-body");
-                    conversationListBody.innerHTML = "";
-                    let conversationListBodyHeader = document.getElementById("conversation-list-header");
-
-                    let chatBody = document.getElementById("chat-body");
-                    conversationId = chatBody.dataset.conversationId;
-
-                    if (data.length > 0) {
-                        conversationListBodyHeader.style.display = "block";
-                        for (let index in data) {
-                            let conversation = data[index];
-                            let conversationButton = document.createElement('div');
-                            let incomingConversationId = conversation["conversation_id"];
-                            const conversationTitle = conversation["slug"] || `New conversation 🌱`;
-                            conversationButton.innerHTML = conversationTitle;
-                            conversationButton.classList.add("conversation-button");
-                            if (incomingConversationId == conversationId) {
-                                conversationButton.classList.add("selected-conversation");
-                            }
-                            conversationButton.addEventListener('click', function() {
-                                let chatBody = document.getElementById("chat-body");
-                                chatBody.innerHTML = "";
-                                chatBody.dataset.conversationId = incomingConversationId;
-                                chatBody.dataset.conversationTitle = conversationTitle;
-                                loadChat();
-                            });
-                            let threeDotMenu = document.createElement('div');
-                            threeDotMenu.classList.add("three-dot-menu");
-                            let threeDotMenuButton = document.createElement('button');
-                            threeDotMenuButton.innerHTML = "⋮";
-                            threeDotMenuButton.classList.add("three-dot-menu-button");
-                            threeDotMenuButton.addEventListener('click', function(event) {
-                                event.stopPropagation();
-
-                                let existingChildren = threeDotMenu.children;
-
-                                if (existingChildren.length > 1) {
-                                    // Skip deleting the first, since that's the menu button.
-                                    for (let i = 1; i < existingChildren.length; i++) {
-                                        existingChildren[i].remove();
-                                    }
-                                    return;
-                                }
-
-                                let conversationMenu = document.createElement('div');
-                                conversationMenu.classList.add("conversation-menu");
-
-                                let deleteButton = document.createElement('button');
-                                deleteButton.innerHTML = "Delete";
-                                deleteButton.classList.add("delete-conversation-button");
-                                deleteButton.classList.add("three-dot-menu-button-item");
-                                deleteButton.addEventListener('click', function() {
-                                    let deleteURL = `/api/chat/history?client=web&conversation_id=${incomingConversationId}`;
-                                    fetch(deleteURL , { method: "DELETE" })
-                                        .then(response => response.ok ? response.json() : Promise.reject(response))
-                                        .then(data => {
-                                            let chatBody = document.getElementById("chat-body");
-                                            chatBody.innerHTML = "";
-                                            chatBody.dataset.conversationId = "";
-                                            chatBody.dataset.conversationTitle = "";
-                                            loadChat();
-                                        })
-                                        .catch(err => {
-                                            return;
-                                        });
-                                });
-                                conversationMenu.appendChild(deleteButton);
-                                threeDotMenu.appendChild(conversationMenu);
-
-                                let editTitleButton = document.createElement('button');
-                                editTitleButton.innerHTML = "Rename";
-                                editTitleButton.classList.add("edit-title-button");
-                                editTitleButton.classList.add("three-dot-menu-button-item");
-                                editTitleButton.addEventListener('click', function(event) {
-                                    event.stopPropagation();
-
-                                    let conversationMenuChildren = conversationMenu.children;
-
-                                    let totalItems = conversationMenuChildren.length;
-
-                                    for (let i = totalItems - 1; i >= 0; i--) {
-                                        conversationMenuChildren[i].remove();
-                                    }
-
-                                    // Create a dialog box to get new title for conversation
-                                    let conversationTitleInputBox = document.createElement('div');
-                                    conversationTitleInputBox.classList.add("conversation-title-input-box");
-                                    let conversationTitleInput = document.createElement('input');
-                                    conversationTitleInput.classList.add("conversation-title-input");
-
-                                    conversationTitleInput.value = conversationTitle;
-
-                                    conversationTitleInput.addEventListener('click', function(event) {
-                                        event.stopPropagation();
-                                        if (event.key === "Enter") {
-                                            event.preventDefault();
-                                            conversationTitleInputButton.click();
-                                        }
-                                    });
-
-                                    conversationTitleInputBox.appendChild(conversationTitleInput);
-                                    let conversationTitleInputButton = document.createElement('button');
-                                    conversationTitleInputButton.innerHTML = "Save";
-                                    conversationTitleInputButton.classList.add("three-dot-menu-button-item");
-                                    conversationTitleInputButton.addEventListener('click', function(event) {
-                                        event.stopPropagation();
-                                        let newTitle = conversationTitleInput.value;
-                                        if (newTitle != null) {
-                                            let editURL = `/api/chat/title?client=web&conversation_id=${incomingConversationId}&title=${newTitle}`;
-                                            fetch(editURL , { method: "PATCH" })
-                                                .then(response => response.ok ? response.json() : Promise.reject(response))
-                                                .then(data => {
-                                                    conversationButton.innerHTML = newTitle;
-                                                })
-                                                .catch(err => {
-                                                    return;
-                                                });
-                                        conversationTitleInputBox.remove();
-                                    }});
-                                    conversationTitleInputBox.appendChild(conversationTitleInputButton);
-                                    conversationMenu.appendChild(conversationTitleInputBox);
-                                });
-                                conversationMenu.appendChild(editTitleButton);
-                                threeDotMenu.appendChild(conversationMenu);
-                            });
-                            threeDotMenu.appendChild(threeDotMenuButton);
-                            conversationButton.appendChild(threeDotMenu);
-                            conversationListBody.appendChild(conversationButton);
-                        }
-                    }
-                })
-                .catch(err => {
-                    console.log(err);
-                    return;
-                });
+            refreshChatSessionsPanel();
 
             fetch('/api/chat/options')
                 .then(response => response.json())
@@ -829,6 +693,147 @@ To get started, just start typing below. You can also type / to see a list of co
             chatBody.dataset.conversationId = "";
             chatBody.dataset.conversationTitle = "";
             renderMessage(welcome_message, "khoj");
+        }
+
+        function refreshChatSessionsPanel() {
+            fetch('/api/chat/sessions', { method: "GET" })
+                .then(response => response.json())
+                .then(data => {
+                    let conversationListBody = document.getElementById("conversation-list-body");
+                    conversationListBody.innerHTML = "";
+                    let conversationListBodyHeader = document.getElementById("conversation-list-header");
+
+                    let chatBody = document.getElementById("chat-body");
+                    conversationId = chatBody.dataset.conversationId;
+
+                    if (data.length > 0) {
+                        conversationListBodyHeader.style.display = "block";
+                        for (let index in data) {
+                            let conversation = data[index];
+                            let conversationButton = document.createElement('div');
+                            let incomingConversationId = conversation["conversation_id"];
+                            const conversationTitle = conversation["slug"] || `New conversation 🌱`;
+                            conversationButton.innerHTML = conversationTitle;
+                            conversationButton.classList.add("conversation-button");
+                            if (incomingConversationId == conversationId) {
+                                conversationButton.classList.add("selected-conversation");
+                            }
+                            conversationButton.addEventListener('click', function() {
+                                let chatBody = document.getElementById("chat-body");
+                                chatBody.innerHTML = "";
+                                chatBody.dataset.conversationId = incomingConversationId;
+                                chatBody.dataset.conversationTitle = conversationTitle;
+                                loadChat();
+                            });
+                            let threeDotMenu = document.createElement('div');
+                            threeDotMenu.classList.add("three-dot-menu");
+                            let threeDotMenuButton = document.createElement('button');
+                            threeDotMenuButton.innerHTML = "⋮";
+                            threeDotMenuButton.classList.add("three-dot-menu-button");
+                            threeDotMenuButton.addEventListener('click', function(event) {
+                                event.stopPropagation();
+
+                                let existingChildren = threeDotMenu.children;
+
+                                if (existingChildren.length > 1) {
+                                    // Skip deleting the first, since that's the menu button.
+                                    for (let i = 1; i < existingChildren.length; i++) {
+                                        existingChildren[i].remove();
+                                    }
+                                    return;
+                                }
+
+                                let conversationMenu = document.createElement('div');
+                                conversationMenu.classList.add("conversation-menu");
+
+                                let editTitleButton = document.createElement('button');
+                                editTitleButton.innerHTML = "Rename";
+                                editTitleButton.classList.add("edit-title-button");
+                                editTitleButton.classList.add("three-dot-menu-button-item");
+                                editTitleButton.addEventListener('click', function(event) {
+                                    event.stopPropagation();
+
+                                    let conversationMenuChildren = conversationMenu.children;
+
+                                    let totalItems = conversationMenuChildren.length;
+
+                                    for (let i = totalItems - 1; i >= 0; i--) {
+                                        conversationMenuChildren[i].remove();
+                                    }
+
+                                    // Create a dialog box to get new title for conversation
+                                    let conversationTitleInputBox = document.createElement('div');
+                                    conversationTitleInputBox.classList.add("conversation-title-input-box");
+                                    let conversationTitleInput = document.createElement('input');
+                                    conversationTitleInput.classList.add("conversation-title-input");
+
+                                    conversationTitleInput.value = conversationTitle;
+
+                                    conversationTitleInput.addEventListener('click', function(event) {
+                                        event.stopPropagation();
+                                        if (event.key === "Enter") {
+                                            event.preventDefault();
+                                            conversationTitleInputButton.click();
+                                        }
+                                    });
+
+                                    conversationTitleInputBox.appendChild(conversationTitleInput);
+                                    let conversationTitleInputButton = document.createElement('button');
+                                    conversationTitleInputButton.innerHTML = "Save";
+                                    conversationTitleInputButton.classList.add("three-dot-menu-button-item");
+                                    conversationTitleInputButton.addEventListener('click', function(event) {
+                                        event.stopPropagation();
+                                        let newTitle = conversationTitleInput.value;
+                                        if (newTitle != null) {
+                                            let editURL = `/api/chat/title?client=web&conversation_id=${incomingConversationId}&title=${newTitle}`;
+                                            fetch(editURL , { method: "PATCH" })
+                                                .then(response => response.ok ? response.json() : Promise.reject(response))
+                                                .then(data => {
+                                                    conversationButton.innerHTML = newTitle;
+                                                })
+                                                .catch(err => {
+                                                    return;
+                                                });
+                                        conversationTitleInputBox.remove();
+                                    }});
+                                    conversationTitleInputBox.appendChild(conversationTitleInputButton);
+                                    conversationMenu.appendChild(conversationTitleInputBox);
+                                });
+                                conversationMenu.appendChild(editTitleButton);
+                                threeDotMenu.appendChild(conversationMenu);
+
+                                let deleteButton = document.createElement('button');
+                                deleteButton.innerHTML = "Delete";
+                                deleteButton.classList.add("delete-conversation-button");
+                                deleteButton.classList.add("three-dot-menu-button-item");
+                                deleteButton.addEventListener('click', function() {
+                                    let deleteURL = `/api/chat/history?client=web&conversation_id=${incomingConversationId}`;
+                                    fetch(deleteURL , { method: "DELETE" })
+                                        .then(response => response.ok ? response.json() : Promise.reject(response))
+                                        .then(data => {
+                                            let chatBody = document.getElementById("chat-body");
+                                            chatBody.innerHTML = "";
+                                            chatBody.dataset.conversationId = "";
+                                            chatBody.dataset.conversationTitle = "";
+                                            loadChat();
+                                        })
+                                        .catch(err => {
+                                            return;
+                                        });
+                                });
+                                conversationMenu.appendChild(deleteButton);
+                                threeDotMenu.appendChild(conversationMenu);
+                            });
+                            threeDotMenu.appendChild(threeDotMenuButton);
+                            conversationButton.appendChild(threeDotMenu);
+                            conversationListBody.appendChild(conversationButton);
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.log(err);
+                    return;
+                });
         }
 
         function clearConversationHistory() {
@@ -1013,16 +1018,6 @@ To get started, just start typing below. You can also type / to see a list of co
                 <div id="chat-footer">
                     <div id="chat-tooltip" style="display: none;"></div>
                     <div id="input-row">
-                        <button id="clear-chat-button" class="input-row-button" onclick="clearConversationHistory()">
-                            <svg class="input-row-button-img" alt="Clear Chat History" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-                                <rect width="128" height="128" fill="none"/>
-                                <line x1="216" y1="56" x2="40" y2="56" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
-                                <line x1="104" y1="104" x2="104" y2="168" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
-                                <line x1="152" y1="104" x2="152" y2="168" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
-                                <path d="M200,56V208a8,8,0,0,1-8,8H64a8,8,0,0,1-8-8V56" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
-                                <path d="M168,56V40a16,16,0,0,0-16-16H104A16,16,0,0,0,88,40V56" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
-                            </svg>
-                        </button>
                         <textarea id="chat-input" class="option" oninput="onChatInput()" onkeydown=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands"></textarea>
                         <button id="speak-button" class="input-row-button"
                             ontouchstart="speechToText(event)" ontouchend="speechToText(event)" ontouchcancel="speechToText(event)" onmousedown="speechToText(event)">
@@ -1361,7 +1356,7 @@ To get started, just start typing below. You can also type / to see a list of co
         }
         #input-row {
             display: grid;
-            grid-template-columns: 32px auto 32px 40px;
+            grid-template-columns: auto 32px 40px;
             grid-column-gap: 10px;
             grid-row-gap: 10px;
             background: var(--background-color);

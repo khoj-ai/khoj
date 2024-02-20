@@ -331,7 +331,8 @@ async def chat(
         user_name,
     )
 
-    chat_metadata.update({"conversation_command": ",".join([cmd.value for cmd in conversation_commands])})
+    cmd_set = set([cmd.value for cmd in conversation_commands])
+    chat_metadata["conversation_command"] = cmd_set
 
     update_telemetry_state(
         request=request,

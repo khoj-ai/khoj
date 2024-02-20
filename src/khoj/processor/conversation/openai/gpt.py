@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import datetime, timedelta
 from typing import Optional
@@ -29,10 +30,6 @@ def extract_questions(
     """
     Infer search queries to retrieve relevant notes to answer user query
     """
-
-    def _valid_question(question: str):
-        return not is_none_or_empty(question) and question != "[]"
-
     location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
 
     # Extract Past User Message and Inferred Questions from Conversation Log
@@ -75,23 +72,13 @@ def extract_questions(
 
     # Extract, Clean Message from GPT's Response
     try:
-        split_questions = (
-            response.content.strip(empty_escape_sequences)
-            .replace("['", '["')
-            .replace("']", '"]')
-            .replace("', '", '", "')
-            .replace('["', "")
-            .replace('"]', "")
-            .split('", "')
-        )
-        questions = []
-
-        for question in split_questions:
-            if question not in questions and _valid_question(question):
-                questions.append(question)
-
-        if is_none_or_empty(questions):
-            raise ValueError("GPT returned empty JSON")
+        response = response.strip()
+        response = json.loads(response)
+        response = [q.strip() for q in response if q.strip()]
+        if not isinstance(response, list) or not response or len(response) == 0:
+            logger.error(f"Invalid response for constructing subqueries: {response}")
+            return [text]
+        return response
     except:
         logger.warning(f"GPT returned invalid JSON. Falling back to using user message as search query.\n{response}")
         questions = [text]
@@ -165,7 +152,7 @@ def converse(
                 simplified_online_results[result] = online_results[result]["extracted_content"]
 
         conversation_primer = f"{prompts.online_search_conversation.format(online_results=str(simplified_online_results))}\n{conversation_primer}"
-    if ConversationCommand.Notes in conversation_commands:
+    if not is_none_or_empty(compiled_references):
         conversation_primer = f"{prompts.notes_conversation.format(query=user_query, references=compiled_references)}\n{conversation_primer}"
 
     # Setup Prompt with Primer or Conversation History

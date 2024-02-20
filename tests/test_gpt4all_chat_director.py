@@ -22,15 +22,21 @@ fake = Faker()
 
 # Helpers
 # ----------------------------------------------------------------------------------------------------
-def populate_chat_history(message_list, user):
+def generate_history(message_list):
     # Generate conversation logs
     conversation_log = {"chat": []}
-    for user_message, llm_message, context in message_list:
+    for user_message, gpt_message, context in message_list:
         conversation_log["chat"] += message_to_log(
             user_message,
-            llm_message,
+            gpt_message,
             {"context": context, "intent": {"query": user_message, "inferred-queries": f'["{user_message}"]'}},
         )
+    return conversation_log
+
+
+def populate_chat_history(message_list, user):
+    # Generate conversation logs
+    conversation_log = generate_history(message_list)
 
     # Update Conversation Metadata Logs in Database
     ConversationFactory(user=user, conversation_log=conversation_log)
@@ -515,8 +521,9 @@ async def test_get_correct_tools_with_chat_history(client_offline_chat):
         (
             "Let's talk about the current events around the world.",
             "Sure, let's discuss the current events. What would you like to know?",
+            [],
         ),
-        ("What's up in New York City?", "A Pride parade has recently been held in New York City, on July 31st."),
+        ("What's up in New York City?", "A Pride parade has recently been held in New York City, on July 31st.", []),
     ]
     chat_history = populate_chat_history(chat_log)
 
@@ -526,15 +533,3 @@ async def test_get_correct_tools_with_chat_history(client_offline_chat):
     # Assert
     tools = [tool.value for tool in tools]
     assert tools == ["online"]
-
-
-def populate_chat_history(message_list):
-    # Generate conversation logs
-    conversation_log = {"chat": []}
-    for user_message, gpt_message in message_list:
-        conversation_log["chat"] += message_to_log(
-            user_message,
-            gpt_message,
-            {"context": [], "intent": {"query": user_message, "inferred-queries": f'["{user_message}"]'}},
-        )
-    return conversation_log

@@ -13,7 +13,7 @@
                     </h3>
                 </div>
                 <div class="card-description-row">
-                    <input type="text" id="profile_given_name" class="form-control" placeholder="Enter your name here" value="{{ given_name }}">
+                    <input type="text" id="profile_given_name" class="form-control" placeholder="Enter your name here" value="{% if given_name %}{{given_name}}{% endif %}">
                 </div>
                 <div class="card-action-row">
                     <button id="save-model" class="card-button happy" onclick="saveProfileGivenName()">

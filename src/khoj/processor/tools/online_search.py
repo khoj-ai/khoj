@@ -60,7 +60,8 @@ async def search_with_google(query: str, conversation_history: dict, location: L
         return sub_response_dict
 
     if SERPER_DEV_API_KEY is None:
-        raise ValueError("SERPER_DEV_API_KEY is not set")
+        logger.warn("SERPER_DEV_API_KEY is not set")
+        return {}
 
     # Breakdown the query into subqueries to get the correct answer
     subqueries = await generate_online_subqueries(query, conversation_history, location)

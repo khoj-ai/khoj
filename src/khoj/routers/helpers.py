@@ -36,6 +36,7 @@ from khoj.utils import state
 from khoj.utils.config import GPT4AllProcessorModel
 from khoj.utils.helpers import (
     ConversationCommand,
+    is_none_or_empty,
     log_telemetry,
     tool_descriptions_for_llm,
 )
@@ -175,6 +176,9 @@ async def aget_relevant_information_sources(query: str, conversation_history: di
             if llm_suggested_tool in tool_options.keys():
                 # Check whether the tool exists as a valid ConversationCommand
                 final_response.append(ConversationCommand(llm_suggested_tool))
+
+        if is_none_or_empty(final_response):
+            final_response = [ConversationCommand.Default]
         return final_response
     except Exception as e:
         logger.error(f"Invalid response for determining relevant tools: {response}")
