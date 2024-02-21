@@ -208,11 +208,11 @@ async def generate_online_subqueries(q: str, conversation_history: dict, locatio
         response = json.loads(response)
         response = [q.strip() for q in response if q.strip()]
         if not isinstance(response, list) or not response or len(response) == 0:
-            logger.error(f"Invalid response for constructing subqueries: {response}")
+            logger.error(f"Invalid response for constructing subqueries: {response}. Returning original query: {q}")
             return [q]
         return response
     except Exception as e:
-        logger.error(f"Invalid response for constructing subqueries: {response}")
+        logger.error(f"Invalid response for constructing subqueries: {response}. Returning original query: {q}")
         return [q]
 
 
