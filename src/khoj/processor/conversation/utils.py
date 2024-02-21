@@ -11,7 +11,7 @@ from transformers import AutoTokenizer
 
 from khoj.database.adapters import ConversationAdapters
 from khoj.database.models import ClientApplication, KhojUser
-from khoj.utils.helpers import merge_dicts
+from khoj.utils.helpers import is_none_or_empty, merge_dicts
 
 logger = logging.getLogger(__name__)
 model_to_prompt_size = {
@@ -159,10 +159,13 @@ def generate_chatml_messages_with_context(
         rest_backnforths += reciprocal_conversation_to_chatml([user_msg, assistant_msg])[::-1]
 
     # Format user and system messages to chatml format
-    system_chatml_message = [ChatMessage(content=system_message, role="system")]
-    user_chatml_message = [ChatMessage(content=user_message, role="user")]
-
-    messages = user_chatml_message + rest_backnforths + system_chatml_message
+    messages = []
+    if not is_none_or_empty(user_message):
+        messages.append(ChatMessage(content=user_message, role="user"))
+    if len(rest_backnforths) > 0:
+        messages += rest_backnforths
+    if not is_none_or_empty(system_message):
+        messages.append(ChatMessage(content=system_message, role="system"))
 
     # Truncate oldest messages from conversation history until under max supported prompt size by model
     messages = truncate_messages(messages, max_prompt_size, model_name, tokenizer_name)
