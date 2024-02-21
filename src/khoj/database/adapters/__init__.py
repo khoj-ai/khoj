@@ -378,6 +378,13 @@ async def aset_user_search_model(user: KhojUser, search_model_config_id: int):
     return new_config
 
 
+async def aget_user_search_model(user: KhojUser):
+    config = await UserSearchModelConfig.objects.filter(user=user).prefetch_related("setting").afirst()
+    if not config:
+        return None
+    return config.setting
+
+
 class ClientApplicationAdapters:
     @staticmethod
     async def aget_client_application_by_id(client_id: str, client_secret: str):
@@ -638,6 +645,12 @@ class EntryAdapters:
         else:
             deleted_count, _ = Entry.objects.filter(user=user, file_source=file_source).delete()
         return deleted_count
+
+    @staticmethod
+    async def adelete_all_entries(user: KhojUser, file_source: str = None):
+        if file_source is None:
+            return await Entry.objects.filter(user=user).adelete()
+        return await Entry.objects.filter(user=user, file_source=file_source).adelete()
 
     @staticmethod
     def get_existing_entry_hashes_by_file(user: KhojUser, file_path: str):
