@@ -116,7 +116,7 @@ To get started, just start typing below. You can also type / to see a list of co
             linkElement.classList.add("inline-chat-link");
             linkElement.classList.add("reference-link");
             linkElement.setAttribute('title', title);
-            linkElement.innerHTML = title;
+            linkElement.textContent = title;
 
             let referenceButton = document.createElement('button');
             referenceButton.innerHTML = linkElement.outerHTML;
@@ -713,7 +713,7 @@ To get started, just start typing below. You can also type / to see a list of co
                             let conversationButton = document.createElement('div');
                             let incomingConversationId = conversation["conversation_id"];
                             const conversationTitle = conversation["slug"] || `New conversation 🌱`;
-                            conversationButton.innerHTML = conversationTitle;
+                            conversationButton.textContent = conversationTitle;
                             conversationButton.classList.add("conversation-button");
                             if (incomingConversationId == conversationId) {
                                 conversationButton.classList.add("selected-conversation");
@@ -789,7 +789,7 @@ To get started, just start typing below. You can also type / to see a list of co
                                             fetch(editURL , { method: "PATCH" })
                                                 .then(response => response.ok ? response.json() : Promise.reject(response))
                                                 .then(data => {
-                                                    conversationButton.innerHTML = newTitle;
+                                                    conversationButton.textContent = newTitle;
                                                 })
                                                 .catch(err => {
                                                     return;
