@@ -344,22 +344,20 @@
             let chat_body = document.getElementById("chat-body");
 
             let conversationID = chat_body.dataset.conversationId;
-
             let hostURL = await window.hostURLAPI.getURL();
+            const khojToken = await window.tokenAPI.getToken();
+            const headers = { 'Authorization': `Bearer ${khojToken}` };
 
             if (!conversationID) {
-                let response = await fetch(`${hostURL}/api/chat/sessions`, { method: "POST" });
+                let response = await fetch(`${hostURL}/api/chat/sessions`, { method: "POST", headers });
                 let data = await response.json();
                 conversationID = data.conversation_id;
                 chat_body.dataset.conversationId = conversationID;
                 await refreshChatSessionsPanel();
             }
 
-
             // Generate backend API URL to execute query
-            let url = `${hostURL}/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}&region=${region}&city=${city}&country=${countryName}`;
-            const khojToken = await window.tokenAPI.getToken();
-            const headers = { 'Authorization': `Bearer ${khojToken}` };
+            let chatApi = `${hostURL}/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}&region=${region}&city=${city}&country=${countryName}`;
 
             let new_response = document.createElement("div");
             new_response.classList.add("chat-message", "khoj");
@@ -382,8 +380,8 @@
             let chatInput = document.getElementById("chat-input");
             chatInput.classList.remove("option-enabled");
 
-            // Call specified Khoj API
-            let response = await fetch(url, { headers });
+            // Call Khoj chat API
+            let response = await fetch(chatApi, { headers });
             let rawResponse = "";
             const contentType = response.headers.get("content-type");
 
