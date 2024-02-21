@@ -688,10 +688,6 @@ class EntryAdapters:
         )
 
     @staticmethod
-    async def adelete_all_entries(user: KhojUser):
-        return await Entry.objects.filter(user=user).adelete()
-
-    @staticmethod
     def get_size_of_indexed_data_in_mb(user: KhojUser):
         entries = Entry.objects.filter(user=user).iterator()
         total_size = sum(sys.getsizeof(entry.compiled) for entry in entries)
