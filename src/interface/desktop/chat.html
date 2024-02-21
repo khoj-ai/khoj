@@ -133,7 +133,6 @@
             let message_time = formatDate(dt ?? new Date());
             let by_name =  by == "khoj" ? "🏮 Khoj" : "🤔 You";
             let formattedMessage = formatHTMLMessage(message, raw);
-            let chatBody = document.getElementById("chat-body");
 
             // Create a new div for the chat message
             let chatMessage = document.createElement('div');
@@ -152,6 +151,7 @@
             }
 
             // Append chat message div to chat body
+            let chatBody = document.getElementById("chat-body");
             chatBody.appendChild(chatMessage);
 
             // Scroll to bottom of chat-body element
@@ -285,9 +285,12 @@
 
             // Render markdown
             newHTML = raw ? newHTML : md.render(newHTML);
-            // Get any elements with a class that starts with "language"
+            // Set rendered markdown to HTML DOM element
             let element = document.createElement('div');
             element.innerHTML = newHTML;
+            element.className = "chat-message-text-response";
+
+            // Get any elements with a class that starts with "language"
             let codeBlockElements = element.querySelectorAll('[class^="language-"]');
             // For each element, add a parent div with the class "programmatic-output"
             codeBlockElements.forEach((codeElement) => {
@@ -1227,6 +1230,7 @@
             display: inline-block;
             max-width: 80%;
             text-align: left;
+            white-space: pre-line;
         }
         /* color chat bubble by khoj blue */
         .chat-message-text.khoj {
@@ -1234,6 +1238,15 @@
             background: var(--primary);
             margin-left: auto;
         }
+        .chat-message-text ol,
+        .chat-message-text ul {
+            white-space: normal;
+            margin: 0;
+        }
+        .chat-message-text-response {
+            margin-bottom: -16px;
+        }
+
         /* Spinner symbol when the chat message is loading */
         .spinner {
             border: 4px solid #f3f3f3;
