@@ -15,7 +15,7 @@ import TabItem from '@theme/TabItem';
 ```
 
 ## Setup
-These are the general setup instructions for Khoj.
+These are the general setup instructions for self-hosted Khoj.
 
 - Make sure [python](https://realpython.com/installing-python/) and [pip](https://pip.pypa.io/en/stable/installation/) are installed on your machine
 - Check the [Khoj Emacs docs](/clients/emacs#setup) to setup Khoj with Emacs<br />
@@ -23,7 +23,7 @@ These are the general setup instructions for Khoj.
 - Check the [Khoj Obsidian docs](/clients/obsidian#setup) to setup Khoj with Obsidian<br />
   Its simpler as it can skip the *configure* step below.
 
-For Installation, you can either use Docker or install Khoj locally.
+For Installation, you can either use Docker or install the Khoj server locally.
 
 ### Installation Option 1 (Docker)
 
@@ -266,6 +266,18 @@ You can head to http://localhost:42110 to use the web interface. You can also us
 ```
 
 ## Troubleshoot
+
+#### Dependency conflict when trying to install Khoj python package with pip
+- **Reason**: When conflicting dependency versions are required by Khoj vs other python packages installed on your system
+- **Fix**: Install Khoj in a python virtual environment using [venv](https://docs.python.org/3/library/venv.html) or [pipx](https://pypa.github.io/pipx) to avoid this dependency conflicts
+- **Process**:
+  1. Install [pipx](https://pypa.github.io/pipx/#install-pipx)
+  2. Use `pipx` to install Khoj to avoid dependency conflicts with other python packages.
+     ```shell
+     pipx install khoj-assistant
+     ```
+  3. Now start `khoj` using the standard steps described earlier
+
 
 #### Install fails while building Tokenizer dependency
 - **Details**: `pip install khoj-assistant` fails while building the `tokenizers` dependency. Complains about Rust.
