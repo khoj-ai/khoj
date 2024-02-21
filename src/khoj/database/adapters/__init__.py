@@ -219,7 +219,7 @@ def subscription_to_state(subscription: Subscription) -> str:
         return SubscriptionState.INVALID.value
     elif subscription.type == Subscription.Type.TRIAL:
         # Trial subscription is valid for 7 days
-        if datetime.now(tz=timezone.utc) - subscription.created_at > timedelta(days=7):
+        if datetime.now(tz=timezone.utc) - subscription.created_at > timedelta(days=14):
             return SubscriptionState.EXPIRED.value
 
         return SubscriptionState.TRIAL.value
