@@ -441,12 +441,14 @@ You are using the **{model}** model on the **{device}**.
 # --
 user_location = PromptTemplate.from_template(
     """
+Use the user's location only if it's relevant to the conversation.
 User's Location: {location}
 """.strip()
 )
 
 user_name = PromptTemplate.from_template(
     """
+Use the user's name only if it's relevant to the conversation.
 User's Name: {name}
 """.strip()
 )
