@@ -541,6 +541,7 @@
             chatInput.value = chatInput.value.trimStart();
 
             let questionStarterSuggestions = document.getElementById("question-starters");
+            questionStarterSuggestions.innerHTML = "";
             questionStarterSuggestions.style.display = "none";
 
             if (chatInput.value.startsWith("/") && chatInput.value.split(" ").length === 1) {
@@ -592,6 +593,7 @@
             const headers = { 'Authorization': `Bearer ${khojToken}` };
 
             let chatBody = document.getElementById("chat-body");
+            chatBody.innerHTML = "";
             let conversationId = chatBody.dataset.conversationId;
             let chatHistoryUrl = `/api/chat/history?client=desktop`;
             if (conversationId) {
@@ -672,11 +674,11 @@
             fetch(`${hostURL}/api/chat/starters?client=desktop`, { headers })
                 .then(response => response.json())
                 .then(data => {
-                    // Render chat options, if any
+                    // Render conversation starters, if any
                     if (data.length > 0) {
                         let questionStarterSuggestions = document.getElementById("question-starters");
-                        for (let index in data) {
-                            let questionStarter = data[index];
+                        questionStarterSuggestions.innerHTML = "";
+                        data.forEach((questionStarter) => {
                             let questionStarterButton = document.createElement('button');
                             questionStarterButton.innerHTML = questionStarter;
                             questionStarterButton.classList.add("question-starter");
@@ -686,7 +688,7 @@
                                 chat();
                             });
                             questionStarterSuggestions.appendChild(questionStarterButton);
-                        }
+                        });
                         questionStarterSuggestions.style.display = "grid";
                     }
                 })
