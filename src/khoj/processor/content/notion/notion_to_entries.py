@@ -93,7 +93,7 @@ class NotionToEntries(TextToEntries):
                     json=self.body_params,
                 ).json()
                 responses.append(result)
-                if result["has_more"] == False:
+                if result.get("has_more", False) == False:
                     break
                 else:
                     self.body_params.update({"start_cursor": result["next_cursor"]})

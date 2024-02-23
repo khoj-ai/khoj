@@ -262,7 +262,11 @@ async def update_search_model(
 ):
     user = request.user.object
 
+    prev_config = await adapters.aget_user_search_model(user)
     new_config = await adapters.aset_user_search_model(user, int(id))
+
+    if int(id) != prev_config.id:
+        await EntryAdapters.adelete_all_entries(user)
 
     if new_config is None:
         return {"status": "error", "message": "Model not found"}

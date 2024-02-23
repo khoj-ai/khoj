@@ -376,6 +376,11 @@
     };
 
     function updateSearchModel() {
+        let confirmation = window.confirm("All your existing data will be deleted, and you will have to regenerate it. Are you sure you want to continue?");
+        if (!confirmation) {
+            return;
+        }
+
         const searchModel = document.getElementById("search-models").value;
         const saveSearchModelButton = document.getElementById("save-search-model");
         saveSearchModelButton.disabled = true;
@@ -398,7 +403,7 @@
             }
 
             let notificationBanner = document.getElementById("notification-banner");
-            notificationBanner.innerHTML = "When updating the language model, be sure to delete all your saved content and re-initialize.";
+            notificationBanner.innerHTML = "Khoj can now better understand the language of your content! Manually sync your data from one of the Khoj clients to update your knowledge base.";
             notificationBanner.style.display = "block";
             setTimeout(function() {
                 notificationBanner.style.display = "none";
