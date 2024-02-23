@@ -443,7 +443,7 @@ class ConversationAdapters:
         elif slug:
             conversation = Conversation.objects.filter(user=user, client=client_application, slug=slug)
         else:
-            conversation = Conversation.objects.filter(user=user, client=client_application)
+            conversation = Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at")
 
         if await conversation.aexists():
             return await conversation.afirst()
@@ -526,12 +526,17 @@ class ConversationAdapters:
     ):
         slug = user_message.strip()[:200] if user_message else None
         if conversation_id:
-            conversation = Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
+            conversation = Conversation.objects.filter(user=user, client=client_application, id=conversation_id).first()
         else:
-            conversation = Conversation.objects.filter(user=user, client=client_application)
+            conversation = (
+                Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at").first()
+            )
 
-        if conversation.exists():
-            conversation.update(conversation_log=conversation_log, slug=slug, updated_at=datetime.now(tz=timezone.utc))
+        if conversation:
+            conversation.conversation_log = conversation_log
+            conversation.slug = slug
+            conversation.updated_at = datetime.now(tz=timezone.utc)
+            conversation.save()
         else:
             Conversation.objects.create(
                 user=user, conversation_log=conversation_log, client=client_application, slug=slug
