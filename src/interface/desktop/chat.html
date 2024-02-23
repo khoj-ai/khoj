@@ -5,7 +5,7 @@
         <title>Khoj - Chat</title>
 
         <link rel="icon" type="image/png" sizes="128x128" href="./assets/icons/favicon-128x128.png">
-        <link rel="manifest" href="/static/khoj_chat.webmanifest">
+        <link rel="manifest" href="/static/khoj.webmanifest">
         <link rel="stylesheet" href="./assets/khoj.css">
     </head>
     <script type="text/javascript" src="./assets/markdown-it.min.js"></script>
@@ -104,7 +104,7 @@
             linkElement.classList.add("inline-chat-link");
             linkElement.classList.add("reference-link");
             linkElement.setAttribute('title', title);
-            linkElement.innerHTML = title;
+            linkElement.textContent = title;
 
             let referenceButton = document.createElement('button');
             referenceButton.innerHTML = linkElement.outerHTML;
@@ -133,7 +133,6 @@
             let message_time = formatDate(dt ?? new Date());
             let by_name =  by == "khoj" ? "🏮 Khoj" : "🤔 You";
             let formattedMessage = formatHTMLMessage(message, raw);
-            let chatBody = document.getElementById("chat-body");
 
             // Create a new div for the chat message
             let chatMessage = document.createElement('div');
@@ -152,6 +151,7 @@
             }
 
             // Append chat message div to chat body
+            let chatBody = document.getElementById("chat-body");
             chatBody.appendChild(chatMessage);
 
             // Scroll to bottom of chat-body element
@@ -285,9 +285,12 @@
 
             // Render markdown
             newHTML = raw ? newHTML : md.render(newHTML);
-            // Get any elements with a class that starts with "language"
+            // Set rendered markdown to HTML DOM element
             let element = document.createElement('div');
             element.innerHTML = newHTML;
+            element.className = "chat-message-text-response";
+
+            // Get any elements with a class that starts with "language"
             let codeBlockElements = element.querySelectorAll('[class^="language-"]');
             // For each element, add a parent div with the class "programmatic-output"
             codeBlockElements.forEach((codeElement) => {
@@ -341,22 +344,20 @@
             let chat_body = document.getElementById("chat-body");
 
             let conversationID = chat_body.dataset.conversationId;
-
             let hostURL = await window.hostURLAPI.getURL();
+            const khojToken = await window.tokenAPI.getToken();
+            const headers = { 'Authorization': `Bearer ${khojToken}` };
 
             if (!conversationID) {
-                let response = await fetch(`${hostURL}/api/chat/sessions`, { method: "POST" });
+                let response = await fetch(`${hostURL}/api/chat/sessions`, { method: "POST", headers });
                 let data = await response.json();
                 conversationID = data.conversation_id;
                 chat_body.dataset.conversationId = conversationID;
                 await refreshChatSessionsPanel();
             }
 
-
             // Generate backend API URL to execute query
-            let url = `${hostURL}/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}&region=${region}&city=${city}&country=${countryName}`;
-            const khojToken = await window.tokenAPI.getToken();
-            const headers = { 'Authorization': `Bearer ${khojToken}` };
+            let chatApi = `${hostURL}/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}&region=${region}&city=${city}&country=${countryName}`;
 
             let new_response = document.createElement("div");
             new_response.classList.add("chat-message", "khoj");
@@ -379,8 +380,8 @@
             let chatInput = document.getElementById("chat-input");
             chatInput.classList.remove("option-enabled");
 
-            // Call specified Khoj API
-            let response = await fetch(url, { headers });
+            // Call Khoj chat API
+            let response = await fetch(chatApi, { headers });
             let rawResponse = "";
             const contentType = response.headers.get("content-type");
 
@@ -540,6 +541,7 @@
             chatInput.value = chatInput.value.trimStart();
 
             let questionStarterSuggestions = document.getElementById("question-starters");
+            questionStarterSuggestions.innerHTML = "";
             questionStarterSuggestions.style.display = "none";
 
             if (chatInput.value.startsWith("/") && chatInput.value.split(" ").length === 1) {
@@ -591,6 +593,7 @@
             const headers = { 'Authorization': `Bearer ${khojToken}` };
 
             let chatBody = document.getElementById("chat-body");
+            chatBody.innerHTML = "";
             let conversationId = chatBody.dataset.conversationId;
             let chatHistoryUrl = `/api/chat/history?client=desktop`;
             if (conversationId) {
@@ -671,11 +674,11 @@
             fetch(`${hostURL}/api/chat/starters?client=desktop`, { headers })
                 .then(response => response.json())
                 .then(data => {
-                    // Render chat options, if any
+                    // Render conversation starters, if any
                     if (data.length > 0) {
                         let questionStarterSuggestions = document.getElementById("question-starters");
-                        for (let index in data) {
-                            let questionStarter = data[index];
+                        questionStarterSuggestions.innerHTML = "";
+                        data.forEach((questionStarter) => {
                             let questionStarterButton = document.createElement('button');
                             questionStarterButton.innerHTML = questionStarter;
                             questionStarterButton.classList.add("question-starter");
@@ -685,7 +688,7 @@
                                 chat();
                             });
                             questionStarterSuggestions.appendChild(questionStarterButton);
-                        }
+                        });
                         questionStarterSuggestions.style.display = "grid";
                     }
                 })
@@ -785,7 +788,7 @@
                             let conversationButton = document.createElement('div');
                             let incomingConversationId = conversation["conversation_id"];
                             const conversationTitle = conversation["slug"] || `New conversation 🌱`;
-                            conversationButton.innerHTML = conversationTitle;
+                            conversationButton.textContent = conversationTitle;
                             conversationButton.classList.add("conversation-button");
                             if (incomingConversationId == conversationId) {
                                 conversationButton.classList.add("selected-conversation");
@@ -883,7 +886,7 @@
                                             fetch(`${hostURL}${editURL}` , { method: "PATCH" })
                                                 .then(response => response.ok ? response.json() : Promise.reject(response))
                                                 .then(data => {
-                                                    conversationButton.innerHTML = newTitle;
+                                                    conversationButton.textContent = newTitle;
                                                 })
                                                 .catch(err => {
                                                     return;
@@ -1014,6 +1017,7 @@
             document.getElementById('side-panel').classList.toggle('collapsed');
             document.getElementById('new-conversation').classList.toggle('collapsed');
             document.getElementById('existing-conversations').classList.toggle('collapsed');
+            document.getElementById('side-panel-collapse').style.transform = document.getElementById('side-panel').classList.contains('collapsed') ? 'rotate(0deg)' : 'rotate(180deg)';
 
             document.getElementById('chat-section-wrapper').classList.toggle('mobile-friendly');
         }
@@ -1058,7 +1062,7 @@
                         id="collapse-side-panel-button"
                         onclick="handleCollapseSidePanel()"
                     >
-                        <svg class="side-panel-collapse" viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <svg id="side-panel-collapse" viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M7.82054 20.7313C8.21107 21.1218 8.84423 21.1218 9.23476 20.7313L15.8792 14.0868C17.0505 12.9155 17.0508 11.0167 15.88 9.84497L9.3097 3.26958C8.91918 2.87905 8.28601 2.87905 7.89549 3.26958C7.50497 3.6601 7.50497 4.29327 7.89549 4.68379L14.4675 11.2558C14.8581 11.6464 14.8581 12.2795 14.4675 12.67L7.82054 19.317C7.43002 19.7076 7.43002 20.3407 7.82054 20.7313Z" fill="#0F0F0F"/>
                         </svg>
                     </button>
@@ -1161,6 +1165,7 @@
         }
 
         #side-panel {
+            width: 250px;
             padding: 10px;
             background: var(--background-color);
             border-radius: 5px;
@@ -1168,11 +1173,11 @@
             overflow-y: scroll;
             text-align: left;
             transition: width 0.3s ease-in-out;
-            width: 250px;
         }
 
         div#side-panel.collapsed {
-            width: 1px;
+            width: 0;
+            padding: 0;
             display: block;
             overflow: hidden;
         }
@@ -1227,6 +1232,7 @@
             display: inline-block;
             max-width: 80%;
             text-align: left;
+            white-space: pre-line;
         }
         /* color chat bubble by khoj blue */
         .chat-message-text.khoj {
@@ -1234,6 +1240,15 @@
             background: var(--primary);
             margin-left: auto;
         }
+        .chat-message-text ol,
+        .chat-message-text ul {
+            white-space: normal;
+            margin: 0;
+        }
+        .chat-message-text-response {
+            margin-bottom: -16px;
+        }
+
         /* Spinner symbol when the chat message is loading */
         .spinner {
             border: 4px solid #f3f3f3;
@@ -1350,7 +1365,7 @@
             font-size: large;
         }
 
-        svg.side-panel-collapse {
+        svg#side-panel-collapse {
             width: 30px;
             height: 30px;
         }
@@ -1604,7 +1619,7 @@
                 padding: 0;
             }
 
-            svg.side-panel-collapse {
+            svg#side-panel-collapse {
                 width: 24px;
                 height: 24px;
             }

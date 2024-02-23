@@ -219,7 +219,7 @@ def subscription_to_state(subscription: Subscription) -> str:
         return SubscriptionState.INVALID.value
     elif subscription.type == Subscription.Type.TRIAL:
         # Trial subscription is valid for 7 days
-        if datetime.now(tz=timezone.utc) - subscription.created_at > timedelta(days=7):
+        if datetime.now(tz=timezone.utc) - subscription.created_at > timedelta(days=14):
             return SubscriptionState.EXPIRED.value
 
         return SubscriptionState.TRIAL.value
@@ -573,7 +573,7 @@ class ConversationAdapters:
         return await SpeechToTextModelOptions.objects.filter().afirst()
 
     @staticmethod
-    async def aget_conversation_starters(user: KhojUser):
+    async def aget_conversation_starters(user: KhojUser, max_results=3):
         all_questions = []
         if await ReflectiveQuestion.objects.filter(user=user).aexists():
             all_questions = await sync_to_async(ReflectiveQuestion.objects.filter(user=user).values_list)(
@@ -584,7 +584,6 @@ class ConversationAdapters:
             "question", flat=True
         )
 
-        max_results = 3
         all_questions = await sync_to_async(list)(all_questions)  # type: ignore
         if len(all_questions) < max_results:
             return all_questions
