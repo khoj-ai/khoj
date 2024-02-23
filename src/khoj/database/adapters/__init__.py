@@ -397,12 +397,17 @@ class ConversationAdapters:
         user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None
     ):
         if conversation_id:
-            conversation = Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
-        if not conversation_id or not conversation.exists():
-            conversation = Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at")
-        if conversation.exists():
-            return conversation.first()
-        return Conversation.objects.create(user=user, client=client_application)
+            conversation = (
+                Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
+                .order_by("-updated_at")
+                .first()
+            )
+        else:
+            conversation = (
+                Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at").first()
+            )
+
+        return conversation or Conversation.objects.create(user=user, client=client_application)
 
     @staticmethod
     def get_conversation_sessions(user: KhojUser, client_application: ClientApplication = None):
@@ -435,10 +440,14 @@ class ConversationAdapters:
     ):
         if conversation_id:
             conversation = Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
-        else:
+        elif slug:
             conversation = Conversation.objects.filter(user=user, client=client_application, slug=slug)
+        else:
+            conversation = Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at")
+
         if await conversation.aexists():
             return await conversation.afirst()
+
         return await Conversation.objects.acreate(user=user, client=client_application, slug=slug)
 
     @staticmethod
@@ -517,11 +526,17 @@ class ConversationAdapters:
     ):
         slug = user_message.strip()[:200] if user_message else None
         if conversation_id:
-            conversation = Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
+            conversation = Conversation.objects.filter(user=user, client=client_application, id=conversation_id).first()
         else:
-            conversation = Conversation.objects.filter(user=user, client=client_application)
-        if conversation.exists():
-            conversation.update(conversation_log=conversation_log, slug=slug, updated_at=datetime.now(tz=timezone.utc))
+            conversation = (
+                Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at").first()
+            )
+
+        if conversation:
+            conversation.conversation_log = conversation_log
+            conversation.slug = slug
+            conversation.updated_at = datetime.now(tz=timezone.utc)
+            conversation.save()
         else:
             Conversation.objects.create(
                 user=user, conversation_log=conversation_log, client=client_application, slug=slug
