@@ -396,17 +396,18 @@ class ConversationAdapters:
     def get_conversation_by_user(
         user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None
     ):
-        if client_application:
-            return Conversation.objects.filter(user=user, client=client_application).first()
-
         if conversation_id:
-            conversation = Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
+            conversation = (
+                Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
+                .order_by("-updated_at")
+                .first()
+            )
+        else:
+            conversation = (
+                Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at").first()
+            )
 
-        if not conversation_id or not conversation.exists():
-            conversation = Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at")
-        if conversation.exists():
-            return conversation.first()
-        return Conversation.objects.create(user=user, client=client_application)
+        return conversation or Conversation.objects.create(user=user, client=client_application)
 
     @staticmethod
     def get_conversation_sessions(user: KhojUser, client_application: ClientApplication = None):
@@ -437,15 +438,16 @@ class ConversationAdapters:
     async def aget_conversation_by_user(
         user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None, slug: str = None
     ):
-        if client_application:
-            return await Conversation.objects.filter(user=user, client=client_application).afirst()
-
         if conversation_id:
             conversation = Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
-        else:
+        elif slug:
             conversation = Conversation.objects.filter(user=user, client=client_application, slug=slug)
+        else:
+            conversation = Conversation.objects.filter(user=user, client=client_application)
+
         if await conversation.aexists():
             return await conversation.afirst()
+
         return await Conversation.objects.acreate(user=user, client=client_application, slug=slug)
 
     @staticmethod
