@@ -396,8 +396,12 @@ class ConversationAdapters:
     def get_conversation_by_user(
         user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None
     ):
+        if client_application:
+            return Conversation.objects.filter(user=user, client=client_application).first()
+
         if conversation_id:
             conversation = Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
+
         if not conversation_id or not conversation.exists():
             conversation = Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at")
         if conversation.exists():
@@ -433,6 +437,9 @@ class ConversationAdapters:
     async def aget_conversation_by_user(
         user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None, slug: str = None
     ):
+        if client_application:
+            return await Conversation.objects.filter(user=user, client=client_application).afirst()
+
         if conversation_id:
             conversation = Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
         else:
@@ -520,6 +527,7 @@ class ConversationAdapters:
             conversation = Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
         else:
             conversation = Conversation.objects.filter(user=user, client=client_application)
+
         if conversation.exists():
             conversation.update(conversation_log=conversation_log, slug=slug, updated_at=datetime.now(tz=timezone.utc))
         else:
