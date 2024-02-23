@@ -8,7 +8,8 @@ export interface KhojSetting {
     khojApiKey: string;
     connectedToBackend: boolean;
     autoConfigure: boolean;
-    lastSyncedFiles: TFile[];
+    lastSyncedFiles: TFile[];  // Deprecated setting, will be removed in future
+    lastSync: Map<TFile, number>;
     userEmail: string;
 }
 
@@ -19,6 +20,7 @@ export const DEFAULT_SETTINGS: KhojSetting = {
     connectedToBackend: false,
     autoConfigure: true,
     lastSyncedFiles: [],
+    lastSync: new Map(),
     userEmail: '',
 }
 
@@ -132,8 +134,8 @@ export class KhojSettingTab extends PluginSettingTab {
                     }, 300);
                     this.plugin.registerInterval(progress_indicator);
 
-                    this.plugin.settings.lastSyncedFiles = await updateContentIndex(
-                        this.app.vault, this.plugin.settings, this.plugin.settings.lastSyncedFiles, true
+                    this.plugin.settings.lastSync = await updateContentIndex(
+                        this.app.vault, this.plugin.settings, this.plugin.settings.lastSync, true
                     );
                     new Notice('✅ Updated Khoj index.');
 
