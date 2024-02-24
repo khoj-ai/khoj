@@ -4,6 +4,8 @@ import { KhojSetting } from 'src/settings';
 export interface ChatJsonResult {
     image?: string;
     detail?: string;
+    intentType?: string;
+    inferredQueries?: string[];
 }
 
 
@@ -145,11 +147,17 @@ export class KhojChatModal extends Modal {
         return referenceButton;
     }
 
-    renderMessageWithReferences(chatEl: Element, message: string, sender: string, context?: string[], dt?: Date, intentType?: string) {
+    renderMessageWithReferences(chatEl: Element, message: string, sender: string, context?: string[], dt?: Date, intentType?: string, inferredQueries?: string) {
         if (!message) {
             return;
         } else if (intentType === "text-to-image") {
             let imageMarkdown = `![](data:image/png;base64,${message})`;
+            if (inferredQueries) {
+                imageMarkdown += "\n\n**Inferred Query**:";
+                for (let inferredQuery of inferredQueries) {
+                    imageMarkdown += `\n\n${inferredQuery}`;
+                }
+            }
             this.renderMessage(chatEl, imageMarkdown, sender, dt);
             return;
         } else if (!context) {
@@ -287,7 +295,15 @@ export class KhojChatModal extends Modal {
             } else if (responseJson.response) {
                 let chatLogs = responseJson.response?.conversation_id ? responseJson.response.chat ?? [] : responseJson.response;
                 chatLogs.forEach((chatLog: any) => {
-                    this.renderMessageWithReferences(chatBodyEl, chatLog.message, chatLog.by, chatLog.context, new Date(chatLog.created), chatLog.intent?.type);
+                    this.renderMessageWithReferences(
+                        chatBodyEl,
+                        chatLog.message,
+                        chatLog.by,
+                        chatLog.context,
+                        new Date(chatLog.created),
+                        chatLog.intent?.type,
+                        chatLog.intent?.["inferred-queries"],
+                    );
                 });
             }
         } catch (err) {
@@ -404,6 +420,10 @@ export class KhojChatModal extends Modal {
                     const responseAsJson = await response.json() as ChatJsonResult;
                     if (responseAsJson.image) {
                         responseText = `![${query}](data:image/png;base64,${responseAsJson.image})`;
+                        const inferredQuery = responseAsJson.inferredQueries?.[0];
+                        if (inferredQuery) {
+                            responseText += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
+                        }
                     } else if (responseAsJson.detail) {
                         responseText = responseAsJson.detail;
                     }
