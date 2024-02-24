@@ -199,10 +199,9 @@
         function renderMessageWithReference(message, by, context=null, dt=null, onlineContext=null, intentType=null, inferredQueries=null) {
             if (intentType === "text-to-image") {
                 let imageMarkdown = `![](data:image/png;base64,${message})`;
-                imageMarkdown += "\n\n";
-                if (inferredQueries) {
-                    const inferredQuery = inferredQueries?.[0];
-                    imageMarkdown += `**Inferred Query**: ${inferredQuery}`;
+                const inferredQuery = inferredQueries?.[0];
+                if (inferredQuery) {
+                    imageMarkdown += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
                 }
                 renderMessage(imageMarkdown, by, dt);
                 return;
@@ -392,10 +391,9 @@
                     if (responseAsJson.image) {
                         // If response has image field, response is a generated image.
                         rawResponse += `![${query}](data:image/png;base64,${responseAsJson.image})`;
-                        rawResponse += "\n\n";
                         const inferredQueries = responseAsJson.inferredQueries?.[0];
                         if (inferredQueries) {
-                            rawResponse += `**Inferred Query**: ${inferredQueries}`;
+                            rawResponse += `\n\n**Inferred Query**:\n\n${inferredQueries}`;
                         }
                     }
                     if (responseAsJson.detail) {
@@ -496,10 +494,9 @@
                                     if (responseAsJson.image) {
                                         // If response has image field, response is a generated image.
                                         rawResponse += `![${query}](data:image/png;base64,${responseAsJson.image})`;
-                                        rawResponse += "\n\n";
-                                        const inferredQueries = responseAsJson.inferredQueries?.[0];
-                                        if (inferredQueries) {
-                                            rawResponse += `**Inferred Query**: ${inferredQueries}`;
+                                        const inferredQuery = responseAsJson.inferredQueries?.[0];
+                                        if (inferredQuery) {
+                                            rawResponse += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
                                         }
                                     }
                                     if (responseAsJson.detail) {
