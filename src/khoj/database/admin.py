@@ -60,7 +60,7 @@ class ConversationAdmin(admin.ModelAdmin):
         "updated_at",
         "client",
     )
-    search_fields = ("conversation_id",)
+    search_fields = ("id", "user__email", "user__username", "client__name")
     ordering = ("-created_at",)
 
     actions = ["export_selected_objects", "export_selected_minimal_objects"]
