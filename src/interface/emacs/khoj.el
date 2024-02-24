@@ -1055,7 +1055,10 @@ Paragraph only starts at first text after blank line."
 
 ;;;###autoload
 (defun khoj ()
-  "Provide natural, search assistance for your notes, documents and images."
+  "Search and chat with your knowledge base using your personal AI copilot.
+
+Collaborate with Khoj to search, understand, create, review and update your knowledge base.
+Khoj can research across your org-mode, markdown notes, plaintext documents and the internet."
   (interactive)
   (when khoj-auto-setup
     (khoj-setup t))
