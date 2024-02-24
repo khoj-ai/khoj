@@ -47,6 +47,7 @@ def index(request: Request):
             "user_photo": user_picture,
             "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
+            "khoj_version": state.khoj_version,
         },
     )
 
@@ -66,6 +67,7 @@ def index_post(request: Request):
             "user_photo": user_picture,
             "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
+            "khoj_version": state.khoj_version,
         },
     )
 
@@ -85,6 +87,7 @@ def search_page(request: Request):
             "user_photo": user_picture,
             "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
+            "khoj_version": state.khoj_version,
         },
     )
 
@@ -104,6 +107,7 @@ def chat_page(request: Request):
             "user_photo": user_picture,
             "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
+            "khoj_version": state.khoj_version,
         },
     )
 
@@ -183,6 +187,7 @@ def config_page(request: Request):
             "is_twilio_enabled": is_twilio_enabled(),
             "phone_number": user.phone_number,
             "is_phone_number_verified": user.verified_phone_number,
+            "khoj_version": state.khoj_version,
         },
     )
 
@@ -223,6 +228,7 @@ def github_config_page(request: Request):
             "user_photo": user_picture,
             "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
+            "khoj_version": state.khoj_version,
         },
     )
 
@@ -250,6 +256,7 @@ def notion_config_page(request: Request):
             "user_photo": user_picture,
             "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
+            "khoj_version": state.khoj_version,
         },
     )
 
@@ -269,5 +276,6 @@ def computer_config_page(request: Request):
             "user_photo": user_picture,
             "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
+            "khoj_version": state.khoj_version,
         },
     )

@@ -211,7 +211,7 @@ def setup(
         file_names = [file_name for file_name in files]
 
         logger.info(
-            f"Deleted {num_deleted_embeddings} entries. Created {num_new_embeddings} new entries for user {user} from files {file_names}"
+            f"Deleted {num_deleted_embeddings} entries. Created {num_new_embeddings} new entries for user {user} from files {file_names[:10]} ..."
         )
 
 

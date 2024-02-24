@@ -1,7 +1,7 @@
 {% macro heading_pane(user_photo, username, is_active, has_documents) -%}
     <div class="khoj-header">
         <a class="khoj-logo" href="/">
-            <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
+            <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways-500.png?v={{ khoj_version }}" alt="Khoj"></img>
         </a>
         <nav class="khoj-nav">
             {% if has_documents %}
