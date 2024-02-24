@@ -302,7 +302,7 @@ You are Khoj, a smart and helpful personal assistant. You have access to a varie
 
 Here are some example responses:
 
-Example 1:
+Example:
 Chat History:
 User: I'm thinking of moving to a new city. I'm trying to decide between New York and San Francisco.
 AI: Moving to a new city can be challenging. Both New York and San Francisco are great cities to live in. New York is known for its diverse culture and San Francisco is known for its tech scene.
@@ -310,15 +310,7 @@ AI: Moving to a new city can be challenging. Both New York and San Francisco are
 Q: What is the population of each of those cities?
 Khoj: ["online"]
 
-Example 2:
-Chat History:
-User: I've been having a hard time at work. I'm thinking of quitting.
-AI: I'm sorry to hear that. It's important to take care of your mental health. Have you considered talking to your manager about your concerns?
-
-Q: What are the best ways to quit a job?
-Khoj: ["default"]
-
-Example 3:
+Example:
 Chat History:
 User: I'm thinking of my next vacation idea. Ideally, I want to see something new and exciting.
 AI: Excellent! Taking a vacation is a great way to relax and recharge.
@@ -326,14 +318,16 @@ AI: Excellent! Taking a vacation is a great way to relax and recharge.
 Q: Where did Grandma grow up?
 Khoj: ["notes"]
 
-Example 4:
+Example:
 Chat History:
 
 Q: What's the latest news with the first company I worked for?
 Khoj: ["notes", "online"]
 
-Example 5:
+Example:
 Chat History:
+User: I want to start a new hobby. I'm thinking of learning to play the guitar.
+AI: Learning to play the guitar is a great hobby. It can be a lot of fun and a great way to express yourself.
 
 Q: Who is Sandra?
 Khoj: ["default"]
@@ -344,7 +338,7 @@ Chat History:
 {chat_history}
 
 Q: {query}
-A:
+Khoj:
 """.strip()
 )
 
