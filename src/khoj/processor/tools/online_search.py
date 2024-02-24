@@ -103,10 +103,14 @@ def search_with_olostep(web_url: str) -> str:
     web_scraping_params: Dict[str, Union[str, int, bool]] = OLOSTEP_QUERY_PARAMS.copy()  # type: ignore
     web_scraping_params["url"] = web_url
 
-    response = requests.request("GET", OLOSTEP_API_URL, params=web_scraping_params, headers=headers)
+    try:
+        response = requests.request("GET", OLOSTEP_API_URL, params=web_scraping_params, headers=headers)
 
-    if response.status_code != 200:
-        logger.error(response, exc_info=True)
+        if response.status_code != 200:
+            logger.error(response, exc_info=True)
+            return None
+    except Exception as e:
+        logger.error(f"Error while searching with Olostep: {e}", exc_info=True)
         return None
 
     return response.json()["markdown_content"]
