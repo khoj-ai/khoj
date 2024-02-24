@@ -380,6 +380,29 @@ const createWindow = (tab = 'chat.html') => {
     win.setBackgroundColor('#f5f4f3');
     win.setHasShadow(true);
 
+    // Open external links in link handler registered on OS (e.g. browser)
+    win.webContents.setWindowOpenHandler(async ({ url }) => {
+        const shouldOpen = { response: 0 };
+
+        if (!url.startsWith('http://')) {
+            // Confirm before opening non-HTTP links
+            const confirmNotice = `Do you want to open this link? It will be handled by an external application.\n\n${url}`;
+            shouldOpen = await dialog.showMessageBox({
+                type: 'question',
+                buttons: ['Yes', 'No'],
+                defaultId: 1,
+                title: 'Confirm',
+                message: confirmNotice,
+            });
+        }
+
+        // If user confirms, let OS link handler open the link in appropriate app
+        if (shouldOpen.response === 0) shell.openExternal(url);
+
+        // Do not open external links within the app
+        return { action: 'deny' };
+    });
+
     job.start();
 
     win.loadFile(tab)
