@@ -398,7 +398,7 @@ export class KhojChatModal extends Modal {
             // Reset collated chat result to empty string
             this.result = "";
             responseElement.innerHTML = "";
-            if (response.headers.get("content-type") == "application/json") {
+            if (response.headers.get("content-type") === "application/json") {
                 let responseText = ""
                 try {
                     const responseAsJson = await response.json() as ChatJsonResult;
@@ -413,10 +413,10 @@ export class KhojChatModal extends Modal {
                 } finally {
                     await this.renderIncrementalMessage(responseElement, responseText);
                 }
+            } else {
+                // Stream and render chat response
+                await this.readChatStream(response, responseElement);
             }
-
-            // Stream and render chat response
-            await this.readChatStream(response, responseElement);
         } catch (err) {
             console.log(`Khoj chat response failed with\n${err}`);
             let errorMsg = "Sorry, unable to get response from Khoj backend ❤️‍🩹. Retry or contact developers for help at <a href=mailto:'team@khoj.dev'>team@khoj.dev</a> or <a href='https://discord.gg/BDgyabRM6e'>on Discord</a>";
