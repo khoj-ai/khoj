@@ -41,6 +41,9 @@ class TextToEntries(ABC):
         "Split entries if compiled entry length exceeds the max tokens supported by the ML model."
         chunked_entries: List[Entry] = []
         for entry in entries:
+            if is_none_or_empty(entry.compiled):
+                continue
+
             # Split entry into words
             compiled_entry_words = [word for word in entry.compiled.split(" ") if word != ""]
 
