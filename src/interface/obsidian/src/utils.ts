@@ -43,6 +43,7 @@ function filenameToMimeType (filename: TFile): string {
         case 'org':
             return 'text/org';
         default:
+            console.warn(`Unknown file type: ${filename.extension}. Defaulting to text/plain.`);
             return 'text/plain';
     }
 }
