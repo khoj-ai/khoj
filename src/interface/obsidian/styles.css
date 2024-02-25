@@ -111,6 +111,14 @@ If your plugin does not need CSS, delete this file.
     transform: rotate(-60deg)
 }
 
+.khoj-chat-message-text ul,
+.khoj-chat-message-text ol {
+    margin: -20px 0 0;
+}
+.khoj-chat-message-text ol li {
+    white-space: normal;
+}
+
 .option-enabled {
     box-shadow: 0 0 12px rgb(119, 156, 46);
 }
