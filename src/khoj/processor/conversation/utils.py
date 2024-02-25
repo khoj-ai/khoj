@@ -122,7 +122,15 @@ def save_to_conversation_log(
         conversation_id=conversation_id,
         user_message=q,
     )
-    logger.info(f'Saved Conversation Turn\nYou ({user.username}): "{q}"\n\nKhoj: "{chat_response}"')
+
+    logger.info(
+        f"""
+Saved Conversation Turn
+You ({user.username}): "{q}"
+
+Khoj: "{inferred_queries if intent_type == "text-to-image" else chat_response}"
+""".strip()
+    )
 
 
 def generate_chatml_messages_with_context(
