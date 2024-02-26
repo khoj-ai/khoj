@@ -415,7 +415,7 @@ To get started, just start typing below. You can also type / to see a list of co
                             rawResponse += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
                         }
                     }
-                    if (responseAsJson.context) {
+                    if (responseAsJson.context && responseAsJson.context.length > 0) {
                         const rawReferenceAsJson = responseAsJson.context;
                         references = document.createElement('div');
                         references.classList.add("references");
