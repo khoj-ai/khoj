@@ -215,8 +215,10 @@ function pushDataToKhoj (regenerate = false) {
     .catch(error => {
         console.error(error);
         state["completed"] = false;
-        if (error?.response?.status === 429 && (win = BrowserWindow.getAllWindows()[0])) {
+        if (error?.response?.status === 429 && (BrowserWindow.getAllWindows().find(win => win.webContents.getURL().includes('config')))) {
             state["error"] = `Looks like you're out of space to sync your files. <a href="https://app.khoj.dev/config">Upgrade your plan</a> to unlock more space.`;
+            const win = BrowserWindow.getAllWindows().find(win => win.webContents.getURL().includes('config'));
+            if (win) win.webContents.send('needsSubscription', true);
         } else if (error?.code === 'ECONNREFUSED') {
             state["error"] = `Could not connect to Khoj server. Ensure you can connect to it at ${error.address}:${error.port}.`;
         } else {
