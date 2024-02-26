@@ -8,7 +8,7 @@ from freezegun import freeze_time
 from khoj.database.models import KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import message_to_log
-from khoj.routers.helpers import aget_relevant_information_sources
+from khoj.routers.helpers import aget_relevant_information_sources, aget_relevant_modes
 from tests.helpers import ConversationFactory
 
 # Initialize variables for tests
@@ -509,3 +509,31 @@ async def test_get_correct_tools_with_chat_history(chat_client):
     # Assert
     tools = [tool.value for tool in tools]
     assert tools == ["online"]
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.anyio
+@pytest.mark.django_db(transaction=True)
+async def test_use_default_response_mode(chat_client):
+    # Arrange
+    user_query = "What's the latest in the Israel/Palestine conflict?"
+
+    # Act
+    mode = await aget_relevant_modes(user_query, {})
+
+    # Assert
+    assert mode.value == "default"
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.anyio
+@pytest.mark.django_db(transaction=True)
+async def test_use_image_response_mode(chat_client):
+    # Arrange
+    user_query = "Paint a picture of the scenery in Timbuktu in the winter"
+
+    # Act
+    mode = await aget_relevant_modes(user_query, {})
+
+    # Assert
+    assert mode.value == "image"
