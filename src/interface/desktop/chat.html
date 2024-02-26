@@ -197,13 +197,18 @@
         }
 
         function renderMessageWithReference(message, by, context=null, dt=null, onlineContext=null, intentType=null, inferredQueries=null) {
-            if (intentType === "text-to-image") {
-                let imageMarkdown = `![](data:image/png;base64,${message})`;
-                const inferredQuery = inferredQueries?.[0];
-                if (inferredQuery) {
-                    imageMarkdown += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
+            if ((context == null || context.length == 0) && (onlineContext == null || (onlineContext && Object.keys(onlineContext).length == 0))) {
+                if (intentType === "text-to-image") {
+                    let imageMarkdown = `![](data:image/png;base64,${message})`;
+                    const inferredQuery = inferredQueries?.[0];
+                    if (inferredQuery) {
+                        imageMarkdown += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
+                    }
+                    renderMessage(imageMarkdown, by, dt);
+                    return;
                 }
-                renderMessage(imageMarkdown, by, dt);
+
+                renderMessage(message, by, dt);
                 return;
             }
 
@@ -382,6 +387,7 @@
             // Call Khoj chat API
             let response = await fetch(chatApi, { headers });
             let rawResponse = "";
+            let references = null;
             const contentType = response.headers.get("content-type");
 
             if (contentType === "application/json") {
@@ -395,6 +401,48 @@
                         if (inferredQueries) {
                             rawResponse += `\n\n**Inferred Query**:\n\n${inferredQueries}`;
                         }
+                    }
+                    if (responseAsJson.context) {
+                        const rawReferenceAsJson = responseAsJson.context;
+                        references = document.createElement('div');
+                        references.classList.add("references");
+
+                        let referenceExpandButton = document.createElement('button');
+                        referenceExpandButton.classList.add("reference-expand-button");
+
+                        referenceSection = document.createElement('div');
+                        referenceSection.classList.add("reference-section");
+                        referenceSection.classList.add("collapsed");
+
+                        let numReferences = 0;
+
+                        // If rawReferenceAsJson is a list, then count the length
+                        if (Array.isArray(rawReferenceAsJson)) {
+                            numReferences = rawReferenceAsJson.length;
+
+                            rawReferenceAsJson.forEach((reference, index) => {
+                                let polishedReference = generateReference(reference, index);
+                                referenceSection.appendChild(polishedReference);
+                            });
+                        } else {
+                            numReferences += processOnlineReferences(referenceSection, rawReferenceAsJson);
+                        }
+
+                        references.appendChild(referenceExpandButton);
+
+                        referenceExpandButton.addEventListener('click', function() {
+                            if (referenceSection.classList.contains("collapsed")) {
+                                referenceSection.classList.remove("collapsed");
+                                referenceSection.classList.add("expanded");
+                            } else {
+                                referenceSection.classList.add("collapsed");
+                                referenceSection.classList.remove("expanded");
+                            }
+                        });
+
+                        let expandButtonText = numReferences == 1 ? "1 reference" : `${numReferences} references`;
+                        referenceExpandButton.innerHTML = expandButtonText;
+                        references.appendChild(referenceSection);
                     }
                     if (responseAsJson.detail) {
                         // If response has detail field, response is an error message.
