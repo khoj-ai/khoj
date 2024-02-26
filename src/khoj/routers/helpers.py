@@ -189,7 +189,7 @@ async def aget_relevant_information_sources(query: str, conversation_history: di
         return [ConversationCommand.Default]
 
 
-async def aget_relevant_modes(query: str, conversation_history: dict):
+async def aget_relevant_output_modes(query: str, conversation_history: dict):
     """
     Given a query, determine which of the available tools the agent should use in order to answer appropriately.
     """
@@ -201,7 +201,7 @@ async def aget_relevant_modes(query: str, conversation_history: dict):
 
     chat_history = construct_chat_history(conversation_history)
 
-    relevant_mode_prompt = prompts.pick_relevant_mode.format(
+    relevant_mode_prompt = prompts.pick_relevant_output_mode.format(
         query=query,
         modes=str(mode_options),
         chat_history=chat_history,

@@ -299,7 +299,7 @@ Collate the relevant information from the website to answer the target query.
 """.strip()
 )
 
-pick_relevant_mode = PromptTemplate.from_template(
+pick_relevant_output_mode = PromptTemplate.from_template(
     """
 You are Khoj, an excellent analyst for selecting the correct way to respond to a user's query. You have access to a limited set of modes for your response. You can only use one of these modes.
 

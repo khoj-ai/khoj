@@ -22,7 +22,7 @@ from khoj.routers.helpers import (
     ConversationCommandRateLimiter,
     agenerate_chat_response,
     aget_relevant_information_sources,
-    aget_relevant_modes,
+    aget_relevant_output_modes,
     get_conversation_command,
     is_ready_to_chat,
     text_to_image,
@@ -251,7 +251,7 @@ async def chat(
 
     if conversation_commands == [ConversationCommand.Default]:
         conversation_commands = await aget_relevant_information_sources(q, meta_log)
-        mode = await aget_relevant_modes(q, meta_log)
+        mode = await aget_relevant_output_modes(q, meta_log)
         if mode not in conversation_commands:
             conversation_commands.append(mode)
 
