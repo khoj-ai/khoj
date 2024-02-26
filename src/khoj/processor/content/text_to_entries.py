@@ -63,6 +63,12 @@ class TextToEntries(ABC):
                     snipped_heading = entry.heading[-100:]
                     compiled_entry_chunk = f"{snipped_heading}.\n{compiled_entry_chunk}"
 
+                # Clean entry of unwanted characters like \0 character
+                compiled_entry_chunk = TextToEntries.clean_field(compiled_entry_chunk)
+                entry.raw = TextToEntries.clean_field(entry.raw)
+                entry.heading = TextToEntries.clean_field(entry.heading)
+                entry.file = TextToEntries.clean_field(entry.file)
+
                 chunked_entries.append(
                     Entry(
                         compiled=compiled_entry_chunk,
@@ -124,7 +130,7 @@ class TextToEntries(ABC):
             entry_batches = zip(hashes_to_process, embeddings)
 
             for entry_batch in tqdm(batcher(entry_batches, batch_size), desc="Add entries to database"):
-                batch_embeddings_to_create = []
+                batch_embeddings_to_create: List[DbEntry] = []
                 for entry_hash, new_entry in entry_batch:
                     entry = hash_to_current_entries[entry_hash]
                     batch_embeddings_to_create.append(
@@ -141,7 +147,14 @@ class TextToEntries(ABC):
                             corpus_id=entry.corpus_id,
                         )
                     )
-                added_entries += DbEntry.objects.bulk_create(batch_embeddings_to_create)
+                try:
+                    added_entries += DbEntry.objects.bulk_create(batch_embeddings_to_create)
+                except Exception as e:
+                    batch_indexing_error = "\n\n".join(
+                        f"file: {entry.file_path}\nheading: {entry.heading}\ncompiled: {entry.compiled[:100]}\nraw: {entry.raw[:100]}"
+                        for entry in batch_embeddings_to_create
+                    )
+                    logger.error(f"Error adding entries to database:\n{batch_indexing_error}\n---\n{e}", exc_info=True)
             logger.debug(f"Added {len(added_entries)} {file_type} entries to database")
 
         new_dates = []
@@ -235,3 +248,7 @@ class TextToEntries(ABC):
     def convert_text_maps_to_jsonl(entries: List[Entry]) -> str:
         # Convert each entry to JSON and write to JSONL file
         return "".join([f"{entry.to_json()}\n" for entry in entries])
+
+    @staticmethod
+    def clean_field(field: str) -> str:
+        return field.replace("\0", "") if not is_none_or_empty(field) else ""
