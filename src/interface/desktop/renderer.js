@@ -1,7 +1,6 @@
 const setFolderButton = document.getElementById('update-folder');
 const setFileButton = document.getElementById('update-file');
 const loadingBar = document.getElementById('loading-bar');
-const needsSubscriptionElement = document.getElementById('needs-subscription');
 
 async function removeFile(filePath) {
     const updatedFiles = await window.removeFileAPI.removeFile(filePath);
@@ -168,9 +167,8 @@ window.updateStateAPI.onUpdateState((event, state) => {
 window.needsSubscriptionAPI.onNeedsSubscription((event, needsSubscription) => {
     console.log("needs subscription", needsSubscription);
     if (needsSubscription) {
+        window.alert("Looks like you're out of space to sync your files. Upgrade your plan to unlock more space here: https://app.khoj.dev/config");
         needsSubscriptionElement.style.display = 'block';
-    } else {
-        needsSubscriptionElement.style.display = 'none';
     }
 });
 
