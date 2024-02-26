@@ -346,6 +346,46 @@ To get started, just start typing below. You can also type / to see a list of co
             return element
         }
 
+        function createReferenceSection(references) {
+            let referenceSection = document.createElement('div');
+            referenceSection.classList.add("reference-section");
+            referenceSection.classList.add("collapsed");
+
+            let numReferences = 0;
+
+            if (Array.isArray(references)) {
+                numReferences = references.length;
+
+                references.forEach((reference, index) => {
+                    let polishedReference = generateReference(reference, index);
+                    referenceSection.appendChild(polishedReference);
+                });
+            } else {
+                numReferences += processOnlineReferences(referenceSection, references);
+            }
+
+            let referenceExpandButton = document.createElement('button');
+            referenceExpandButton.classList.add("reference-expand-button");
+            referenceExpandButton.innerHTML = numReferences == 1 ? "1 reference" : `${numReferences} references`;
+
+            referenceExpandButton.addEventListener('click', function() {
+                if (referenceSection.classList.contains("collapsed")) {
+                    referenceSection.classList.remove("collapsed");
+                    referenceSection.classList.add("expanded");
+                } else {
+                    referenceSection.classList.add("collapsed");
+                    referenceSection.classList.remove("expanded");
+                }
+            });
+
+            let referencesDiv = document.createElement('div');
+            referencesDiv.classList.add("references");
+            referencesDiv.appendChild(referenceExpandButton);
+            referencesDiv.appendChild(referenceSection);
+
+            return referencesDiv;
+        }
+
         async function chat() {
             // Extract required fields for search from form
             let query = document.getElementById("chat-input").value.trim();
@@ -417,45 +457,7 @@ To get started, just start typing below. You can also type / to see a list of co
                     }
                     if (responseAsJson.context && responseAsJson.context.length > 0) {
                         const rawReferenceAsJson = responseAsJson.context;
-                        references = document.createElement('div');
-                        references.classList.add("references");
-
-                        let referenceExpandButton = document.createElement('button');
-                        referenceExpandButton.classList.add("reference-expand-button");
-
-                        referenceSection = document.createElement('div');
-                        referenceSection.classList.add("reference-section");
-                        referenceSection.classList.add("collapsed");
-
-                        let numReferences = 0;
-
-                        // If rawReferenceAsJson is a list, then count the length
-                        if (Array.isArray(rawReferenceAsJson)) {
-                            numReferences = rawReferenceAsJson.length;
-
-                            rawReferenceAsJson.forEach((reference, index) => {
-                                let polishedReference = generateReference(reference, index);
-                                referenceSection.appendChild(polishedReference);
-                            });
-                        } else {
-                            numReferences += processOnlineReferences(referenceSection, rawReferenceAsJson);
-                        }
-
-                        references.appendChild(referenceExpandButton);
-
-                        referenceExpandButton.addEventListener('click', function() {
-                            if (referenceSection.classList.contains("collapsed")) {
-                                referenceSection.classList.remove("collapsed");
-                                referenceSection.classList.add("expanded");
-                            } else {
-                                referenceSection.classList.add("collapsed");
-                                referenceSection.classList.remove("expanded");
-                            }
-                        });
-
-                        let expandButtonText = numReferences == 1 ? "1 reference" : `${numReferences} references`;
-                        referenceExpandButton.innerHTML = expandButtonText;
-                        references.appendChild(referenceSection);
+                        references = createReferenceSection(rawReferenceAsJson);
                     }
                     if (responseAsJson.detail) {
                         // If response has detail field, response is an error message.
@@ -506,45 +508,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
                             const rawReference = chunk.split("### compiled references:")[1];
                             const rawReferenceAsJson = JSON.parse(rawReference);
-                            references = document.createElement('div');
-                            references.classList.add("references");
-
-                            let referenceExpandButton = document.createElement('button');
-                            referenceExpandButton.classList.add("reference-expand-button");
-
-                            let referenceSection = document.createElement('div');
-                            referenceSection.classList.add("reference-section");
-                            referenceSection.classList.add("collapsed");
-
-                            let numReferences = 0;
-
-                            // If rawReferenceAsJson is a list, then count the length
-                            if (Array.isArray(rawReferenceAsJson)) {
-                                numReferences = rawReferenceAsJson.length;
-
-                                rawReferenceAsJson.forEach((reference, index) => {
-                                    let polishedReference = generateReference(reference, index);
-                                    referenceSection.appendChild(polishedReference);
-                                });
-                            } else {
-                                numReferences += processOnlineReferences(referenceSection, rawReferenceAsJson);
-                            }
-
-                            references.appendChild(referenceExpandButton);
-
-                            referenceExpandButton.addEventListener('click', function() {
-                                if (referenceSection.classList.contains("collapsed")) {
-                                    referenceSection.classList.remove("collapsed");
-                                    referenceSection.classList.add("expanded");
-                                } else {
-                                    referenceSection.classList.add("collapsed");
-                                    referenceSection.classList.remove("expanded");
-                                }
-                            });
-
-                            let expandButtonText = numReferences == 1 ? "1 reference" : `${numReferences} references`;
-                            referenceExpandButton.innerHTML = expandButtonText;
-                            references.appendChild(referenceSection);
+                            references = createReferenceSection(rawReferenceAsJson);
                             readStream();
                         } else {
                             // Display response from Khoj

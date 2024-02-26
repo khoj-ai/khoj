@@ -125,9 +125,11 @@ You are a talented creator. Generate a detailed prompt to generate an image base
 Today's Date: {current_date}
 User's Location: {location}
 
-User's Notes: {references}
+User's Notes:
+{references}
 
-Online References: {online_results}
+Online References:
+{online_results}
 
 Conversation Log:
 {chat_history}

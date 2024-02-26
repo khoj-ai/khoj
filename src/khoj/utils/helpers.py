@@ -290,8 +290,8 @@ tool_descriptions_for_llm = {
 }
 
 mode_descriptions_for_llm = {
-    ConversationCommand.Image: "Use this if you think the user is requesting an image or visual representation of the query.",
-    ConversationCommand.Default: "Use this if the other modes don't seem to fit the query.",
+    ConversationCommand.Image: "Use this if you think the user is requesting an image or visual response to their query.",
+    ConversationCommand.Default: "Use this if the other response modes don't seem to fit the query.",
 }
 
 
