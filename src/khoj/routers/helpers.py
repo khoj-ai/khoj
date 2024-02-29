@@ -381,11 +381,14 @@ async def text_to_image(
 ) -> Tuple[Optional[str], int, Optional[str]]:
     status_code = 200
     image = None
+    response = None
 
     text_to_image_config = await ConversationAdapters.aget_text_to_image_model_config()
     if not text_to_image_config:
         # If the user has not configured a text to image model, return an unsupported on server error
         status_code = 501
+        message = "Failed to generate image. Setup image generation on the server."
+        return image, status_code, message
     elif state.openai_client and text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
         text2image_model = text_to_image_config.model_name
         chat_history = ""
@@ -399,9 +402,17 @@ async def text_to_image(
                 prompt=improved_image_prompt, model=text2image_model, response_format="b64_json"
             )
             image = response.data[0].b64_json
-        except openai.OpenAIError as e:
-            logger.error(f"Image Generation failed with {e}", exc_info=True)
-            status_code = 500
+        except openai.OpenAIError or openai.BadRequestError as e:
+            if "content_policy_violation" in e.message:
+                logger.error(f"Image Generation blocked by OpenAI: {e}")
+                status_code = e.status_code
+                message = f"Image generation blocked by OpenAI: {e.message}"
+                return image, status_code, message
+            else:
+                logger.error(f"Image Generation failed with {e}", exc_info=True)
+                message = f"Image generation failed with OpenAI error: {e.message}"
+                status_code = e.status_code
+                return image, status_code, message
 
     return image, status_code, improved_image_prompt
 
