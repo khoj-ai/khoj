@@ -24,6 +24,7 @@ Get the Khoj [Desktop](https://khoj.dev/downloads), [Obsidian](https://docs.khoj
 
 To get started, just start typing below. You can also type / to see a list of commands.
 `.trim()
+        const allowedExtensions = ['text/org', 'text/markdown', 'text/plain', 'text/html', 'application/pdf'];
         let chatOptions = [];
         function copyProgrammaticOutput(event) {
             // Remove the first 4 characters which are the "Copy" button
@@ -563,6 +564,75 @@ To get started, just start typing below. You can also type / to see a list of co
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
         }
 
+        function uploadDataForIndexing(file) {
+            if (!allowedExtensions.includes(file.type)) {
+                alert("Sorry, that file type is not yet supported");
+                return;
+            }
+
+            const fileName = file.name;
+            var fileContents = null;
+
+            var reader = new FileReader();
+            const formData = new FormData();
+
+            reader.onload = function(event) {
+                fileContents = event.target.result;
+                console.log(fileContents);
+                let fileObj = new Blob([fileContents], { type: file.type });
+                console.log(fileObj);
+                formData.append('files', fileObj, file.name)
+                console.log(formData);
+
+                fetch('/api/v1/index/update?force=false&client=web', {
+                    method: 'POST',
+                    body: formData,
+                })
+                .then(response => response.json())
+                .then(data => console.log(data))
+                .catch(error => console.log(error));
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        function setupDropZone() {
+            var dropzone = document.getElementById('chat-body');
+
+            dropzone.ondragover = function(event) {
+                event.preventDefault();
+                this.classList.add('dragover');
+                var overlayText = document.getElementById("dropzone-overlay");
+
+                if (overlayText == null) {
+                    var overlayText = document.createElement("div");
+                    overlayText.innerHTML = "Drop file to share it with Khoj";
+                    overlayText.className = "dropzone-overlay";
+                    overlayText.id = "dropzone-overlay";
+                    this.appendChild(overlayText);
+                }
+            };
+
+            dropzone.ondragleave = function(event) {
+                event.preventDefault();
+                this.classList.remove('dragover');
+                var overlayText = document.getElementById("dropzone-overlay");
+                if (overlayText != null) {
+                    overlayText.remove();
+                }
+            };
+
+            dropzone.ondrop = function(event) {
+                event.preventDefault();
+                this.classList.remove('dragover');
+
+                var file = event.dataTransfer.files[0];
+                console.log('Dropped file:', file.name);
+                console.log('file ', file);
+                uploadDataForIndexing(file);
+            };
+        }
+
         window.onload = loadChat;
 
         function loadChat() {
@@ -577,6 +647,8 @@ To get started, just start typing below. You can also type / to see a list of co
             if (window.screen.width < 700) {
                 handleCollapseSidePanel();
             }
+
+            setupDropZone();
 
             fetch(chatHistoryUrl, { method: "GET" })
                 .then(response => response.json())
@@ -1034,6 +1106,10 @@ To get started, just start typing below. You can also type / to see a list of co
                                 <path d="M5 6.5A1.5 1.5 0 0 1 6.5 5h3A1.5 1.5 0 0 1 11 6.5v3A1.5 1.5 0 0 1 9.5 11h-3A1.5 1.5 0 0 1 5 9.5v-3z"/>
                             </svg>
                         </button>
+                        <!-- <div class="input-row">
+                            <label for="file" class="input-row-label">File</label>
+                            <input type="file" id="file" name="file">
+                        </div> -->
                         <button id="send-button" class="input-row-button" alt="Send message">
                             <svg id="send-button-img" onclick="chat()" class="input-row-button-img" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                 <path fill-rule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8zm15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11.5z"/>
@@ -1270,6 +1346,41 @@ To get started, just start typing below. You can also type / to see a list of co
             overflow-y: scroll;
             overflow-x: hidden;
         }
+
+        #chat-body {
+            transition: background-color 0.2s;
+            transition: opacity 0.2s;
+        }
+
+        #chat-body.dragover {
+            background-color: var(--primary-active);
+        }
+
+        #chat-body.dragover {
+            opacity: 50%;
+        }
+
+        div.dropzone-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #333;
+            z-index: 9999; /* This is the important part */
+        }
+
+        #chat-body.dragover::after {
+            content: "Drop file to share it with Khoj";
+            position: absolute;
+            color: black;
+            font-size: 100px;
+        }
+
         /* add chat metatdata to bottom of bubble */
         .chat-message::after {
             content: attr(data-meta);
