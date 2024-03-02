@@ -297,11 +297,7 @@ async def chat(
         )
         image, status_code, improved_image_prompt = await text_to_image(q, meta_log, location_data=location)
         if image is None:
-            content_obj = {
-                "image": image,
-                "intentType": "text-to-image",
-                "detail": "Failed to generate image. Make sure your image generation configuration is set.",
-            }
+            content_obj = {"image": image, "intentType": "text-to-image", "detail": improved_image_prompt}
             return Response(content=json.dumps(content_obj), media_type="application/json", status_code=status_code)
         await sync_to_async(save_to_conversation_log)(
             q,

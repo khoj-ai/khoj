@@ -42,7 +42,7 @@ services:
       - POSTGRES_HOST=database
       - POSTGRES_PORT=5432
       - KHOJ_DJANGO_SECRET_KEY=secret
-      - KHOJ_DEBUG=True
+      - KHOJ_DEBUG=False
       - KHOJ_ADMIN_EMAIL=username@example.com
       - KHOJ_ADMIN_PASSWORD=password
     command: --host="0.0.0.0" --port=42110 -vv --anonymous-mode
