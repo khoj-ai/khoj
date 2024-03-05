@@ -283,40 +283,42 @@ def configure_content(
         success = False
 
     try:
-        github_config = GithubConfig.objects.filter(user=user).prefetch_related("githubrepoconfig").first()
-        if (
-            search_type == state.SearchType.All.value or search_type == state.SearchType.Github.value
-        ) and github_config is not None:
-            logger.info("🐙 Setting up search for github")
-            # Extract Entries, Generate Github Embeddings
-            text_search.setup(
-                GithubToEntries,
-                None,
-                regenerate=regenerate,
-                full_corpus=full_corpus,
-                user=user,
-                config=github_config,
-            )
+        if files is None:
+            github_config = GithubConfig.objects.filter(user=user).prefetch_related("githubrepoconfig").first()
+            if (
+                search_type == state.SearchType.All.value or search_type == state.SearchType.Github.value
+            ) and github_config is not None:
+                logger.info("🐙 Setting up search for github")
+                # Extract Entries, Generate Github Embeddings
+                text_search.setup(
+                    GithubToEntries,
+                    None,
+                    regenerate=regenerate,
+                    full_corpus=full_corpus,
+                    user=user,
+                    config=github_config,
+                )
 
     except Exception as e:
         logger.error(f"🚨 Failed to setup GitHub: {e}", exc_info=True)
         success = False
 
     try:
-        # Initialize Notion Search
-        notion_config = NotionConfig.objects.filter(user=user).first()
-        if (
-            search_type == state.SearchType.All.value or search_type == state.SearchType.Notion.value
-        ) and notion_config:
-            logger.info("🔌 Setting up search for notion")
-            text_search.setup(
-                NotionToEntries,
-                None,
-                regenerate=regenerate,
-                full_corpus=full_corpus,
-                user=user,
-                config=notion_config,
-            )
+        if files is None:
+            # Initialize Notion Search
+            notion_config = NotionConfig.objects.filter(user=user).first()
+            if (
+                search_type == state.SearchType.All.value or search_type == state.SearchType.Notion.value
+            ) and notion_config:
+                logger.info("🔌 Setting up search for notion")
+                text_search.setup(
+                    NotionToEntries,
+                    None,
+                    regenerate=regenerate,
+                    full_corpus=full_corpus,
+                    user=user,
+                    config=notion_config,
+                )
 
     except Exception as e:
         logger.error(f"🚨 Failed to setup Notion: {e}", exc_info=True)

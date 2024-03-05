@@ -567,6 +567,10 @@ To get started, just start typing below. You can also type / to see a list of co
         function uploadDataForIndexing(file) {
             if (!allowedExtensions.includes(file.type)) {
                 alert("Sorry, that file type is not yet supported");
+                var overlayText = document.getElementById("dropzone-overlay");
+                if (overlayText != null) {
+                    overlayText.remove();
+                }
                 return;
             }
 
@@ -576,21 +580,47 @@ To get started, just start typing below. You can also type / to see a list of co
             var reader = new FileReader();
             const formData = new FormData();
 
-            reader.onload = function(event) {
+            var overlayText = document.getElementById("dropzone-overlay");
+            if (overlayText != null) {
+                // Display loading spinner
+                var loadingSpinner = document.createElement("div");
+                overlayText.innerHTML = "Uploading file for indexing";
+                loadingSpinner.className = "spinner";
+                overlayText.appendChild(loadingSpinner);
+            }
+
+            reader.onload = function (event) {
                 fileContents = event.target.result;
                 console.log(fileContents);
                 let fileObj = new Blob([fileContents], { type: file.type });
                 console.log(fileObj);
-                formData.append('files', fileObj, file.name)
+                formData.append("files", fileObj, file.name);
                 console.log(formData);
 
-                fetch('/api/v1/index/update?force=false&client=web', {
-                    method: 'POST',
+                fetch("/api/v1/index/update?force=false&client=web", {
+                    method: "POST",
                     body: formData,
                 })
-                .then(response => response.json())
-                .then(data => console.log(data))
-                .catch(error => console.log(error));
+                    .then((data) => {
+                        console.log(data);
+                        var overlayText = document.getElementById("dropzone-overlay");
+                        if (overlayText != null) {
+                            overlayText.remove();
+                        }
+                        // Display indexing success message
+                        flashStatusInChatInput("✅ File indexed successfully");
+
+
+                    })
+                    .catch((error) => {
+                        console.log(error);
+                        var overlayText = document.getElementById("dropzone-overlay");
+                        if (overlayText != null) {
+                            overlayText.remove();
+                        }
+                        // Display indexing failure message
+                        flashStatusInChatInput("⛔️ Failed to upload file for indexing");
+                    });
             };
 
             reader.readAsArrayBuffer(file);
@@ -627,8 +657,6 @@ To get started, just start typing below. You can also type / to see a list of co
                 this.classList.remove('dragover');
 
                 var file = event.dataTransfer.files[0];
-                console.log('Dropped file:', file.name);
-                console.log('file ', file);
                 uploadDataForIndexing(file);
             };
         }
