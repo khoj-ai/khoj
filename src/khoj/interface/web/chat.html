@@ -566,12 +566,43 @@ To get started, just start typing below. You can also type / to see a list of co
 
         function openFileBrowser() {
             event.preventDefault();
+            var overlayText = document.getElementById("dropzone-overlay");
+            var dropzone = document.getElementById('chat-body');
+
+            if (overlayText == null) {
+                dropzone.classList.add('dragover');
+                var overlayText = document.createElement("div");
+                overlayText.innerHTML = "Select a file to share it with Khoj";
+                overlayText.className = "dropzone-overlay";
+                overlayText.id = "dropzone-overlay";
+                dropzone.appendChild(overlayText);
+            }
+
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
             fileInput.addEventListener('change', function() {
                 const selectedFile = fileInput.files[0];
                 uploadDataForIndexing(selectedFile);
             });
+
+            // Remove overlay text after file input is closed
+            fileInput.addEventListener('blur', function() {
+                dropzone.classList.remove('dragover');
+                var overlayText = document.getElementById("dropzone-overlay");
+                if (overlayText != null) {
+                    overlayText.remove();
+                }
+            });
+
+            // Remove overlay text if file input is cancelled
+            fileInput.addEventListener('cancel', function() {
+                dropzone.classList.remove('dragover');
+                var overlayText = document.getElementById("dropzone-overlay");
+                if (overlayText != null) {
+                    overlayText.remove();
+                }
+            });
+
             fileInput.click();
         }
 
@@ -590,6 +621,8 @@ To get started, just start typing below. You can also type / to see a list of co
 
             var reader = new FileReader();
             const formData = new FormData();
+
+            var dropzone = document.getElementById('chat-body');
 
             var overlayText = document.getElementById("dropzone-overlay");
             if (overlayText != null) {
@@ -614,6 +647,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 })
                     .then((data) => {
                         console.log(data);
+                        dropzone.classList.remove('dragover');
                         var overlayText = document.getElementById("dropzone-overlay");
                         if (overlayText != null) {
                             overlayText.remove();
@@ -625,6 +659,7 @@ To get started, just start typing below. You can also type / to see a list of co
                     })
                     .catch((error) => {
                         console.log(error);
+                        dropzone.classList.remove('dragover');
                         var overlayText = document.getElementById("dropzone-overlay");
                         if (overlayText != null) {
                             overlayText.remove();
