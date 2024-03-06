@@ -8,7 +8,10 @@ from freezegun import freeze_time
 from khoj.database.models import KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import message_to_log
-from khoj.routers.helpers import aget_relevant_information_sources
+from khoj.routers.helpers import (
+    aget_relevant_information_sources,
+    aget_relevant_output_modes,
+)
 from tests.helpers import ConversationFactory
 
 # Initialize variables for tests

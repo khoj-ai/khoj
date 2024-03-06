@@ -289,6 +289,11 @@ tool_descriptions_for_llm = {
     ConversationCommand.Online: "Use this when you would like to look up information on the internet",
 }
 
+mode_descriptions_for_llm = {
+    ConversationCommand.Image: "Use this if you think the user is requesting an image or visual response to their query.",
+    ConversationCommand.Default: "Use this if the other response modes don't seem to fit the query.",
+}
+
 
 def generate_random_name():
     # List of adjectives and nouns to choose from
