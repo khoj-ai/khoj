@@ -593,7 +593,7 @@ To get started, just start typing below. You can also type / to see a list of co
             if (overlayText == null) {
                 dropzone.classList.add('dragover');
                 var overlayText = document.createElement("div");
-                overlayText.innerHTML = "Select a file to share it with Khoj";
+                overlayText.innerHTML = "Select a file or drag + drop it here to share it with Khoj";
                 overlayText.className = "dropzone-overlay";
                 overlayText.id = "dropzone-overlay";
                 dropzone.appendChild(overlayText);
@@ -1550,7 +1550,7 @@ To get started, just start typing below. You can also type / to see a list of co
             display: inline-block;
             max-width: 80%;
             text-align: left;
-            /* white-space: pre-line; */
+            white-space: pre-line;
         }
         /* color chat bubble by khoj blue */
         .chat-message-text.khoj {
