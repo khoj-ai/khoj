@@ -700,7 +700,6 @@ To get started, just start typing below. You can also type / to see a list of co
 
             dropzone.ondrop = function(event) {
                 event.preventDefault();
-                this.classList.remove('dragover');
 
                 var file = event.dataTransfer.files[0];
                 uploadDataForIndexing(file);
