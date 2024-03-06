@@ -656,9 +656,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
             reader.onload = function (event) {
                 fileContents = event.target.result;
-                console.log(fileContents);
                 let fileObj = new Blob([fileContents], { type: file.type });
-                console.log(fileObj);
                 formData.append("files", fileObj, file.name);
                 console.log(formData);
 
