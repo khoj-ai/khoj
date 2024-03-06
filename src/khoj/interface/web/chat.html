@@ -24,6 +24,7 @@ Get the Khoj [Desktop](https://khoj.dev/downloads), [Obsidian](https://docs.khoj
 
 To get started, just start typing below. You can also type / to see a list of commands.
 `.trim()
+        const allowedExtensions = ['text/org', 'text/markdown', 'text/plain', 'text/html', 'application/pdf'];
         let chatOptions = [];
         function copyProgrammaticOutput(event) {
             // Remove the first 4 characters which are the "Copy" button
@@ -584,11 +585,154 @@ To get started, just start typing below. You can also type / to see a list of co
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
         }
 
+        function openFileBrowser() {
+            event.preventDefault();
+            var overlayText = document.getElementById("dropzone-overlay");
+            var dropzone = document.getElementById('chat-body');
+
+            if (overlayText == null) {
+                dropzone.classList.add('dragover');
+                var overlayText = document.createElement("div");
+                overlayText.innerHTML = "Select a file to share it with Khoj";
+                overlayText.className = "dropzone-overlay";
+                overlayText.id = "dropzone-overlay";
+                dropzone.appendChild(overlayText);
+            }
+
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.addEventListener('change', function() {
+                const selectedFile = fileInput.files[0];
+                uploadDataForIndexing(selectedFile);
+            });
+
+            // Remove overlay text after file input is closed
+            fileInput.addEventListener('blur', function() {
+                dropzone.classList.remove('dragover');
+                var overlayText = document.getElementById("dropzone-overlay");
+                if (overlayText != null) {
+                    overlayText.remove();
+                }
+            });
+
+            // Remove overlay text if file input is cancelled
+            fileInput.addEventListener('cancel', function() {
+                dropzone.classList.remove('dragover');
+                var overlayText = document.getElementById("dropzone-overlay");
+                if (overlayText != null) {
+                    overlayText.remove();
+                }
+            });
+
+            fileInput.click();
+        }
+
+        function uploadDataForIndexing(file) {
+            if (!allowedExtensions.includes(file.type)) {
+                alert("Sorry, that file type is not yet supported");
+                var overlayText = document.getElementById("dropzone-overlay");
+                if (overlayText != null) {
+                    overlayText.remove();
+                }
+                return;
+            }
+
+            const fileName = file.name;
+            var fileContents = null;
+
+            var reader = new FileReader();
+            const formData = new FormData();
+
+            var dropzone = document.getElementById('chat-body');
+
+            var overlayText = document.getElementById("dropzone-overlay");
+            if (overlayText != null) {
+                // Display loading spinner
+                var loadingSpinner = document.createElement("div");
+                overlayText.innerHTML = "Uploading file for indexing";
+                loadingSpinner.className = "spinner";
+                overlayText.appendChild(loadingSpinner);
+            }
+
+            reader.onload = function (event) {
+                fileContents = event.target.result;
+                let fileObj = new Blob([fileContents], { type: file.type });
+                formData.append("files", fileObj, file.name);
+                console.log(formData);
+
+                fetch("/api/v1/index/update?force=false&client=web", {
+                    method: "POST",
+                    body: formData,
+                })
+                    .then((data) => {
+                        console.log(data);
+                        dropzone.classList.remove('dragover');
+                        var overlayText = document.getElementById("dropzone-overlay");
+                        if (overlayText != null) {
+                            overlayText.remove();
+                        }
+                        // Display indexing success message
+                        flashStatusInChatInput("✅ File indexed successfully");
+
+
+                    })
+                    .catch((error) => {
+                        console.log(error);
+                        dropzone.classList.remove('dragover');
+                        var overlayText = document.getElementById("dropzone-overlay");
+                        if (overlayText != null) {
+                            overlayText.remove();
+                        }
+                        // Display indexing failure message
+                        flashStatusInChatInput("⛔️ Failed to upload file for indexing");
+                    });
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        function setupDropZone() {
+            var dropzone = document.getElementById('chat-body');
+
+            dropzone.ondragover = function(event) {
+                event.preventDefault();
+                this.classList.add('dragover');
+                var overlayText = document.getElementById("dropzone-overlay");
+                console.log("ondragover triggered");
+
+                if (overlayText == null) {
+                    var overlayText = document.createElement("div");
+                    overlayText.innerHTML = "Drop file to share it with Khoj";
+                    overlayText.className = "dropzone-overlay";
+                    overlayText.id = "dropzone-overlay";
+                    this.appendChild(overlayText);
+                }
+            };
+
+            dropzone.ondragleave = function(event) {
+                event.preventDefault();
+                this.classList.remove('dragover');
+                console.log("ondragleave triggered");
+                var overlayText = document.getElementById("dropzone-overlay");
+                if (overlayText != null) {
+                    overlayText.remove();
+                }
+            };
+
+            dropzone.ondrop = function(event) {
+                event.preventDefault();
+
+                var file = event.dataTransfer.files[0];
+                uploadDataForIndexing(file);
+            };
+        }
+
         window.onload = loadChat;
 
         function loadChat() {
             let chatBody = document.getElementById("chat-body");
             chatBody.innerHTML = "";
+            chatBody.classList.add("relative-position");
             let conversationId = chatBody.dataset.conversationId;
             let chatHistoryUrl = `/api/chat/history?client=web`;
             if (conversationId) {
@@ -598,6 +742,11 @@ To get started, just start typing below. You can also type / to see a list of co
             if (window.screen.width < 700) {
                 handleCollapseSidePanel();
             }
+
+            // Create loading screen and add it to chat-body
+            let loadingScreen = document.createElement('div');
+            loadingScreen.classList.add('loading-screen', 'gradient-animation');
+            chatBody.appendChild(loadingScreen);
 
             fetch(chatHistoryUrl, { method: "GET" })
                 .then(response => response.json())
@@ -625,6 +774,7 @@ To get started, just start typing below. You can also type / to see a list of co
                     chatBody.dataset.conversationId = conversationId;
                     chatBody.dataset.conversationTitle = conversationTitle;
 
+                    let chatBodyWrapper = document.getElementById("chat-body-wrapper");
                     const fullChatLog = response.chat || [];
 
                     fullChatLog.forEach(chat_log => {
@@ -638,13 +788,20 @@ To get started, just start typing below. You can also type / to see a list of co
                                 chat_log.intent?.type,
                                 chat_log.intent?.["inferred-queries"]);
                         }
-
+                        loadingScreen.style.height = chatBody.scrollHeight + 'px';
                     });
 
-                    let chatBodyWrapper = document.getElementById("chat-body-wrapper");
+                    // Add fade out animation to loading screen and remove it after the animation ends
+                    loadingScreen.classList.remove('gradient-animation');
+                    loadingScreen.classList.add('fade-out-animation');
                     chatBodyWrapperHeight = chatBodyWrapper.clientHeight;
-
                     chatBody.style.height = chatBodyWrapperHeight;
+                    setTimeout(() => {
+                        loadingScreen.remove();
+                        chatBody.classList.remove("relative-position");
+                        setupDropZone();
+                    }, 500);
+
                 })
                 .catch(err => {
                     console.log(err);
@@ -1043,6 +1200,11 @@ To get started, just start typing below. You can also type / to see a list of co
                 <div id="chat-footer">
                     <div id="chat-tooltip" style="display: none;"></div>
                     <div id="input-row">
+                        <button id="upload-file-button" class="input-row-button" onclick="openFileBrowser()">
+                            <svg id="upload-file-button-img" class="input-row-button-img" alt="Upload File" width="183px" height="183px" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#000000" stroke-width="0.9600000000000002" transform="matrix(1, 0, 0, 1, 0, 0)rotate(-45)">
+                                <g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <g id="attachment"> <g id="attachment_2"> <path id="Combined Shape" fill-rule="evenodd" clip-rule="evenodd" d="M26.4252 29.1104L39.5729 15.9627C42.3094 13.2262 42.3094 8.78901 39.5729 6.05248C36.8364 3.31601 32.4015 3.31601 29.663 6.05218L16.4487 19.2665L16.4251 19.2909L8.92989 26.7861C5.02337 30.6926 5.02337 37.0238 8.92989 40.9303C12.8344 44.8348 19.1656 44.8348 23.0701 40.9303L41.7835 22.2169C42.174 21.8264 42.174 21.1933 41.7835 20.8027C41.3929 20.4122 40.7598 20.4122 40.3693 20.8027L21.6559 39.5161C18.5324 42.6396 13.4676 42.6396 10.3441 39.5161C7.21863 36.3906 7.21863 31.3258 10.3441 28.2003L30.1421 8.4023L30.1657 8.37788L31.0769 7.4667C33.0341 5.51117 36.2032 5.51117 38.1587 7.4667C40.1142 9.42217 40.1142 12.593 38.1587 14.5485L28.282 24.4252C28.2748 24.4319 28.2678 24.4388 28.2608 24.4458L25.0064 27.7008L24.9447 27.7625C24.9437 27.7635 24.9427 27.7644 24.9418 27.7654L17.3988 35.3097C16.6139 36.0934 15.3401 36.0934 14.5545 35.3091C13.7714 34.5247 13.7714 33.2509 14.5557 32.4653L24.479 22.544C24.8696 22.1535 24.8697 21.5203 24.4792 21.1298C24.0887 20.7392 23.4555 20.7391 23.065 21.1296L13.141 31.0516C11.5766 32.6187 11.5766 35.1569 13.1403 36.7233C14.7079 38.2882 17.2461 38.2882 18.8125 36.7245L26.3589 29.1767L26.4252 29.1104Z" fill="#000000"></path></g> </g> </g>
+                            </svg>
+                        </button>
                         <textarea id="chat-input" class="option" oninput="onChatInput()" onkeydown=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands"></textarea>
                         <button id="speak-button" class="input-row-button"
                             ontouchstart="speechToText(event)" ontouchend="speechToText(event)" ontouchcancel="speechToText(event)" onmousedown="speechToText(event)">
@@ -1232,7 +1394,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
         #chat-section-wrapper {
             display: grid;
-            grid-template-columns: auto auto;
+            grid-template-columns: auto 1fr;
             grid-column-gap: 10px;
             grid-row-gap: 10px;
             padding: 10px;
@@ -1290,7 +1452,77 @@ To get started, just start typing below. You can also type / to see a list of co
             line-height: 20px;
             overflow-y: scroll;
             overflow-x: hidden;
+            transition: background-color 0.2s;
+            transition: opacity 0.2s;
         }
+
+        #chat-body.dragover {
+            background-color: var(--primary-active);
+        }
+
+        .relative-position {
+            position: relative;
+        }
+
+        #chat-body.dragover {
+            opacity: 50%;
+        }
+
+        div.dropzone-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #333;
+            z-index: 9999; /* This is the important part */
+            pointer-events: none;
+        }
+
+        div.loading-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #333;
+            z-index: 9999; /* This is the important part */
+
+            /* Adding gradient effect */
+            background: radial-gradient(circle, var(--primary-hover) 0%, var(--flower) 100%);
+            background-size: 200% 200%;
+        }
+
+        div.loading-screen::after {
+            content: "Loading...";
+        }
+
+        .gradient-animation {
+            animation: gradient 2s ease infinite;
+        }
+
+        @keyframes gradient {
+            0% {background-position: 0% 50%;}
+            50% {background-position: 100% 50%;}
+            100% {background-position: 0% 50%;}
+        }
+
+        .fade-out-animation {
+            animation-name: fadeOut;
+            animation-duration: 1.5s;
+        }
+
+        @keyframes fadeOut {
+            from {opacity: 1;}
+            to {opacity: 0;}
+        }
+
         /* add chat metatdata to bottom of bubble */
         .chat-message::after {
             content: attr(data-meta);
@@ -1318,7 +1550,7 @@ To get started, just start typing below. You can also type / to see a list of co
             display: inline-block;
             max-width: 80%;
             text-align: left;
-            white-space: pre-line;
+            /* white-space: pre-line; */
         }
         /* color chat bubble by khoj blue */
         .chat-message-text.khoj {
@@ -1393,7 +1625,7 @@ To get started, just start typing below. You can also type / to see a list of co
         }
         #input-row {
             display: grid;
-            grid-template-columns: auto 32px 40px;
+            grid-template-columns: 32px auto 40px 32px;
             grid-column-gap: 10px;
             grid-row-gap: 10px;
             background: var(--background-color);
