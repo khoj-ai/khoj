@@ -120,16 +120,23 @@ User's Notes:
 
 image_generation_improve_prompt = PromptTemplate.from_template(
     """
-You are a talented creator. Generate a detailed prompt to generate an image based on the following description. Update the query below to improve the image generation. Add additional context to the query to improve the image generation. Make sure to retain any important information from the query. Use the conversation log to inform your response.
+You are a talented creator. Generate a detailed prompt to generate an image based on the following description. Update the query below to improve the image generation. Add additional context to the query to improve the image generation. Make sure to retain any important information originally from the query. You are provided with the following information to help you generate the prompt:
 
 Today's Date: {current_date}
 User's Location: {location}
+
+User's Notes:
+{references}
+
+Online References:
+{online_results}
 
 Conversation Log:
 {chat_history}
 
 Query: {query}
 
+Remember, now you are generating a prompt to improve the image generation. Add additional context to the query to improve the image generation. Make sure to retain any important information originally from the query. Use the additional context from the user's notes, online references and conversation log to improve the image generation.
 Improved Query:"""
 )
 
@@ -291,6 +298,40 @@ Target Query: {query}
 Web Pages: {corpus}
 
 Collate the relevant information from the website to answer the target query.
+""".strip()
+)
+
+pick_relevant_output_mode = PromptTemplate.from_template(
+    """
+You are Khoj, an excellent analyst for selecting the correct way to respond to a user's query. You have access to a limited set of modes for your response. You can only use one of these modes.
+
+{modes}
+
+Here are some example responses:
+
+Example:
+Chat History:
+User: I just visited Jerusalem for the first time. Pull up my notes from the trip.
+AI: You mention visiting Masjid Al-Aqsa and the Western Wall. You also mention trying the local cuisine and visiting the Dead Sea.
+
+Q: Draw a picture of my trip to Jerusalem.
+Khoj: image
+
+Example:
+Chat History:
+User: I'm having trouble deciding which laptop to get. I want something with at least 16 GB of RAM and a 1 TB SSD.
+AI: I can help with that. I see online that there is a new model of the Dell XPS 15 that meets your requirements.
+
+Q: What are the specs of the new Dell XPS 15?
+Khoj: default
+
+Now it's your turn to pick the mode you would like to use to answer the user's question. Provide your response as a string.
+
+Chat History:
+{chat_history}
+
+Q: {query}
+Khoj:
 """.strip()
 )
 

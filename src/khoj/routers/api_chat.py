@@ -22,6 +22,7 @@ from khoj.routers.helpers import (
     ConversationCommandRateLimiter,
     agenerate_chat_response,
     aget_relevant_information_sources,
+    aget_relevant_output_modes,
     get_conversation_command,
     is_ready_to_chat,
     text_to_image,
@@ -250,6 +251,9 @@ async def chat(
 
     if conversation_commands == [ConversationCommand.Default]:
         conversation_commands = await aget_relevant_information_sources(q, meta_log)
+        mode = await aget_relevant_output_modes(q, meta_log)
+        if mode not in conversation_commands:
+            conversation_commands.append(mode)
 
     for cmd in conversation_commands:
         await conversation_command_rate_limiter.update_and_check_if_valid(request, cmd)
@@ -287,7 +291,8 @@ async def chat(
                 media_type="text/event-stream",
                 status_code=200,
             )
-    elif conversation_commands == [ConversationCommand.Image]:
+
+    if ConversationCommand.Image in conversation_commands:
         update_telemetry_state(
             request=request,
             telemetry_type="api",
@@ -295,7 +300,9 @@ async def chat(
             metadata={"conversation_command": conversation_commands[0].value},
             **common.__dict__,
         )
-        image, status_code, improved_image_prompt = await text_to_image(q, meta_log, location_data=location)
+        image, status_code, improved_image_prompt = await text_to_image(
+            q, meta_log, location_data=location, references=compiled_references, online_results=online_results
+        )
         if image is None:
             content_obj = {"image": image, "intentType": "text-to-image", "detail": improved_image_prompt}
             return Response(content=json.dumps(content_obj), media_type="application/json", status_code=status_code)
@@ -308,8 +315,10 @@ async def chat(
             inferred_queries=[improved_image_prompt],
             client_application=request.user.client_app,
             conversation_id=conversation_id,
+            compiled_references=compiled_references,
+            online_results=online_results,
         )
-        content_obj = {"image": image, "intentType": "text-to-image", "inferredQueries": [improved_image_prompt]}  # type: ignore
+        content_obj = {"image": image, "intentType": "text-to-image", "inferredQueries": [improved_image_prompt], "context": compiled_references, "online_results": online_results}  # type: ignore
         return Response(content=json.dumps(content_obj), media_type="application/json", status_code=status_code)
 
     # Get the (streamed) chat response from the LLM of choice.

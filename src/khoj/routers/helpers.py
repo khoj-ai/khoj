@@ -38,6 +38,7 @@ from khoj.utils.helpers import (
     ConversationCommand,
     is_none_or_empty,
     log_telemetry,
+    mode_descriptions_for_llm,
     tool_descriptions_for_llm,
 )
 from khoj.utils.rawconfig import LocationData
@@ -117,6 +118,9 @@ def construct_chat_history(conversation_history: dict, n: int = 4) -> str:
         if chat["by"] == "khoj" and chat["intent"].get("type") == "remember":
             chat_history += f"User: {chat['intent']['query']}\n"
             chat_history += f"Khoj: {chat['message']}\n"
+        elif chat["by"] == "khoj" and chat["intent"].get("type") == "text-to-image":
+            chat_history += f"User: {chat['intent']['query']}\n"
+            chat_history += f"Khoj: [generated image redacted for space]\n"
     return chat_history
 
 
@@ -185,6 +189,42 @@ async def aget_relevant_information_sources(query: str, conversation_history: di
         return [ConversationCommand.Default]
 
 
+async def aget_relevant_output_modes(query: str, conversation_history: dict):
+    """
+    Given a query, determine which of the available tools the agent should use in order to answer appropriately.
+    """
+
+    mode_options = dict()
+
+    for mode, description in mode_descriptions_for_llm.items():
+        mode_options[mode.value] = description
+
+    chat_history = construct_chat_history(conversation_history)
+
+    relevant_mode_prompt = prompts.pick_relevant_output_mode.format(
+        query=query,
+        modes=str(mode_options),
+        chat_history=chat_history,
+    )
+
+    response = await send_message_to_model_wrapper(relevant_mode_prompt)
+
+    try:
+        response = response.strip()
+
+        if is_none_or_empty(response):
+            return ConversationCommand.Default
+
+        if response in mode_options.keys():
+            # Check whether the tool exists as a valid ConversationCommand
+            return ConversationCommand(response)
+
+        return ConversationCommand.Default
+    except Exception as e:
+        logger.error(f"Invalid response for determining relevant mode: {response}")
+        return ConversationCommand.Default
+
+
 async def generate_online_subqueries(q: str, conversation_history: dict, location_data: LocationData) -> List[str]:
     """
     Generate subqueries from the given query
@@ -234,7 +274,13 @@ async def extract_relevant_info(q: str, corpus: dict) -> List[str]:
     return response.strip()
 
 
-async def generate_better_image_prompt(q: str, conversation_history: str, location_data: LocationData) -> str:
+async def generate_better_image_prompt(
+    q: str,
+    conversation_history: str,
+    location_data: LocationData,
+    note_references: List[str],
+    online_results: Optional[dict] = None,
+) -> str:
     """
     Generate a better image prompt from the given query
     """
@@ -242,11 +288,26 @@ async def generate_better_image_prompt(q: str, conversation_history: str, locati
     location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
     today_date = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
 
+    location_prompt = prompts.user_location.format(location=location)
+
+    user_references = "\n\n".join([f"# {item}" for item in note_references])
+
+    simplified_online_results = {}
+
+    if online_results:
+        for result in online_results:
+            if online_results[result].get("answerBox"):
+                simplified_online_results[result] = online_results[result]["answerBox"]
+            elif online_results[result].get("extracted_content"):
+                simplified_online_results[result] = online_results[result]["extracted_content"]
+
     image_prompt = prompts.image_generation_improve_prompt.format(
         query=q,
         chat_history=conversation_history,
-        location=location,
+        location=location_prompt,
         current_date=today_date,
+        references=user_references,
+        online_results=simplified_online_results,
     )
 
     response = await send_message_to_model_wrapper(image_prompt)
@@ -377,7 +438,11 @@ def generate_chat_response(
 
 
 async def text_to_image(
-    message: str, conversation_log: dict, location_data: LocationData
+    message: str,
+    conversation_log: dict,
+    location_data: LocationData,
+    references: List[str],
+    online_results: Dict[str, Any],
 ) -> Tuple[Optional[str], int, Optional[str]]:
     status_code = 200
     image = None
@@ -396,7 +461,13 @@ async def text_to_image(
             if chat["by"] == "khoj" and chat["intent"].get("type") == "remember":
                 chat_history += f"Q: {chat['intent']['query']}\n"
                 chat_history += f"A: {chat['message']}\n"
-        improved_image_prompt = await generate_better_image_prompt(message, chat_history, location_data=location_data)
+        improved_image_prompt = await generate_better_image_prompt(
+            message,
+            chat_history,
+            location_data=location_data,
+            note_references=references,
+            online_results=online_results,
+        )
         try:
             response = state.openai_client.images.generate(
                 prompt=improved_image_prompt, model=text2image_model, response_format="b64_json"

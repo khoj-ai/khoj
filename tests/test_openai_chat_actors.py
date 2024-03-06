@@ -7,6 +7,7 @@ from freezegun import freeze_time
 
 from khoj.processor.conversation.openai.gpt import converse, extract_questions
 from khoj.processor.conversation.utils import message_to_log
+from khoj.routers.helpers import aget_relevant_output_modes
 
 # Initialize variables for tests
 api_key = os.getenv("OPENAI_API_KEY")
@@ -432,6 +433,34 @@ My sister, Aiyla is married to Tolga. They have 3 kids, Yildiz, Ali and Ahmet.""
     assert any([expected_response in response for expected_response in expected_responses]), (
         "Expected chat actor to ask for clarification in response, but got: " + response
     )
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.anyio
+@pytest.mark.django_db(transaction=True)
+async def test_use_default_response_mode(chat_client):
+    # Arrange
+    user_query = "What's the latest in the Israel/Palestine conflict?"
+
+    # Act
+    mode = await aget_relevant_output_modes(user_query, {})
+
+    # Assert
+    assert mode.value == "default"
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.anyio
+@pytest.mark.django_db(transaction=True)
+async def test_use_image_response_mode(chat_client):
+    # Arrange
+    user_query = "Paint a picture of the scenery in Timbuktu in the winter"
+
+    # Act
+    mode = await aget_relevant_output_modes(user_query, {})
+
+    # Assert
+    assert mode.value == "image"
 
 
 # Helpers
