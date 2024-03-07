@@ -4,11 +4,9 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from functools import partial
-from time import time
 from typing import Annotated, Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import openai
-import requests
 from fastapi import Depends, Header, HTTPException, Request, UploadFile
 from starlette.authentication import has_required_scope
 
@@ -32,6 +30,7 @@ from khoj.processor.conversation.utils import (
     generate_chatml_messages_with_context,
     save_to_conversation_log,
 )
+from khoj.routers.storage import upload_image
 from khoj.utils import state
 from khoj.utils.config import GPT4AllProcessorModel
 from khoj.utils.helpers import (
@@ -39,6 +38,7 @@ from khoj.utils.helpers import (
     is_none_or_empty,
     log_telemetry,
     mode_descriptions_for_llm,
+    timer,
     tool_descriptions_for_llm,
 )
 from khoj.utils.rawconfig import LocationData
@@ -439,6 +439,7 @@ def generate_chat_response(
 
 async def text_to_image(
     message: str,
+    user: KhojUser,
     conversation_log: dict,
     location_data: LocationData,
     references: List[str],
@@ -455,24 +456,36 @@ async def text_to_image(
         message = "Failed to generate image. Setup image generation on the server."
         return image, status_code, message
     elif state.openai_client and text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
+        logger.info("Generating image with OpenAI")
         text2image_model = text_to_image_config.model_name
         chat_history = ""
         for chat in conversation_log.get("chat", [])[-4:]:
             if chat["by"] == "khoj" and chat["intent"].get("type") == "remember":
                 chat_history += f"Q: {chat['intent']['query']}\n"
                 chat_history += f"A: {chat['message']}\n"
-        improved_image_prompt = await generate_better_image_prompt(
-            message,
-            chat_history,
-            location_data=location_data,
-            note_references=references,
-            online_results=online_results,
-        )
-        try:
-            response = state.openai_client.images.generate(
-                prompt=improved_image_prompt, model=text2image_model, response_format="b64_json"
+            elif chat["by"] == "khoj" and "text-to-image" in chat["intent"].get("type"):
+                chat_history += f"Q: {chat['intent']['query']}\n"
+                chat_history += f"A: [generated image redacted by admin]. Enhanced image prompt: {chat['intent']['inferred-queries'][0]}\n"
+
+        with timer("Improve the original user query", logger):
+            improved_image_prompt = await generate_better_image_prompt(
+                message,
+                chat_history,
+                location_data=location_data,
+                note_references=references,
+                online_results=online_results,
             )
-            image = response.data[0].b64_json
+        try:
+            with timer("Generate image with OpenAI", logger):
+                response = state.openai_client.images.generate(
+                    prompt=improved_image_prompt, model=text2image_model, response_format="b64_json"
+                )
+                image = response.data[0].b64_json
+
+            with timer("Upload image to S3", logger):
+                image_url = upload_image(image, user.uuid)
+
+            return image, status_code, improved_image_prompt, image_url
         except openai.OpenAIError or openai.BadRequestError as e:
             if "content_policy_violation" in e.message:
                 logger.error(f"Image Generation blocked by OpenAI: {e}")
@@ -484,8 +497,6 @@ async def text_to_image(
                 message = f"Image generation failed with OpenAI error: {e.message}"
                 status_code = e.status_code
                 return image, status_code, message
-
-    return image, status_code, improved_image_prompt
 
 
 class ApiUserRateLimiter:
