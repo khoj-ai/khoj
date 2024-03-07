@@ -23,10 +23,10 @@ def upload_image(image: str, user_id: uuid.UUID):
         logger.info("AWS is not enabled. Skipping image upload")
         return None
 
-    image = base64.b64decode(image)
+    decoded_image = base64.b64decode(image)
     image_key = f"{user_id}/{uuid.uuid4()}.png"
     try:
-        s3_client.put_object(Bucket=AWS_UPLOAD_IMAGE_BUCKET_NAME, Key=image_key, Body=image, ACL="public-read")
+        s3_client.put_object(Bucket=AWS_UPLOAD_IMAGE_BUCKET_NAME, Key=image_key, Body=decoded_image, ACL="public-read")
         url = f"https://{AWS_UPLOAD_IMAGE_BUCKET_NAME}.s3.amazonaws.com/{image_key}"
         return url
     except Exception as e:

@@ -448,13 +448,14 @@ async def text_to_image(
     status_code = 200
     image = None
     response = None
+    image_url = None
 
     text_to_image_config = await ConversationAdapters.aget_text_to_image_model_config()
     if not text_to_image_config:
         # If the user has not configured a text to image model, return an unsupported on server error
         status_code = 501
         message = "Failed to generate image. Setup image generation on the server."
-        return image, status_code, message, None
+        return image, status_code, message, image_url
     elif state.openai_client and text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
         logger.info("Generating image with OpenAI")
         text2image_model = text_to_image_config.model_name
@@ -484,7 +485,7 @@ async def text_to_image(
 
             with timer("Upload image to S3", logger):
                 image_url = upload_image(image, user.uuid)
-
+            return image, status_code, improved_image_prompt, image_url
         except openai.OpenAIError or openai.BadRequestError as e:
             if "content_policy_violation" in e.message:
                 logger.error(f"Image Generation blocked by OpenAI: {e}")
@@ -496,8 +497,7 @@ async def text_to_image(
                 message = f"Image generation failed with OpenAI error: {e.message}"  # type: ignore
                 status_code = e.status_code  # type: ignore
                 return image, status_code, message, image_url
-
-        return image, status_code, improved_image_prompt, image_url
+    return image, status_code, response, image_url
 
 
 class ApiUserRateLimiter:
