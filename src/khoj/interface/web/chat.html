@@ -28,18 +28,17 @@ To get started, just start typing below. You can also type / to see a list of co
         let chatOptions = [];
         function copyProgrammaticOutput(event) {
             // Remove the first 4 characters which are the "Copy" button
-            const originalCopyText = event.target.parentNode.textContent.trim().slice(0, 4);
-            const programmaticOutput = event.target.parentNode.textContent.trim().slice(4);
+            const programmaticOutput = event.target.parentNode.textContent.trim();
             navigator.clipboard.writeText(programmaticOutput).then(() => {
                 event.target.textContent = "✅ Copied to clipboard!";
                 setTimeout(() => {
-                    event.target.textContent = originalCopyText;
+                    event.target.textContent = "✅";
                 }, 1000);
             }).catch((error) => {
                 console.error("Error copying programmatic output to clipboard:", error);
                 event.target.textContent = "⛔️ Failed to copy!";
                 setTimeout(() => {
-                    event.target.textContent = originalCopyText;
+                    event.target.textContent = "⛔️";
                 }, 1000);
             });
         }
@@ -336,7 +335,10 @@ To get started, just start typing below. You can also type / to see a list of co
                 // Add a copy button to each element
                 let copyButton = document.createElement('button');
                 copyButton.classList.add("copy-button");
-                copyButton.innerHTML = "Copy";
+                let copyIcon = document.createElement("img");
+                copyIcon.src = "/static/assets/icons/copy_button.svg";
+                copyIcon.classList.add("copy-icon");
+                copyButton.appendChild(copyIcon);
                 copyButton.addEventListener('click', copyProgrammaticOutput);
                 codeElement.prepend(copyButton);
             });
@@ -759,7 +761,9 @@ To get started, just start typing below. You can also type / to see a list of co
 
             // Create loading screen and add it to chat-body
             let loadingScreen = document.createElement('div');
-            loadingScreen.classList.add('loading-screen', 'gradient-animation');
+            loadingScreen.classList.add("loading-spinner");
+            let yellowOrb = document.createElement('div');
+            loadingScreen.appendChild(yellowOrb);
             chatBody.appendChild(loadingScreen);
 
             fetch(chatHistoryUrl, { method: "GET" })
@@ -806,8 +810,7 @@ To get started, just start typing below. You can also type / to see a list of co
                     });
 
                     // Add fade out animation to loading screen and remove it after the animation ends
-                    loadingScreen.classList.remove('gradient-animation');
-                    loadingScreen.classList.add('fade-out-animation');
+                    // loadingScreen.classList.add('fade-out-animation');
                     chatBodyWrapperHeight = chatBodyWrapper.clientHeight;
                     chatBody.style.height = chatBodyWrapperHeight;
                     setTimeout(() => {
@@ -1507,34 +1510,6 @@ To get started, just start typing below. You can also type / to see a list of co
             font-size: 2rem;
             color: #333;
             z-index: 9999; /* This is the important part */
-
-            /* Adding gradient effect */
-            background: radial-gradient(circle, var(--primary-hover) 0%, var(--flower) 100%);
-            background-size: 200% 200%;
-        }
-
-        div.loading-screen::after {
-            content: "Loading...";
-        }
-
-        .gradient-animation {
-            animation: gradient 2s ease infinite;
-        }
-
-        @keyframes gradient {
-            0% {background-position: 0% 50%;}
-            50% {background-position: 100% 50%;}
-            100% {background-position: 0% 50%;}
-        }
-
-        .fade-out-animation {
-            animation-name: fadeOut;
-            animation-duration: 1.5s;
-        }
-
-        @keyframes fadeOut {
-            from {opacity: 1;}
-            to {opacity: 0;}
         }
 
         /* add chat metatdata to bottom of bubble */
@@ -1771,13 +1746,32 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
         button.copy-button {
-            display: block;
             border-radius: 4px;
             background-color: var(--background-color);
-        }
-        button.copy-button:hover {
-            background: #f5f5f5;
+            border: 1px solid var(--main-text-color);
+            text-align: center;
+            font-size: 16px;
+            transition: all 0.5s;
             cursor: pointer;
+            padding: 4px;
+            float: right;
+        }
+
+        button.copy-button span {
+            cursor: pointer;
+            display: inline-block;
+            position: relative;
+            transition: 0.5s;
+        }
+
+        img.copy-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        button.copy-button:hover {
+            background-color: black;
+            color: #f5f5f5;
         }
 
         pre {
@@ -2011,5 +2005,47 @@ To get started, just start typing below. You can also type / to see a list of co
             padding: 10px;
             white-space: pre-wrap;
         }
+
+        .loading-spinner {
+            display: inline-block;
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+
+        .loading-spinner div {
+            position: absolute;
+            border: 4px solid var(--primary-hover);
+            opacity: 1;
+            border-radius: 50%;
+            animation: lds-ripple 0.5s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+        }
+
+        .loading-spinner div:nth-child(2) {
+            animation-delay: -0.5s;
+        }
+
+        @keyframes lds-ripple {
+            0% {
+                top: 36px;
+                left: 36px;
+                width: 0;
+                height: 0;
+                opacity: 1;
+                border-color: var(--primary-hover);
+            }
+            50% {
+                border-color: var(--flower);
+            }
+            100% {
+                top: 0px;
+                left: 0px;
+                width: 72px;
+                height: 72px;
+                opacity: 0;
+                border-color: var(--water);
+            }
+        }
+
     </style>
 </html>
