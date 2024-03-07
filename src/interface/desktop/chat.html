@@ -434,9 +434,27 @@
             new_response.appendChild(newResponseText);
 
             // Temporary status message to indicate that Khoj is thinking
-            let loadingSpinner = document.createElement("div");
-            loadingSpinner.classList.add("spinner");
-            newResponseText.appendChild(loadingSpinner);
+            let loadingEllipsis = document.createElement("div");
+            loadingEllipsis.classList.add("lds-ellipsis");
+
+            let firstEllipsis = document.createElement("div");
+            firstEllipsis.classList.add("lds-ellipsis-item");
+
+            let secondEllipsis = document.createElement("div");
+            secondEllipsis.classList.add("lds-ellipsis-item");
+
+            let thirdEllipsis = document.createElement("div");
+            thirdEllipsis.classList.add("lds-ellipsis-item");
+
+            let fourthEllipsis = document.createElement("div");
+            fourthEllipsis.classList.add("lds-ellipsis-item");
+
+            loadingEllipsis.appendChild(firstEllipsis);
+            loadingEllipsis.appendChild(secondEllipsis);
+            loadingEllipsis.appendChild(thirdEllipsis);
+            loadingEllipsis.appendChild(fourthEllipsis);
+
+            newResponseText.appendChild(loadingEllipsis);
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
 
             let chatTooltip = document.getElementById("chat-tooltip");
@@ -524,8 +542,8 @@
                             readStream();
                         } else {
                             // Display response from Khoj
-                            if (newResponseText.getElementsByClassName("spinner").length > 0) {
-                                newResponseText.removeChild(loadingSpinner);
+                            if (newResponseText.getElementsByClassName("lds-ellipsis").length > 0) {
+                                newResponseText.removeChild(loadingEllipsis);
                             }
 
                             // If the chunk is not a JSON object, just display it as is
@@ -1566,13 +1584,27 @@
         }
 
         button.copy-button {
-            display: block;
             border-radius: 4px;
             background-color: var(--background-color);
-        }
-        button.copy-button:hover {
-            background: #f5f5f5;
+            border: 1px solid var(--main-text-color);
+            text-align: center;
+            font-size: 16px;
+            transition: all 0.5s;
             cursor: pointer;
+            padding: 4px;
+            float: right;
+        }
+
+        button.copy-button span {
+            cursor: pointer;
+            display: inline-block;
+            position: relative;
+            transition: 0.5s;
+        }
+
+        button.copy-button:hover {
+            background-color: black;
+            color: #f5f5f5;
         }
 
         pre {
@@ -1805,6 +1837,62 @@
             overflow-x: auto;
             padding: 10px;
             white-space: pre-wrap;
+        }
+
+        .lds-ellipsis {
+            display: inline-block;
+            position: relative;
+            width: 60px;
+            height: 32px;
+        }
+        .lds-ellipsis div {
+            position: absolute;
+            top: 12px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--main-text-color);
+            animation-timing-function: cubic-bezier(0, 1, 1, 0);
+        }
+        .lds-ellipsis div:nth-child(1) {
+            left: 8px;
+            animation: lds-ellipsis1 0.6s infinite;
+        }
+        .lds-ellipsis div:nth-child(2) {
+            left: 8px;
+            animation: lds-ellipsis2 0.6s infinite;
+        }
+        .lds-ellipsis div:nth-child(3) {
+            left: 32px;
+            animation: lds-ellipsis2 0.6s infinite;
+        }
+        .lds-ellipsis div:nth-child(4) {
+            left: 56px;
+            animation: lds-ellipsis3 0.6s infinite;
+        }
+        @keyframes lds-ellipsis1 {
+            0% {
+                transform: scale(0);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        @keyframes lds-ellipsis3 {
+            0% {
+                transform: scale(1);
+            }
+            100% {
+                transform: scale(0);
+            }
+        }
+        @keyframes lds-ellipsis2 {
+            0% {
+                transform: translate(0, 0);
+            }
+            100% {
+                transform: translate(24px, 0);
+            }
         }
     </style>
 </html>
