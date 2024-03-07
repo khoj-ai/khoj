@@ -444,7 +444,7 @@ async def text_to_image(
     location_data: LocationData,
     references: List[str],
     online_results: Dict[str, Any],
-) -> Tuple[Optional[str], int, Optional[str]]:
+) -> Tuple[Optional[str], int, Optional[str], Optional[str]]:
     status_code = 200
     image = None
     response = None
@@ -454,7 +454,7 @@ async def text_to_image(
         # If the user has not configured a text to image model, return an unsupported on server error
         status_code = 501
         message = "Failed to generate image. Setup image generation on the server."
-        return image, status_code, message
+        return image, status_code, message, None
     elif state.openai_client and text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
         logger.info("Generating image with OpenAI")
         text2image_model = text_to_image_config.model_name
@@ -485,18 +485,19 @@ async def text_to_image(
             with timer("Upload image to S3", logger):
                 image_url = upload_image(image, user.uuid)
 
-            return image, status_code, improved_image_prompt, image_url
         except openai.OpenAIError or openai.BadRequestError as e:
             if "content_policy_violation" in e.message:
                 logger.error(f"Image Generation blocked by OpenAI: {e}")
-                status_code = e.status_code
-                message = f"Image generation blocked by OpenAI: {e.message}"
-                return image, status_code, message
+                status_code = e.status_code  # type: ignore
+                message = f"Image generation blocked by OpenAI: {e.message}"  # type: ignore
+                return image, status_code, message, image_url
             else:
                 logger.error(f"Image Generation failed with {e}", exc_info=True)
-                message = f"Image generation failed with OpenAI error: {e.message}"
-                status_code = e.status_code
-                return image, status_code, message
+                message = f"Image generation failed with OpenAI error: {e.message}"  # type: ignore
+                status_code = e.status_code  # type: ignore
+                return image, status_code, message, image_url
+
+        return image, status_code, improved_image_prompt, image_url
 
 
 class ApiUserRateLimiter:
