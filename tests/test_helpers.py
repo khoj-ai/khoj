@@ -7,7 +7,7 @@ import pytest
 from scipy.stats import linregress
 
 from khoj.processor.embeddings import EmbeddingsModel
-from khoj.processor.tools.online_search import search_with_olostep
+from khoj.processor.tools.online_search import read_webpage_with_olostep
 from khoj.utils import helpers
 
 
@@ -90,7 +90,7 @@ def test_olostep_api():
     website = "https://en.wikipedia.org/wiki/Great_Chicago_Fire"
 
     # Act
-    response = search_with_olostep(website)
+    response = read_webpage_with_olostep(website)
 
     # Assert
     assert (
