@@ -128,7 +128,7 @@ def save_to_conversation_log(
 Saved Conversation Turn
 You ({user.username}): "{q}"
 
-Khoj: "{inferred_queries if ("text_to_image" in intent_type) else chat_response}"
+Khoj: "{inferred_queries if ("text-to-image" in intent_type) else chat_response}"
 """.strip()
     )
 

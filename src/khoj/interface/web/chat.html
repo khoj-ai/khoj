@@ -25,6 +25,7 @@ Get the Khoj [Desktop](https://khoj.dev/downloads), [Obsidian](https://docs.khoj
 To get started, just start typing below. You can also type / to see a list of commands.
 `.trim()
         const allowedExtensions = ['text/org', 'text/markdown', 'text/plain', 'text/html', 'application/pdf'];
+        const allowedFileEndings = ['org', 'md', 'txt', 'html', 'pdf'];
         let chatOptions = [];
         function copyProgrammaticOutput(event) {
             // Remove the first 4 characters which are the "Copy" button
@@ -662,7 +663,10 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
         function uploadDataForIndexing(file) {
-            if (!allowedExtensions.includes(file.type)) {
+            var dropzone = document.getElementById('chat-body');
+
+            if (!allowedExtensions.includes(file.type) && !allowedFileEndings.includes(file.name.split('.').pop())) {
+                dropzone.classList.remove('dragover');
                 alert("Sorry, that file type is not yet supported");
                 var overlayText = document.getElementById("dropzone-overlay");
                 if (overlayText != null) {
@@ -677,7 +681,6 @@ To get started, just start typing below. You can also type / to see a list of co
             var reader = new FileReader();
             const formData = new FormData();
 
-            var dropzone = document.getElementById('chat-body');
 
             var overlayText = document.getElementById("dropzone-overlay");
             if (overlayText != null) {
@@ -690,7 +693,22 @@ To get started, just start typing below. You can also type / to see a list of co
 
             reader.onload = function (event) {
                 fileContents = event.target.result;
-                let fileObj = new Blob([fileContents], { type: file.type });
+                let fileType = file.type;
+                if (fileType === "") {
+                    if (fileName.split('.').pop() === "org") {
+                        fileType = "text/org";
+                    } else if (fileName.split('.').pop() === "md") {
+                        fileType = "text/markdown";
+                    } else if (fileName.split('.').pop() === "txt") {
+                        fileType = "text/plain";
+                    } else if (fileName.split('.').pop() === "html") {
+                        fileType = "text/html";
+                    } else if (fileName.split('.').pop() === "pdf") {
+                        fileType = "application/pdf";
+                    }
+                }
+
+                let fileObj = new Blob([fileContents], { type: fileType });
                 formData.append("files", fileObj, file.name);
                 console.log(formData);
 
@@ -2073,8 +2091,8 @@ To get started, just start typing below. You can also type / to see a list of co
         .lds-ellipsis div {
             position: absolute;
             top: 12px;
-            width: 12px;
-            height: 12px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background: var(--main-text-color);
             animation-timing-function: cubic-bezier(0, 1, 1, 0);
