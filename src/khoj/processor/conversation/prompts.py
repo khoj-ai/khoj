@@ -296,7 +296,8 @@ extract_relevant_information = PromptTemplate.from_template(
     """
 Target Query: {query}
 
-Web Pages: {corpus}
+Web Pages:
+{corpus}
 
 Collate the relevant information from the website to answer the target query.
 """.strip()
