@@ -150,8 +150,13 @@ export class KhojChatModal extends Modal {
     renderMessageWithReferences(chatEl: Element, message: string, sender: string, context?: string[], dt?: Date, intentType?: string, inferredQueries?: string) {
         if (!message) {
             return;
-        } else if (intentType === "text-to-image") {
-            let imageMarkdown = `![](data:image/png;base64,${message})`;
+        } else if (intentType?.includes("text-to-image")) {
+            let imageMarkdown = "";
+            if (intentType === "text-to-image") {
+                imageMarkdown = `![](data:image/png;base64,${message})`;
+            } else if (intentType === "text-to-image2") {
+                imageMarkdown = `![](${message})`;
+            }
             if (inferredQueries) {
                 imageMarkdown += "\n\n**Inferred Query**:";
                 for (let inferredQuery of inferredQueries) {
@@ -419,7 +424,12 @@ export class KhojChatModal extends Modal {
                 try {
                     const responseAsJson = await response.json() as ChatJsonResult;
                     if (responseAsJson.image) {
-                        responseText = `![${query}](data:image/png;base64,${responseAsJson.image})`;
+                        // If response has image field, response is a generated image.
+                        if (responseAsJson.intentType === "text-to-image") {
+                            responseText += `![${query}](data:image/png;base64,${responseAsJson.image})`;
+                        } else if (responseAsJson.intentType === "text-to-image2") {
+                            responseText += `![${query}](${responseAsJson.image})`;
+                        }
                         const inferredQuery = responseAsJson.inferredQueries?.[0];
                         if (inferredQuery) {
                             responseText += `\n\n**Inferred Query**:\n\n${inferredQuery}`;

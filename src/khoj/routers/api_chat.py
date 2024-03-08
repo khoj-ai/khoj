@@ -300,25 +300,30 @@ async def chat(
             metadata={"conversation_command": conversation_commands[0].value},
             **common.__dict__,
         )
-        image, status_code, improved_image_prompt = await text_to_image(
-            q, meta_log, location_data=location, references=compiled_references, online_results=online_results
+        intent_type = "text-to-image"
+        image, status_code, improved_image_prompt, image_url = await text_to_image(
+            q, user, meta_log, location_data=location, references=compiled_references, online_results=online_results
         )
         if image is None:
-            content_obj = {"image": image, "intentType": "text-to-image", "detail": improved_image_prompt}
+            content_obj = {"image": image, "intentType": intent_type, "detail": improved_image_prompt}
             return Response(content=json.dumps(content_obj), media_type="application/json", status_code=status_code)
+
+        if image_url:
+            intent_type = "text-to-image2"
+            image = image_url
         await sync_to_async(save_to_conversation_log)(
             q,
             image,
             user,
             meta_log,
-            intent_type="text-to-image",
+            intent_type=intent_type,
             inferred_queries=[improved_image_prompt],
             client_application=request.user.client_app,
             conversation_id=conversation_id,
             compiled_references=compiled_references,
             online_results=online_results,
         )
-        content_obj = {"image": image, "intentType": "text-to-image", "inferredQueries": [improved_image_prompt], "context": compiled_references, "online_results": online_results}  # type: ignore
+        content_obj = {"image": image, "intentType": intent_type, "inferredQueries": [improved_image_prompt], "context": compiled_references, "online_results": online_results}  # type: ignore
         return Response(content=json.dumps(content_obj), media_type="application/json", status_code=status_code)
 
     # Get the (streamed) chat response from the LLM of choice.
