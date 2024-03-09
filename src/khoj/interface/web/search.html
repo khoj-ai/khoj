@@ -193,16 +193,17 @@
                 });
         }
 
+        let debounceTimeout;
         function incrementalSearch(event) {
-            type = document.getElementById("type").value;
-            // Search with reranking on 'Enter'
-            if (event.key === 'Enter') {
-                search(rerank=true);
-            }
-            // Limit incremental search to text types
-            else if (type !== "image") {
-                search(rerank=false);
-            }
+            // Run incremental search only after waitTime passed since the last key press
+            let waitTime = 300;
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => {
+                type = document.getElementById("type").value;
+                // Search with reranking on 'Enter'
+                let should_rerank = event.key === 'Enter';
+                search(rerank=should_rerank);
+            }, waitTime);
         }
 
         function populate_type_dropdown() {
