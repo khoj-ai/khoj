@@ -786,10 +786,9 @@ To get started, just start typing below. You can also type / to see a list of co
             let chatBody = document.getElementById("chat-body");
             chatBody.innerHTML = "";
             chatBody.classList.add("relative-position");
-            let conversationId = chatBody.dataset.conversationId;
             let chatHistoryUrl = `/api/chat/history?client=web`;
-            if (conversationId) {
-                chatHistoryUrl += `&conversation_id=${conversationId}`;
+            if (chatBody.dataset.conversationId) {
+                chatHistoryUrl += `&conversation_id=${chatBody.dataset.conversationId}`;
             }
 
             if (window.screen.width < 700) {
@@ -814,6 +813,8 @@ To get started, just start typing below. You can also type / to see a list of co
                         // Disable chat input field and update placeholder text
                         document.getElementById("chat-input").setAttribute("disabled", "disabled");
                         document.getElementById("chat-input").setAttribute("placeholder", "Configure Khoj to enable chat");
+                    } else if (data.status != "ok") {
+                        throw new Error(data.message);
                     } else {
                         // Set welcome message on load
                         renderMessage(welcome_message, "khoj");
@@ -822,12 +823,9 @@ To get started, just start typing below. You can also type / to see a list of co
                 })
                 .then(response => {
                     // Render conversation history, if any
-                    conversationId = response.conversation_id;
-                    const conversationTitle = response.slug || `New conversation 🌱`;
-
                     let chatBody = document.getElementById("chat-body");
-                    chatBody.dataset.conversationId = conversationId;
-                    chatBody.dataset.conversationTitle = conversationTitle;
+                    chatBody.dataset.conversationId = response.conversation_id;
+                    chatBody.dataset.conversationTitle = response.slug || `New conversation 🌱`;
 
                     let chatBodyWrapper = document.getElementById("chat-body-wrapper");
                     const fullChatLog = response.chat || [];
@@ -1050,9 +1048,10 @@ To get started, just start typing below. You can also type / to see a list of co
                                             chatBody.dataset.conversationId = "";
                                             chatBody.dataset.conversationTitle = "";
                                             loadChat();
+                                            flashStatusInChatInput("🗑 Cleared previous conversation history");
                                         })
                                         .catch(err => {
-                                            return;
+                                            flashStatusInChatInput("⛔️ Failed to clear conversation history");
                                         });
                                 });
                                 conversationMenu.appendChild(deleteButton);

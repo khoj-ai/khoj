@@ -405,9 +405,9 @@ class ConversationAdapters:
         else:
             conversation = (
                 Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at").first()
-            )
+            ) or Conversation.objects.create(user=user, client=client_application)
 
-        return conversation or Conversation.objects.create(user=user, client=client_application)
+        return conversation
 
     @staticmethod
     def get_conversation_sessions(user: KhojUser, client_application: ClientApplication = None):
