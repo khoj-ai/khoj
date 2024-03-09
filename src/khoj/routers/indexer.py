@@ -189,6 +189,8 @@ def configure_content(
 
     search_type = t.value if t else None
 
+    no_documents = all([not files.get(file_type) for file_type in files])
+
     if files is None:
         logger.warning(f"🚨 No files to process for {search_type} search.")
         return None, True
@@ -283,7 +285,7 @@ def configure_content(
         success = False
 
     try:
-        if files is None:
+        if no_documents:
             github_config = GithubConfig.objects.filter(user=user).prefetch_related("githubrepoconfig").first()
             if (
                 search_type == state.SearchType.All.value or search_type == state.SearchType.Github.value
@@ -304,7 +306,7 @@ def configure_content(
         success = False
 
     try:
-        if files is None:
+        if no_documents:
             # Initialize Notion Search
             notion_config = NotionConfig.objects.filter(user=user).first()
             if (

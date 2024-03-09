@@ -13,7 +13,7 @@ from fastapi.requests import Request
 from fastapi.responses import Response
 from starlette.authentication import requires
 
-from khoj.configure import configure_server
+from khoj.configure import configure_server, initialize_content
 from khoj.database.adapters import (
     ConversationAdapters,
     EntryAdapters,
@@ -182,7 +182,7 @@ def update(
         logger.warning(error_msg)
         raise HTTPException(status_code=500, detail=error_msg)
     try:
-        configure_server(state.config, regenerate=force, search_type=t, user=user)
+        initialize_content(regenerate=force, search_type=t, init=False, user=user)
     except Exception as e:
         error_msg = f"🚨 Failed to update server via API: {e}"
         logger.error(error_msg, exc_info=True)
