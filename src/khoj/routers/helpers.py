@@ -465,8 +465,8 @@ async def text_to_image(
                 chat_history += f"Q: {chat['intent']['query']}\n"
                 chat_history += f"A: {chat['message']}\n"
             elif chat["by"] == "khoj" and "text-to-image" in chat["intent"].get("type"):
-                chat_history += f"Q: {chat['intent']['query']}\n"
-                chat_history += f"A: [generated image redacted by admin]. Enhanced image prompt: {chat['intent']['inferred-queries'][0]}\n"
+                chat_history += f"Q: Query: {chat['intent']['query']}\n"
+                chat_history += f"A: Improved Query: {chat['intent']['inferred-queries'][0]}\n"
         try:
             with timer("Improve the original user query", logger):
                 improved_image_prompt = await generate_better_image_prompt(
