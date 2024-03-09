@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import os
-from typing import Dict, Union
+from typing import Dict, Tuple, Union
 
 import aiohttp
 import requests
@@ -16,12 +16,10 @@ from khoj.utils.rawconfig import LocationData
 logger = logging.getLogger(__name__)
 
 SERPER_DEV_API_KEY = os.getenv("SERPER_DEV_API_KEY")
-OLOSTEP_API_KEY = os.getenv("OLOSTEP_API_KEY")
-
 SERPER_DEV_URL = "https://google.serper.dev/search"
 
+OLOSTEP_API_KEY = os.getenv("OLOSTEP_API_KEY")
 OLOSTEP_API_URL = "https://agent.olostep.com/olostep-p2p-incomingAPI"
-
 OLOSTEP_QUERY_PARAMS = {
     "timeout": 35,  # seconds
     "waitBeforeScraping": 1,  # seconds
@@ -39,31 +37,7 @@ OLOSTEP_QUERY_PARAMS = {
 MAX_WEBPAGES_TO_READ = 1
 
 
-async def search_with_google(query: str, conversation_history: dict, location: LocationData):
-    def _search_with_google(subquery: str):
-        payload = json.dumps(
-            {
-                "q": subquery,
-            }
-        )
-
-        headers = {"X-API-KEY": SERPER_DEV_API_KEY, "Content-Type": "application/json"}
-
-        response = requests.request("POST", SERPER_DEV_URL, headers=headers, data=payload)
-
-        if response.status_code != 200:
-            logger.error(response.text)
-            return {}
-
-        json_response = response.json()
-        sub_response_dict = {}
-        sub_response_dict["knowledgeGraph"] = json_response.get("knowledgeGraph", {})
-        sub_response_dict["organic"] = json_response.get("organic", [])
-        sub_response_dict["answerBox"] = json_response.get("answerBox", [])
-        sub_response_dict["peopleAlsoAsk"] = json_response.get("peopleAlsoAsk", [])
-
-        return sub_response_dict
-
+async def search_online(query: str, conversation_history: dict, location: LocationData):
     if SERPER_DEV_API_KEY is None:
         logger.warn("SERPER_DEV_API_KEY is not set")
         return {}
@@ -74,14 +48,14 @@ async def search_with_google(query: str, conversation_history: dict, location: L
 
     for subquery in subqueries:
         logger.info(f"Searching with Google for '{subquery}'")
-        response_dict[subquery] = _search_with_google(subquery)
+        response_dict[subquery] = search_with_google(subquery)
 
     # Gather distinct web pages from organic search results of each subquery without an instant answer
     webpage_links = {
         result["link"]
         for subquery in response_dict
-        for result in response_dict[subquery].get("organic")[:MAX_WEBPAGES_TO_READ]
-        if is_none_or_empty(response_dict[subquery].get("answerBox"))
+        for result in response_dict[subquery].get("organic", [])[:MAX_WEBPAGES_TO_READ]
+        if "answerBox" not in response_dict[subquery]
     }
 
     # Read, extract relevant info from the retrieved web pages
@@ -100,15 +74,34 @@ async def search_with_google(query: str, conversation_history: dict, location: L
     return response_dict
 
 
-async def read_webpage_and_extract_content(subquery, url):
+def search_with_google(subquery: str):
+    payload = json.dumps({"q": subquery})
+    headers = {"X-API-KEY": SERPER_DEV_API_KEY, "Content-Type": "application/json"}
+
+    response = requests.request("POST", SERPER_DEV_URL, headers=headers, data=payload)
+
+    if response.status_code != 200:
+        logger.error(response.text)
+        return {}
+
+    json_response = response.json()
+    extraction_fields = ["organic", "answerBox", "peopleAlsoAsk", "knowledgeGraph"]
+    extracted_search_result = {
+        field: json_response[field] for field in extraction_fields if not is_none_or_empty(json_response.get(field))
+    }
+
+    return extracted_search_result
+
+
+async def read_webpage_and_extract_content(subquery: str, url: str) -> Tuple[str, Union[None, str]]:
     try:
         with timer(f"Reading web page at '{url}' took", logger):
             content = await read_webpage_with_olostep(url) if OLOSTEP_API_KEY else await read_webpage(url)
         with timer(f"Extracting relevant information from web page at '{url}' took", logger):
-            extracted_info = await extract_relevant_info(subquery, {subquery: [content.strip()]}) if content else None
+            extracted_info = await extract_relevant_info(subquery, content)
         return subquery, extracted_info
     except Exception as e:
-        logger.error(f"Failed to read web page at '{url}': {e}", exc_info=True)
+        logger.error(f"Failed to read web page at '{url}' with {e}")
         return subquery, None
 
 

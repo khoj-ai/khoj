@@ -256,15 +256,17 @@ async def generate_online_subqueries(q: str, conversation_history: dict, locatio
         return [q]
 
 
-async def extract_relevant_info(q: str, corpus: dict) -> List[str]:
+async def extract_relevant_info(q: str, corpus: str) -> Union[str, None]:
     """
-    Given a target corpus, extract the most relevant info given a query
+    Extract relevant information for a given query from the target corpus
     """
 
-    key = list(corpus.keys())[0]
+    if is_none_or_empty(corpus) or is_none_or_empty(q):
+        return None
+
     extract_relevant_information = prompts.extract_relevant_information.format(
         query=q,
-        corpus=corpus[key],
+        corpus=corpus.strip(),
     )
 
     response = await send_message_to_model_wrapper(
