@@ -6,6 +6,8 @@ from typing import Dict, Union
 
 import aiohttp
 import requests
+from bs4 import BeautifulSoup
+from markdownify import markdownify
 
 from khoj.routers.helpers import extract_relevant_info, generate_online_subqueries
 from khoj.utils.helpers import is_none_or_empty, timer
@@ -101,13 +103,27 @@ async def search_with_google(query: str, conversation_history: dict, location: L
 async def read_webpage_and_extract_content(subquery, url):
     try:
         with timer(f"Reading web page at '{url}' took", logger):
-            content = await read_webpage_with_olostep(url)
+            content = await read_webpage_with_olostep(url) if OLOSTEP_API_KEY else await read_webpage(url)
         with timer(f"Extracting relevant information from web page at '{url}' took", logger):
             extracted_info = await extract_relevant_info(subquery, {subquery: [content.strip()]}) if content else None
         return subquery, extracted_info
     except Exception as e:
         logger.error(f"Failed to read web page at '{url}': {e}", exc_info=True)
         return subquery, None
+
+
+async def read_webpage(web_url: str) -> str:
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36",
+    }
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(web_url, headers=headers, timeout=30) as response:
+            response.raise_for_status()
+            html = await response.text()
+            parsed_html = BeautifulSoup(html, "html.parser")
+            body = parsed_html.body.get_text(separator="\n", strip=True)
+            return markdownify(body)
 
 
 async def read_webpage_with_olostep(web_url: str) -> str:

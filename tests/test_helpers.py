@@ -7,7 +7,7 @@ import pytest
 from scipy.stats import linregress
 
 from khoj.processor.embeddings import EmbeddingsModel
-from khoj.processor.tools.online_search import read_webpage_with_olostep
+from khoj.processor.tools.online_search import read_webpage, read_webpage_with_olostep
 from khoj.utils import helpers
 
 
@@ -84,13 +84,29 @@ def test_encode_docs_memory_leak():
     assert slope < 2, f"Memory leak suspected on {device}. Memory usage increased at ~{slope:.2f} MB per iteration"
 
 
-@pytest.mark.skipif(os.getenv("OLOSTEP_API_KEY") is None, reason="OLOSTEP_API_KEY is not set")
-def test_olostep_api():
+@pytest.mark.asyncio
+async def test_reading_webpage():
     # Arrange
     website = "https://en.wikipedia.org/wiki/Great_Chicago_Fire"
 
     # Act
-    response = read_webpage_with_olostep(website)
+    response = await read_webpage(website)
+
+    # Assert
+    assert (
+        "An alarm sent from the area near the fire also failed to register at the courthouse where the fire watchmen were"
+        in response
+    )
+
+
+@pytest.mark.skipif(os.getenv("OLOSTEP_API_KEY") is None, reason="OLOSTEP_API_KEY is not set")
+@pytest.mark.asyncio
+async def test_reading_webpage_with_olostep():
+    # Arrange
+    website = "https://en.wikipedia.org/wiki/Great_Chicago_Fire"
+
+    # Act
+    response = await read_webpage_with_olostep(website)
 
     # Assert
     assert (
