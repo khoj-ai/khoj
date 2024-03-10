@@ -375,7 +375,7 @@ AI: Learning to play the guitar is a great hobby. It can be a lot of fun and a g
 Q: Who is Sandra?
 Khoj: ["default"]
 
-Now it's your turn to pick the tools you would like to use to answer the user's question. Provide your response as a list of strings.
+Now it's your turn to pick the data sources you would like to use to answer the user's question. Provide your response as a list of strings.
 
 Chat History:
 {chat_history}
@@ -387,11 +387,13 @@ Khoj:
 
 online_search_conversation_subqueries = PromptTemplate.from_template(
     """
-You are Khoj, an extremely smart and helpful search assistant. You are tasked with constructing **up to three** search queries for Google to answer the user's question.
+You are Khoj, an advanced google search assistant. You are tasked with constructing **up to three** google search queries to answer the user's question.
 - You will receive the conversation history as context.
 - Add as much context from the previous questions and answers as required into your search queries.
 - Break messages into multiple search queries when required to retrieve the relevant information.
+- Use site: and after: google search operators when appropriate
 - You have access to the the whole internet to retrieve information.
+- Official, up-to-date information about you, Khoj, is available at site:khoj.dev
 
 What Google searches, if any, will you need to perform to answer the user's question?
 Provide search queries as a list of strings
@@ -401,61 +403,54 @@ User's Location: {location}
 Here are some examples:
 History:
 User: I like to use Hacker News to get my tech news.
-Khoj: Hacker News is an online forum for sharing and discussing the latest tech news. It is a great place to learn about new technologies and startups.
+AI: Hacker News is an online forum for sharing and discussing the latest tech news. It is a great place to learn about new technologies and startups.
 
-Q: Posts about vector databases on Hacker News
-A: ["site:"news.ycombinator.com vector database"]
+Q: Summarize posts about vector databases on Hacker News since Feb 2024
+Khoj: ["site:news.ycombinator.com after:2024/02/01 vector database"]
 
 History:
 User: I'm currently living in New York but I'm thinking about moving to San Francisco.
-Khoj: New York is a great city to live in. It has a lot of great restaurants and museums. San Francisco is also a great city to live in. It has a lot of great restaurants and museums.
+AI: New York is a great city to live in. It has a lot of great restaurants and museums. San Francisco is also a great city to live in. It has good access to nature and a great tech scene.
 
-Q: What is the weather like in those cities?
-A: ["weather in new york", "weather in san francisco"]
+Q: What is the climate like in those cities?
+Khoj: ["climate in new york city", "climate in san francisco"]
 
 History:
-User: I'm thinking of my next vacation idea. Ideally, I want to see something new and exciting.
-Khoj: You could time your next trip with the next lunar eclipse, as that would be a novel experience.
+AI: Hey, how is it going?
+User: Going well. Ananya is in town tonight!
+AI: Oh that's awesome! What are your plans for the evening?
 
-Q: When is the next one?
-A: ["next lunar eclipse"]
+Q: She wants to see a movie. Any decent sci-fi movies playing at the local theater?
+Khoj: ["new sci-fi movies in theaters near {location}"]
+
+History:
+User: Can I chat with you over WhatsApp?
+AI: Yes, you can chat with me using WhatsApp.
+
+Q: How
+Khoj: ["site:khoj.dev chat with Khoj on Whatsapp"]
+
+History:
+
+
+Q: How do I share my files with you?
+Khoj: ["site:khoj.dev sync files with Khoj"]
 
 History:
 User: I need to transport a lot of oranges to the moon. Are there any rockets that can fit a lot of oranges?
-Khoj: NASA's Saturn V rocket frequently makes lunar trips and has a large cargo capacity.
+AI: NASA's Saturn V rocket frequently makes lunar trips and has a large cargo capacity.
 
 Q: How many oranges would fit in NASA's Saturn V rocket?
-A: ["volume of an orange", "volume of saturn v rocket"]
+Khoj: ["volume of an orange", "volume of saturn v rocket"]
 
 Now it's your turn to construct a search query for Google to answer the user's question.
 History:
 {chat_history}
 
 Q: {query}
-A:
-"""
+Khoj:
+""".strip()
 )
-
-
-## Extract Search Type
-## --
-search_type = """
-Objective: Extract search type from user query and return information as JSON
-
-Allowed search types are listed below:
-  - search-type=["notes", "image", "pdf"]
-
-Some examples are given below for reference:
-Q:What fiction book was I reading last week about AI starship?
-A:{ "search-type": "notes" }
-Q: What did the lease say about early termination
-A: { "search-type": "pdf" }
-Q:Can you recommend a movie to watch from my notes?
-A:{ "search-type": "notes" }
-Q:When did I go surfing last?
-A:{ "search-type": "notes" }
-Q:"""
-
 
 # System messages to user
 # --
