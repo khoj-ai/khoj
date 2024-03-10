@@ -75,8 +75,13 @@ def chat_history(
         user=user, client_application=request.user.client_app, conversation_id=conversation_id
     )
 
-    meta_log = conversation.conversation_log
+    if conversation is None:
+        return Response(
+            content=json.dumps({"status": "error", "message": f"Conversation: {conversation_id} not found"}),
+            status_code=404,
+        )
 
+    meta_log = conversation.conversation_log
     meta_log.update(
         {"conversation_id": conversation.id, "slug": conversation.title if conversation.title else conversation.slug}
     )
@@ -84,7 +89,7 @@ def chat_history(
     update_telemetry_state(
         request=request,
         telemetry_type="api",
-        api="chat",
+        api="chat_history",
         **common.__dict__,
     )
 
