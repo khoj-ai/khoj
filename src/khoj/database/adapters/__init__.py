@@ -16,6 +16,7 @@ from pgvector.django import CosineDistance
 from torch import Tensor
 
 from khoj.database.models import (
+    Agent,
     ChatModelOptions,
     ClientApplication,
     Conversation,
@@ -391,6 +392,12 @@ class ClientApplicationAdapters:
         return await ClientApplication.objects.filter(client_id=client_id, client_secret=client_secret).afirst()
 
 
+class AgentAdapters:
+    @staticmethod
+    async def aget_agent_by_id(agent_id: int):
+        return await Agent.objects.filter(id=agent_id).afirst()
+
+
 class ConversationAdapters:
     @staticmethod
     def get_conversation_by_user(
@@ -431,7 +438,12 @@ class ConversationAdapters:
         return Conversation.objects.filter(id=conversation_id).first()
 
     @staticmethod
-    async def acreate_conversation_session(user: KhojUser, client_application: ClientApplication = None):
+    async def acreate_conversation_session(
+        user: KhojUser, client_application: ClientApplication = None, agent_id: int = None
+    ):
+        if agent_id:
+            agent = await AgentAdapters.aget_agent_by_id(id)
+            return await Conversation.objects.acreate(user=user, client=client_application, agent=agent)
         return await Conversation.objects.acreate(user=user, client=client_application)
 
     @staticmethod
@@ -446,7 +458,7 @@ class ConversationAdapters:
             conversation = Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at")
 
         if await conversation.aexists():
-            return await conversation.afirst()
+            return await conversation.prefetch_related("agent").afirst()
 
         return await Conversation.objects.acreate(user=user, client=client_application, slug=slug)
 
@@ -606,9 +618,14 @@ class ConversationAdapters:
         return random.sample(all_questions, max_results)
 
     @staticmethod
-    def get_valid_conversation_config(user: KhojUser):
+    def get_valid_conversation_config(user: KhojUser, conversation: Conversation):
         offline_chat_config = ConversationAdapters.get_offline_chat_conversation_config()
-        conversation_config = ConversationAdapters.get_conversation_config(user)
+
+        if conversation.agent and conversation.agent.chat_model:
+            conversation_config = conversation.agent.chat_model
+        else:
+            conversation_config = ConversationAdapters.get_conversation_config(user)
+
         if conversation_config is None:
             conversation_config = ConversationAdapters.get_default_conversation_config()
 

@@ -69,6 +69,28 @@ class Subscription(BaseModel):
     renewal_date = models.DateTimeField(null=True, default=None, blank=True)
 
 
+class ChatModelOptions(BaseModel):
+    class ModelType(models.TextChoices):
+        OPENAI = "openai"
+        OFFLINE = "offline"
+
+    max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
+    tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)
+    chat_model = models.CharField(max_length=200, default="mistral-7b-instruct-v0.1.Q4_0.gguf")
+    model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
+
+
+class Agent(BaseModel):
+    creator = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
+    name = models.CharField(max_length=200)
+    tuning = models.TextField()
+    avatar = models.URLField(max_length=400, default=None, null=True, blank=True)
+    tools = models.JSONField(default=list)  # List of tools the agent has access to, like online search or notes search
+    public = models.BooleanField(default=False)
+    managed_by_admin = models.BooleanField(default=False)
+    chat_model = models.ForeignKey(ChatModelOptions, on_delete=models.CASCADE)
+
+
 class NotionConfig(BaseModel):
     token = models.CharField(max_length=200)
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
@@ -153,17 +175,6 @@ class SpeechToTextModelOptions(BaseModel):
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
 
 
-class ChatModelOptions(BaseModel):
-    class ModelType(models.TextChoices):
-        OPENAI = "openai"
-        OFFLINE = "offline"
-
-    max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
-    tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)
-    chat_model = models.CharField(max_length=200, default="mistral-7b-instruct-v0.1.Q4_0.gguf")
-    model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
-
-
 class UserConversationConfig(BaseModel):
     user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
     setting = models.ForeignKey(ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True)
@@ -180,6 +191,7 @@ class Conversation(BaseModel):
     client = models.ForeignKey(ClientApplication, on_delete=models.CASCADE, default=None, null=True, blank=True)
     slug = models.CharField(max_length=200, default=None, null=True, blank=True)
     title = models.CharField(max_length=200, default=None, null=True, blank=True)
+    agent = models.ForeignKey(Agent, on_delete=models.SET_NULL, default=None, null=True, blank=True)
 
 
 class ReflectiveQuestion(BaseModel):

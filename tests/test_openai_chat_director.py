@@ -5,13 +5,10 @@ from urllib.parse import quote
 import pytest
 from freezegun import freeze_time
 
-from khoj.database.models import KhojUser
+from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import message_to_log
-from khoj.routers.helpers import (
-    aget_relevant_information_sources,
-    aget_relevant_output_modes,
-)
+from khoj.routers.helpers import aget_relevant_information_sources
 from tests.helpers import ConversationFactory
 
 # Initialize variables for tests
@@ -29,20 +26,21 @@ def generate_history(message_list):
     # Generate conversation logs
     conversation_log = {"chat": []}
     for user_message, gpt_message, context in message_list:
-        conversation_log["chat"] += message_to_log(
+        message_to_log(
             user_message,
             gpt_message,
             {"context": context, "intent": {"query": user_message, "inferred-queries": f'["{user_message}"]'}},
+            conversation_log=conversation_log.get("chat", []),
         )
     return conversation_log
 
 
-def populate_chat_history(message_list, user):
+def create_conversation(message_list, user, agent=None):
     # Generate conversation logs
     conversation_log = generate_history(message_list)
 
     # Update Conversation Metadata Logs in Database
-    ConversationFactory(user=user, conversation_log=conversation_log)
+    return ConversationFactory(user=user, conversation_log=conversation_log, agent=agent)
 
 
 # Tests
@@ -116,7 +114,7 @@ def test_answer_from_chat_history(chat_client, default_user2: KhojUser):
         ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
         ("When was I born?", "You were born on 1st April 1984.", []),
     ]
-    populate_chat_history(message_list, default_user2)
+    create_conversation(message_list, default_user2)
 
     # Act
     response = chat_client.get(f'/api/chat?q="What is my name?"&stream=true')
@@ -143,7 +141,7 @@ def test_answer_from_currently_retrieved_content(chat_client, default_user2: Kho
             ["Testatron was born on 1st April 1984 in Testville."],
         ),
     ]
-    populate_chat_history(message_list, default_user2)
+    create_conversation(message_list, default_user2)
 
     # Act
     response = chat_client.get(f'/api/chat?q="Where was Xi Li born?"')
@@ -167,7 +165,7 @@ def test_answer_from_chat_history_and_previously_retrieved_content(chat_client_n
             ["Testatron was born on 1st April 1984 in Testville."],
         ),
     ]
-    populate_chat_history(message_list, default_user2)
+    create_conversation(message_list, default_user2)
 
     # Act
     response = chat_client_no_background.get(f'/api/chat?q="Where was I born?"')
@@ -190,7 +188,7 @@ def test_answer_from_chat_history_and_currently_retrieved_content(chat_client, d
         ("Hello, my name is Xi Li. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
         ("When was I born?", "You were born on 1st April 1984.", []),
     ]
-    populate_chat_history(message_list, default_user2)
+    create_conversation(message_list, default_user2)
 
     # Act
     response = chat_client.get(f'/api/chat?q="Where was I born?"')
@@ -215,7 +213,7 @@ def test_no_answer_in_chat_history_or_retrieved_content(chat_client, default_use
         ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
         ("When was I born?", "You were born on 1st April 1984.", []),
     ]
-    populate_chat_history(message_list, default_user2)
+    create_conversation(message_list, default_user2)
 
     # Act
     response = chat_client.get(f'/api/chat?q="Where was I born?"&stream=true')
@@ -236,7 +234,7 @@ def test_answer_using_general_command(chat_client, default_user2: KhojUser):
     # Arrange
     query = urllib.parse.quote("/general Where was Xi Li born?")
     message_list = []
-    populate_chat_history(message_list, default_user2)
+    create_conversation(message_list, default_user2)
 
     # Act
     response = chat_client.get(f"/api/chat?q={query}&stream=true")
@@ -254,7 +252,7 @@ def test_answer_from_retrieved_content_using_notes_command(chat_client, default_
     # Arrange
     query = urllib.parse.quote("/notes Where was Xi Li born?")
     message_list = []
-    populate_chat_history(message_list, default_user2)
+    create_conversation(message_list, default_user2)
 
     # Act
     response = chat_client.get(f"/api/chat?q={query}&stream=true")
@@ -272,7 +270,7 @@ def test_answer_not_known_using_notes_command(chat_client_no_background, default
     # Arrange
     query = urllib.parse.quote("/notes Where was Testatron born?")
     message_list = []
-    populate_chat_history(message_list, default_user2)
+    create_conversation(message_list, default_user2)
 
     # Act
     response = chat_client_no_background.get(f"/api/chat?q={query}&stream=true")
@@ -327,7 +325,7 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content(chat_c
         ("When was I born?", "You were born on 1st April 1984.", []),
         ("Where was I born?", "You were born Testville.", []),
     ]
-    populate_chat_history(message_list, default_user2)
+    create_conversation(message_list, default_user2)
 
     # Act
     response = chat_client.get(
@@ -379,7 +377,7 @@ def test_answer_in_chat_history_beyond_lookback_window(chat_client, default_user
         ("When was I born?", "You were born on 1st April 1984.", []),
         ("Where was I born?", "You were born Testville.", []),
     ]
-    populate_chat_history(message_list, default_user2)
+    create_conversation(message_list, default_user2)
 
     # Act
     response = chat_client.get(f'/api/chat?q="What is my name?"&stream=true')
@@ -390,6 +388,68 @@ def test_answer_in_chat_history_beyond_lookback_window(chat_client, default_user
     assert response.status_code == 200
     assert any([expected_response in response_message.lower() for expected_response in expected_responses]), (
         "Expected [T|t]estatron in response, but got: " + response_message
+    )
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
+@pytest.mark.django_db(transaction=True)
+def test_answer_in_chat_history_by_conversation_id(chat_client, default_user2: KhojUser):
+    # Arrange
+    message_list = [
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("When was I born?", "You were born on 1st April 1984.", []),
+        ("What's my favorite color", "Your favorite color is green.", []),
+        ("Where was I born?", "You were born Testville.", []),
+    ]
+    message_list2 = [
+        ("Hello, my name is Julia. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("When was I born?", "You were born on 14th August 1947.", []),
+        ("What's my favorite color", "Your favorite color is maroon.", []),
+        ("Where was I born?", "You were born in a potato farm.", []),
+    ]
+    conversation = create_conversation(message_list, default_user2)
+    create_conversation(message_list2, default_user2)
+
+    # Act
+    query = urllib.parse.quote("/general What is my favorite color?")
+    response = chat_client.get(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
+    response_message = response.content.decode("utf-8")
+
+    # Assert
+    expected_responses = ["green"]
+    assert response.status_code == 200
+    assert any([expected_response in response_message.lower() for expected_response in expected_responses]), (
+        "Expected green in response, but got: " + response_message
+    )
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
+@pytest.mark.django_db(transaction=True)
+def test_answer_in_chat_history_by_conversation_id_with_agent(
+    chat_client, default_user2: KhojUser, openai_agent: Agent
+):
+    # Arrange
+    message_list = [
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("When was I born?", "You were born on 1st April 1984.", []),
+        ("What's my favorite color", "Your favorite color is green.", []),
+        ("Where was I born?", "You were born Testville.", []),
+        ("What did I buy?", "You bought an apple for 2.00, an orange for 3.00, and a potato for 8.00", []),
+    ]
+    conversation = create_conversation(message_list, default_user2, openai_agent)
+
+    # Act
+    query = urllib.parse.quote("/general What did I eat for breakfast?")
+    response = chat_client.get(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
+    response_message = response.content.decode("utf-8")
+
+    # Assert that agent only responds with the summary of spending
+    expected_responses = ["13.00", "13", "13.0", "thirteen"]
+    assert response.status_code == 200
+    assert any([expected_response in response_message.lower() for expected_response in expected_responses]), (
+        "Expected green in response, but got: " + response_message
     )
 
 

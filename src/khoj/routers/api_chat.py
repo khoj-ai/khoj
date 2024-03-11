@@ -148,6 +148,7 @@ def chat_sessions(
 async def create_chat_session(
     request: Request,
     common: CommonQueryParams,
+    agent_id: Optional[int] = None,
 ):
     user = request.user.object
 
@@ -250,9 +251,11 @@ async def chat(
         formatted_help = help_message.format(model=model_type, version=state.khoj_version, device=get_device())
         return StreamingResponse(iter([formatted_help]), media_type="text/event-stream", status_code=200)
 
-    meta_log = (
-        await ConversationAdapters.aget_conversation_by_user(user, request.user.client_app, conversation_id, slug)
-    ).conversation_log
+    conversation = await ConversationAdapters.aget_conversation_by_user(
+        user, request.user.client_app, conversation_id, slug
+    )
+
+    meta_log = conversation.conversation_log
 
     if conversation_commands == [ConversationCommand.Default]:
         conversation_commands = await aget_relevant_information_sources(q, meta_log)
@@ -335,6 +338,7 @@ async def chat(
     llm_response, chat_metadata = await agenerate_chat_response(
         defiltered_query,
         meta_log,
+        conversation,
         compiled_references,
         online_results,
         inferred_queries,
