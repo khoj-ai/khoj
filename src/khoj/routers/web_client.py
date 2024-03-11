@@ -10,6 +10,7 @@ from starlette.authentication import has_required_scope, requires
 
 from khoj.database import adapters
 from khoj.database.adapters import (
+    AgentAdapters,
     ConversationAdapters,
     EntryAdapters,
     get_user_github_config,
@@ -127,6 +128,11 @@ def login_page(request: Request):
             "redirect_uri": redirect_uri,
         },
     )
+
+
+@web_client.get("/agents", response_class=HTMLResponse)
+def agents_page(request: Request):
+    agents = AgentAdapters.get_all_acessible_agents(request.user.object if request.user.is_authenticated else None)
 
 
 @web_client.get("/config", response_class=HTMLResponse)
