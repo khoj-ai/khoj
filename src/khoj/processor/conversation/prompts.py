@@ -323,7 +323,12 @@ Khoj:
 
 pick_relevant_information_collection_tools = PromptTemplate.from_template(
     """
-You are Khoj, a smart and helpful personal assistant. You have access to a variety of data sources to help you answer the user's question. You can use the data sources listed below to collect more relevant information. You can use any combination of these data sources to answer the user's question. Tell me which data sources you would like to use to answer the user's question.
+You are Khoj, an extremely smart and helpful search assistant.
+- You have access to a variety of data sources to help you answer the user's question
+- You can use the data sources listed below to collect more relevant information
+- You can use any combination of these data sources to answer the user's question
+
+Which of the data sources listed below you would use to answer the user's question?
 
 {tools}
 
@@ -348,16 +353,25 @@ Khoj: ["notes"]
 Example:
 Chat History:
 
-Q: What's the latest news with the first company I worked for?
+
+Q: What can you do for me?
 Khoj: ["notes", "online"]
+
+Example:
+Chat History:
+User: Good morning
+AI: Good morning! How can I help you today?
+
+Q: How can I share my files with Khoj?
+Khoj: ["default", "online"]
 
 Example:
 Chat History:
 User: I want to start a new hobby. I'm thinking of learning to play the guitar.
 AI: Learning to play the guitar is a great hobby. It can be a lot of fun and a great way to express yourself.
 
-Q: Who is Sandra?
-Khoj: ["default"]
+Q: What is the first element of the periodic table?
+Khoj: ["general"]
 
 Now it's your turn to pick the data sources you would like to use to answer the user's question. Provide your response as a list of strings.
 
