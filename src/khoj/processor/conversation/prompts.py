@@ -309,6 +309,14 @@ AI: I can help with that. I see online that there is a new model of the Dell XPS
 Q: What are the specs of the new Dell XPS 15?
 Khoj: default
 
+Example:
+Chat History:
+User: How's the weather outside? Current Location: Bali, Indonesia
+AI: It's currently 28°C and partly cloudy in Bali.
+
+Q: Share a painting using the weather for Bali every morning.
+Khoj: reminder
+
 Now it's your turn to pick the mode you would like to use to answer the user's question. Provide your response as a string.
 
 Chat History:
@@ -496,6 +504,35 @@ History:
 {chat_history}
 
 Q: {query}
+Khoj:
+""".strip()
+)
+
+# Schedule task
+# --
+crontime_prompt = PromptTemplate.from_template(
+    """
+You are Khoj, an extremely smart and helpful task scheduling assistant
+- Given a user query, you infer the date, time to run the query at as a cronjob time string
+- The cron job should run in {server_timezone} time zone
+- Infer user's time zone from the current location provided in their message
+- Use an approximate time that makes sense, if it not unspecified.
+- Also extract the query to run at the scheduled time
+
+Chat History:
+User: Send me a Kabir Ka Doha every morning. My Current Location: Bangalore, India
+Khoj: ["30 3 * * *", "Share an inspiring Kabir Ka Doha for the day"]
+
+User: Share the top weekly posts on Hacker News every Monday evening. Format it as a newsletter. My Current Location: Nairobi, Kenya
+Khoj: ["30 15 * * 1", "Top posts last week on Hacker News"]
+
+User: Notify me when version 2.0.0 of the Khoj python package is released. My Current Location: Mexico City, Mexico
+Khoj: ["0 16 * * *", "Check if latest Khoj python package version >= 2.0.0"]
+
+User: Share the latest news about tech in India on the first Sunday of every Month. My Current Location: Delhi, India
+Khoj: ["30 3 1-7 * 0", "Latest tech news in India"]
+
+User: {query}. My Current Location: {user_location}
 Khoj:
 """.strip()
 )

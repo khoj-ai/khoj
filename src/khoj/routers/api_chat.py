@@ -4,7 +4,8 @@ import math
 from typing import Dict, Optional
 from urllib.parse import unquote
 
-from asgiref.sync import sync_to_async
+from apscheduler.triggers.cron import CronTrigger
+from asgiref.sync import async_to_sync, sync_to_async
 from fastapi import APIRouter, Depends, Request
 from fastapi.requests import Request
 from fastapi.responses import Response, StreamingResponse
@@ -29,6 +30,7 @@ from khoj.routers.helpers import (
     aget_relevant_output_modes,
     get_conversation_command,
     is_ready_to_chat,
+    schedule_query,
     text_to_image,
     update_telemetry_state,
     validate_conversation_config,
@@ -281,6 +283,33 @@ async def chat(
         location = LocationData(city=city, region=region, country=country)
 
     user_name = await aget_user_name(user)
+
+    if ConversationCommand.Reminder in conversation_commands:
+        crontime, inferred_query = await schedule_query(q, location)
+        trigger = CronTrigger.from_crontab(crontime)
+        state.scheduler.add_job(
+            async_to_sync(chat),
+            trigger=trigger,
+            args=(request, common, inferred_query, n, d, False, title, conversation_id, city, region, country),
+            id=f"job_{user.uuid}_{inferred_query}",
+            replace_existing=True,
+        )
+
+        llm_response = f'🕒 Scheduled running Query: "{inferred_query}" on Schedule: `{crontime}` (in server timezone).'
+        await sync_to_async(save_to_conversation_log)(
+            q,
+            llm_response,
+            user,
+            meta_log,
+            intent_type="reminder",
+            client_application=request.user.client_app,
+            conversation_id=conversation_id,
+        )
+
+        if stream:
+            return StreamingResponse(llm_response, media_type="text/event-stream", status_code=200)
+        else:
+            return Response(content=llm_response, media_type="text/plain", status_code=200)
 
     compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
         request, common, meta_log, q, (n or 5), (d or math.inf), conversation_commands, location

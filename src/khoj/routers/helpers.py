@@ -294,6 +294,34 @@ async def generate_online_subqueries(q: str, conversation_history: dict, locatio
         return [q]
 
 
+async def schedule_query(q: str, location_data: LocationData) -> Tuple[str, ...]:
+    """
+    Schedule the date, time to run the query
+    """
+    user_location = (
+        f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Greenwich"
+    )
+    server_timezone = datetime.now().astimezone().tzinfo.tzname(None)
+
+    crontime_prompt = prompts.crontime_prompt.format(
+        query=q,
+        server_timezone=server_timezone,
+        user_location=user_location,
+    )
+
+    raw_response = await send_message_to_model_wrapper(crontime_prompt)
+
+    # Validate that the response is a non-empty, JSON-serializable list
+    try:
+        raw_response = raw_response.strip()
+        response: List[str] = json.loads(raw_response)
+        if not isinstance(response, list) or not response or len(response) != 2:
+            raise AssertionError(f"Invalid response for scheduling query : {response}")
+        return tuple(response)
+    except Exception:
+        raise AssertionError(f"Invalid response for scheduling query: {raw_response}")
+
+
 async def extract_relevant_info(q: str, corpus: str) -> Union[str, None]:
     """
     Extract relevant information for a given query from the target corpus
