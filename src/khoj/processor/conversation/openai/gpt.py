@@ -35,9 +35,9 @@ def extract_questions(
     # Extract Past User Message and Inferred Questions from Conversation Log
     chat_history = "".join(
         [
-            f'Q: {chat["intent"]["query"]}\n\n{chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}\n\n{chat["message"]}\n\n'
+            f'Q: {chat["intent"]["query"]}\nKhoj: {chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}\nA: {chat["message"]}\n\n'
             for chat in conversation_log.get("chat", [])[-4:]
-            if chat["by"] == "khoj" and chat["intent"].get("type") != "text-to-image"
+            if chat["by"] == "khoj" and "text-to-image" not in chat["intent"].get("type")
         ]
     )
 

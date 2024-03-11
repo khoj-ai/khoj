@@ -229,57 +229,41 @@ Current Date: {current_date}
 User's Location: {location}
 
 Q: How was my trip to Cambodia?
-
-["How was my trip to Cambodia?"]
-
+Khoj: ["How was my trip to Cambodia?"]
 A: The trip was amazing. I went to the Angkor Wat temple and it was beautiful.
 
 Q: Who did i visit that temple with?
-
-["Who did I visit the Angkor Wat Temple in Cambodia with?"]
-
+Khoj: ["Who did I visit the Angkor Wat Temple in Cambodia with?"]
 A: You visited the Angkor Wat Temple in Cambodia with Pablo, Namita and Xi.
 
 Q: What national parks did I go to last year?
-
-["National park I visited in {last_new_year} dt>='{last_new_year_date}' dt<'{current_new_year_date}'"]
-
+Khoj: ["National park I visited in {last_new_year} dt>='{last_new_year_date}' dt<'{current_new_year_date}'"]
 A: You visited the Grand Canyon and Yellowstone National Park in {last_new_year}.
 
 Q: How are you feeling today?
-
-[]
-
+Khoj: []
 A: I'm feeling a little bored. Helping you will hopefully make me feel better!
 
 Q: How many tennis balls fit in the back of a 2002 Honda Civic?
-
-["What is the size of a tennis ball?", "What is the trunk size of a 2002 Honda Civic?"]
-
+Khoj: ["What is the size of a tennis ball?", "What is the trunk size of a 2002 Honda Civic?"]
 A: 1085 tennis balls will fit in the trunk of a Honda Civic
 
 Q: Is Bob older than Tom?
-
-["When was Bob born?", "What is Tom's age?"]
-
+Khoj: ["When was Bob born?", "What is Tom's age?"]
 A: Yes, Bob is older than Tom. As Bob was born on 1984-01-01 and Tom is 30 years old.
 
 Q: What is their age difference?
-
-["What is Bob's age?", "What is Tom's age?"]
-
+Khoj: ["What is Bob's age?", "What is Tom's age?"]
 A: Bob is {bob_tom_age_difference} years older than Tom. As Bob is {bob_age} years old and Tom is 30 years old.
 
 Q: What does yesterday's note say?
-
-["Note from {yesterday_date} dt>='{yesterday_date}' dt<'{current_date}'"]
-
-A: Yesterday's note contains the following information: ...
+Khoj: ["Note from {yesterday_date} dt>='{yesterday_date}' dt<'{current_date}'"]
+A: Yesterday's note mentions your visit to your local beach with Ram and Shyam.
 
 {chat_history}
 Q: {text}
-
-"""
+Khoj:
+""".strip()
 )
 
 system_prompt_extract_relevant_information = """As a professional analyst, create a comprehensive report of the most relevant information from a web page in response to a user's query. The text provided is directly from within the web page. The report you create should be multiple paragraphs, and it should represent the content of the website. Tell the user exactly what the website says in response to their query, while adhering to these guidelines:
