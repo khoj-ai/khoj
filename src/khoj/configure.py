@@ -21,6 +21,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from starlette.requests import HTTPConnection
 
 from khoj.database.adapters import (
+    AgentAdapters,
     ClientApplicationAdapters,
     ConversationAdapters,
     SubscriptionState,
@@ -229,9 +230,14 @@ def configure_server(
 
         state.SearchType = configure_search_types()
         state.search_models = configure_search(state.search_models, state.config.search_type)
+        setup_default_agent()
         initialize_content(regenerate, search_type, init, user)
     except Exception as e:
         raise e
+
+
+def setup_default_agent():
+    AgentAdapters.create_default_agent()
 
 
 def initialize_content(regenerate: bool, search_type: Optional[SearchType] = None, init=False, user: KhojUser = None):

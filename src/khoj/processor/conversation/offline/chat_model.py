@@ -161,7 +161,7 @@ def converse_offline(
     system_prompt = ""
     current_date = datetime.now().strftime("%Y-%m-%d")
 
-    if agent:
+    if agent and agent.tuning:
         system_prompt = prompts.custom_system_prompt_message_gpt4all.format(
             name=agent.name, bio=agent.tuning, current_date=current_date
         )

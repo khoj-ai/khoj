@@ -1,7 +1,10 @@
 import uuid
 
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 from pgvector.django import VectorField
 from phonenumber_field.modelfields import PhoneNumberField
 
@@ -89,6 +92,13 @@ class Agent(BaseModel):
     public = models.BooleanField(default=False)
     managed_by_admin = models.BooleanField(default=False)
     chat_model = models.ForeignKey(ChatModelOptions, on_delete=models.CASCADE)
+
+
+@receiver(pre_save, sender=Agent)
+def check_public_name(sender, instance, **kwargs):
+    if instance.public:
+        if Agent.objects.filter(name=instance.name, public=True).exists():
+            raise ValidationError(f"A public Agent with the name {instance.name} already exists.")
 
 
 class NotionConfig(BaseModel):

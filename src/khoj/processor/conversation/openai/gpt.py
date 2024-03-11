@@ -132,7 +132,7 @@ def converse(
 
     system_prompt = ""
 
-    if agent:
+    if agent and agent.tuning:
         system_prompt = prompts.custom_personality.format(name=agent.name, bio=agent.tuning, current_date=current_date)
     else:
         system_prompt = prompts.personality.format(current_date=current_date)

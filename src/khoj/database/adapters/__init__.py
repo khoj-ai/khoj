@@ -38,6 +38,7 @@ from khoj.database.models import (
     UserRequests,
     UserSearchModelConfig,
 )
+from khoj.processor.conversation import prompts
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
@@ -393,9 +394,51 @@ class ClientApplicationAdapters:
 
 
 class AgentAdapters:
+    DEFAULT_AGENT_NAME = "khoj"
+    DEFAULT_AGENT_AVATAR = "https://khoj-web-bucket.s3.amazonaws.com/lamp-128.png"
+
     @staticmethod
     async def aget_agent_by_id(agent_id: int):
         return await Agent.objects.filter(id=agent_id).afirst()
+
+    @staticmethod
+    def get_all_acessible_agents(user: KhojUser = None):
+        return Agent.objects.filter(Q(public=True) | Q(creator=user)).distinct()
+
+    @staticmethod
+    def get_conversation_agent_by_id(agent_id: int):
+        agent = Agent.objects.filter(id=agent_id).first()
+        if agent == AgentAdapters.get_default_agent():
+            # If the agent is set to the default agent, then return None and let the default application code be used
+            return None
+        return agent
+
+    @staticmethod
+    def get_default_agent():
+        return Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).first()
+
+    @staticmethod
+    def create_default_agent():
+        # First delete the existing default
+        Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).delete()
+
+        default_conversation_config = ConversationAdapters.get_default_conversation_config()
+        default_personality = prompts.personality.format(current_date="placeholder")
+
+        # The default agent is public and managed by the admin. It's handled a little differently than other agents.
+        return Agent.objects.create(
+            name=AgentAdapters.DEFAULT_AGENT_NAME,
+            public=True,
+            managed_by_admin=True,
+            chat_model=default_conversation_config,
+            tuning=default_personality,
+            tools=["*"],
+            avatar=AgentAdapters.DEFAULT_AGENT_AVATAR,
+        )
+
+    @staticmethod
+    async def aget_default_agent():
+        return await Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).afirst()
 
 
 class ConversationAdapters:

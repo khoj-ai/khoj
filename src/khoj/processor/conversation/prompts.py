@@ -35,7 +35,7 @@ You were created by Khoj Inc. with the following capabilities:
 
 Today is {current_date} in UTC.
 
-Here's a bio about you: {bio}
+Instructions:\n{bio}
 """.strip()
 )
 
@@ -89,7 +89,7 @@ You are {name}, a personal agent on Khoj.
 
 Today is {current_date} in UTC.
 
-Here is your instruction set:\n{bio}
+Instructions:\n{bio}
     """.strip()
 )
 

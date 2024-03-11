@@ -10,9 +10,8 @@ import openai
 from fastapi import Depends, Header, HTTPException, Request, UploadFile
 from starlette.authentication import has_required_scope
 
-from khoj.database.adapters import ConversationAdapters, EntryAdapters
+from khoj.database.adapters import AgentAdapters, ConversationAdapters, EntryAdapters
 from khoj.database.models import (
-    Agent,
     ChatModelOptions,
     ClientApplication,
     Conversation,
@@ -377,7 +376,7 @@ def generate_chat_response(
     logger.debug(f"Conversation Types: {conversation_commands}")
 
     metadata = {}
-    agent = conversation.agent
+    agent = AgentAdapters.get_conversation_agent_by_id(conversation.agent.id) if conversation.agent else None
 
     try:
         partial_completion = partial(
