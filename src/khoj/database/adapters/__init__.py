@@ -485,7 +485,7 @@ class ConversationAdapters:
         user: KhojUser, client_application: ClientApplication = None, agent_id: int = None
     ):
         if agent_id:
-            agent = await AgentAdapters.aget_agent_by_id(id)
+            agent = await AgentAdapters.aget_agent_by_id(agent_id)
             return await Conversation.objects.acreate(user=user, client=client_application, agent=agent)
         return await Conversation.objects.acreate(user=user, client=client_application)
 
