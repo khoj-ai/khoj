@@ -11,7 +11,6 @@ from khoj.processor.conversation.openai.utils import (
     completion_with_backoff,
 )
 from khoj.processor.conversation.utils import generate_chatml_messages_with_context
-from khoj.utils.constants import empty_escape_sequences
 from khoj.utils.helpers import ConversationCommand, is_none_or_empty
 from khoj.utils.rawconfig import LocationData
 
@@ -75,7 +74,7 @@ def extract_questions(
         response = response.strip()
         response = json.loads(response)
         response = [q.strip() for q in response if q.strip()]
-        if not isinstance(response, list) or not response or len(response) == 0:
+        if not isinstance(response, list) or not response:
             logger.error(f"Invalid response for constructing subqueries: {response}")
             return [text]
         return response
