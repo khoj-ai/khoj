@@ -79,6 +79,7 @@ dependencies = [
     "websockets == 12.0",
     "psutil >= 5.8.0",
     "huggingface-hub >= 0.22.2",
+    "apscheduler ~= 3.10.0",
 ]
 dynamic = ["version"]
 

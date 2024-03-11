@@ -4,6 +4,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from openai import OpenAI
 from whisper import Whisper
 
@@ -29,6 +30,7 @@ cli_args: List[str] = None
 query_cache: Dict[str, LRU] = defaultdict(LRU)
 chat_lock = threading.Lock()
 SearchType = utils_config.SearchType
+scheduler: BackgroundScheduler = None
 telemetry: List[Dict[str, str]] = []
 khoj_version: str = None
 device = get_device()

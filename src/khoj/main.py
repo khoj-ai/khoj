@@ -23,6 +23,7 @@ warnings.filterwarnings("ignore", message=r"legacy way to download files from th
 
 import uvicorn
 import django
+from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -125,6 +126,10 @@ def run(should_start_server=True):
 
     # Setup task scheduler
     poll_task_scheduler()
+
+    # Setup Background Scheduler
+    state.scheduler = BackgroundScheduler()
+    state.scheduler.start()
 
     # Start Server
     configure_routes(app)

@@ -304,6 +304,7 @@ class ConversationCommand(str, Enum):
     Online = "online"
     Webpage = "webpage"
     Image = "image"
+    Reminder = "reminder"
 
 
 command_descriptions = {
@@ -313,6 +314,7 @@ command_descriptions = {
     ConversationCommand.Online: "Search for information on the internet.",
     ConversationCommand.Webpage: "Get information from webpage links provided by you.",
     ConversationCommand.Image: "Generate images by describing your imagination in words.",
+    ConversationCommand.Reminder: "Schedule your query to run at a specified time or interval.",
     ConversationCommand.Help: "Display a help message with all available commands and other metadata.",
 }
 
@@ -325,7 +327,8 @@ tool_descriptions_for_llm = {
 }
 
 mode_descriptions_for_llm = {
-    ConversationCommand.Image: "Use this if you think the user is requesting an image or visual response to their query.",
+    ConversationCommand.Image: "Use this if the user is requesting an image or visual response to their query.",
+    ConversationCommand.Reminder: "Use this if the user is requesting a response at a scheduled date or time.",
     ConversationCommand.Default: "Use this if the other response modes don't seem to fit the query.",
 }
 
