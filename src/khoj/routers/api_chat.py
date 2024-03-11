@@ -4,7 +4,8 @@ import math
 from typing import Dict, Optional
 from urllib.parse import unquote
 
-from asgiref.sync import sync_to_async
+from apscheduler.triggers.cron import CronTrigger
+from asgiref.sync import async_to_sync, sync_to_async
 from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket
 from fastapi.requests import Request
 from fastapi.responses import Response, StreamingResponse
@@ -29,12 +30,14 @@ from khoj.routers.api import extract_references_and_questions
 from khoj.routers.helpers import (
     ApiUserRateLimiter,
     CommonQueryParams,
+    CommonQueryParamsClass,
     ConversationCommandRateLimiter,
     agenerate_chat_response,
     aget_relevant_information_sources,
     aget_relevant_output_modes,
     get_conversation_command,
     is_ready_to_chat,
+    schedule_query,
     text_to_image,
     update_telemetry_state,
     validate_conversation_config,
@@ -379,6 +382,55 @@ async def websocket_endpoint(
             await conversation_command_rate_limiter.update_and_check_if_valid(websocket, cmd)
             q = q.replace(f"/{cmd.value}", "").strip()
 
+        if ConversationCommand.Reminder in conversation_commands:
+            crontime, inferred_query = await schedule_query(q, location, meta_log)
+            trigger = CronTrigger.from_crontab(crontime)
+            common = CommonQueryParamsClass(
+                client=websocket.user.client_app,
+                user_agent=websocket.headers.get("user-agent"),
+                host=websocket.headers.get("host"),
+            )
+            scope = websocket.scope.copy()
+            scope["path"] = "/api/chat"
+            scope["type"] = "http"
+            request = Request(scope)
+
+            state.scheduler.add_job(
+                async_to_sync(chat),
+                trigger=trigger,
+                args=(request, common, inferred_query),
+                kwargs={
+                    "stream": False,
+                    "conversation_id": conversation_id,
+                    "city": city,
+                    "region": region,
+                    "country": country,
+                },
+                id=f"job_{user.uuid}_{inferred_query}",
+                replace_existing=True,
+            )
+
+            llm_response = (
+                f'🕒 Scheduled running Query: "{inferred_query}" on Schedule: `{crontime}` (in server timezone).'
+            )
+            await sync_to_async(save_to_conversation_log)(
+                q,
+                llm_response,
+                user,
+                meta_log,
+                intent_type="reminder",
+                client_application=websocket.user.client_app,
+                conversation_id=conversation_id,
+            )
+            update_telemetry_state(
+                request=websocket,
+                telemetry_type="api",
+                api="chat",
+                **common.__dict__,
+            )
+            await send_complete_llm_response(llm_response)
+            continue
+
         compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
             websocket, None, meta_log, q, 7, 0.18, conversation_commands, location, send_status_update
         )
@@ -573,6 +625,33 @@ async def chat(
         location = LocationData(city=city, region=region, country=country)
 
     user_name = await aget_user_name(user)
+
+    if ConversationCommand.Reminder in conversation_commands:
+        crontime, inferred_query = await schedule_query(q, location, meta_log)
+        trigger = CronTrigger.from_crontab(crontime)
+        state.scheduler.add_job(
+            async_to_sync(chat),
+            trigger=trigger,
+            args=(request, common, inferred_query, n, d, False, title, conversation_id, city, region, country),
+            id=f"job_{user.uuid}_{inferred_query}",
+            replace_existing=True,
+        )
+
+        llm_response = f'🕒 Scheduled running Query: "{inferred_query}" on Schedule: `{crontime}` (in server timezone).'
+        await sync_to_async(save_to_conversation_log)(
+            q,
+            llm_response,
+            user,
+            meta_log,
+            intent_type="reminder",
+            client_application=request.user.client_app,
+            conversation_id=conversation_id,
+        )
+
+        if stream:
+            return StreamingResponse(llm_response, media_type="text/event-stream", status_code=200)
+        else:
+            return Response(content=llm_response, media_type="text/plain", status_code=200)
 
     compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
         request, common, meta_log, q, (n or 5), (d or math.inf), conversation_commands, location

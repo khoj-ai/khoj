@@ -132,7 +132,7 @@ def update_telemetry_state(
 def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="AI") -> str:
     chat_history = ""
     for chat in conversation_history.get("chat", [])[-n:]:
-        if chat["by"] == "khoj" and chat["intent"].get("type") == "remember":
+        if chat["by"] == "khoj" and chat["intent"].get("type") in ["remember", "reminder"]:
             chat_history += f"User: {chat['intent']['query']}\n"
             chat_history += f"{agent_name}: {chat['message']}\n"
         elif chat["by"] == "khoj" and ("text-to-image" in chat["intent"].get("type")):
@@ -308,6 +308,34 @@ async def generate_online_subqueries(q: str, conversation_history: dict, locatio
     except Exception as e:
         logger.error(f"Invalid response for constructing subqueries: {response}. Returning original query: {q}")
         return [q]
+
+
+async def schedule_query(q: str, location_data: LocationData, conversation_history: dict) -> Tuple[str, ...]:
+    """
+    Schedule the date, time to run the query. Assume the server timezone is UTC.
+    """
+    user_location = (
+        f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Greenwich"
+    )
+    chat_history = construct_chat_history(conversation_history)
+
+    crontime_prompt = prompts.crontime_prompt.format(
+        query=q,
+        user_location=user_location,
+        chat_history=chat_history,
+    )
+
+    raw_response = await send_message_to_model_wrapper(crontime_prompt)
+
+    # Validate that the response is a non-empty, JSON-serializable list
+    try:
+        raw_response = raw_response.strip()
+        response: List[str] = json.loads(raw_response)
+        if not isinstance(response, list) or not response or len(response) != 2:
+            raise AssertionError(f"Invalid response for scheduling query : {response}")
+        return tuple(response)
+    except Exception:
+        raise AssertionError(f"Invalid response for scheduling query: {raw_response}")
 
 
 async def extract_relevant_info(q: str, corpus: str) -> Union[str, None]:
@@ -534,7 +562,7 @@ async def text_to_image(
         text2image_model = text_to_image_config.model_name
         chat_history = ""
         for chat in conversation_log.get("chat", [])[-4:]:
-            if chat["by"] == "khoj" and chat["intent"].get("type") == "remember":
+            if chat["by"] == "khoj" and chat["intent"].get("type") in ["remember", "reminder"]:
                 chat_history += f"Q: {chat['intent']['query']}\n"
                 chat_history += f"A: {chat['message']}\n"
             elif chat["by"] == "khoj" and "text-to-image" in chat["intent"].get("type"):
