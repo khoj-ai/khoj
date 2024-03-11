@@ -112,15 +112,15 @@ def update_telemetry_state(
     ]
 
 
-def construct_chat_history(conversation_history: dict, n: int = 4) -> str:
+def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="AI") -> str:
     chat_history = ""
     for chat in conversation_history.get("chat", [])[-n:]:
         if chat["by"] == "khoj" and chat["intent"].get("type") == "remember":
             chat_history += f"User: {chat['intent']['query']}\n"
-            chat_history += f"Khoj: {chat['message']}\n"
+            chat_history += f"{agent_name}: {chat['message']}\n"
         elif chat["by"] == "khoj" and ("text-to-image" in chat["intent"].get("type")):
             chat_history += f"User: {chat['intent']['query']}\n"
-            chat_history += f"Khoj: [generated image redacted for space]\n"
+            chat_history += f"{agent_name}: [generated image redacted for space]\n"
     return chat_history
 
 
