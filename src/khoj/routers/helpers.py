@@ -153,15 +153,17 @@ async def aget_relevant_information_sources(query: str, conversation_history: di
     """
 
     tool_options = dict()
+    tool_options_str = ""
 
     for tool, description in tool_descriptions_for_llm.items():
         tool_options[tool.value] = description
+        tool_options_str += f'- "{tool.value}": "{description}"\n'
 
     chat_history = construct_chat_history(conversation_history)
 
     relevant_tools_prompt = prompts.pick_relevant_information_collection_tools.format(
         query=query,
-        tools=str(tool_options),
+        tools=tool_options_str,
         chat_history=chat_history,
     )
 
@@ -195,15 +197,17 @@ async def aget_relevant_output_modes(query: str, conversation_history: dict):
     """
 
     mode_options = dict()
+    mode_options_str = ""
 
     for mode, description in mode_descriptions_for_llm.items():
         mode_options[mode.value] = description
+        mode_options_str += f'- "{mode.value}": "{description}"\n'
 
     chat_history = construct_chat_history(conversation_history)
 
     relevant_mode_prompt = prompts.pick_relevant_output_mode.format(
         query=query,
-        modes=str(mode_options),
+        modes=mode_options_str,
         chat_history=chat_history,
     )
 
