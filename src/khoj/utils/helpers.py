@@ -271,6 +271,7 @@ class ConversationCommand(str, Enum):
     Notes = "notes"
     Help = "help"
     Online = "online"
+    Webpage = "webpage"
     Image = "image"
 
 
@@ -279,15 +280,17 @@ command_descriptions = {
     ConversationCommand.Notes: "Only talk about information that is available in your knowledge base.",
     ConversationCommand.Default: "The default command when no command specified. It intelligently auto-switches between general and notes mode.",
     ConversationCommand.Online: "Search for information on the internet.",
+    ConversationCommand.Webpage: "Get information from webpage links provided by you.",
     ConversationCommand.Image: "Generate images by describing your imagination in words.",
     ConversationCommand.Help: "Display a help message with all available commands and other metadata.",
 }
 
 tool_descriptions_for_llm = {
     ConversationCommand.Default: "To use a mix of your internal knowledge and the user's personal knowledge, or if you don't entirely understand the query.",
-    ConversationCommand.General: "Use this when you can answer the question without any outside information or personal knowledge",
+    ConversationCommand.General: "To use when you can answer the question without any outside information or personal knowledge",
     ConversationCommand.Notes: "To search the user's personal knowledge base. Especially helpful if the question expects context from the user's notes or documents.",
     ConversationCommand.Online: "To search for the latest, up-to-date information from the internet. Note: **Questions about Khoj should always use this data source**",
+    ConversationCommand.Webpage: "To use if the user has directly provided the webpage urls or you are certain of the webpage urls to read.",
 }
 
 mode_descriptions_for_llm = {

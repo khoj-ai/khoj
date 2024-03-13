@@ -364,6 +364,14 @@ Khoj: {{"source": ["default", "online"]}}
 
 Example:
 Chat History:
+User: What is the first element in the periodic table?
+AI: The first element in the periodic table is Hydrogen.
+
+Q: Summarize this article https://en.wikipedia.org/wiki/Hydrogen
+Khoj: {{"source": ["webpage"]}}
+
+Example:
+Chat History:
 User: I want to start a new hobby. I'm thinking of learning to play the guitar.
 AI: Learning to play the guitar is a great hobby. It can be a lot of fun and a great way to express yourself.
 
