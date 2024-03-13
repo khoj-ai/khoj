@@ -64,7 +64,7 @@ class ThreadedGenerator:
     def close(self):
         if self.compiled_references and len(self.compiled_references) > 0:
             self.queue.put(f"### compiled references:{json.dumps(self.compiled_references)}")
-        elif self.online_results and len(self.online_results) > 0:
+        if self.online_results and len(self.online_results) > 0:
             self.queue.put(f"### compiled references:{json.dumps(self.online_results)}")
         self.queue.put(StopIteration)
 
