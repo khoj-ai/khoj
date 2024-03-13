@@ -7,7 +7,10 @@ import pytest
 from scipy.stats import linregress
 
 from khoj.processor.embeddings import EmbeddingsModel
-from khoj.processor.tools.online_search import read_webpage, read_webpage_with_olostep
+from khoj.processor.tools.online_search import (
+    read_webpage_at_url,
+    read_webpage_with_olostep,
+)
 from khoj.utils import helpers
 
 
@@ -90,7 +93,7 @@ async def test_reading_webpage():
     website = "https://en.wikipedia.org/wiki/Great_Chicago_Fire"
 
     # Act
-    response = await read_webpage(website)
+    response = await read_webpage_at_url(website)
 
     # Assert
     assert (

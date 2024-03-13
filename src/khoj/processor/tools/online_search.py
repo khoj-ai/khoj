@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+from collections import defaultdict
 from typing import Dict, Tuple, Union
 
 import aiohttp
@@ -9,7 +10,11 @@ import requests
 from bs4 import BeautifulSoup
 from markdownify import markdownify
 
-from khoj.routers.helpers import extract_relevant_info, generate_online_subqueries
+from khoj.routers.helpers import (
+    extract_relevant_info,
+    generate_online_subqueries,
+    infer_webpage_urls,
+)
 from khoj.utils.helpers import is_none_or_empty, timer
 from khoj.utils.rawconfig import LocationData
 
@@ -38,7 +43,7 @@ MAX_WEBPAGES_TO_READ = 1
 
 
 async def search_online(query: str, conversation_history: dict, location: LocationData):
-    if SERPER_DEV_API_KEY is None:
+    if not online_search_enabled():
         logger.warn("SERPER_DEV_API_KEY is not set")
         return {}
 
@@ -93,10 +98,20 @@ def search_with_google(subquery: str):
     return extracted_search_result
 
 
+async def read_webpages(query: str, conversation_history: dict, location: LocationData):
+    "Infer web pages to read from the query and extract relevant information from them"
+    urls = await infer_webpage_urls(query, conversation_history, location)
+    results: Dict[str, Dict[str, str]] = defaultdict(dict)
+    for url in urls:
+        _, result = await read_webpage_and_extract_content(query, url)
+        results[url]["extracted_content"] = result
+    return results
+
+
 async def read_webpage_and_extract_content(subquery: str, url: str) -> Tuple[str, Union[None, str]]:
     try:
         with timer(f"Reading web page at '{url}' took", logger):
-            content = await read_webpage_with_olostep(url) if OLOSTEP_API_KEY else await read_webpage(url)
+            content = await read_webpage_with_olostep(url) if OLOSTEP_API_KEY else await read_webpage_at_url(url)
         with timer(f"Extracting relevant information from web page at '{url}' took", logger):
             extracted_info = await extract_relevant_info(subquery, content)
         return subquery, extracted_info
@@ -105,7 +120,7 @@ async def read_webpage_and_extract_content(subquery: str, url: str) -> Tuple[str
         return subquery, None
 
 
-async def read_webpage(web_url: str) -> str:
+async def read_webpage_at_url(web_url: str) -> str:
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36",
     }
@@ -129,3 +144,7 @@ async def read_webpage_with_olostep(web_url: str) -> str:
             response.raise_for_status()
             response_json = await response.json()
             return response_json["markdown_content"]
+
+
+def online_search_enabled():
+    return SERPER_DEV_API_KEY is not None

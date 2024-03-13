@@ -15,6 +15,7 @@ from os import path
 from pathlib import Path
 from time import perf_counter
 from typing import TYPE_CHECKING, Optional, Union
+from urllib.parse import urlparse
 
 import torch
 from asgiref.sync import sync_to_async
@@ -340,3 +341,12 @@ def in_debug_mode():
     """Check if Khoj is running in debug mode.
     Set KHOJ_DEBUG environment variable to true to enable debug mode."""
     return is_env_var_true("KHOJ_DEBUG")
+
+
+def is_valid_url(url: str) -> bool:
+    """Check if a string is a valid URL"""
+    try:
+        result = urlparse(url.strip())
+        return all([result.scheme, result.netloc])
+    except:
+        return False

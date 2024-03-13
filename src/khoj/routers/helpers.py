@@ -36,6 +36,7 @@ from khoj.utils.config import GPT4AllProcessorModel
 from khoj.utils.helpers import (
     ConversationCommand,
     is_none_or_empty,
+    is_valid_url,
     log_telemetry,
     mode_descriptions_for_llm,
     timer,
@@ -227,6 +228,35 @@ async def aget_relevant_output_modes(query: str, conversation_history: dict):
     except Exception as e:
         logger.error(f"Invalid response for determining relevant mode: {response}")
         return ConversationCommand.Default
+
+
+async def infer_webpage_urls(q: str, conversation_history: dict, location_data: LocationData) -> List[str]:
+    """
+    Infer webpage links from the given query
+    """
+    location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
+    chat_history = construct_chat_history(conversation_history)
+
+    utc_date = datetime.utcnow().strftime("%Y-%m-%d")
+    online_queries_prompt = prompts.infer_webpages_to_read.format(
+        current_date=utc_date,
+        query=q,
+        chat_history=chat_history,
+        location=location,
+    )
+
+    response = await send_message_to_model_wrapper(online_queries_prompt, response_type="json_object")
+
+    # Validate that the response is a non-empty, JSON-serializable list of URLs
+    try:
+        response = response.strip()
+        urls = json.loads(response)
+        valid_unique_urls = {str(url).strip() for url in urls["links"] if is_valid_url(url)}
+        if is_none_or_empty(valid_unique_urls):
+            raise ValueError(f"Invalid list of urls: {response}")
+        return list(valid_unique_urls)
+    except Exception:
+        raise ValueError(f"Invalid list of urls: {response}")
 
 
 async def generate_online_subqueries(q: str, conversation_history: dict, location_data: LocationData) -> List[str]:
