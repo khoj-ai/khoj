@@ -402,8 +402,29 @@ class AgentAdapters:
         return await Agent.objects.filter(id=agent_id).afirst()
 
     @staticmethod
-    def get_all_acessible_agents(user: KhojUser = None):
-        return Agent.objects.filter(Q(public=True) | Q(creator=user)).distinct()
+    async def aget_agent_by_slug(agent_slug: str):
+        return await Agent.objects.filter(slug__iexact=agent_slug.lower()).afirst()
+
+    @staticmethod
+    def get_agent_by_slug(slug: str, user: KhojUser = None):
+        agent = Agent.objects.filter(slug=slug).first()
+        # Check if agent is public or created by the user
+        if agent and (agent.public or agent.creator == user):
+            return agent
+        return None
+
+    @staticmethod
+    def get_all_accessible_agents(user: KhojUser = None):
+        return Agent.objects.filter(Q(public=True) | Q(creator=user)).distinct().order_by("created_at")
+
+    @staticmethod
+    async def aget_all_accessible_agents(user: KhojUser = None) -> List[Agent]:
+        get_all_accessible_agents = sync_to_async(
+            lambda: Agent.objects.filter(Q(public=True) | Q(creator=user)).distinct().order_by("created_at").all(),
+            thread_sensitive=True,
+        )
+        agents = await get_all_accessible_agents()
+        return await sync_to_async(list)(agents)
 
     @staticmethod
     def get_conversation_agent_by_id(agent_id: int):
@@ -419,11 +440,15 @@ class AgentAdapters:
 
     @staticmethod
     def create_default_agent():
-        # First delete the existing default
-        Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).delete()
-
         default_conversation_config = ConversationAdapters.get_default_conversation_config()
         default_personality = prompts.personality.format(current_date="placeholder")
+
+        if Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).exists():
+            agent = Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).first()
+            agent.tuning = default_personality
+            agent.chat_model = default_conversation_config
+            agent.save()
+            return agent
 
         # The default agent is public and managed by the admin. It's handled a little differently than other agents.
         return Agent.objects.create(
@@ -482,10 +507,12 @@ class ConversationAdapters:
 
     @staticmethod
     async def acreate_conversation_session(
-        user: KhojUser, client_application: ClientApplication = None, agent_id: int = None
+        user: KhojUser, client_application: ClientApplication = None, agent_slug: str = None
     ):
-        if agent_id:
-            agent = await AgentAdapters.aget_agent_by_id(id)
+        if agent_slug:
+            agent = await AgentAdapters.aget_agent_by_slug(agent_slug)
+            if agent is None:
+                raise HTTPException(status_code=400, detail="Invalid agent id")
             return await Conversation.objects.acreate(user=user, client=client_application, agent=agent)
         return await Conversation.objects.acreate(user=user, client=client_application)
 

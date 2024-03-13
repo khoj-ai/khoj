@@ -81,9 +81,22 @@ def chat_history(
             status_code=404,
         )
 
+    agent_metadata = None
+    if conversation.agent:
+        agent_metadata = {
+            "slug": conversation.agent.slug,
+            "name": conversation.agent.name,
+            "avatar": conversation.agent.avatar,
+            "isCreator": conversation.agent.creator == user,
+        }
+
     meta_log = conversation.conversation_log
     meta_log.update(
-        {"conversation_id": conversation.id, "slug": conversation.title if conversation.title else conversation.slug}
+        {
+            "conversation_id": conversation.id,
+            "slug": conversation.title if conversation.title else conversation.slug,
+            "agent": agent_metadata,
+        }
     )
 
     update_telemetry_state(
@@ -148,12 +161,12 @@ def chat_sessions(
 async def create_chat_session(
     request: Request,
     common: CommonQueryParams,
-    agent_id: Optional[int] = None,
+    agent_slug: Optional[str] = None,
 ):
     user = request.user.object
 
     # Create new Conversation Session
-    conversation = await ConversationAdapters.acreate_conversation_session(user, request.user.client_app)
+    conversation = await ConversationAdapters.acreate_conversation_session(user, request.user.client_app, agent_slug)
 
     response = {"conversation_id": conversation.id}
 

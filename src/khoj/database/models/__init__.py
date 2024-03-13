@@ -1,4 +1,5 @@
 import uuid
+from random import choice
 
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
@@ -92,13 +93,25 @@ class Agent(BaseModel):
     public = models.BooleanField(default=False)
     managed_by_admin = models.BooleanField(default=False)
     chat_model = models.ForeignKey(ChatModelOptions, on_delete=models.CASCADE)
+    slug = models.CharField(max_length=200, default=None, null=True, blank=True)
 
 
 @receiver(pre_save, sender=Agent)
-def check_public_name(sender, instance, **kwargs):
-    if instance.public:
+def verify_agent(sender, instance, **kwargs):
+    # check if this is a new instance
+    if instance._state.adding:
         if Agent.objects.filter(name=instance.name, public=True).exists():
             raise ValidationError(f"A public Agent with the name {instance.name} already exists.")
+        if Agent.objects.filter(name=instance.name, creator=instance.creator).exists():
+            raise ValidationError(f"A private Agent with the name {instance.name} already exists.")
+
+        slug = instance.name.lower().replace(" ", "-")
+        observed_random_numbers = set()
+        while Agent.objects.filter(slug=slug).exists():
+            random_number = choice([i for i in range(0, 10000) if i not in observed_random_numbers])
+            observed_random_numbers.add(random_number)
+            slug = f"{slug}-{random_number}"
+        instance.slug = slug
 
 
 class NotionConfig(BaseModel):

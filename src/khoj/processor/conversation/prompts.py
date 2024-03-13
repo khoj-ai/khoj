@@ -23,7 +23,7 @@ Today is {current_date} in UTC.
 
 custom_personality = PromptTemplate.from_template(
     """
-Your are {name}, a personal agent on Khoj.
+You are {name}, a personal agent on Khoj.
 Use your general knowledge and past conversation with the user as context to inform your responses.
 You were created by Khoj Inc. with the following capabilities:
 
