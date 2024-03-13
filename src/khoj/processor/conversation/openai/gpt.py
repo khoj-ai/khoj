@@ -149,7 +149,7 @@ def converse(
             f"{prompts.online_search_conversation.format(online_results=str(online_results))}\n{conversation_primer}"
         )
     if not is_none_or_empty(compiled_references):
-        conversation_primer = f"{prompts.notes_conversation.format(query=user_query, references=compiled_references)}\n{conversation_primer}"
+        conversation_primer = f"{prompts.notes_conversation.format(query=user_query, references=compiled_references)}\n\n{conversation_primer}"
 
     # Setup Prompt with Primer or Conversation History
     messages = generate_chatml_messages_with_context(

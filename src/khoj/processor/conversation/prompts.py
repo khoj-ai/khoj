@@ -104,8 +104,6 @@ Ask crisp follow-up questions to get additional context, when a helpful response
 
 Notes:
 {references}
-
-Query: {query}
 """.strip()
 )
 

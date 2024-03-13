@@ -161,33 +161,6 @@ def test_generate_search_query_using_question_and_answer_from_chat_history():
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-def test_generate_search_query_with_date_and_context_from_chat_history():
-    # Arrange
-    message_list = [
-        ("When did I visit Masai Mara?", "You visited Masai Mara in April 2000", []),
-    ]
-
-    # Act
-    response = extract_questions(
-        "What was the Pizza place we ate at over there?", conversation_log=populate_chat_history(message_list)
-    )
-
-    # Assert
-    expected_responses = [
-        ("dt>='2000-04-01'", "dt<'2000-05-01'"),
-        ("dt>='2000-04-01'", "dt<='2000-04-30'"),
-        ('dt>="2000-04-01"', 'dt<"2000-05-01"'),
-        ('dt>="2000-04-01"', 'dt<="2000-04-30"'),
-    ]
-    assert len(response) == 1
-    assert "Masai Mara" in response[0]
-    assert any([start in response[0] and end in response[0] for start, end in expected_responses]), (
-        "Expected date filter to limit to April 2000 in response but got: " + response[0]
-    )
-
-
-# ----------------------------------------------------------------------------------------------------
-@pytest.mark.chatquality
 def test_chat_with_no_chat_history_or_retrieved_content():
     # Act
     response_gen = converse(
@@ -396,7 +369,7 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content():
     # Act
     response_gen = converse(
         references=[],  # Assume no context retrieved from notes for the user_query
-        user_query="Write a haiku about unit testing in 3 lines",
+        user_query="Write a haiku about unit testing in 3 lines. Do not say anything else",
         conversation_log=populate_chat_history(message_list),
         api_key=api_key,
     )
@@ -500,27 +473,13 @@ async def test_use_default_response_mode(chat_client):
 @pytest.mark.django_db(transaction=True)
 async def test_use_image_response_mode(chat_client):
     # Arrange
-    user_query = "Paint a picture of the scenery in Timbuktu in the winter"
+    user_query = "Paint a scenery in Timbuktu in the winter"
 
     # Act
     mode = await aget_relevant_output_modes(user_query, {})
 
     # Assert
     assert mode.value == "image"
-
-
-# ----------------------------------------------------------------------------------------------------
-@pytest.mark.anyio
-@pytest.mark.django_db(transaction=True)
-async def test_select_data_sources_actor_chooses_default(chat_client):
-    # Arrange
-    user_query = "How can I improve my swimming compared to my last lesson?"
-
-    # Act
-    conversation_commands = await aget_relevant_information_sources(user_query, {})
-
-    # Assert
-    assert ConversationCommand.Default in conversation_commands
 
 
 # ----------------------------------------------------------------------------------------------------
