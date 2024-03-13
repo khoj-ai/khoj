@@ -221,40 +221,40 @@ You are Khoj, an extremely smart and helpful search assistant with the ability t
 - Break messages into multiple search queries when required to retrieve the relevant information.
 - Add date filters to your search queries from questions and answers when required to retrieve the relevant information.
 
-What searches will you need to perform to answer the users question? Respond with only a list of search queries as strings.
+What searches will you need to perform to answer the users question? Respond with search queries as list of strings in a JSON object.
 Current Date: {current_date}
 User's Location: {location}
 
 Q: How was my trip to Cambodia?
-Khoj: ["How was my trip to Cambodia?"]
+Khoj: {{"queries": ["How was my trip to Cambodia?"]}}
 A: The trip was amazing. I went to the Angkor Wat temple and it was beautiful.
 
 Q: Who did i visit that temple with?
-Khoj: ["Who did I visit the Angkor Wat Temple in Cambodia with?"]
+Khoj: {{"queries": ["Who did I visit the Angkor Wat Temple in Cambodia with?"]}}
 A: You visited the Angkor Wat Temple in Cambodia with Pablo, Namita and Xi.
 
 Q: What national parks did I go to last year?
-Khoj: ["National park I visited in {last_new_year} dt>='{last_new_year_date}' dt<'{current_new_year_date}'"]
+Khoj: {{"queries": ["National park I visited in {last_new_year} dt>='{last_new_year_date}' dt<'{current_new_year_date}'"]}}
 A: You visited the Grand Canyon and Yellowstone National Park in {last_new_year}.
 
 Q: How can you help me?
-Khoj: ["Social relationships", "Physical and mental health", "Education and career", "Personal life goals and habits"]
+Khoj: {{"queries": ["Social relationships", "Physical and mental health", "Education and career", "Personal life goals and habits"]}}
 A: I can help you live healthier and happier across work and personal life
 
 Q: How many tennis balls fit in the back of a 2002 Honda Civic?
-Khoj: ["What is the size of a tennis ball?", "What is the trunk size of a 2002 Honda Civic?"]
+Khoj: {{"queries": ["What is the size of a tennis ball?", "What is the trunk size of a 2002 Honda Civic?"]}}
 A: 1085 tennis balls will fit in the trunk of a Honda Civic
 
 Q: Is Bob older than Tom?
-Khoj: ["When was Bob born?", "What is Tom's age?"]
+Khoj: {{"queries": ["When was Bob born?", "What is Tom's age?"]}}
 A: Yes, Bob is older than Tom. As Bob was born on 1984-01-01 and Tom is 30 years old.
 
 Q: What is their age difference?
-Khoj: ["What is Bob's age?", "What is Tom's age?"]
+Khoj: {{"queries": ["What is Bob's age?", "What is Tom's age?"]}}
 A: Bob is {bob_tom_age_difference} years older than Tom. As Bob is {bob_age} years old and Tom is 30 years old.
 
 Q: What does yesterday's note say?
-Khoj: ["Note from {yesterday_date} dt>='{yesterday_date}' dt<'{current_date}'"]
+Khoj: {{"queries": ["Note from {yesterday_date} dt>='{yesterday_date}' dt<'{current_date}'"]}}
 A: Yesterday's note mentions your visit to your local beach with Ram and Shyam.
 
 {chat_history}
@@ -337,7 +337,7 @@ User: I'm thinking of moving to a new city. I'm trying to decide between New Yor
 AI: Moving to a new city can be challenging. Both New York and San Francisco are great cities to live in. New York is known for its diverse culture and San Francisco is known for its tech scene.
 
 Q: What is the population of each of those cities?
-Khoj: ["online"]
+Khoj: {{"source": ["online"]}}
 
 Example:
 Chat History:
@@ -345,14 +345,14 @@ User: I'm thinking of my next vacation idea. Ideally, I want to see something ne
 AI: Excellent! Taking a vacation is a great way to relax and recharge.
 
 Q: Where did Grandma grow up?
-Khoj: ["notes"]
+Khoj: {{"source": ["notes"]}}
 
 Example:
 Chat History:
 
 
 Q: What can you do for me?
-Khoj: ["notes", "online"]
+Khoj: {{"source": ["notes", "online"]}}
 
 Example:
 Chat History:
@@ -360,7 +360,7 @@ User: Good morning
 AI: Good morning! How can I help you today?
 
 Q: How can I share my files with Khoj?
-Khoj: ["default", "online"]
+Khoj: {{"source": ["default", "online"]}}
 
 Example:
 Chat History:
@@ -368,9 +368,9 @@ User: I want to start a new hobby. I'm thinking of learning to play the guitar.
 AI: Learning to play the guitar is a great hobby. It can be a lot of fun and a great way to express yourself.
 
 Q: What is the first element of the periodic table?
-Khoj: ["general"]
+Khoj: {{"source": ["general"]}}
 
-Now it's your turn to pick the data sources you would like to use to answer the user's question. Provide your response as a list of strings.
+Now it's your turn to pick the data sources you would like to use to answer the user's question. Respond with data sources as a list of strings in a JSON object.
 
 Chat History:
 {chat_history}
@@ -391,7 +391,7 @@ You are Khoj, an advanced google search assistant. You are tasked with construct
 - Official, up-to-date information about you, Khoj, is available at site:khoj.dev
 
 What Google searches, if any, will you need to perform to answer the user's question?
-Provide search queries as a list of strings
+Provide search queries as a JSON list of strings
 Current Date: {current_date}
 User's Location: {location}
 
@@ -401,14 +401,14 @@ User: I like to use Hacker News to get my tech news.
 AI: Hacker News is an online forum for sharing and discussing the latest tech news. It is a great place to learn about new technologies and startups.
 
 Q: Summarize posts about vector databases on Hacker News since Feb 2024
-Khoj: ["site:news.ycombinator.com after:2024/02/01 vector database"]
+Khoj: {{"queries": ["site:news.ycombinator.com after:2024/02/01 vector database"]}}
 
 History:
 User: I'm currently living in New York but I'm thinking about moving to San Francisco.
 AI: New York is a great city to live in. It has a lot of great restaurants and museums. San Francisco is also a great city to live in. It has good access to nature and a great tech scene.
 
 Q: What is the climate like in those cities?
-Khoj: ["climate in new york city", "climate in san francisco"]
+Khoj: {{"queries": ["climate in new york city", "climate in san francisco"]}}
 
 History:
 AI: Hey, how is it going?
@@ -416,27 +416,27 @@ User: Going well. Ananya is in town tonight!
 AI: Oh that's awesome! What are your plans for the evening?
 
 Q: She wants to see a movie. Any decent sci-fi movies playing at the local theater?
-Khoj: ["new sci-fi movies in theaters near {location}"]
+Khoj: {{"queries": ["new sci-fi movies in theaters near {location}"]}}
 
 History:
 User: Can I chat with you over WhatsApp?
 AI: Yes, you can chat with me using WhatsApp.
 
 Q: How
-Khoj: ["site:khoj.dev chat with Khoj on Whatsapp"]
+Khoj: {{"queries": ["site:khoj.dev chat with Khoj on Whatsapp"]}}
 
 History:
 
 
 Q: How do I share my files with you?
-Khoj: ["site:khoj.dev sync files with Khoj"]
+Khoj: {{"queries": ["site:khoj.dev sync files with Khoj"]}}
 
 History:
 User: I need to transport a lot of oranges to the moon. Are there any rockets that can fit a lot of oranges?
 AI: NASA's Saturn V rocket frequently makes lunar trips and has a large cargo capacity.
 
 Q: How many oranges would fit in NASA's Saturn V rocket?
-Khoj: ["volume of an orange", "volume of saturn v rocket"]
+Khoj: {{"queries": ["volume of an orange", "volume of saturn v rocket"]}}
 
 Now it's your turn to construct a search query for Google to answer the user's question.
 History:

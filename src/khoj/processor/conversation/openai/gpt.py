@@ -34,7 +34,7 @@ def extract_questions(
     # Extract Past User Message and Inferred Questions from Conversation Log
     chat_history = "".join(
         [
-            f'Q: {chat["intent"]["query"]}\nKhoj: {chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}\nA: {chat["message"]}\n\n'
+            f'Q: {chat["intent"]["query"]}\nKhoj: {{"queries": {chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}}}\nA: {chat["message"]}\n\n'
             for chat in conversation_log.get("chat", [])[-4:]
             if chat["by"] == "khoj" and "text-to-image" not in chat["intent"].get("type")
         ]
@@ -65,7 +65,7 @@ def extract_questions(
         model_name=model,
         temperature=temperature,
         max_tokens=max_tokens,
-        model_kwargs={"stop": ["A: ", "\n"]},
+        model_kwargs={"stop": ["A: ", "\n"], "response_format": {"type": "json_object"}},
         openai_api_key=api_key,
     )
 
@@ -73,7 +73,7 @@ def extract_questions(
     try:
         response = response.strip()
         response = json.loads(response)
-        response = [q.strip() for q in response if q.strip()]
+        response = [q.strip() for q in response["queries"] if q.strip()]
         if not isinstance(response, list) or not response:
             logger.error(f"Invalid response for constructing subqueries: {response}")
             return [text]
@@ -86,11 +86,7 @@ def extract_questions(
     return questions
 
 
-def send_message_to_model(
-    messages,
-    api_key,
-    model,
-):
+def send_message_to_model(messages, api_key, model, response_type="text"):
     """
     Send message to model
     """
@@ -100,6 +96,7 @@ def send_message_to_model(
         messages=messages,
         model=model,
         openai_api_key=api_key,
+        model_kwargs={"response_format": {"type": response_type}},
     )
 
 
