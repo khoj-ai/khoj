@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 def extract_questions(
     text,
-    model: Optional[str] = "gpt-4",
+    model: Optional[str] = "gpt-4-turbo-preview",
     conversation_log={},
     api_key=None,
     temperature=0,
