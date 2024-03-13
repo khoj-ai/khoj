@@ -395,7 +395,7 @@ def generate_chat_response(
     q: str,
     meta_log: dict,
     compiled_references: List[str] = [],
-    online_results: Dict[str, Any] = {},
+    online_results: Dict[str, Dict] = {},
     inferred_queries: List[str] = [],
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     user: KhojUser = None,
