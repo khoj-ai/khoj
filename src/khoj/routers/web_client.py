@@ -169,6 +169,19 @@ def agents_page(request: Request, agent_slug: str):
 
     agent = AgentAdapters.get_agent_by_slug(agent_slug)
 
+    if agent == None:
+        return templates.TemplateResponse(
+            "404.html",
+            context={
+                "request": request,
+                "khoj_version": state.khoj_version,
+                "username": user.username if user else None,
+                "has_documents": False,
+                "is_active": has_required_scope(request, ["premium"]),
+                "user_photo": user_picture,
+            },
+        )
+
     agent_metadata = {
         "slug": agent.slug,
         "avatar": agent.avatar,
