@@ -100,12 +100,16 @@ def search_with_google(subquery: str):
 
 async def read_webpages(query: str, conversation_history: dict, location: LocationData):
     "Infer web pages to read from the query and extract relevant information from them"
+    logger.info(f"Inferring web pages to read")
     urls = await infer_webpage_urls(query, conversation_history, location)
-    results: Dict[str, Dict[str, str]] = defaultdict(dict)
-    for url in urls:
-        _, result = await read_webpage_and_extract_content(query, url)
-        results[url]["webpages"] = result
-    return results
+
+    logger.info(f"Reading web pages at: {urls}")
+    tasks = [read_webpage_and_extract_content(query, url) for url in urls]
+    results = await asyncio.gather(*tasks)
+
+    response: Dict[str, Dict[str, str]] = defaultdict(dict)
+    response[query]["webpages"] = [web_extract for _, web_extract in results if web_extract is not None]
+    return response
 
 
 async def read_webpage_and_extract_content(subquery: str, url: str) -> Tuple[str, Union[None, str]]:
