@@ -57,24 +57,21 @@ async def search_online(query: str, conversation_history: dict, location: Locati
 
     # Gather distinct web pages from organic search results of each subquery without an instant answer
     webpage_links = {
-        result["link"]
+        organic["link"]: subquery
         for subquery in response_dict
-        for result in response_dict[subquery].get("organic", [])[:MAX_WEBPAGES_TO_READ]
+        for organic in response_dict[subquery].get("organic", [])[:MAX_WEBPAGES_TO_READ]
         if "answerBox" not in response_dict[subquery]
     }
 
     # Read, extract relevant info from the retrieved web pages
-    tasks = []
-    for webpage_link in webpage_links:
-        logger.info(f"Reading web page at '{webpage_link}'")
-        task = read_webpage_and_extract_content(subquery, webpage_link)
-        tasks.append(task)
+    logger.info(f"Reading web pages at: {webpage_links.keys()}")
+    tasks = [read_webpage_and_extract_content(subquery, link) for link, subquery in webpage_links.items()]
     results = await asyncio.gather(*tasks)
 
     # Collect extracted info from the retrieved web pages
-    for subquery, webpage_extract in results:
+    for subquery, webpage_extract, url in results:
         if webpage_extract is not None:
-            response_dict[subquery]["webpages"] = webpage_extract
+            response_dict[subquery]["webpages"] = {"link": url, "snippet": webpage_extract}
 
     return response_dict
 
@@ -107,21 +104,23 @@ async def read_webpages(query: str, conversation_history: dict, location: Locati
     tasks = [read_webpage_and_extract_content(query, url) for url in urls]
     results = await asyncio.gather(*tasks)
 
-    response: Dict[str, Dict[str, str]] = defaultdict(dict)
-    response[query]["webpages"] = [web_extract for _, web_extract in results if web_extract is not None]
+    response: Dict[str, Dict] = defaultdict(dict)
+    response[query]["webpages"] = [
+        {"query": q, "link": url, "snippet": web_extract} for q, web_extract, url in results if web_extract is not None
+    ]
     return response
 
 
-async def read_webpage_and_extract_content(subquery: str, url: str) -> Tuple[str, Union[None, str]]:
+async def read_webpage_and_extract_content(subquery: str, url: str) -> Tuple[str, Union[None, str], str]:
     try:
         with timer(f"Reading web page at '{url}' took", logger):
             content = await read_webpage_with_olostep(url) if OLOSTEP_API_KEY else await read_webpage_at_url(url)
         with timer(f"Extracting relevant information from web page at '{url}' took", logger):
             extracted_info = await extract_relevant_info(subquery, content)
-        return subquery, extracted_info
+        return subquery, extracted_info, url
     except Exception as e:
         logger.error(f"Failed to read web page at '{url}' with {e}")
-        return subquery, None
+        return subquery, None, url
 
 
 async def read_webpage_at_url(web_url: str) -> str:
