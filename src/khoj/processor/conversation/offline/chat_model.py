@@ -177,8 +177,8 @@ def converse_offline(
     if ConversationCommand.Online in conversation_commands:
         simplified_online_results = online_results.copy()
         for result in online_results:
-            if online_results[result].get("extracted_content"):
-                simplified_online_results[result] = online_results[result]["extracted_content"]
+            if online_results[result].get("webpages"):
+                simplified_online_results[result] = online_results[result]["webpages"]
 
         conversation_primer = f"{prompts.online_search_conversation.format(online_results=str(simplified_online_results))}\n{conversation_primer}"
     if not is_none_or_empty(compiled_references_message):

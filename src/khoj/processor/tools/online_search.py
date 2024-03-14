@@ -72,9 +72,9 @@ async def search_online(query: str, conversation_history: dict, location: Locati
     results = await asyncio.gather(*tasks)
 
     # Collect extracted info from the retrieved web pages
-    for subquery, extracted_webpage_content in results:
-        if extracted_webpage_content is not None:
-            response_dict[subquery]["extracted_content"] = extracted_webpage_content
+    for subquery, webpage_extract in results:
+        if webpage_extract is not None:
+            response_dict[subquery]["webpages"] = webpage_extract
 
     return response_dict
 
@@ -104,7 +104,7 @@ async def read_webpages(query: str, conversation_history: dict, location: Locati
     results: Dict[str, Dict[str, str]] = defaultdict(dict)
     for url in urls:
         _, result = await read_webpage_and_extract_content(query, url)
-        results[url]["extracted_content"] = result
+        results[url]["webpages"] = result
     return results
 
 

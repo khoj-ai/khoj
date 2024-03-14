@@ -334,8 +334,8 @@ async def generate_better_image_prompt(
         for result in online_results:
             if online_results[result].get("answerBox"):
                 simplified_online_results[result] = online_results[result]["answerBox"]
-            elif online_results[result].get("extracted_content"):
-                simplified_online_results[result] = online_results[result]["extracted_content"]
+            elif online_results[result].get("webpages"):
+                simplified_online_results[result] = online_results[result]["webpages"]
 
     image_prompt = prompts.image_generation_improve_prompt.format(
         query=q,
