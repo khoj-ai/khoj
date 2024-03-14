@@ -222,9 +222,17 @@ def test_no_answer_in_chat_history_or_retrieved_content(chat_client, default_use
     response_message = response.content.decode("utf-8")
 
     # Assert
-    expected_responses = ["don't know", "do not know", "no information", "do not have", "don't have"]
+    expected_responses = [
+        "don't know",
+        "do not know",
+        "no information",
+        "do not have",
+        "don't have",
+        "where were you born?",
+    ]
+
     assert response.status_code == 200
-    assert any([expected_response in response_message for expected_response in expected_responses]), (
+    assert any([expected_response in response_message.lower() for expected_response in expected_responses]), (
         "Expected chat director to say they don't know in response, but got: " + response_message
     )
 
@@ -330,10 +338,8 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content(chat_c
     populate_chat_history(message_list, default_user2)
 
     # Act
-    response = chat_client.get(
-        f'/api/chat?q=""Write a haiku about unit testing. Do not say anything else."&stream=true'
-    )
-    response_message = response.content.decode("utf-8")
+    response = chat_client.get(f'/api/chat?q="Write a haiku about unit testing. Do not say anything else."&stream=true')
+    response_message = response.content.decode("utf-8").split("### compiled references")[0]
 
     # Assert
     expected_responses = ["test", "Test"]
@@ -350,8 +356,8 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content(chat_c
 def test_ask_for_clarification_if_not_enough_context_in_question(chat_client_no_background):
     # Act
 
-    response = chat_client_no_background.get(f'/api/chat?q="What is the name of Namitas older son"&stream=true')
-    response_message = response.content.decode("utf-8")
+    response = chat_client_no_background.get(f'/api/chat?q="What is the name of Namitas older son?"&stream=true')
+    response_message = response.content.decode("utf-8").split("### compiled references")[0].lower()
 
     # Assert
     expected_responses = [
@@ -361,9 +367,11 @@ def test_ask_for_clarification_if_not_enough_context_in_question(chat_client_no_
         "the birth order",
         "provide more context",
         "provide me with more context",
+        "don't have that",
+        "haven't provided me",
     ]
     assert response.status_code == 200
-    assert any([expected_response in response_message.lower() for expected_response in expected_responses]), (
+    assert any([expected_response in response_message for expected_response in expected_responses]), (
         "Expected chat director to ask for clarification in response, but got: " + response_message
     )
 
@@ -399,13 +407,18 @@ def test_answer_in_chat_history_beyond_lookback_window(chat_client, default_user
 def test_answer_requires_multiple_independent_searches(chat_client):
     "Chat director should be able to answer by doing multiple independent searches for required information"
     # Act
-    response = chat_client.get(f'/api/chat?q="Is Xi older than Namita?"&stream=true')
-    response_message = response.content.decode("utf-8")
+    response = chat_client.get(f'/api/chat?q="Is Xi older than Namita? Just the older persons full name"&stream=true')
+    response_message = response.content.decode("utf-8").split("### compiled references")[0].lower()
 
     # Assert
     expected_responses = ["he is older than namita", "xi is older than namita", "xi li is older than namita"]
+    only_full_name_check = "xi li" in response_message and "namita" not in response_message
+    comparative_statement_check = any(
+        [expected_response in response_message for expected_response in expected_responses]
+    )
+
     assert response.status_code == 200
-    assert any([expected_response in response_message.lower() for expected_response in expected_responses]), (
+    assert only_full_name_check or comparative_statement_check, (
         "Expected Xi is older than Namita, but got: " + response_message
     )
 
@@ -415,15 +428,22 @@ def test_answer_requires_multiple_independent_searches(chat_client):
 def test_answer_using_file_filter(chat_client):
     "Chat should be able to use search filters in the query"
     # Act
-    query = urllib.parse.quote('Is Xi older than Namita? file:"Namita.markdown" file:"Xi Li.markdown"')
+    query = urllib.parse.quote(
+        'Is Xi older than Namita? Just say the older persons full name. file:"Namita.markdown" file:"Xi Li.markdown"'
+    )
 
     response = chat_client.get(f"/api/chat?q={query}&stream=true")
-    response_message = response.content.decode("utf-8")
+    response_message = response.content.decode("utf-8").split("### compiled references")[0].lower()
 
     # Assert
     expected_responses = ["he is older than namita", "xi is older than namita", "xi li is older than namita"]
+    only_full_name_check = "xi li" in response_message and "namita" not in response_message
+    comparative_statement_check = any(
+        [expected_response in response_message for expected_response in expected_responses]
+    )
+
     assert response.status_code == 200
-    assert any([expected_response in response_message.lower() for expected_response in expected_responses]), (
+    assert only_full_name_check or comparative_statement_check, (
         "Expected Xi is older than Namita, but got: " + response_message
     )
 

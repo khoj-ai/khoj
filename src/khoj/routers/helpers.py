@@ -112,15 +112,15 @@ def update_telemetry_state(
     ]
 
 
-def construct_chat_history(conversation_history: dict, n: int = 4) -> str:
+def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="AI") -> str:
     chat_history = ""
     for chat in conversation_history.get("chat", [])[-n:]:
         if chat["by"] == "khoj" and chat["intent"].get("type") == "remember":
             chat_history += f"User: {chat['intent']['query']}\n"
-            chat_history += f"Khoj: {chat['message']}\n"
+            chat_history += f"{agent_name}: {chat['message']}\n"
         elif chat["by"] == "khoj" and ("text-to-image" in chat["intent"].get("type")):
             chat_history += f"User: {chat['intent']['query']}\n"
-            chat_history += f"Khoj: [generated image redacted for space]\n"
+            chat_history += f"{agent_name}: [generated image redacted for space]\n"
     return chat_history
 
 
@@ -153,24 +153,26 @@ async def aget_relevant_information_sources(query: str, conversation_history: di
     """
 
     tool_options = dict()
+    tool_options_str = ""
 
     for tool, description in tool_descriptions_for_llm.items():
         tool_options[tool.value] = description
+        tool_options_str += f'- "{tool.value}": "{description}"\n'
 
     chat_history = construct_chat_history(conversation_history)
 
     relevant_tools_prompt = prompts.pick_relevant_information_collection_tools.format(
         query=query,
-        tools=str(tool_options),
+        tools=tool_options_str,
         chat_history=chat_history,
     )
 
-    response = await send_message_to_model_wrapper(relevant_tools_prompt)
+    response = await send_message_to_model_wrapper(relevant_tools_prompt, response_type="json_object")
 
     try:
         response = response.strip()
         response = json.loads(response)
-        response = [q.strip() for q in response if q.strip()]
+        response = [q.strip() for q in response["source"] if q.strip()]
         if not isinstance(response, list) or not response or len(response) == 0:
             logger.error(f"Invalid response for determining relevant tools: {response}")
             return tool_options
@@ -195,15 +197,17 @@ async def aget_relevant_output_modes(query: str, conversation_history: dict):
     """
 
     mode_options = dict()
+    mode_options_str = ""
 
     for mode, description in mode_descriptions_for_llm.items():
         mode_options[mode.value] = description
+        mode_options_str += f'- "{mode.value}": "{description}"\n'
 
     chat_history = construct_chat_history(conversation_history)
 
     relevant_mode_prompt = prompts.pick_relevant_output_mode.format(
         query=query,
-        modes=str(mode_options),
+        modes=mode_options_str,
         chat_history=chat_history,
     )
 
@@ -240,13 +244,13 @@ async def generate_online_subqueries(q: str, conversation_history: dict, locatio
         location=location,
     )
 
-    response = await send_message_to_model_wrapper(online_queries_prompt)
+    response = await send_message_to_model_wrapper(online_queries_prompt, response_type="json_object")
 
     # Validate that the response is a non-empty, JSON-serializable list
     try:
         response = response.strip()
         response = json.loads(response)
-        response = [q.strip() for q in response if q.strip()]
+        response = [q.strip() for q in response["queries"] if q.strip()]
         if not isinstance(response, list) or not response or len(response) == 0:
             logger.error(f"Invalid response for constructing subqueries: {response}. Returning original query: {q}")
             return [q]
@@ -320,6 +324,7 @@ async def generate_better_image_prompt(
 async def send_message_to_model_wrapper(
     message: str,
     system_message: str = "",
+    response_type: str = "text",
 ):
     conversation_config: ChatModelOptions = await ConversationAdapters.aget_default_conversation_config()
 
@@ -348,9 +353,7 @@ async def send_message_to_model_wrapper(
         api_key = openai_chat_config.api_key
         chat_model = conversation_config.chat_model
         openai_response = send_message_to_model(
-            messages=truncated_messages,
-            api_key=api_key,
-            model=chat_model,
+            messages=truncated_messages, api_key=api_key, model=chat_model, response_type=response_type
         )
 
         return openai_response
