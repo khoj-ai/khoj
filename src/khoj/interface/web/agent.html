@@ -58,6 +58,7 @@
             line-height: 1.5em;
             height: 100vh;
             margin: 0;
+            grid-template-rows: auto 1fr auto;
         }
 
         div#agent-settings-header {
@@ -242,7 +243,6 @@
         @media only screen and (min-width: 700px) {
             body {
                 grid-template-columns: auto min(70vw, 100%) auto;
-                grid-template-rows: auto auto auto;
             }
             body > * {
                 grid-column: 2;
