@@ -77,11 +77,16 @@ class TextToEntries(ABC):
             if is_none_or_empty(entry.compiled):
                 continue
 
-            # Split entry into words
-            compiled_entry_words = [word for word in entry.compiled.split(" ") if word != ""]
-
-            # Drop long words instead of having entry truncated to maintain quality of entry processed by models
-            compiled_entry_words = [word for word in compiled_entry_words if len(word) <= max_word_length]
+            # Split entry into chunks of max_tokens
+            # Use chunking preference order: paragraphs > sentences > words > characters
+            text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=max_tokens,
+                separators=["\n\n", "\n", "!", "?", ".", " ", "\t", ""],
+                keep_separator=True,
+                length_function=lambda chunk: len(TextToEntries.tokenizer(chunk)),
+                chunk_overlap=0,
+            )
+            chunked_entry_chunks = text_splitter.split_text(entry.compiled)
             corpus_id = uuid.uuid4()
 
             # Create heading prefixed entry from each chunk
