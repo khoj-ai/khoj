@@ -386,7 +386,7 @@ You are Khoj, an advanced google search assistant. You are tasked with construct
 - You will receive the conversation history as context.
 - Add as much context from the previous questions and answers as required into your search queries.
 - Break messages into multiple search queries when required to retrieve the relevant information.
-- Use site: and after: google search operators when appropriate
+- Use site: google search operators when appropriate
 - You have access to the the whole internet to retrieve information.
 - Official, up-to-date information about you, Khoj, is available at site:khoj.dev
 
@@ -401,7 +401,7 @@ User: I like to use Hacker News to get my tech news.
 AI: Hacker News is an online forum for sharing and discussing the latest tech news. It is a great place to learn about new technologies and startups.
 
 Q: Summarize posts about vector databases on Hacker News since Feb 2024
-Khoj: {{"queries": ["site:news.ycombinator.com after:2024/02/01 vector database"]}}
+Khoj: {{"queries": ["site:news.ycombinator.com vector database since 1 February 2024"]}}
 
 History:
 User: I'm currently living in New York but I'm thinking about moving to San Francisco.
