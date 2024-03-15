@@ -163,7 +163,7 @@ def agents_page(request: Request):
 
 
 @web_client.get("/agent/{agent_slug}", response_class=HTMLResponse)
-def agents_page(request: Request, agent_slug: str):
+def agent_page(request: Request, agent_slug: str):
     user: KhojUser = request.user.object if request.user.is_authenticated else None
     user_picture = request.session.get("user", {}).get("picture") if user else None
 
