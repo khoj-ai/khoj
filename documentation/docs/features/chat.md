@@ -14,16 +14,16 @@ You can configure Khoj to chat with you about anything. When relevant, it'll use
 
 ### Setup (Self-Hosting)
 #### Offline Chat
-Offline chat stays completely private and works without internet using open-source models.
+Offline chat stays completely private and can work without internet using open-source models.
 
 > **System Requirements**:
 >  - Minimum 8 GB RAM. Recommend **16Gb VRAM**
 >  - Minimum **5 GB of Disk** available
 >  - A CPU supporting [AVX or AVX2 instructions](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions) is required
->  - A Mac M1+ or [Vulcan supported GPU](https://vulkan.gpuinfo.org/) should significantly speed up chat response times
+>  - An Nvidia, AMD GPU or a Mac M1+ machine would significantly speed up chat response times
 
 1. Open your [Khoj offline settings](http://localhost:42110/server/admin/database/offlinechatprocessorconversationconfig/) and click *Enable* on the Offline Chat configuration.
-2. Open your [Chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/) and add a new option for the offline chat model you want to use. Make sure to use `Offline` as its type. We currently only support offline models that use the [Llama chat prompt](https://replicate.com/blog/how-to-prompt-llama#wrap-user-input-with-inst-inst-tags) format. We recommend using `mistral-7b-instruct-v0.1.Q4_0.gguf`.
+2. Open your [Chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/) and add a new option for the offline chat model you want to use. Make sure to use `Offline` as its type. We support any [GGUF chat model](https://huggingface.co/models?library=gguf) for offline chat. For a balanced chat model that runs well on standard consumer hardware we recommend, use [Hermes-2-Pro-Mistral-7B by NousResearch](https://huggingface.co/NousResearch/Hermes-2-Pro-Mistral-7B-GGUF) by default.
 
 
 :::tip[Note]
