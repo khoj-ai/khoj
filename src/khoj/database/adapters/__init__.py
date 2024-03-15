@@ -436,19 +436,16 @@ class ConversationAdapters:
 
     @staticmethod
     async def aget_conversation_by_user(
-        user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None, slug: str = None
+        user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None, title: str = None
     ):
         if conversation_id:
-            conversation = Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
-        elif slug:
-            conversation = Conversation.objects.filter(user=user, client=client_application, slug=slug)
+            return await Conversation.objects.filter(user=user, client=client_application, id=conversation_id).afirst()
+        elif title:
+            return await Conversation.objects.filter(user=user, client=client_application, title=title).afirst()
         else:
-            conversation = Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at")
-
-        if await conversation.aexists():
-            return await conversation.afirst()
-
-        return await Conversation.objects.acreate(user=user, client=client_application, slug=slug)
+            return await (
+                Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at").afirst()
+            ) or Conversation.objects.acreate(user=user, client=client_application)
 
     @staticmethod
     async def adelete_conversation_by_user(
