@@ -918,7 +918,7 @@
                                         let newTitle = conversationTitleInput.value;
                                         if (newTitle != null) {
                                             let editURL = `/api/chat/title?client=web&conversation_id=${incomingConversationId}&title=${newTitle}`;
-                                            fetch(`${hostURL}${editURL}` , { method: "PATCH" })
+                                            fetch(`${hostURL}${editURL}` , { method: "PATCH", headers })
                                                 .then(response => response.ok ? response.json() : Promise.reject(response))
                                                 .then(data => {
                                                     conversationButton.textContent = newTitle;
