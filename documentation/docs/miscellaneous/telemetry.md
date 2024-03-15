@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Telemetry
 
-We collect some high level, anonymized metadata about usage of Khoj. This includes:
+We collect some high level, anonymized metadata about usage of self-hosted Khoj. This includes:
 - Client (Web, Emacs, Obsidian)
 - API usage (Search, Chat)
 - Configured content types (Github, Org, etc)

@@ -1,11 +1,9 @@
 import asyncio
 import json
 import logging
-from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from functools import partial
-from time import time
 from typing import Annotated, Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import openai
@@ -32,9 +30,18 @@ from khoj.processor.conversation.utils import (
     generate_chatml_messages_with_context,
     save_to_conversation_log,
 )
+from khoj.routers.storage import upload_image
 from khoj.utils import state
 from khoj.utils.config import GPT4AllProcessorModel
-from khoj.utils.helpers import ConversationCommand, log_telemetry
+from khoj.utils.helpers import (
+    ConversationCommand,
+    is_none_or_empty,
+    log_telemetry,
+    mode_descriptions_for_llm,
+    timer,
+    tool_descriptions_for_llm,
+)
+from khoj.utils.rawconfig import LocationData
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +112,18 @@ def update_telemetry_state(
     ]
 
 
+def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="AI") -> str:
+    chat_history = ""
+    for chat in conversation_history.get("chat", [])[-n:]:
+        if chat["by"] == "khoj" and chat["intent"].get("type") == "remember":
+            chat_history += f"User: {chat['intent']['query']}\n"
+            chat_history += f"{agent_name}: {chat['message']}\n"
+        elif chat["by"] == "khoj" and ("text-to-image" in chat["intent"].get("type")):
+            chat_history += f"User: {chat['intent']['query']}\n"
+            chat_history += f"{agent_name}: [generated image redacted for space]\n"
+    return chat_history
+
+
 def get_conversation_command(query: str, any_references: bool = False) -> ConversationCommand:
     if query.startswith("/notes"):
         return ConversationCommand.Notes
@@ -128,48 +147,130 @@ async def agenerate_chat_response(*args):
     return await loop.run_in_executor(executor, generate_chat_response, *args)
 
 
-async def generate_online_subqueries(q: str, conversation_history: dict) -> List[str]:
+async def aget_relevant_information_sources(query: str, conversation_history: dict):
+    """
+    Given a query, determine which of the available tools the agent should use in order to answer appropriately.
+    """
+
+    tool_options = dict()
+    tool_options_str = ""
+
+    for tool, description in tool_descriptions_for_llm.items():
+        tool_options[tool.value] = description
+        tool_options_str += f'- "{tool.value}": "{description}"\n'
+
+    chat_history = construct_chat_history(conversation_history)
+
+    relevant_tools_prompt = prompts.pick_relevant_information_collection_tools.format(
+        query=query,
+        tools=tool_options_str,
+        chat_history=chat_history,
+    )
+
+    response = await send_message_to_model_wrapper(relevant_tools_prompt, response_type="json_object")
+
+    try:
+        response = response.strip()
+        response = json.loads(response)
+        response = [q.strip() for q in response["source"] if q.strip()]
+        if not isinstance(response, list) or not response or len(response) == 0:
+            logger.error(f"Invalid response for determining relevant tools: {response}")
+            return tool_options
+
+        final_response = []
+        for llm_suggested_tool in response:
+            if llm_suggested_tool in tool_options.keys():
+                # Check whether the tool exists as a valid ConversationCommand
+                final_response.append(ConversationCommand(llm_suggested_tool))
+
+        if is_none_or_empty(final_response):
+            final_response = [ConversationCommand.Default]
+        return final_response
+    except Exception as e:
+        logger.error(f"Invalid response for determining relevant tools: {response}")
+        return [ConversationCommand.Default]
+
+
+async def aget_relevant_output_modes(query: str, conversation_history: dict):
+    """
+    Given a query, determine which of the available tools the agent should use in order to answer appropriately.
+    """
+
+    mode_options = dict()
+    mode_options_str = ""
+
+    for mode, description in mode_descriptions_for_llm.items():
+        mode_options[mode.value] = description
+        mode_options_str += f'- "{mode.value}": "{description}"\n'
+
+    chat_history = construct_chat_history(conversation_history)
+
+    relevant_mode_prompt = prompts.pick_relevant_output_mode.format(
+        query=query,
+        modes=mode_options_str,
+        chat_history=chat_history,
+    )
+
+    response = await send_message_to_model_wrapper(relevant_mode_prompt)
+
+    try:
+        response = response.strip()
+
+        if is_none_or_empty(response):
+            return ConversationCommand.Default
+
+        if response in mode_options.keys():
+            # Check whether the tool exists as a valid ConversationCommand
+            return ConversationCommand(response)
+
+        return ConversationCommand.Default
+    except Exception as e:
+        logger.error(f"Invalid response for determining relevant mode: {response}")
+        return ConversationCommand.Default
+
+
+async def generate_online_subqueries(q: str, conversation_history: dict, location_data: LocationData) -> List[str]:
     """
     Generate subqueries from the given query
     """
-    chat_history = ""
-    for chat in conversation_history.get("chat", [])[-4:]:
-        if chat["by"] == "khoj" and chat["intent"].get("type") == "remember":
-            chat_history += f"User: {chat['intent']['query']}\n"
-            chat_history += f"Khoj: {chat['message']}\n"
+    location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
+    chat_history = construct_chat_history(conversation_history)
 
     utc_date = datetime.utcnow().strftime("%Y-%m-%d")
     online_queries_prompt = prompts.online_search_conversation_subqueries.format(
         current_date=utc_date,
         query=q,
         chat_history=chat_history,
+        location=location,
     )
 
-    response = await send_message_to_model_wrapper(online_queries_prompt)
+    response = await send_message_to_model_wrapper(online_queries_prompt, response_type="json_object")
 
     # Validate that the response is a non-empty, JSON-serializable list
     try:
         response = response.strip()
         response = json.loads(response)
-        response = [q.strip() for q in response if q.strip()]
+        response = [q.strip() for q in response["queries"] if q.strip()]
         if not isinstance(response, list) or not response or len(response) == 0:
-            logger.error(f"Invalid response for constructing subqueries: {response}")
+            logger.error(f"Invalid response for constructing subqueries: {response}. Returning original query: {q}")
             return [q]
         return response
     except Exception as e:
-        logger.error(f"Invalid response for constructing subqueries: {response}")
+        logger.error(f"Invalid response for constructing subqueries: {response}. Returning original query: {q}")
         return [q]
 
 
-async def extract_relevant_info(q: str, corpus: dict) -> List[str]:
+async def extract_relevant_info(q: str, corpus: str) -> Union[str, None]:
     """
-    Given a target corpus, extract the most relevant info given a query
+    Extract relevant information for a given query from the target corpus
     """
 
-    key = list(corpus.keys())[0]
+    if is_none_or_empty(corpus) or is_none_or_empty(q):
+        return None
+
     extract_relevant_information = prompts.extract_relevant_information.format(
         query=q,
-        corpus=corpus[key],
+        corpus=corpus.strip(),
     )
 
     response = await send_message_to_model_wrapper(
@@ -179,14 +280,40 @@ async def extract_relevant_info(q: str, corpus: dict) -> List[str]:
     return response.strip()
 
 
-async def generate_better_image_prompt(q: str, conversation_history: str) -> str:
+async def generate_better_image_prompt(
+    q: str,
+    conversation_history: str,
+    location_data: LocationData,
+    note_references: List[str],
+    online_results: Optional[dict] = None,
+) -> str:
     """
     Generate a better image prompt from the given query
     """
 
+    location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
+    today_date = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
+
+    location_prompt = prompts.user_location.format(location=location)
+
+    user_references = "\n\n".join([f"# {item}" for item in note_references])
+
+    simplified_online_results = {}
+
+    if online_results:
+        for result in online_results:
+            if online_results[result].get("answerBox"):
+                simplified_online_results[result] = online_results[result]["answerBox"]
+            elif online_results[result].get("extracted_content"):
+                simplified_online_results[result] = online_results[result]["extracted_content"]
+
     image_prompt = prompts.image_generation_improve_prompt.format(
         query=q,
         chat_history=conversation_history,
+        location=location_prompt,
+        current_date=today_date,
+        references=user_references,
+        online_results=simplified_online_results,
     )
 
     response = await send_message_to_model_wrapper(image_prompt)
@@ -197,6 +324,7 @@ async def generate_better_image_prompt(q: str, conversation_history: str) -> str
 async def send_message_to_model_wrapper(
     message: str,
     system_message: str = "",
+    response_type: str = "text",
 ):
     conversation_config: ChatModelOptions = await ConversationAdapters.aget_default_conversation_config()
 
@@ -225,9 +353,7 @@ async def send_message_to_model_wrapper(
         api_key = openai_chat_config.api_key
         chat_model = conversation_config.chat_model
         openai_response = send_message_to_model(
-            messages=truncated_messages,
-            api_key=api_key,
-            model=chat_model,
+            messages=truncated_messages, api_key=api_key, model=chat_model, response_type=response_type
         )
 
         return openai_response
@@ -241,13 +367,16 @@ def generate_chat_response(
     compiled_references: List[str] = [],
     online_results: Dict[str, Any] = {},
     inferred_queries: List[str] = [],
-    conversation_command: ConversationCommand = ConversationCommand.Default,
+    conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     user: KhojUser = None,
     client_application: ClientApplication = None,
+    conversation_id: int = None,
+    location_data: LocationData = None,
+    user_name: Optional[str] = None,
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
     chat_response = None
-    logger.debug(f"Conversation Type: {conversation_command.name}")
+    logger.debug(f"Conversation Types: {conversation_commands}")
 
     metadata = {}
 
@@ -261,6 +390,7 @@ def generate_chat_response(
             online_results=online_results,
             inferred_queries=inferred_queries,
             client_application=client_application,
+            conversation_id=conversation_id,
         )
 
         conversation_config = ConversationAdapters.get_valid_conversation_config(user)
@@ -276,10 +406,12 @@ def generate_chat_response(
                 loaded_model=loaded_model,
                 conversation_log=meta_log,
                 completion_func=partial_completion,
-                conversation_command=conversation_command,
+                conversation_commands=conversation_commands,
                 model=conversation_config.chat_model,
                 max_prompt_size=conversation_config.max_prompt_size,
                 tokenizer_name=conversation_config.tokenizer,
+                location_data=location_data,
+                user_name=user_name,
             )
 
         elif conversation_config.model_type == "openai":
@@ -294,9 +426,11 @@ def generate_chat_response(
                 model=chat_model,
                 api_key=api_key,
                 completion_func=partial_completion,
-                conversation_command=conversation_command,
+                conversation_commands=conversation_commands,
                 max_prompt_size=conversation_config.max_prompt_size,
                 tokenizer_name=conversation_config.tokenizer,
+                location_data=location_data,
+                user_name=user_name,
             )
 
         metadata.update({"chat_model": conversation_config.chat_model})
@@ -308,32 +442,66 @@ def generate_chat_response(
     return chat_response, metadata
 
 
-async def text_to_image(message: str, conversation_log: dict) -> Tuple[Optional[str], int, Optional[str]]:
+async def text_to_image(
+    message: str,
+    user: KhojUser,
+    conversation_log: dict,
+    location_data: LocationData,
+    references: List[str],
+    online_results: Dict[str, Any],
+) -> Tuple[Optional[str], int, Optional[str], Optional[str]]:
     status_code = 200
     image = None
+    response = None
+    image_url = None
 
     text_to_image_config = await ConversationAdapters.aget_text_to_image_model_config()
     if not text_to_image_config:
         # If the user has not configured a text to image model, return an unsupported on server error
         status_code = 501
+        message = "Failed to generate image. Setup image generation on the server."
+        return image, status_code, message, image_url
     elif state.openai_client and text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
+        logger.info("Generating image with OpenAI")
         text2image_model = text_to_image_config.model_name
         chat_history = ""
         for chat in conversation_log.get("chat", [])[-4:]:
             if chat["by"] == "khoj" and chat["intent"].get("type") == "remember":
                 chat_history += f"Q: {chat['intent']['query']}\n"
                 chat_history += f"A: {chat['message']}\n"
-        improved_image_prompt = await generate_better_image_prompt(message, chat_history)
+            elif chat["by"] == "khoj" and "text-to-image" in chat["intent"].get("type"):
+                chat_history += f"Q: Query: {chat['intent']['query']}\n"
+                chat_history += f"A: Improved Query: {chat['intent']['inferred-queries'][0]}\n"
         try:
-            response = state.openai_client.images.generate(
-                prompt=improved_image_prompt, model=text2image_model, response_format="b64_json"
-            )
-            image = response.data[0].b64_json
-        except openai.OpenAIError as e:
-            logger.error(f"Image Generation failed with {e}", exc_info=True)
-            status_code = 500
+            with timer("Improve the original user query", logger):
+                improved_image_prompt = await generate_better_image_prompt(
+                    message,
+                    chat_history,
+                    location_data=location_data,
+                    note_references=references,
+                    online_results=online_results,
+                )
+            with timer("Generate image with OpenAI", logger):
+                response = state.openai_client.images.generate(
+                    prompt=improved_image_prompt, model=text2image_model, response_format="b64_json"
+                )
+                image = response.data[0].b64_json
 
-    return image, status_code, improved_image_prompt
+            with timer("Upload image to S3", logger):
+                image_url = upload_image(image, user.uuid)
+            return image, status_code, improved_image_prompt, image_url
+        except openai.OpenAIError or openai.BadRequestError or openai.APIConnectionError as e:
+            if "content_policy_violation" in e.message:
+                logger.error(f"Image Generation blocked by OpenAI: {e}")
+                status_code = e.status_code  # type: ignore
+                message = f"Image generation blocked by OpenAI: {e.message}"  # type: ignore
+                return image, status_code, message, image_url
+            else:
+                logger.error(f"Image Generation failed with {e}", exc_info=True)
+                message = f"Image generation failed with OpenAI error: {e.message}"  # type: ignore
+                status_code = e.status_code  # type: ignore
+                return image, status_code, message, image_url
+    return image, status_code, response, image_url
 
 
 class ApiUserRateLimiter:
@@ -360,14 +528,14 @@ class ApiUserRateLimiter:
         if subscribed and count_requests >= self.subscribed_requests:
             raise HTTPException(status_code=429, detail="Slow down! Too Many Requests")
         if not subscribed and count_requests >= self.requests:
-            if self.subscribed_requests == self.requests:
+            if self.requests >= self.subscribed_requests:
                 raise HTTPException(
                     status_code=429,
                     detail="Slow down! Too Many Requests",
                 )
             raise HTTPException(
                 status_code=429,
-                detail="We're glad you're enjoying Khoj! You've exceeded your usage limit for today. Come back tomorrow or subscribe to increase your rate limit via [your settings](https://app.khoj.dev/config).",
+                detail="We're glad you're enjoying Khoj! You've exceeded your usage limit for today. Come back tomorrow or subscribe to increase your usage limit via [your settings](https://app.khoj.dev/config).",
             )
 
         # Add the current request to the cache
@@ -406,7 +574,7 @@ class ConversationCommandRateLimiter:
         if not subscribed and count_requests >= self.trial_rate_limit:
             raise HTTPException(
                 status_code=429,
-                detail=f"We're glad you're enjoying Khoj! You've exceeded your `/{conversation_command.value}` command usage limit for today. You can increase your rate limit via [your settings](https://app.khoj.dev/config).",
+                detail=f"We're glad you're enjoying Khoj! You've exceeded your `/{conversation_command.value}` command usage limit for today. Subscribe to increase your usage limit via [your settings](https://app.khoj.dev/config).",
             )
         await UserRequests.objects.acreate(user=user, slug=command_slug)
         return

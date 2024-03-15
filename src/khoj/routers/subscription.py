@@ -2,16 +2,18 @@ import logging
 import os
 from datetime import datetime, timezone
 
-import stripe
 from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Request
-from fastapi.responses import Response
 from starlette.authentication import requires
 
 from khoj.database import adapters
+from khoj.utils import state
 
 # Stripe integration for Khoj Cloud Subscription
-stripe.api_key = os.getenv("STRIPE_API_KEY")
+if state.billing_enabled:
+    import stripe
+
+    stripe.api_key = os.getenv("STRIPE_API_KEY")
 endpoint_secret = os.getenv("STRIPE_SIGNING_SECRET")
 logger = logging.getLogger(__name__)
 subscription_router = APIRouter()

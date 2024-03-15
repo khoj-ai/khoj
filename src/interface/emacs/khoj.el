@@ -6,7 +6,7 @@
 ;;         Saba Imran <saba@khoj.dev>
 ;; Description: An AI copilot for your Second Brain
 ;; Keywords: search, chat, org-mode, outlines, markdown, pdf, image
-;; Version: 1.5.1
+;; Version: 1.7.0
 ;; Package-Requires: ((emacs "27.1") (transient "0.3.0") (dash "2.19.1"))
 ;; URL: https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs
 
@@ -426,7 +426,7 @@ Auto invokes setup steps on calling main entrypoint."
           (url-retrieve (format "%s/api/v1/index/update?%s&force=%s&client=emacs" khoj-server-url type-query (or force "false"))
                         ;; render response from indexing API endpoint on server
                         (lambda (status)
-                          (if (not status)
+                          (if (not (plist-get status :error))
                               (message "khoj.el: %scontent index %supdated" (if content-type (format "%s " content-type) "all ") (if force "force " ""))
                             (progn
                               (khoj--delete-open-network-connections-to-server)
@@ -1055,7 +1055,10 @@ Paragraph only starts at first text after blank line."
 
 ;;;###autoload
 (defun khoj ()
-  "Provide natural, search assistance for your notes, documents and images."
+  "Search and chat with your knowledge base using your personal AI copilot.
+
+Collaborate with Khoj to search, understand, create, review and update your knowledge base.
+Khoj can research across your org-mode, markdown notes, plaintext documents and the internet."
   (interactive)
   (when khoj-auto-setup
     (khoj-setup t))

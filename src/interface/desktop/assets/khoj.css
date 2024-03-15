@@ -1,6 +1,6 @@
 /* Amber Light scheme (Default) */
 /* Can be forced with data-theme="light" */
-@import url('https://fonts.googleapis.com/css2?family=Tajawal&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;500;700&display=swap');
 
 [data-theme="light"],
 :root:not([data-theme="dark"]) {
@@ -65,12 +65,18 @@
     font-weight: 300;
 }
 
-.khoj-header {
+div.khoj-header {
     display: grid;
     grid-auto-flow: column;
     gap: 20px;
-    padding: 16px 0;
+    padding: 24px 16px 0px 0px;
     margin: 0 0 16px 0;
+    -webkit-user-select: none;
+    -webkit-app-region: drag;
+}
+
+a.khoj-nav {
+    -webkit-app-region: no-drag;
 }
 
 nav.khoj-nav {
@@ -107,7 +113,7 @@ a.khoj-nav-selected {
     background-color: var(--primary);
 }
 img.khoj-logo {
-    width: min(60vw, 111px);
+    width: min(60vw, 90px);
     max-width: 100%;
     justify-self: center;
 }
@@ -117,7 +123,7 @@ img.khoj-logo {
         display: grid;
         grid-auto-flow: column;
         gap: 20px;
-        padding: 16px 10px;
+        padding: 24px 10px 10px 10px;
         margin: 0 0 16px 0;
     }
 

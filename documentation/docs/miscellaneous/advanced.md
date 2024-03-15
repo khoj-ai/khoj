@@ -35,7 +35,7 @@ Use structured query syntax to filter entries from your knowledge based used by 
 Use this if you want to use non-standard, open or commercial, local or hosted LLM models for Khoj chat
 1. Setup your desired chat LLM by installing an OpenAI compatible LLM API Server like [LiteLLM](https://docs.litellm.ai/docs/proxy/quick_start), [llama-cpp-python](https://github.com/abetlen/llama-cpp-python?tab=readme-ov-file#openai-compatible-web-server)
 2. Set environment variable `OPENAI_API_BASE="<url-of-your-llm-server>"` before starting Khoj
-3. Add ChatModelOptions with `model-type` `OpenAI`, and `chat-model` to anything (e.g `gpt-4`) during [Config](/get-started/setup#3-configure)
+3. Add ChatModelOptions with `model-type` `OpenAI`, and `chat-model` to anything (e.g `gpt-3.5-turbo`) during [Config](/get-started/setup#3-configure)
    - *(Optional)* Set the `tokenizer` and `max-prompt-size` relevant to the actual chat model you're using
 
 #### Sample Setup using LiteLLM and Mistral API

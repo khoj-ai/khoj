@@ -4,7 +4,9 @@ FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
 LABEL org.opencontainers.image.source https://github.com/khoj-ai/khoj
 
 # Install System Dependencies
-RUN apt update -y && apt -y install python3-pip git libsqlite3-0 ffmpeg libsm6 libxext6
+RUN apt update -y && apt -y install python3-pip libsqlite3-0 ffmpeg libsm6 libxext6
+# Install Optional Dependencies
+RUN apt install vim -y
 
 WORKDIR /app
 
@@ -13,12 +15,10 @@ COPY pyproject.toml .
 COPY README.md .
 ARG VERSION=0.0.0
 RUN sed -i "s/dynamic = \\[\"version\"\\]/version = \"$VERSION\"/" pyproject.toml && \
-    TMPDIR=/home/cache/ pip install --cache-dir=/home/cache/ -e .
+    TMPDIR=/home/cache/ pip install --cache-dir=/home/cache/ -e .[prod]
 
 # Copy Source Code
 COPY . .
-
-RUN apt install vim -y
 
 # Set the PYTHONPATH environment variable in order for it to find the Django app.
 ENV PYTHONPATH=/app/src:$PYTHONPATH

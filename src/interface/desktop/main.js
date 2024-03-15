@@ -106,6 +106,7 @@ function filenameToMimeType (filename) {
         case 'org':
             return 'text/org';
         default:
+            console.warn(`Unknown file type: ${extension}. Defaulting to text/plain.`);
             return 'text/plain';
     }
 }
@@ -214,8 +215,10 @@ function pushDataToKhoj (regenerate = false) {
     .catch(error => {
         console.error(error);
         state["completed"] = false;
-        if (error?.response?.status === 429 && (win = BrowserWindow.getAllWindows()[0])) {
+        if (error?.response?.status === 429 && (BrowserWindow.getAllWindows().find(win => win.webContents.getURL().includes('config')))) {
             state["error"] = `Looks like you're out of space to sync your files. <a href="https://app.khoj.dev/config">Upgrade your plan</a> to unlock more space.`;
+            const win = BrowserWindow.getAllWindows().find(win => win.webContents.getURL().includes('config'));
+            if (win) win.webContents.send('needsSubscription', true);
         } else if (error?.code === 'ECONNREFUSED') {
             state["error"] = `Could not connect to Khoj server. Ensure you can connect to it at ${error.address}:${error.port}.`;
         } else {
@@ -225,7 +228,8 @@ function pushDataToKhoj (regenerate = false) {
     .finally(() => {
         // Syncing complete
         syncing = false;
-        if (win = BrowserWindow.getAllWindows()[0]) {
+        const win = BrowserWindow.getAllWindows().find(win => win.webContents.getURL().includes('config'));
+        if (win) {
             win.webContents.send('update-state', state);
         }
     });
@@ -355,7 +359,7 @@ const createWindow = (tab = 'chat.html') => {
       width: 800,
       height: 800,
       show: false,
-    //   titleBarStyle: 'hidden',
+      titleBarStyle: 'hidden',
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
         nodeIntegration: true,
@@ -377,6 +381,29 @@ const createWindow = (tab = 'chat.html') => {
     win.setOpacity(0.95);
     win.setBackgroundColor('#f5f4f3');
     win.setHasShadow(true);
+
+    // Open external links in link handler registered on OS (e.g. browser)
+    win.webContents.setWindowOpenHandler(async ({ url }) => {
+        let shouldOpen = { response: 0 };
+
+        if (!url.startsWith(store.get('hostURL'))) {
+            // Confirm before opening external links
+            const confirmNotice = `Do you want to open this link? It will be handled by an external application.\n\n${url}`;
+            shouldOpen = await dialog.showMessageBox({
+                type: 'question',
+                buttons: ['Yes', 'No'],
+                defaultId: 1,
+                title: 'Confirm',
+                message: confirmNotice,
+            });
+        }
+
+        // If user confirms, let OS link handler open the link in appropriate app
+        if (shouldOpen.response === 0) shell.openExternal(url);
+
+        // Do not open external links within the app
+        return { action: 'deny' };
+    });
 
     job.start();
 

@@ -4,12 +4,17 @@ import { KhojSetting } from 'src/settings';
 export interface ChatJsonResult {
     image?: string;
     detail?: string;
+    intentType?: string;
+    inferredQueries?: string[];
 }
 
 
 export class KhojChatModal extends Modal {
     result: string;
     setting: KhojSetting;
+    region: string;
+    city: string;
+    countryName: string;
 
     constructor(app: App, setting: KhojSetting) {
         super(app);
@@ -17,6 +22,19 @@ export class KhojChatModal extends Modal {
 
         // Register Modal Keybindings to send user message
         this.scope.register([], 'Enter', async () => { await this.chat() });
+
+
+        fetch("https://ipapi.co/json")
+            .then(response => response.json())
+            .then(data => {
+                this.region = data.region;
+                this.city = data.city;
+                this.countryName = data.country_name;
+            })
+            .catch(err => {
+                console.log(err);
+                return;
+            });
     }
 
     async chat() {
@@ -129,11 +147,22 @@ export class KhojChatModal extends Modal {
         return referenceButton;
     }
 
-    renderMessageWithReferences(chatEl: Element, message: string, sender: string, context?: string[], dt?: Date, intentType?: string) {
+    renderMessageWithReferences(chatEl: Element, message: string, sender: string, context?: string[], dt?: Date, intentType?: string, inferredQueries?: string) {
         if (!message) {
             return;
-        } else if (intentType === "text-to-image") {
-            let imageMarkdown = `![](data:image/png;base64,${message})`;
+        } else if (intentType?.includes("text-to-image")) {
+            let imageMarkdown = "";
+            if (intentType === "text-to-image") {
+                imageMarkdown = `![](data:image/png;base64,${message})`;
+            } else if (intentType === "text-to-image2") {
+                imageMarkdown = `![](${message})`;
+            }
+            if (inferredQueries) {
+                imageMarkdown += "\n\n**Inferred Query**:";
+                for (let inferredQuery of inferredQueries) {
+                    imageMarkdown += `\n\n${inferredQuery}`;
+                }
+            }
             this.renderMessage(chatEl, imageMarkdown, sender, dt);
             return;
         } else if (!context) {
@@ -269,9 +298,17 @@ export class KhojChatModal extends Modal {
 
                 return false;
             } else if (responseJson.response) {
-                let chatLogs = responseJson.response;
+                let chatLogs = responseJson.response?.conversation_id ? responseJson.response.chat ?? [] : responseJson.response;
                 chatLogs.forEach((chatLog: any) => {
-                    this.renderMessageWithReferences(chatBodyEl, chatLog.message, chatLog.by, chatLog.context, new Date(chatLog.created), chatLog.intent?.type);
+                    this.renderMessageWithReferences(
+                        chatBodyEl,
+                        chatLog.message,
+                        chatLog.by,
+                        chatLog.context,
+                        new Date(chatLog.created),
+                        chatLog.intent?.type,
+                        chatLog.intent?.["inferred-queries"],
+                    );
                 });
             }
         } catch (err) {
@@ -354,7 +391,7 @@ export class KhojChatModal extends Modal {
 
         // Get chat response from Khoj backend
         let encodedQuery = encodeURIComponent(query);
-        let chatUrl = `${this.setting.khojUrl}/api/chat?q=${encodedQuery}&n=${this.setting.resultsCount}&client=obsidian&stream=true`;
+        let chatUrl = `${this.setting.khojUrl}/api/chat?q=${encodedQuery}&n=${this.setting.resultsCount}&client=obsidian&stream=true&region=${this.region}&city=${this.city}&country=${this.countryName}`;
         let responseElement = this.createKhojResponseDiv();
 
         // Temporary status message to indicate that Khoj is thinking
@@ -382,12 +419,21 @@ export class KhojChatModal extends Modal {
             // Reset collated chat result to empty string
             this.result = "";
             responseElement.innerHTML = "";
-            if (response.headers.get("content-type") == "application/json") {
+            if (response.headers.get("content-type") === "application/json") {
                 let responseText = ""
                 try {
                     const responseAsJson = await response.json() as ChatJsonResult;
                     if (responseAsJson.image) {
-                        responseText = `![${query}](data:image/png;base64,${responseAsJson.image})`;
+                        // If response has image field, response is a generated image.
+                        if (responseAsJson.intentType === "text-to-image") {
+                            responseText += `![${query}](data:image/png;base64,${responseAsJson.image})`;
+                        } else if (responseAsJson.intentType === "text-to-image2") {
+                            responseText += `![${query}](${responseAsJson.image})`;
+                        }
+                        const inferredQuery = responseAsJson.inferredQueries?.[0];
+                        if (inferredQuery) {
+                            responseText += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
+                        }
                     } else if (responseAsJson.detail) {
                         responseText = responseAsJson.detail;
                     }
@@ -397,10 +443,10 @@ export class KhojChatModal extends Modal {
                 } finally {
                     await this.renderIncrementalMessage(responseElement, responseText);
                 }
+            } else {
+                // Stream and render chat response
+                await this.readChatStream(response, responseElement);
             }
-
-            // Stream and render chat response
-            await this.readChatStream(response, responseElement);
         } catch (err) {
             console.log(`Khoj chat response failed with\n${err}`);
             let errorMsg = "Sorry, unable to get response from Khoj backend ❤️‍🩹. Retry or contact developers for help at <a href=mailto:'team@khoj.dev'>team@khoj.dev</a> or <a href='https://discord.gg/BDgyabRM6e'>on Discord</a>";

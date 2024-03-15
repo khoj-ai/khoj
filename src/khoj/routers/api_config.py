@@ -262,7 +262,11 @@ async def update_search_model(
 ):
     user = request.user.object
 
+    prev_config = await adapters.aget_user_search_model(user)
     new_config = await adapters.aset_user_search_model(user, int(id))
+
+    if int(id) != prev_config.id:
+        await EntryAdapters.adelete_all_entries(user)
 
     if new_config is None:
         return {"status": "error", "message": "Model not found"}
@@ -288,6 +292,38 @@ async def get_indexed_data_size(request: Request, common: CommonQueryParams):
         media_type="application/json",
         status_code=200,
     )
+
+
+@api_config.post("/user/name", status_code=200)
+@requires(["authenticated"])
+def set_user_name(
+    request: Request,
+    name: str,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+
+    split_name = name.split(" ")
+
+    if len(split_name) > 2:
+        raise HTTPException(status_code=400, detail="Name must be in the format: Firstname Lastname")
+
+    if len(split_name) == 1:
+        first_name = split_name[0]
+        last_name = ""
+    else:
+        first_name, last_name = split_name[0], split_name[-1]
+
+    adapters.set_user_name(user, first_name, last_name)
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="set_user_name",
+        client=client,
+    )
+
+    return {"status": "ok"}
 
 
 @api_config.get("/types", response_model=List[str])

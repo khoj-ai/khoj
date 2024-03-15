@@ -3,6 +3,25 @@
 
 <div class="page">
     <div id="content" class="section">
+        <h2 class="section-title">Profile</h2>
+        <div class="section-cards">
+            <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/user-silhouette.svg" alt="Profile Name">
+                    <h3 class="card-title">
+                        Name
+                    </h3>
+                </div>
+                <div class="card-description-row">
+                    <input type="text" id="profile_given_name" class="form-control" placeholder="Enter your name here" value="{% if given_name %}{{given_name}}{% endif %}">
+                </div>
+                <div class="card-action-row">
+                    <button id="save-model" class="card-button happy" onclick="saveProfileGivenName()">
+                        Save
+                    </button>
+                </div>
+            </div>
+        </div>
         <h2 class="section-title">Content</h2>
         <button id="compute-index-size" class="card-button" onclick="getIndexedDataSize()">
             Data Usage
@@ -168,8 +187,10 @@
             </div>
         </div>
     </div>
+    {% if not anonymous_mode or is_twilio_enabled %}
     <div id="clients" class="section">
         <h2 class="section-title">Clients</h2>
+        {% if not anonymous_mode %}
         <div id="clients-api" class="api-settings">
             <div class="card-title-row">
                 <img class="card-icon" src="/static/assets/icons/key.svg" alt="API Key">
@@ -194,6 +215,8 @@
                 </button>
             </div>
         </div>
+        {% endif %}
+        {% if is_twilio_enabled %}
         <div id="phone-number-input-card" class="api-settings">
             <div class="card-title-row">
                 <img class="card-icon" src="/static/assets/icons/whatsapp.svg" alt="WhatsApp icon">
@@ -225,7 +248,9 @@
                 </button>
             </div>
         </div>
+        {% endif %}
     </div>
+    {% endif %}
     {% if billing_enabled %}
     <div id="billing" class="section">
         <h2 class="section-title">Billing</h2>
@@ -297,6 +322,27 @@
 </div>
 <script>
 
+    function saveProfileGivenName() {
+        const givenName = document.getElementById("profile_given_name").value;
+        fetch('/api/config/user/name?name=' + givenName, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status == "ok") {
+                let notificationBanner = document.getElementById("notification-banner");
+                notificationBanner.innerHTML = "Profile name has been updated!";
+                notificationBanner.style.display = "block";
+                setTimeout(function() {
+                    notificationBanner.style.display = "none";
+                }, 5000);
+            }
+        })
+    }
+
     function updateChatModel() {
         const chatModel = document.getElementById("chat-models").value;
         const saveModelButton = document.getElementById("save-model");
@@ -314,6 +360,14 @@
             if (data.status == "ok") {
                 saveModelButton.innerHTML = "Save";
                 saveModelButton.disabled = false;
+
+                let notificationBanner = document.getElementById("notification-banner");
+                notificationBanner.innerHTML = "Conversation model has been updated!";
+                notificationBanner.style.display = "block";
+                setTimeout(function() {
+                    notificationBanner.style.display = "none";
+                }, 5000);
+
             } else {
                 saveModelButton.innerHTML = "Error";
                 saveModelButton.disabled = false;
@@ -322,6 +376,11 @@
     };
 
     function updateSearchModel() {
+        let confirmation = window.confirm("All your existing data will be deleted, and you will have to regenerate it. Are you sure you want to continue?");
+        if (!confirmation) {
+            return;
+        }
+
         const searchModel = document.getElementById("search-models").value;
         const saveSearchModelButton = document.getElementById("save-search-model");
         saveSearchModelButton.disabled = true;
@@ -344,7 +403,7 @@
             }
 
             let notificationBanner = document.getElementById("notification-banner");
-            notificationBanner.innerHTML = "When updating the language model, be sure to delete all your saved content and re-initialize.";
+            notificationBanner.innerHTML = "Khoj can now better understand the language of your content! Manually sync your data from one of the Khoj clients to update your knowledge base.";
             notificationBanner.style.display = "block";
             setTimeout(function() {
                 notificationBanner.style.display = "none";

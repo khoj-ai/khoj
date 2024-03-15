@@ -18,7 +18,25 @@ Without any desktop clients, you can start chatting with Khoj on the web. Bear i
   - **Incremental**: Incremental search for a fast, search-as-you-type experience
 
 ## Setup
-No setup required. The Khoj web app is the default interface to Khoj. You can access it from any web browser. Try it on [Khoj Cloud](https://app.khoj.dev)
+No setup required. The Khoj web app is the default Khoj client. You can access it from any web browser. Try it on [Khoj Cloud](https://app.khoj.dev)
+
+## Upload Documents
+You can upload documents to Khoj from the web interface, one at a time. This is useful for uploading documents from your phone or tablet. To upload a document:
+1. You can drag and drop the document into the chat window.
+2. Or click the paperclip icon in the chat window and select the document from your file system.
+
+![demo of dragging and dropping a file](https://khoj-web-bucket.s3.amazonaws.com/drag_drop_file.gif)
+
+### Install on Phone
+You can optionally install Khoj as a [Progressive Web App (PWA)](https://web.dev/learn/pwa/installation). This makes it quick and easy to access Khoj on your phone.
+1. Login to [Khoj Cloud](https://app.khoj.dev) or your self-hosted Khoj server from the web browser (prefer Chrome/Edge) on your phone
+2. Open the 3 dot menu on the browser and click the "Add to Home screen" option
+3. Click "Install" on the next screen to add the Khoj icon to your phone Home screen
+
+**Process via Screenshots**
+| Step 1 | Step 2 | Step 3|
+|:---:|:---:|:---:|
+| ![](/img/pwa_install_1.png) | ![](/img/pwa_install_2.png) | ![](/img/pwa_install_3.png) |
 
 ## Interface
 

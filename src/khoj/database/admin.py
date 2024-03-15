@@ -9,6 +9,7 @@ from khoj.database.models import (
     ChatModelOptions,
     ClientApplication,
     Conversation,
+    Entry,
     KhojUser,
     OfflineChatProcessorConversationConfig,
     OpenAIProcessorConversationConfig,
@@ -51,6 +52,23 @@ admin.site.register(TextToImageModelConfig)
 admin.site.register(ClientApplication)
 
 
+@admin.register(Entry)
+class EntryAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "created_at",
+        "updated_at",
+        "user",
+        "file_source",
+        "file_type",
+        "file_name",
+        "file_path",
+    )
+    search_fields = ("id", "user__email", "user__username", "file_path")
+    list_filter = ("file_type",)
+    ordering = ("-created_at",)
+
+
 @admin.register(Conversation)
 class ConversationAdmin(admin.ModelAdmin):
     list_display = (
@@ -60,7 +78,7 @@ class ConversationAdmin(admin.ModelAdmin):
         "updated_at",
         "client",
     )
-    search_fields = ("conversation_id",)
+    search_fields = ("id", "user__email", "user__username", "client__name")
     ordering = ("-created_at",)
 
     actions = ["export_selected_objects", "export_selected_minimal_objects"]

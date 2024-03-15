@@ -74,6 +74,14 @@ class TextToEntries(ABC):
                 chunk_overlap=0,
             )
             chunked_entry_chunks = text_splitter.split_text(entry.compiled)
+            if is_none_or_empty(entry.compiled):
+                continue
+
+            # Split entry into words
+            compiled_entry_words = [word for word in entry.compiled.split(" ") if word != ""]
+
+            # Drop long words instead of having entry truncated to maintain quality of entry processed by models
+            compiled_entry_words = [word for word in compiled_entry_words if len(word) <= max_word_length]
             corpus_id = uuid.uuid4()
 
             # Create heading prefixed entry from each chunk
@@ -88,6 +96,12 @@ class TextToEntries(ABC):
 
                 # Drop long words instead of having entry truncated to maintain quality of entry processed by models
                 compiled_entry_chunk = TextToEntries.remove_long_words(compiled_entry_chunk, max_word_length)
+
+                # Clean entry of unwanted characters like \0 character
+                compiled_entry_chunk = TextToEntries.clean_field(compiled_entry_chunk)
+                entry.raw = TextToEntries.clean_field(entry.raw)
+                entry.heading = TextToEntries.clean_field(entry.heading)
+                entry.file = TextToEntries.clean_field(entry.file)
 
                 chunked_entries.append(
                     Entry(
@@ -150,7 +164,7 @@ class TextToEntries(ABC):
             entry_batches = zip(hashes_to_process, embeddings)
 
             for entry_batch in tqdm(batcher(entry_batches, batch_size), desc="Add entries to database"):
-                batch_embeddings_to_create = []
+                batch_embeddings_to_create: List[DbEntry] = []
                 for entry_hash, new_entry in entry_batch:
                     entry = hash_to_current_entries[entry_hash]
                     batch_embeddings_to_create.append(
@@ -167,13 +181,20 @@ class TextToEntries(ABC):
                             corpus_id=entry.corpus_id,
                         )
                     )
-                added_entries += DbEntry.objects.bulk_create(batch_embeddings_to_create)
+                try:
+                    added_entries += DbEntry.objects.bulk_create(batch_embeddings_to_create)
+                except Exception as e:
+                    batch_indexing_error = "\n\n".join(
+                        f"file: {entry.file_path}\nheading: {entry.heading}\ncompiled: {entry.compiled[:100]}\nraw: {entry.raw[:100]}"
+                        for entry in batch_embeddings_to_create
+                    )
+                    logger.error(f"Error adding entries to database:\n{batch_indexing_error}\n---\n{e}", exc_info=True)
             logger.debug(f"Added {len(added_entries)} {file_type} entries to database")
 
         new_dates = []
         with timer("Indexed dates from added entries in", logger):
             for added_entry in added_entries:
-                dates_in_entries = zip(self.date_filter.extract_dates(added_entry.raw), repeat(added_entry))
+                dates_in_entries = zip(self.date_filter.extract_dates(added_entry.compiled), repeat(added_entry))
                 dates_to_create = [
                     EntryDates(date=date, entry=added_entry)
                     for date, added_entry in dates_in_entries
@@ -256,3 +277,7 @@ class TextToEntries(ABC):
             entries_with_ids = existing_entries_sorted + new_entries_sorted
 
         return entries_with_ids
+
+    @staticmethod
+    def clean_field(field: str) -> str:
+        return field.replace("\0", "") if not is_none_or_empty(field) else ""

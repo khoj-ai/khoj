@@ -173,6 +173,24 @@ async def create_user_by_google_token(token: dict) -> KhojUser:
     return user
 
 
+def set_user_name(user: KhojUser, first_name: str, last_name: str) -> KhojUser:
+    user.first_name = first_name
+    user.last_name = last_name
+    user.save()
+    return user
+
+
+def get_user_name(user: KhojUser):
+    full_name = user.get_full_name()
+    if not is_none_or_empty(full_name):
+        return full_name
+    google_profile: GoogleUser = GoogleUser.objects.filter(user=user).first()
+    if google_profile:
+        return google_profile.given_name
+
+    return None
+
+
 def get_user_subscription(email: str) -> Optional[Subscription]:
     return Subscription.objects.filter(user__email=email).first()
 
@@ -201,7 +219,7 @@ def subscription_to_state(subscription: Subscription) -> str:
         return SubscriptionState.INVALID.value
     elif subscription.type == Subscription.Type.TRIAL:
         # Trial subscription is valid for 7 days
-        if datetime.now(tz=timezone.utc) - subscription.created_at > timedelta(days=7):
+        if datetime.now(tz=timezone.utc) - subscription.created_at > timedelta(days=14):
             return SubscriptionState.EXPIRED.value
 
         return SubscriptionState.TRIAL.value
@@ -291,6 +309,17 @@ def delete_user_requests(window: timedelta = timedelta(days=1)):
     return UserRequests.objects.filter(created_at__lte=datetime.now(tz=timezone.utc) - window).delete()
 
 
+async def aget_user_name(user: KhojUser):
+    full_name = user.get_full_name()
+    if not is_none_or_empty(full_name):
+        return full_name
+    google_profile: GoogleUser = await GoogleUser.objects.filter(user=user).afirst()
+    if google_profile:
+        return google_profile.given_name
+
+    return None
+
+
 async def set_text_content_config(user: KhojUser, object: Type[models.Model], updated_config):
     deduped_files = list(set(updated_config.input_files)) if updated_config.input_files else None
     deduped_filters = list(set(updated_config.input_filter)) if updated_config.input_filter else None
@@ -349,6 +378,13 @@ async def aset_user_search_model(user: KhojUser, search_model_config_id: int):
     return new_config
 
 
+async def aget_user_search_model(user: KhojUser):
+    config = await UserSearchModelConfig.objects.filter(user=user).prefetch_related("setting").afirst()
+    if not config:
+        return None
+    return config.setting
+
+
 class ClientApplicationAdapters:
     @staticmethod
     async def aget_client_application_by_id(client_id: str, client_secret: str):
@@ -357,22 +393,70 @@ class ClientApplicationAdapters:
 
 class ConversationAdapters:
     @staticmethod
-    def get_conversation_by_user(user: KhojUser, client_application: ClientApplication = None):
-        conversation = Conversation.objects.filter(user=user, client=client_application)
-        if conversation.exists():
-            return conversation.first()
-        return Conversation.objects.create(user=user, client=client_application)
+    def get_conversation_by_user(
+        user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None
+    ):
+        if conversation_id:
+            conversation = (
+                Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
+                .order_by("-updated_at")
+                .first()
+            )
+        else:
+            conversation = (
+                Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at").first()
+            ) or Conversation.objects.create(user=user, client=client_application)
+
+        return conversation
 
     @staticmethod
-    async def aget_conversation_by_user(user: KhojUser, client_application: ClientApplication = None):
-        conversation = Conversation.objects.filter(user=user, client=client_application)
-        if await conversation.aexists():
-            return await conversation.afirst()
+    def get_conversation_sessions(user: KhojUser, client_application: ClientApplication = None):
+        return Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at")
+
+    @staticmethod
+    async def aset_conversation_title(
+        user: KhojUser, client_application: ClientApplication, conversation_id: int, title: str
+    ):
+        conversation = await Conversation.objects.filter(
+            user=user, client=client_application, id=conversation_id
+        ).afirst()
+        if conversation:
+            conversation.title = title
+            await conversation.asave()
+            return conversation
+        return None
+
+    @staticmethod
+    def get_conversation_by_id(conversation_id: int):
+        return Conversation.objects.filter(id=conversation_id).first()
+
+    @staticmethod
+    async def acreate_conversation_session(user: KhojUser, client_application: ClientApplication = None):
         return await Conversation.objects.acreate(user=user, client=client_application)
 
     @staticmethod
-    async def adelete_conversation_by_user(user: KhojUser):
-        return await Conversation.objects.filter(user=user).adelete()
+    async def aget_conversation_by_user(
+        user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None, slug: str = None
+    ):
+        if conversation_id:
+            conversation = Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
+        elif slug:
+            conversation = Conversation.objects.filter(user=user, client=client_application, slug=slug)
+        else:
+            conversation = Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at")
+
+        if await conversation.aexists():
+            return await conversation.afirst()
+
+        return await Conversation.objects.acreate(user=user, client=client_application, slug=slug)
+
+    @staticmethod
+    async def adelete_conversation_by_user(
+        user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None
+    ):
+        if conversation_id:
+            return await Conversation.objects.filter(user=user, client=client_application, id=conversation_id).adelete()
+        return await Conversation.objects.filter(user=user, client=client_application).adelete()
 
     @staticmethod
     def has_any_conversation_config(user: KhojUser):
@@ -433,12 +517,30 @@ class ConversationAdapters:
         return await ChatModelOptions.objects.filter().afirst()
 
     @staticmethod
-    def save_conversation(user: KhojUser, conversation_log: dict, client_application: ClientApplication = None):
-        conversation = Conversation.objects.filter(user=user, client=client_application)
-        if conversation.exists():
-            conversation.update(conversation_log=conversation_log)
+    def save_conversation(
+        user: KhojUser,
+        conversation_log: dict,
+        client_application: ClientApplication = None,
+        conversation_id: int = None,
+        user_message: str = None,
+    ):
+        slug = user_message.strip()[:200] if user_message else None
+        if conversation_id:
+            conversation = Conversation.objects.filter(user=user, client=client_application, id=conversation_id).first()
         else:
-            Conversation.objects.create(user=user, conversation_log=conversation_log, client=client_application)
+            conversation = (
+                Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at").first()
+            )
+
+        if conversation:
+            conversation.conversation_log = conversation_log
+            conversation.slug = slug
+            conversation.updated_at = datetime.now(tz=timezone.utc)
+            conversation.save()
+        else:
+            Conversation.objects.create(
+                user=user, conversation_log=conversation_log, client=client_application, slug=slug
+            )
 
     @staticmethod
     def get_conversation_processor_options():
@@ -486,7 +588,7 @@ class ConversationAdapters:
         return await SpeechToTextModelOptions.objects.filter().afirst()
 
     @staticmethod
-    async def aget_conversation_starters(user: KhojUser):
+    async def aget_conversation_starters(user: KhojUser, max_results=3):
         all_questions = []
         if await ReflectiveQuestion.objects.filter(user=user).aexists():
             all_questions = await sync_to_async(ReflectiveQuestion.objects.filter(user=user).values_list)(
@@ -497,7 +599,6 @@ class ConversationAdapters:
             "question", flat=True
         )
 
-        max_results = 3
         all_questions = await sync_to_async(list)(all_questions)  # type: ignore
         if len(all_questions) < max_results:
             return all_questions
@@ -560,6 +661,12 @@ class EntryAdapters:
         return deleted_count
 
     @staticmethod
+    async def adelete_all_entries(user: KhojUser, file_source: str = None):
+        if file_source is None:
+            return await Entry.objects.filter(user=user).adelete()
+        return await Entry.objects.filter(user=user, file_source=file_source).adelete()
+
+    @staticmethod
     def get_existing_entry_hashes_by_file(user: KhojUser, file_path: str):
         return Entry.objects.filter(user=user, file_path=file_path).values_list("hashed_value", flat=True)
 
@@ -593,10 +700,6 @@ class EntryAdapters:
             .distinct("file_path")
             .values_list("file_path", flat=True)
         )
-
-    @staticmethod
-    async def adelete_all_entries(user: KhojUser):
-        return await Entry.objects.filter(user=user).adelete()
 
     @staticmethod
     def get_size_of_indexed_data_in_mb(user: KhojUser):

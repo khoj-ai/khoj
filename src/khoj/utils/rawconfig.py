@@ -21,6 +21,12 @@ class ConfigBase(BaseModel):
         return setattr(self, key, value)
 
 
+class LocationData(BaseModel):
+    city: Optional[str]
+    region: Optional[str]
+    country: Optional[str]
+
+
 class TextConfigBase(ConfigBase):
     compressed_jsonl: Path
     embeddings_file: Path

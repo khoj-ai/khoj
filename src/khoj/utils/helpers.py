@@ -277,9 +277,21 @@ command_descriptions = {
     ConversationCommand.General: "Only talk about information that relies on Khoj's general knowledge, not your personal knowledge base.",
     ConversationCommand.Notes: "Only talk about information that is available in your knowledge base.",
     ConversationCommand.Default: "The default command when no command specified. It intelligently auto-switches between general and notes mode.",
-    ConversationCommand.Online: "Look up information on the internet.",
+    ConversationCommand.Online: "Search for information on the internet.",
     ConversationCommand.Image: "Generate images by describing your imagination in words.",
     ConversationCommand.Help: "Display a help message with all available commands and other metadata.",
+}
+
+tool_descriptions_for_llm = {
+    ConversationCommand.Default: "To use a mix of your internal knowledge and the user's personal knowledge, or if you don't entirely understand the query.",
+    ConversationCommand.General: "Use this when you can answer the question without any outside information or personal knowledge",
+    ConversationCommand.Notes: "To search the user's personal knowledge base. Especially helpful if the question expects context from the user's notes or documents.",
+    ConversationCommand.Online: "To search for the latest, up-to-date information from the internet. Note: **Questions about Khoj should always use this data source**",
+}
+
+mode_descriptions_for_llm = {
+    ConversationCommand.Image: "Use this if you think the user is requesting an image or visual response to their query.",
+    ConversationCommand.Default: "Use this if the other response modes don't seem to fit the query.",
 }
 
 
@@ -319,7 +331,12 @@ def batcher(iterable, max_n):
         yield (x for x in chunk if x is not None)
 
 
+def is_env_var_true(env_var: str, default: str = "false") -> bool:
+    """Get state of boolean environment variable"""
+    return os.getenv(env_var, default).lower() == "true"
+
+
 def in_debug_mode():
     """Check if Khoj is running in debug mode.
     Set KHOJ_DEBUG environment variable to true to enable debug mode."""
-    return os.getenv("KHOJ_DEBUG", "false").lower() == "true"
+    return is_env_var_true("KHOJ_DEBUG")

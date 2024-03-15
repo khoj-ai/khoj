@@ -43,7 +43,7 @@ class StreamingChatCallbackHandler(StreamingStdOutCallbackHandler):
     before_sleep=before_sleep_log(logger, logging.DEBUG),
     reraise=True,
 )
-def completion_with_backoff(**kwargs):
+def completion_with_backoff(**kwargs) -> str:
     messages = kwargs.pop("messages")
     if not "openai_api_key" in kwargs:
         kwargs["openai_api_key"] = os.getenv("OPENAI_API_KEY")
