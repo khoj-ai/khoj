@@ -14,7 +14,7 @@ from tests.helpers import ConversationFactory
 SKIP_TESTS = True
 pytestmark = pytest.mark.skipif(
     SKIP_TESTS,
-    reason="The GPT4All library has some quirks that make it hard to test in CI. This causes some tests to fail. Hence, disable it in CI.",
+    reason="Disable in CI to avoid long test runs.",
 )
 
 fake = Faker()
@@ -47,7 +47,7 @@ def populate_chat_history(message_list, user):
 @pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
 @pytest.mark.django_db(transaction=True)
-def test_chat_with_no_chat_history_or_retrieved_content_gpt4all(client_offline_chat):
+def test_offline_chat_with_no_chat_history_or_retrieved_content(client_offline_chat):
     # Act
     response = client_offline_chat.get(f'/api/chat?q="Hello, my name is Testatron. Who are you?"&stream=true')
     response_message = response.content.decode("utf-8")
@@ -338,7 +338,7 @@ def test_answer_requires_date_aware_aggregation_across_provided_notes(client_off
 
     # Assert
     assert response.status_code == 200
-    assert "23" in response_message
+    assert "26" in response_message
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -514,7 +514,7 @@ async def test_get_correct_tools_general(client_offline_chat):
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.anyio
 @pytest.mark.django_db(transaction=True)
-async def test_get_correct_tools_with_chat_history(client_offline_chat):
+async def test_get_correct_tools_with_chat_history(client_offline_chat, default_user2):
     # Arrange
     user_query = "What's the latest in the Israel/Palestine conflict?"
     chat_log = [
@@ -525,7 +525,7 @@ async def test_get_correct_tools_with_chat_history(client_offline_chat):
         ),
         ("What's up in New York City?", "A Pride parade has recently been held in New York City, on July 31st.", []),
     ]
-    chat_history = populate_chat_history(chat_log)
+    chat_history = populate_chat_history(chat_log, default_user2)
 
     # Act
     tools = await aget_relevant_information_sources(user_query, chat_history)

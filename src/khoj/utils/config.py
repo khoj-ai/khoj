@@ -75,10 +75,7 @@ class GPT4AllProcessorConfig:
 
 
 class GPT4AllProcessorModel:
-    def __init__(
-        self,
-        chat_model: str = "mistral-7b-instruct-v0.1.Q4_0.gguf",
-    ):
+    def __init__(self, chat_model: str = "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF"):
         self.chat_model = chat_model
         self.loaded_model = None
         try:

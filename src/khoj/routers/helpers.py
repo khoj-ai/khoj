@@ -370,27 +370,31 @@ async def send_message_to_model_wrapper(
     if conversation_config is None:
         raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
 
-    truncated_messages = generate_chatml_messages_with_context(
-        user_message=message, system_message=system_message, model_name=conversation_config.chat_model
-    )
+    chat_model = conversation_config.chat_model
 
     if conversation_config.model_type == "offline":
         if state.gpt4all_processor_config is None or state.gpt4all_processor_config.loaded_model is None:
-            state.gpt4all_processor_config = GPT4AllProcessorModel(conversation_config.chat_model)
+            state.gpt4all_processor_config = GPT4AllProcessorModel(chat_model)
 
         loaded_model = state.gpt4all_processor_config.loaded_model
+        truncated_messages = generate_chatml_messages_with_context(
+            user_message=message, system_message=system_message, model_name=chat_model, loaded_model=loaded_model
+        )
+
         return send_message_to_model_offline(
-            message=truncated_messages[-1].content,
+            messages=truncated_messages,
             loaded_model=loaded_model,
-            model=conversation_config.chat_model,
+            model=chat_model,
             streaming=False,
-            system_message=truncated_messages[0].content,
         )
 
     elif conversation_config.model_type == "openai":
         openai_chat_config = await ConversationAdapters.aget_openai_conversation_config()
         api_key = openai_chat_config.api_key
-        chat_model = conversation_config.chat_model
+        truncated_messages = generate_chatml_messages_with_context(
+            user_message=message, system_message=system_message, model_name=chat_model
+        )
+
         openai_response = send_message_to_model(
             messages=truncated_messages, api_key=api_key, model=chat_model, response_type=response_type
         )

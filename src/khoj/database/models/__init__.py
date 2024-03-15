@@ -160,7 +160,7 @@ class ChatModelOptions(BaseModel):
 
     max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
     tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)
-    chat_model = models.CharField(max_length=200, default="mistral-7b-instruct-v0.1.Q4_0.gguf")
+    chat_model = models.CharField(max_length=200, default="NousResearch/Hermes-2-Pro-Mistral-7B-GGUF")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
 
 
