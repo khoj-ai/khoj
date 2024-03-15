@@ -258,7 +258,7 @@ def llm_thread(g, messages: List[ChatMessage], model: Any):
 
 def send_message_to_model_offline(
     message, loaded_model=None, model="mistral-7b-instruct-v0.1.Q4_0.gguf", streaming=False, system_message=""
-):
+) -> str:
     try:
         from gpt4all import GPT4All
     except ModuleNotFoundError as e:

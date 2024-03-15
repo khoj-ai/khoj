@@ -277,16 +277,16 @@ command_descriptions = {
     ConversationCommand.General: "Only talk about information that relies on Khoj's general knowledge, not your personal knowledge base.",
     ConversationCommand.Notes: "Only talk about information that is available in your knowledge base.",
     ConversationCommand.Default: "The default command when no command specified. It intelligently auto-switches between general and notes mode.",
-    ConversationCommand.Online: "Look up information on the internet.",
+    ConversationCommand.Online: "Search for information on the internet.",
     ConversationCommand.Image: "Generate images by describing your imagination in words.",
     ConversationCommand.Help: "Display a help message with all available commands and other metadata.",
 }
 
 tool_descriptions_for_llm = {
-    ConversationCommand.Default: "Use this if there might be a mix of general and personal knowledge in the question, or if you don't entirely understand the query.",
+    ConversationCommand.Default: "To use a mix of your internal knowledge and the user's personal knowledge, or if you don't entirely understand the query.",
     ConversationCommand.General: "Use this when you can answer the question without any outside information or personal knowledge",
-    ConversationCommand.Notes: "Use this when you would like to use the user's personal knowledge base to answer the question. This is especially helpful if the query seems to be missing context.",
-    ConversationCommand.Online: "Use this when you would like to look up information on the internet",
+    ConversationCommand.Notes: "To search the user's personal knowledge base. Especially helpful if the question expects context from the user's notes or documents.",
+    ConversationCommand.Online: "To search for the latest, up-to-date information from the internet. Note: **Questions about Khoj should always use this data source**",
 }
 
 mode_descriptions_for_llm = {

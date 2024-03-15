@@ -384,10 +384,10 @@ const createWindow = (tab = 'chat.html') => {
 
     // Open external links in link handler registered on OS (e.g. browser)
     win.webContents.setWindowOpenHandler(async ({ url }) => {
-        const shouldOpen = { response: 0 };
+        let shouldOpen = { response: 0 };
 
-        if (!url.startsWith('http://')) {
-            // Confirm before opening non-HTTP links
+        if (!url.startsWith(store.get('hostURL'))) {
+            // Confirm before opening external links
             const confirmNotice = `Do you want to open this link? It will be handled by an external application.\n\n${url}`;
             shouldOpen = await dialog.showMessageBox({
                 type: 'question',
