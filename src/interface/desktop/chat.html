@@ -794,7 +794,6 @@
                     chatBody.dataset.conversationId = "";
                     chatBody.dataset.conversationTitle = "";
                     loadChat();
-                    flashStatusInChatInput("🗑 Cleared previous conversation history");
                 })
                 .catch(err => {
                     flashStatusInChatInput("⛔️ Failed to clear conversation history");
@@ -856,28 +855,6 @@
                                 let conversationMenu = document.createElement('div');
                                 conversationMenu.classList.add("conversation-menu");
 
-                                let deleteButton = document.createElement('button');
-                                deleteButton.innerHTML = "Delete";
-                                deleteButton.classList.add("delete-conversation-button");
-                                deleteButton.classList.add("three-dot-menu-button-item");
-                                deleteButton.addEventListener('click', function() {
-                                    let deleteURL = `/api/chat/history?client=web&conversation_id=${incomingConversationId}`;
-                                    fetch(`${hostURL}${deleteURL}` , { method: "DELETE", headers })
-                                        .then(response => response.ok ? response.json() : Promise.reject(response))
-                                        .then(data => {
-                                            let chatBody = document.getElementById("chat-body");
-                                            chatBody.innerHTML = "";
-                                            chatBody.dataset.conversationId = "";
-                                            chatBody.dataset.conversationTitle = "";
-                                            loadChat();
-                                        })
-                                        .catch(err => {
-                                            return;
-                                        });
-                                });
-                                conversationMenu.appendChild(deleteButton);
-                                threeDotMenu.appendChild(conversationMenu);
-
                                 let editTitleButton = document.createElement('button');
                                 editTitleButton.innerHTML = "Rename";
                                 editTitleButton.classList.add("edit-title-button");
@@ -903,12 +880,13 @@
 
                                     conversationTitleInput.addEventListener('click', function(event) {
                                         event.stopPropagation();
+                                    });
+                                    conversationTitleInput.addEventListener('keydown', function(event) {
                                         if (event.key === "Enter") {
                                             event.preventDefault();
                                             conversationTitleInputButton.click();
                                         }
                                     });
-
                                     conversationTitleInputBox.appendChild(conversationTitleInput);
                                     let conversationTitleInputButton = document.createElement('button');
                                     conversationTitleInputButton.innerHTML = "Save";
@@ -931,7 +909,34 @@
                                     conversationTitleInputBox.appendChild(conversationTitleInputButton);
                                     conversationMenu.appendChild(conversationTitleInputBox);
                                 });
+
                                 conversationMenu.appendChild(editTitleButton);
+                                threeDotMenu.appendChild(conversationMenu);
+
+                                let deleteButton = document.createElement('button');
+                                deleteButton.innerHTML = "Delete";
+                                deleteButton.classList.add("delete-conversation-button");
+                                deleteButton.classList.add("three-dot-menu-button-item");
+                                deleteButton.addEventListener('click', function() {
+                                    // Ask for confirmation before deleting chat session
+                                    let confirmation = confirm('Are you sure you want to delete this chat session?');
+                                    if (!confirmation) return;
+                                    let deleteURL = `/api/chat/history?client=web&conversation_id=${incomingConversationId}`;
+                                    fetch(`${hostURL}${deleteURL}` , { method: "DELETE", headers })
+                                        .then(response => response.ok ? response.json() : Promise.reject(response))
+                                        .then(data => {
+                                            let chatBody = document.getElementById("chat-body");
+                                            chatBody.innerHTML = "";
+                                            chatBody.dataset.conversationId = "";
+                                            chatBody.dataset.conversationTitle = "";
+                                            loadChat();
+                                        })
+                                        .catch(err => {
+                                            return;
+                                        });
+                                });
+
+                                conversationMenu.appendChild(deleteButton);
                                 threeDotMenu.appendChild(conversationMenu);
                             });
                             threeDotMenu.appendChild(threeDotMenuButton);
