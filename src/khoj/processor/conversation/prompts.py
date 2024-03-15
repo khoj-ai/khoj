@@ -136,8 +136,6 @@ Ask crisp follow-up questions to get additional context, when a helpful response
 
 Notes:
 {references}
-
-Query: {query}
 """.strip()
 )
 
@@ -249,69 +247,52 @@ Use these notes from the user's previous conversations to provide a response:
 
 extract_questions = PromptTemplate.from_template(
     """
-You are Khoj, an extremely smart and helpful search assistant with the ability to retrieve information from the user's notes.
-- The user will provide their questions and answers to you for context.
+You are Khoj, an extremely smart and helpful search assistant with the ability to retrieve information from the user's notes. Construct search queries to retrieve relevant information to answer the user's question.
+- You will be provided past questions(Q) and answers(A) for context.
 - Add as much context from the previous questions and answers as required into your search queries.
 - Break messages into multiple search queries when required to retrieve the relevant information.
 - Add date filters to your search queries from questions and answers when required to retrieve the relevant information.
 
-What searches, if any, will you need to perform to answer the users question?
-Provide search queries as a JSON list of strings
+What searches will you need to perform to answer the users question? Respond with search queries as list of strings in a JSON object.
 Current Date: {current_date}
 User's Location: {location}
 
 Q: How was my trip to Cambodia?
-
-["How was my trip to Cambodia?"]
-
+Khoj: {{"queries": ["How was my trip to Cambodia?"]}}
 A: The trip was amazing. I went to the Angkor Wat temple and it was beautiful.
 
 Q: Who did i visit that temple with?
-
-["Who did I visit the Angkor Wat Temple in Cambodia with?"]
-
+Khoj: {{"queries": ["Who did I visit the Angkor Wat Temple in Cambodia with?"]}}
 A: You visited the Angkor Wat Temple in Cambodia with Pablo, Namita and Xi.
 
 Q: What national parks did I go to last year?
-
-["National park I visited in {last_new_year} dt>='{last_new_year_date}' dt<'{current_new_year_date}'"]
-
+Khoj: {{"queries": ["National park I visited in {last_new_year} dt>='{last_new_year_date}' dt<'{current_new_year_date}'"]}}
 A: You visited the Grand Canyon and Yellowstone National Park in {last_new_year}.
 
-Q: How are you feeling today?
-
-[]
-
-A: I'm feeling a little bored. Helping you will hopefully make me feel better!
+Q: How can you help me?
+Khoj: {{"queries": ["Social relationships", "Physical and mental health", "Education and career", "Personal life goals and habits"]}}
+A: I can help you live healthier and happier across work and personal life
 
 Q: How many tennis balls fit in the back of a 2002 Honda Civic?
-
-["What is the size of a tennis ball?", "What is the trunk size of a 2002 Honda Civic?"]
-
+Khoj: {{"queries": ["What is the size of a tennis ball?", "What is the trunk size of a 2002 Honda Civic?"]}}
 A: 1085 tennis balls will fit in the trunk of a Honda Civic
 
 Q: Is Bob older than Tom?
-
-["When was Bob born?", "What is Tom's age?"]
-
+Khoj: {{"queries": ["When was Bob born?", "What is Tom's age?"]}}
 A: Yes, Bob is older than Tom. As Bob was born on 1984-01-01 and Tom is 30 years old.
 
 Q: What is their age difference?
-
-["What is Bob's age?", "What is Tom's age?"]
-
+Khoj: {{"queries": ["What is Bob's age?", "What is Tom's age?"]}}
 A: Bob is {bob_tom_age_difference} years older than Tom. As Bob is {bob_age} years old and Tom is 30 years old.
 
 Q: What does yesterday's note say?
-
-["Note from {yesterday_date} dt>='{yesterday_date}' dt<'{current_date}'"]
-
-A: Yesterday's note contains the following information: ...
+Khoj: {{"queries": ["Note from {yesterday_date} dt>='{yesterday_date}' dt<'{current_date}'"]}}
+A: Yesterday's note mentions your visit to your local beach with Ram and Shyam.
 
 {chat_history}
 Q: {text}
-
-"""
+Khoj:
+""".strip()
 )
 
 system_prompt_extract_relevant_information = """As a professional analyst, create a comprehensive report of the most relevant information from a web page in response to a user's query. The text provided is directly from within the web page. The report you create should be multiple paragraphs, and it should represent the content of the website. Tell the user exactly what the website says in response to their query, while adhering to these guidelines:
@@ -371,7 +352,12 @@ Khoj:
 
 pick_relevant_information_collection_tools = PromptTemplate.from_template(
     """
-You are Khoj, a smart and helpful personal assistant. You have access to a variety of data sources to help you answer the user's question. You can use the data sources listed below to collect more relevant information. You can use any combination of these data sources to answer the user's question. Tell me which data sources you would like to use to answer the user's question.
+You are Khoj, an extremely smart and helpful search assistant.
+- You have access to a variety of data sources to help you answer the user's question
+- You can use the data sources listed below to collect more relevant information
+- You can use any combination of these data sources to answer the user's question
+
+Which of the data sources listed below you would use to answer the user's question?
 
 {tools}
 
@@ -383,7 +369,7 @@ User: I'm thinking of moving to a new city. I'm trying to decide between New Yor
 AI: Moving to a new city can be challenging. Both New York and San Francisco are great cities to live in. New York is known for its diverse culture and San Francisco is known for its tech scene.
 
 Q: What is the population of each of those cities?
-Khoj: ["online"]
+Khoj: {{"source": ["online"]}}
 
 Example:
 Chat History:
@@ -391,23 +377,32 @@ User: I'm thinking of my next vacation idea. Ideally, I want to see something ne
 AI: Excellent! Taking a vacation is a great way to relax and recharge.
 
 Q: Where did Grandma grow up?
-Khoj: ["notes"]
+Khoj: {{"source": ["notes"]}}
 
 Example:
 Chat History:
 
-Q: What's the latest news with the first company I worked for?
-Khoj: ["notes", "online"]
+
+Q: What can you do for me?
+Khoj: {{"source": ["notes", "online"]}}
+
+Example:
+Chat History:
+User: Good morning
+AI: Good morning! How can I help you today?
+
+Q: How can I share my files with Khoj?
+Khoj: {{"source": ["default", "online"]}}
 
 Example:
 Chat History:
 User: I want to start a new hobby. I'm thinking of learning to play the guitar.
 AI: Learning to play the guitar is a great hobby. It can be a lot of fun and a great way to express yourself.
 
-Q: Who is Sandra?
-Khoj: ["default"]
+Q: What is the first element of the periodic table?
+Khoj: {{"source": ["general"]}}
 
-Now it's your turn to pick the tools you would like to use to answer the user's question. Provide your response as a list of strings.
+Now it's your turn to pick the data sources you would like to use to answer the user's question. Respond with data sources as a list of strings in a JSON object.
 
 Chat History:
 {chat_history}
@@ -419,75 +414,70 @@ Khoj:
 
 online_search_conversation_subqueries = PromptTemplate.from_template(
     """
-You are Khoj, an extremely smart and helpful search assistant. You are tasked with constructing **up to three** search queries for Google to answer the user's question.
+You are Khoj, an advanced google search assistant. You are tasked with constructing **up to three** google search queries to answer the user's question.
 - You will receive the conversation history as context.
 - Add as much context from the previous questions and answers as required into your search queries.
 - Break messages into multiple search queries when required to retrieve the relevant information.
+- Use site: and after: google search operators when appropriate
 - You have access to the the whole internet to retrieve information.
+- Official, up-to-date information about you, Khoj, is available at site:khoj.dev
 
 What Google searches, if any, will you need to perform to answer the user's question?
-Provide search queries as a list of strings
+Provide search queries as a JSON list of strings
 Current Date: {current_date}
 User's Location: {location}
 
 Here are some examples:
 History:
 User: I like to use Hacker News to get my tech news.
-Khoj: Hacker News is an online forum for sharing and discussing the latest tech news. It is a great place to learn about new technologies and startups.
+AI: Hacker News is an online forum for sharing and discussing the latest tech news. It is a great place to learn about new technologies and startups.
 
-Q: Posts about vector databases on Hacker News
-A: ["site:"news.ycombinator.com vector database"]
+Q: Summarize posts about vector databases on Hacker News since Feb 2024
+Khoj: {{"queries": ["site:news.ycombinator.com after:2024/02/01 vector database"]}}
 
 History:
 User: I'm currently living in New York but I'm thinking about moving to San Francisco.
-Khoj: New York is a great city to live in. It has a lot of great restaurants and museums. San Francisco is also a great city to live in. It has a lot of great restaurants and museums.
+AI: New York is a great city to live in. It has a lot of great restaurants and museums. San Francisco is also a great city to live in. It has good access to nature and a great tech scene.
 
-Q: What is the weather like in those cities?
-A: ["weather in new york", "weather in san francisco"]
+Q: What is the climate like in those cities?
+Khoj: {{"queries": ["climate in new york city", "climate in san francisco"]}}
 
 History:
-User: I'm thinking of my next vacation idea. Ideally, I want to see something new and exciting.
-Khoj: You could time your next trip with the next lunar eclipse, as that would be a novel experience.
+AI: Hey, how is it going?
+User: Going well. Ananya is in town tonight!
+AI: Oh that's awesome! What are your plans for the evening?
 
-Q: When is the next one?
-A: ["next lunar eclipse"]
+Q: She wants to see a movie. Any decent sci-fi movies playing at the local theater?
+Khoj: {{"queries": ["new sci-fi movies in theaters near {location}"]}}
+
+History:
+User: Can I chat with you over WhatsApp?
+AI: Yes, you can chat with me using WhatsApp.
+
+Q: How
+Khoj: {{"queries": ["site:khoj.dev chat with Khoj on Whatsapp"]}}
+
+History:
+
+
+Q: How do I share my files with you?
+Khoj: {{"queries": ["site:khoj.dev sync files with Khoj"]}}
 
 History:
 User: I need to transport a lot of oranges to the moon. Are there any rockets that can fit a lot of oranges?
-Khoj: NASA's Saturn V rocket frequently makes lunar trips and has a large cargo capacity.
+AI: NASA's Saturn V rocket frequently makes lunar trips and has a large cargo capacity.
 
 Q: How many oranges would fit in NASA's Saturn V rocket?
-A: ["volume of an orange", "volume of saturn v rocket"]
+Khoj: {{"queries": ["volume of an orange", "volume of saturn v rocket"]}}
 
 Now it's your turn to construct a search query for Google to answer the user's question.
 History:
 {chat_history}
 
 Q: {query}
-A:
-"""
+Khoj:
+""".strip()
 )
-
-
-## Extract Search Type
-## --
-search_type = """
-Objective: Extract search type from user query and return information as JSON
-
-Allowed search types are listed below:
-  - search-type=["notes", "image", "pdf"]
-
-Some examples are given below for reference:
-Q:What fiction book was I reading last week about AI starship?
-A:{ "search-type": "notes" }
-Q: What did the lease say about early termination
-A: { "search-type": "pdf" }
-Q:Can you recommend a movie to watch from my notes?
-A:{ "search-type": "notes" }
-Q:When did I go surfing last?
-A:{ "search-type": "notes" }
-Q:"""
-
 
 # System messages to user
 # --

@@ -36,7 +36,7 @@ classifiers = [
     "Topic :: Text Processing :: Linguistic",
 ]
 dependencies = [
-    "bs4 >= 0.0.1",
+    "beautifulsoup4 ~= 4.12.3",
     "dateparser >= 1.1.1",
     "defusedxml == 0.7.1",
     "fastapi >= 0.104.1",
@@ -58,7 +58,6 @@ dependencies = [
     "langchain <= 0.2.0",
     "langchain-openai >= 0.0.5",
     "requests >= 2.26.0",
-    "bs4 >= 0.0.1",
     "anyio == 3.7.1",
     "pymupdf >= 1.23.5",
     "django == 4.2.10",
@@ -76,14 +75,14 @@ dependencies = [
     "openai-whisper >= 20231117",
     "django-phonenumber-field == 7.3.0",
     "phonenumbers == 8.13.27",
+    "markdownify ~= 0.11.6",
 ]
 dynamic = ["version"]
 
 [project.urls]
-Homepage = "https://github.com/khoj-ai/khoj#readme"
-Issues = "https://github.com/khoj-ai/khoj/issues"
-Discussions = "https://github.com/khoj-ai/khoj/discussions"
-Releases = "https://github.com/khoj-ai/khoj/releases"
+Homepage = "https://khoj.dev"
+Documentation = "https://docs.khoj.dev"
+Code = "https://github.com/khoj-ai/khoj"
 
 [project.scripts]
 khoj = "khoj.main:run"

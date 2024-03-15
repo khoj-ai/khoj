@@ -357,15 +357,16 @@
 
             let numReferences = 0;
 
-            if (Array.isArray(references)) {
-                numReferences = references.length;
+            if (references.hasOwnProperty("notes")) {
+                numReferences += references["notes"].length;
 
-                references.forEach((reference, index) => {
+                references["notes"].forEach((reference, index) => {
                     let polishedReference = generateReference(reference, index);
                     referenceSection.appendChild(polishedReference);
                 });
-            } else {
-                numReferences += processOnlineReferences(referenceSection, references);
+            }
+            if (references.hasOwnProperty("online")){
+                numReferences += processOnlineReferences(referenceSection, references["online"]);
             }
 
             let referenceExpandButton = document.createElement('button');
@@ -511,7 +512,7 @@
                 // Handle streamed response of type text/event-stream or text/plain
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
-                let references = null;
+                let references = {};
 
                 readStream();
 
@@ -519,8 +520,8 @@
                     reader.read().then(({ done, value }) => {
                         if (done) {
                             // Append any references after all the data has been streamed
-                            if (references != null) {
-                                newResponseText.appendChild(references);
+                            if (references != {}) {
+                                newResponseText.appendChild(createReferenceSection(references));
                             }
                             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
                             document.getElementById("chat-input").removeAttribute("disabled");
@@ -538,7 +539,11 @@
 
                             const rawReference = chunk.split("### compiled references:")[1];
                             const rawReferenceAsJson = JSON.parse(rawReference);
-                            references = createReferenceSection(rawReferenceAsJson);
+                            if (rawReferenceAsJson instanceof Array) {
+                                references["notes"] = rawReferenceAsJson;
+                            } else if (typeof rawReferenceAsJson === "object" && rawReferenceAsJson !== null) {
+                                references["online"] = rawReferenceAsJson;
+                            }
                             readStream();
                         } else {
                             // Display response from Khoj

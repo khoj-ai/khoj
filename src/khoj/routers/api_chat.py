@@ -14,7 +14,7 @@ from khoj.database.adapters import ConversationAdapters, EntryAdapters, aget_use
 from khoj.database.models import KhojUser
 from khoj.processor.conversation.prompts import help_message, no_entries_found
 from khoj.processor.conversation.utils import save_to_conversation_log
-from khoj.processor.tools.online_search import search_with_google
+from khoj.processor.tools.online_search import search_online
 from khoj.routers.api import extract_references_and_questions
 from khoj.routers.helpers import (
     ApiUserRateLimiter,
@@ -305,7 +305,7 @@ async def chat(
 
     if ConversationCommand.Online in conversation_commands:
         try:
-            online_results = await search_with_google(defiltered_query, meta_log, location)
+            online_results = await search_online(defiltered_query, meta_log, location)
         except ValueError as e:
             return StreamingResponse(
                 iter(["Please set your SERPER_DEV_API_KEY to get started with online searches 🌐"]),

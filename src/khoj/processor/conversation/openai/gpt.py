@@ -12,7 +12,6 @@ from khoj.processor.conversation.openai.utils import (
     completion_with_backoff,
 )
 from khoj.processor.conversation.utils import generate_chatml_messages_with_context
-from khoj.utils.constants import empty_escape_sequences
 from khoj.utils.helpers import ConversationCommand, is_none_or_empty
 from khoj.utils.rawconfig import LocationData
 
@@ -21,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def extract_questions(
     text,
-    model: Optional[str] = "gpt-4",
+    model: Optional[str] = "gpt-4-turbo-preview",
     conversation_log={},
     api_key=None,
     temperature=0,
@@ -36,9 +35,9 @@ def extract_questions(
     # Extract Past User Message and Inferred Questions from Conversation Log
     chat_history = "".join(
         [
-            f'Q: {chat["intent"]["query"]}\n\n{chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}\n\n{chat["message"]}\n\n'
+            f'Q: {chat["intent"]["query"]}\nKhoj: {{"queries": {chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}}}\nA: {chat["message"]}\n\n'
             for chat in conversation_log.get("chat", [])[-4:]
-            if chat["by"] == "khoj" and chat["intent"].get("type") != "text-to-image"
+            if chat["by"] == "khoj" and "text-to-image" not in chat["intent"].get("type")
         ]
     )
 
@@ -67,7 +66,7 @@ def extract_questions(
         model_name=model,
         temperature=temperature,
         max_tokens=max_tokens,
-        model_kwargs={"stop": ["A: ", "\n"]},
+        model_kwargs={"stop": ["A: ", "\n"], "response_format": {"type": "json_object"}},
         openai_api_key=api_key,
     )
 
@@ -75,8 +74,8 @@ def extract_questions(
     try:
         response = response.strip()
         response = json.loads(response)
-        response = [q.strip() for q in response if q.strip()]
-        if not isinstance(response, list) or not response or len(response) == 0:
+        response = [q.strip() for q in response["queries"] if q.strip()]
+        if not isinstance(response, list) or not response:
             logger.error(f"Invalid response for constructing subqueries: {response}")
             return [text]
         return response
@@ -88,11 +87,7 @@ def extract_questions(
     return questions
 
 
-def send_message_to_model(
-    messages,
-    api_key,
-    model,
-):
+def send_message_to_model(messages, api_key, model, response_type="text"):
     """
     Send message to model
     """
@@ -102,6 +97,7 @@ def send_message_to_model(
         messages=messages,
         model=model,
         openai_api_key=api_key,
+        model_kwargs={"response_format": {"type": response_type}},
     )
 
 
@@ -155,14 +151,11 @@ def converse(
         return iter([prompts.no_online_results_found.format()])
 
     if ConversationCommand.Online in conversation_commands:
-        simplified_online_results = online_results.copy()
-        for result in online_results:
-            if online_results[result].get("extracted_content"):
-                simplified_online_results[result] = online_results[result]["extracted_content"]
-
-        conversation_primer = f"{prompts.online_search_conversation.format(online_results=str(simplified_online_results))}\n{conversation_primer}"
+        conversation_primer = (
+            f"{prompts.online_search_conversation.format(online_results=str(online_results))}\n{conversation_primer}"
+        )
     if not is_none_or_empty(compiled_references):
-        conversation_primer = f"{prompts.notes_conversation.format(query=user_query, references=compiled_references)}\n{conversation_primer}"
+        conversation_primer = f"{prompts.notes_conversation.format(query=user_query, references=compiled_references)}\n\n{conversation_primer}"
 
     # Setup Prompt with Primer or Conversation History
     messages = generate_chatml_messages_with_context(

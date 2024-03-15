@@ -16,11 +16,10 @@ from khoj.utils.helpers import is_none_or_empty, merge_dicts
 logger = logging.getLogger(__name__)
 model_to_prompt_size = {
     "gpt-3.5-turbo": 3000,
-    "gpt-4": 7000,
-    "gpt-4-1106-preview": 7000,
+    "gpt-3.5-turbo-0125": 3000,
+    "gpt-4-0125-preview": 7000,
     "gpt-4-turbo-preview": 7000,
     "llama-2-7b-chat.ggmlv3.q4_0.bin": 1548,
-    "gpt-3.5-turbo-16k": 15000,
     "mistral-7b-instruct-v0.1.Q4_0.gguf": 1548,
 }
 model_to_tokenizer = {
@@ -64,7 +63,7 @@ class ThreadedGenerator:
     def close(self):
         if self.compiled_references and len(self.compiled_references) > 0:
             self.queue.put(f"### compiled references:{json.dumps(self.compiled_references)}")
-        elif self.online_results and len(self.online_results) > 0:
+        if self.online_results and len(self.online_results) > 0:
             self.queue.put(f"### compiled references:{json.dumps(self.online_results)}")
         self.queue.put(StopIteration)
 
