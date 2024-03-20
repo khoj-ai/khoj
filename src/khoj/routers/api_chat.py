@@ -358,7 +358,7 @@ async def websocket_endpoint(
             try:
                 await send_status_update("**Operation**: Searching the web for relevant information...")
                 online_results = await search_online(defiltered_query, meta_log, location)
-                online_searches = "".join([f"{query}" for query in online_results.keys()])
+                online_searches = ", ".join([f"{query}" for query in online_results.keys()])
                 await send_status_update(f"**Online searches**: {online_searches}")
             except ValueError as e:
                 await send_complete_llm_response(
