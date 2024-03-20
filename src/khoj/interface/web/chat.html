@@ -45,10 +45,19 @@ To get started, just start typing below. You can also type / to see a list of co
                 }, 1000);
             });
         }
+        var websocket = null;
 
         let region = null;
         let city = null;
         let countryName = null;
+
+        let websocketState = {
+            newResponseText: null,
+            newResponseElement: null,
+            loadingEllipsis: null,
+            references: {},
+            rawResponse: "",
+        }
 
         fetch("https://ipapi.co/json")
             .then(response => response.json())
@@ -404,6 +413,12 @@ To get started, just start typing below. You can also type / to see a list of co
 
         async function chat() {
             // Extract required fields for search from form
+
+            if (websocket) {
+                sendMessageViaWebSocket();
+                return;
+            }
+
             let query = document.getElementById("chat-input").value.trim();
             let resultsCount = localStorage.getItem("khojResultsCount") || 5;
             console.log(`Query: ${query}`);
@@ -429,9 +444,6 @@ To get started, just start typing below. You can also type / to see a list of co
                 refreshChatSessionsPanel();
             }
 
-            // Generate backend API URL to execute query
-            let url = `/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}&region=${region}&city=${city}&country=${countryName}`;
-
             let new_response = document.createElement("div");
             new_response.classList.add("chat-message", "khoj");
             new_response.attributes["data-meta"] = "🏮 Khoj at " + formatDate(new Date());
@@ -441,6 +453,79 @@ To get started, just start typing below. You can also type / to see a list of co
             newResponseText.classList.add("chat-message-text", "khoj");
             new_response.appendChild(newResponseText);
 
+            // Temporary status message to indicate that Khoj is thinking
+            let loadingEllipsis = createLoadingEllipse();
+
+            newResponseText.appendChild(loadingEllipsis);
+            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+
+            let chatTooltip = document.getElementById("chat-tooltip");
+            chatTooltip.style.display = "none";
+
+            let chatInput = document.getElementById("chat-input");
+            chatInput.classList.remove("option-enabled");
+
+            // Generate backend API URL to execute query
+            let url = `/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}&region=${region}&city=${city}&country=${countryName}`;
+
+            // Call specified Khoj API
+            let response = await fetch(url);
+            let rawResponse = "";
+            let references = null;
+            const contentType = response.headers.get("content-type");
+
+            if (contentType === "application/json") {
+                // Handle JSON response
+                try {
+                    const responseAsJson = await response.json();
+                    if (responseAsJson.image || responseAsJson.detail) {
+                        ({rawResponse, references } = handleImageResponse(responseAsJson, rawResponse));
+                    } else {
+                        rawResponse = responseAsJson.response;
+                    }
+                } catch (error) {
+                    // If the chunk is not a JSON object, just display it as is
+                    rawResponse += chunk;
+                } finally {
+                    addMessageToChatBody(rawResponse, newResponseText, references);
+                }
+            } else {
+                // Handle streamed response of type text/event-stream or text/plain
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let references = {};
+
+                readStream();
+
+                function readStream() {
+                    reader.read().then(({ done, value }) => {
+                        if (done) {
+                            // Append any references after all the data has been streamed
+                            finalizeChatBodyResponse(references, newResponseText);
+                            return;
+                        }
+
+                        // Decode message chunk from stream
+                        const chunk = decoder.decode(value, { stream: true });
+
+                        if (chunk.includes("### compiled references:")) {
+                            ({ rawResponse, references } = handleCompiledReferences(newResponseText, chunk, references, rawResponse));
+                            readStream();
+                        } else {
+                            // If the chunk is not a JSON object, just display it as is
+                            rawResponse += chunk;
+                            handleStreamResponse(newResponseText, rawResponse, loadingEllipsis);
+                            readStream();
+                        }
+                    });
+
+                    // Scroll to bottom of chat window as chat response is streamed
+                    document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+                };
+            }
+        };
+
+        function createLoadingEllipse() {
             // Temporary status message to indicate that Khoj is thinking
             let loadingEllipsis = document.createElement("div");
             loadingEllipsis.classList.add("lds-ellipsis");
@@ -462,115 +547,79 @@ To get started, just start typing below. You can also type / to see a list of co
             loadingEllipsis.appendChild(thirdEllipsis);
             loadingEllipsis.appendChild(fourthEllipsis);
 
-            newResponseText.appendChild(loadingEllipsis);
-            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+            return loadingEllipsis;
+        }
 
-            let chatTooltip = document.getElementById("chat-tooltip");
-            chatTooltip.style.display = "none";
-
-            let chatInput = document.getElementById("chat-input");
-            chatInput.classList.remove("option-enabled");
-
-            // Call specified Khoj API
-            let response = await fetch(url);
-            let rawResponse = "";
-            let references = null;
-            const contentType = response.headers.get("content-type");
-
-            if (contentType === "application/json") {
-                // Handle JSON response
-                try {
-                    const responseAsJson = await response.json();
-                    if (responseAsJson.image) {
-                        // If response has image field, response is a generated image.
-                        if (responseAsJson.intentType === "text-to-image") {
-                            rawResponse += `![${query}](data:image/png;base64,${responseAsJson.image})`;
-                        } else if (responseAsJson.intentType === "text-to-image2") {
-                            rawResponse += `![${query}](${responseAsJson.image})`;
-                        }
-                        const inferredQuery = responseAsJson.inferredQueries?.[0];
-                        if (inferredQuery) {
-                            rawResponse += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
-                        }
-                    }
-                    if (responseAsJson.context && responseAsJson.context.length > 0) {
-                        const rawReferenceAsJson = responseAsJson.context;
-                        references = createReferenceSection(rawReferenceAsJson);
-                    }
-                    if (responseAsJson.detail) {
-                        // If response has detail field, response is an error message.
-                        rawResponse += responseAsJson.detail;
-                    }
-                } catch (error) {
-                    // If the chunk is not a JSON object, just display it as is
-                    rawResponse += chunk;
-                } finally {
-                    newResponseText.innerHTML = "";
-                    newResponseText.appendChild(formatHTMLMessage(rawResponse));
-
-                    if (references != null) {
-                        newResponseText.appendChild(references);
-                    }
-
-                    document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
-                    document.getElementById("chat-input").removeAttribute("disabled");
-                }
-            } else {
-                // Handle streamed response of type text/event-stream or text/plain
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let references = {};
-
-                readStream();
-
-                function readStream() {
-                    reader.read().then(({ done, value }) => {
-                        if (done) {
-                            // Append any references after all the data has been streamed
-                            if (references != {}) {
-                                newResponseText.appendChild(createReferenceSection(references));
-                            }
-                            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
-                            document.getElementById("chat-input").removeAttribute("disabled");
-                            return;
-                        }
-
-                        // Decode message chunk from stream
-                        const chunk = decoder.decode(value, { stream: true });
-
-                        if (chunk.includes("### compiled references:")) {
-                            const additionalResponse = chunk.split("### compiled references:")[0];
-                            rawResponse += additionalResponse;
-                            newResponseText.innerHTML = "";
-                            newResponseText.appendChild(formatHTMLMessage(rawResponse));
-
-                            const rawReference = chunk.split("### compiled references:")[1];
-                            const rawReferenceAsJson = JSON.parse(rawReference);
-                            if (rawReferenceAsJson instanceof Array) {
-                                references["notes"] = rawReferenceAsJson;
-                            } else if (typeof rawReferenceAsJson === "object" && rawReferenceAsJson !== null) {
-                                references["online"] = rawReferenceAsJson;
-                            }
-                            readStream();
-                        } else {
-                            // Display response from Khoj
-                            if (newResponseText.getElementsByClassName("lds-ellipsis").length > 0) {
-                                newResponseText.removeChild(loadingEllipsis);
-                            }
-
-                            // If the chunk is not a JSON object, just display it as is
-                            rawResponse += chunk;
-                            newResponseText.innerHTML = "";
-                            newResponseText.appendChild(formatHTMLMessage(rawResponse));
-                            readStream();
-                        }
-                    });
-
-                    // Scroll to bottom of chat window as chat response is streamed
-                    document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
-                };
+        function handleStreamResponse(newResponseElement, rawResponse, loadingEllipsis, replace=true) {
+            if (newResponseElement.getElementsByClassName("lds-ellipsis").length > 0 && loadingEllipsis) {
+                newResponseElement.removeChild(loadingEllipsis);
             }
-        };
+            if (replace) {
+                newResponseElement.innerHTML = "";
+            }
+            newResponseElement.appendChild(formatHTMLMessage(rawResponse));
+        }
+
+        function handleCompiledReferences(rawResponseElement, chunk, references, rawResponse) {
+            const additionalResponse = chunk.split("### compiled references:")[0];
+            rawResponse += additionalResponse;
+            rawResponseElement.innerHTML = "";
+            rawResponseElement.appendChild(formatHTMLMessage(rawResponse));
+
+            const rawReference = chunk.split("### compiled references:")[1];
+            const rawReferenceAsJson = JSON.parse(rawReference);
+            if (rawReferenceAsJson instanceof Array) {
+                references["notes"] = rawReferenceAsJson;
+            } else if (typeof rawReferenceAsJson === "object" && rawReferenceAsJson !== null) {
+                references["online"] = rawReferenceAsJson;
+            }
+            return { rawResponse, references };
+        }
+
+        function handleImageResponse(imageJson, rawResponse) {
+            if (imageJson.image) {
+                const inferredQuery = imageJson.inferredQueries?.[0] ?? "generated image";
+
+                // If response has image field, response is a generated image.
+                if (imageJson.intentType === "text-to-image") {
+                    rawResponse += `![generated_image](data:image/png;base64,${imageJson.image})`;
+                } else if (imageJson.intentType === "text-to-image2") {
+                    rawResponse += `![generated_image](${imageJson.image})`;
+                }
+                if (inferredQuery) {
+                    rawResponse += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
+                }
+            }
+            let references = {};
+            if (imageJson.context && imageJson.context.length > 0) {
+                const rawReferenceAsJson = imageJson.context;
+                if (rawReferenceAsJson instanceof Array) {
+                    references["notes"] = rawReferenceAsJson;
+                } else if (typeof rawReferenceAsJson === "object" && rawReferenceAsJson !== null) {
+                    references["online"] = rawReferenceAsJson;
+                }
+            }
+            if (imageJson.detail) {
+                // If response has detail field, response is an error message.
+                rawResponse += imageJson.detail;
+            }
+            return { rawResponse, references };
+        }
+
+        function addMessageToChatBody(rawResponse, newResponseElement, references) {
+            newResponseElement.innerHTML = "";
+            newResponseElement.appendChild(formatHTMLMessage(rawResponse));
+
+            finalizeChatBodyResponse(references, newResponseElement);
+        }
+
+        function finalizeChatBodyResponse(references, newResponseElement) {
+            if (references != null && Object.keys(references).length > 0) {
+                newResponseElement.appendChild(createReferenceSection(references));
+            }
+            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+            document.getElementById("chat-input").removeAttribute("disabled");
+        }
 
         function incrementalChat(event) {
             if (!event.shiftKey && event.key === 'Enter') {
@@ -787,6 +836,160 @@ To get started, just start typing below. You can also type / to see a list of co
 
         window.onload = loadChat;
 
+        function setupWebSocket() {
+            let chatBody = document.getElementById("chat-body");
+            let wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            let webSocketUrl = `${wsProtocol}//${window.location.host}/api/chat/ws`;
+
+            websocketState = {
+                newResponseText: null,
+                newResponseElement: null,
+                loadingEllipsis: null,
+                references: {},
+                rawResponse: "",
+            }
+
+            if (chatBody.dataset.conversationId) {
+                webSocketUrl += `?conversation_id=${chatBody.dataset.conversationId}`;
+                webSocketUrl += `&region=${region}&city=${city}&country=${countryName}`;
+
+                websocket = new WebSocket(webSocketUrl);
+                websocket.onmessage = function(event) {
+                    // Get the last element in the chat-body
+                    let chunk = event.data;
+                    if (chunk == "start_llm_response") {
+                        console.log("Started streaming", new Date());
+                    } else if(chunk == "end_llm_response") {
+                        console.log("Stopped streaming", new Date());
+                        // Append any references after all the data has been streamed
+                        finalizeChatBodyResponse(websocketState.references, websocketState.newResponseText);
+
+                        // Reset variables
+
+                        websocketState = {
+                            newResponseText: null,
+                            newResponseElement: null,
+                            loadingEllipsis: null,
+                            references: {},
+                            rawResponse: "",
+                        }
+                    } else {
+                        try {
+                            if (chunk.includes("application/json"))
+                            {
+                                chunk = JSON.parse(chunk);
+                            }
+                        } catch (error) {
+                            // If the chunk is not a JSON object, continue.
+                        }
+
+                        const contentType = chunk["content-type"]
+
+                        if (contentType === "application/json") {
+                            // Handle JSON response
+                            try {
+                                if (chunk.image || chunk.detail) {
+                                    ({rawResponse, references } = handleImageResponse(chunk, websocketState.rawResponse));
+                                    websocketState.rawResponse = rawResponse;
+                                    websocketState.references = references;
+                                } else if (chunk.type == "status") {
+                                    handleStreamResponse(websocketState.newResponseText, chunk.message, null, false);
+                                } else {
+                                    rawResponse = chunk.response;
+                                }
+                            } catch (error) {
+                                // If the chunk is not a JSON object, just display it as is
+                                websocketState.rawResponse += chunk;
+                            } finally {
+                                if (chunk.type != "status") {
+                                    addMessageToChatBody(websocketState.rawResponse, websocketState.newResponseText, websocketState.references);
+                                }
+                            }
+                        } else {
+
+                            // Handle streamed response of type text/event-stream or text/plain
+                            if (chunk && chunk.includes("### compiled references:")) {
+                                ({ rawResponse, references } = handleCompiledReferences(websocketState.newResponseText, chunk, websocketState.references, websocketState.rawResponse));
+                                websocketState.rawResponse = rawResponse;
+                                websocketState.references = references;
+                            } else {
+                                // If the chunk is not a JSON object, just display it as is
+                                websocketState.rawResponse += chunk;
+                                if (websocketState.newResponseText) {
+                                    handleStreamResponse(websocketState.newResponseText, websocketState.rawResponse, websocketState.loadingEllipsis);
+                                }
+                            }
+
+                            // Scroll to bottom of chat window as chat response is streamed
+                            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+                        };
+                    }
+                }
+            };
+            websocket.onclose = function(event) {
+                websocket = null;
+                console.log("WebSocket is closed now.")
+            }
+            websocket.onerror = function(event) {
+                console.log("WebSocket error observed:", event)
+            }
+
+            websocket.onopen = function(event) {
+                console.log("WebSocket is open now.")
+            }
+        }
+
+        function sendMessageViaWebSocket(event) {
+            if (event) {
+                event.preventDefault();
+            }
+
+            let chatBody = document.getElementById("chat-body");
+
+            var query = document.getElementById("chat-input").value.trim();
+            console.log(`Query: ${query}`);
+
+            // Add message by user to chat body
+            renderMessage(query, "you");
+            document.getElementById("chat-input").value = "";
+            autoResize();
+            document.getElementById("chat-input").setAttribute("disabled", "disabled");
+
+            let newResponseElement = document.createElement("div");
+            newResponseElement.classList.add("chat-message", "khoj");
+            newResponseElement.attributes["data-meta"] = "🏮 Khoj at " + formatDate(new Date());
+            chatBody.appendChild(newResponseElement);
+
+            let newResponseText = document.createElement("div");
+            newResponseText.classList.add("chat-message-text", "khoj");
+            newResponseElement.appendChild(newResponseText);
+
+            // Temporary status message to indicate that Khoj is thinking
+            let loadingEllipsis = createLoadingEllipse();
+
+            newResponseText.appendChild(loadingEllipsis);
+            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+
+            let chatTooltip = document.getElementById("chat-tooltip");
+            chatTooltip.style.display = "none";
+
+            let chatInput = document.getElementById("chat-input");
+            chatInput.classList.remove("option-enabled");
+
+            // Call specified Khoj API
+            websocket.send(query);
+            let rawResponse = "";
+            let references = {};
+
+            websocketState = {
+                newResponseText,
+                newResponseElement,
+                loadingEllipsis,
+                references,
+                rawResponse,
+            }
+        }
+
         function loadChat() {
             let chatBody = document.getElementById("chat-body");
             chatBody.innerHTML = "";
@@ -794,6 +997,7 @@ To get started, just start typing below. You can also type / to see a list of co
             let chatHistoryUrl = `/api/chat/history?client=web`;
             if (chatBody.dataset.conversationId) {
                 chatHistoryUrl += `&conversation_id=${chatBody.dataset.conversationId}`;
+                setupWebSocket();
             }
 
             if (window.screen.width < 700) {
@@ -830,6 +1034,7 @@ To get started, just start typing below. You can also type / to see a list of co
                     // Render conversation history, if any
                     let chatBody = document.getElementById("chat-body");
                     chatBody.dataset.conversationId = response.conversation_id;
+                    setupWebSocket();
                     chatBody.dataset.conversationTitle = response.slug || `New conversation 🌱`;
 
                     let agentMetadata = response.agent;
