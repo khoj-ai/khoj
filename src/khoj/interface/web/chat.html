@@ -929,14 +929,19 @@ To get started, just start typing below. You can also type / to see a list of co
             };
             websocket.onclose = function(event) {
                 websocket = null;
-                console.log("WebSocket is closed now.")
+                console.log("WebSocket is closed now.");
+                let greenDot = document.getElementById("connected-green-dot");
+                greenDot.style.display = "none";
             }
             websocket.onerror = function(event) {
-                console.log("WebSocket error observed:", event)
+                console.log("WebSocket error observed:", event);
             }
 
             websocket.onopen = function(event) {
                 console.log("WebSocket is open now.")
+                let greenDot = document.getElementById("connected-green-dot");
+                greenDot.style.display = "flex";
+
             }
         }
 
@@ -1514,6 +1519,10 @@ To get started, just start typing below. You can also type / to see a list of co
             <div id="side-panel-wrapper">
                 <div id="side-panel">
                     <div id="new-conversation">
+                        <div id="connected-green-dot" style="display: none; align-items: center; margin-bottom: 10px;">
+                            <div style="width: 10px; height: 10px; background-color: green; border-radius: 50%; margin-right: 5px;"></div>
+                            <div>Connected</div>
+                        </div>
                         <button class="side-panel-button" id="new-conversation-button" onclick="createNewConversation()">
                             New Topic
                             <svg class="new-convo-button" viewBox="0 0 35 35" fill="#000000" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg">
