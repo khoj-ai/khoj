@@ -61,6 +61,36 @@ async def search(
     dedupe: Optional[bool] = True,
 ):
     user = request.user.object
+
+    results = await execute_search(
+        user=user,
+        q=q,
+        n=n,
+        t=t,
+        r=r,
+        max_distance=max_distance,
+        dedupe=dedupe,
+    )
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="search",
+        **common.__dict__,
+    )
+
+    return results
+
+
+async def execute_search(
+    user: KhojUser,
+    q: str,
+    n: Optional[int] = 5,
+    t: Optional[SearchType] = SearchType.All,
+    r: Optional[bool] = False,
+    max_distance: Optional[Union[float, None]] = None,
+    dedupe: Optional[bool] = True,
+):
     start_time = time.time()
 
     # Run validation checks
@@ -154,13 +184,6 @@ async def search(
     # Cache results
     if user:
         state.query_cache[user.uuid][query_cache_key] = results
-
-    update_telemetry_state(
-        request=request,
-        telemetry_type="api",
-        api="search",
-        **common.__dict__,
-    )
 
     end_time = time.time()
     logger.debug(f"🔍 Search took: {end_time - start_time:.3f} seconds")
@@ -349,14 +372,14 @@ async def extract_references_and_questions(
         for query in inferred_queries:
             n_items = min(n, 3) if using_offline_chat else n
             result_list.extend(
-                await search(
+                await execute_search(
+                    user,
                     f"{query} {filters_in_query}",
-                    request=request,
                     n=n_items,
+                    t=SearchType.All,
                     r=True,
                     max_distance=d,
                     dedupe=False,
-                    common=common,
                 )
             )
         result_list = text_search.deduplicated_search_responses(result_list)
