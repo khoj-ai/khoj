@@ -326,10 +326,13 @@ async def generate_better_image_prompt(
     Generate a better image prompt from the given query
     """
 
-    location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
     today_date = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
 
-    location_prompt = prompts.user_location.format(location=location)
+    if location_data:
+        location = f"{location_data.city}, {location_data.region}, {location_data.country}"
+        location_prompt = prompts.user_location.format(location=location)
+    else:
+        location_prompt = "Unknown"
 
     user_references = "\n\n".join([f"# {item}" for item in note_references])
 
