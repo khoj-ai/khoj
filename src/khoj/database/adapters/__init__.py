@@ -395,7 +395,7 @@ class ConversationAdapters:
     @staticmethod
     def get_conversation_by_user(
         user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None
-    ):
+    ) -> Optional[Conversation]:
         if conversation_id:
             conversation = (
                 Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
@@ -437,7 +437,7 @@ class ConversationAdapters:
     @staticmethod
     async def aget_conversation_by_user(
         user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None, title: str = None
-    ):
+    ) -> Optional[Conversation]:
         if conversation_id:
             return await Conversation.objects.filter(user=user, client=client_application, id=conversation_id).afirst()
         elif title:
@@ -445,7 +445,7 @@ class ConversationAdapters:
         else:
             return await (
                 Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at").afirst()
-            ) or Conversation.objects.acreate(user=user, client=client_application)
+            ) or await Conversation.objects.acreate(user=user, client=client_application)
 
     @staticmethod
     async def adelete_conversation_by_user(

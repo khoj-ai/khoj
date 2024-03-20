@@ -330,7 +330,7 @@ async def chat(
             intent_type=intent_type,
             inferred_queries=[improved_image_prompt],
             client_application=request.user.client_app,
-            conversation_id=conversation_id,
+            conversation_id=conversation.id,
             compiled_references=compiled_references,
             online_results=online_results,
         )
@@ -347,7 +347,7 @@ async def chat(
         conversation_commands,
         user,
         request.user.client_app,
-        conversation_id,
+        conversation.id,
         location,
         user_name,
     )
