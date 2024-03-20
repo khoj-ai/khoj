@@ -70,11 +70,11 @@ class SearchModels:
 
 
 @dataclass
-class GPT4AllProcessorConfig:
+class OfflineChatProcessorConfig:
     loaded_model: Union[Any, None] = None
 
 
-class GPT4AllProcessorModel:
+class OfflineChatProcessorModel:
     def __init__(self, chat_model: str = "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF"):
         self.chat_model = chat_model
         self.loaded_model = None
