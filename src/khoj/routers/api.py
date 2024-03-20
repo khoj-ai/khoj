@@ -327,7 +327,7 @@ async def extract_references_and_questions(
                 defiltered_query,
                 loaded_model=loaded_model,
                 conversation_log=meta_log,
-                should_extract_questions=False,
+                should_extract_questions=True,
                 location_data=location_data,
             )
         elif conversation_config and conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:

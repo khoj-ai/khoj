@@ -1,5 +1,6 @@
+import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from threading import Thread
 from typing import Any, Iterator, List, Union
 
@@ -48,39 +49,36 @@ def extract_questions_offline(
 
     if use_history:
         for chat in conversation_log.get("chat", [])[-4:]:
-            if chat["by"] == "khoj" and chat["intent"].get("type") != "text-to-image":
+            if chat["by"] == "khoj" and "text-to-image" not in chat["intent"].get("type"):
                 chat_history += f"Q: {chat['intent']['query']}\n"
-                chat_history += f"A: {chat['message']}\n"
+                chat_history += f"Khoj: {chat['message']}\n\n"
 
-    current_date = datetime.now().strftime("%Y-%m-%d")
-    last_year = datetime.now().year - 1
-    last_christmas_date = f"{last_year}-12-25"
-    next_christmas_date = f"{datetime.now().year}-12-25"
-    system_prompt = prompts.system_prompt_extract_questions_gpt4all.format(
-        message=(prompts.system_prompt_message_extract_questions_gpt4all)
-    )
-    example_questions = prompts.extract_questions_gpt4all_sample.format(
+    today = datetime.today()
+    yesterday = (today - timedelta(days=1)).strftime("%Y-%m-%d")
+    last_year = today.year - 1
+    example_questions = prompts.extract_questions_offline.format(
         query=text,
         chat_history=chat_history,
-        current_date=current_date,
+        current_date=today.strftime("%Y-%m-%d"),
+        yesterday_date=yesterday,
         last_year=last_year,
-        last_christmas_date=last_christmas_date,
-        next_christmas_date=next_christmas_date,
+        this_year=today.year,
         location=location,
     )
-    messages = generate_chatml_messages_with_context(example_questions, system_message=system_prompt, model_name=model)
+    messages = generate_chatml_messages_with_context(
+        example_questions, model_name=model, loaded_model=offline_chat_model
+    )
 
     state.chat_lock.acquire()
     try:
-        response = offline_chat_model.create_chat_completion(messages, max_tokens=200, top_k=2, temp=0)
-        response = response[0]["choices"][0]["message"]["content"]
+        response = send_message_to_model_offline(messages, loaded_model=offline_chat_model)
     finally:
         state.chat_lock.release()
 
     # Extract, Clean Message from GPT's Response
     try:
         # This will expect to be a list with a single string with a list of questions
-        questions = (
+        questions_str = (
             str(response)
             .strip(empty_escape_sequences)
             .replace("['", '["')
@@ -88,11 +86,8 @@ def extract_questions_offline(
             .replace("</s>", "")
             .replace("']", '"]')
             .replace("', '", '", "')
-            .replace('["', "")
-            .replace('"]', "")
-            .split("? ")
         )
-        questions = [q + "?" for q in questions[:-1]] + [questions[-1]]
+        questions: List[str] = json.loads(questions_str)
         questions = filter_questions(questions)
     except:
         logger.warning(f"Llama returned invalid JSON. Falling back to using user message as search query.\n{response}")
@@ -115,12 +110,12 @@ def filter_questions(questions: List[str]):
         "do not know",
         "do not understand",
     ]
-    filtered_questions = []
+    filtered_questions = set()
     for q in questions:
         if not any([word in q.lower() for word in hint_words]) and not is_none_or_empty(q):
-            filtered_questions.append(q)
+            filtered_questions.add(q)
 
-    return filtered_questions
+    return list(filtered_questions)
 
 
 def converse_offline(
@@ -171,13 +166,13 @@ def converse_offline(
 
         conversation_primer = f"{prompts.online_search_conversation.format(online_results=str(simplified_online_results))}\n{conversation_primer}"
     if not is_none_or_empty(compiled_references_message):
-        conversation_primer = f"{prompts.notes_conversation_gpt4all.format(references=compiled_references_message)}\n{conversation_primer}"
+        conversation_primer = f"{prompts.notes_conversation_offline.format(references=compiled_references_message)}\n{conversation_primer}"
 
     # Setup Prompt with Primer or Conversation History
     current_date = datetime.now().strftime("%Y-%m-%d")
     messages = generate_chatml_messages_with_context(
         conversation_primer,
-        prompts.system_prompt_message_gpt4all.format(current_date=current_date),
+        prompts.system_prompt_offline_chat.format(current_date=current_date),
         conversation_log,
         model_name=model,
         loaded_model=offline_chat_model,
