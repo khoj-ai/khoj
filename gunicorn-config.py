@@ -1,7 +1,7 @@
 import multiprocessing
 
 bind = "0.0.0.0:42110"
-workers = 12
+workers = 8
 worker_class = "uvicorn.workers.UvicornWorker"
 timeout = 120
 keep_alive = 60
