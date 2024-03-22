@@ -225,7 +225,7 @@ async def chat(
     n: Optional[int] = 5,
     d: Optional[float] = 0.18,
     stream: Optional[bool] = False,
-    slug: Optional[str] = None,
+    title: Optional[str] = None,
     conversation_id: Optional[int] = None,
     city: Optional[str] = None,
     region: Optional[str] = None,
@@ -252,10 +252,14 @@ async def chat(
         return StreamingResponse(iter([formatted_help]), media_type="text/event-stream", status_code=200)
 
     conversation = await ConversationAdapters.aget_conversation_by_user(
-        user, request.user.client_app, conversation_id, slug
+        user, request.user.client_app, conversation_id, title
     )
-
-    meta_log = conversation.conversation_log
+    if not conversation:
+        return Response(
+            content=f"No conversation found with requested id, title", media_type="text/plain", status_code=400
+        )
+    else:
+        meta_log = conversation.conversation_log
 
     if conversation_commands == [ConversationCommand.Default]:
         conversation_commands = await aget_relevant_information_sources(q, meta_log)
@@ -327,7 +331,7 @@ async def chat(
             intent_type=intent_type,
             inferred_queries=[improved_image_prompt],
             client_application=request.user.client_app,
-            conversation_id=conversation_id,
+            conversation_id=conversation.id,
             compiled_references=compiled_references,
             online_results=online_results,
         )
@@ -345,7 +349,7 @@ async def chat(
         conversation_commands,
         user,
         request.user.client_app,
-        conversation_id,
+        conversation.id,
         location,
         user_name,
     )
