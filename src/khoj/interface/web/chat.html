@@ -1334,6 +1334,8 @@ To get started, just start typing below. You can also type / to see a list of co
 
                                     conversationTitleInput.addEventListener('click', function(event) {
                                         event.stopPropagation();
+                                    });
+                                    conversationTitleInput.addEventListener('keydown', function(event) {
                                         if (event.key === "Enter") {
                                             event.preventDefault();
                                             conversationTitleInputButton.click();
@@ -1370,6 +1372,9 @@ To get started, just start typing below. You can also type / to see a list of co
                                 deleteButton.classList.add("delete-conversation-button");
                                 deleteButton.classList.add("three-dot-menu-button-item");
                                 deleteButton.addEventListener('click', function() {
+                                    // Ask for confirmation before deleting chat session
+                                    let confirmation = confirm('Are you sure you want to delete this chat session?');
+                                    if (!confirmation) return;
                                     let deleteURL = `/api/chat/history?client=web&conversation_id=${incomingConversationId}`;
                                     fetch(deleteURL , { method: "DELETE" })
                                         .then(response => response.ok ? response.json() : Promise.reject(response))
@@ -1379,7 +1384,6 @@ To get started, just start typing below. You can also type / to see a list of co
                                             chatBody.dataset.conversationId = "";
                                             chatBody.dataset.conversationTitle = "";
                                             loadChat();
-                                            flashStatusInChatInput("🗑 Cleared previous conversation history");
                                         })
                                         .catch(err => {
                                             flashStatusInChatInput("⛔️ Failed to clear conversation history");

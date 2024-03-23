@@ -369,6 +369,7 @@ async def extract_references_and_questions(
     # Collate search results as context for GPT
     with timer("Searching knowledge base took", logger):
         result_list = []
+        logger.info(f"🔍 Searching knowledge base with queries: {inferred_queries}")
         for query in inferred_queries:
             n_items = min(n, 3) if using_offline_chat else n
             result_list.extend(
