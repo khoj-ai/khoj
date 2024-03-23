@@ -87,7 +87,7 @@ class ChatModelOptions(BaseModel):
 class Agent(BaseModel):
     creator = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
     name = models.CharField(max_length=200)
-    tuning = models.TextField()
+    personality = models.TextField()
     avatar = models.URLField(max_length=400, default=None, null=True, blank=True)
     tools = models.JSONField(default=list)  # List of tools the agent has access to, like online search or notes search
     public = models.BooleanField(default=False)

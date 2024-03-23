@@ -399,8 +399,11 @@ class AgentAdapters:
     DEFAULT_AGENT_SLUG = "khoj"
 
     @staticmethod
-    async def aget_agent_by_id(agent_id: int):
-        return await Agent.objects.filter(id=agent_id).afirst()
+    async def aget_agent_by_id(agent_id: int, user: KhojUser):
+        agent = await Agent.objects.filter(id=agent_id).afirst()
+        if agent and (agent.public or agent.creator == user):
+            return agent
+        return None
 
     @staticmethod
     async def aget_agent_by_slug(agent_slug: str):
@@ -446,7 +449,7 @@ class AgentAdapters:
 
         if Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).exists():
             agent = Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).first()
-            agent.tuning = default_personality
+            agent.personality = default_personality
             agent.chat_model = default_conversation_config
             agent.slug = AgentAdapters.DEFAULT_AGENT_SLUG
             agent.name = AgentAdapters.DEFAULT_AGENT_NAME
@@ -459,7 +462,7 @@ class AgentAdapters:
             public=True,
             managed_by_admin=True,
             chat_model=default_conversation_config,
-            tuning=default_personality,
+            personality=default_personality,
             tools=["*"],
             avatar=AgentAdapters.DEFAULT_AGENT_AVATAR,
             slug=AgentAdapters.DEFAULT_AGENT_SLUG,
