@@ -88,7 +88,7 @@ class Agent(BaseModel):
         KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True
     )  # Creator will only be null when the agents are managed by admin
     name = models.CharField(max_length=200)
-    tuning = models.TextField()
+    personality = models.TextField()
     avatar = models.URLField(max_length=400, default=None, null=True, blank=True)
     tools = models.JSONField(default=list)  # List of tools the agent has access to, like online search or notes search
     public = models.BooleanField(default=False)

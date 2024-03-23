@@ -435,7 +435,7 @@ class AgentAdapters:
             public=True,
             managed_by_admin=True,
             chat_model=default_conversation_config,
-            tuning=default_personality,
+            personality=default_personality,
             tools=["*"],
             avatar=AgentAdapters.DEFAULT_AGENT_AVATAR,
         )

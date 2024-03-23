@@ -127,8 +127,10 @@ def converse(
 
     conversation_primer = prompts.query_prompt.format(query=user_query)
 
-    if agent and agent.tuning:
-        system_prompt = prompts.custom_personality.format(name=agent.name, bio=agent.tuning, current_date=current_date)
+    if agent and agent.personality:
+        system_prompt = prompts.custom_personality.format(
+            name=agent.name, bio=agent.personality, current_date=current_date
+        )
     else:
         system_prompt = prompts.personality.format(current_date=current_date)
 
