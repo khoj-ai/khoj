@@ -16,6 +16,7 @@ from pgvector.django import CosineDistance
 from torch import Tensor
 
 from khoj.database.models import (
+    Agent,
     ChatModelOptions,
     ClientApplication,
     Conversation,
@@ -37,6 +38,7 @@ from khoj.database.models import (
     UserRequests,
     UserSearchModelConfig,
 )
+from khoj.processor.conversation import prompts
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
@@ -391,6 +393,58 @@ class ClientApplicationAdapters:
         return await ClientApplication.objects.filter(client_id=client_id, client_secret=client_secret).afirst()
 
 
+class AgentAdapters:
+    DEFAULT_AGENT_NAME = "khoj"
+    DEFAULT_AGENT_AVATAR = "https://khoj-web-bucket.s3.amazonaws.com/lamp-128.png"
+
+    @staticmethod
+    async def aget_agent_by_id(agent_id: int, user: KhojUser):
+        agent = await Agent.objects.filter(id=agent_id).afirst()
+        # Check if it's accessible to the user
+        if agent and (agent.public or agent.creator == user):
+            return agent
+        return None
+
+    @staticmethod
+    def get_all_accessible_agents(user: KhojUser = None):
+        return Agent.objects.filter(Q(public=True) | Q(creator=user)).distinct()
+
+    @staticmethod
+    def get_conversation_agent_by_id(agent_id: int):
+        agent = Agent.objects.filter(id=agent_id).first()
+        if agent == AgentAdapters.get_default_agent():
+            # If the agent is set to the default agent, then return None and let the default application code be used
+            return None
+        return agent
+
+    @staticmethod
+    def get_default_agent():
+        return Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).first()
+
+    @staticmethod
+    def create_default_agent():
+        # First delete the existing default
+        Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).delete()
+
+        default_conversation_config = ConversationAdapters.get_default_conversation_config()
+        default_personality = prompts.personality.format(current_date="placeholder")
+
+        # The default agent is public and managed by the admin. It's handled a little differently than other agents.
+        return Agent.objects.create(
+            name=AgentAdapters.DEFAULT_AGENT_NAME,
+            public=True,
+            managed_by_admin=True,
+            chat_model=default_conversation_config,
+            personality=default_personality,
+            tools=["*"],
+            avatar=AgentAdapters.DEFAULT_AGENT_AVATAR,
+        )
+
+    @staticmethod
+    async def aget_default_agent():
+        return await Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).afirst()
+
+
 class ConversationAdapters:
     @staticmethod
     def get_conversation_by_user(
@@ -431,7 +485,12 @@ class ConversationAdapters:
         return Conversation.objects.filter(id=conversation_id).first()
 
     @staticmethod
-    async def acreate_conversation_session(user: KhojUser, client_application: ClientApplication = None):
+    async def acreate_conversation_session(
+        user: KhojUser, client_application: ClientApplication = None, agent_id: int = None
+    ):
+        if agent_id:
+            agent = await AgentAdapters.aget_agent_by_id(agent_id, user)
+            return await Conversation.objects.acreate(user=user, client=client_application, agent=agent)
         return await Conversation.objects.acreate(user=user, client=client_application)
 
     @staticmethod
@@ -443,9 +502,14 @@ class ConversationAdapters:
         elif title:
             return await Conversation.objects.filter(user=user, client=client_application, title=title).afirst()
         else:
-            return await (
-                Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at").afirst()
-            ) or await Conversation.objects.acreate(user=user, client=client_application)
+            conversation = Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at")
+
+        if await conversation.aexists():
+            return await conversation.prefetch_related("agent").afirst()
+
+        return await (
+            Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at").afirst()
+        ) or await Conversation.objects.acreate(user=user, client=client_application)
 
     @staticmethod
     async def adelete_conversation_by_user(
@@ -603,9 +667,14 @@ class ConversationAdapters:
         return random.sample(all_questions, max_results)
 
     @staticmethod
-    def get_valid_conversation_config(user: KhojUser):
+    def get_valid_conversation_config(user: KhojUser, conversation: Conversation):
         offline_chat_config = ConversationAdapters.get_offline_chat_conversation_config()
-        conversation_config = ConversationAdapters.get_conversation_config(user)
+
+        if conversation.agent and conversation.agent.chat_model:
+            conversation_config = conversation.agent.chat_model
+        else:
+            conversation_config = ConversationAdapters.get_conversation_config(user)
+
         if conversation_config is None:
             conversation_config = ConversationAdapters.get_default_conversation_config()
 

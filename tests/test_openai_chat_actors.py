@@ -414,6 +414,42 @@ My sister, Aiyla is married to Tolga. They have 3 kids, Yildiz, Ali and Ahmet.""
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
+def test_agent_prompt_should_be_used(openai_agent):
+    "Chat actor should ask be tuned to think like an accountant based on the agent definition"
+    # Arrange
+    context = [
+        f"""I went to the store and bought some bananas for 2.20""",
+        f"""I went to the store and bought some apples for 1.30""",
+        f"""I went to the store and bought some oranges for 6.00""",
+    ]
+    expected_responses = ["9.50", "9.5"]
+
+    # Act
+    response_gen = converse(
+        references=context,  # Assume context retrieved from notes for the user_query
+        user_query="What did I buy?",
+        api_key=api_key,
+    )
+    no_agent_response = "".join([response_chunk for response_chunk in response_gen])
+    response_gen = converse(
+        references=context,  # Assume context retrieved from notes for the user_query
+        user_query="What did I buy?",
+        api_key=api_key,
+        agent=openai_agent,
+    )
+    agent_response = "".join([response_chunk for response_chunk in response_gen])
+
+    # Assert that the model without the agent prompt does not include the summary of purchases
+    assert all([expected_response not in no_agent_response for expected_response in expected_responses]), (
+        "Expected chat actor to summarize values of purchases" + no_agent_response
+    )
+    assert any([expected_response in agent_response for expected_response in expected_responses]), (
+        "Expected chat actor to summarize values of purchases" + agent_response
+    )
+
+
+# ----------------------------------------------------------------------------------------------------
 @pytest.mark.anyio
 @pytest.mark.django_db(transaction=True)
 @freeze_time("2024-04-04", ignore=["transformers"])

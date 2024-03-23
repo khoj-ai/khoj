@@ -148,11 +148,12 @@ def chat_sessions(
 async def create_chat_session(
     request: Request,
     common: CommonQueryParams,
+    agent_id: Optional[int] = None,
 ):
     user = request.user.object
 
     # Create new Conversation Session
-    conversation = await ConversationAdapters.acreate_conversation_session(user, request.user.client_app)
+    conversation = await ConversationAdapters.acreate_conversation_session(user, request.user.client_app, agent_id)
 
     response = {"conversation_id": conversation.id}
 
@@ -341,6 +342,7 @@ async def chat(
     llm_response, chat_metadata = await agenerate_chat_response(
         defiltered_query,
         meta_log,
+        conversation,
         compiled_references,
         online_results,
         inferred_queries,

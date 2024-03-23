@@ -13,7 +13,7 @@ from fastapi.requests import Request
 from fastapi.responses import Response
 from starlette.authentication import requires
 
-from khoj.configure import configure_server, initialize_content
+from khoj.configure import initialize_content
 from khoj.database.adapters import (
     ConversationAdapters,
     EntryAdapters,

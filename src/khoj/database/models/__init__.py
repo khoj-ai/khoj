@@ -1,7 +1,10 @@
 import uuid
 
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 from pgvector.django import VectorField
 from phonenumber_field.modelfields import PhoneNumberField
 
@@ -67,6 +70,37 @@ class Subscription(BaseModel):
     type = models.CharField(max_length=20, choices=Type.choices, default=Type.TRIAL)
     is_recurring = models.BooleanField(default=False)
     renewal_date = models.DateTimeField(null=True, default=None, blank=True)
+
+
+class ChatModelOptions(BaseModel):
+    class ModelType(models.TextChoices):
+        OPENAI = "openai"
+        OFFLINE = "offline"
+
+    max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
+    tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)
+    chat_model = models.CharField(max_length=200, default="mistral-7b-instruct-v0.1.Q4_0.gguf")
+    model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
+
+
+class Agent(BaseModel):
+    creator = models.ForeignKey(
+        KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True
+    )  # Creator will only be null when the agents are managed by admin
+    name = models.CharField(max_length=200)
+    personality = models.TextField()
+    avatar = models.URLField(max_length=400, default=None, null=True, blank=True)
+    tools = models.JSONField(default=list)  # List of tools the agent has access to, like online search or notes search
+    public = models.BooleanField(default=False)
+    managed_by_admin = models.BooleanField(default=False)
+    chat_model = models.ForeignKey(ChatModelOptions, on_delete=models.CASCADE)
+
+
+@receiver(pre_save, sender=Agent)
+def check_public_name(sender, instance, **kwargs):
+    if instance.public:
+        if Agent.objects.filter(name=instance.name, public=True).exists():
+            raise ValidationError(f"A public Agent with the name {instance.name} already exists.")
 
 
 class NotionConfig(BaseModel):
@@ -153,17 +187,6 @@ class SpeechToTextModelOptions(BaseModel):
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
 
 
-class ChatModelOptions(BaseModel):
-    class ModelType(models.TextChoices):
-        OPENAI = "openai"
-        OFFLINE = "offline"
-
-    max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
-    tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)
-    chat_model = models.CharField(max_length=200, default="mistral-7b-instruct-v0.1.Q4_0.gguf")
-    model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
-
-
 class UserConversationConfig(BaseModel):
     user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
     setting = models.ForeignKey(ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True)
@@ -180,6 +203,7 @@ class Conversation(BaseModel):
     client = models.ForeignKey(ClientApplication, on_delete=models.CASCADE, default=None, null=True, blank=True)
     slug = models.CharField(max_length=200, default=None, null=True, blank=True)
     title = models.CharField(max_length=200, default=None, null=True, blank=True)
+    agent = models.ForeignKey(Agent, on_delete=models.SET_NULL, default=None, null=True, blank=True)
 
 
 class ReflectiveQuestion(BaseModel):
