@@ -398,11 +398,15 @@ class AgentAdapters:
     DEFAULT_AGENT_AVATAR = "https://khoj-web-bucket.s3.amazonaws.com/lamp-128.png"
 
     @staticmethod
-    async def aget_agent_by_id(agent_id: int):
-        return await Agent.objects.filter(id=agent_id).afirst()
+    async def aget_agent_by_id(agent_id: int, user: KhojUser):
+        agent = await Agent.objects.filter(id=agent_id).afirst()
+        # Check if it's accessible to the user
+        if agent and (agent.public or agent.creator == user):
+            return agent
+        return None
 
     @staticmethod
-    def get_all_acessible_agents(user: KhojUser = None):
+    def get_all_accessible_agents(user: KhojUser = None):
         return Agent.objects.filter(Q(public=True) | Q(creator=user)).distinct()
 
     @staticmethod
@@ -485,7 +489,7 @@ class ConversationAdapters:
         user: KhojUser, client_application: ClientApplication = None, agent_id: int = None
     ):
         if agent_id:
-            agent = await AgentAdapters.aget_agent_by_id(agent_id)
+            agent = await AgentAdapters.aget_agent_by_id(agent_id, user)
             return await Conversation.objects.acreate(user=user, client=client_application, agent=agent)
         return await Conversation.objects.acreate(user=user, client=client_application)
 

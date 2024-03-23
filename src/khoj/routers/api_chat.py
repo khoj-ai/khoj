@@ -153,7 +153,7 @@ async def create_chat_session(
     user = request.user.object
 
     # Create new Conversation Session
-    conversation = await ConversationAdapters.acreate_conversation_session(user, request.user.client_app)
+    conversation = await ConversationAdapters.acreate_conversation_session(user, request.user.client_app, agent_id)
 
     response = {"conversation_id": conversation.id}
 

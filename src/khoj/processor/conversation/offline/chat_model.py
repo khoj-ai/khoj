@@ -158,7 +158,6 @@ def converse_offline(
     # Initialize Variables
     compiled_references_message = "\n\n".join({f"{item}" for item in references})
 
-    system_prompt = ""
     current_date = datetime.now().strftime("%Y-%m-%d")
 
     if agent and agent.tuning:

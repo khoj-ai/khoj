@@ -84,7 +84,9 @@ class ChatModelOptions(BaseModel):
 
 
 class Agent(BaseModel):
-    creator = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
+    creator = models.ForeignKey(
+        KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True
+    )  # Creator will only be null when the agents are managed by admin
     name = models.CharField(max_length=200)
     tuning = models.TextField()
     avatar = models.URLField(max_length=400, default=None, null=True, blank=True)
