@@ -12,7 +12,11 @@ from starlette.authentication import requires
 
 from khoj.database.adapters import ConversationAdapters, EntryAdapters, aget_user_name
 from khoj.database.models import KhojUser
-from khoj.processor.conversation.prompts import help_message, no_entries_found
+from khoj.processor.conversation.prompts import (
+    help_message,
+    no_entries_found,
+    no_notes_found,
+)
 from khoj.processor.conversation.utils import save_to_conversation_log
 from khoj.processor.tools.online_search import search_online
 from khoj.routers.api import extract_references_and_questions
@@ -302,6 +306,14 @@ async def chat(
             return StreamingResponse(iter([no_entries_found_format]), media_type="text/event-stream", status_code=200)
         else:
             response_obj = {"response": no_entries_found_format}
+            return Response(content=json.dumps(response_obj), media_type="text/plain", status_code=200)
+
+    if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(compiled_references):
+        no_notes_found_format = no_notes_found.format()
+        if stream:
+            return StreamingResponse(iter([no_notes_found_format]), media_type="text/event-stream", status_code=200)
+        else:
+            response_obj = {"response": no_notes_found_format}
             return Response(content=json.dumps(response_obj), media_type="text/plain", status_code=200)
 
     if ConversationCommand.Notes in conversation_commands and is_none_or_empty(compiled_references):
