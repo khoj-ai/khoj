@@ -47,7 +47,8 @@ def extract_questions(
     last_new_year = current_new_year.replace(year=today.year - 1)
 
     prompt = prompts.extract_questions.format(
-        current_date=today.strftime("%A, %Y-%m-%d"),
+        current_date=today.strftime("%Y-%m-%d"),
+        day_of_week=today.strftime("%A"),
         last_new_year=last_new_year.strftime("%Y"),
         last_new_year_date=last_new_year.strftime("%Y-%m-%d"),
         current_new_year_date=current_new_year.strftime("%Y-%m-%d"),
