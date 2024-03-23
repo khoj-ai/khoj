@@ -394,8 +394,9 @@ class ClientApplicationAdapters:
 
 
 class AgentAdapters:
-    DEFAULT_AGENT_NAME = "khoj"
+    DEFAULT_AGENT_NAME = "Khoj"
     DEFAULT_AGENT_AVATAR = "https://khoj-web-bucket.s3.amazonaws.com/lamp-128.png"
+    DEFAULT_AGENT_SLUG = "khoj"
 
     @staticmethod
     async def aget_agent_by_id(agent_id: int):
@@ -447,6 +448,8 @@ class AgentAdapters:
             agent = Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).first()
             agent.tuning = default_personality
             agent.chat_model = default_conversation_config
+            agent.slug = AgentAdapters.DEFAULT_AGENT_SLUG
+            agent.name = AgentAdapters.DEFAULT_AGENT_NAME
             agent.save()
             return agent
 
@@ -459,6 +462,7 @@ class AgentAdapters:
             tuning=default_personality,
             tools=["*"],
             avatar=AgentAdapters.DEFAULT_AGENT_AVATAR,
+            slug=AgentAdapters.DEFAULT_AGENT_SLUG,
         )
 
     @staticmethod

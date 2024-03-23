@@ -36,4 +36,8 @@ async def all_agents(
                 "managed_by_admin": agent.managed_by_admin,
             }
         )
+
+    # Make sure that the agent named 'khoj' is first in the list. Everything else is sorted by name.
+    agents_packet.sort(key=lambda x: x["name"])
+    agents_packet.sort(key=lambda x: x["slug"] == "khoj", reverse=True)
     return Response(content=json.dumps(agents_packet), media_type="application/json", status_code=200)
