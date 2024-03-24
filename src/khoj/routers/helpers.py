@@ -168,7 +168,8 @@ async def aget_relevant_information_sources(query: str, conversation_history: di
         chat_history=chat_history,
     )
 
-    response = await send_message_to_model_wrapper(relevant_tools_prompt, response_type="json_object")
+    with timer("Chat actor: Infer information sources to refer", logger):
+        response = await send_message_to_model_wrapper(relevant_tools_prompt, response_type="json_object")
 
     try:
         response = response.strip()
@@ -212,7 +213,8 @@ async def aget_relevant_output_modes(query: str, conversation_history: dict):
         chat_history=chat_history,
     )
 
-    response = await send_message_to_model_wrapper(relevant_mode_prompt)
+    with timer("Chat actor: Infer output mode for chat response", logger):
+        response = await send_message_to_model_wrapper(relevant_mode_prompt)
 
     try:
         response = response.strip()
@@ -245,7 +247,8 @@ async def infer_webpage_urls(q: str, conversation_history: dict, location_data: 
         location=location,
     )
 
-    response = await send_message_to_model_wrapper(online_queries_prompt, response_type="json_object")
+    with timer("Chat actor: Infer webpage urls to read", logger):
+        response = await send_message_to_model_wrapper(online_queries_prompt, response_type="json_object")
 
     # Validate that the response is a non-empty, JSON-serializable list of URLs
     try:
@@ -274,7 +277,8 @@ async def generate_online_subqueries(q: str, conversation_history: dict, locatio
         location=location,
     )
 
-    response = await send_message_to_model_wrapper(online_queries_prompt, response_type="json_object")
+    with timer("Chat actor: Generate online search subqueries", logger):
+        response = await send_message_to_model_wrapper(online_queries_prompt, response_type="json_object")
 
     # Validate that the response is a non-empty, JSON-serializable list
     try:
@@ -303,9 +307,10 @@ async def extract_relevant_info(q: str, corpus: str) -> Union[str, None]:
         corpus=corpus.strip(),
     )
 
-    response = await send_message_to_model_wrapper(
-        extract_relevant_information, prompts.system_prompt_extract_relevant_information
-    )
+    with timer("Chat actor: Extract relevant information from data", logger):
+        response = await send_message_to_model_wrapper(
+            extract_relevant_information, prompts.system_prompt_extract_relevant_information
+        )
 
     return response.strip()
 
@@ -346,7 +351,8 @@ async def generate_better_image_prompt(
         online_results=simplified_online_results,
     )
 
-    response = await send_message_to_model_wrapper(image_prompt)
+    with timer("Chat actor: Generate contextual image prompt", logger):
+        response = await send_message_to_model_wrapper(image_prompt)
 
     return response.strip()
 
