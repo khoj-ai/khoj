@@ -36,6 +36,7 @@ from khoj.utils.config import GPT4AllProcessorModel
 from khoj.utils.helpers import (
     ConversationCommand,
     is_none_or_empty,
+    is_valid_url,
     log_telemetry,
     mode_descriptions_for_llm,
     timer,
@@ -167,7 +168,8 @@ async def aget_relevant_information_sources(query: str, conversation_history: di
         chat_history=chat_history,
     )
 
-    response = await send_message_to_model_wrapper(relevant_tools_prompt, response_type="json_object")
+    with timer("Chat actor: Infer information sources to refer", logger):
+        response = await send_message_to_model_wrapper(relevant_tools_prompt, response_type="json_object")
 
     try:
         response = response.strip()
@@ -211,7 +213,8 @@ async def aget_relevant_output_modes(query: str, conversation_history: dict):
         chat_history=chat_history,
     )
 
-    response = await send_message_to_model_wrapper(relevant_mode_prompt)
+    with timer("Chat actor: Infer output mode for chat response", logger):
+        response = await send_message_to_model_wrapper(relevant_mode_prompt)
 
     try:
         response = response.strip()
@@ -229,6 +232,36 @@ async def aget_relevant_output_modes(query: str, conversation_history: dict):
         return ConversationCommand.Default
 
 
+async def infer_webpage_urls(q: str, conversation_history: dict, location_data: LocationData) -> List[str]:
+    """
+    Infer webpage links from the given query
+    """
+    location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
+    chat_history = construct_chat_history(conversation_history)
+
+    utc_date = datetime.utcnow().strftime("%Y-%m-%d")
+    online_queries_prompt = prompts.infer_webpages_to_read.format(
+        current_date=utc_date,
+        query=q,
+        chat_history=chat_history,
+        location=location,
+    )
+
+    with timer("Chat actor: Infer webpage urls to read", logger):
+        response = await send_message_to_model_wrapper(online_queries_prompt, response_type="json_object")
+
+    # Validate that the response is a non-empty, JSON-serializable list of URLs
+    try:
+        response = response.strip()
+        urls = json.loads(response)
+        valid_unique_urls = {str(url).strip() for url in urls["links"] if is_valid_url(url)}
+        if is_none_or_empty(valid_unique_urls):
+            raise ValueError(f"Invalid list of urls: {response}")
+        return list(valid_unique_urls)
+    except Exception:
+        raise ValueError(f"Invalid list of urls: {response}")
+
+
 async def generate_online_subqueries(q: str, conversation_history: dict, location_data: LocationData) -> List[str]:
     """
     Generate subqueries from the given query
@@ -244,7 +277,8 @@ async def generate_online_subqueries(q: str, conversation_history: dict, locatio
         location=location,
     )
 
-    response = await send_message_to_model_wrapper(online_queries_prompt, response_type="json_object")
+    with timer("Chat actor: Generate online search subqueries", logger):
+        response = await send_message_to_model_wrapper(online_queries_prompt, response_type="json_object")
 
     # Validate that the response is a non-empty, JSON-serializable list
     try:
@@ -273,9 +307,10 @@ async def extract_relevant_info(q: str, corpus: str) -> Union[str, None]:
         corpus=corpus.strip(),
     )
 
-    response = await send_message_to_model_wrapper(
-        extract_relevant_information, prompts.system_prompt_extract_relevant_information
-    )
+    with timer("Chat actor: Extract relevant information from data", logger):
+        response = await send_message_to_model_wrapper(
+            extract_relevant_information, prompts.system_prompt_extract_relevant_information
+        )
 
     return response.strip()
 
@@ -304,8 +339,8 @@ async def generate_better_image_prompt(
         for result in online_results:
             if online_results[result].get("answerBox"):
                 simplified_online_results[result] = online_results[result]["answerBox"]
-            elif online_results[result].get("extracted_content"):
-                simplified_online_results[result] = online_results[result]["extracted_content"]
+            elif online_results[result].get("webpages"):
+                simplified_online_results[result] = online_results[result]["webpages"]
 
     image_prompt = prompts.image_generation_improve_prompt.format(
         query=q,
@@ -316,7 +351,8 @@ async def generate_better_image_prompt(
         online_results=simplified_online_results,
     )
 
-    response = await send_message_to_model_wrapper(image_prompt)
+    with timer("Chat actor: Generate contextual image prompt", logger):
+        response = await send_message_to_model_wrapper(image_prompt)
 
     return response.strip()
 
@@ -365,7 +401,7 @@ def generate_chat_response(
     q: str,
     meta_log: dict,
     compiled_references: List[str] = [],
-    online_results: Dict[str, Any] = {},
+    online_results: Dict[str, Dict] = {},
     inferred_queries: List[str] = [],
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     user: KhojUser = None,

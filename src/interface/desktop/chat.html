@@ -87,7 +87,7 @@
         function generateOnlineReference(reference, index) {
 
             // Generate HTML for Chat Reference
-            let title = reference.title;
+            let title = reference.title || reference.link;
             let link = reference.link;
             let snippet = reference.snippet;
             let question = reference.question;
@@ -187,6 +187,15 @@
                     numOnlineReferences += onlineReference.peopleAlsoAsk.length;
                     for (let index in onlineReference.peopleAlsoAsk) {
                         let reference = onlineReference.peopleAlsoAsk[index];
+                        let polishedReference = generateOnlineReference(reference, index);
+                        referenceSection.appendChild(polishedReference);
+                    }
+                }
+
+                if (onlineReference.webpages && onlineReference.webpages.length > 0) {
+                    numOnlineReferences += onlineReference.webpages.length;
+                    for (let index in onlineReference.webpages) {
+                        let reference = onlineReference.webpages[index];
                         let polishedReference = generateOnlineReference(reference, index);
                         referenceSection.appendChild(polishedReference);
                     }
