@@ -1,12 +1,9 @@
-# Use Nvidia's latest Ubuntu 22.04 image as the base image
-FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
+FROM ubuntu:jammy
 
 LABEL org.opencontainers.image.source https://github.com/khoj-ai/khoj
 
 # Install System Dependencies
 RUN apt update -y && apt -y install python3-pip libsqlite3-0 ffmpeg libsm6 libxext6
-# Install Optional Dependencies
-RUN apt install vim -y
 
 WORKDIR /app
 
