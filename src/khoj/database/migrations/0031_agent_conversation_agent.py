@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
                 ("tools", models.JSONField(default=list)),
                 ("public", models.BooleanField(default=False)),
                 ("managed_by_admin", models.BooleanField(default=False)),
-                ("slug", models.CharField(blank=True, default=None, max_length=200, null=True)),
+                ("slug", models.CharField(max_length=200)),
                 (
                     "chat_model",
                     models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="database.chatmodeloptions"),
