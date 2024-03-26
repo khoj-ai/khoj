@@ -406,16 +406,14 @@ class AgentAdapters:
         return None
 
     @staticmethod
-    async def aget_agent_by_slug(agent_slug: str):
-        return await Agent.objects.filter(slug__iexact=agent_slug.lower()).afirst()
+    async def aget_agent_by_slug(agent_slug: str, user: KhojUser):
+        return await Agent.objects.filter(
+            (Q(slug__iexact=agent_slug.lower())) & (Q(public=True) | Q(creator=user))
+        ).afirst()
 
     @staticmethod
     def get_agent_by_slug(slug: str, user: KhojUser = None):
-        agent = Agent.objects.filter(slug=slug).first()
-        # Check if agent is public or created by the user
-        if agent and (agent.public or agent.creator == user):
-            return agent
-        return None
+        return Agent.objects.filter((Q(slug__iexact=slug.lower())) & (Q(public=True) | Q(creator=user))).first()
 
     @staticmethod
     def get_all_accessible_agents(user: KhojUser = None):
@@ -423,11 +421,7 @@ class AgentAdapters:
 
     @staticmethod
     async def aget_all_accessible_agents(user: KhojUser = None) -> List[Agent]:
-        get_all_accessible_agents = sync_to_async(
-            lambda: Agent.objects.filter(Q(public=True) | Q(creator=user)).distinct().order_by("created_at").all(),
-            thread_sensitive=True,
-        )
-        agents = await get_all_accessible_agents()
+        agents = await sync_to_async(AgentAdapters.get_all_accessible_agents)(user)
         return await sync_to_async(list)(agents)
 
     @staticmethod
@@ -447,8 +441,9 @@ class AgentAdapters:
         default_conversation_config = ConversationAdapters.get_default_conversation_config()
         default_personality = prompts.personality.format(current_date="placeholder")
 
-        if Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).exists():
-            agent = Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).first()
+        agent = Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).first()
+
+        if agent:
             agent.personality = default_personality
             agent.chat_model = default_conversation_config
             agent.slug = AgentAdapters.DEFAULT_AGENT_SLUG
@@ -517,9 +512,9 @@ class ConversationAdapters:
         user: KhojUser, client_application: ClientApplication = None, agent_slug: str = None
     ):
         if agent_slug:
-            agent = await AgentAdapters.aget_agent_by_slug(agent_slug)
+            agent = await AgentAdapters.aget_agent_by_slug(agent_slug, user)
             if agent is None:
-                raise HTTPException(status_code=400, detail="Invalid agent id")
+                raise HTTPException(status_code=400, detail="No such agent currently exists.")
             return await Conversation.objects.acreate(user=user, client=client_application, agent=agent)
         return await Conversation.objects.acreate(user=user, client=client_application)
 
