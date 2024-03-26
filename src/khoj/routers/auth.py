@@ -7,6 +7,7 @@ from starlette.authentication import requires
 from starlette.config import Config
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, RedirectResponse, Response
+from starlette.status import HTTP_302_FOUND
 
 from khoj.database.adapters import (
     create_khoj_token,
@@ -90,6 +91,7 @@ async def delete_token(request: Request, token: str) -> str:
 @auth_router.post("/redirect")
 async def auth(request: Request):
     form = await request.form()
+    next_url = request.query_params.get("next", "/")
     credential = form.get("credential")
 
     csrf_token_cookie = request.cookies.get("g_csrf_token")
@@ -117,9 +119,9 @@ async def auth(request: Request):
                 metadata={"user_id": str(khoj_user.uuid)},
             )
             logger.log(logging.INFO, f"New User Created: {khoj_user.uuid}")
-            RedirectResponse(url="/?status=welcome")
+            return RedirectResponse(url=f"{next_url}", status_code=HTTP_302_FOUND)
 
-    return RedirectResponse(url="/")
+    return RedirectResponse(url=f"{next_url}")
 
 
 @auth_router.get("/logout")

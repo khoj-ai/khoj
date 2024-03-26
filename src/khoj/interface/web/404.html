@@ -2,14 +2,19 @@
 <html>
   	<head>
     	<title>Khoj: An AI Personal Assistant for your digital brain</title>
-    	<link rel=”stylesheet” href=”static/styles.css”>
-    	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+        <link rel="icon" type="image/png" sizes="128x128" href="/static/assets/icons/favicon-128x128.png?v={{ khoj_version }}">
+        <link rel="manifest" href="/static/khoj.webmanifest?v={{ khoj_version }}">
+        <link rel="stylesheet" href="/static/assets/khoj.css?v={{ khoj_version }}">
   	</head>
   	<body class="not-found">
+        <!--Add Header Logo and Nav Pane-->
+        {% import 'utils.html' as utils %}
+        {{ utils.heading_pane(user_photo, username, is_active, has_documents) }}
+
     	<header class=”header”>
-      	<h1>Oops, this is awkward. That page couldn't be found.</h1>
+      	<h1>Oops, this is awkward. Looks like there's nothing here.</h1>
     	</header>
-		<a href="/config">Go Home</a>
+		<a class="redirect-link" href="/">Go Home</a>
 
     	<footer class=”footer”>
     	</footer>
@@ -18,5 +23,34 @@
 		body.not-found {
 			padding: 0 10%
 		}
+
+        body {
+            background-color: var(--background-color);
+            color: var(--main-text-color);
+            text-align: center;
+            font-family: var(--font-family);
+            font-size: medium;
+            font-weight: 300;
+            line-height: 1.5em;
+            height: 100vh;
+            margin: 0;
+        }
+
+        body a.redirect-link {
+            font-size: 18px;
+            font-weight: bold;
+            background-color: var(--primary);
+			text-decoration: none;
+			border: 1px solid var(--main-text-color);
+			color: var(--main-text-color);
+			border-radius: 8px;
+			padding: 4px;
+        }
+
+		body a.redirect-link:hover {
+			background-color: var(--main-text-color);
+			color: var(--primary);
+		}
+
 	</style>
 </html>

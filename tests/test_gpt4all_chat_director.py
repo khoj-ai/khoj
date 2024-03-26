@@ -579,7 +579,7 @@ async def test_get_correct_tools_general(client_offline_chat):
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.anyio
 @pytest.mark.django_db(transaction=True)
-async def test_get_correct_tools_with_chat_history(client_offline_chat):
+async def test_get_correct_tools_with_chat_history(client_offline_chat, default_user2):
     # Arrange
     user_query = "What's the latest in the Israel/Palestine conflict?"
     chat_log = [
@@ -590,7 +590,7 @@ async def test_get_correct_tools_with_chat_history(client_offline_chat):
         ),
         ("What's up in New York City?", "A Pride parade has recently been held in New York City, on July 31st.", []),
     ]
-    chat_history = create_conversation(chat_log)
+    chat_history = create_conversation(chat_log, default_user2)
 
     # Act
     tools = await aget_relevant_information_sources(user_query, chat_history)

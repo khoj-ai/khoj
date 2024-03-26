@@ -160,7 +160,9 @@ def start_server(app, host=None, port=None, socket=None):
     if socket:
         uvicorn.run(app, proxy_headers=True, uds=socket, log_level="debug", use_colors=True, log_config=None)
     else:
-        uvicorn.run(app, host=host, port=port, log_level="debug", use_colors=True, log_config=None)
+        uvicorn.run(
+            app, host=host, port=port, log_level="debug", use_colors=True, log_config=None, timeout_keep_alive=60
+        )
     logger.info("🌒 Stopping Khoj")
 
 

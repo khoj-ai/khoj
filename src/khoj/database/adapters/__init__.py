@@ -394,20 +394,32 @@ class ClientApplicationAdapters:
 
 
 class AgentAdapters:
-    DEFAULT_AGENT_NAME = "khoj"
+    DEFAULT_AGENT_NAME = "Khoj"
     DEFAULT_AGENT_AVATAR = "https://khoj-web-bucket.s3.amazonaws.com/lamp-128.png"
+    DEFAULT_AGENT_SLUG = "khoj"
 
     @staticmethod
-    async def aget_agent_by_id(agent_id: int, user: KhojUser):
-        agent = await Agent.objects.filter(id=agent_id).afirst()
-        # Check if it's accessible to the user
-        if agent and (agent.public or agent.creator == user):
-            return agent
-        return None
+    async def aget_agent_by_slug(agent_slug: str, user: KhojUser):
+        return await Agent.objects.filter(
+            (Q(slug__iexact=agent_slug.lower())) & (Q(public=True) | Q(creator=user))
+        ).afirst()
+
+    @staticmethod
+    def get_agent_by_slug(slug: str, user: KhojUser = None):
+        if user:
+            return Agent.objects.filter((Q(slug__iexact=slug.lower())) & (Q(public=True) | Q(creator=user))).first()
+        return Agent.objects.filter(slug__iexact=slug.lower(), public=True).first()
 
     @staticmethod
     def get_all_accessible_agents(user: KhojUser = None):
-        return Agent.objects.filter(Q(public=True) | Q(creator=user)).distinct()
+        if user:
+            return Agent.objects.filter(Q(public=True) | Q(creator=user)).distinct().order_by("created_at")
+        return Agent.objects.filter(public=True).order_by("created_at")
+
+    @staticmethod
+    async def aget_all_accessible_agents(user: KhojUser = None) -> List[Agent]:
+        agents = await sync_to_async(AgentAdapters.get_all_accessible_agents)(user)
+        return await sync_to_async(list)(agents)
 
     @staticmethod
     def get_conversation_agent_by_id(agent_id: int):
@@ -423,11 +435,18 @@ class AgentAdapters:
 
     @staticmethod
     def create_default_agent():
-        # First delete the existing default
-        Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).delete()
-
         default_conversation_config = ConversationAdapters.get_default_conversation_config()
         default_personality = prompts.personality.format(current_date="placeholder")
+
+        agent = Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).first()
+
+        if agent:
+            agent.personality = default_personality
+            agent.chat_model = default_conversation_config
+            agent.slug = AgentAdapters.DEFAULT_AGENT_SLUG
+            agent.name = AgentAdapters.DEFAULT_AGENT_NAME
+            agent.save()
+            return agent
 
         # The default agent is public and managed by the admin. It's handled a little differently than other agents.
         return Agent.objects.create(
@@ -438,6 +457,7 @@ class AgentAdapters:
             personality=default_personality,
             tools=["*"],
             avatar=AgentAdapters.DEFAULT_AGENT_AVATAR,
+            slug=AgentAdapters.DEFAULT_AGENT_SLUG,
         )
 
     @staticmethod
@@ -486,10 +506,12 @@ class ConversationAdapters:
 
     @staticmethod
     async def acreate_conversation_session(
-        user: KhojUser, client_application: ClientApplication = None, agent_id: int = None
+        user: KhojUser, client_application: ClientApplication = None, agent_slug: str = None
     ):
-        if agent_id:
-            agent = await AgentAdapters.aget_agent_by_id(agent_id, user)
+        if agent_slug:
+            agent = await AgentAdapters.aget_agent_by_slug(agent_slug, user)
+            if agent is None:
+                raise HTTPException(status_code=400, detail="No such agent currently exists.")
             return await Conversation.objects.acreate(user=user, client=client_application, agent=agent)
         return await Conversation.objects.acreate(user=user, client=client_application)
 
