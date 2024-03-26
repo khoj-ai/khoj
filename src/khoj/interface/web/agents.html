@@ -36,7 +36,7 @@
                             <a href="/agent/{{ agent.slug }}">
                                 <h2>{{ agent.name }}</h2>
                             </a>
-                            <p>{{ agent.tuning }}</p>
+                            <p>{{ agent.personality }}</p>
                         </div>
                         <div class="agent-info">
                             <button onclick="openChat('{{ agent.slug }}')">Talk</button>
@@ -186,8 +186,8 @@
         }
     </style>
     <script>
-        async function openChat(agentId) {
-            let response = await fetch(`/api/chat/sessions?agent_slug=${agentId}`, { method: "POST" });
+        async function openChat(agentSlug) {
+            let response = await fetch(`/api/chat/sessions?agent_slug=${agentSlug}`, { method: "POST" });
             let data = await response.json();
             if (response.status == 200) {
                 window.location.href = "/";
