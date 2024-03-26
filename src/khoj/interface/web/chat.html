@@ -5,6 +5,7 @@
         <title>Khoj - Chat</title>
 
         <link rel="icon" type="image/png" sizes="128x128" href="/static/assets/icons/favicon-128x128.png?v={{ khoj_version }}">
+        <link rel="apple-touch-icon" href="/static/assets/icons/favicon-128x128.png?v={{ khoj_version }}">
         <link rel="manifest" href="/static/khoj.webmanifest?v={{ khoj_version }}">
         <link rel="stylesheet" href="/static/assets/khoj.css?v={{ khoj_version }}">
     </head>
@@ -102,7 +103,7 @@ To get started, just start typing below. You can also type / to see a list of co
         function generateOnlineReference(reference, index) {
 
             // Generate HTML for Chat Reference
-            let title = reference.title;
+            let title = reference.title || reference.link;
             let link = reference.link;
             let snippet = reference.snippet;
             let question = reference.question;
@@ -201,6 +202,15 @@ To get started, just start typing below. You can also type / to see a list of co
                     numOnlineReferences += onlineReference.peopleAlsoAsk.length;
                     for (let index in onlineReference.peopleAlsoAsk) {
                         let reference = onlineReference.peopleAlsoAsk[index];
+                        let polishedReference = generateOnlineReference(reference, index);
+                        referenceSection.appendChild(polishedReference);
+                    }
+                }
+
+                if (onlineReference.webpages && onlineReference.webpages.length > 0) {
+                    numOnlineReferences += onlineReference.webpages.length;
+                    for (let index in onlineReference.webpages) {
+                        let reference = onlineReference.webpages[index];
                         let polishedReference = generateOnlineReference(reference, index);
                         referenceSection.appendChild(polishedReference);
                     }

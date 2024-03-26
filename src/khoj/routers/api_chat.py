@@ -18,7 +18,11 @@ from khoj.processor.conversation.prompts import (
     no_notes_found,
 )
 from khoj.processor.conversation.utils import save_to_conversation_log
-from khoj.processor.tools.online_search import search_online
+from khoj.processor.tools.online_search import (
+    online_search_enabled,
+    read_webpages,
+    search_online,
+)
 from khoj.routers.api import extract_references_and_questions
 from khoj.routers.helpers import (
     ApiUserRateLimiter,
@@ -256,6 +260,7 @@ async def chat(
 ) -> Response:
     user: KhojUser = request.user.object
     q = unquote(q)
+    logger.info("Chat request by {user.username}: {q}")
 
     await is_ready_to_chat(user)
     conversation_commands = [get_conversation_command(query=q, any_references=True)]
@@ -298,7 +303,7 @@ async def chat(
     compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
         request, common, meta_log, q, (n or 5), (d or math.inf), conversation_commands, location
     )
-    online_results: Dict = dict()
+    online_results: Dict[str, Dict] = {}
 
     if conversation_commands == [ConversationCommand.Notes] and not await EntryAdapters.auser_has_entries(user):
         no_entries_found_format = no_entries_found.format()
@@ -320,13 +325,23 @@ async def chat(
         conversation_commands.remove(ConversationCommand.Notes)
 
     if ConversationCommand.Online in conversation_commands:
+        if not online_search_enabled():
+            conversation_commands.remove(ConversationCommand.Online)
+            # If online search is not enabled, try to read webpages directly
+            if ConversationCommand.Webpage not in conversation_commands:
+                conversation_commands.append(ConversationCommand.Webpage)
+        else:
+            try:
+                online_results = await search_online(defiltered_query, meta_log, location)
+            except ValueError as e:
+                logger.warning(f"Error searching online: {e}. Attempting to respond without online results")
+
+    if ConversationCommand.Webpage in conversation_commands:
         try:
-            online_results = await search_online(defiltered_query, meta_log, location)
+            online_results = await read_webpages(defiltered_query, meta_log, location)
         except ValueError as e:
-            return StreamingResponse(
-                iter(["Please set your SERPER_DEV_API_KEY to get started with online searches 🌐"]),
-                media_type="text/event-stream",
-                status_code=200,
+            logger.warning(
+                f"Error directly reading webpages: {e}. Attempting to respond without online results", exc_info=True
             )
 
     if ConversationCommand.Image in conversation_commands:
