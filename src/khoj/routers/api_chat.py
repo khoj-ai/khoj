@@ -260,7 +260,7 @@ async def chat(
 ) -> Response:
     user: KhojUser = request.user.object
     q = unquote(q)
-    logger.info("Chat request by {user.username}: {q}")
+    logger.info(f"Chat request by {user.username}: {q}")
 
     await is_ready_to_chat(user)
     conversation_commands = [get_conversation_command(query=q, any_references=True)]
