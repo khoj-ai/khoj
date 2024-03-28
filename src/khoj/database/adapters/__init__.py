@@ -446,19 +446,21 @@ class AgentAdapters:
             agent.slug = AgentAdapters.DEFAULT_AGENT_SLUG
             agent.name = AgentAdapters.DEFAULT_AGENT_NAME
             agent.save()
-            return agent
+        else:
+            # The default agent is public and managed by the admin. It's handled a little differently than other agents.
+            agent = Agent.objects.create(
+                name=AgentAdapters.DEFAULT_AGENT_NAME,
+                public=True,
+                managed_by_admin=True,
+                chat_model=default_conversation_config,
+                personality=default_personality,
+                tools=["*"],
+                avatar=AgentAdapters.DEFAULT_AGENT_AVATAR,
+                slug=AgentAdapters.DEFAULT_AGENT_SLUG,
+            )
+            Conversation.objects.filter(agent=None).update(agent=agent)
 
-        # The default agent is public and managed by the admin. It's handled a little differently than other agents.
-        return Agent.objects.create(
-            name=AgentAdapters.DEFAULT_AGENT_NAME,
-            public=True,
-            managed_by_admin=True,
-            chat_model=default_conversation_config,
-            personality=default_personality,
-            tools=["*"],
-            avatar=AgentAdapters.DEFAULT_AGENT_AVATAR,
-            slug=AgentAdapters.DEFAULT_AGENT_SLUG,
-        )
+        return agent
 
     @staticmethod
     async def aget_default_agent():
