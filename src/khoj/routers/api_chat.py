@@ -401,6 +401,7 @@ async def chat(
 
     cmd_set = set([cmd.value for cmd in conversation_commands])
     chat_metadata["conversation_command"] = cmd_set
+    chat_metadata["agent"] = conversation.agent.slug if conversation.agent else None
 
     update_telemetry_state(
         request=request,
