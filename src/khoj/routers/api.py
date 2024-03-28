@@ -35,7 +35,7 @@ from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
 from khoj.search_type import image_search, text_search
 from khoj.utils import constants, state
-from khoj.utils.config import GPT4AllProcessorModel
+from khoj.utils.config import OfflineChatProcessorModel
 from khoj.utils.helpers import ConversationCommand, timer
 from khoj.utils.rawconfig import LocationData, SearchResponse
 from khoj.utils.state import SearchType
@@ -318,16 +318,16 @@ async def extract_references_and_questions(
             using_offline_chat = True
             default_offline_llm = await ConversationAdapters.get_default_offline_llm()
             chat_model = default_offline_llm.chat_model
-            if state.gpt4all_processor_config is None:
-                state.gpt4all_processor_config = GPT4AllProcessorModel(chat_model=chat_model)
+            if state.offline_chat_processor_config is None:
+                state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model=chat_model)
 
-            loaded_model = state.gpt4all_processor_config.loaded_model
+            loaded_model = state.offline_chat_processor_config.loaded_model
 
             inferred_queries = extract_questions_offline(
                 defiltered_query,
                 loaded_model=loaded_model,
                 conversation_log=meta_log,
-                should_extract_questions=False,
+                should_extract_questions=True,
                 location_data=location_data,
             )
         elif conversation_config and conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:

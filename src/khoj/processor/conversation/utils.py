@@ -3,29 +3,28 @@ import logging
 import queue
 from datetime import datetime
 from time import perf_counter
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import tiktoken
 from langchain.schema import ChatMessage
+from llama_cpp.llama import Llama
 from transformers import AutoTokenizer
 
 from khoj.database.adapters import ConversationAdapters
 from khoj.database.models import ClientApplication, KhojUser
+from khoj.processor.conversation.offline.utils import download_model
 from khoj.utils.helpers import is_none_or_empty, merge_dicts
 
 logger = logging.getLogger(__name__)
 model_to_prompt_size = {
-    "gpt-3.5-turbo": 3000,
-    "gpt-3.5-turbo-0125": 3000,
-    "gpt-4-0125-preview": 7000,
-    "gpt-4-turbo-preview": 7000,
-    "llama-2-7b-chat.ggmlv3.q4_0.bin": 1548,
-    "mistral-7b-instruct-v0.1.Q4_0.gguf": 1548,
+    "gpt-3.5-turbo": 12000,
+    "gpt-3.5-turbo-0125": 12000,
+    "gpt-4-0125-preview": 20000,
+    "gpt-4-turbo-preview": 20000,
+    "TheBloke/Mistral-7B-Instruct-v0.2-GGUF": 3500,
+    "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF": 3500,
 }
-model_to_tokenizer = {
-    "llama-2-7b-chat.ggmlv3.q4_0.bin": "hf-internal-testing/llama-tokenizer",
-    "mistral-7b-instruct-v0.1.Q4_0.gguf": "mistralai/Mistral-7B-Instruct-v0.1",
-}
+model_to_tokenizer: Dict[str, str] = {}
 
 
 class ThreadedGenerator:
@@ -134,9 +133,10 @@ Khoj: "{inferred_queries if ("text-to-image" in intent_type) else chat_response}
 
 def generate_chatml_messages_with_context(
     user_message,
-    system_message,
+    system_message=None,
     conversation_log={},
     model_name="gpt-3.5-turbo",
+    loaded_model: Optional[Llama] = None,
     max_prompt_size=None,
     tokenizer_name=None,
 ):
@@ -159,7 +159,7 @@ def generate_chatml_messages_with_context(
         chat_notes = f'\n\n Notes:\n{chat.get("context")}' if chat.get("context") else "\n"
         chat_logs += [chat["message"] + chat_notes]
 
-    rest_backnforths = []
+    rest_backnforths: List[ChatMessage] = []
     # Extract in reverse chronological order
     for user_msg, assistant_msg in zip(chat_logs[-2::-2], chat_logs[::-2]):
         if len(rest_backnforths) >= 2 * lookback_turns:
@@ -176,22 +176,31 @@ def generate_chatml_messages_with_context(
         messages.append(ChatMessage(content=system_message, role="system"))
 
     # Truncate oldest messages from conversation history until under max supported prompt size by model
-    messages = truncate_messages(messages, max_prompt_size, model_name, tokenizer_name)
+    messages = truncate_messages(messages, max_prompt_size, model_name, loaded_model, tokenizer_name)
 
     # Return message in chronological order
     return messages[::-1]
 
 
 def truncate_messages(
-    messages: list[ChatMessage], max_prompt_size, model_name: str, tokenizer_name=None
+    messages: list[ChatMessage],
+    max_prompt_size,
+    model_name: str,
+    loaded_model: Optional[Llama] = None,
+    tokenizer_name=None,
 ) -> list[ChatMessage]:
     """Truncate messages to fit within max prompt size supported by model"""
 
     try:
-        if model_name.startswith("gpt-"):
+        if loaded_model:
+            encoder = loaded_model.tokenizer()
+        elif model_name.startswith("gpt-"):
             encoder = tiktoken.encoding_for_model(model_name)
         else:
-            encoder = AutoTokenizer.from_pretrained(tokenizer_name or model_to_tokenizer[model_name])
+            try:
+                encoder = download_model(model_name).tokenizer()
+            except:
+                encoder = AutoTokenizer.from_pretrained(tokenizer_name or model_to_tokenizer[model_name])
     except:
         default_tokenizer = "hf-internal-testing/llama-tokenizer"
         encoder = AutoTokenizer.from_pretrained(default_tokenizer)

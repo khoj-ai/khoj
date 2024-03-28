@@ -32,17 +32,13 @@ def initialization():
         )
 
         try:
-            # Note: gpt4all package is not available on all devices.
-            # So ensure gpt4all package is installed before continuing this step.
-            import gpt4all
-
             use_offline_model = input("Use offline chat model? (y/n): ")
             if use_offline_model == "y":
                 logger.info("🗣️ Setting up offline chat model")
                 OfflineChatProcessorConversationConfig.objects.create(enabled=True)
 
                 offline_chat_model = input(
-                    f"Enter the offline chat model you want to use, See GPT4All for supported models (default: {default_offline_chat_model}): "
+                    f"Enter the offline chat model you want to use. See HuggingFace for available GGUF models (default: {default_offline_chat_model}): "
                 )
                 if offline_chat_model == "":
                     ChatModelOptions.objects.create(
