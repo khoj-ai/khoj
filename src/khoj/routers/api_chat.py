@@ -178,10 +178,15 @@ async def create_chat_session(
 
     response = {"conversation_id": conversation.id}
 
+    conversation_metadata = {
+        "agent": agent_slug,
+    }
+
     update_telemetry_state(
         request=request,
         telemetry_type="api",
         api="create_chat_sessions",
+        metadata=conversation_metadata,
         **common.__dict__,
     )
 
