@@ -477,9 +477,10 @@ class ConversationAdapters:
                 .first()
             )
         else:
+            agent = AgentAdapters.get_default_agent()
             conversation = (
                 Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at").first()
-            ) or Conversation.objects.create(user=user, client=client_application)
+            ) or Conversation.objects.create(user=user, client=client_application, agent=agent)
 
         return conversation
 
@@ -513,7 +514,8 @@ class ConversationAdapters:
             if agent is None:
                 raise HTTPException(status_code=400, detail="No such agent currently exists.")
             return await Conversation.objects.acreate(user=user, client=client_application, agent=agent)
-        return await Conversation.objects.acreate(user=user, client=client_application)
+        agent = await AgentAdapters.aget_default_agent()
+        return await Conversation.objects.acreate(user=user, client=client_application, agent=agent)
 
     @staticmethod
     async def aget_conversation_by_user(
