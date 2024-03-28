@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 api_agents = APIRouter()
 
 
-@api_agents.get("/", response_class=Response)
+@api_agents.get("", response_class=Response)
 async def all_agents(
     request: Request,
     common: CommonQueryParams,
