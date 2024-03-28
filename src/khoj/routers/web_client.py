@@ -10,6 +10,7 @@ from starlette.authentication import has_required_scope, requires
 
 from khoj.database import adapters
 from khoj.database.adapters import (
+    AgentAdapters,
     ConversationAdapters,
     EntryAdapters,
     get_user_github_config,
@@ -114,8 +115,8 @@ def chat_page(request: Request):
 
 @web_client.get("/login", response_class=FileResponse)
 def login_page(request: Request):
+    next_url = request.query_params.get("next", "/")
     if request.user.is_authenticated:
-        next_url = request.query_params.get("next", "/")
         return RedirectResponse(url=next_url)
     google_client_id = os.environ.get("GOOGLE_CLIENT_ID")
     redirect_uri = str(request.app.url_path_for("auth"))
@@ -124,7 +125,85 @@ def login_page(request: Request):
         context={
             "request": request,
             "google_client_id": google_client_id,
-            "redirect_uri": redirect_uri,
+            "redirect_uri": f"{redirect_uri}?next={next_url}",
+        },
+    )
+
+
+@web_client.get("/agents", response_class=HTMLResponse)
+def agents_page(request: Request):
+    user: KhojUser = request.user.object if request.user.is_authenticated else None
+    user_picture = request.session.get("user", {}).get("picture") if user else None
+    agents = AgentAdapters.get_all_accessible_agents(user)
+    agents_packet = list()
+    for agent in agents:
+        agents_packet.append(
+            {
+                "slug": agent.slug,
+                "avatar": agent.avatar,
+                "name": agent.name,
+                "personality": agent.personality,
+                "public": agent.public,
+                "creator": agent.creator.username if agent.creator else None,
+                "managed_by_admin": agent.managed_by_admin,
+            }
+        )
+    return templates.TemplateResponse(
+        "agents.html",
+        context={
+            "request": request,
+            "agents": agents_packet,
+            "khoj_version": state.khoj_version,
+            "username": user.username if user else None,
+            "has_documents": False,
+            "is_active": has_required_scope(request, ["premium"]),
+            "user_photo": user_picture,
+        },
+    )
+
+
+@web_client.get("/agent/{agent_slug}", response_class=HTMLResponse)
+def agent_page(request: Request, agent_slug: str):
+    user: KhojUser = request.user.object if request.user.is_authenticated else None
+    user_picture = request.session.get("user", {}).get("picture") if user else None
+
+    agent = AgentAdapters.get_agent_by_slug(agent_slug)
+
+    if agent == None:
+        return templates.TemplateResponse(
+            "404.html",
+            context={
+                "request": request,
+                "khoj_version": state.khoj_version,
+                "username": user.username if user else None,
+                "has_documents": False,
+                "is_active": has_required_scope(request, ["premium"]),
+                "user_photo": user_picture,
+            },
+        )
+
+    agent_metadata = {
+        "slug": agent.slug,
+        "avatar": agent.avatar,
+        "name": agent.name,
+        "personality": agent.personality,
+        "public": agent.public,
+        "creator": agent.creator.username if agent.creator else None,
+        "managed_by_admin": agent.managed_by_admin,
+        "chat_model": agent.chat_model.chat_model,
+        "creator_not_self": agent.creator != user,
+    }
+
+    return templates.TemplateResponse(
+        "agent.html",
+        context={
+            "request": request,
+            "agent": agent_metadata,
+            "khoj_version": state.khoj_version,
+            "username": user.username if user else None,
+            "has_documents": False,
+            "is_active": has_required_scope(request, ["premium"]),
+            "user_photo": user_picture,
         },
     )
 

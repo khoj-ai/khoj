@@ -12,7 +12,11 @@ from starlette.authentication import requires
 
 from khoj.database.adapters import ConversationAdapters, EntryAdapters, aget_user_name
 from khoj.database.models import KhojUser
-from khoj.processor.conversation.prompts import help_message, no_entries_found
+from khoj.processor.conversation.prompts import (
+    help_message,
+    no_entries_found,
+    no_notes_found,
+)
 from khoj.processor.conversation.utils import save_to_conversation_log
 from khoj.processor.tools.online_search import (
     online_search_enabled,
@@ -85,9 +89,22 @@ def chat_history(
             status_code=404,
         )
 
+    agent_metadata = None
+    if conversation.agent:
+        agent_metadata = {
+            "slug": conversation.agent.slug,
+            "name": conversation.agent.name,
+            "avatar": conversation.agent.avatar,
+            "isCreator": conversation.agent.creator == user,
+        }
+
     meta_log = conversation.conversation_log
     meta_log.update(
-        {"conversation_id": conversation.id, "slug": conversation.title if conversation.title else conversation.slug}
+        {
+            "conversation_id": conversation.id,
+            "slug": conversation.title if conversation.title else conversation.slug,
+            "agent": agent_metadata,
+        }
     )
 
     update_telemetry_state(
@@ -152,18 +169,24 @@ def chat_sessions(
 async def create_chat_session(
     request: Request,
     common: CommonQueryParams,
+    agent_slug: Optional[str] = None,
 ):
     user = request.user.object
 
     # Create new Conversation Session
-    conversation = await ConversationAdapters.acreate_conversation_session(user, request.user.client_app)
+    conversation = await ConversationAdapters.acreate_conversation_session(user, request.user.client_app, agent_slug)
 
     response = {"conversation_id": conversation.id}
+
+    conversation_metadata = {
+        "agent": agent_slug,
+    }
 
     update_telemetry_state(
         request=request,
         telemetry_type="api",
         api="create_chat_sessions",
+        metadata=conversation_metadata,
         **common.__dict__,
     )
 
@@ -295,6 +318,14 @@ async def chat(
             response_obj = {"response": no_entries_found_format}
             return Response(content=json.dumps(response_obj), media_type="text/plain", status_code=200)
 
+    if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(compiled_references):
+        no_notes_found_format = no_notes_found.format()
+        if stream:
+            return StreamingResponse(iter([no_notes_found_format]), media_type="text/event-stream", status_code=200)
+        else:
+            response_obj = {"response": no_notes_found_format}
+            return Response(content=json.dumps(response_obj), media_type="text/plain", status_code=200)
+
     if ConversationCommand.Notes in conversation_commands and is_none_or_empty(compiled_references):
         conversation_commands.remove(ConversationCommand.Notes)
 
@@ -356,6 +387,7 @@ async def chat(
     llm_response, chat_metadata = await agenerate_chat_response(
         defiltered_query,
         meta_log,
+        conversation,
         compiled_references,
         online_results,
         inferred_queries,

@@ -12,6 +12,7 @@ from khoj.configure import (
     configure_search_types,
 )
 from khoj.database.models import (
+    Agent,
     GithubConfig,
     GithubRepoConfig,
     KhojApiUser,
@@ -178,6 +179,28 @@ def api_user4(default_user4):
         user=default_user4,
         name="api-key",
         token="kk-diff-secret-4",
+    )
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def offline_agent():
+    chat_model = ChatModelOptionsFactory()
+    return Agent.objects.create(
+        name="Accountant",
+        chat_model=chat_model,
+        personality="You are a certified CPA. You are able to tell me how much I've spent based on my notes. Regardless of what I ask, you should always respond with the total amount I've spent. ALWAYS RESPOND WITH A SUMMARY TOTAL OF HOW MUCH MONEY I HAVE SPENT.",
+    )
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def openai_agent():
+    chat_model = ChatModelOptionsFactory(chat_model="gpt-3.5-turbo", model_type="openai")
+    return Agent.objects.create(
+        name="Accountant",
+        chat_model=chat_model,
+        personality="You are a certified CPA. You are able to tell me how much I've spent based on my notes. Regardless of what I ask, you should always respond with the total amount I've spent.",
     )
 
 

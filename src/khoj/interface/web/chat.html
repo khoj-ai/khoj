@@ -13,15 +13,17 @@
     <script type="text/javascript" src="/static/assets/markdown-it.min.js?v={{ khoj_version }}"></script>
     <script>
         let welcome_message = `
-Hi, I am Khoj, your open, personal AI 👋🏽. I can help:
+Hi, I am Khoj, your open, personal AI 👋🏽. I can:
 - 🧠 Answer general knowledge questions
 - 💡 Be a sounding board for your ideas
 - 📜 Chat with your notes & documents
 - 🌄 Generate images based on your messages
 - 🔎 Search the web for answers to your questions
 - 🎙️ Listen to your audio messages (use the mic by the input box to speak your message)
+- 📚 Understand files you drag & drop here
+- 👩🏾‍🚀 Be tuned to your conversation needs via [agents](./agents)
 
-Get the Khoj [Desktop](https://khoj.dev/downloads), [Obsidian](https://docs.khoj.dev/clients/obsidian#setup), [Emacs](https://docs.khoj.dev/clients/emacs#setup) apps to search, chat with your 🖥️ computer docs.
+Get the Khoj [Desktop](https://khoj.dev/downloads), [Obsidian](https://docs.khoj.dev/clients/obsidian#setup), [Emacs](https://docs.khoj.dev/clients/emacs#setup) apps to search, chat with your 🖥️ computer docs. You can manage all the files you've shared with me at any time by going to [your settings](/config/content-source/computer/).
 
 To get started, just start typing below. You can also type / to see a list of commands.
 `.trim()
@@ -116,7 +118,6 @@ To get started, just start typing below. You can also type / to see a list of co
             linkElement.setAttribute('href', link);
             linkElement.setAttribute('target', '_blank');
             linkElement.setAttribute('rel', 'noopener noreferrer');
-            linkElement.classList.add("inline-chat-link");
             linkElement.classList.add("reference-link");
             linkElement.setAttribute('title', title);
             linkElement.textContent = title;
@@ -842,6 +843,33 @@ To get started, just start typing below. You can also type / to see a list of co
                     chatBody.dataset.conversationId = response.conversation_id;
                     chatBody.dataset.conversationTitle = response.slug || `New conversation 🌱`;
 
+                    let agentMetadata = response.agent;
+                    if (agentMetadata) {
+                        let agentName = agentMetadata.name;
+                        let agentAvatar = agentMetadata.avatar;
+                        let agentOwnedByUser = agentMetadata.isCreator;
+
+                        let agentAvatarElement = document.getElementById("agent-avatar");
+                        let agentNameElement = document.getElementById("agent-name");
+
+                        let agentLinkElement = document.getElementById("agent-link");
+
+                        agentAvatarElement.src = agentAvatar;
+                        agentNameElement.textContent = agentName;
+                        agentLinkElement.setAttribute("href", `/agent/${agentMetadata.slug}`);
+
+                        if (agentOwnedByUser) {
+                            let agentOwnedByUserElement = document.getElementById("agent-owned-by-user");
+                            agentOwnedByUserElement.style.display = "block";
+                        }
+
+                        let agentMetadataElement = document.getElementById("agent-metadata");
+                        agentMetadataElement.style.display = "block";
+                    } else {
+                        let agentMetadataElement = document.getElementById("agent-metadata");
+                        agentMetadataElement.style.display = "none";
+                    }
+
                     let chatBodyWrapper = document.getElementById("chat-body-wrapper");
                     const fullChatLog = response.chat || [];
 
@@ -934,12 +962,100 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
         function createNewConversation() {
-            let chatBody = document.getElementById("chat-body");
-            chatBody.innerHTML = "";
-            flashStatusInChatInput("📝 New conversation started");
-            chatBody.dataset.conversationId = "";
-            chatBody.dataset.conversationTitle = "";
-            renderMessage(welcome_message, "khoj");
+            // Create a modal that appears in the middle of the entire screen. It should have a form to create a new conversation.
+            let modal = document.createElement('div');
+            modal.classList.add("modal");
+            modal.id = "new-conversation-modal";
+            let modalContent = document.createElement('div');
+            modalContent.classList.add("modal-content");
+            let modalHeader = document.createElement('div');
+            modalHeader.classList.add("modal-header");
+            let modalTitle = document.createElement('h2');
+            modalTitle.textContent = "New Conversation";
+            let modalCloseButton = document.createElement('button');
+            modalCloseButton.classList.add("modal-close-button");
+            modalCloseButton.innerHTML = "&times;";
+            modalCloseButton.addEventListener('click', function() {
+                modal.remove();
+            });
+            modalHeader.appendChild(modalTitle);
+            modalHeader.appendChild(modalCloseButton);
+            modalContent.appendChild(modalHeader);
+            let modalBody = document.createElement('div');
+            modalBody.classList.add("modal-body");
+
+            let agentDropDownPicker = document.createElement('select');
+            agentDropDownPicker.setAttribute("id", "agent-dropdown-picker");
+            agentDropDownPicker.setAttribute("name", "agent-dropdown-picker");
+
+            let agentDropDownLabel = document.createElement('label');
+            agentDropDownLabel.setAttribute("for", "agent-dropdown-picker");
+            agentDropDownLabel.textContent = "Who do you want to talk to?";
+
+            fetch('/api/agents')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        data.forEach((agent) => {
+                            let agentOption = document.createElement('option');
+                            agentOption.setAttribute("value", agent.slug);
+                            agentOption.textContent = agent.name;
+                            agentDropDownPicker.appendChild(agentOption);
+                        });
+                    }
+                })
+                .catch(err => {
+                    return;
+                });
+
+            let seeAllAgentsLink = document.createElement('a');
+            seeAllAgentsLink.setAttribute("href", "/agents");
+            seeAllAgentsLink.setAttribute("target", "_blank");
+            seeAllAgentsLink.textContent = "See all agents";
+
+            let newConversationSubmitButton = document.createElement('button');
+            newConversationSubmitButton.setAttribute("type", "submit");
+            newConversationSubmitButton.textContent = "Go";
+            newConversationSubmitButton.id = "new-conversation-submit-button";
+
+            newConversationSubmitButton.addEventListener('click', function(event) {
+                event.preventDefault();
+                let agentSlug = agentDropDownPicker.value;
+                let createURL = `/api/chat/sessions?client=web&agent_slug=${agentSlug}`;
+                let chatBody = document.getElementById("chat-body");
+                fetch(createURL, { method: "POST" })
+                    .then(response => response.json())
+                    .then(data => {
+                        chatBody.dataset.conversationId = data.conversation_id;
+                        modal.remove();
+                        loadChat();
+                    })
+                    .catch(err => {
+                        return;
+                    });
+            });
+
+            let closeButton = document.createElement('button');
+            closeButton.id = "close-button";
+            closeButton.innerHTML = "Close";
+            closeButton.classList.add("close-button");
+            closeButton.addEventListener('click', function() {
+                modal.remove();
+            });
+
+            modalBody.appendChild(agentDropDownLabel);
+            modalBody.appendChild(agentDropDownPicker);
+            modalBody.appendChild(seeAllAgentsLink);
+
+            let modalFooter = document.createElement('div');
+            modalFooter.classList.add("modal-footer");
+            modalFooter.appendChild(closeButton);
+            modalFooter.appendChild(newConversationSubmitButton);
+            modalBody.appendChild(modalFooter);
+
+            modalContent.appendChild(modalBody);
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
         }
 
         function refreshChatSessionsPanel() {
@@ -1194,8 +1310,6 @@ To get started, just start typing below. You can also type / to see a list of co
             document.getElementById('new-conversation').classList.toggle('collapsed');
             document.getElementById('existing-conversations').classList.toggle('collapsed');
             document.getElementById('side-panel-collapse').style.transform = document.getElementById('side-panel').classList.contains('collapsed') ? 'rotate(0deg)' : 'rotate(180deg)';
-
-            document.getElementById('chat-section-wrapper').classList.toggle('mobile-friendly');
         }
     </script>
     <body>
@@ -1215,13 +1329,27 @@ To get started, just start typing below. You can also type / to see a list of co
                                 <path d="M16 0c-8.836 0-16 7.163-16 16s7.163 16 16 16c8.837 0 16-7.163 16-16s-7.163-16-16-16zM16 30.032c-7.72 0-14-6.312-14-14.032s6.28-14 14-14 14 6.28 14 14-6.28 14.032-14 14.032zM23 15h-6v-6c0-0.552-0.448-1-1-1s-1 0.448-1 1v6h-6c-0.552 0-1 0.448-1 1s0.448 1 1 1h6v6c0 0.552 0.448 1 1 1s1-0.448 1-1v-6h6c0.552 0 1-0.448 1-1s-0.448-1-1-1z"></path>
                             </svg>
                         </button>
+                        <div id="conversation-list-header" style="display: none;">Conversations</div>
                     </div>
                     <div id="existing-conversations">
                         <div id="conversation-list">
-                            <div id="conversation-list-header" style="display: none;">Recent Conversations</div>
                             <div id="conversation-list-body"></div>
                         </div>
                     </div>
+                    <a class="inline-chat-link" id="agent-link" href="">
+                        <div id="agent-metadata" style="display: none;">
+                            Active
+                            <div id="agent-metadata-content">
+                                <div id="agent-avatar-wrapper">
+                                    <img id="agent-avatar" src="" alt="Agent Avatar" />
+                                </div>
+                                <div id="agent-name-wrapper">
+                                    <div id="agent-name"></div>
+                                    <div id="agent-owned-by-user" style="display: none;">Edit</div>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
                 </div>
                 <div id="collapse-side-panel">
                     <button
@@ -1297,7 +1425,7 @@ To get started, just start typing below. You can also type / to see a list of co
             color: var(--main-text-color);
             text-align: center;
             font-family: var(--font-family);
-            font-size: 20px;
+            font-size: medium;
             font-weight: 300;
             line-height: 1.5em;
             height: 100vh;
@@ -1448,10 +1576,6 @@ To get started, just start typing below. You can also type / to see a list of co
             overflow-y: scroll;
         }
 
-        #chat-section-wrapper.mobile-friendly {
-            grid-template-columns: auto auto;
-        }
-
         #chat-body-wrapper {
             display: flex;
             flex-direction: column;
@@ -1464,10 +1588,15 @@ To get started, just start typing below. You can also type / to see a list of co
             background: var(--background-color);
             border-radius: 5px;
             box-shadow: 0 0 11px #aaa;
-            overflow-y: scroll;
             text-align: left;
             transition: width 0.3s ease-in-out;
-            max-height: 85vh;
+            max-height: 100%;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+        }
+
+        div#existing-conversations {
+            max-height: 95%;
             overflow-y: auto;
         }
 
@@ -1489,8 +1618,12 @@ To get started, just start typing below. You can also type / to see a list of co
             grid-gap: 8px;
         }
 
+        div#conversation-list {
+            height: 1;
+        }
+
         div#side-panel-wrapper {
-            display: flex
+            display: flex;
         }
 
         #chat-body {
@@ -1880,7 +2013,7 @@ To get started, just start typing below. You can also type / to see a list of co
         }
         @media only screen and (min-width: 700px) {
             body {
-                grid-template-columns: auto min(70vw, 100%) auto;
+                grid-template-columns: auto min(90vw, 100%) auto;
                 grid-template-rows: auto auto minmax(80px, 100%) auto;
             }
             body > * {
@@ -1901,6 +2034,7 @@ To get started, just start typing below. You can also type / to see a list of co
         div#new-conversation {
             text-align: left;
             border-bottom: 1px solid var(--main-text-color);
+            margin-top: 8px;
             margin-bottom: 8px;
         }
 
@@ -2055,6 +2189,170 @@ To get started, just start typing below. You can also type / to see a list of co
         .loading-spinner div:nth-child(2) {
             animation-delay: -0.5s;
         }
+
+        #agent-metadata-content {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            padding: 10px;
+            background-color: var(--primary);
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+
+        #agent-metadata {
+            border-top: 1px solid black;
+            padding-top: 10px;
+        }
+
+        #agent-avatar-wrapper {
+            margin-right: 10px;
+        }
+
+        #agent-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        #agent-name-wrapper {
+            display: grid;
+            align-items: center;
+        }
+
+        #agent-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        #agent-instructions {
+            font-size: 14px;
+            color: #666;
+            height: 50px;
+            overflow: auto;
+        }
+
+        #agent-owned-by-user {
+            font-size: 12px;
+            color: #007BFF;
+            margin-top: 5px;
+        }
+
+        .modal {
+            position: fixed; /* Stay in place */
+            z-index: 1; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            margin: 0px;
+        }
+
+        .modal-content {
+            margin: 15% auto; /* 15% from the top and centered */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 250px;
+            text-align: left;
+            background: var(--background-color);
+            border-radius: 5px;
+            box-shadow: 0 0 11px #aaa;
+            text-align: left;
+        }
+
+        .modal-header {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            color: var(--main-text-color);
+            align-items: baseline;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            text-align: left;
+        }
+
+        .modal-body {
+            display: grid;
+            grid-auto-flow: row;
+            gap: 8px;
+        }
+
+        .modal-body a {
+            /* text-decoration: none; */
+            color: var(--summer-sun);
+        }
+
+        .modal-close-button {
+            margin: 0;
+            font-size: 20px;
+            background: none;
+            border: none;
+            color: var(--summer-sun);
+        }
+
+        .modal-close-button:hover,
+        .modal-close-button:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        #new-conversation-form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        #new-conversation-form label,
+        #new-conversation-form input,
+        #new-conversation-form button {
+            margin-bottom: 10px;
+        }
+
+        #new-conversation-form button {
+            cursor: pointer;
+        }
+
+        .modal-footer {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-gap: 12px;
+        }
+
+        .modal-body button {
+            cursor: pointer;
+            border-radius: 12px;
+            padding: 8px;
+            border: 1px solid var(--main-text-color);
+        }
+
+        button#new-conversation-submit-button {
+            background: var(--summer-sun);
+            transition: background 0.2s ease-in-out;
+        }
+
+        button#close-button {
+            background: var(--background-color);
+            transition: background 0.2s ease-in-out;
+        }
+
+        button#new-conversation-submit-button:hover {
+            background: var(--primary);
+        }
+
+        button#close-button:hover {
+            background: var(--primary-hover);
+        }
+
+        .modal-body select {
+            padding: 8px;
+            border-radius: 12px;
+            border: 1px solid var(--main-text-color);
+        }
+
 
         @keyframes lds-ripple {
             0% {

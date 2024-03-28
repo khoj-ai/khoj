@@ -6,6 +6,7 @@ from typing import Any, Iterator, List, Union
 
 from langchain.schema import ChatMessage
 
+from khoj.database.models import Agent
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
     ThreadedGenerator,
@@ -141,6 +142,7 @@ def converse_offline(
     tokenizer_name=None,
     location_data: LocationData = None,
     user_name: str = None,
+    agent: Agent = None,
 ) -> Union[ThreadedGenerator, Iterator[str]]:
     """
     Converse with user using Llama
@@ -155,6 +157,15 @@ def converse_offline(
     gpt4all_model = loaded_model or GPT4All(model)
     # Initialize Variables
     compiled_references_message = "\n\n".join({f"{item}" for item in references})
+
+    current_date = datetime.now().strftime("%Y-%m-%d")
+
+    if agent and agent.personality:
+        system_prompt = prompts.custom_system_prompt_message_gpt4all.format(
+            name=agent.name, bio=agent.personality, current_date=current_date
+        )
+    else:
+        system_prompt = prompts.system_prompt_message_gpt4all.format(current_date=current_date)
 
     conversation_primer = prompts.query_prompt.format(query=user_query)
 
@@ -185,10 +196,9 @@ def converse_offline(
         conversation_primer = f"{prompts.notes_conversation_gpt4all.format(references=compiled_references_message)}\n{conversation_primer}"
 
     # Setup Prompt with Primer or Conversation History
-    current_date = datetime.now().strftime("%Y-%m-%d")
     messages = generate_chatml_messages_with_context(
         conversation_primer,
-        prompts.system_prompt_message_gpt4all.format(current_date=current_date),
+        system_prompt,
         conversation_log,
         model_name=model,
         max_prompt_size=max_prompt_size,

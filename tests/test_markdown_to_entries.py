@@ -34,7 +34,9 @@ def test_markdown_file_with_no_headings_to_jsonl(tmp_path):
     # Ensure raw entry with no headings do not get heading prefix prepended
     assert not jsonl_data[0]["raw"].startswith("#")
     # Ensure compiled entry has filename prepended as top level heading
-    assert jsonl_data[0]["compiled"].startswith(expected_heading)
+    assert expected_heading in jsonl_data[0]["compiled"]
+    # Ensure compiled entry also includes the file name
+    assert str(tmp_path) in jsonl_data[0]["compiled"]
 
 
 def test_single_markdown_entry_to_jsonl(tmp_path):

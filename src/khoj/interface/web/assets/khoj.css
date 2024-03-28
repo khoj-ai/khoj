@@ -130,7 +130,7 @@ img.khoj-logo {
     background-color: var(--background-color);
     min-width: 160px;
     box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-    right: 15vw;
+    right: 5vw;
     top: 64px;
     z-index: 1;
     opacity: 0;
