@@ -1,4 +1,5 @@
-FROM ubuntu:jammy
+FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
+# FROM ubuntu:jammy
 
 LABEL org.opencontainers.image.source https://github.com/khoj-ai/khoj
 
