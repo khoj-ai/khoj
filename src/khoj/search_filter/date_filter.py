@@ -6,10 +6,12 @@ from math import inf
 from typing import List
 
 import dateparser as dtparse
+from dateparser.search import search_dates
+from dateparser_data.settings import default_parsers
 from dateutil.relativedelta import relativedelta
 
 from khoj.search_filter.base_filter import BaseFilter
-from khoj.utils.helpers import LRU, timer
+from khoj.utils.helpers import LRU, merge_dicts, timer
 
 logger = logging.getLogger(__name__)
 
@@ -21,17 +23,40 @@ class DateFilter(BaseFilter):
     # - dt>="last week"
     # - dt:"2 years ago"
     date_regex = r"dt([:><=]{1,2})[\"'](.*?)[\"']"
-    raw_date_regex = r"\d{4}-\d{2}-\d{2}"
+    raw_date_regex = r"\d{4}[-/]\d{2}[-/]\d{2}"
 
     def __init__(self, entry_key="compiled"):
         self.entry_key = entry_key
         self.date_to_entry_ids = defaultdict(set)
         self.cache = LRU()
+        self.dtparser_settings = {
+            "PREFER_DAY_OF_MONTH": "first",
+            "DATE_ORDER": "YMD",  # Prefer YMD and DMY over MDY when parsing ambiguous dates
+        }
 
     def extract_dates(self, content):
-        pattern_matched_dates = re.findall(self.raw_date_regex, content)
+        "Extract all natural and structured dates across formats and locales from content"
+        excluded_parsers = ["relative-time"]
+        dtparser_settings = merge_dicts(
+            {
+                # Exclude relative dates for date extraction from content as very ambiguous
+                "PARSERS": [parser for parser in default_parsers if parser not in excluded_parsers],
+                "RETURN_AS_TIMEZONE_AWARE": False,
+            },
+            self.dtparser_settings,
+        )
+        try:
+            valid_dates = [
+                dt_item[1] for dt_item in search_dates(content, settings=dtparser_settings, languages=["en"]) or []
+            ]
+            return valid_dates
+        except Exception as e:
+            logger.warning(
+                f"Failed to extract natural dates from content with error: {e}. Fallback to regex based extraction."
+            )
 
-        # Filter down to valid dates
+        # Fallback to extracting YYYY-MM-DD format dates from content
+        pattern_matched_dates = re.findall(self.raw_date_regex, content)
         valid_dates = []
         for date_str in pattern_matched_dates:
             try:
@@ -120,18 +145,13 @@ class DateFilter(BaseFilter):
         # clean date string to handle future date parsing by date parser
         future_strings = ["later", "from now", "from today"]
         prefer_dates_from = {True: "future", False: "past"}[any([True for fstr in future_strings if fstr in date_str])]
-        clean_date_str = re.sub("|".join(future_strings), "", date_str)
+        dtquery_settings = {"RELATIVE_BASE": relative_base or datetime.now(), "PREFER_DATES_FROM": prefer_dates_from}
+        dtparser_settings = merge_dicts(dtquery_settings, self.dtparser_settings)
 
         # parse date passed in query date filter
+        clean_date_str = re.sub("|".join(future_strings), "", date_str)
         try:
-            parsed_date = dtparse.parse(
-                clean_date_str,
-                settings={
-                    "RELATIVE_BASE": relative_base or datetime.now(),
-                    "PREFER_DAY_OF_MONTH": "first",
-                    "PREFER_DATES_FROM": prefer_dates_from,
-                },
-            )
+            parsed_date = dtparse.parse(clean_date_str, settings=dtparser_settings)
         except Exception as e:
             logger.error(f"Failed to parse date string: {date_str} with error: {e}")
             return None

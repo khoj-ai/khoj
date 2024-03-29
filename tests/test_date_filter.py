@@ -116,7 +116,7 @@ def test_date_filter_regex():
     assert dtrange_match == []
 
 
-def test_get_file_filter_terms():
+def test_get_date_filter_terms():
     dtrange_match = DateFilter().get_filter_terms('multi word head dt>"today" dt:"1984-01-01"')
     assert dtrange_match == ["dt>'today'", "dt:'1984-01-01'"]
 
@@ -134,3 +134,29 @@ def test_get_file_filter_terms():
 
     dtrange_match = DateFilter().get_filter_terms("head tail")
     assert dtrange_match == []
+
+
+def test_date_extraction():
+    extracted_dates = DateFilter().extract_dates("")
+    assert extracted_dates == [], "Expected to handle empty string"
+
+    extracted_dates = DateFilter().extract_dates("head tail")
+    assert extracted_dates == [], "Expected to handle no dates"
+
+    extracted_dates = DateFilter().extract_dates("head CREATED: today tail")
+    assert extracted_dates == [], "Expected relative date to be ignored"
+
+    extracted_dates = DateFilter().extract_dates("head CREATED: today SCHEDULED: 1984-04-01 tail")
+    assert extracted_dates == [datetime(1984, 4, 1, 0, 0, 0)], "Expected only YMD structured date to be extracted"
+
+    extracted_dates = DateFilter().extract_dates("head CREATED: today SCHEDULED: 01-04-1984 tail")
+    assert extracted_dates == [datetime(1984, 4, 1, 0, 0, 0)], "Expected DMY structured date to be extracted"
+
+    extracted_dates = DateFilter().extract_dates("head Updates from April 1984 tail")
+    assert extracted_dates == [datetime(1984, 4, 1, 0, 0, 0)], "Expected natural date to be extracted"
+
+    extracted_dates = DateFilter().extract_dates("CLOCK: [1984-04-01 mer 09:50]--[1984-04-01 mer 10:10] => 24:20")
+    expected_dates = [datetime(1984, 4, 1, 9, 50, 0), datetime(1984, 4, 1, 10, 10, 0)]
+    assert all(
+        [dt in extracted_dates for dt in expected_dates]
+    ), "Expected multiple non-english dates extracted from logbook entry"
