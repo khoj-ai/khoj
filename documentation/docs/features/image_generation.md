@@ -11,5 +11,5 @@ To generate images, you just need to provide a prompt to Khoj in which the image
 ## Setup (Self-Hosting)
 
 Right now, we only support integration with OpenAI's DALL-E. You need to have an OpenAI API key to use this feature. Here's how you can set it up:
-1. Setup your OpenAI API key. See instructions [here](./get-started/setup#2-configure)
+1. Setup your OpenAI API key. See instructions [here](/get-started/setup#2-configure)
 2. Create a text to image config at http://localhost:42110/server/admin/database/texttoimagemodelconfig/. We recommend the value `dall-e-3`.
