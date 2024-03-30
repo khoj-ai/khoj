@@ -25,6 +25,10 @@ These are the general setup instructions for self-hosted Khoj.
 
 For Installation, you can either use Docker or install the Khoj server locally.
 
+:::info[Offline Model + GPU]
+If you want to use the offline chat model and you have a GPU, you should use Installation Option 2  - local setup via the Python package directly. Our Docker image doesn't currently support running the offline chat model on GPU, making inference times really slow.
+:::
+
 ### Installation Option 1 (Docker)
 
 #### Prerequisites

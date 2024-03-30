@@ -2,7 +2,7 @@
 sidebar_position: 1
 ---
 
-# Features
+# Overview
 
 Khoj supports a variety of features, including search and chat with a wide range of data sources and interfaces.
 
