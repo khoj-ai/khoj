@@ -1,0 +1,203 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
+        <title>Khoj - Agents</title>
+
+        <link rel="icon" type="image/png" sizes="128x128" href="/static/assets/icons/favicon-128x128.png?v={{ khoj_version }}">
+        <link rel="manifest" href="/static/khoj.webmanifest?v={{ khoj_version }}">
+        <link rel="stylesheet" href="/static/assets/khoj.css?v={{ khoj_version }}">
+    </head>
+    <script type="text/javascript" src="/static/assets/utils.js?v={{ khoj_version }}"></script>
+    <body>
+        <!--Add Header Logo and Nav Pane-->
+        {% import 'utils.html' as utils %}
+        {{ utils.heading_pane(user_photo, username, is_active, has_documents) }}
+        <!-- {{ agents }} -->
+
+        <div id="agents-list">
+            <div id="agents">
+                <div id="agents-header">
+                    <h1 id="agents-list-title">Agents</h1>
+                    <!-- <div id="create-agent">
+                        <a href="/agents/create"><svg class="new-convo-button" viewBox="0 0 35 35" fill="#000000" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M16 0c-8.836 0-16 7.163-16 16s7.163 16 16 16c8.837 0 16-7.163 16-16s-7.163-16-16-16zM16 30.032c-7.72 0-14-6.312-14-14.032s6.28-14 14-14 14 6.28 14 14-6.28 14.032-14 14.032zM23 15h-6v-6c0-0.552-0.448-1-1-1s-1 0.448-1 1v6h-6c-0.552 0-1 0.448-1 1s0.448 1 1 1h6v6c0 0.552 0.448 1 1 1s1-0.448 1-1v-6h6c0.552 0 1-0.448 1-1s-0.448-1-1-1z"></path>
+                        </svg></a>
+                    </div> -->
+                </div>
+                {% for agent in agents %}
+                    <div class="agent">
+                        <a href="/agent/{{ agent.slug }}">
+                            <div class="agent-avatar">
+                                <img src="{{ agent.avatar }}" alt="{{ agent.name }}">
+                            </div>
+                        </a>
+                        <div class="agent-info">
+                            <a href="/agent/{{ agent.slug }}">
+                                <h2>{{ agent.name }}</h2>
+                            </a>
+                            <p>{{ agent.personality }}</p>
+                        </div>
+                        <div class="agent-info">
+                            <button onclick="openChat('{{ agent.slug }}')">Talk</button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div id="footer">
+            <a href="/">Back to Chat</a>
+        </div>
+    </body>
+    <style>
+        body {
+            background-color: var(--background-color);
+            display: grid;
+            color: var(--main-text-color);
+            text-align: center;
+            font-family: var(--font-family);
+            font-size: medium;
+            font-weight: 300;
+            line-height: 1.5em;
+            height: 100vh;
+            margin: 0;
+            grid-template-rows: auto 1fr auto;
+        }
+
+        h1#agents-list-title {
+            margin: 0;
+        }
+
+        .agent-info p {
+            height: 50px;
+            overflow: auto;
+            margin: 0px;
+        }
+
+        div.agent-info {
+            font-size: medium;
+        }
+
+        div.agent-info a,
+        div.agent-info h2 {
+            margin: 0;
+        }
+
+        div.agent img {
+            width: 78px;
+            height: 78px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        div.agent a {
+            text-decoration: none;
+            color: var(--main-text-color);
+        }
+
+        div#agents-header {
+            display: grid;
+            grid-template-columns: auto;
+        }
+
+        div#agents-header a,
+        div.agent-info button {
+            font-size: 24px;
+            font-weight: bold;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--primary);
+            font: inherit;
+            color: var(--main-text-color);
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        div#agents-header a:hover,
+        div.agent-info button:hover {
+            background-color: var(--primary-hover);
+            box-shadow: 0 0 10px var(--primary-hover);
+        }
+
+
+        div#footer {
+            width: auto;
+            padding: 10px;
+            background-color: var(--background-color);
+            border-top: 1px solid var(--main-text-color);
+            text-align: left;
+            margin-top: 12px;
+            margin-bottom: 12px;
+        }
+
+        div#footer a {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        div.agent {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 20px;
+            align-items: center;
+            padding: 20px;
+            background-color: var(--frosted-background-color);
+            border-top: 1px solid var(--main-text-color);
+        }
+
+        div.agent-info {
+            text-align: left;
+        }
+
+        div#agents {
+            display: grid;
+            grid-auto-flow: row;
+            gap: 20px;
+            padding: 20px;
+            background-color: var(--frosted-background-color);
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            border-radius: 8px;
+            width: 75%;
+            margin-right: auto;
+            margin-left: auto;
+        }
+
+        svg.new-convo-button {
+            width: 20px;
+            margin-left: 5px;
+        }
+
+        @media only screen and (min-width: 700px) {
+            body {
+                grid-template-columns: auto min(70vw, 100%) auto;
+            }
+            body > * {
+                grid-column: 2;
+            }
+        }
+
+        @media only screen and (max-width: 700px) {
+            div#agents {
+                width: 90%;
+                margin-right: auto;
+                margin-left: auto;
+            }
+
+        }
+    </style>
+    <script>
+        async function openChat(agentSlug) {
+            let response = await fetch(`/api/chat/sessions?agent_slug=${agentSlug}`, { method: "POST" });
+            let data = await response.json();
+            if (response.status == 200) {
+                window.location.href = "/";
+            } else if(response.status == 403 || response.status == 401) {
+                window.location.href = "/login?next=/agent/" + agentId;
+            } else {
+                alert("Failed to start chat session");
+            }
+        }
+    </script>
+</html>

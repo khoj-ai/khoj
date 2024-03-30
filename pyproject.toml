@@ -7,7 +7,7 @@ name = "khoj-assistant"
 description = "An AI copilot for your Second Brain"
 readme = "README.md"
 license = "AGPL-3.0-or-later"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 authors = [
     { name = "Debanjum Singh Solanky, Saba Imran" },
 ]
@@ -23,8 +23,8 @@ keywords = [
     "pdf",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Development Status :: 5 - Production/Stable",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
@@ -33,7 +33,7 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Scientific/Engineering :: Human Machine Interfaces",
-    "Topic :: Text Processing :: Linguistic",
+    "Intended Audience :: Information Technology",
 ]
 dependencies = [
     "beautifulsoup4 ~= 4.12.3",

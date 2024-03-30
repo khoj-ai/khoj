@@ -3,6 +3,18 @@
 from django.db import migrations, models
 
 
+def set_default_locale(apps, schema_editor):
+    return
+
+
+def reverse_set_default_locale(apps, schema_editor):
+    GoogleUser = apps.get_model("database", "GoogleUser")
+    for user in GoogleUser.objects.all():
+        if not user.locale:
+            user.locale = "en"
+            user.save()
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ("database", "0030_conversation_slug_and_title"),
@@ -14,4 +26,5 @@ class Migration(migrations.Migration):
             name="locale",
             field=models.CharField(blank=True, default=None, max_length=200, null=True),
         ),
+        migrations.RunPython(set_default_locale, reverse_set_default_locale),
     ]

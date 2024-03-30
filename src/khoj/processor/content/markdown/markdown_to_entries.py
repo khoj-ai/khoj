@@ -114,7 +114,7 @@ class MarkdownToEntries(TextToEntries):
             # Append base filename to compiled entry for context to model
             # Increment heading level for heading entries and make filename as its top level heading
             prefix = f"# {stem}\n#" if heading else f"# {stem}\n"
-            compiled_entry = f"{prefix}{parsed_entry}"
+            compiled_entry = f"{entry_filename}\n{prefix}{parsed_entry}"
             entries.append(
                 Entry(
                     compiled=compiled_entry,

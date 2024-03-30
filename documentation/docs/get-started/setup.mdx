@@ -25,6 +25,10 @@ These are the general setup instructions for self-hosted Khoj.
 
 For Installation, you can either use Docker or install the Khoj server locally.
 
+:::info[Offline Model + GPU]
+If you want to use the offline chat model and you have a GPU, you should use Installation Option 2  - local setup via the Python package directly. Our Docker image doesn't currently support running the offline chat model on GPU, making inference times really slow.
+:::
+
 ### Installation Option 1 (Docker)
 
 #### Prerequisites
@@ -183,15 +187,15 @@ Khoj should now be running at http://localhost:42110. You can see the web UI in 
 Note: To start Khoj automatically in the background use [Task scheduler](https://www.windowscentral.com/how-create-automated-task-using-task-scheduler-windows-10) on Windows or [Cron](https://en.wikipedia.org/wiki/Cron) on Mac, Linux (e.g with `@reboot khoj`)
 
 
-### 2. Download the desktop client
+### Setup Notes
 
-You can use our desktop executables to select file paths and folders to index. You can simply select the folders or files, and they'll be automatically uploaded to the server. Once you specify a file or file path, you don't need to update the configuration again; it will grab any data diffs dynamically over time.
+Optionally, you can use Khoj with a custom domain as well. To do so, you need to set the `KHOJ_DOMAIN` environment variable to your domain (e.g., `export KHOJ_DOMAIN=my-khoj-domain.com` or add it to your `docker-compose.yml`). By default, the Khoj server you set up will not be accessible outside of `localhost` or `127.0.0.1`.
 
-**To download the latest desktop client, go to https://download.khoj.dev** and the correct executable for your OS will automatically start downloading. You can also go to https://khoj.dev/downloads to explicitly download your image of choice. Once downloaded, you can configure your folders for indexing using the settings tab. To set your chat configuration, you'll have to use the web interface for the Khoj server you setup in the previous step.
+:::warning[Must use an SSL certificate]
+If you're using a custom domain, you must use an SSL certificate. You can use [Let's Encrypt](https://letsencrypt.org/) to get a free SSL certificate for your domain.
+:::
 
-To use the desktop client, you need to go to your Khoj server's settings page (http://localhost:42110/config) and copy the API key. Then, paste it into the desktop client's settings page. Once you've done that, you can select files and folders to index. Set the desktop client settings to use `http://127.0.0.1:42110` as the host URL.
-
-### 3. Configure
+### 2. Configure
 1. Go to http://localhost:42110/server/admin and login with your admin credentials.
     1. Go to [OpenAI settings](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/) in the server admin settings to add an OpenAI processor conversation config. This is where you set your API key. Alternatively, you can go to the [offline chat settings](http://localhost:42110/server/admin/database/offlinechatprocessorconversationconfig/) and simply create a new setting with `Enabled` set to `True`.
     2. Go to the ChatModelOptions if you want to add additional models for chat.
@@ -206,6 +210,14 @@ To use the desktop client, you need to go to your Khoj server's settings page (h
 :::tip[Note]
 Using Safari on Mac? You might not be able to login to the admin panel. Try using Chrome or Firefox instead.
 :::
+
+### 3. Download the desktop client (Optional)
+
+You can use our desktop executables to select file paths and folders to index. You can simply select the folders or files, and they'll be automatically uploaded to the server. Once you specify a file or file path, you don't need to update the configuration again; it will grab any data diffs dynamically over time.
+
+**To download the latest desktop client, go to https://download.khoj.dev** and the correct executable for your OS will automatically start downloading. You can also go to https://khoj.dev/downloads to explicitly download your image of choice. Once downloaded, you can configure your folders for indexing using the settings tab. To set your chat configuration, you'll have to use the web interface for the Khoj server you setup in the previous step.
+
+To use the desktop client, you need to go to your Khoj server's settings page (http://localhost:42110/config) and copy the API key. Then, paste it into the desktop client's settings page. Once you've done that, you can select files and folders to index. Set the desktop client settings to use `http://127.0.0.1:42110` as the host URL.
 
 
 ### 4. Install Client Plugins (Optional)

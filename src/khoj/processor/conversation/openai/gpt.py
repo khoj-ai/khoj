@@ -5,6 +5,7 @@ from typing import Dict, Optional
 
 from langchain.schema import ChatMessage
 
+from khoj.database.models import Agent
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.openai.utils import (
     chat_completion_with_backoff,
@@ -115,6 +116,7 @@ def converse(
     tokenizer_name=None,
     location_data: LocationData = None,
     user_name: str = None,
+    agent: Agent = None,
 ):
     """
     Converse with user using OpenAI's ChatGPT
@@ -124,6 +126,13 @@ def converse(
     compiled_references = "\n\n".join({f"# {item}" for item in references})
 
     conversation_primer = prompts.query_prompt.format(query=user_query)
+
+    if agent and agent.personality:
+        system_prompt = prompts.custom_personality.format(
+            name=agent.name, bio=agent.personality, current_date=current_date
+        )
+    else:
+        system_prompt = prompts.personality.format(current_date=current_date)
 
     if location_data:
         location = f"{location_data.city}, {location_data.region}, {location_data.country}"
@@ -152,7 +161,7 @@ def converse(
     # Setup Prompt with Primer or Conversation History
     messages = generate_chatml_messages_with_context(
         conversation_primer,
-        prompts.personality.format(current_date=current_date),
+        system_prompt,
         conversation_log,
         model,
         max_prompt_size,

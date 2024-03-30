@@ -6,6 +6,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.http import HttpResponse
 
 from khoj.database.models import (
+    Agent,
     ChatModelOptions,
     ClientApplication,
     Conversation,
@@ -50,6 +51,7 @@ admin.site.register(ReflectiveQuestion)
 admin.site.register(UserSearchModelConfig)
 admin.site.register(TextToImageModelConfig)
 admin.site.register(ClientApplication)
+admin.site.register(Agent)
 
 
 @admin.register(Entry)

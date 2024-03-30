@@ -1,0 +1,286 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
+        <title>Khoj - Agents</title>
+
+        <link rel="icon" type="image/png" sizes="128x128" href="/static/assets/icons/favicon-128x128.png?v={{ khoj_version }}">
+        <link rel="manifest" href="/static/khoj.webmanifest?v={{ khoj_version }}">
+        <link rel="stylesheet" href="/static/assets/khoj.css?v={{ khoj_version }}">
+    </head>
+    <script type="text/javascript" src="/static/assets/utils.js?v={{ khoj_version }}"></script>
+    <body>
+        <!--Add Header Logo and Nav Pane-->
+        {% import 'utils.html' as utils %}
+        {{ utils.heading_pane(user_photo, username, is_active, has_documents) }}
+        <div id="agent-metadata-wrapper">
+            <div id="agent-metadata">
+                <div id="agent-avatar-wrapper">
+                    <div id="agent-settings-header">Agent Settings</div>
+                </div>
+                <div class="divider"></div>
+                <div id="agent-data-wrapper">
+                    <div id="agent-avatar-wrapper">
+                        <img id="agent-avatar" src="{{ agent.avatar }}" alt="Agent Avatar">
+                        <input type="text" id="agent-name-input" value="{{ agent.name }}" {% if agent.creator_not_self %} disabled {% endif %}>
+                    </div>
+                    <div id="agent-instructions">Personality</div>
+                    <div id="agent-tuning">
+                        <p>{{ agent.personality }}</p>
+                    </div>
+                    <div class="divider"></div>
+                    <div id="agent-public">
+                        <p>Public</p>
+                        <label class="switch">
+                            <input type="checkbox" {% if agent.public %} checked {% endif %} {% if agent.creator_not_self %} disabled {% endif %}>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <p id="agent-creator" style="display: none;">Creator: {{ agent.creator }}</p>
+                    <p id="agent-managed-by-admin" style="display: none;">ⓘ This agent is managed by the administrator</p>
+                    <button onclick="openChat('{{ agent.slug }}')">Chat</button>
+                </div>
+            </div>
+        </div>
+        <div id="footer">
+            <a href="/agents">All Agents</a>
+        </div>
+    </body>
+    <style>
+        body {
+            background-color: var(--background-color);
+            display: grid;
+            color: var(--main-text-color);
+            text-align: center;
+            font-family: var(--font-family);
+            font-size: medium;
+            font-weight: 300;
+            line-height: 1.5em;
+            height: 100vh;
+            margin: 0;
+            grid-template-rows: auto 1fr auto;
+        }
+
+        div#agent-settings-header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: auto;
+            margin-bottom: auto;
+        }
+
+        div.divider {
+            margin-top: 10px;
+            margin-bottom: 10px;
+            border-bottom: 2px solid var(--main-text-color);
+        }
+
+        div#footer {
+            width: auto;
+            padding: 10px;
+            background-color: var(--background-color);
+            border-top: 1px solid var(--main-text-color);
+            text-align: left;
+            margin-top: 12px;
+            margin-bottom: 12px;
+        }
+
+        div#footer a {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        div#agent-data-wrapper button {
+            font-size: 24px;
+            font-weight: bold;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--primary);
+            font: inherit;
+            color: var(--main-text-color);
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        div#agent-data-wrapper button:hover {
+            background-color: var(--primary-hover);
+            box-shadow: 0 0 10px var(--primary-hover);
+        }
+
+        input#agent-name-input {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: left;
+            background-color: #EEEEEE;
+            color: var(--main-text-color);
+            border-radius: 8px;
+            padding: 8px;
+            border: none;
+        }
+
+        div#agent-instructions {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        #agent-metadata {
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            text-align: left;
+            padding: 20px;
+        }
+
+        #agent-avatar-wrapper {
+            margin-right: 10px;
+            display: flex;
+            flex-direction: row;
+        }
+
+        #agent-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 10px;
+        }
+
+        #agent-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        #agent-tuning, #agent-public, #agent-creator, #agent-managed-by-admin {
+            font-size: 14px;
+            color: #666;
+        }
+
+        #agent-tuning p {
+            white-space: pre-line;
+        }
+
+        #agent-metadata p {
+            margin: 0;
+            padding: 0;
+        }
+
+        #agent-public {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            grid-gap: 12px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            -webkit-transition: .4s;
+            transition: .4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            -webkit-transition: .4s;
+            transition: .4s;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary-hover);
+        }
+
+        input:focus + .slider {
+            box-shadow: 0 0 1px var(--primary-hover);
+        }
+
+        input:checked + .slider:before {
+            -webkit-transform: translateX(26px);
+            -ms-transform: translateX(26px);
+            transform: translateX(26px);
+        }
+
+        div#agent-data-wrapper {
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-gap: 10px;
+            text-align: left;
+        }
+
+        /* Rounded sliders */
+        .slider.round {
+            border-radius: 34px;
+        }
+
+        .slider.round:before {
+            border-radius: 50%;
+        }
+
+        @media only screen and (min-width: 700px) {
+            body {
+                grid-template-columns: auto min(70vw, 100%) auto;
+            }
+            body > * {
+                grid-column: 2;
+            }
+            #agent-metadata-wrapper {
+                display: block;
+                width: min(30vw, 100%);
+                margin-left: auto;
+                margin-right: auto;
+            }
+        }
+    </style>
+    <script>
+        async function openChat(agentSlug) {
+            let response = await fetch(`/api/chat/sessions?agent_slug=${agentSlug}`, { method: "POST" });
+            let data = await response.json();
+            if (response.status == 200) {
+                window.location.href = "/";
+            } else {
+                alert("Failed to start chat session");
+            }
+        }
+
+        // Show the agent-managed-by-admin paragraph if the agent is managed by the admin
+        // compare agent.managed_by_admin as a lowercase string to "true"
+        let isManagedByAdmin = "{{ agent.managed_by_admin }}".toLowerCase() === "true";
+        if (isManagedByAdmin) {
+            document.getElementById("agent-managed-by-admin").style.display = "block";
+        } else {
+            document.getElementById("agent-creator").style.display = "block";
+        }
+
+        // Resize the input field based on the length of the value
+        let input = document.getElementById("agent-name-input");
+        input.addEventListener("input", resizeInput);
+        resizeInput.call(input);
+        function resizeInput() {
+            this.style.width = this.value.length + 1 + "ch";
+        }
+    </script>
+</html>

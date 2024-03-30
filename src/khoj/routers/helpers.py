@@ -10,10 +10,11 @@ import openai
 from fastapi import Depends, Header, HTTPException, Request, UploadFile
 from starlette.authentication import has_required_scope
 
-from khoj.database.adapters import ConversationAdapters, EntryAdapters
+from khoj.database.adapters import AgentAdapters, ConversationAdapters, EntryAdapters
 from khoj.database.models import (
     ChatModelOptions,
     ClientApplication,
+    Conversation,
     KhojUser,
     Subscription,
     TextToImageModelConfig,
@@ -407,6 +408,7 @@ async def send_message_to_model_wrapper(
 def generate_chat_response(
     q: str,
     meta_log: dict,
+    conversation: Conversation,
     compiled_references: List[str] = [],
     online_results: Dict[str, Dict] = {},
     inferred_queries: List[str] = [],
@@ -422,6 +424,7 @@ def generate_chat_response(
     logger.debug(f"Conversation Types: {conversation_commands}")
 
     metadata = {}
+    agent = AgentAdapters.get_conversation_agent_by_id(conversation.agent.id) if conversation.agent else None
 
     try:
         partial_completion = partial(
@@ -436,7 +439,7 @@ def generate_chat_response(
             conversation_id=conversation_id,
         )
 
-        conversation_config = ConversationAdapters.get_valid_conversation_config(user)
+        conversation_config = ConversationAdapters.get_valid_conversation_config(user, conversation)
         if conversation_config.model_type == "offline":
             if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
                 state.offline_chat_processor_config = OfflineChatProcessorModel(conversation_config.chat_model)
@@ -455,6 +458,7 @@ def generate_chat_response(
                 tokenizer_name=conversation_config.tokenizer,
                 location_data=location_data,
                 user_name=user_name,
+                agent=agent,
             )
 
         elif conversation_config.model_type == "openai":
@@ -474,6 +478,7 @@ def generate_chat_response(
                 tokenizer_name=conversation_config.tokenizer,
                 location_data=location_data,
                 user_name=user_name,
+                agent=agent,
             )
 
         metadata.update({"chat_model": conversation_config.chat_model})

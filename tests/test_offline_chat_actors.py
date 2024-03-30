@@ -468,6 +468,47 @@ My sister, Aiyla is married to Tolga. They have 3 kids, Yildiz, Ali and Ahmet.""
 
 
 # ----------------------------------------------------------------------------------------------------
+@pytest.mark.chatquality
+def test_agent_prompt_should_be_used(loaded_model, offline_agent):
+    "Chat actor should ask be tuned to think like an accountant based on the agent definition"
+    # Arrange
+    context = [
+        f"""I went to the store and bought some bananas for 2.20""",
+        f"""I went to the store and bought some apples for 1.30""",
+        f"""I went to the store and bought some oranges for 6.00""",
+    ]
+
+    # Act
+    response_gen = converse_offline(
+        references=context,  # Assume context retrieved from notes for the user_query
+        user_query="What did I buy?",
+        loaded_model=loaded_model,
+    )
+    response = "".join([response_chunk for response_chunk in response_gen])
+
+    # Assert that the model without the agent prompt does not include the summary of purchases
+    expected_responses = ["9.50", "9.5"]
+    assert all([expected_response not in response for expected_response in expected_responses]), (
+        "Expected chat actor to summarize values of purchases" + response
+    )
+
+    # Act
+    response_gen = converse_offline(
+        references=context,  # Assume context retrieved from notes for the user_query
+        user_query="What did I buy?",
+        loaded_model=loaded_model,
+        agent=offline_agent,
+    )
+    response = "".join([response_chunk for response_chunk in response_gen])
+
+    # Assert that the model with the agent prompt does include the summary of purchases
+    expected_responses = ["9.50", "9.5"]
+    assert any([expected_response in response for expected_response in expected_responses]), (
+        "Expected chat actor to summarize values of purchases" + response
+    )
+
+
+# ----------------------------------------------------------------------------------------------------
 def test_chat_does_not_exceed_prompt_size(loaded_model):
     "Ensure chat context and response together do not exceed max prompt size for the model"
     # Arrange

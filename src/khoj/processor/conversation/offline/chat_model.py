@@ -7,6 +7,7 @@ from typing import Any, Iterator, List, Union
 from langchain.schema import ChatMessage
 from llama_cpp import Llama
 
+from khoj.database.models import Agent
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.utils import download_model
 from khoj.processor.conversation.utils import (
@@ -131,6 +132,7 @@ def converse_offline(
     tokenizer_name=None,
     location_data: LocationData = None,
     user_name: str = None,
+    agent: Agent = None,
 ) -> Union[ThreadedGenerator, Iterator[str]]:
     """
     Converse with user using Llama
@@ -139,6 +141,15 @@ def converse_offline(
     assert loaded_model is None or isinstance(loaded_model, Llama), "loaded_model must be of type Llama, if configured"
     offline_chat_model = loaded_model or download_model(model)
     compiled_references_message = "\n\n".join({f"{item}" for item in references})
+
+    current_date = datetime.now().strftime("%Y-%m-%d")
+
+    if agent and agent.personality:
+        system_prompt = prompts.custom_system_prompt_offline_chat.format(
+            name=agent.name, bio=agent.personality, current_date=current_date
+        )
+    else:
+        system_prompt = prompts.system_prompt_offline_chat.format(current_date=current_date)
 
     conversation_primer = prompts.query_prompt.format(query=user_query)
 
@@ -169,10 +180,9 @@ def converse_offline(
         conversation_primer = f"{prompts.notes_conversation_offline.format(references=compiled_references_message)}\n{conversation_primer}"
 
     # Setup Prompt with Primer or Conversation History
-    current_date = datetime.now().strftime("%Y-%m-%d")
     messages = generate_chatml_messages_with_context(
         conversation_primer,
-        prompts.system_prompt_offline_chat.format(current_date=current_date),
+        system_prompt,
         conversation_log,
         model_name=model,
         loaded_model=offline_chat_model,
