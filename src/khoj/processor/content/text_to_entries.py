@@ -189,7 +189,7 @@ class TextToEntries(ABC):
         new_dates = []
         with timer("Indexed dates from added entries in", logger):
             for added_entry in added_entries:
-                dates_in_entries = zip(self.date_filter.extract_dates(added_entry.raw), repeat(added_entry))
+                dates_in_entries = zip(self.date_filter.extract_dates(added_entry.compiled), repeat(added_entry))
                 dates_to_create = [
                     EntryDates(date=date, entry=added_entry)
                     for date, added_entry in dates_in_entries
