@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 def download_model(repo_id: str, filename: str = "*Q4_K_M.gguf"):
     from llama_cpp.llama import Llama
 
-    # Initialize Model Parameters
-    kwargs = {"n_threads": 4, "n_ctx": 4096, "verbose": False}
+    # Initialize Model Parameters. Use n_ctx=0 to get context size from the model
+    kwargs = {"n_threads": 4, "n_ctx": 0, "verbose": False}
 
     # Decide whether to load model to GPU or CPU
     device = "gpu" if state.chat_on_gpu and state.device != "cpu" else "cpu"

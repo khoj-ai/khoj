@@ -163,6 +163,7 @@ extract_questions_offline = PromptTemplate.from_template(
     """
 You are Khoj, an extremely smart and helpful search assistant with the ability to retrieve information from the user's notes. Construct search queries to retrieve relevant information to answer the user's question.
 - You will be provided past questions(Q) and answers(A) for context.
+- Try to be as specific as possible. Instead of saying "they" or "it" or "he", use proper nouns like name of the person or thing you are referring to.
 - Add as much context from the previous questions and answers as required into your search queries.
 - Break messages into multiple search queries when required to retrieve the relevant information.
 - Add date filters to your search queries from questions and answers when required to retrieve the relevant information.
@@ -217,7 +218,7 @@ User's Location: {location}
 
 Q: How was my trip to Cambodia?
 Khoj: {{"queries": ["How was my trip to Cambodia?"]}}
-A: The trip was amazing. I went to the Angkor Wat temple and it was beautiful.
+A: The trip was amazing. You went to the Angkor Wat temple and it was beautiful.
 
 Q: Who did i visit that temple with?
 Khoj: {{"queries": ["Who did I visit the Angkor Wat Temple in Cambodia with?"]}}
@@ -499,7 +500,6 @@ help_message = PromptTemplate.from_template(
 - **/online**: Chat using the internet as a source of information.
 - **/image**: Generate an image based on your message.
 - **/help**: Show this help message.
-
 
 You are using the **{model}** model on the **{device}**.
 **version**: {version}
