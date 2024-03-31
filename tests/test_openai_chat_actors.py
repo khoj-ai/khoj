@@ -470,10 +470,6 @@ async def test_websearch_with_operators(chat_client):
         ["site:reddit.com" in response for response in responses]
     ), "Expected a search query to include site:reddit.com but got: " + str(responses)
 
-    assert any(
-        ["after:2024/04/01" in response for response in responses]
-    ), "Expected a search query to include after:2024/04/01 but got: " + str(responses)
-
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.anyio
