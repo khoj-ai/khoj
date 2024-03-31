@@ -16,7 +16,7 @@ def test_extract_markdown_with_no_headings(tmp_path):
     data = {
         f"{tmp_path}": entry,
     }
-    expected_heading = f"# {tmp_path.stem}"
+    expected_heading = f"# {tmp_path}"
 
     # Act
     # Extract Entries from specified Markdown files

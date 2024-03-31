@@ -142,13 +142,12 @@ class MarkdownToEntries(TextToEntries):
                 entry_filename = urllib3.util.parse_url(raw_filename).url
             else:
                 entry_filename = str(Path(raw_filename))
-            stem = Path(raw_filename).stem
 
             heading = parsed_entry.splitlines()[0] if re.search("^#+\s", parsed_entry) else ""
             # Append base filename to compiled entry for context to model
             # Increment heading level for heading entries and make filename as its top level heading
-            prefix = f"# {stem}\n#" if heading else f"# {stem}\n"
-            compiled_entry = f"{entry_filename}\n{prefix}{parsed_entry}"
+            prefix = f"# {entry_filename}\n#" if heading else f"# {entry_filename}\n"
+            compiled_entry = f"{prefix}{parsed_entry}"
             entries.append(
                 Entry(
                     compiled=compiled_entry,
