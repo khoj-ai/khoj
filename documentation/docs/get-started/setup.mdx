@@ -199,7 +199,7 @@ If you're using a custom domain, you must use an SSL certificate. You can use [L
 1. Go to http://localhost:42110/server/admin and login with your admin credentials.
     1. Go to [OpenAI settings](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/) in the server admin settings to add an OpenAI processor conversation config. This is where you set your API key. Alternatively, you can go to the [offline chat settings](http://localhost:42110/server/admin/database/offlinechatprocessorconversationconfig/) and simply create a new setting with `Enabled` set to `True`.
     2. Go to the ChatModelOptions if you want to add additional models for chat.
-       - Set the `chat-model` field to a supported chat model[^1] of your choice. For example, you can specify `gpt-4-turbo-preview` if you're using OpenAI or `mistral-7b-instruct-v0.1.Q4_0.gguf` if you're using offline chat.
+       - Set the `chat-model` field to a supported chat model[^1] of your choice. For example, you can specify `gpt-4-turbo-preview` if you're using OpenAI or `NousResearch/Hermes-2-Pro-Mistral-7B-GGUF` if you're using offline chat.
        - Make sure to set the `model-type` field to `OpenAI` or `Offline` respectively.
        - The `tokenizer` and `max-prompt-size` fields are optional. Set them only when using a non-standard model (i.e not mistral, gpt or llama2 model).
 1. Select files and folders to index [using the desktop client](/get-started/setup#2-download-the-desktop-client). When you click 'Save', the files will be sent to your server for indexing.
