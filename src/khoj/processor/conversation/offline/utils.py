@@ -21,6 +21,7 @@ def download_model(repo_id: str, filename: str = "*Q4_K_M.gguf"):
 
     # Check if the model is already downloaded
     model_path = load_model_from_cache(repo_id, filename)
+    chat_model = None
     try:
         if model_path:
             chat_model = Llama(model_path, **kwargs)

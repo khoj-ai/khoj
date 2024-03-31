@@ -232,12 +232,17 @@ def truncate_messages(
         original_question = "\n".join(messages[0].content.split("\n")[-1:]) if type(messages[0].content) == str else ""
         original_question = f"\n{original_question}"
         original_question_tokens = len(encoder.encode(original_question))
-        remaining_tokens = max_prompt_size - original_question_tokens - system_message_tokens
-        truncated_message = encoder.decode(encoder.encode(current_message)[:remaining_tokens]).strip()
+        remaining_tokens = max_prompt_size - system_message_tokens
+        if remaining_tokens > original_question_tokens:
+            remaining_tokens -= original_question_tokens
+            truncated_message = encoder.decode(encoder.encode(current_message)[:remaining_tokens]).strip()
+            messages = [ChatMessage(content=truncated_message + original_question, role=messages[0].role)]
+        else:
+            truncated_message = encoder.decode(encoder.encode(original_question)[:remaining_tokens]).strip()
+            messages = [ChatMessage(content=truncated_message, role=messages[0].role)]
         logger.debug(
             f"Truncate current message to fit within max prompt size of {max_prompt_size} supported by {model_name} model:\n {truncated_message}"
         )
-        messages = [ChatMessage(content=truncated_message + original_question, role=messages[0].role)]
 
     return messages + [system_message] if system_message else messages
 

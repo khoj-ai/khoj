@@ -101,8 +101,3 @@ def llm_thread(g, messages, model_name, temperature, openai_api_key=None, model_
     chat(messages=messages)
 
     g.close()
-
-
-def extract_summaries(metadata):
-    """Extract summaries from metadata"""
-    return "".join([f'\n{session["summary"]}' for session in metadata])
