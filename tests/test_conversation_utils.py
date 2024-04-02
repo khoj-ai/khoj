@@ -96,3 +96,23 @@ class TestTruncateMessage:
         assert final_tokens <= self.max_prompt_size
         assert len(chat_messages) == 1
         assert truncated_chat_history[0] != copy_big_chat_message
+
+    def test_truncate_single_large_question(self):
+        # Arrange
+        big_chat_message_content = " ".join(["hi"] * (self.max_prompt_size + 1))
+        big_chat_message = ChatMessageFactory.build(content=big_chat_message_content)
+        big_chat_message.role = "user"
+        copy_big_chat_message = big_chat_message.copy()
+        chat_messages = [big_chat_message]
+        initial_tokens = sum([len(self.encoder.encode(message.content)) for message in chat_messages])
+
+        # Act
+        truncated_chat_history = utils.truncate_messages(chat_messages, self.max_prompt_size, self.model_name)
+        final_tokens = sum([len(self.encoder.encode(message.content)) for message in truncated_chat_history])
+
+        # Assert
+        # The original object has been modified. Verify certain properties
+        assert initial_tokens > self.max_prompt_size
+        assert final_tokens <= self.max_prompt_size
+        assert len(chat_messages) == 1
+        assert truncated_chat_history[0] != copy_big_chat_message

@@ -40,9 +40,9 @@ class ChatModelOptionsFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = ChatModelOptions
 
-    max_prompt_size = 2000
+    max_prompt_size = 3500
     tokenizer = None
-    chat_model = "mistral-7b-instruct-v0.1.Q4_0.gguf"
+    chat_model = "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF"
     model_type = "offline"
 
 
