@@ -11,6 +11,7 @@ from khoj.routers.helpers import (
     aget_relevant_information_sources,
     aget_relevant_output_modes,
     generate_online_subqueries,
+    infer_webpage_urls,
 )
 from khoj.utils.helpers import ConversationCommand
 
@@ -544,6 +545,34 @@ async def test_select_data_sources_actor_chooses_to_search_online(chat_client):
 
     # Assert
     assert ConversationCommand.Online in conversation_commands
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.anyio
+@pytest.mark.django_db(transaction=True)
+async def test_select_data_sources_actor_chooses_to_read_webpage(chat_client):
+    # Arrange
+    user_query = "Summarize the wikipedia page on the history of the internet"
+
+    # Act
+    conversation_commands = await aget_relevant_information_sources(user_query, {})
+
+    # Assert
+    assert ConversationCommand.Webpage in conversation_commands
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.anyio
+@pytest.mark.django_db(transaction=True)
+async def test_infer_webpage_urls_actor_extracts_correct_links(chat_client):
+    # Arrange
+    user_query = "Summarize the wikipedia page on the history of the internet"
+
+    # Act
+    urls = await infer_webpage_urls(user_query, {}, None)
+
+    # Assert
+    assert "https://en.wikipedia.org/wiki/History_of_the_Internet" in urls
 
 
 # Helpers

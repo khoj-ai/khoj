@@ -1,7 +1,7 @@
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Dict, Optional
 
 from langchain.schema import ChatMessage
 
@@ -105,7 +105,7 @@ def send_message_to_model(messages, api_key, model, response_type="text"):
 def converse(
     references,
     user_query,
-    online_results: Optional[dict] = None,
+    online_results: Optional[Dict[str, Dict]] = None,
     conversation_log={},
     model: str = "gpt-3.5-turbo",
     api_key: Optional[str] = None,
@@ -127,10 +127,10 @@ def converse(
 
     conversation_primer = prompts.query_prompt.format(query=user_query)
 
-    system_prompt = ""
-
-    if agent and agent.tuning:
-        system_prompt = prompts.custom_personality.format(name=agent.name, bio=agent.tuning, current_date=current_date)
+    if agent and agent.personality:
+        system_prompt = prompts.custom_personality.format(
+            name=agent.name, bio=agent.personality, current_date=current_date
+        )
     else:
         system_prompt = prompts.personality.format(current_date=current_date)
 
@@ -151,7 +151,7 @@ def converse(
         completion_func(chat_response=prompts.no_online_results_found.format())
         return iter([prompts.no_online_results_found.format()])
 
-    if ConversationCommand.Online in conversation_commands:
+    if ConversationCommand.Online in conversation_commands or ConversationCommand.Webpage in conversation_commands:
         conversation_primer = (
             f"{prompts.online_search_conversation.format(online_results=str(online_results))}\n{conversation_primer}"
         )
@@ -167,7 +167,7 @@ def converse(
         max_prompt_size,
         tokenizer_name,
     )
-    truncated_messages = "\n".join({f"{message.content[:40]}..." for message in messages})
+    truncated_messages = "\n".join({f"{message.content[:70]}..." for message in messages})
     logger.debug(f"Conversation Context for GPT: {truncated_messages}")
 
     # Get Response from GPT

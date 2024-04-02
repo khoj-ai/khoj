@@ -91,7 +91,7 @@ class OpenAIProcessorConfig(ConfigBase):
 
 class OfflineChatProcessorConfig(ConfigBase):
     enable_offline_chat: Optional[bool] = False
-    chat_model: Optional[str] = "mistral-7b-instruct-v0.1.Q4_0.gguf"
+    chat_model: Optional[str] = "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF"
 
 
 class ConversationProcessorConfig(ConfigBase):

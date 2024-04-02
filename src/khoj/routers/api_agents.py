@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 api_agents = APIRouter()
 
 
-@api_agents.get("/", response_class=Response)
+@api_agents.get("", response_class=Response)
 async def all_agents(
     request: Request,
     common: CommonQueryParams,
@@ -30,7 +30,7 @@ async def all_agents(
                 "slug": agent.slug,
                 "avatar": agent.avatar,
                 "name": agent.name,
-                "tuning": agent.tuning,
+                "personality": agent.personality,
                 "public": agent.public,
                 "creator": agent.creator.username if agent.creator else None,
                 "managed_by_admin": agent.managed_by_admin,

@@ -43,7 +43,7 @@ from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
 from khoj.utils import state
-from khoj.utils.config import GPT4AllProcessorModel
+from khoj.utils.config import OfflineChatProcessorModel
 from khoj.utils.helpers import generate_random_name, is_none_or_empty
 
 
@@ -399,32 +399,26 @@ class AgentAdapters:
     DEFAULT_AGENT_SLUG = "khoj"
 
     @staticmethod
-    async def aget_agent_by_id(agent_id: int):
-        return await Agent.objects.filter(id=agent_id).afirst()
-
-    @staticmethod
-    async def aget_agent_by_slug(agent_slug: str):
-        return await Agent.objects.filter(slug__iexact=agent_slug.lower()).afirst()
+    async def aget_agent_by_slug(agent_slug: str, user: KhojUser):
+        return await Agent.objects.filter(
+            (Q(slug__iexact=agent_slug.lower())) & (Q(public=True) | Q(creator=user))
+        ).afirst()
 
     @staticmethod
     def get_agent_by_slug(slug: str, user: KhojUser = None):
-        agent = Agent.objects.filter(slug=slug).first()
-        # Check if agent is public or created by the user
-        if agent and (agent.public or agent.creator == user):
-            return agent
-        return None
+        if user:
+            return Agent.objects.filter((Q(slug__iexact=slug.lower())) & (Q(public=True) | Q(creator=user))).first()
+        return Agent.objects.filter(slug__iexact=slug.lower(), public=True).first()
 
     @staticmethod
     def get_all_accessible_agents(user: KhojUser = None):
-        return Agent.objects.filter(Q(public=True) | Q(creator=user)).distinct().order_by("created_at")
+        if user:
+            return Agent.objects.filter(Q(public=True) | Q(creator=user)).distinct().order_by("created_at")
+        return Agent.objects.filter(public=True).order_by("created_at")
 
     @staticmethod
     async def aget_all_accessible_agents(user: KhojUser = None) -> List[Agent]:
-        get_all_accessible_agents = sync_to_async(
-            lambda: Agent.objects.filter(Q(public=True) | Q(creator=user)).distinct().order_by("created_at").all(),
-            thread_sensitive=True,
-        )
-        agents = await get_all_accessible_agents()
+        agents = await sync_to_async(AgentAdapters.get_all_accessible_agents)(user)
         return await sync_to_async(list)(agents)
 
     @staticmethod
@@ -444,26 +438,29 @@ class AgentAdapters:
         default_conversation_config = ConversationAdapters.get_default_conversation_config()
         default_personality = prompts.personality.format(current_date="placeholder")
 
-        if Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).exists():
-            agent = Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).first()
-            agent.tuning = default_personality
+        agent = Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).first()
+
+        if agent:
+            agent.personality = default_personality
             agent.chat_model = default_conversation_config
             agent.slug = AgentAdapters.DEFAULT_AGENT_SLUG
             agent.name = AgentAdapters.DEFAULT_AGENT_NAME
             agent.save()
-            return agent
+        else:
+            # The default agent is public and managed by the admin. It's handled a little differently than other agents.
+            agent = Agent.objects.create(
+                name=AgentAdapters.DEFAULT_AGENT_NAME,
+                public=True,
+                managed_by_admin=True,
+                chat_model=default_conversation_config,
+                personality=default_personality,
+                tools=["*"],
+                avatar=AgentAdapters.DEFAULT_AGENT_AVATAR,
+                slug=AgentAdapters.DEFAULT_AGENT_SLUG,
+            )
+            Conversation.objects.filter(agent=None).update(agent=agent)
 
-        # The default agent is public and managed by the admin. It's handled a little differently than other agents.
-        return Agent.objects.create(
-            name=AgentAdapters.DEFAULT_AGENT_NAME,
-            public=True,
-            managed_by_admin=True,
-            chat_model=default_conversation_config,
-            tuning=default_personality,
-            tools=["*"],
-            avatar=AgentAdapters.DEFAULT_AGENT_AVATAR,
-            slug=AgentAdapters.DEFAULT_AGENT_SLUG,
-        )
+        return agent
 
     @staticmethod
     async def aget_default_agent():
@@ -482,9 +479,10 @@ class ConversationAdapters:
                 .first()
             )
         else:
+            agent = AgentAdapters.get_default_agent()
             conversation = (
                 Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at").first()
-            ) or Conversation.objects.create(user=user, client=client_application)
+            ) or Conversation.objects.create(user=user, client=client_application, agent=agent)
 
         return conversation
 
@@ -514,11 +512,12 @@ class ConversationAdapters:
         user: KhojUser, client_application: ClientApplication = None, agent_slug: str = None
     ):
         if agent_slug:
-            agent = await AgentAdapters.aget_agent_by_slug(agent_slug)
+            agent = await AgentAdapters.aget_agent_by_slug(agent_slug, user)
             if agent is None:
-                raise HTTPException(status_code=400, detail="Invalid agent id")
+                raise HTTPException(status_code=400, detail="No such agent currently exists.")
             return await Conversation.objects.acreate(user=user, client=client_application, agent=agent)
-        return await Conversation.objects.acreate(user=user, client=client_application)
+        agent = await AgentAdapters.aget_default_agent()
+        return await Conversation.objects.acreate(user=user, client=client_application, agent=agent)
 
     @staticmethod
     async def aget_conversation_by_user(
@@ -706,8 +705,8 @@ class ConversationAdapters:
             conversation_config = ConversationAdapters.get_default_conversation_config()
 
         if offline_chat_config and offline_chat_config.enabled and conversation_config.model_type == "offline":
-            if state.gpt4all_processor_config is None or state.gpt4all_processor_config.loaded_model is None:
-                state.gpt4all_processor_config = GPT4AllProcessorModel(conversation_config.chat_model)
+            if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
+                state.offline_chat_processor_config = OfflineChatProcessorModel(conversation_config.chat_model)
 
             return conversation_config
 

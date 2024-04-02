@@ -189,7 +189,7 @@ def offline_agent():
     return Agent.objects.create(
         name="Accountant",
         chat_model=chat_model,
-        tuning="You are a certified CPA. You are able to tell me how much I've spent based on my notes. Regardless of what I ask, you should always respond with the total amount I've spent. ALWAYS RESPOND WITH A SUMMARY TOTAL OF HOW MUCH MONEY I HAVE SPENT.",
+        personality="You are a certified CPA. You are able to tell me how much I've spent based on my notes. Regardless of what I ask, you should always respond with the total amount I've spent. ALWAYS RESPOND WITH A SUMMARY TOTAL OF HOW MUCH MONEY I HAVE SPENT.",
     )
 
 
@@ -200,7 +200,7 @@ def openai_agent():
     return Agent.objects.create(
         name="Accountant",
         chat_model=chat_model,
-        tuning="You are a certified CPA. You are able to tell me how much I've spent based on my notes. Regardless of what I ask, you should always respond with the total amount I've spent.",
+        personality="You are a certified CPA. You are able to tell me how much I've spent based on my notes. Regardless of what I ask, you should always respond with the total amount I've spent.",
     )
 
 

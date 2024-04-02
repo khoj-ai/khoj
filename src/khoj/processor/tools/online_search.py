@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+from collections import defaultdict
 from typing import Dict, Tuple, Union
 
 import aiohttp
@@ -9,7 +10,11 @@ import requests
 from bs4 import BeautifulSoup
 from markdownify import markdownify
 
-from khoj.routers.helpers import extract_relevant_info, generate_online_subqueries
+from khoj.routers.helpers import (
+    extract_relevant_info,
+    generate_online_subqueries,
+    infer_webpage_urls,
+)
 from khoj.utils.helpers import is_none_or_empty, timer
 from khoj.utils.rawconfig import LocationData
 
@@ -38,7 +43,7 @@ MAX_WEBPAGES_TO_READ = 1
 
 
 async def search_online(query: str, conversation_history: dict, location: LocationData):
-    if SERPER_DEV_API_KEY is None:
+    if not online_search_enabled():
         logger.warn("SERPER_DEV_API_KEY is not set")
         return {}
 
@@ -52,24 +57,21 @@ async def search_online(query: str, conversation_history: dict, location: Locati
 
     # Gather distinct web pages from organic search results of each subquery without an instant answer
     webpage_links = {
-        result["link"]
+        organic["link"]: subquery
         for subquery in response_dict
-        for result in response_dict[subquery].get("organic", [])[:MAX_WEBPAGES_TO_READ]
+        for organic in response_dict[subquery].get("organic", [])[:MAX_WEBPAGES_TO_READ]
         if "answerBox" not in response_dict[subquery]
     }
 
     # Read, extract relevant info from the retrieved web pages
-    tasks = []
-    for webpage_link in webpage_links:
-        logger.info(f"Reading web page at '{webpage_link}'")
-        task = read_webpage_and_extract_content(subquery, webpage_link)
-        tasks.append(task)
+    logger.info(f"Reading web pages at: {webpage_links.keys()}")
+    tasks = [read_webpage_and_extract_content(subquery, link) for link, subquery in webpage_links.items()]
     results = await asyncio.gather(*tasks)
 
     # Collect extracted info from the retrieved web pages
-    for subquery, extracted_webpage_content in results:
-        if extracted_webpage_content is not None:
-            response_dict[subquery]["extracted_content"] = extracted_webpage_content
+    for subquery, webpage_extract, url in results:
+        if webpage_extract is not None:
+            response_dict[subquery]["webpages"] = {"link": url, "snippet": webpage_extract}
 
     return response_dict
 
@@ -93,19 +95,35 @@ def search_with_google(subquery: str):
     return extracted_search_result
 
 
-async def read_webpage_and_extract_content(subquery: str, url: str) -> Tuple[str, Union[None, str]]:
+async def read_webpages(query: str, conversation_history: dict, location: LocationData):
+    "Infer web pages to read from the query and extract relevant information from them"
+    logger.info(f"Inferring web pages to read")
+    urls = await infer_webpage_urls(query, conversation_history, location)
+
+    logger.info(f"Reading web pages at: {urls}")
+    tasks = [read_webpage_and_extract_content(query, url) for url in urls]
+    results = await asyncio.gather(*tasks)
+
+    response: Dict[str, Dict] = defaultdict(dict)
+    response[query]["webpages"] = [
+        {"query": q, "link": url, "snippet": web_extract} for q, web_extract, url in results if web_extract is not None
+    ]
+    return response
+
+
+async def read_webpage_and_extract_content(subquery: str, url: str) -> Tuple[str, Union[None, str], str]:
     try:
         with timer(f"Reading web page at '{url}' took", logger):
-            content = await read_webpage_with_olostep(url) if OLOSTEP_API_KEY else await read_webpage(url)
+            content = await read_webpage_with_olostep(url) if OLOSTEP_API_KEY else await read_webpage_at_url(url)
         with timer(f"Extracting relevant information from web page at '{url}' took", logger):
             extracted_info = await extract_relevant_info(subquery, content)
-        return subquery, extracted_info
+        return subquery, extracted_info, url
     except Exception as e:
         logger.error(f"Failed to read web page at '{url}' with {e}")
-        return subquery, None
+        return subquery, None, url
 
 
-async def read_webpage(web_url: str) -> str:
+async def read_webpage_at_url(web_url: str) -> str:
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36",
     }
@@ -129,3 +147,7 @@ async def read_webpage_with_olostep(web_url: str) -> str:
             response.raise_for_status()
             response_json = await response.json()
             return response_json["markdown_content"]
+
+
+def online_search_enabled():
+    return SERPER_DEV_API_KEY is not None

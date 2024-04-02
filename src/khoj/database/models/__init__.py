@@ -80,20 +80,22 @@ class ChatModelOptions(BaseModel):
 
     max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
     tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)
-    chat_model = models.CharField(max_length=200, default="mistral-7b-instruct-v0.1.Q4_0.gguf")
+    chat_model = models.CharField(max_length=200, default="NousResearch/Hermes-2-Pro-Mistral-7B-GGUF")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
 
 
 class Agent(BaseModel):
-    creator = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
+    creator = models.ForeignKey(
+        KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True
+    )  # Creator will only be null when the agents are managed by admin
     name = models.CharField(max_length=200)
-    tuning = models.TextField()
+    personality = models.TextField()
     avatar = models.URLField(max_length=400, default=None, null=True, blank=True)
     tools = models.JSONField(default=list)  # List of tools the agent has access to, like online search or notes search
     public = models.BooleanField(default=False)
     managed_by_admin = models.BooleanField(default=False)
     chat_model = models.ForeignKey(ChatModelOptions, on_delete=models.CASCADE)
-    slug = models.CharField(max_length=200, default=None, null=True, blank=True)
+    slug = models.CharField(max_length=200)
 
 
 @receiver(pre_save, sender=Agent)
@@ -108,7 +110,10 @@ def verify_agent(sender, instance, **kwargs):
         slug = instance.name.lower().replace(" ", "-")
         observed_random_numbers = set()
         while Agent.objects.filter(slug=slug).exists():
-            random_number = choice([i for i in range(0, 10000) if i not in observed_random_numbers])
+            try:
+                random_number = choice([i for i in range(0, 1000) if i not in observed_random_numbers])
+            except IndexError:
+                raise ValidationError("Unable to generate a unique slug for the Agent. Please try again later.")
             observed_random_numbers.add(random_number)
             slug = f"{slug}-{random_number}"
         instance.slug = slug

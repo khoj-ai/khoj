@@ -24,9 +24,9 @@
                         <img id="agent-avatar" src="{{ agent.avatar }}" alt="Agent Avatar">
                         <input type="text" id="agent-name-input" value="{{ agent.name }}" {% if agent.creator_not_self %} disabled {% endif %}>
                     </div>
-                    <div id="agent-instructions">Instructions</div>
+                    <div id="agent-instructions">Personality</div>
                     <div id="agent-tuning">
-                        <p>{{ agent.tuning }}</p>
+                        <p>{{ agent.personality }}</p>
                     </div>
                     <div class="divider"></div>
                     <div id="agent-public">
@@ -256,8 +256,8 @@
         }
     </style>
     <script>
-        async function openChat(agentId) {
-            let response = await fetch(`/api/chat/sessions?agent_slug=${agentId}`, { method: "POST" });
+        async function openChat(agentSlug) {
+            let response = await fetch(`/api/chat/sessions?agent_slug=${agentSlug}`, { method: "POST" });
             let data = await response.json();
             if (response.status == 200) {
                 window.location.href = "/";

@@ -1,13 +1,15 @@
+import json
 import logging
-from collections import deque
-from datetime import datetime
+from datetime import datetime, timedelta
 from threading import Thread
 from typing import Any, Iterator, List, Union
 
 from langchain.schema import ChatMessage
+from llama_cpp import Llama
 
 from khoj.database.models import Agent
 from khoj.processor.conversation import prompts
+from khoj.processor.conversation.offline.utils import download_model
 from khoj.processor.conversation.utils import (
     ThreadedGenerator,
     generate_chatml_messages_with_context,
@@ -22,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 def extract_questions_offline(
     text: str,
-    model: str = "mistral-7b-instruct-v0.1.Q4_0.gguf",
+    model: str = "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF",
     loaded_model: Union[Any, None] = None,
     conversation_log={},
     use_history: bool = True,
@@ -32,22 +34,14 @@ def extract_questions_offline(
     """
     Infer search queries to retrieve relevant notes to answer user query
     """
-    try:
-        from gpt4all import GPT4All
-    except ModuleNotFoundError as e:
-        logger.info("There was an error importing GPT4All. Please run pip install gpt4all in order to install it.")
-        raise e
-
-    # Assert that loaded_model is either None or of type GPT4All
-    assert loaded_model is None or isinstance(loaded_model, GPT4All), "loaded_model must be of type GPT4All or None"
-
     all_questions = text.split("? ")
     all_questions = [q + "?" for q in all_questions[:-1]] + [all_questions[-1]]
 
     if not should_extract_questions:
         return all_questions
 
-    gpt4all_model = loaded_model or GPT4All(model)
+    assert loaded_model is None or isinstance(loaded_model, Llama), "loaded_model must be of type Llama, if configured"
+    offline_chat_model = loaded_model or download_model(model)
 
     location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
 
@@ -56,37 +50,36 @@ def extract_questions_offline(
 
     if use_history:
         for chat in conversation_log.get("chat", [])[-4:]:
-            if chat["by"] == "khoj" and chat["intent"].get("type") != "text-to-image":
+            if chat["by"] == "khoj" and "text-to-image" not in chat["intent"].get("type"):
                 chat_history += f"Q: {chat['intent']['query']}\n"
-                chat_history += f"A: {chat['message']}\n"
+                chat_history += f"Khoj: {chat['message']}\n\n"
 
-    current_date = datetime.now().strftime("%Y-%m-%d")
-    last_year = datetime.now().year - 1
-    last_christmas_date = f"{last_year}-12-25"
-    next_christmas_date = f"{datetime.now().year}-12-25"
-    system_prompt = prompts.system_prompt_extract_questions_gpt4all.format(
-        message=(prompts.system_prompt_message_extract_questions_gpt4all)
-    )
-    example_questions = prompts.extract_questions_gpt4all_sample.format(
+    today = datetime.today()
+    yesterday = (today - timedelta(days=1)).strftime("%Y-%m-%d")
+    last_year = today.year - 1
+    example_questions = prompts.extract_questions_offline.format(
         query=text,
         chat_history=chat_history,
-        current_date=current_date,
+        current_date=today.strftime("%Y-%m-%d"),
+        yesterday_date=yesterday,
         last_year=last_year,
-        last_christmas_date=last_christmas_date,
-        next_christmas_date=next_christmas_date,
+        this_year=today.year,
         location=location,
     )
-    message = system_prompt + example_questions
+    messages = generate_chatml_messages_with_context(
+        example_questions, model_name=model, loaded_model=offline_chat_model
+    )
+
     state.chat_lock.acquire()
     try:
-        response = gpt4all_model.generate(message, max_tokens=200, top_k=2, temp=0, n_batch=512)
+        response = send_message_to_model_offline(messages, loaded_model=offline_chat_model)
     finally:
         state.chat_lock.release()
 
     # Extract, Clean Message from GPT's Response
     try:
         # This will expect to be a list with a single string with a list of questions
-        questions = (
+        questions_str = (
             str(response)
             .strip(empty_escape_sequences)
             .replace("['", '["')
@@ -94,11 +87,8 @@ def extract_questions_offline(
             .replace("</s>", "")
             .replace("']", '"]')
             .replace("', '", '", "')
-            .replace('["', "")
-            .replace('"]', "")
-            .split("? ")
         )
-        questions = [q + "?" for q in questions[:-1]] + [questions[-1]]
+        questions: List[str] = json.loads(questions_str)
         questions = filter_questions(questions)
     except:
         logger.warning(f"Llama returned invalid JSON. Falling back to using user message as search query.\n{response}")
@@ -121,12 +111,12 @@ def filter_questions(questions: List[str]):
         "do not know",
         "do not understand",
     ]
-    filtered_questions = []
+    filtered_questions = set()
     for q in questions:
         if not any([word in q.lower() for word in hint_words]) and not is_none_or_empty(q):
-            filtered_questions.append(q)
+            filtered_questions.add(q)
 
-    return filtered_questions
+    return list(filtered_questions)
 
 
 def converse_offline(
@@ -134,7 +124,7 @@ def converse_offline(
     references=[],
     online_results=[],
     conversation_log={},
-    model: str = "mistral-7b-instruct-v0.1.Q4_0.gguf",
+    model: str = "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF",
     loaded_model: Union[Any, None] = None,
     completion_func=None,
     conversation_commands=[ConversationCommand.Default],
@@ -147,26 +137,19 @@ def converse_offline(
     """
     Converse with user using Llama
     """
-    try:
-        from gpt4all import GPT4All
-    except ModuleNotFoundError as e:
-        logger.info("There was an error importing GPT4All. Please run pip install gpt4all in order to install it.")
-        raise e
-
-    assert loaded_model is None or isinstance(loaded_model, GPT4All), "loaded_model must be of type GPT4All or None"
-    gpt4all_model = loaded_model or GPT4All(model)
     # Initialize Variables
+    assert loaded_model is None or isinstance(loaded_model, Llama), "loaded_model must be of type Llama, if configured"
+    offline_chat_model = loaded_model or download_model(model)
     compiled_references_message = "\n\n".join({f"{item}" for item in references})
 
-    system_prompt = ""
     current_date = datetime.now().strftime("%Y-%m-%d")
 
-    if agent and agent.tuning:
-        system_prompt = prompts.custom_system_prompt_message_gpt4all.format(
-            name=agent.name, bio=agent.tuning, current_date=current_date
+    if agent and agent.personality:
+        system_prompt = prompts.custom_system_prompt_offline_chat.format(
+            name=agent.name, bio=agent.personality, current_date=current_date
         )
     else:
-        system_prompt = prompts.system_prompt_message_gpt4all.format(current_date=current_date)
+        system_prompt = prompts.system_prompt_offline_chat.format(current_date=current_date)
 
     conversation_primer = prompts.query_prompt.format(query=user_query)
 
@@ -189,12 +172,12 @@ def converse_offline(
     if ConversationCommand.Online in conversation_commands:
         simplified_online_results = online_results.copy()
         for result in online_results:
-            if online_results[result].get("extracted_content"):
-                simplified_online_results[result] = online_results[result]["extracted_content"]
+            if online_results[result].get("webpages"):
+                simplified_online_results[result] = online_results[result]["webpages"]
 
         conversation_primer = f"{prompts.online_search_conversation.format(online_results=str(simplified_online_results))}\n{conversation_primer}"
     if not is_none_or_empty(compiled_references_message):
-        conversation_primer = f"{prompts.notes_conversation_gpt4all.format(references=compiled_references_message)}\n{conversation_primer}"
+        conversation_primer = f"{prompts.notes_conversation_offline.format(references=compiled_references_message)}\n{conversation_primer}"
 
     # Setup Prompt with Primer or Conversation History
     messages = generate_chatml_messages_with_context(
@@ -202,72 +185,44 @@ def converse_offline(
         system_prompt,
         conversation_log,
         model_name=model,
+        loaded_model=offline_chat_model,
         max_prompt_size=max_prompt_size,
         tokenizer_name=tokenizer_name,
     )
 
     g = ThreadedGenerator(references, online_results, completion_func=completion_func)
-    t = Thread(target=llm_thread, args=(g, messages, gpt4all_model))
+    t = Thread(target=llm_thread, args=(g, messages, offline_chat_model))
     t.start()
     return g
 
 
 def llm_thread(g, messages: List[ChatMessage], model: Any):
-    user_message = messages[-1]
-    system_message = messages[0]
-    conversation_history = messages[1:-1]
-
-    formatted_messages = [
-        prompts.khoj_message_gpt4all.format(message=message.content)
-        if message.role == "assistant"
-        else prompts.user_message_gpt4all.format(message=message.content)
-        for message in conversation_history
-    ]
-
     stop_phrases = ["<s>", "INST]", "Notes:"]
-    chat_history = "".join(formatted_messages)
-    templated_system_message = prompts.system_prompt_gpt4all.format(message=system_message.content)
-    templated_user_message = prompts.user_message_gpt4all.format(message=user_message.content)
-    prompted_message = templated_system_message + chat_history + templated_user_message
-    response_queue: deque[str] = deque(maxlen=3)  # Create a response queue with a maximum length of 3
-    hit_stop_phrase = False
 
     state.chat_lock.acquire()
-    response_iterator = send_message_to_model_offline(prompted_message, loaded_model=model, streaming=True)
     try:
+        response_iterator = send_message_to_model_offline(
+            messages, loaded_model=model, stop=stop_phrases, streaming=True
+        )
         for response in response_iterator:
-            response_queue.append(response)
-            hit_stop_phrase = any(stop_phrase in "".join(response_queue) for stop_phrase in stop_phrases)
-            if hit_stop_phrase:
-                logger.debug(f"Stop response as hit stop phrase: {''.join(response_queue)}")
-                break
-            # Start streaming the response at a lag once the queue is full
-            # This allows stop word testing before sending the response
-            if len(response_queue) == response_queue.maxlen:
-                g.send(response_queue[0])
+            g.send(response["choices"][0]["delta"].get("content", ""))
     finally:
-        if not hit_stop_phrase:
-            if len(response_queue) == response_queue.maxlen:
-                # remove already sent reponse chunk
-                response_queue.popleft()
-            # send the remaining response
-            g.send("".join(response_queue))
         state.chat_lock.release()
     g.close()
 
 
 def send_message_to_model_offline(
-    message, loaded_model=None, model="mistral-7b-instruct-v0.1.Q4_0.gguf", streaming=False, system_message=""
-) -> str:
-    try:
-        from gpt4all import GPT4All
-    except ModuleNotFoundError as e:
-        logger.info("There was an error importing GPT4All. Please run pip install gpt4all in order to install it.")
-        raise e
-
-    assert loaded_model is None or isinstance(loaded_model, GPT4All), "loaded_model must be of type GPT4All or None"
-    gpt4all_model = loaded_model or GPT4All(model)
-
-    return gpt4all_model.generate(
-        system_message + message, max_tokens=200, top_k=2, temp=0, n_batch=512, streaming=streaming
-    )
+    messages: List[ChatMessage],
+    loaded_model=None,
+    model="NousResearch/Hermes-2-Pro-Mistral-7B-GGUF",
+    streaming=False,
+    stop=[],
+):
+    assert loaded_model is None or isinstance(loaded_model, Llama), "loaded_model must be of type Llama, if configured"
+    offline_chat_model = loaded_model or download_model(model)
+    messages_dict = [{"role": message.role, "content": message.content} for message in messages]
+    response = offline_chat_model.create_chat_completion(messages_dict, stop=stop, stream=streaming)
+    if streaming:
+        return response
+    else:
+        return response["choices"][0]["message"].get("content", "")
