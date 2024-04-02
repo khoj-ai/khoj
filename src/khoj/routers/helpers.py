@@ -33,7 +33,7 @@ from khoj.processor.conversation.utils import (
 )
 from khoj.routers.storage import upload_image
 from khoj.utils import state
-from khoj.utils.config import GPT4AllProcessorModel
+from khoj.utils.config import OfflineChatProcessorModel
 from khoj.utils.helpers import (
     ConversationCommand,
     is_none_or_empty,
@@ -69,9 +69,9 @@ async def is_ready_to_chat(user: KhojUser):
 
     if has_offline_config and user_conversation_config and user_conversation_config.model_type == "offline":
         chat_model = user_conversation_config.chat_model
-        if state.gpt4all_processor_config is None:
+        if state.offline_chat_processor_config is None:
             logger.info("Loading Offline Chat Model...")
-            state.gpt4all_processor_config = GPT4AllProcessorModel(chat_model=chat_model)
+            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model=chat_model)
         return True
 
     ready = has_openai_config or has_offline_config
@@ -327,10 +327,13 @@ async def generate_better_image_prompt(
     Generate a better image prompt from the given query
     """
 
-    location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
     today_date = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
 
-    location_prompt = prompts.user_location.format(location=location)
+    if location_data:
+        location = f"{location_data.city}, {location_data.region}, {location_data.country}"
+        location_prompt = prompts.user_location.format(location=location)
+    else:
+        location_prompt = "Unknown"
 
     user_references = "\n\n".join([f"# {item}" for item in note_references])
 
@@ -368,27 +371,31 @@ async def send_message_to_model_wrapper(
     if conversation_config is None:
         raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
 
-    truncated_messages = generate_chatml_messages_with_context(
-        user_message=message, system_message=system_message, model_name=conversation_config.chat_model
-    )
+    chat_model = conversation_config.chat_model
 
     if conversation_config.model_type == "offline":
-        if state.gpt4all_processor_config is None or state.gpt4all_processor_config.loaded_model is None:
-            state.gpt4all_processor_config = GPT4AllProcessorModel(conversation_config.chat_model)
+        if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
+            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model)
 
-        loaded_model = state.gpt4all_processor_config.loaded_model
+        loaded_model = state.offline_chat_processor_config.loaded_model
+        truncated_messages = generate_chatml_messages_with_context(
+            user_message=message, system_message=system_message, model_name=chat_model, loaded_model=loaded_model
+        )
+
         return send_message_to_model_offline(
-            message=truncated_messages[-1].content,
+            messages=truncated_messages,
             loaded_model=loaded_model,
-            model=conversation_config.chat_model,
+            model=chat_model,
             streaming=False,
-            system_message=truncated_messages[0].content,
         )
 
     elif conversation_config.model_type == "openai":
         openai_chat_config = await ConversationAdapters.aget_openai_conversation_config()
         api_key = openai_chat_config.api_key
-        chat_model = conversation_config.chat_model
+        truncated_messages = generate_chatml_messages_with_context(
+            user_message=message, system_message=system_message, model_name=chat_model
+        )
+
         openai_response = send_message_to_model(
             messages=truncated_messages, api_key=api_key, model=chat_model, response_type=response_type
         )
@@ -434,10 +441,10 @@ def generate_chat_response(
 
         conversation_config = ConversationAdapters.get_valid_conversation_config(user, conversation)
         if conversation_config.model_type == "offline":
-            if state.gpt4all_processor_config is None or state.gpt4all_processor_config.loaded_model is None:
-                state.gpt4all_processor_config = GPT4AllProcessorModel(conversation_config.chat_model)
+            if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
+                state.offline_chat_processor_config = OfflineChatProcessorModel(conversation_config.chat_model)
 
-            loaded_model = state.gpt4all_processor_config.loaded_model
+            loaded_model = state.offline_chat_processor_config.loaded_model
             chat_response = converse_offline(
                 references=compiled_references,
                 online_results=online_results,

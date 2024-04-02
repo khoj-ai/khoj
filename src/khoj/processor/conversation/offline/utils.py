@@ -1,43 +1,54 @@
+import glob
 import logging
+import os
+
+from huggingface_hub.constants import HF_HUB_CACHE
 
 from khoj.utils import state
 
 logger = logging.getLogger(__name__)
 
 
-def download_model(model_name: str):
-    try:
-        import gpt4all
-    except ModuleNotFoundError as e:
-        logger.info("There was an error importing GPT4All. Please run pip install gpt4all in order to install it.")
-        raise e
+def download_model(repo_id: str, filename: str = "*Q4_K_M.gguf"):
+    from llama_cpp.llama import Llama
+
+    # Initialize Model Parameters. Use n_ctx=0 to get context size from the model
+    kwargs = {"n_threads": 4, "n_ctx": 0, "verbose": False}
 
     # Decide whether to load model to GPU or CPU
-    chat_model_config = None
+    device = "gpu" if state.chat_on_gpu and state.device != "cpu" else "cpu"
+    kwargs["n_gpu_layers"] = -1 if device == "gpu" else 0
+
+    # Check if the model is already downloaded
+    model_path = load_model_from_cache(repo_id, filename)
+    chat_model = None
     try:
-        # Download the chat model and its config
-        chat_model_config = gpt4all.GPT4All.retrieve_model(model_name=model_name, allow_download=True)
-
-        # Try load chat model to GPU if:
-        # 1. Loading chat model to GPU isn't disabled via CLI and
-        # 2. Machine has GPU
-        # 3. GPU has enough free memory to load the chat model with max context length of 4096
-        device = (
-            "gpu"
-            if state.chat_on_gpu and gpt4all.pyllmodel.LLModel().list_gpu(chat_model_config["path"], 4096)
-            else "cpu"
-        )
-    except ValueError:
-        device = "cpu"
-    except Exception as e:
-        if chat_model_config is None:
-            device = "cpu"  # Fallback to CPU as can't determine if GPU has enough memory
-            logger.debug(f"Unable to download model config from gpt4all website: {e}")
+        if model_path:
+            chat_model = Llama(model_path, **kwargs)
         else:
-            raise e
+            Llama.from_pretrained(repo_id=repo_id, filename=filename, **kwargs)
+    except:
+        # Load model on CPU if GPU is not available
+        kwargs["n_gpu_layers"], device = 0, "cpu"
+        if model_path:
+            chat_model = Llama(model_path, **kwargs)
+        else:
+            chat_model = Llama.from_pretrained(repo_id=repo_id, filename=filename, **kwargs)
 
-    # Now load the downloaded chat model onto appropriate device
-    chat_model = gpt4all.GPT4All(model_name=model_name, n_ctx=4096, device=device, allow_download=False)
-    logger.debug(f"Loaded chat model to {device.upper()}.")
+    logger.debug(f"{'Loaded' if model_path else 'Downloaded'} chat model to {device.upper()}")
 
     return chat_model
+
+
+def load_model_from_cache(repo_id: str, filename: str, repo_type="models"):
+    # Construct the path to the model file in the cache directory
+    repo_org, repo_name = repo_id.split("/")
+    object_id = "--".join([repo_type, repo_org, repo_name])
+    model_path = os.path.sep.join([HF_HUB_CACHE, object_id, "snapshots", "**", filename])
+
+    # Check if the model file exists
+    paths = glob.glob(model_path)
+    if paths:
+        return paths[0]
+    else:
+        return None
