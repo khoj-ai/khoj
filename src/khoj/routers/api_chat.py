@@ -368,16 +368,23 @@ async def websocket_endpoint(
             conversation_commands.remove(ConversationCommand.Notes)
 
         if ConversationCommand.Online in conversation_commands:
-            try:
-                await send_status_update("**Operation**: Searching the web for relevant information...")
-                online_results = await search_online(defiltered_query, meta_log, location)
-                online_searches = ", ".join([f"{query}" for query in online_results.keys()])
-                await send_status_update(f"**Online searches**: {online_searches}")
-            except ValueError as e:
-                await send_complete_llm_response(
-                    "Please set your SERPER_DEV_API_KEY to get started with online searches 🌐"
-                )
-                continue
+            if not online_search_enabled():
+                conversation_commands.remove(ConversationCommand.Online)
+                # If online search is not enabled, try to read webpages directly
+                if ConversationCommand.Webpage not in conversation_commands:
+                    conversation_commands.append(ConversationCommand.Webpage)
+            else:
+                try:
+                    await send_status_update("**Operation**: Searching the web for relevant information...")
+                    online_results = await search_online(defiltered_query, meta_log, location)
+                    online_searches = ", ".join([f"{query}" for query in online_results.keys()])
+                    await send_status_update(f"**Online searches**: {online_searches}")
+                except ValueError as e:
+                    logger.warning(f"Error searching online: {e}. Attempting to respond without online results")
+                    await send_complete_llm_response(
+                        f"Error searching online: {e}. Attempting to respond without online results"
+                    )
+                    continue
 
         if ConversationCommand.Image in conversation_commands:
             update_telemetry_state(
@@ -435,6 +442,8 @@ async def websocket_endpoint(
             location,
             user_name,
         )
+
+        chat_metadata["agent"] = conversation.agent.slug if conversation.agent else None
 
         update_telemetry_state(
             request=websocket,
