@@ -11,7 +11,9 @@ from khoj.database.models import (
     ClientApplication,
     Conversation,
     Entry,
+    GithubConfig,
     KhojUser,
+    NotionConfig,
     OfflineChatProcessorConversationConfig,
     OpenAIProcessorConversationConfig,
     ReflectiveQuestion,
@@ -52,6 +54,8 @@ admin.site.register(UserSearchModelConfig)
 admin.site.register(TextToImageModelConfig)
 admin.site.register(ClientApplication)
 admin.site.register(Agent)
+admin.site.register(GithubConfig)
+admin.site.register(NotionConfig)
 
 
 @admin.register(Entry)
