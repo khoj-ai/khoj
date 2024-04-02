@@ -122,6 +122,10 @@ def verify_agent(sender, instance, **kwargs):
 class NotionConfig(BaseModel):
     token = models.CharField(max_length=200)
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
+    # owner = models.CharField(max_length=200, default=None, null=True, blank=True)
+    # workspace_id = models.CharField(max_length=200, default=None, null=True, blank=True)
+    # workspace_name = models.CharField(max_length=200, default=None, null=True, blank=True)
+    # bot_id = models.CharField(max_length=200, default=None, null=True, blank=True)
 
 
 class GithubConfig(BaseModel):

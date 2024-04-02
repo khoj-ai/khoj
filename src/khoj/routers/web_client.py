@@ -19,6 +19,7 @@ from khoj.database.adapters import (
     get_user_subscription_state,
 )
 from khoj.database.models import KhojUser
+from khoj.routers.notion import get_notion_auth_url
 from khoj.routers.twilio import is_twilio_enabled
 from khoj.utils import constants, state
 from khoj.utils.rawconfig import (
@@ -244,6 +245,8 @@ def config_page(request: Request):
 
     current_search_model_option = adapters.get_user_search_model_or_default(user)
 
+    notion_oauth_url = get_notion_auth_url(user)
+
     return templates.TemplateResponse(
         "config.html",
         context={
@@ -267,6 +270,7 @@ def config_page(request: Request):
             "phone_number": user.phone_number,
             "is_phone_number_verified": user.verified_phone_number,
             "khoj_version": state.khoj_version,
+            "notion_oauth_url": notion_oauth_url,
         },
     )
 
@@ -324,7 +328,7 @@ def notion_config_page(request: Request):
         token=current_notion_config.token if current_notion_config else "",
     )
 
-    current_config = json.loads(current_config.json())
+    current_config = json.loads(current_config.model_dump_json())
 
     return templates.TemplateResponse(
         "content_source_notion_input.html",

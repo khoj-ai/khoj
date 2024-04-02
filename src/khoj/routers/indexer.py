@@ -14,9 +14,9 @@ from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
 from khoj.processor.content.pdf.pdf_to_entries import PdfToEntries
 from khoj.processor.content.plaintext.plaintext_to_entries import PlaintextToEntries
 from khoj.routers.helpers import ApiIndexedDataLimiter, update_telemetry_state
-from khoj.search_type import image_search, text_search
+from khoj.search_type import text_search
 from khoj.utils import constants, state
-from khoj.utils.config import ContentIndex, SearchModels
+from khoj.utils.config import SearchModels
 from khoj.utils.helpers import LRU, get_file_type
 from khoj.utils.rawconfig import ContentConfig, FullConfig, SearchConfig
 from khoj.utils.yaml import save_config_to_file_updated_state
@@ -105,13 +105,10 @@ async def update(
 
         # Extract required fields from config
         loop = asyncio.get_event_loop()
-        state.content_index, success = await loop.run_in_executor(
+        success = await loop.run_in_executor(
             None,
             configure_content,
-            state.content_index,
-            state.config.content_type,
             indexer_input.model_dump(),
-            state.search_models,
             force,
             t,
             False,
@@ -159,23 +156,17 @@ def configure_search(search_models: SearchModels, search_config: Optional[Search
 
     if search_config and search_config.image:
         logger.info("🔍 🌄 Setting up image search model")
-        search_models.image_search = image_search.initialize_model(search_config.image)
 
     return search_models
 
 
 def configure_content(
-    content_index: Optional[ContentIndex],
-    content_config: Optional[ContentConfig],
     files: Optional[dict[str, dict[str, str]]],
-    search_models: SearchModels,
     regenerate: bool = False,
     t: Optional[state.SearchType] = state.SearchType.All,
     full_corpus: bool = True,
     user: KhojUser = None,
-) -> tuple[Optional[ContentIndex], bool]:
-    content_index = ContentIndex()
-
+) -> bool:
     success = True
     if t == None:
         t = state.SearchType.All
@@ -267,24 +258,6 @@ def configure_content(
         success = False
 
     try:
-        # Initialize Image Search
-        if (
-            (search_type == state.SearchType.All.value or search_type == state.SearchType.Image.value)
-            and content_config
-            and content_config.image
-            and search_models.image_search
-        ):
-            logger.info("🌄 Setting up search for images")
-            # Extract Entries, Generate Image Embeddings
-            content_index.image = image_search.setup(
-                content_config.image, search_models.image_search.image_encoder, regenerate=regenerate
-            )
-
-    except Exception as e:
-        logger.error(f"🚨 Failed to setup images: {e}", exc_info=True)
-        success = False
-
-    try:
         if no_documents:
             github_config = GithubConfig.objects.filter(user=user).prefetch_related("githubrepoconfig").first()
             if (
@@ -330,23 +303,4 @@ def configure_content(
     if user:
         state.query_cache[user.uuid] = LRU()
 
-    return content_index, success
-
-
-def load_content(
-    content_config: Optional[ContentConfig],
-    content_index: Optional[ContentIndex],
-    search_models: SearchModels,
-):
-    if content_config is None:
-        logger.debug("🚨 No Content configuration available.")
-        return None
-    if content_index is None:
-        content_index = ContentIndex()
-
-    if content_config.image:
-        logger.info("🌄 Loading images")
-        content_index.image = image_search.setup(
-            content_config.image, search_models.image_search.image_encoder, regenerate=False
-        )
-    return content_index
+    return success

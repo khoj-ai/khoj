@@ -33,7 +33,7 @@ from khoj.routers.helpers import (
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
-from khoj.search_type import image_search, text_search
+from khoj.search_type import text_search
 from khoj.utils import constants, state
 from khoj.utils.config import GPT4AllProcessorModel
 from khoj.utils.helpers import ConversationCommand, timer
@@ -115,41 +115,17 @@ async def search(
                 )
             ]
 
-        elif (t == SearchType.Image) and state.content_index.image and state.search_models.image_search:
-            # query images
-            search_futures += [
-                executor.submit(
-                    image_search.query,
-                    user_query,
-                    results_count,
-                    state.search_models.image_search,
-                    state.content_index.image,
-                )
-            ]
-
         # Query across each requested content types in parallel
         with timer("Query took", logger):
             for search_future in concurrent.futures.as_completed(search_futures):
-                if t == SearchType.Image and state.content_index.image:
-                    hits = await search_future.result()
-                    output_directory = constants.web_directory / "images"
-                    # Collate results
-                    results += image_search.collate_results(
-                        hits,
-                        image_names=state.content_index.image.image_names,
-                        output_directory=output_directory,
-                        image_files_url="/static/images",
-                        count=results_count,
-                    )
-                else:
-                    hits = await search_future.result()
-                    # Collate results
-                    results += text_search.collate_results(hits, dedupe=dedupe)
+                hits = await search_future.result()
+                # Collate results
+                results += text_search.collate_results(hits, dedupe=dedupe)
 
-                    # Sort results across all content types and take top results
-                    results = text_search.rerank_and_sort_results(
-                        results, query=defiltered_query, rank_results=r, search_model_name=search_model.name
-                    )[:results_count]
+                # Sort results across all content types and take top results
+                results = text_search.rerank_and_sort_results(
+                    results, query=defiltered_query, rank_results=r, search_model_name=search_model.name
+                )[:results_count]
 
     # Cache results
     if user:
@@ -191,8 +167,6 @@ def update(
         components = []
         if state.search_models:
             components.append("Search models")
-        if state.content_index:
-            components.append("Content index")
         components_msg = ", ".join(components)
         logger.info(f"📪 {components_msg} updated via API")
 

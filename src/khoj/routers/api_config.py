@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 def map_config_to_object(content_source: str):
     if content_source == DbEntry.EntrySource.GITHUB:
         return GithubConfig
-    if content_source == DbEntry.EntrySource.GITHUB:
+    if content_source == DbEntry.EntrySource.NOTION:
         return NotionConfig
     if content_source == DbEntry.EntrySource.COMPUTER:
         return "Computer"

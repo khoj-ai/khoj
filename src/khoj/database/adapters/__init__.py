@@ -256,8 +256,8 @@ async def get_user_by_email(email: str) -> KhojUser:
     return await KhojUser.objects.filter(email=email).afirst()
 
 
-def get_user_by_uuid(uuid: str) -> KhojUser:
-    return KhojUser.objects.filter(uuid=uuid).first()
+async def aget_user_by_uuid(uuid: str) -> KhojUser:
+    return await KhojUser.objects.filter(uuid=uuid).afirst()
 
 
 async def get_user_by_token(token: dict) -> KhojUser:

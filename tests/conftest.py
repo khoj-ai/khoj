@@ -25,7 +25,7 @@ from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
 from khoj.processor.content.plaintext.plaintext_to_entries import PlaintextToEntries
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
 from khoj.routers.indexer import configure_content
-from khoj.search_type import image_search, text_search
+from khoj.search_type import text_search
 from khoj.utils import fs_syncer, state
 from khoj.utils.config import SearchModels
 from khoj.utils.constants import web_directory
@@ -207,7 +207,6 @@ def openai_agent():
 @pytest.fixture(scope="session")
 def search_models(search_config: SearchConfig):
     search_models = SearchModels()
-    search_models.image_search = image_search.initialize_model(search_config.image)
 
     return search_models
 
@@ -231,8 +230,6 @@ def content_config(tmp_path_factory, search_models: SearchModels, default_user: 
         batch_size=1,
         use_xmp_metadata=False,
     )
-
-    image_search.setup(content_config.image, search_models.image_search.image_encoder, regenerate=False)
 
     LocalOrgConfig.objects.create(
         input_files=None,
@@ -305,9 +302,7 @@ def chat_client_builder(search_config, user, index_content=True, require_auth=Fa
 
         # Index Markdown Content for Search
         all_files = fs_syncer.collect_files(user=user)
-        state.content_index, _ = configure_content(
-            state.content_index, state.config.content_type, all_files, state.search_models, user=user
-        )
+        success = configure_content(all_files, state.search_models, user=user)
 
     # Initialize Processor from Config
     if os.getenv("OPENAI_API_KEY"):
@@ -349,15 +344,11 @@ def client(
     state.cross_encoder_model["default"] = CrossEncoderModel()
 
     # These lines help us Mock the Search models for these search types
-    state.search_models.image_search = image_search.initialize_model(search_config.image)
     text_search.setup(
         OrgToEntries,
         get_sample_data("org"),
         regenerate=False,
         user=api_user.user,
-    )
-    state.content_index.image = image_search.setup(
-        content_config.image, state.search_models.image_search, regenerate=False
     )
     text_search.setup(
         PlaintextToEntries,
@@ -388,9 +379,7 @@ def client_offline_chat(search_config: SearchConfig, default_user2: KhojUser):
     )
 
     all_files = fs_syncer.collect_files(user=default_user2)
-    configure_content(
-        state.content_index, state.config.content_type, all_files, state.search_models, user=default_user2
-    )
+    configure_content(all_files, state.search_models, user=default_user2)
 
     # Initialize Processor from Config
     OfflineChatProcessorConversationConfigFactory(enabled=True)
