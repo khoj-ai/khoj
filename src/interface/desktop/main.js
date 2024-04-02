@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, shell } = require('electron');
+const FileType = require('file-type');
 const todesktop = require("@todesktop/runtime");
 const khojPackage = require('./package.json');
 
@@ -111,22 +112,31 @@ function filenameToMimeType (filename) {
     }
 }
 
-function processDirectory(filesToPush, folder) {
+async function isPlainTextFile(filePath) {
+    const fileType = await FileType.fromFile(filePath);
+    if (!fileType) {
+        return false;
+    }
+    return fileType.mime.startsWith('text/');
+}
+
+async function processDirectory(filesToPush, folder) {
     const files = fs.readdirSync(folder.path, { withFileTypes: true, recursive: true });
 
     for (const file of files) {
-        if (file.isFile() && validFileTypes.includes(file.name.split('.').pop())) {
+        const filePath = path.join(folder.path, file.name);
+        if (file.isFile() && await isPlainTextFile(filePath)) {
             console.log(`Add ${file.name} in ${folder.path} for indexing`);
-            filesToPush.push(path.join(folder.path, file.name));
+            filesToPush.push(filePath);
         }
 
         if (file.isDirectory()) {
-            processDirectory(filesToPush, {'path': path.join(folder.path, file.name)});
+            await processDirectory(filesToPush, {'path': path.join(folder.path, file.name)});
         }
     }
 }
 
-function pushDataToKhoj (regenerate = false) {
+async function pushDataToKhoj (regenerate = false) {
     // Don't sync if token or hostURL is not set or if already syncing
     if (store.get('khojToken') === '' || store.get('hostURL') === '' || syncing === true) {
         const win = BrowserWindow.getAllWindows()[0];
@@ -148,7 +158,7 @@ function pushDataToKhoj (regenerate = false) {
 
     // Collect paths of all indexable files in configured folders
     for (const folder of folders) {
-        processDirectory(filesToPush, folder);
+        await processDirectory(filesToPush, folder);
     }
 
     const lastSync = store.get('lastSync') || [];
@@ -222,6 +232,7 @@ function pushDataToKhoj (regenerate = false) {
         } else if (error?.code === 'ECONNREFUSED') {
             state["error"] = `Could not connect to Khoj server. Ensure you can connect to it at ${error.address}:${error.port}.`;
         } else {
+            currentTime = new Date();
             state["error"] = `Sync was unsuccessful at ${currentTime.toLocaleTimeString()}. Contact team@khoj.dev to report this issue.`;
         }
     })
@@ -240,7 +251,7 @@ pushDataToKhoj();
 async function handleFileOpen (type) {
     let { canceled, filePaths } = {canceled: true, filePaths: []};
     if (type === 'file') {
-        ({ canceled, filePaths } = await dialog.showOpenDialog({properties: ['openFile' ], filters: [{ name: "Valid Khoj Files", extensions: validFileTypes}] }));
+        ({ canceled, filePaths } = await dialog.showOpenDialog({properties: ['openFile' ], filters: [{ name: "Valid Khoj Files" }] }));
     } else if (type === 'folder') {
         ({ canceled, filePaths } = await dialog.showOpenDialog({properties: ['openDirectory' ]}));
     }
@@ -331,7 +342,7 @@ async function removeFolder (event, folderPath) {
 
 async function syncData (regenerate = false) {
     try {
-        pushDataToKhoj(regenerate);
+        await pushDataToKhoj(regenerate);
         const date = new Date();
         console.log('Pushing data to Khoj at: ', date);
     } catch (err) {
@@ -343,7 +354,7 @@ async function deleteAllFiles () {
     try {
         store.set('files', []);
         store.set('folders', []);
-        pushDataToKhoj(true);
+        await pushDataToKhoj(true);
         const date = new Date();
         console.log('Pushing data to Khoj at: ', date);
     } catch (err) {
@@ -366,9 +377,9 @@ const createWindow = (tab = 'chat.html') => {
       }
     })
 
-    const job = new cron('0 */10 * * * *', function() {
+    const job = new cron('0 */10 * * * *', async function() {
         try {
-            pushDataToKhoj();
+            await pushDataToKhoj();
             const date = new Date();
             console.log('Pushing data to Khoj at: ', date);
             win.webContents.send('update-state', state);
