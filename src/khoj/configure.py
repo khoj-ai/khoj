@@ -251,7 +251,6 @@ def initialize_content(regenerate: bool, search_type: Optional[SearchType] = Non
                 all_files = collect_files(user=user)
                 status = configure_content(
                     all_files,
-                    state.search_models,
                     regenerate,
                     search_type,
                     user=user,
@@ -310,9 +309,9 @@ def update_search_index():
         logger.info("📬 Updating content index via Scheduler")
         for user in get_all_users():
             all_files = collect_files(user=user)
-            success = configure_content(all_files, state.search_models, user=user)
+            success = configure_content(all_files, user=user)
         all_files = collect_files(user=None)
-        success = configure_content(all_files, state.search_models, user=None)
+        success = configure_content(all_files, user=None)
         if not success:
             raise RuntimeError("Failed to update content index")
         logger.info("📪 Content index updated via Scheduler")

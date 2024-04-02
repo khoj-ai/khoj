@@ -302,7 +302,7 @@ def chat_client_builder(search_config, user, index_content=True, require_auth=Fa
 
         # Index Markdown Content for Search
         all_files = fs_syncer.collect_files(user=user)
-        success = configure_content(all_files, state.search_models, user=user)
+        success = configure_content(all_files, user=user)
 
     # Initialize Processor from Config
     if os.getenv("OPENAI_API_KEY"):
@@ -379,7 +379,7 @@ def client_offline_chat(search_config: SearchConfig, default_user2: KhojUser):
     )
 
     all_files = fs_syncer.collect_files(user=default_user2)
-    configure_content(all_files, state.search_models, user=default_user2)
+    configure_content(all_files, user=default_user2)
 
     # Initialize Processor from Config
     OfflineChatProcessorConversationConfigFactory(enabled=True)

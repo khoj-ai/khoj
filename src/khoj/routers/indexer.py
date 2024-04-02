@@ -176,7 +176,7 @@ def configure_content(
 
     if t is not None and not t.value in [type.value for type in state.SearchType]:
         logger.warning(f"🚨 Invalid search type: {t}")
-        return None, False
+        return False
 
     search_type = t.value if t else None
 
@@ -184,7 +184,7 @@ def configure_content(
 
     if files is None:
         logger.warning(f"🚨 No files to process for {search_type} search.")
-        return None, True
+        return True
 
     try:
         # Initialize Org Notes Search
