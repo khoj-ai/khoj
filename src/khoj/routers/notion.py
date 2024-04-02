@@ -2,20 +2,24 @@ import asyncio
 import base64
 import json
 import os
+from concurrent.futures import ThreadPoolExecutor
 
 import requests
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Request, Response
 from starlette.responses import RedirectResponse
 
-from khoj.database.adapters import get_user_by_uuid
+from khoj.database.adapters import aget_user_by_uuid
 from khoj.database.models import KhojUser, NotionConfig
 from khoj.routers.indexer import configure_content
+from khoj.utils.state import SearchType
 
 NOTION_OAUTH_CLIENT_ID = os.getenv("NOTION_OAUTH_CLIENT_ID")
 NOTION_OAUTH_CLIENT_SECRET = os.getenv("NOTION_OAUTH_CLIENT_SECRET")
 NOTION_REDIRECT_URI = os.getenv("NOTION_REDIRECT_URI")
 
 notion_router = APIRouter()
+
+executor = ThreadPoolExecutor()
 
 
 def get_notion_auth_url(user: KhojUser):
@@ -24,16 +28,21 @@ def get_notion_auth_url(user: KhojUser):
     return f"https://api.notion.com/v1/oauth/authorize?client_id={NOTION_OAUTH_CLIENT_ID}&redirect_uri={NOTION_REDIRECT_URI}&response_type=code&state={user.uuid}"
 
 
+async def run_in_executor(func, *args):
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(executor, func, *args)
+
+
 @notion_router.get("/auth/callback")
-def notion_auth_callback(request: Request):
+async def notion_auth_callback(request: Request, background_tasks: BackgroundTasks):
     code = request.query_params.get("code")
     state = request.query_params.get("state")
     if not code or not state:
         return Response("Missing code or state", status_code=400)
 
-    user: KhojUser = get_user_by_uuid(state)
+    user: KhojUser = await aget_user_by_uuid(state)
 
-    NotionConfig.objects.filter(user=user).delete()
+    NotionConfig.objects.filter(user=user).adelete()
 
     if not user:
         raise Exception("User not found")
@@ -58,7 +67,7 @@ def notion_auth_callback(request: Request):
     final_response = response.json()
 
     access_token = final_response.get("access_token")
-    NotionConfig.objects.create(token=access_token, user=user)
+    NotionConfig.objects.acreate(token=access_token, user=user)
 
     owner = final_response.get("owner")
     workspace_id = final_response.get("workspace_id")
@@ -68,6 +77,6 @@ def notion_auth_callback(request: Request):
     notion_redirect = str(request.app.url_path_for("notion_config_page"))
 
     # Trigger an async job to configure_content. Let it run without blocking the response.
-    asyncio.create_task(configure_content(user, "notion"))
+    background_tasks.add_task(run_in_executor, configure_content, {}, False, SearchType.Notion, True, user)
 
     return RedirectResponse(notion_redirect)
