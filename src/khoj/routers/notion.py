@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import json
+import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
 
@@ -20,6 +21,8 @@ NOTION_REDIRECT_URI = os.getenv("NOTION_REDIRECT_URI")
 notion_router = APIRouter()
 
 executor = ThreadPoolExecutor()
+
+logger = logging.getLogger(__name__)
 
 
 def get_notion_auth_url(user: KhojUser):
@@ -73,6 +76,10 @@ async def notion_auth_callback(request: Request, background_tasks: BackgroundTas
     workspace_id = final_response.get("workspace_id")
     workspace_name = final_response.get("workspace_name")
     bot_id = final_response.get("bot_id")
+
+    logger.info(
+        f"Notion integration. Owner: {owner}, Workspace ID: {workspace_id}, Workspace Name: {workspace_name}, Bot ID: {bot_id}"
+    )
 
     notion_redirect = str(request.app.url_path_for("notion_config_page"))
 
