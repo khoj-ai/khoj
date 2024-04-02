@@ -114,7 +114,7 @@ class OrgToEntries(TextToEntries):
         sections: List[str] = []
         while len(sections) < 2:
             next_heading_level += 1
-            sections = re.split(rf"(\n|^)(?=[*]{{{next_heading_level}}} .+\n?)", org_content, re.MULTILINE)
+            sections = re.split(rf"(\n|^)(?=[*]{{{next_heading_level}}} .+\n?)", org_content, flags=re.MULTILINE)
 
         # Recurse down each non-empty section after parsing its body, heading and ancestry
         for section in sections:

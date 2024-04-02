@@ -87,7 +87,7 @@ class MarkdownToEntries(TextToEntries):
 
         # If content is small or content has no children headings, save it as a single entry
         if len(TextToEntries.tokenizer(markdown_content_with_ancestry)) <= max_tokens or not re.search(
-            rf"^#{{{len(ancestry)+1},}}\s", markdown_content, re.MULTILINE
+            rf"^#{{{len(ancestry)+1},}}\s", markdown_content, flags=re.MULTILINE
         ):
             entry_to_file_map += [(markdown_content_with_ancestry, markdown_file)]
             entries.extend([markdown_content_with_ancestry])
@@ -98,7 +98,7 @@ class MarkdownToEntries(TextToEntries):
         sections: List[str] = []
         while len(sections) < 2:
             next_heading_level += 1
-            sections = re.split(rf"(\n|^)(?=[#]{{{next_heading_level}}} .+\n?)", markdown_content, re.MULTILINE)
+            sections = re.split(rf"(\n|^)(?=[#]{{{next_heading_level}}} .+\n?)", markdown_content, flags=re.MULTILINE)
 
         for section in sections:
             # Skip empty sections
