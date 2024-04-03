@@ -956,8 +956,11 @@ To get started, just start typing below. You can also type / to see a list of co
             websocket.onclose = function(event) {
                 websocket = null;
                 console.log("WebSocket is closed now.");
-                let greenDot = document.getElementById("connected-green-dot");
-                greenDot.style.display = "none";
+                let statusDotIcon = document.getElementById("connection-status-icon");
+                statusDotIcon.style.backgroundColor = "red";
+                let statusDotText = document.getElementById("connection-status-text");
+                statusDotText.style.marginTop = "5px";
+                statusDotText.innerHTML = '<button onclick="setupWebSocket()">Reconnect to Server</button>';
             }
             websocket.onerror = function(event) {
                 console.log("WebSocket error observed:", event);
@@ -965,8 +968,11 @@ To get started, just start typing below. You can also type / to see a list of co
 
             websocket.onopen = function(event) {
                 console.log("WebSocket is open now.")
-                let greenDot = document.getElementById("connected-green-dot");
-                greenDot.style.display = "flex";
+                let statusDotIcon = document.getElementById("connection-status-icon");
+                statusDotIcon.style.backgroundColor = "green";
+                let statusDotText = document.getElementById("connection-status-text");
+                statusDotText.style.marginTop = "10px";
+                statusDotText.textContent = "Connected to Server";
 
                 // Setup the timeout to close the connection after inactivity.
                 resetTimeout();
@@ -1298,7 +1304,7 @@ To get started, just start typing below. You can also type / to see a list of co
                     conversationId = chatBody.dataset.conversationId;
 
                     if (data.length > 0) {
-                        conversationListBodyHeader.style.display = "block";
+                        conversationListBodyHeader.style.display = "inline-flex";
                         for (let index in data) {
                             let conversation = data[index];
                             let conversationButton = document.createElement('div');
@@ -1551,26 +1557,26 @@ To get started, just start typing below. You can also type / to see a list of co
             <div id="side-panel-wrapper">
                 <div id="side-panel">
                     <div id="new-conversation">
-                        <div id="connected-green-dot" style="display: none; align-items: center; margin-bottom: 10px;">
-                            <div style="width: 10px; height: 10px; background-color: green; border-radius: 50%; margin-right: 5px;"></div>
-                            <div>Connected</div>
-                        </div>
-                        <button class="side-panel-button" id="new-conversation-button" onclick="createNewConversation()">
-                            New Topic
-                            <svg class="new-convo-button" viewBox="0 0 35 35" fill="#000000" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                       <div id="conversation-list-header" style="display: none;">Conversations</div>
+                       <button class="side-panel-button" id="new-conversation-button" onclick="createNewConversation()">
+                            New
+                            <svg class="new-convo-button" viewBox="0 0 40 40" fill="#000000" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M16 0c-8.836 0-16 7.163-16 16s7.163 16 16 16c8.837 0 16-7.163 16-16s-7.163-16-16-16zM16 30.032c-7.72 0-14-6.312-14-14.032s6.28-14 14-14 14 6.28 14 14-6.28 14.032-14 14.032zM23 15h-6v-6c0-0.552-0.448-1-1-1s-1 0.448-1 1v6h-6c-0.552 0-1 0.448-1 1s0.448 1 1 1h6v6c0 0.552 0.448 1 1 1s1-0.448 1-1v-6h6c0.552 0 1-0.448 1-1s-0.448-1-1-1z"></path>
                             </svg>
                         </button>
-                        <div id="conversation-list-header" style="display: none;">Conversations</div>
                     </div>
                     <div id="existing-conversations">
                         <div id="conversation-list">
                             <div id="conversation-list-body"></div>
                         </div>
                     </div>
-                    <a class="inline-chat-link" id="agent-link" href="">
+                    <div id="connection-status" class="inline-chat-link" style="display: flex; align-items: center; border-top: 1px solid black;">
+                        <div id="connection-status-icon" style="width: 10px; height: 10px; border-radius: 50%; margin-right: 5px;"></div>
+                        <div id="connection-status-text" style="margin: 5px;"></div>
+                    </div>
+                    <a id="agent-link" class="inline-chat-link" href="">
                         <div id="agent-metadata" style="display: none;">
-                            Active
+                            Current Agent
                             <div id="agent-metadata-content">
                                 <div id="agent-avatar-wrapper">
                                     <img id="agent-avatar" src="" alt="Agent Avatar" />
@@ -2062,8 +2068,6 @@ To get started, just start typing below. You can also type / to see a list of co
             transition: background 0.3s ease-in-out;
             border-radius: 5%;;
             font-family: var(--font-family);
-            padding: 8px;
-            font-size: large;
         }
 
         svg#side-panel-collapse {
@@ -2264,6 +2268,9 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
         div#new-conversation {
+            display: grid;
+            grid-auto-flow: column;
+            font-size: large;
             text-align: left;
             border-bottom: 1px solid var(--main-text-color);
             margin-top: 8px;
@@ -2273,6 +2280,7 @@ To get started, just start typing below. You can also type / to see a list of co
         button#new-conversation-button {
             display: inline-flex;
             align-items: center;
+            justify-self: end;
         }
 
         div.conversation-button {
