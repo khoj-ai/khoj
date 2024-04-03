@@ -75,6 +75,7 @@ dependencies = [
     "django-phonenumber-field == 7.3.0",
     "phonenumbers == 8.13.27",
     "markdownify ~= 0.11.6",
+    "websockets == 12.0",
 ]
 dynamic = ["version"]
 
