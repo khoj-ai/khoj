@@ -125,8 +125,8 @@ class GithubToEntries(TextToEntries):
             return result
 
         # Extract markdown files from the repository
-        markdown_files = []
-        org_files = []
+        markdown_files: List[str] = []
+        org_files: List[str] = []
         if "tree" not in contents:
             return markdown_files, org_files
 
