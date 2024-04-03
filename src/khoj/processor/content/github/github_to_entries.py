@@ -127,6 +127,9 @@ class GithubToEntries(TextToEntries):
         # Extract markdown files from the repository
         markdown_files = []
         org_files = []
+        if "tree" not in contents:
+            return markdown_files, org_files
+
         for item in contents["tree"]:
             # Find all markdown files in the repository
             if item["type"] == "blob" and item["path"].endswith(".md"):
