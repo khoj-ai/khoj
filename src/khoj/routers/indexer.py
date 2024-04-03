@@ -67,11 +67,10 @@ async def update(
     try:
         logger.info(f"📬 Updating content index via API call by {client} client")
         for file in files:
-            file_type, encoding = get_file_type(file.content_type)
+            file_content = file.file.read()
+            file_type, encoding = get_file_type(file.content_type, file_content)
             if file_type in index_files:
-                index_files[file_type][file.filename] = (
-                    file.file.read().decode("utf-8") if encoding == "utf-8" else file.file.read()  # type: ignore
-                )
+                index_files[file_type][file.filename] = file_content.decode(encoding) if encoding else file_content
             else:
                 logger.warning(f"Skipped indexing unsupported file type sent by {client} client: {file.filename}")
 

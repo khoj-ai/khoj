@@ -1,9 +1,11 @@
 import glob
 import logging
 import os
+from pathlib import Path
 from typing import Optional
 
 from bs4 import BeautifulSoup
+from magika import Magika
 
 from khoj.database.models import (
     LocalMarkdownConfig,
@@ -16,6 +18,7 @@ from khoj.utils.helpers import get_absolute_path, is_none_or_empty
 from khoj.utils.rawconfig import TextContentConfig
 
 logger = logging.getLogger(__name__)
+magika = Magika()
 
 
 def collect_files(search_type: Optional[SearchType] = SearchType.All, user=None) -> dict:
@@ -47,6 +50,11 @@ def construct_config_from_db(db_config) -> TextContentConfig:
 def get_plaintext_files(config: TextContentConfig) -> dict[str, str]:
     def is_plaintextfile(file: str):
         "Check if file is plaintext file"
+        # Check if file path exists
+        mime_type = magika.identify_path(Path(file)).output.mime_type
+        if mime_type != "inode/x-empty" and mime_type != "application/unknown":
+            return mime_type.startswith("text/")
+        # Use file extension to decide plaintext if file content is not identifiable
         return file.endswith(("txt", "md", "markdown", "org", "mbox", "rst", "html", "htm", "xml"))
 
     def extract_html_content(html_content: str):
@@ -65,7 +73,7 @@ def get_plaintext_files(config: TextContentConfig) -> dict[str, str]:
         logger.debug("At least one of input-files or input-file-filter is required to be specified")
         return {}
 
-    "Get all files to process"
+    # Get all plain text files to process
     absolute_plaintext_files, filtered_plaintext_files = set(), set()
     if input_files:
         absolute_plaintext_files = {get_absolute_path(jsonl_file) for jsonl_file in input_files}
@@ -209,7 +217,7 @@ def get_pdf_files(config: TextContentConfig):
         logger.debug("At least one of pdf-files or pdf-file-filter is required to be specified")
         return {}
 
-    "Get PDF files to process"
+    # Get PDF files to process
     absolute_pdf_files, filtered_pdf_files = set(), set()
     if pdf_files:
         absolute_pdf_files = {get_absolute_path(pdf_file) for pdf_file in pdf_files}
