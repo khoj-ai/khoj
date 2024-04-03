@@ -163,9 +163,9 @@ def converse(
         conversation_primer,
         system_prompt,
         conversation_log,
-        model,
-        max_prompt_size,
-        tokenizer_name,
+        model_name=model,
+        max_prompt_size=max_prompt_size,
+        tokenizer_name=tokenizer_name,
     )
     truncated_messages = "\n".join({f"{message.content[:70]}..." for message in messages})
     logger.debug(f"Conversation Context for GPT: {truncated_messages}")
