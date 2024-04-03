@@ -1,7 +1,7 @@
 import logging
 import time
 from datetime import datetime
-from typing import Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import requests
 
@@ -125,8 +125,8 @@ class GithubToEntries(TextToEntries):
             return result
 
         # Extract markdown files from the repository
-        markdown_files: List[str] = []
-        org_files: List[str] = []
+        markdown_files: List[Any] = []
+        org_files: List[Any] = []
         if "tree" not in contents:
             return markdown_files, org_files
 
