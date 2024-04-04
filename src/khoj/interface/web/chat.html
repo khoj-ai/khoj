@@ -54,6 +54,7 @@ To get started, just start typing below. You can also type / to see a list of co
         let region = null;
         let city = null;
         let countryName = null;
+        let waitingForLocation = true;
 
         let websocketState = {
             newResponseText: null,
@@ -73,6 +74,11 @@ To get started, just start typing below. You can also type / to see a list of co
             .catch(err => {
                 console.log(err);
                 return;
+            })
+            .finally(() => {
+                console.debug("Region:", region, "City:", city, "Country:", countryName);
+                waitingForLocation = false;
+                setupWebSocket();
             });
 
         function formatDate(date) {
@@ -855,6 +861,11 @@ To get started, just start typing below. You can also type / to see a list of co
             let wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             let webSocketUrl = `${wsProtocol}//${window.location.host}/api/chat/ws`;
 
+            if (waitingForLocation) {
+                console.debug("Waiting for location data to be fetched. Will setup WebSocket once location data is available.");
+                return;
+            }
+
             websocketState = {
                 newResponseText: null,
                 newResponseElement: null,
@@ -877,7 +888,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
             if (chatBody.dataset.conversationId) {
                 webSocketUrl += `?conversation_id=${chatBody.dataset.conversationId}`;
-                webSocketUrl += `&region=${region}&city=${city}&country=${countryName}`;
+                webSocketUrl += (!!region && !!city && !!countryName) ? `&region=${region}&city=${city}&country=${countryName}` : '';
 
                 websocket = new WebSocket(webSocketUrl);
                 websocket.onmessage = function(event) {
