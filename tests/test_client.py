@@ -12,10 +12,9 @@ from khoj.configure import configure_routes, configure_search_types
 from khoj.database.adapters import EntryAdapters
 from khoj.database.models import KhojApiUser, KhojUser
 from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
-from khoj.search_type import image_search, text_search
+from khoj.search_type import text_search
 from khoj.utils import state
 from khoj.utils.rawconfig import ContentConfig, SearchConfig
-from khoj.utils.state import config, content_index, search_models
 
 
 # Test
@@ -296,34 +295,6 @@ def test_get_configured_types_with_no_content_config(fastapi_app: FastAPI):
     # Assert
     assert response.status_code == 200
     assert response.json() == ["all"]
-
-
-# ----------------------------------------------------------------------------------------------------
-@pytest.mark.django_db(transaction=True)
-def test_image_search(client, content_config: ContentConfig, search_config: SearchConfig):
-    # Arrange
-    headers = {"Authorization": "Bearer kk-secret"}
-    search_models.image_search = image_search.initialize_model(search_config.image)
-    content_index.image = image_search.setup(
-        content_config.image, search_models.image_search.image_encoder, regenerate=False
-    )
-    query_expected_image_pairs = [
-        ("kitten", "kitten_park.jpg"),
-        ("a horse and dog on a leash", "horse_dog.jpg"),
-        ("A guinea pig eating grass", "guineapig_grass.jpg"),
-    ]
-
-    for query, expected_image_name in query_expected_image_pairs:
-        # Act
-        response = client.get(f"/api/search?q={query}&n=1&t=image", headers=headers)
-
-        # Assert
-        assert response.status_code == 200
-        actual_image = Image.open(BytesIO(client.get(response.json()[0]["entry"]).content))
-        expected_image = Image.open(content_config.image.input_directories[0].joinpath(expected_image_name))
-
-        # Assert
-        assert expected_image == actual_image
 
 
 # ----------------------------------------------------------------------------------------------------

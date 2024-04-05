@@ -109,14 +109,23 @@
                     <p class="card-description">Sync your Notion pages</p>
                 </div>
                 <div class="card-action-row">
+                    {% if current_model_state.notion %}
                     <a class="card-button" href="/config/content-source/notion">
-                        {% if current_model_state.notion %}
                             Update
-                        {% else %}
-                            Setup
-                        {% endif %}
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
                     </a>
+                    {% elif notion_oauth_url %}
+                    <a class="card-button" href="{{ notion_oauth_url }}">
+                            Connect
+                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                    </a>
+                    {% else %}
+                    <a class="card-button" href="/config/content-source/notion">
+                            Setup
+                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                    </a>
+                    {% endif %}
+
                     <div id="clear-notion"
                         class="card-action-row"
                         style="display: {% if not current_model_state.notion %}none{% endif %}">

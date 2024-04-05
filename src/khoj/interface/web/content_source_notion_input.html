@@ -5,11 +5,6 @@
         <h2 class="section-title">
             <img class="card-icon" src="/static/assets/icons/notion.svg?v={{ khoj_version }}" alt="Notion">
             <span class="card-title-text">Notion</span>
-            <div class="instructions">
-                <a href="https://docs.khoj.dev/#/notion_integration">ⓘ Help</a>
-            </div>
-        </h2>
-        <form>
             <table>
                 <tr>
                     <td>
@@ -22,7 +17,7 @@
             </table>
             <div class="section">
                 <div id="success" style="display: none;"></div>
-                <button id="submit" type="submit">Save</button>
+                <button id="submit" type="submit">Sync to Update</button>
             </div>
         </form>
     </div>
@@ -43,7 +38,7 @@
 
         const submitButton = document.getElementById("submit");
         submitButton.disabled = true;
-        submitButton.innerHTML = "Saving...";
+        submitButton.innerHTML = "Syncing...";
 
         // Save Notion config on server
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];

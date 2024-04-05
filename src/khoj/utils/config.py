@@ -59,14 +59,8 @@ class ImageSearchModel:
 
 
 @dataclass
-class ContentIndex:
-    image: Optional[ImageContent] = None
-
-
-@dataclass
 class SearchModels:
     text_search: Optional[TextSearchModel] = None
-    image_search: Optional[ImageSearchModel] = None
 
 
 @dataclass
