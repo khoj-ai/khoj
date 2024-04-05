@@ -94,7 +94,6 @@ def extract_questions_offline(
         logger.warning(f"Llama returned invalid JSON. Falling back to using user message as search query.\n{response}")
         return all_questions
     logger.debug(f"Extracted Questions by Llama: {questions}")
-    questions.extend(all_questions)
     return questions
 
 
