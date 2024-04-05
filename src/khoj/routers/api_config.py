@@ -265,7 +265,11 @@ async def update_search_model(
     prev_config = await adapters.aget_user_search_model(user)
     new_config = await adapters.aset_user_search_model(user, int(id))
 
-    if int(id) != prev_config.id:
+    if prev_config and int(id) != prev_config.id and new_config:
+        await EntryAdapters.adelete_all_entries(user)
+
+    if not prev_config:
+        # If the use was just using the default config, delete all the entries and set the new config.
         await EntryAdapters.adelete_all_entries(user)
 
     if new_config is None:
