@@ -1,15 +1,18 @@
+import calendar
 import logging
 import re
 from collections import defaultdict
 from datetime import datetime, timedelta
 from math import inf
-from typing import List
+from typing import List, Tuple
 
 import dateparser as dtparse
+from dateparser.search import search_dates
+from dateparser_data.settings import default_parsers
 from dateutil.relativedelta import relativedelta
 
 from khoj.search_filter.base_filter import BaseFilter
-from khoj.utils.helpers import LRU, timer
+from khoj.utils.helpers import LRU, merge_dicts, timer
 
 logger = logging.getLogger(__name__)
 
@@ -21,25 +24,82 @@ class DateFilter(BaseFilter):
     # - dt>="last week"
     # - dt:"2 years ago"
     date_regex = r"dt([:><=]{1,2})[\"'](.*?)[\"']"
-    raw_date_regex = r"\d{4}-\d{2}-\d{2}"
 
     def __init__(self, entry_key="compiled"):
         self.entry_key = entry_key
         self.date_to_entry_ids = defaultdict(set)
         self.cache = LRU()
+        self.dtparser_regexes = self.compile_date_regexes()
+        self.dtparser_ordinal_suffixes = re.compile(r"(st|nd|rd|th)")
+        self.dtparser_settings = {
+            "PREFER_DAY_OF_MONTH": "first",
+            "DATE_ORDER": "YMD",  # Prefer YMD and DMY over MDY when parsing ambiguous dates
+        }
+
+    def compile_date_regexes(self):
+        months = calendar.month_name[1:]
+        abbr_months = calendar.month_abbr[1:]
+        # Extract natural dates from content like 1st April 1984, 31 April 84, Apr 4th 1984, 13 Apr 84
+        dBY_regex = re.compile(r"\b\d{1,2}(?:st|nd|rd|th)? (?:" + "|".join(months) + r") \d{4}\b", re.IGNORECASE)
+        dBy_regex = re.compile(r"\b\d{1,2}(?:st|nd|rd|th)? (?:" + "|".join(months) + r") \d{2}\b", re.IGNORECASE)
+        BdY_regex = re.compile(r"\b(?:" + "|".join(months) + r") \d{1,2}(?:st|nd|rd|th)? \d{4}\b", re.IGNORECASE)
+        Bdy_regex = re.compile(r"\b(?:" + "|".join(months) + r") \d{1,2}(?:st|nd|rd|th)? \d{2}\b", re.IGNORECASE)
+        dbY_regex = re.compile(r"\b\d{1,2}(?:st|nd|rd|th)? (?:" + "|".join(abbr_months) + r") \d{4}\b", re.IGNORECASE)
+        dby_regex = re.compile(r"\b\d{1,2}(?:st|nd|rd|th)? (?:" + "|".join(abbr_months) + r") \d{2}\b", re.IGNORECASE)
+        bdY_regex = re.compile(r"\b(?:" + "|".join(abbr_months) + r") \d{1,2}(?:st|nd|rd|th)? \d{4}\b", re.IGNORECASE)
+        bdy_regex = re.compile(r"\b(?:" + "|".join(abbr_months) + r") \d{1,2}(?:st|nd|rd|th)? \d{2}\b", re.IGNORECASE)
+        # Extract natural of form Month, Year like January 2021, Jan 2021, Jan 21
+        BY_regex = re.compile(r"\b(?:" + "|".join(months) + r") \d{4}\b", re.IGNORECASE)
+        By_regex = re.compile(r"\b(?:" + "|".join(months) + r") \d{2}\b", re.IGNORECASE)
+        bY_regex = re.compile(r"\b(?:" + "|".join(abbr_months) + r") \d{4}\b", re.IGNORECASE)
+        by_regex = re.compile(r"\b(?:" + "|".join(abbr_months) + r") \d{2}\b", re.IGNORECASE)
+        # Extract structured dates from content like 1984-04-01, 1984/04/01, 01-04-1984, 01/04/1984, 01.04.1984, 01-04-84, 01/04/84
+        Ymd_date_regex = re.compile(r"\b\d{4}[-\/]\d{2}[-\/]\d{2}\b", re.IGNORECASE)
+        dmY_date_regex = re.compile(r"\b\d{2}[-\/]\d{2}[-\/]\d{4}\b", re.IGNORECASE)
+        dmy_date_regex = re.compile(r"\b\d{2}[-\/]\d{2}[-\/]\d{2}\b", re.IGNORECASE)
+        dmY_dot_date_regex = re.compile(r"\b\d{2}[\.]\d{2}[\.]\d{4}\b", re.IGNORECASE)
+
+        # Combine date formatter and date identifier regex pairs
+        dtparser_regexes: List[Tuple[str, re.Pattern[str]]] = [
+            # Structured dates
+            ("%Y-%m-%d", Ymd_date_regex),
+            ("%Y/%m/%d", Ymd_date_regex),
+            ("%d-%m-%Y", dmY_date_regex),
+            ("%d/%m/%Y", dmY_date_regex),
+            ("%d.%m.%Y", dmY_dot_date_regex),
+            ("%d-%m-%y", dmy_date_regex),
+            ("%d/%m/%y", dmy_date_regex),
+            # Natural dates
+            ("%d %B %Y", dBY_regex),
+            ("%d %B %y", dBy_regex),
+            ("%B %d %Y", BdY_regex),
+            ("%B %d %y", Bdy_regex),
+            ("%d %b %Y", dbY_regex),
+            ("%d %b %y", dby_regex),
+            ("%b %d %Y", bdY_regex),
+            ("%b %d %y", bdy_regex),
+            # Partial natural dates
+            ("%B %Y", BY_regex),
+            ("%B %y", By_regex),
+            ("%b %Y", bY_regex),
+            ("%b %y", by_regex),
+        ]
+        return dtparser_regexes
 
     def extract_dates(self, content):
-        pattern_matched_dates = re.findall(self.raw_date_regex, content)
+        "Extract natural and structured dates from content"
+        valid_dates = set()
+        for date_format, date_regex in self.dtparser_regexes:
+            matched_dates = date_regex.findall(content)
+            for date_str in matched_dates:
+                # Remove ordinal suffixes to parse date
+                date_str = self.dtparser_ordinal_suffixes.sub("", date_str)
+                try:
+                    valid_dates.add(datetime.strptime(date_str, date_format))
+                except ValueError:
+                    continue
 
-        # Filter down to valid dates
-        valid_dates = []
-        for date_str in pattern_matched_dates:
-            try:
-                valid_dates.append(datetime.strptime(date_str, "%Y-%m-%d"))
-            except ValueError:
-                continue
-
-        return valid_dates
+        return list(valid_dates)
 
     def get_filter_terms(self, query: str) -> List[str]:
         "Get all filter terms in query"
@@ -120,18 +180,13 @@ class DateFilter(BaseFilter):
         # clean date string to handle future date parsing by date parser
         future_strings = ["later", "from now", "from today"]
         prefer_dates_from = {True: "future", False: "past"}[any([True for fstr in future_strings if fstr in date_str])]
-        clean_date_str = re.sub("|".join(future_strings), "", date_str)
+        dtquery_settings = {"RELATIVE_BASE": relative_base or datetime.now(), "PREFER_DATES_FROM": prefer_dates_from}
+        dtparser_settings = merge_dicts(dtquery_settings, self.dtparser_settings)
 
         # parse date passed in query date filter
+        clean_date_str = re.sub("|".join(future_strings), "", date_str)
         try:
-            parsed_date = dtparse.parse(
-                clean_date_str,
-                settings={
-                    "RELATIVE_BASE": relative_base or datetime.now(),
-                    "PREFER_DAY_OF_MONTH": "first",
-                    "PREFER_DATES_FROM": prefer_dates_from,
-                },
-            )
+            parsed_date = dtparse.parse(clean_date_str, settings=dtparser_settings)
         except Exception as e:
             logger.error(f"Failed to parse date string: {date_str} with error: {e}")
             return None

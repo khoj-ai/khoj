@@ -10,39 +10,52 @@
 </div>
 
 <div align="center">
-<b>An AI personal assistant for your digital brain</b>
+<b>The open-source, personal AI for your digital brain</b>
 </div>
 
 <br />
 
 <div align="center">
 
-[📜 Read Docs](https://docs.khoj.dev)
+[🤖 Read Docs](https://docs.khoj.dev)
 <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-[🌍 Try Khoj Cloud](https://khoj.dev)
+[🏮 Khoj Cloud](https://khoj.dev)
 <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
 [💬 Get Involved](https://discord.gg/BDgyabRM6e)
+<span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+[📚 Read Blog](https://blog.khoj.dev)
 
 </div>
 
-<div align="center">
+<div align="left">
 
 ***
 
-Khoj is an AI application to search and chat with your notes and documents.<br />
-It is open-source, self-hostable and accessible on Desktop, Emacs, Obsidian, Web and Whatsapp.<br />
-It works with pdf, markdown, org-mode, notion files and github repositories.<br />
-It can paint, search the internet and understand speech.<br />
+Khoj is an application that creates always-available, personal AI agents for you to extend your capabilities.
+- You can share your notes and documents to extend your digital brain.
+- Your AI agents have access to the internet, allowing you to incorporate realtime information.
+- Khoj is accessible on Desktop, Emacs, Obsidian, Web and Whatsapp.
+- You can share pdf, markdown, org-mode, notion files and github repositories.
+- You'll get fast, accurate semantic search on top of your docs.
+- Your agents can create deeply personal images and understand your speech.
+- Khoj is open-source, self-hostable. Always.
 
 ***
 
 </div>
 
-| 🔎 Search | 💬 Chat |
-|:---------:|:-------:|
-| Quickly retrieve relevant documents using natural language | Get answers and create content from your existing knowledge base |
-| Does not need internet | Can be configured to work without internet |
-| <img src="https://docs.khoj.dev/img/khoj_search_on_web.png" width="400px"> | <img src="https://docs.khoj.dev/img/khoj_chat_on_web.png" width="400px"> |
+## See it in action
+
+<img src="https://github.com/khoj-ai/khoj/blob/master/documentation/assets/img/using_khoj_for_studying.gif?raw=true" alt="Khoj Demo">
+
+Go to https://app.khoj.dev to see Khoj live.
+
+## Full feature list
+You can see the full feature list [here](https://docs.khoj.dev/category/features).
+
+## Self-Host
+
+To get started with self-hosting Khoj, [read the docs](https://docs.khoj.dev/get-started/setup).
 
 ## Contributors
 Cheers to our awesome contributors! 🎉
