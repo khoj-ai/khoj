@@ -45,7 +45,7 @@ async def notion_auth_callback(request: Request, background_tasks: BackgroundTas
 
     user: KhojUser = await aget_user_by_uuid(state)
 
-    NotionConfig.objects.filter(user=user).adelete()
+    await NotionConfig.objects.filter(user=user).adelete()
 
     if not user:
         raise Exception("User not found")
@@ -72,9 +72,7 @@ async def notion_auth_callback(request: Request, background_tasks: BackgroundTas
     logger.info(f"Notion auth callback response: {final_response}")
 
     access_token = final_response.get("access_token")
-    notion_config = NotionConfig.objects.acreate(token=access_token, user=user)
-
-    logger.info(f"Notion config created: {notion_config}")
+    await NotionConfig.objects.acreate(token=access_token, user=user)
 
     owner = final_response.get("owner")
     workspace_id = final_response.get("workspace_id")
