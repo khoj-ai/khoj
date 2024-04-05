@@ -69,8 +69,12 @@ async def notion_auth_callback(request: Request, background_tasks: BackgroundTas
 
     final_response = response.json()
 
+    logger.info(f"Notion auth callback response: {final_response}")
+
     access_token = final_response.get("access_token")
-    NotionConfig.objects.acreate(token=access_token, user=user)
+    notion_config = NotionConfig.objects.acreate(token=access_token, user=user)
+
+    logger.info(f"Notion config created: {notion_config}")
 
     owner = final_response.get("owner")
     workspace_id = final_response.get("workspace_id")
