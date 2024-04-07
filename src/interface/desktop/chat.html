@@ -629,11 +629,21 @@
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
         }
 
+        window.addEventListener("DOMContentLoaded", async() => {
+            // Setup the header pane
+            document.getElementById("khoj-header").innerHTML = await populateHeaderPane();
+            // Setup the nav menu
+            document.getElementById("profile-picture").addEventListener("click", toggleNavMenu);
+            // Set the active nav pane
+            document.getElementById("chat-nav")?.classList.add("khoj-nav-selected");
+        })
+
         window.addEventListener('load', async() => {
             await loadChat();
         });
 
         async function loadChat() {
+            // Load chat history
             const hostURL = await window.hostURLAPI.getURL();
             const khojToken = await window.tokenAPI.getToken();
             const headers = { 'Authorization': `Bearer ${khojToken}` };
@@ -1065,20 +1075,10 @@
         }
     </script>
     <body>
-        <div id="khoj-empty-container" class="khoj-empty-container">
-        </div>
+        <div id="khoj-empty-container" class="khoj-empty-container"></div>
 
         <!--Add Header Logo and Nav Pane-->
-        <div class="khoj-header">
-            <a class="khoj-logo" href="/">
-                <img class="khoj-logo" src="./assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
-            </a>
-            <nav class="khoj-nav">
-                <a class="khoj-nav khoj-nav-selected" href="./chat.html">💬 Chat</a>
-                <a class="khoj-nav" href="./search.html">🔎 Search</a>
-                <a class="khoj-nav" href="./config.html">⚙️ Settings</a>
-            </nav>
-        </div>
+        <div id="khoj-header" class="khoj-header"></div>
 
         <div id="chat-section-wrapper">
             <div id="side-panel-wrapper">

@@ -71,14 +71,19 @@ div.khoj-header {
     gap: 20px;
     padding: 24px 16px 0px 0px;
     margin: 0 0 16px 0;
+    align-items: center;
+    user-select: none;
     -webkit-user-select: none;
     -webkit-app-region: drag;
 }
 
+/* Keeps the navigation menu clickable */
 a.khoj-nav {
     -webkit-app-region: no-drag;
 }
-
+div.khoj-nav {
+    -webkit-app-region: no-drag;
+}
 nav.khoj-nav {
     display: grid;
     grid-auto-flow: column;
@@ -112,10 +117,94 @@ a.khoj-logo {
 a.khoj-nav-selected {
     background-color: var(--primary);
 }
+span.khoj-nav-item-text {
+    padding-left: 8px;
+}
 img.khoj-logo {
     width: min(60vw, 90px);
     max-width: 100%;
     justify-self: center;
+}
+
+/* Dropdown in navigation menu*/
+#khoj-nav-menu-container {
+    display: flex;
+    align-items: center;
+}
+.khoj-nav-dropdown-content {
+    display: block;
+    grid-auto-flow: row;
+    position: absolute;
+    background-color: var(--background-color);
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    right: 5vw;
+    top: 64px;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.1s ease-in-out;
+    pointer-events: none;
+    text-align: left;
+}
+.khoj-nav-dropdown-content.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+.khoj-nav-dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+}
+.khoj-nav-dropdown-content a:hover {
+    background-color: var(--primary-hover);
+}
+.khoj-nav-username {
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    font-weight: bold;
+}
+.circle {
+    border-radius: 50%;
+    border: 3px dotted var(--main-text-color);
+    width: 32px;
+    height: 32px;
+    padding: 3px;
+    cursor: pointer;
+}
+.circle:hover {
+    background-color: var(--primary-hover);
+}
+.user-initial {
+    background-color: var(--background-color);
+    color: black;
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    box-sizing: unset;
+    width: 40px;
+    height: 40px;
+}
+.subscribed {
+    border: 3px solid var(--primary-hover);
+}
+
+@media screen and (max-width: 600px) {
+    .khoj-nav-dropdown-content {
+        display: block;
+        grid-auto-flow: row;
+        position: absolute;
+        background-color: var(--background-color);
+        min-width: 160px;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        right: 10px;
+        z-index: 1;
+        opacity: 0;
+        transition: opacity 0.1s ease-in-out;
+        pointer-events: none;
+    }
 }
 
 @media only screen and (max-width: 600px) {
@@ -130,5 +219,11 @@ img.khoj-logo {
     nav.khoj-nav {
         grid-gap: 0px;
         justify-content: space-between;
+    }
+    a.khoj-nav {
+        padding: 0 16px;
+    }
+    span.khoj-nav-item-text {
+        display: none;
     }
 }

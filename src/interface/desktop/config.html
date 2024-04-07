@@ -9,19 +9,20 @@
         <link rel="stylesheet" href="./assets/khoj.css">
     </head>
     <script src="./utils.js"></script>
+    <script>
+        window.addEventListener("DOMContentLoaded", async() => {
+            // Setup the header pane
+            document.getElementById("khoj-header").innerHTML = await populateHeaderPane();
+            // Setup the nav menu
+            document.getElementById("profile-picture").addEventListener("click", toggleNavMenu);
+            // Set the active nav pane
+            document.getElementById("settings-nav")?.classList.add("khoj-nav-selected");
+        })
+    </script>
 
     <body>
         <!--Add Header Logo and Nav Pane-->
-        <div class="khoj-header">
-            <a class="khoj-logo" href="./chat.html">
-                <img class="khoj-logo" src="./assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
-            </a>
-            <nav class="khoj-nav">
-                <a class="khoj-nav" href="./chat.html">💬 Chat</a>
-                <a class="khoj-nav" href="./search.html">🔎 Search</a>
-                <a class="khoj-nav khoj-nav-selected" href="./config.html">⚙️ Settings</a>
-            </nav>
-        </div>
+        <div id="khoj-header" class="khoj-header"></div>
         <div class="section-cards">
             <div class="card-description-row">
                 <div class="card configuration">
