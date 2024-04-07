@@ -354,12 +354,14 @@ async function deleteAllFiles () {
 
 let firstRun = true;
 let win = null;
+let titleBarStyle = process.platform === 'win32' ? 'default' : 'hidden';
 const createWindow = (tab = 'chat.html') => {
     win = new BrowserWindow({
       width: 800,
       height: 800,
       show: false,
-      titleBarStyle: 'hidden',
+      titleBarStyle: titleBarStyle,
+      autoHideMenuBar: true,
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
         nodeIntegration: true,
@@ -515,7 +517,8 @@ function openAboutWindow() {
     aboutWindow = new BrowserWindow({
         width: 400,
         height: 400,
-        titleBarStyle: 'hidden',
+        titleBarStyle: titleBarStyle,
+        autoHideMenuBar: true,
         show: false,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
