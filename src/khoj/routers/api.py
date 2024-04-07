@@ -11,12 +11,13 @@ from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.requests import Request
 from fastapi.responses import Response
-from starlette.authentication import requires
+from starlette.authentication import has_required_scope, requires
 
 from khoj.configure import initialize_content
 from khoj.database.adapters import (
     ConversationAdapters,
     EntryAdapters,
+    get_user_photo,
     get_user_search_model_or_default,
 )
 from khoj.database.models import ChatModelOptions, KhojUser, SpeechToTextModelOptions
@@ -368,3 +369,25 @@ async def extract_references_and_questions(
 def health_check(request: Request) -> Response:
     response_obj = {"email": request.user.object.email}
     return Response(content=json.dumps(response_obj), media_type="application/json", status_code=200)
+
+
+@api.get("/v1/user", response_class=Response)
+@requires(["authenticated"])
+def user_info(request: Request) -> Response:
+    # Get user information
+    user: KhojUser = request.user.object
+    user_picture = get_user_photo(user=user)
+    is_active = has_required_scope(request, ["premium"])
+    has_documents = EntryAdapters.user_has_entries(user=user)
+
+    # Collect user information in a dictionary
+    user_info = {
+        "email": user.email,
+        "username": user.username,
+        "photo": user_picture,
+        "is_active": is_active,
+        "has_documents": has_documents,
+    }
+
+    # Return user information as a JSON response
+    return Response(content=json.dumps(user_info), media_type="application/json", status_code=200)
