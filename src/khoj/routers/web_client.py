@@ -135,6 +135,7 @@ def login_page(request: Request):
 def agents_page(request: Request):
     user: KhojUser = request.user.object if request.user.is_authenticated else None
     user_picture = request.session.get("user", {}).get("picture") if user else None
+    has_documents = EntryAdapters.user_has_entries(user=user)
     agents = AgentAdapters.get_all_accessible_agents(user)
     agents_packet = list()
     for agent in agents:
@@ -156,7 +157,7 @@ def agents_page(request: Request):
             "agents": agents_packet,
             "khoj_version": state.khoj_version,
             "username": user.username if user else None,
-            "has_documents": False,
+            "has_documents": has_documents,
             "is_active": has_required_scope(request, ["premium"]),
             "user_photo": user_picture,
         },
@@ -169,6 +170,7 @@ def agent_page(request: Request, agent_slug: str):
     user_picture = request.session.get("user", {}).get("picture") if user else None
 
     agent = AgentAdapters.get_agent_by_slug(agent_slug)
+    has_documents = EntryAdapters.user_has_entries(user=user)
 
     if agent == None:
         return templates.TemplateResponse(
@@ -202,7 +204,7 @@ def agent_page(request: Request, agent_slug: str):
             "agent": agent_metadata,
             "khoj_version": state.khoj_version,
             "username": user.username if user else None,
-            "has_documents": False,
+            "has_documents": has_documents,
             "is_active": has_required_scope(request, ["premium"]),
             "user_photo": user_picture,
         },
