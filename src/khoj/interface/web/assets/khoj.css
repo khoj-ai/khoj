@@ -76,6 +76,9 @@
     padding: 16px 0;
     margin: 0;
 }
+.khoj-header {
+    align-items: center;
+}
 .khoj-footer {
     margin: 16px 0 0 0;
 }
@@ -111,6 +114,9 @@ a.khoj-logo {
 }
 .khoj-nav-selected {
     background-color: var(--primary);
+}
+span.khoj-nav-item-text {
+    padding-left: 8px;
 }
 img.khoj-logo {
     width: min(60vw, 90px);
@@ -211,5 +217,11 @@ img.khoj-logo {
     nav.khoj-nav {
         grid-gap: 0px;
         justify-content: space-between;
+    }
+    a.khoj-nav {
+        padding: 0 16px;
+    }
+    span.khoj-nav-item-text {
+        display: none;
     }
 }
