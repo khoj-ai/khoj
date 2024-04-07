@@ -192,7 +192,10 @@ class GithubToEntries(TextToEntries):
 
             # Extract commit messages from the response
             for commit in content:
-                commits += [{"content": commit["commit"]["message"], "path": commit["html_url"]}]
+                if "commit" in commit and "message" in commit["commit"] and "html_url" in commit:
+                    commits += [{"content": commit["commit"]["message"], "path": commit["html_url"]}]
+                else:
+                    logger.debug(f"Skipping commit with missing properties: {commit}")
 
             # Get the URL for the next page of commits, if any
             commits_url = response.links.get("next", {}).get("url")
