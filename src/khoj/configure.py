@@ -231,7 +231,10 @@ def configure_server(
         state.SearchType = configure_search_types()
         state.search_models = configure_search(state.search_models, state.config.search_type)
         setup_default_agent()
-        initialize_content(regenerate, search_type, init, user)
+
+        if not init:
+            initialize_content(regenerate, search_type, user)
+
     except Exception as e:
         raise e
 
@@ -240,23 +243,20 @@ def setup_default_agent():
     AgentAdapters.create_default_agent()
 
 
-def initialize_content(regenerate: bool, search_type: Optional[SearchType] = None, init=False, user: KhojUser = None):
+def initialize_content(regenerate: bool, search_type: Optional[SearchType] = None, user: KhojUser = None):
     # Initialize Content from Config
     if state.search_models:
         try:
-            if init:
-                logger.info("📬 No-op...")
-            else:
-                logger.info("📬 Updating content index...")
-                all_files = collect_files(user=user)
-                status = configure_content(
-                    all_files,
-                    regenerate,
-                    search_type,
-                    user=user,
-                )
-                if not status:
-                    raise RuntimeError("Failed to update content index")
+            logger.info("📬 Updating content index...")
+            all_files = collect_files(user=user)
+            status = configure_content(
+                all_files,
+                regenerate,
+                search_type,
+                user=user,
+            )
+            if not status:
+                raise RuntimeError("Failed to update content index")
         except Exception as e:
             raise e
 
