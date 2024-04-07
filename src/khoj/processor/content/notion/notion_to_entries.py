@@ -100,7 +100,7 @@ class NotionToEntries(TextToEntries):
 
         for response in responses:
             with timer("Processing response", logger=logger):
-                pages_or_databases = response["results"]
+                pages_or_databases = response["results"] if response.get("results") else []
 
                 # Get all pages content
                 for p_or_d in pages_or_databases:
