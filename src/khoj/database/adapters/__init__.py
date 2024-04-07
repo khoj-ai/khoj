@@ -796,7 +796,7 @@ class EntryAdapters:
         return await Entry.objects.filter(user=user, file_path=file_path).adelete()
 
     @staticmethod
-    def aget_all_filenames_by_source(user: KhojUser, file_source: str):
+    def get_all_filenames_by_source(user: KhojUser, file_source: str):
         return (
             Entry.objects.filter(user=user, file_source=file_source)
             .distinct("file_path")

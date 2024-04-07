@@ -120,7 +120,7 @@ async def auth(request: Request):
                 api="create_user",
                 metadata={"user_id": str(khoj_user.uuid)},
             )
-            logger.log(logging.INFO, f"New User Created: {khoj_user.uuid}")
+            logger.log(logging.INFO, f"🥳 New User Created: {khoj_user.uuid}")
             return RedirectResponse(url=f"{next_url}", status_code=HTTP_302_FOUND)
 
     return RedirectResponse(url=f"{next_url}")
