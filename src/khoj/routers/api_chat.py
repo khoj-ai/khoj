@@ -386,6 +386,20 @@ async def websocket_endpoint(
                     )
                     continue
 
+        if ConversationCommand.Webpage in conversation_commands:
+            try:
+                await send_status_update("**Operation**: Directly searching web pages...")
+                online_results = await read_webpages(defiltered_query, meta_log, location)
+                webpages = []
+                for query in online_results:
+                    for webpage in online_results[query]["webpages"]:
+                        webpages.append(webpage["link"])
+                await send_status_update(f"**Web pages read**: {webpages}")
+            except ValueError as e:
+                logger.warning(
+                    f"Error directly reading webpages: {e}. Attempting to respond without online results", exc_info=True
+                )
+
         if ConversationCommand.Image in conversation_commands:
             update_telemetry_state(
                 request=websocket,
