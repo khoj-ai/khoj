@@ -1,3 +1,5 @@
+import asyncio
+import datetime
 import logging
 import os
 from typing import Optional
@@ -15,6 +17,7 @@ from khoj.database.adapters import (
     get_khoj_tokens,
     get_or_create_user,
 )
+from khoj.routers.email import send_welcome_email
 from khoj.routers.helpers import update_telemetry_state
 from khoj.utils import state
 
@@ -108,10 +111,12 @@ async def auth(request: Request):
     except OAuthError as error:
         return HTMLResponse(f"<h1>{error.error}</h1>")
     khoj_user = await get_or_create_user(idinfo)
+
     if khoj_user:
         request.session["user"] = dict(idinfo)
 
-        if not khoj_user.last_login:
+        if datetime.timedelta(minutes=10) > (datetime.datetime.now(datetime.UTC) - khoj_user.date_joined):
+            asyncio.create_task(send_welcome_email(idinfo["name"], idinfo["email"]))
             update_telemetry_state(
                 request=request,
                 telemetry_type="api",
