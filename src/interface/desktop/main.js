@@ -472,7 +472,8 @@ app.whenReady().then(() => {
     });
     ipcMain.handle('deleteAllFiles', deleteAllFiles);
 
-    createWindow()
+    createWindow();
+
 
     app.setAboutPanelOptions({
         applicationName: "Khoj",

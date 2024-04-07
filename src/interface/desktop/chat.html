@@ -638,6 +638,7 @@
             const khojToken = await window.tokenAPI.getToken();
             const headers = { 'Authorization': `Bearer ${khojToken}` };
 
+            let firstRunSetupMessageRendered = false;
             let chatBody = document.getElementById("chat-body");
             chatBody.innerHTML = "";
             let chatHistoryUrl = `/api/chat/history?client=desktop`;
@@ -650,19 +651,8 @@
                 .then(data => {
                     if (data.detail) {
                         // If the server returns a 500 error with detail, render a setup hint.
-                        first_run_message = `Hi 👋🏾, to get started:
-                        <ol>
-                            <li>Generate an API token in the <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToWebSettings()">Khoj Web settings</a></li>
-                            <li>Paste it into the API Key field in the <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToSettings()">Khoj Desktop settings</a></li>
-                        </ol>`
-                        .trim()
-                        .replace(/(\r\n|\n|\r)/gm, "");
-
-                        renderMessage(first_run_message, "khoj", null, null, true);
-
-                        // Disable chat input field and update placeholder text
-                        document.getElementById("chat-input").setAttribute("disabled", "disabled");
-                        document.getElementById("chat-input").setAttribute("placeholder", "Configure Khoj to enable chat");
+                        renderFirstRunSetupMessage();
+                        firstRunSetupMessageRendered = true;
                     } else if (data.status != "ok") {
                         throw new Error(data.message);
                     } else {
@@ -697,19 +687,8 @@
                 })
                 .catch(err => {
                     // If the server returns a 500 error with detail, render a setup hint.
-                    first_run_message = `Hi 👋🏾, to get started:
-                    <ol>
-                        <li>Generate an API token in the <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToWebSettings()">Khoj Web settings</a></li>
-                        <li>Paste it into the API Key field in the <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToSettings()">Khoj Desktop settings</a></li>
-                    </ol>`
-                    .trim()
-                    .replace(/(\r\n|\n|\r)/gm, "");
-
-                    renderMessage(first_run_message, "khoj", null, null, true);
-
-                    // Disable chat input field and update placeholder text
-                    document.getElementById("chat-input").setAttribute("disabled", "disabled");
-                    document.getElementById("chat-input").setAttribute("placeholder", "Configure Khoj to enable chat");
+                    if (!firstRunSetupMessageRendered)
+                        renderFirstRunSetupMessage();
                     return;
                 });
 
@@ -758,6 +737,22 @@
                 document.getElementById("chat-input").value = query_via_url;
                 chat();
             }
+        }
+
+        function renderFirstRunSetupMessage() {
+            first_run_message = `Hi 👋🏾, to get started:
+            <ol>
+                <li>Generate an API token in the <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToWebSettings()">Khoj Web settings</a></li>
+                <li>Paste it into the API Key field in the <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToSettings()">Khoj Desktop settings</a></li>
+            </ol>`
+            .trim()
+            .replace(/(\r\n|\n|\r)/gm, "");
+
+            renderMessage(first_run_message, "khoj", null, null, true);
+
+            // Disable chat input field and update placeholder text
+            document.getElementById("chat-input").setAttribute("disabled", "disabled");
+            document.getElementById("chat-input").setAttribute("placeholder", "Configure Khoj to enable chat");
         }
 
         function flashStatusInChatInput(message) {
