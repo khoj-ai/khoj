@@ -68,10 +68,12 @@ def test_entry_split_when_exceeds_max_tokens():
 def test_entry_split_drops_large_words():
     "Ensure entries drops words larger than specified max word length from compiled version."
     # Arrange
-    entry_text = f"""*** Heading
-    \t\r
-    Body Line 1
-    """
+    entry_text = f"""First Line
+dog=1\n\r\t
+cat=10
+car=4
+book=2
+"""
     entry = Entry(raw=entry_text, compiled=entry_text)
 
     # Act
@@ -79,9 +81,13 @@ def test_entry_split_drops_large_words():
     processed_entry = TextToEntries.split_entries_by_max_tokens([entry], max_word_length=5)[0]
 
     # Assert
-    # (Only) "Heading" dropped from compiled version because its over the set max word limit
-    assert "Heading" not in processed_entry.compiled
-    assert len(processed_entry.compiled.split()) == len(entry_text.split()) - 1
+    # Ensure words larger than max word length are dropped
+    # Ensure newline characters are considered as word boundaries for splitting words. See #620
+    words_to_keep = ["First", "Line", "dog=1", "car=4"]
+    words_to_drop = ["cat=10", "book=2"]
+    assert all([word for word in words_to_keep if word in processed_entry.compiled])
+    assert not any([word for word in words_to_drop if word in processed_entry.compiled])
+    assert len(processed_entry.compiled.split()) == len(entry_text.split()) - 2
 
 
 def test_parse_org_file_into_single_entry_if_small(tmp_path):
