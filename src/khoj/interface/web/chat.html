@@ -932,6 +932,8 @@ To get started, just start typing below. You can also type / to see a list of co
                                     websocketState.references = references;
                                 } else if (chunk.type == "status") {
                                     handleStreamResponse(websocketState.newResponseText, chunk.message, null, false);
+                                } else if (chunk.type == "rate_limit") {
+                                    handleStreamResponse(websocketState.newResponseText, chunk.message, websocketState.loadingEllipsis, true);
                                 } else {
                                     rawResponse = chunk.response;
                                 }
@@ -939,7 +941,7 @@ To get started, just start typing below. You can also type / to see a list of co
                                 // If the chunk is not a JSON object, just display it as is
                                 websocketState.rawResponse += chunk;
                             } finally {
-                                if (chunk.type != "status") {
+                                if (chunk.type != "status" && chunk.type != "rate_limit") {
                                     addMessageToChatBody(websocketState.rawResponse, websocketState.newResponseText, websocketState.references);
                                 }
                             }
