@@ -96,10 +96,12 @@ async def auth(request: Request):
 
     csrf_token_cookie = request.cookies.get("g_csrf_token")
     if not csrf_token_cookie:
-        return Response("Missing CSRF token", status_code=400)
+        logger.info("Missing CSRF token. Redirecting user to login page")
+        return RedirectResponse(url=f"{next_url}")
     csrf_token_body = form.get("g_csrf_token")
     if not csrf_token_body:
-        return Response("Missing CSRF token", status_code=400)
+        logger.info("Missing CSRF token body. Redirecting user to login page")
+        return RedirectResponse(url=f"{next_url}")
     if csrf_token_cookie != csrf_token_body:
         return Response("Invalid CSRF token", status_code=400)
 
