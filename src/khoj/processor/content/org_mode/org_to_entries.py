@@ -185,29 +185,19 @@ class OrgToEntries(TextToEntries):
                     heading = f"* Path: {ancestors_trail}\n{heading}" if heading else f"* Path: {ancestors_trail}."
 
                 compiled = heading
-                if state.verbose > 2:
-                    logger.debug(f"Title: {heading}")
 
                 if parsed_entry.tags:
                     tags_str = " ".join(parsed_entry.tags)
                     compiled += f"\t {tags_str}."
-                    if state.verbose > 2:
-                        logger.debug(f"Tags: {tags_str}")
 
                 if parsed_entry.closed:
                     compiled += f'\n Closed on {parsed_entry.closed.strftime("%Y-%m-%d")}.'
-                    if state.verbose > 2:
-                        logger.debug(f'Closed: {parsed_entry.closed.strftime("%Y-%m-%d")}')
 
                 if parsed_entry.scheduled:
                     compiled += f'\n Scheduled for {parsed_entry.scheduled.strftime("%Y-%m-%d")}.'
-                    if state.verbose > 2:
-                        logger.debug(f'Scheduled: {parsed_entry.scheduled.strftime("%Y-%m-%d")}')
 
                 if parsed_entry.hasBody:
                     compiled += f"\n {parsed_entry.body}"
-                    if state.verbose > 2:
-                        logger.debug(f"Body: {parsed_entry.body}")
 
                 # Add the sub-entry contents to the entry
                 entry_compiled += f"{compiled}"
