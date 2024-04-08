@@ -313,9 +313,9 @@ async def websocket_endpoint(
         user, client_application=websocket.user.client_app, conversation_id=conversation_id
     )
 
-    hourly_limiter = ApiUserRateLimiter(requests=1, subscribed_requests=60, window=60, slug="chat_minute")
+    hourly_limiter = ApiUserRateLimiter(requests=5, subscribed_requests=60, window=60, slug="chat_minute")
 
-    daily_limiter = ApiUserRateLimiter(requests=1, subscribed_requests=600, window=60 * 60 * 24, slug="chat_day")
+    daily_limiter = ApiUserRateLimiter(requests=5, subscribed_requests=600, window=60 * 60 * 24, slug="chat_day")
 
     await is_ready_to_chat(user)
 
