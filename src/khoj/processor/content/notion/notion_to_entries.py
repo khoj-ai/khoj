@@ -223,7 +223,8 @@ class NotionToEntries(TextToEntries):
         except Exception as e:
             logger.error(f"Error getting page {page_id}: {e}", exc_info=True)
             return None, None
-        properties = page["properties"]
+        properties = page.get("properties", {})
+
         title_field = "title"
         if "Title" in properties:
             title_field = "Title"
