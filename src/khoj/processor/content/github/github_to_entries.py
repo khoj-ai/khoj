@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Any, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import requests
 
@@ -63,7 +63,9 @@ class GithubToEntries(TextToEntries):
         logger.info(f"Processing github repo {repo_shorthand}")
         with timer("Download markdown files from github repo", logger):
             try:
-                markdown_files, org_files = self.get_files(repo_url, repo)
+                markdown_files, org_files, plaintext_files = self.get_files(repo_url, repo)
+            except ConnectionAbortedError as e:
+                logger.error(f"Github rate limit reached. Skip indexing github repo {repo_shorthand}")
             except Exception as e:
                 logger.error(f"Unable to download github repo {repo_shorthand}", exc_info=True)
                 raise e
@@ -109,10 +111,9 @@ class GithubToEntries(TextToEntries):
         response = requests.get(repo_content_url, headers=headers, params=params)
         contents = response.json()
 
-        # Wait for rate limit reset if needed
-        result = self.wait_for_rate_limit_reset(response, self.get_files, repo_url, repo)
-        if result is not None:
-            return result
+        # Raise exception if hit rate limit
+        if response.status_code != 200 and response.headers.get("X-RateLimit-Remaining") == "0":
+            raise ConnectionAbortedError("Github rate limit reached")
 
         # Extract markdown files from the repository
         markdown_files: List[Any] = []
@@ -144,10 +145,9 @@ class GithubToEntries(TextToEntries):
         headers = {"Accept": "application/vnd.github.v3.raw"}
         response = self.session.get(file_url, headers=headers, stream=True)
 
-        # Wait for rate limit reset if needed
-        result = self.wait_for_rate_limit_reset(response, self.get_file_contents, file_url)
-        if result is not None:
-            return result
+        # Stop indexing on hitting rate limit
+        if response.status_code != 200 and response.headers.get("X-RateLimit-Remaining") == "0":
+            raise ConnectionAbortedError("Github rate limit reached")
 
         content = ""
         for chunk in response.iter_content(chunk_size=2048):
