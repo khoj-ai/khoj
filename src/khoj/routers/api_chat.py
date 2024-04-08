@@ -489,7 +489,7 @@ async def chat(
     common: CommonQueryParams,
     q: str,
     n: Optional[int] = 5,
-    d: Optional[float] = 0.18,
+    d: Optional[float] = 0.22,
     stream: Optional[bool] = False,
     title: Optional[str] = None,
     conversation_id: Optional[int] = None,

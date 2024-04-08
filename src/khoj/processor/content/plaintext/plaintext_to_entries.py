@@ -42,8 +42,8 @@ class PlaintextToEntries(TextToEntries):
                     logger.warning(e, exc_info=True)
 
         # Extract Entries from specified plaintext files
-        with timer("Parse entries from plaintext files", logger):
-            current_entries = PlaintextToEntries.convert_plaintext_entries_to_maps(files)
+        with timer("Parse entries from specified Plaintext files", logger):
+            current_entries = PlaintextToEntries.extract_plaintext_entries(files)
 
         # Split entries by max tokens supported by model
         with timer("Split entries by max token size supported by model", logger):
@@ -74,7 +74,7 @@ class PlaintextToEntries(TextToEntries):
         return soup.get_text(strip=True, separator="\n")
 
     @staticmethod
-    def convert_plaintext_entries_to_maps(entry_to_file_map: dict) -> List[Entry]:
+    def extract_plaintext_entries(entry_to_file_map: dict[str, str]) -> List[Entry]:
         "Convert each plaintext entries into a dictionary"
         entries = []
         for file, entry in entry_to_file_map.items():
@@ -87,8 +87,3 @@ class PlaintextToEntries(TextToEntries):
                 )
             )
         return entries
-
-    @staticmethod
-    def convert_entries_to_jsonl(entries: List[Entry]):
-        "Convert each entry to JSON and collate as JSONL"
-        return "".join([f"{entry.to_json()}\n" for entry in entries])
