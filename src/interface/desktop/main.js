@@ -121,17 +121,17 @@ async function isPlainTextFile(filePath) {
 }
 
 async function processDirectory(filesToPush, folder) {
-    const files = fs.readdirSync(folder.path, { withFileTypes: true, recursive: true });
+    const files = fs.readdirSync(folder.path, { withFileTypes: true });
 
     for (const file of files) {
-        const filePath = path.join(folder.path, file.name);
+        const filePath = path.join(file.path, file.name || '');
         if (file.isFile() && await isPlainTextFile(filePath)) {
-            console.log(`Add ${file.name} in ${folder.path} for indexing`);
+            console.log(`Add ${file.name} in ${file.path} for indexing`);
             filesToPush.push(filePath);
         }
 
         if (file.isDirectory()) {
-            await processDirectory(filesToPush, {'path': path.join(folder.path, file.name)});
+            await processDirectory(filesToPush, {'path': filePath});
         }
     }
 }
@@ -497,11 +497,11 @@ app.whenReady().then(() => {
         try {
             const result = await todesktop.autoUpdater.checkForUpdates();
             if (result.updateInfo) {
-              console.log("Update found:", result.updateInfo.version);
+              console.log("Desktop app update found:", result.updateInfo.version);
               todesktop.autoUpdater.restartAndInstall();
             }
           } catch (e) {
-            console.log("Update check failed:", e);
+            console.warn("Desktop app update check failed:", e);
         }
     })
 

@@ -20,7 +20,6 @@
     "axios": "^1.6.4",
     "cron": "^2.4.3",
     "electron-store": "^8.1.0",
-    "fs": "^0.0.1-security",
     "file-type": "^16.2.0"
   }
 }
