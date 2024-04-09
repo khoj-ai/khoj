@@ -35,7 +35,7 @@ class KhojUserAdmin(UserAdmin):
         "is_superuser",
         "phone_number",
     )
-    search_fields = ("email", "username", "phone_number")
+    search_fields = ("email", "username", "phone_number", "uuid")
     filter_horizontal = ("groups", "user_permissions")
 
     fieldsets = (("Personal info", {"fields": ("phone_number",)}),) + UserAdmin.fieldsets
