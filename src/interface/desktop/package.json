@@ -20,6 +20,6 @@
     "axios": "^1.6.4",
     "cron": "^2.4.3",
     "electron-store": "^8.1.0",
-    "file-type": "^16.2.0"
+    "magika": "^0.2.13"
   }
 }
