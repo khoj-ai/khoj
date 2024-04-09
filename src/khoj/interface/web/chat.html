@@ -352,6 +352,17 @@ To get started, just start typing below. You can also type / to see a list of co
             element.innerHTML = newHTML;
             element.className = "chat-message-text-response";
 
+            // Add a copy button to each chat message
+            let copyButton = document.createElement('button');
+            copyButton.classList.add("copy-button");
+            copyButton.title = "Copy Message";
+            let copyIcon = document.createElement("img");
+            copyIcon.src = "/static/assets/icons/copy-button.svg";
+            copyIcon.classList.add("copy-icon");
+            copyButton.appendChild(copyIcon);
+            copyButton.addEventListener('click', copyParentText);
+            element.append(copyButton);
+
             // Get any elements with a class that starts with "language"
             let codeBlockElements = element.querySelectorAll('[class^="language-"]');
             // For each element, add a parent div with the class "programmatic-output"
