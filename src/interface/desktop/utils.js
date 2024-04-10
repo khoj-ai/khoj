@@ -59,8 +59,11 @@ async function populateHeaderPane() {
             <img class="khoj-logo" src="./assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
         </a>
         <nav class="khoj-nav">
-            <a id="chat-nav" class="khoj-nav" href="./chat.html">💬 <span class="khoj-nav-item-text">Chat</span></a>
-            ${has_documents ? '<a id="search-nav" class="khoj-nav" href="./search.html">🔎 <span class="khoj-nav-item-text">Search</span></a>' : ''}
+            <a id="chat-nav" class="khoj-nav" href="./chat.html">
+              <img class="nav-icon" src="./assets/icons/chat.svg" alt="Chat">
+              <span class="khoj-nav-item-text">Chat</span>
+            </a>
+            ${has_documents ? '<a id="search-nav" class="khoj-nav" href="./search.html"><img class="nav-icon" src="./assets/icons/search.svg" alt="Search"> <span class="khoj-nav-item-text">Search</span></a>' : ''}
             ${username ? `
                 <div id="khoj-nav-menu-container" class="khoj-nav dropdown">
                     ${user_photo && user_photo != "None" ? `
