@@ -1130,7 +1130,6 @@ To get started, just start typing below. You can also type / to see a list of co
                         agentMetadataElement.style.display = "none";
                     }
 
-                    let chatBodyWrapper = document.getElementById("chat-body-wrapper");
                     const fullChatLog = response.chat || [];
 
                     fullChatLog.forEach(chat_log => {
@@ -1148,6 +1147,7 @@ To get started, just start typing below. You can also type / to see a list of co
                     });
 
                     // Add fade out animation to loading screen and remove it after the animation ends
+                    let chatBodyWrapper = document.getElementById("chat-body-wrapper");
                     chatBodyWrapperHeight = chatBodyWrapper.clientHeight;
                     chatBody.style.height = chatBodyWrapperHeight;
                     setTimeout(() => {
@@ -2443,7 +2443,6 @@ To get started, just start typing below. You can also type / to see a list of co
             width: 80px;
             height: 80px;
         }
-
         .loading-spinner div {
             position: absolute;
             border: 4px solid var(--primary-hover);
@@ -2451,9 +2450,29 @@ To get started, just start typing below. You can also type / to see a list of co
             border-radius: 50%;
             animation: lds-ripple 0.5s cubic-bezier(0, 0.2, 0.8, 1) infinite;
         }
-
         .loading-spinner div:nth-child(2) {
             animation-delay: -0.5s;
+        }
+        @keyframes lds-ripple {
+            0% {
+                top: 36px;
+                left: 36px;
+                width: 0;
+                height: 0;
+                opacity: 1;
+                border-color: var(--primary-hover);
+            }
+            50% {
+                border-color: var(--flower);
+            }
+            100% {
+                top: 0px;
+                left: 0px;
+                width: 72px;
+                height: 72px;
+                opacity: 0;
+                border-color: var(--water);
+            }
         }
 
         #agent-metadata-content {
@@ -2619,28 +2638,6 @@ To get started, just start typing below. You can also type / to see a list of co
             border: 1px solid var(--main-text-color);
         }
 
-
-        @keyframes lds-ripple {
-            0% {
-                top: 36px;
-                left: 36px;
-                width: 0;
-                height: 0;
-                opacity: 1;
-                border-color: var(--primary-hover);
-            }
-            50% {
-                border-color: var(--flower);
-            }
-            100% {
-                top: 0px;
-                left: 0px;
-                width: 72px;
-                height: 72px;
-                opacity: 0;
-                border-color: var(--water);
-            }
-        }
 
         .lds-ellipsis {
             display: inline-block;
