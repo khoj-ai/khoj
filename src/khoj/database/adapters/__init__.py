@@ -196,6 +196,17 @@ def get_user_name(user: KhojUser):
     return None
 
 
+def get_user_photo(user: KhojUser):
+    full_name = user.get_full_name()
+    if not is_none_or_empty(full_name):
+        return full_name
+    google_profile: GoogleUser = GoogleUser.objects.filter(user=user).first()
+    if google_profile:
+        return google_profile.picture
+
+    return None
+
+
 def get_user_subscription(email: str) -> Optional[Subscription]:
     return Subscription.objects.filter(user__email=email).first()
 
@@ -796,7 +807,7 @@ class EntryAdapters:
         return await Entry.objects.filter(user=user, file_path=file_path).adelete()
 
     @staticmethod
-    def aget_all_filenames_by_source(user: KhojUser, file_source: str):
+    def get_all_filenames_by_source(user: KhojUser, file_source: str):
         return (
             Entry.objects.filter(user=user, file_source=file_source)
             .distinct("file_path")

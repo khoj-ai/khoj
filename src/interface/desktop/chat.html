@@ -13,21 +13,22 @@
 
     <script>
         let chatOptions = [];
-        function copyProgrammaticOutput(event) {
-            // Remove the first 4 characters which are the "Copy" button
-            const originalCopyText = event.target.parentNode.textContent.trim().slice(0, 4);
-            const programmaticOutput = event.target.parentNode.textContent.trim().slice(4);
-            navigator.clipboard.writeText(programmaticOutput).then(() => {
-                event.target.textContent = "✅ Copied to clipboard!";
+        function copyParentText(event) {
+            const button = event.currentTarget;
+            const textContent = button.parentNode.textContent.trim();
+            navigator.clipboard.writeText(textContent).then(() => {
+                button.firstChild.src = "./assets/icons/copy-button-success.svg";
                 setTimeout(() => {
-                    event.target.textContent = originalCopyText;
+                    button.firstChild.src = "./assets/icons/copy-button.svg";
                 }, 1000);
             }).catch((error) => {
-                console.error("Error copying programmatic output to clipboard:", error);
-                event.target.textContent = "⛔️ Failed to copy!";
+                console.error("Error copying text to clipboard:", error);
+                const originalButtonText = button.innerHTML;
+                button.innerHTML = "⛔️";
                 setTimeout(() => {
-                    event.target.textContent = originalCopyText;
-                }, 1000);
+                    button.innerHTML = originalButtonText;
+                    button.firstChild.src = "./assets/icons/copy-button.svg";
+                }, 2000);
             });
         }
 
@@ -299,7 +300,7 @@
             renderMessage(message, by, dt, references);
         }
 
-        function formatHTMLMessage(htmlMessage, raw=false) {
+        function formatHTMLMessage(htmlMessage, raw=false, willReplace=true) {
             var md = window.markdownit();
             let newHTML = htmlMessage;
 
@@ -324,10 +325,23 @@
             element.innerHTML = newHTML;
             element.className = "chat-message-text-response";
 
+            // Add a copy button to each chat message
+            if (willReplace === true) {
+                let copyButton = document.createElement('button');
+                copyButton.classList.add("copy-button");
+                copyButton.title = "Copy Message";
+                let copyIcon = document.createElement("img");
+                copyIcon.src = "./assets/icons/copy-button.svg";
+                copyIcon.classList.add("copy-icon");
+                copyButton.appendChild(copyIcon);
+                copyButton.addEventListener('click', copyParentText);
+                element.append(copyButton);
+            }
+
             // Get any elements with a class that starts with "language"
             let codeBlockElements = element.querySelectorAll('[class^="language-"]');
             // For each element, add a parent div with the class "programmatic-output"
-            codeBlockElements.forEach((codeElement) => {
+            codeBlockElements.forEach((codeElement, key) => {
                 // Create the parent div
                 let parentDiv = document.createElement('div');
                 parentDiv.classList.add("programmatic-output");
@@ -336,11 +350,17 @@
                 // Move the code element into the parent div
                 parentDiv.appendChild(codeElement);
                 // Add a copy button to each element
-                let copyButton = document.createElement('button');
-                copyButton.classList.add("copy-button");
-                copyButton.innerHTML = "Copy";
-                copyButton.addEventListener('click', copyProgrammaticOutput);
-                codeElement.prepend(copyButton);
+                if (willReplace === true) {
+                    let copyButton = document.createElement('button');
+                    copyButton.classList.add("copy-button");
+                    copyButton.title = "Copy Code";
+                    let copyIcon = document.createElement("img");
+                    copyIcon.src = "./assets/icons/copy-button.svg";
+                    copyIcon.classList.add("copy-icon");
+                    copyButton.appendChild(copyIcon);
+                    copyButton.addEventListener('click', copyParentText);
+                    codeElement.prepend(copyButton);
+                }
             });
 
             // Get all code elements that have no class.
@@ -629,15 +649,26 @@
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
         }
 
+        window.addEventListener("DOMContentLoaded", async() => {
+            // Setup the header pane
+            document.getElementById("khoj-header").innerHTML = await populateHeaderPane();
+            // Setup the nav menu
+            document.getElementById("profile-picture").addEventListener("click", toggleNavMenu);
+            // Set the active nav pane
+            document.getElementById("chat-nav")?.classList.add("khoj-nav-selected");
+        })
+
         window.addEventListener('load', async() => {
             await loadChat();
         });
 
         async function loadChat() {
+            // Load chat history
             const hostURL = await window.hostURLAPI.getURL();
             const khojToken = await window.tokenAPI.getToken();
             const headers = { 'Authorization': `Bearer ${khojToken}` };
 
+            let firstRunSetupMessageRendered = false;
             let chatBody = document.getElementById("chat-body");
             chatBody.innerHTML = "";
             let chatHistoryUrl = `/api/chat/history?client=desktop`;
@@ -645,24 +676,20 @@
                 chatHistoryUrl += `&conversation_id=${chatBody.dataset.conversationId}`;
             }
 
+            // Create loading screen and add it to chat-body
+            let loadingScreen = document.createElement('div');
+            loadingScreen.classList.add("loading-spinner");
+            let yellowOrb = document.createElement('div');
+            loadingScreen.appendChild(yellowOrb);
+            chatBody.appendChild(loadingScreen);
+
             fetch(`${hostURL}${chatHistoryUrl}`, { headers })
                 .then(response => response.json())
                 .then(data => {
                     if (data.detail) {
                         // If the server returns a 500 error with detail, render a setup hint.
-                        first_run_message = `Hi 👋🏾, to get started:
-                        <ol>
-                            <li>Generate an API token in the <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToWebSettings()">Khoj Web settings</a></li>
-                            <li>Paste it into the API Key field in the <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToSettings()">Khoj Desktop settings</a></li>
-                        </ol>`
-                        .trim()
-                        .replace(/(\r\n|\n|\r)/gm, "");
-
-                        renderMessage(first_run_message, "khoj", null, null, true);
-
-                        // Disable chat input field and update placeholder text
-                        document.getElementById("chat-input").setAttribute("disabled", "disabled");
-                        document.getElementById("chat-input").setAttribute("placeholder", "Configure Khoj to enable chat");
+                        renderFirstRunSetupMessage();
+                        firstRunSetupMessageRendered = true;
                     } else if (data.status != "ok") {
                         throw new Error(data.message);
                     } else {
@@ -689,27 +716,22 @@
                                 chat_log.intent?.type,
                                 chat_log.intent?.["inferred-queries"]);
                         }
+                        loadingScreen.style.height = chatBody.scrollHeight + 'px';
                     })
+
+                    // Add fade out animation to loading screen and remove it after the animation ends
                     let chatBodyWrapper = document.getElementById("chat-body-wrapper");
                     chatBodyWrapperHeight = chatBodyWrapper.clientHeight;
-
                     chatBody.style.height = chatBodyWrapperHeight;
+                    setTimeout(() => {
+                        loadingScreen.remove();
+                        chatBody.classList.remove("relative-position");
+                    }, 500);
                 })
                 .catch(err => {
                     // If the server returns a 500 error with detail, render a setup hint.
-                    first_run_message = `Hi 👋🏾, to get started:
-                    <ol>
-                        <li>Generate an API token in the <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToWebSettings()">Khoj Web settings</a></li>
-                        <li>Paste it into the API Key field in the <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToSettings()">Khoj Desktop settings</a></li>
-                    </ol>`
-                    .trim()
-                    .replace(/(\r\n|\n|\r)/gm, "");
-
-                    renderMessage(first_run_message, "khoj", null, null, true);
-
-                    // Disable chat input field and update placeholder text
-                    document.getElementById("chat-input").setAttribute("disabled", "disabled");
-                    document.getElementById("chat-input").setAttribute("placeholder", "Configure Khoj to enable chat");
+                    if (!firstRunSetupMessageRendered)
+                        renderFirstRunSetupMessage();
                     return;
                 });
 
@@ -758,6 +780,22 @@
                 document.getElementById("chat-input").value = query_via_url;
                 chat();
             }
+        }
+
+        function renderFirstRunSetupMessage() {
+            first_run_message = `Hi 👋🏾, to get started:
+            <ol>
+                <li>Generate an API token in the <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToWebSettings()">Khoj Web settings</a></li>
+                <li>Paste it into the API Key field in the <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToSettings()">Khoj Desktop settings</a></li>
+            </ol>`
+            .trim()
+            .replace(/(\r\n|\n|\r)/gm, "");
+
+            renderMessage(first_run_message, "khoj", null, null, true);
+
+            // Disable chat input field and update placeholder text
+            document.getElementById("chat-input").setAttribute("disabled", "disabled");
+            document.getElementById("chat-input").setAttribute("placeholder", "Configure Khoj to enable chat");
         }
 
         function flashStatusInChatInput(message) {
@@ -1067,33 +1105,22 @@
             document.getElementById('new-conversation').classList.toggle('collapsed');
             document.getElementById('existing-conversations').classList.toggle('collapsed');
             document.getElementById('side-panel-collapse').style.transform = document.getElementById('side-panel').classList.contains('collapsed') ? 'rotate(0deg)' : 'rotate(180deg)';
-
-            document.getElementById('chat-section-wrapper').classList.toggle('mobile-friendly');
         }
     </script>
     <body>
-        <div id="khoj-empty-container" class="khoj-empty-container">
-        </div>
+        <div id="khoj-empty-container" class="khoj-empty-container"></div>
 
         <!--Add Header Logo and Nav Pane-->
-        <div class="khoj-header">
-            <a class="khoj-logo" href="/">
-                <img class="khoj-logo" src="./assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
-            </a>
-            <nav class="khoj-nav">
-                <a class="khoj-nav khoj-nav-selected" href="./chat.html">💬 Chat</a>
-                <a class="khoj-nav" href="./search.html">🔎 Search</a>
-                <a class="khoj-nav" href="./config.html">⚙️ Settings</a>
-            </nav>
-        </div>
+        <div id="khoj-header" class="khoj-header"></div>
 
         <div id="chat-section-wrapper">
             <div id="side-panel-wrapper">
                 <div id="side-panel">
                     <div id="new-conversation">
-                        <button class="side-panel-button" id="new-conversation-button" onclick="createNewConversation()">
-                            New Topic
-                            <svg class="new-convo-button" viewBox="0 0 35 35" fill="#000000" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                       <div id="conversation-list-header" style="display: none;">Conversations</div>
+                       <button class="side-panel-button" id="new-conversation-button" onclick="createNewConversation()">
+                            New
+                            <svg class="new-convo-button" viewBox="0 0 40 40" fill="#000000" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M16 0c-8.836 0-16 7.163-16 16s7.163 16 16 16c8.837 0 16-7.163 16-16s-7.163-16-16-16zM16 30.032c-7.72 0-14-6.312-14-14.032s6.28-14 14-14 14 6.28 14 14-6.28 14.032-14 14.032zM23 15h-6v-6c0-0.552-0.448-1-1-1s-1 0.448-1 1v6h-6c-0.552 0-1 0.448-1 1s0.448 1 1 1h6v6c0 0.552 0.448 1 1 1s1-0.448 1-1v-6h6c0.552 0 1-0.448 1-1s-0.448-1-1-1z"></path>
                             </svg>
                         </button>
@@ -1195,16 +1222,12 @@
 
         #chat-section-wrapper {
             display: grid;
-            grid-template-columns: auto auto;
+            grid-template-columns: auto 1fr;
             grid-column-gap: 10px;
             grid-row-gap: 10px;
             padding: 10px;
             margin: 10px;
             overflow-y: scroll;
-        }
-
-        #chat-section-wrapper.mobile-friendly {
-            grid-template-columns: auto auto;
         }
 
         #chat-body-wrapper {
@@ -1411,8 +1434,6 @@
             transition: background 0.3s ease-in-out;
             border-radius: 5%;;
             font-family: var(--font-family);
-            padding: 8px;
-            font-size: large;
         }
 
         svg#side-panel-collapse {
@@ -1619,8 +1640,13 @@
             transition: 0.5s;
         }
 
+        img.copy-icon {
+            width: 16px;
+            height: 16px;
+        }
+
         button.copy-button:hover {
-            background-color: black;
+            background-color: var(--primary-hover);
             color: #f5f5f5;
         }
 
@@ -1723,14 +1749,18 @@
         }
 
         div#new-conversation {
+            display: grid;
+            grid-auto-flow: column;
+            font-size: large;
             text-align: left;
             border-bottom: 1px solid var(--main-text-color);
-            margin-bottom: 8px;
+            margin: 8px 0;
         }
 
         button#new-conversation-button {
             display: inline-flex;
             align-items: center;
+            justify-self: end;
         }
 
         div.conversation-button {
@@ -1856,6 +1886,44 @@
             white-space: pre-wrap;
         }
 
+        .loading-spinner {
+            display: inline-block;
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+        .loading-spinner div {
+            position: absolute;
+            border: 4px solid var(--primary-hover);
+            opacity: 1;
+            border-radius: 50%;
+            animation: lds-ripple 0.5s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+        }
+        .loading-spinner div:nth-child(2) {
+            animation-delay: -0.5s;
+        }
+        @keyframes lds-ripple {
+            0% {
+                top: 36px;
+                left: 36px;
+                width: 0;
+                height: 0;
+                opacity: 1;
+                border-color: var(--primary-hover);
+            }
+            50% {
+                border-color: var(--flower);
+            }
+            100% {
+                top: 0px;
+                left: 0px;
+                width: 72px;
+                height: 72px;
+                opacity: 0;
+                border-color: var(--water);
+            }
+        }
+
         .lds-ellipsis {
             display: inline-block;
             position: relative;
@@ -1865,8 +1933,8 @@
         .lds-ellipsis div {
             position: absolute;
             top: 12px;
-            width: 12px;
-            height: 12px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background: var(--main-text-color);
             animation-timing-function: cubic-bezier(0, 1, 1, 0);

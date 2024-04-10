@@ -225,7 +225,7 @@ async def get_all_filenames(
         client=client,
     )
 
-    return await sync_to_async(list)(EntryAdapters.aget_all_filenames_by_source(user, content_source))  # type: ignore[call-arg]
+    return await sync_to_async(list)(EntryAdapters.get_all_filenames_by_source(user, content_source))  # type: ignore[call-arg]
 
 
 @api_config.post("/data/conversation/model", status_code=200)

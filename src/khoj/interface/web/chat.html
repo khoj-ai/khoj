@@ -30,20 +30,21 @@ To get started, just start typing below. You can also type / to see a list of co
         const allowedExtensions = ['text/org', 'text/markdown', 'text/plain', 'text/html', 'application/pdf'];
         const allowedFileEndings = ['org', 'md', 'txt', 'html', 'pdf'];
         let chatOptions = [];
-        function copyProgrammaticOutput(event) {
-            // Remove the first 4 characters which are the "Copy" button
+        function copyParentText(event) {
             const button = event.currentTarget;
-            const programmaticOutput = button.parentNode.textContent.trim();
-            navigator.clipboard.writeText(programmaticOutput).then(() => {
-                button.textContent = "✅ Copied to clipboard!";
+            const textContent = button.parentNode.textContent.trim();
+            navigator.clipboard.writeText(textContent).then(() => {
+                button.firstChild.src = "/static/assets/icons/copy-button-success.svg";
                 setTimeout(() => {
-                    button.textContent = "✅";
+                    button.firstChild.src = "/static/assets/icons/copy-button.svg";
                 }, 1000);
             }).catch((error) => {
                 console.error("Error copying programmatic output to clipboard:", error);
-                button.textContent = "⛔️ Failed to copy!";
+                const originalButtonText = button.innerHTML;
+                button.innerHTML = "⛔️";
                 setTimeout(() => {
-                    button.textContent = "⛔️";
+                    button.innerHTML = originalButtonText;
+                    button.firstChild.src = "/static/assets/icons/copy-button.svg";
                 }, 1000);
             });
         }
@@ -323,7 +324,7 @@ To get started, just start typing below. You can also type / to see a list of co
             renderMessage(message, by, dt, references);
         }
 
-        function formatHTMLMessage(htmlMessage, raw=false) {
+        function formatHTMLMessage(htmlMessage, raw=false, willReplace=true) {
             var md = window.markdownit();
             let newHTML = htmlMessage;
 
@@ -348,6 +349,19 @@ To get started, just start typing below. You can also type / to see a list of co
             element.innerHTML = newHTML;
             element.className = "chat-message-text-response";
 
+            // Add a copy button to each chat message, if it doesn't already exist
+            if (willReplace === true) {
+                let copyButton = document.createElement('button');
+                copyButton.classList.add("copy-button");
+                copyButton.title = "Copy Message";
+                let copyIcon = document.createElement("img");
+                copyIcon.src = "/static/assets/icons/copy-button.svg";
+                copyIcon.classList.add("copy-icon");
+                copyButton.appendChild(copyIcon);
+                copyButton.addEventListener('click', copyParentText);
+                element.append(copyButton);
+            }
+
             // Get any elements with a class that starts with "language"
             let codeBlockElements = element.querySelectorAll('[class^="language-"]');
             // For each element, add a parent div with the class "programmatic-output"
@@ -359,15 +373,18 @@ To get started, just start typing below. You can also type / to see a list of co
                 codeElement.parentNode.insertBefore(parentDiv, codeElement);
                 // Move the code element into the parent div
                 parentDiv.appendChild(codeElement);
-                // Add a copy button to each element
-                let copyButton = document.createElement('button');
-                copyButton.classList.add("copy-button");
-                let copyIcon = document.createElement("img");
-                copyIcon.src = "/static/assets/icons/copy_button.svg";
-                copyIcon.classList.add("copy-icon");
-                copyButton.appendChild(copyIcon);
-                copyButton.addEventListener('click', copyProgrammaticOutput);
-                codeElement.prepend(copyButton);
+                // Add a copy button to each code block, if it doesn't already exist
+                if (willReplace === true) {
+                    let copyButton = document.createElement('button');
+                    copyButton.classList.add("copy-button");
+                    copyButton.title = "Copy Code";
+                    let copyIcon = document.createElement("img");
+                    copyIcon.src = "/static/assets/icons/copy-button.svg";
+                    copyIcon.classList.add("copy-icon");
+                    copyButton.appendChild(copyIcon);
+                    copyButton.addEventListener('click', copyParentText);
+                    codeElement.prepend(copyButton);
+                }
             });
 
             // Get all code elements that have no class.
@@ -573,7 +590,7 @@ To get started, just start typing below. You can also type / to see a list of co
             if (replace) {
                 newResponseElement.innerHTML = "";
             }
-            newResponseElement.appendChild(formatHTMLMessage(rawResponse));
+            newResponseElement.appendChild(formatHTMLMessage(rawResponse, false, replace));
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
         }
 
@@ -1098,7 +1115,6 @@ To get started, just start typing below. You can also type / to see a list of co
                         agentMetadataElement.style.display = "none";
                     }
 
-                    let chatBodyWrapper = document.getElementById("chat-body-wrapper");
                     const fullChatLog = response.chat || [];
 
                     fullChatLog.forEach(chat_log => {
@@ -1116,6 +1132,7 @@ To get started, just start typing below. You can also type / to see a list of co
                     });
 
                     // Add fade out animation to loading screen and remove it after the animation ends
+                    let chatBodyWrapper = document.getElementById("chat-body-wrapper");
                     chatBodyWrapperHeight = chatBodyWrapper.clientHeight;
                     chatBody.style.height = chatBodyWrapperHeight;
                     setTimeout(() => {
@@ -2164,7 +2181,7 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
         button.copy-button:hover {
-            background-color: black;
+            background-color: var(--primary-hover);
             color: #f5f5f5;
         }
 
@@ -2411,7 +2428,6 @@ To get started, just start typing below. You can also type / to see a list of co
             width: 80px;
             height: 80px;
         }
-
         .loading-spinner div {
             position: absolute;
             border: 4px solid var(--primary-hover);
@@ -2419,9 +2435,29 @@ To get started, just start typing below. You can also type / to see a list of co
             border-radius: 50%;
             animation: lds-ripple 0.5s cubic-bezier(0, 0.2, 0.8, 1) infinite;
         }
-
         .loading-spinner div:nth-child(2) {
             animation-delay: -0.5s;
+        }
+        @keyframes lds-ripple {
+            0% {
+                top: 36px;
+                left: 36px;
+                width: 0;
+                height: 0;
+                opacity: 1;
+                border-color: var(--primary-hover);
+            }
+            50% {
+                border-color: var(--flower);
+            }
+            100% {
+                top: 0px;
+                left: 0px;
+                width: 72px;
+                height: 72px;
+                opacity: 0;
+                border-color: var(--water);
+            }
         }
 
         #agent-metadata-content {
@@ -2587,28 +2623,6 @@ To get started, just start typing below. You can also type / to see a list of co
             border: 1px solid var(--main-text-color);
         }
 
-
-        @keyframes lds-ripple {
-            0% {
-                top: 36px;
-                left: 36px;
-                width: 0;
-                height: 0;
-                opacity: 1;
-                border-color: var(--primary-hover);
-            }
-            50% {
-                border-color: var(--flower);
-            }
-            100% {
-                top: 0px;
-                left: 0px;
-                width: 72px;
-                height: 72px;
-                opacity: 0;
-                border-color: var(--water);
-            }
-        }
 
         .lds-ellipsis {
             display: inline-block;

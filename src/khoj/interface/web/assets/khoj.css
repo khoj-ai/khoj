@@ -76,6 +76,9 @@
     padding: 16px 0;
     margin: 0;
 }
+.khoj-header {
+    align-items: center;
+}
 .khoj-footer {
     margin: 16px 0 0 0;
 }
@@ -111,6 +114,18 @@ a.khoj-logo {
 }
 .khoj-nav-selected {
     background-color: var(--primary);
+}
+.nav-icon {
+    width: 24px;
+    height: 24px;
+}
+#agents-icon {
+    width: 30px;
+    height: 30px;
+}
+span.khoj-nav-item-text {
+    padding-top: 6px;
+    padding-left: 8px;
 }
 img.khoj-logo {
     width: min(60vw, 90px);
@@ -177,7 +192,8 @@ img.khoj-logo {
     font-size: 20px;
     box-sizing: unset;
     width: 40px;
-    height: 40px;
+    height: 35px;
+    padding-top: 8px
 }
 .subscribed {
     border: 3px solid var(--primary-hover);
@@ -211,5 +227,11 @@ img.khoj-logo {
     nav.khoj-nav {
         grid-gap: 0px;
         justify-content: space-between;
+    }
+    a.khoj-nav {
+        padding: 0 16px;
+    }
+    span.khoj-nav-item-text {
+        display: none;
     }
 }

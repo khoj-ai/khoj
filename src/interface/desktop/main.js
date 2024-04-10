@@ -351,15 +351,28 @@ async function deleteAllFiles () {
     }
 }
 
+// Fetch user info from Khoj server
+async function getUserInfo() {
+    const getUserInfoURL = `${store.get('hostURL') || KHOJ_URL}/api/v1/user?client=desktop`;
+    const headers = { 'Authorization': `Bearer ${store.get('khojToken')}` };
+    try {
+        let response = await axios.get(getUserInfoURL, { headers });
+        return response.data;
+    } catch (err) {
+        console.error(err);
+    }
+}
 
 let firstRun = true;
 let win = null;
+let titleBarStyle = process.platform === 'win32' ? 'default' : 'hidden';
 const createWindow = (tab = 'chat.html') => {
     win = new BrowserWindow({
       width: 800,
       height: 800,
       show: false,
-      titleBarStyle: 'hidden',
+      titleBarStyle: titleBarStyle,
+      autoHideMenuBar: true,
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
         nodeIntegration: true,
@@ -464,13 +477,15 @@ app.whenReady().then(() => {
 
     ipcMain.handle('setToken', setToken);
     ipcMain.handle('getToken', getToken);
+    ipcMain.handle('getUserInfo', getUserInfo);
 
     ipcMain.handle('syncData', (event, regenerate) => {
         syncData(regenerate);
     });
     ipcMain.handle('deleteAllFiles', deleteAllFiles);
 
-    createWindow()
+    createWindow();
+
 
     app.setAboutPanelOptions({
         applicationName: "Khoj",
@@ -515,7 +530,8 @@ function openAboutWindow() {
     aboutWindow = new BrowserWindow({
         width: 400,
         height: 400,
-        titleBarStyle: 'hidden',
+        titleBarStyle: titleBarStyle,
+        autoHideMenuBar: true,
         show: false,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),

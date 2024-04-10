@@ -246,6 +246,16 @@
             window.history.pushState({}, "", url.href);
         }
 
+        window.addEventListener("DOMContentLoaded", async() => {
+            // Setup the header pane
+            document.getElementById("khoj-header").innerHTML = await populateHeaderPane();
+            // Setup the nav menu
+            document.getElementById("profile-picture").addEventListener("click", toggleNavMenu);
+            // Set the active nav pane
+            document.getElementById("search-nav")?.classList.add("khoj-nav-selected");
+        })
+
+
         window.addEventListener("load", async function() {
             // Dynamically populate type dropdown based on enabled content types and type passed as URL query parameter
             await populate_type_dropdown();
@@ -259,16 +269,7 @@
 
     <body>
         <!--Add Header Logo and Nav Pane-->
-        <div class="khoj-header">
-            <a class="khoj-logo" href="./index.html">
-                <img class="khoj-logo" src="./assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
-            </a>
-            <nav class="khoj-nav">
-                <a class="khoj-nav" href="./chat.html">💬 Chat</a>
-                <a class="khoj-nav khoj-nav-selected" href="./search.html">🔎 Search</a>
-                <a class="khoj-nav" href="./config.html">⚙️ Settings</a>
-            </nav>
-        </div>
+        <div id="khoj-header" class="khoj-header"></div>
 
         <!--Add Text Box To Enter Query, Trigger Incremental Search OnChange -->
         <input type="text" id="query" class="option" onkeyup=incrementalSearch(event) autofocus="autofocus" placeholder="Search your knowledge base using natural language">

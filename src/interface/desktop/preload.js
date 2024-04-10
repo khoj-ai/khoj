@@ -53,6 +53,10 @@ contextBridge.exposeInMainWorld('syncDataAPI', {
     deleteAllFiles: () => ipcRenderer.invoke('deleteAllFiles')
 })
 
+contextBridge.exposeInMainWorld('userInfoAPI', {
+    getUserInfo: () => ipcRenderer.invoke('getUserInfo')
+})
+
 contextBridge.exposeInMainWorld('tokenAPI', {
     setToken: (token) => ipcRenderer.invoke('setToken', token),
     getToken: () => ipcRenderer.invoke('getToken')

@@ -4,9 +4,16 @@
             <img class="khoj-logo" src="/static/assets/icons/khoj-logo-sideways-500.png?v={{ khoj_version }}" alt="Khoj"></img>
         </a>
         <nav class="khoj-nav">
-            <a id="agents-nav" class="khoj-nav" href="/agents">Agents</a>
+            <a id="chat-nav" class="khoj-nav" href="/chat">
+                <img class="nav-icon" src="/static/assets/icons/chat.svg" alt="Chat">
+                <span class="khoj-nav-item-text">Chat</span></a>
+            <a id="agents-nav" class="khoj-nav" href="/agents">
+                <img id="agents-icon" class="nav-icon" src="/static/assets/icons/agents.svg" alt="Agents">
+                <span class="khoj-nav-item-text">Agents</span></a>
             {% if has_documents %}
-            <a id="search-nav" class="khoj-nav" href="/search">Search</a>
+            <a id="search-nav" class="khoj-nav" href="/search">
+                <img class="nav-icon" src="/static/assets/icons/search.svg" alt="Search">
+                <span class="khoj-nav-item-text">Search</span></a>
             {% endif %}
             <!-- Dropdown Menu -->
             {% if username %}
