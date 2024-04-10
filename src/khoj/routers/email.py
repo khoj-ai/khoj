@@ -20,10 +20,18 @@ if not RESEND_API_KEY:
     logger.info("RESEND_API_KEY not set - email sending disabled")
 
 
+def is_resend_enabled():
+    return bool(RESEND_API_KEY)
+
+
 resend.api_key = RESEND_API_KEY
 
 
 async def send_welcome_email(name, email):
+    if not is_resend_enabled():
+        logger.debug("Email sending disabled")
+        return
+
     template = env.get_template("welcome.html")
 
     html_content = template.render(name=name if not is_none_or_empty(name) else "you")
