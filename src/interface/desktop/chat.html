@@ -300,7 +300,7 @@
             renderMessage(message, by, dt, references);
         }
 
-        function formatHTMLMessage(htmlMessage, raw=false) {
+        function formatHTMLMessage(htmlMessage, raw=false, willReplace=true) {
             var md = window.markdownit();
             let newHTML = htmlMessage;
 
@@ -326,20 +326,22 @@
             element.className = "chat-message-text-response";
 
             // Add a copy button to each chat message
-            let copyButton = document.createElement('button');
-            copyButton.classList.add("copy-button");
-            copyButton.title = "Copy Message";
-            let copyIcon = document.createElement("img");
-            copyIcon.src = "./assets/icons/copy-button.svg";
-            copyIcon.classList.add("copy-icon");
-            copyButton.appendChild(copyIcon);
-            copyButton.addEventListener('click', copyParentText);
-            element.append(copyButton);
+            if (willReplace === true) {
+                let copyButton = document.createElement('button');
+                copyButton.classList.add("copy-button");
+                copyButton.title = "Copy Message";
+                let copyIcon = document.createElement("img");
+                copyIcon.src = "./assets/icons/copy-button.svg";
+                copyIcon.classList.add("copy-icon");
+                copyButton.appendChild(copyIcon);
+                copyButton.addEventListener('click', copyParentText);
+                element.append(copyButton);
+            }
 
             // Get any elements with a class that starts with "language"
             let codeBlockElements = element.querySelectorAll('[class^="language-"]');
             // For each element, add a parent div with the class "programmatic-output"
-            codeBlockElements.forEach((codeElement) => {
+            codeBlockElements.forEach((codeElement, key) => {
                 // Create the parent div
                 let parentDiv = document.createElement('div');
                 parentDiv.classList.add("programmatic-output");
@@ -348,15 +350,17 @@
                 // Move the code element into the parent div
                 parentDiv.appendChild(codeElement);
                 // Add a copy button to each element
-                let copyButton = document.createElement('button');
-                copyButton.classList.add("copy-button");
-                copyButton.title = "Copy Code";
-                let copyIcon = document.createElement("img");
-                copyIcon.src = "./assets/icons/copy-button.svg";
-                copyIcon.classList.add("copy-icon");
-                copyButton.appendChild(copyIcon);
-                copyButton.addEventListener('click', copyParentText);
-                codeElement.prepend(copyButton);
+                if (willReplace === true) {
+                    let copyButton = document.createElement('button');
+                    copyButton.classList.add("copy-button");
+                    copyButton.title = "Copy Code";
+                    let copyIcon = document.createElement("img");
+                    copyIcon.src = "./assets/icons/copy-button.svg";
+                    copyIcon.classList.add("copy-icon");
+                    copyButton.appendChild(copyIcon);
+                    copyButton.addEventListener('click', copyParentText);
+                    codeElement.prepend(copyButton);
+                }
             });
 
             // Get all code elements that have no class.

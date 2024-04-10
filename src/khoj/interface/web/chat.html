@@ -327,7 +327,7 @@ To get started, just start typing below. You can also type / to see a list of co
             renderMessage(message, by, dt, references);
         }
 
-        function formatHTMLMessage(htmlMessage, raw=false) {
+        function formatHTMLMessage(htmlMessage, raw=false, willReplace=true) {
             var md = window.markdownit();
             let newHTML = htmlMessage;
 
@@ -352,16 +352,18 @@ To get started, just start typing below. You can also type / to see a list of co
             element.innerHTML = newHTML;
             element.className = "chat-message-text-response";
 
-            // Add a copy button to each chat message
-            let copyButton = document.createElement('button');
-            copyButton.classList.add("copy-button");
-            copyButton.title = "Copy Message";
-            let copyIcon = document.createElement("img");
-            copyIcon.src = "/static/assets/icons/copy-button.svg";
-            copyIcon.classList.add("copy-icon");
-            copyButton.appendChild(copyIcon);
-            copyButton.addEventListener('click', copyParentText);
-            element.append(copyButton);
+            // Add a copy button to each chat message, if it doesn't already exist
+            if (willReplace === true) {
+                let copyButton = document.createElement('button');
+                copyButton.classList.add("copy-button");
+                copyButton.title = "Copy Message";
+                let copyIcon = document.createElement("img");
+                copyIcon.src = "/static/assets/icons/copy-button.svg";
+                copyIcon.classList.add("copy-icon");
+                copyButton.appendChild(copyIcon);
+                copyButton.addEventListener('click', copyParentText);
+                element.append(copyButton);
+            }
 
             // Get any elements with a class that starts with "language"
             let codeBlockElements = element.querySelectorAll('[class^="language-"]');
@@ -374,16 +376,18 @@ To get started, just start typing below. You can also type / to see a list of co
                 codeElement.parentNode.insertBefore(parentDiv, codeElement);
                 // Move the code element into the parent div
                 parentDiv.appendChild(codeElement);
-                // Add a copy button to each element
-                let copyButton = document.createElement('button');
-                copyButton.classList.add("copy-button");
-                copyButton.title = "Copy Code";
-                let copyIcon = document.createElement("img");
-                copyIcon.src = "/static/assets/icons/copy-button.svg";
-                copyIcon.classList.add("copy-icon");
-                copyButton.appendChild(copyIcon);
-                copyButton.addEventListener('click', copyParentText);
-                codeElement.prepend(copyButton);
+                // Add a copy button to each code block, if it doesn't already exist
+                if (willReplace === true) {
+                    let copyButton = document.createElement('button');
+                    copyButton.classList.add("copy-button");
+                    copyButton.title = "Copy Code";
+                    let copyIcon = document.createElement("img");
+                    copyIcon.src = "/static/assets/icons/copy-button.svg";
+                    copyIcon.classList.add("copy-icon");
+                    copyButton.appendChild(copyIcon);
+                    copyButton.addEventListener('click', copyParentText);
+                    codeElement.prepend(copyButton);
+                }
             });
 
             // Get all code elements that have no class.
@@ -589,7 +593,7 @@ To get started, just start typing below. You can also type / to see a list of co
             if (replace) {
                 newResponseElement.innerHTML = "";
             }
-            newResponseElement.appendChild(formatHTMLMessage(rawResponse));
+            newResponseElement.appendChild(formatHTMLMessage(rawResponse, false, replace));
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
         }
 
