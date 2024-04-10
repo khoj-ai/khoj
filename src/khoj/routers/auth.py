@@ -115,7 +115,7 @@ async def auth(request: Request):
     if khoj_user:
         request.session["user"] = dict(idinfo)
 
-        if datetime.timedelta(minutes=10) > (datetime.datetime.now(datetime.UTC) - khoj_user.date_joined):
+        if datetime.timedelta(minutes=3) > (datetime.datetime.now(datetime.UTC) - khoj_user.date_joined):
             asyncio.create_task(send_welcome_email(idinfo["name"], idinfo["email"]))
             update_telemetry_state(
                 request=request,
