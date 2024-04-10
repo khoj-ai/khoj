@@ -65,3 +65,10 @@ Cheers to our awesome contributors! 🎉
 </a>
 
 Made with [contrib.rocks](https://contrib.rocks).
+
+## [Sponsors](https://github.com/sponsors/khoj-ai)
+Shout out to our brilliant sponsors! 🌈
+
+<a href="http://github.com/beekeeb">
+  <img src="https://raw.githubusercontent.com/beekeeb/piantor/main/docs/beekeeb.png" width=250/>
+</a>

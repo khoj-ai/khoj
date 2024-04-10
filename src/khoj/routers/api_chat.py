@@ -5,7 +5,7 @@ from typing import Dict, Optional
 from urllib.parse import unquote
 
 from asgiref.sync import sync_to_async
-from fastapi import APIRouter, Depends, Request, WebSocket
+from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket
 from fastapi.requests import Request
 from fastapi.responses import Response, StreamingResponse
 from starlette.authentication import requires
@@ -292,6 +292,22 @@ async def websocket_endpoint(
             connection_alive = False
             logger.info(f"User {user} disconnected web socket. Emitting rest of responses to clear thread")
 
+    async def send_rate_limit_message(message: str):
+        nonlocal connection_alive
+        if not connection_alive:
+            return
+
+        status_packet = {
+            "type": "rate_limit",
+            "message": message,
+            "content-type": "application/json",
+        }
+        try:
+            await websocket.send_text(json.dumps(status_packet))
+        except ConnectionClosedOK:
+            connection_alive = False
+            logger.info(f"User {user} disconnected web socket. Emitting rest of responses to clear thread")
+
     user: KhojUser = websocket.user.object
     conversation = await ConversationAdapters.aget_conversation_by_user(
         user, client_application=websocket.user.client_app, conversation_id=conversation_id
@@ -318,8 +334,12 @@ async def websocket_endpoint(
             logger.debug(f"User {user} disconnected web socket")
             break
 
-        await sync_to_async(hourly_limiter)(websocket)
-        await sync_to_async(daily_limiter)(websocket)
+        try:
+            await sync_to_async(hourly_limiter)(websocket)
+            await sync_to_async(daily_limiter)(websocket)
+        except HTTPException as e:
+            await send_rate_limit_message(e.detail)
+            break
 
         conversation_commands = [get_conversation_command(query=q, any_references=True)]
 
@@ -489,7 +509,7 @@ async def chat(
     common: CommonQueryParams,
     q: str,
     n: Optional[int] = 5,
-    d: Optional[float] = 0.18,
+    d: Optional[float] = 0.22,
     stream: Optional[bool] = False,
     title: Optional[str] = None,
     conversation_id: Optional[int] = None,

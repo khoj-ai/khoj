@@ -327,7 +327,7 @@ def configure_search_types():
     return Enum("SearchType", core_search_types)
 
 
-@schedule.repeat(schedule.every(5).minutes)
+@schedule.repeat(schedule.every(2).minutes)
 def upload_telemetry():
     if not state.config or not state.config.app or not state.config.app.should_log_telemetry or not state.telemetry:
         message = "📡 No telemetry to upload" if not state.telemetry else "📡 Telemetry logging disabled"

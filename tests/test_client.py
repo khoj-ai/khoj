@@ -306,7 +306,7 @@ def test_notes_search(client, search_config: SearchConfig, sample_org_data, defa
     user_query = quote("How to git install application?")
 
     # Act
-    response = client.get(f"/api/search?q={user_query}&n=1&t=org&r=true&max_distance=0.18", headers=headers)
+    response = client.get(f"/api/search?q={user_query}&n=1&t=org&r=true&max_distance=0.22", headers=headers)
 
     # Assert
     assert response.status_code == 200
@@ -325,7 +325,7 @@ def test_notes_search_no_results(client, search_config: SearchConfig, sample_org
     user_query = quote("How to find my goat?")
 
     # Act
-    response = client.get(f"/api/search?q={user_query}&n=1&t=org&r=true&max_distance=0.18", headers=headers)
+    response = client.get(f"/api/search?q={user_query}&n=1&t=org&r=true&max_distance=0.22", headers=headers)
 
     # Assert
     assert response.status_code == 200
@@ -409,7 +409,7 @@ def test_notes_search_requires_parent_context(
     user_query = quote("Install Khoj on Emacs")
 
     # Act
-    response = client.get(f"/api/search?q={user_query}&n=1&t=org&r=true&max_distance=0.18", headers=headers)
+    response = client.get(f"/api/search?q={user_query}&n=1&t=org&r=true&max_distance=0.22", headers=headers)
 
     # Assert
     assert response.status_code == 200

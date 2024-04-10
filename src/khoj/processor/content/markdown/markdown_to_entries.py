@@ -1,14 +1,13 @@
 import logging
 import re
 from pathlib import Path
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import urllib3
 
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import KhojUser
 from khoj.processor.content.text_to_entries import TextToEntries
-from khoj.utils.constants import empty_escape_sequences
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry
 
@@ -31,15 +30,14 @@ class MarkdownToEntries(TextToEntries):
         else:
             deletion_file_names = None
 
+        max_tokens = 256
         # Extract Entries from specified Markdown files
-        with timer("Parse entries from Markdown files into dictionaries", logger):
-            current_entries = MarkdownToEntries.convert_markdown_entries_to_maps(
-                *MarkdownToEntries.extract_markdown_entries(files)
-            )
+        with timer("Extract entries from specified Markdown files", logger):
+            current_entries = MarkdownToEntries.extract_markdown_entries(files, max_tokens)
 
         # Split entries by max tokens supported by model
         with timer("Split entries by max token size supported by model", logger):
-            current_entries = self.split_entries_by_max_tokens(current_entries, max_tokens=256)
+            current_entries = self.split_entries_by_max_tokens(current_entries, max_tokens)
 
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
@@ -57,48 +55,84 @@ class MarkdownToEntries(TextToEntries):
         return num_new_embeddings, num_deleted_embeddings
 
     @staticmethod
-    def extract_markdown_entries(markdown_files):
+    def extract_markdown_entries(markdown_files, max_tokens=256) -> List[Entry]:
         "Extract entries by heading from specified Markdown files"
-
-        # Regex to extract Markdown Entries by Heading
-
-        entries = []
-        entry_to_file_map = []
+        entries: List[str] = []
+        entry_to_file_map: List[Tuple[str, str]] = []
         for markdown_file in markdown_files:
             try:
                 markdown_content = markdown_files[markdown_file]
                 entries, entry_to_file_map = MarkdownToEntries.process_single_markdown_file(
-                    markdown_content, markdown_file, entries, entry_to_file_map
+                    markdown_content, markdown_file, entries, entry_to_file_map, max_tokens
                 )
             except Exception as e:
-                logger.warning(f"Unable to process file: {markdown_file}. This file will not be indexed.")
-                logger.warning(e, exc_info=True)
+                logger.error(
+                    f"Unable to process file: {markdown_file}. This file will not be indexed.\n{e}", exc_info=True
+                )
 
-        return entries, dict(entry_to_file_map)
+        return MarkdownToEntries.convert_markdown_entries_to_maps(entries, dict(entry_to_file_map))
 
     @staticmethod
     def process_single_markdown_file(
-        markdown_content: str, markdown_file: Path, entries: List, entry_to_file_map: List
-    ):
-        markdown_heading_regex = r"^#"
+        markdown_content: str,
+        markdown_file: str,
+        entries: List[str],
+        entry_to_file_map: List[Tuple[str, str]],
+        max_tokens=256,
+        ancestry: Dict[int, str] = {},
+    ) -> Tuple[List[str], List[Tuple[str, str]]]:
+        # Prepend the markdown section's heading ancestry
+        ancestry_string = "\n".join([f"{'#' * key} {ancestry[key]}" for key in sorted(ancestry.keys())])
+        markdown_content_with_ancestry = f"{ancestry_string}{markdown_content}"
 
-        markdown_entries_per_file = []
-        any_headings = re.search(markdown_heading_regex, markdown_content, flags=re.MULTILINE)
-        for entry in re.split(markdown_heading_regex, markdown_content, flags=re.MULTILINE):
-            # Add heading level as the regex split removed it from entries with headings
-            prefix = "#" if entry.startswith("#") else "# " if any_headings else ""
-            stripped_entry = entry.strip(empty_escape_sequences)
-            if stripped_entry != "":
-                markdown_entries_per_file.append(f"{prefix}{stripped_entry}")
+        # If content is small or content has no children headings, save it as a single entry
+        if len(TextToEntries.tokenizer(markdown_content_with_ancestry)) <= max_tokens or not re.search(
+            rf"^#{{{len(ancestry)+1},}}\s", markdown_content, flags=re.MULTILINE
+        ):
+            entry_to_file_map += [(markdown_content_with_ancestry, markdown_file)]
+            entries.extend([markdown_content_with_ancestry])
+            return entries, entry_to_file_map
 
-        entry_to_file_map += zip(markdown_entries_per_file, [markdown_file] * len(markdown_entries_per_file))
-        entries.extend(markdown_entries_per_file)
+        # Split by next heading level present in the entry
+        next_heading_level = len(ancestry)
+        sections: List[str] = []
+        while len(sections) < 2:
+            next_heading_level += 1
+            sections = re.split(rf"(\n|^)(?=[#]{{{next_heading_level}}} .+\n?)", markdown_content, flags=re.MULTILINE)
+
+        for section in sections:
+            # Skip empty sections
+            if section.strip() == "":
+                continue
+
+            # Extract the section body and (when present) the heading
+            current_ancestry = ancestry.copy()
+            first_line = [line for line in section.split("\n") if line.strip() != ""][0]
+            if re.search(rf"^#{{{next_heading_level}}} ", first_line):
+                # Extract the section body without the heading
+                current_section_body = "\n".join(section.split(first_line)[1:])
+                # Parse the section heading into current section ancestry
+                current_section_title = first_line[next_heading_level:].strip()
+                current_ancestry[next_heading_level] = current_section_title
+            else:
+                current_section_body = section
+
+            # Recurse down children of the current entry
+            MarkdownToEntries.process_single_markdown_file(
+                current_section_body,
+                markdown_file,
+                entries,
+                entry_to_file_map,
+                max_tokens,
+                current_ancestry,
+            )
+
         return entries, entry_to_file_map
 
     @staticmethod
     def convert_markdown_entries_to_maps(parsed_entries: List[str], entry_to_file_map) -> List[Entry]:
         "Convert each Markdown entries into a dictionary"
-        entries = []
+        entries: List[Entry] = []
         for parsed_entry in parsed_entries:
             raw_filename = entry_to_file_map[parsed_entry]
 
@@ -108,13 +142,12 @@ class MarkdownToEntries(TextToEntries):
                 entry_filename = urllib3.util.parse_url(raw_filename).url
             else:
                 entry_filename = str(Path(raw_filename))
-            stem = Path(raw_filename).stem
 
             heading = parsed_entry.splitlines()[0] if re.search("^#+\s", parsed_entry) else ""
             # Append base filename to compiled entry for context to model
             # Increment heading level for heading entries and make filename as its top level heading
-            prefix = f"# {stem}\n#" if heading else f"# {stem}\n"
-            compiled_entry = f"{entry_filename}\n{prefix}{parsed_entry}"
+            prefix = f"# {entry_filename}\n#" if heading else f"# {entry_filename}\n"
+            compiled_entry = f"{prefix}{parsed_entry}"
             entries.append(
                 Entry(
                     compiled=compiled_entry,
@@ -127,8 +160,3 @@ class MarkdownToEntries(TextToEntries):
         logger.debug(f"Converted {len(parsed_entries)} markdown entries to dictionaries")
 
         return entries
-
-    @staticmethod
-    def convert_markdown_maps_to_jsonl(entries: List[Entry]):
-        "Convert each Markdown entry to JSON and collate as JSONL"
-        return "".join([f"{entry.to_json()}\n" for entry in entries])
