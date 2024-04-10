@@ -48,9 +48,6 @@ To get started, just start typing below. You can also type / to see a list of co
             });
         }
         var websocket = null;
-        var timeout = null;
-        var timeoutDuration = 600000; // 10 minutes
-
         let region = null;
         let city = null;
         let countryName = null;
@@ -874,25 +871,12 @@ To get started, just start typing below. You can also type / to see a list of co
                 rawResponse: "",
             }
 
-            function resetTimeout() {
-                if (timeout) {
-                    clearTimeout(timeout);
-                }
-
-                timeout = setTimeout(function() {
-                    if (websocket) {
-                        websocket.close();
-                    }
-                }, timeoutDuration);
-            }
-
             if (chatBody.dataset.conversationId) {
                 webSocketUrl += `?conversation_id=${chatBody.dataset.conversationId}`;
                 webSocketUrl += (!!region && !!city && !!countryName) ? `&region=${region}&city=${city}&country=${countryName}` : '';
 
                 websocket = new WebSocket(webSocketUrl);
                 websocket.onmessage = function(event) {
-                    resetTimeout();
 
                     // Get the last element in the chat-body
                     let chunk = event.data;
@@ -986,9 +970,6 @@ To get started, just start typing below. You can also type / to see a list of co
                 let statusDotText = document.getElementById("connection-status-text");
                 statusDotText.style.marginTop = "10px";
                 statusDotText.textContent = "Connected to Server";
-
-                // Setup the timeout to close the connection after inactivity.
-                resetTimeout();
             }
         }
 
