@@ -137,11 +137,11 @@ def converse(
     if location_data:
         location = f"{location_data.city}, {location_data.region}, {location_data.country}"
         location_prompt = prompts.user_location.format(location=location)
-        conversation_primer = f"{location_prompt}\n{conversation_primer}"
+        system_prompt = f"{system_prompt}\n{location_prompt}"
 
     if user_name:
         user_name_prompt = prompts.user_name.format(name=user_name)
-        conversation_primer = f"{user_name_prompt}\n{conversation_primer}"
+        system_prompt = f"{system_prompt}\n{user_name_prompt}"
 
     # Get Conversation Primer appropriate to Conversation Type
     if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(compiled_references):
