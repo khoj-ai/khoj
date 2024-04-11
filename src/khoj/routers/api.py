@@ -347,7 +347,8 @@ async def extract_references_and_questions(
         result_list = []
         logger.info(f"🔍 Searching knowledge base with queries: {inferred_queries}")
         if send_status_func:
-            await send_status_func(f"**🔍 Searching Documents for:** {'\n- ' + '\n- '.join(inferred_queries)}")
+            inferred_queries_str = "\n- " + "\n- ".join(inferred_queries)
+            await send_status_func(f"**🔍 Searching Documents for:** {inferred_queries_str}")
         for query in inferred_queries:
             n_items = min(n, 3) if using_offline_chat else n
             result_list.extend(

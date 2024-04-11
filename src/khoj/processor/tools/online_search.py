@@ -71,7 +71,8 @@ async def search_online(
     if webpage_links:
         logger.info(f"🌐👀 Reading web pages at: {list(webpage_links)}")
         if send_status_func:
-            await send_status_func(f"**📖 Reading web pages**: {'\n- ' + '\n- '.join(list(webpage_links))}")
+            webpage_links_str = "\n- " + "\n- ".join(list(webpage_links))
+            await send_status_func(f"**📖 Reading web pages**: {webpage_links_str}")
     tasks = [read_webpage_and_extract_content(subquery, link) for link, subquery in webpage_links.items()]
     results = await asyncio.gather(*tasks)
 
@@ -113,7 +114,8 @@ async def read_webpages(
 
     logger.info(f"Reading web pages at: {urls}")
     if send_status_func:
-        await send_status_func(f"**📖 Reading web pages**: {'\n- ' + '\n- '.join(list(urls))}")
+        webpage_links_str = "\n- " + "\n- ".join(list(urls))
+        await send_status_func(f"**📖 Reading web pages**: {webpage_links_str}")
     tasks = [read_webpage_and_extract_content(query, url) for url in urls]
     results = await asyncio.gather(*tasks)
 
