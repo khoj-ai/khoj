@@ -19,6 +19,7 @@ from urllib.parse import urlparse
 
 import torch
 from asgiref.sync import sync_to_async
+from magika import Magika
 
 from khoj.utils import constants
 
@@ -27,6 +28,10 @@ if TYPE_CHECKING:
 
     from khoj.utils.models import BaseEncoder
     from khoj.utils.rawconfig import AppConfig
+
+
+# Initialize Magika for file type identification
+magika = Magika()
 
 
 class AsyncIteratorWrapper:
@@ -88,22 +93,31 @@ def merge_dicts(priority_dict: dict, default_dict: dict):
     return merged_dict
 
 
-def get_file_type(file_type: str) -> tuple[str, str]:
+def get_file_type(file_type: str, file_content: bytes) -> tuple[str, str]:
     "Get file type from file mime type"
 
+    # Extract encoding from file_type
     encoding = file_type.split("=")[1].strip().lower() if ";" in file_type else None
     file_type = file_type.split(";")[0].strip() if ";" in file_type else file_type
-    if file_type in ["text/markdown"]:
+
+    # Infer content type from reading file content
+    try:
+        content_type = magika.identify_bytes(file_content).output.mime_type
+    except Exception:
+        # Fallback to using just file type if content type cannot be inferred
+        content_type = file_type
+
+    if file_type in ["text/markdown"] and content_type.startswith("text/"):
         return "markdown", encoding
-    elif file_type in ["text/org"]:
+    elif file_type in ["text/org"] and content_type.startswith("text/"):
         return "org", encoding
-    elif file_type in ["application/pdf"]:
+    elif file_type in ["application/pdf"] and content_type == "application/pdf":
         return "pdf", encoding
-    elif file_type in ["image/jpeg"]:
+    elif file_type in ["image/jpeg"] and content_type == "image/jpeg":
         return "jpeg", encoding
-    elif file_type in ["image/png"]:
+    elif file_type in ["image/png"] and content_type == "image/png":
         return "png", encoding
-    elif file_type in ["text/plain", "text/html", "application/xml", "text/x-rst"]:
+    elif content_type.startswith("text/"):
         return "plaintext", encoding
     else:
         return "other", encoding

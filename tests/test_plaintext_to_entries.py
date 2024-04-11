@@ -15,8 +15,6 @@ def test_plaintext_file(tmp_path):
     """
     plaintextfile = create_file(tmp_path, raw_entry)
 
-    filename = plaintextfile.stem
-
     # Act
     # Extract Entries from specified plaintext files
 
@@ -24,7 +22,7 @@ def test_plaintext_file(tmp_path):
         f"{plaintextfile}": raw_entry,
     }
 
-    entries = PlaintextToEntries.extract_plaintext_entries(entry_to_file_map=data)
+    entries = PlaintextToEntries.extract_plaintext_entries(data)
 
     # Convert each entry.file to absolute path to make them JSON serializable
     for entry in entries:
@@ -35,7 +33,7 @@ def test_plaintext_file(tmp_path):
     # Ensure raw entry with no headings do not get heading prefix prepended
     assert not entries[0].raw.startswith("#")
     # Ensure compiled entry has filename prepended as top level heading
-    assert entries[0].compiled == f"{filename}\n{raw_entry}"
+    assert entries[0].compiled == f"{plaintextfile}\n{raw_entry}"
 
 
 def test_get_plaintext_files(tmp_path):
@@ -98,6 +96,35 @@ def test_parse_html_plaintext_file(content_config, default_user: KhojUser):
     # Assert
     assert len(entries) == 1
     assert "<div>" not in entries[0].raw
+
+
+def test_large_plaintext_file_split_into_multiple_entries(tmp_path):
+    "Convert files with no heading to jsonl."
+    # Arrange
+    max_tokens = 256
+    normal_entry = " ".join([f"{number}" for number in range(max_tokens - 1)])
+    large_entry = " ".join([f"{number}" for number in range(max_tokens)])
+
+    normal_plaintextfile = create_file(tmp_path, normal_entry)
+    large_plaintextfile = create_file(tmp_path, large_entry)
+
+    normal_data = {f"{normal_plaintextfile}": normal_entry}
+    large_data = {f"{large_plaintextfile}": large_entry}
+
+    # Act
+    # Extract Entries from specified plaintext files
+    normal_entries = PlaintextToEntries.split_entries_by_max_tokens(
+        PlaintextToEntries.extract_plaintext_entries(normal_data),
+        max_tokens=max_tokens,
+        raw_is_compiled=True,
+    )
+    large_entries = PlaintextToEntries.split_entries_by_max_tokens(
+        PlaintextToEntries.extract_plaintext_entries(large_data), max_tokens=max_tokens, raw_is_compiled=True
+    )
+
+    # Assert
+    assert len(normal_entries) == 1
+    assert len(large_entries) == 2
 
 
 # Helper Functions

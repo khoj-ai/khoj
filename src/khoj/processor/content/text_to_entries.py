@@ -59,7 +59,7 @@ class TextToEntries(ABC):
 
     @staticmethod
     def split_entries_by_max_tokens(
-        entries: List[Entry], max_tokens: int = 256, max_word_length: int = 500
+        entries: List[Entry], max_tokens: int = 256, max_word_length: int = 500, raw_is_compiled: bool = False
     ) -> List[Entry]:
         "Split entries if compiled entry length exceeds the max tokens supported by the ML model."
         chunked_entries: List[Entry] = []
@@ -94,7 +94,7 @@ class TextToEntries(ABC):
 
                 # Clean entry of unwanted characters like \0 character
                 compiled_entry_chunk = TextToEntries.clean_field(compiled_entry_chunk)
-                entry.raw = TextToEntries.clean_field(entry.raw)
+                entry.raw = compiled_entry_chunk if raw_is_compiled else TextToEntries.clean_field(entry.raw)
                 entry.heading = TextToEntries.clean_field(entry.heading)
                 entry.file = TextToEntries.clean_field(entry.file)
 

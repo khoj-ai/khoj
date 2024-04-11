@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, shell } = require('electron');
+const Magika = require('magika').MagikaNode;
 const todesktop = require("@todesktop/runtime");
 const khojPackage = require('./package.json');
 
@@ -14,8 +15,8 @@ const KHOJ_URL = 'https://app.khoj.dev';
 
 const Store = require('electron-store');
 
-const validFileTypes = ['org', 'md', 'markdown', 'txt', 'html', 'xml', 'pdf']
-
+const magika = new Magika();
+let validFileTypes;
 const binaryFileTypes = ['pdf', 'png', 'jpg', 'jpeg']
 
 const schema = {
@@ -67,6 +68,7 @@ const schema = {
     }
 };
 
+let isMagikaLoaded = false;
 let syncing = false;
 let state = {}
 const store = new Store({ schema });
@@ -111,22 +113,39 @@ function filenameToMimeType (filename) {
     }
 }
 
-function processDirectory(filesToPush, folder) {
-    const files = fs.readdirSync(folder.path, { withFileTypes: true, recursive: true });
+async function isPlainTextFile(filePath) {
+    if (!isMagikaLoaded) {
+        await magika.load();
+        isMagikaLoaded = true;
+    }
+    try {
+        const fileContent = fs.readFileSync(filePath);
+        const fileType = await magika.identifyBytes(fileContent);
+        const fileLabel = magika.config.labels.filter(l => l.name == fileType.label)?.[0]
+        return fileLabel?.is_text
+    } catch (err) {
+        console.error("Failed to identify file type: ", err);
+        return false;
+    }
+}
+
+async function processDirectory(filesToPush, folder) {
+    const files = fs.readdirSync(folder.path, { withFileTypes: true });
 
     for (const file of files) {
-        if (file.isFile() && validFileTypes.includes(file.name.split('.').pop())) {
-            console.log(`Add ${file.name} in ${folder.path} for indexing`);
-            filesToPush.push(path.join(folder.path, file.name));
+        const filePath = path.join(file.path, file.name || '');
+        if (file.isFile() && await isPlainTextFile(filePath)) {
+            console.log(`Add ${file.name} in ${file.path} for indexing`);
+            filesToPush.push(filePath);
         }
 
         if (file.isDirectory()) {
-            processDirectory(filesToPush, {'path': path.join(folder.path, file.name)});
+            await processDirectory(filesToPush, {'path': filePath});
         }
     }
 }
 
-function pushDataToKhoj (regenerate = false) {
+async function pushDataToKhoj (regenerate = false) {
     // Don't sync if token or hostURL is not set or if already syncing
     if (store.get('khojToken') === '' || store.get('hostURL') === '' || syncing === true) {
         const win = BrowserWindow.getAllWindows()[0];
@@ -148,7 +167,7 @@ function pushDataToKhoj (regenerate = false) {
 
     // Collect paths of all indexable files in configured folders
     for (const folder of folders) {
-        processDirectory(filesToPush, folder);
+        await processDirectory(filesToPush, folder);
     }
 
     const lastSync = store.get('lastSync') || [];
@@ -222,6 +241,7 @@ function pushDataToKhoj (regenerate = false) {
         } else if (error?.code === 'ECONNREFUSED') {
             state["error"] = `Could not connect to Khoj server. Ensure you can connect to it at ${error.address}:${error.port}.`;
         } else {
+            currentTime = new Date();
             state["error"] = `Sync was unsuccessful at ${currentTime.toLocaleTimeString()}. Contact team@khoj.dev to report this issue.`;
         }
     })
@@ -238,9 +258,18 @@ function pushDataToKhoj (regenerate = false) {
 pushDataToKhoj();
 
 async function handleFileOpen (type) {
+    if (!isMagikaLoaded) {
+        await magika.load();
+        isMagikaLoaded = true;
+        validFileTypes = [
+            "org", "md", "pdf",
+            // all text file extensions known to Magika
+            ...magika.config.labels.filter(l => l.is_text == true).map(l => l.name)];
+    }
+
     let { canceled, filePaths } = {canceled: true, filePaths: []};
     if (type === 'file') {
-        ({ canceled, filePaths } = await dialog.showOpenDialog({properties: ['openFile' ], filters: [{ name: "Valid Khoj Files", extensions: validFileTypes}] }));
+        ({ canceled, filePaths } = await dialog.showOpenDialog({properties: ['openFile' ], filters: [{ name: "Valid Khoj Files", extensions: validFileTypes }] }));
     } else if (type === 'folder') {
         ({ canceled, filePaths } = await dialog.showOpenDialog({properties: ['openDirectory' ]}));
     }
@@ -331,7 +360,7 @@ async function removeFolder (event, folderPath) {
 
 async function syncData (regenerate = false) {
     try {
-        pushDataToKhoj(regenerate);
+        await pushDataToKhoj(regenerate);
         const date = new Date();
         console.log('Pushing data to Khoj at: ', date);
     } catch (err) {
@@ -343,7 +372,7 @@ async function deleteAllFiles () {
     try {
         store.set('files', []);
         store.set('folders', []);
-        pushDataToKhoj(true);
+        await pushDataToKhoj(true);
         const date = new Date();
         console.log('Pushing data to Khoj at: ', date);
     } catch (err) {
@@ -379,9 +408,9 @@ const createWindow = (tab = 'chat.html') => {
       }
     })
 
-    const job = new cron('0 */10 * * * *', function() {
+    const job = new cron('0 */10 * * * *', async function() {
         try {
-            pushDataToKhoj();
+            await pushDataToKhoj();
             const date = new Date();
             console.log('Pushing data to Khoj at: ', date);
             win.webContents.send('update-state', state);
@@ -501,11 +530,11 @@ app.whenReady().then(() => {
         try {
             const result = await todesktop.autoUpdater.checkForUpdates();
             if (result.updateInfo) {
-              console.log("Update found:", result.updateInfo.version);
+              console.log("Desktop app update found:", result.updateInfo.version);
               todesktop.autoUpdater.restartAndInstall();
             }
           } catch (e) {
-            console.log("Update check failed:", e);
+            console.warn("Desktop app update check failed:", e);
         }
     })
 

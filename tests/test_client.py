@@ -1,6 +1,5 @@
 # Standard Modules
 import os
-from io import BytesIO
 from urllib.parse import quote
 
 import pytest

@@ -1,19 +1,21 @@
 import logging
 import time
-from datetime import datetime
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple
 
 import requests
+from magika import Magika
 
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import GithubConfig, KhojUser
 from khoj.processor.content.markdown.markdown_to_entries import MarkdownToEntries
 from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
+from khoj.processor.content.plaintext.plaintext_to_entries import PlaintextToEntries
 from khoj.processor.content.text_to_entries import TextToEntries
 from khoj.utils.helpers import timer
-from khoj.utils.rawconfig import Entry, GithubContentConfig, GithubRepoConfig
+from khoj.utils.rawconfig import GithubContentConfig, GithubRepoConfig
 
 logger = logging.getLogger(__name__)
+magika = Magika()
 
 
 class GithubToEntries(TextToEntries):
@@ -62,15 +64,18 @@ class GithubToEntries(TextToEntries):
         repo_url = f"https://api.github.com/repos/{repo.owner}/{repo.name}"
         repo_shorthand = f"{repo.owner}/{repo.name}"
         logger.info(f"Processing github repo {repo_shorthand}")
-        with timer("Download markdown files from github repo", logger):
+        with timer("Download files from github repo", logger):
             try:
-                markdown_files, org_files = self.get_files(repo_url, repo)
+                markdown_files, org_files, plaintext_files = self.get_files(repo_url, repo)
+            except ConnectionAbortedError as e:
+                logger.error(f"Github rate limit reached. Skip indexing github repo {repo_shorthand}")
             except Exception as e:
                 logger.error(f"Unable to download github repo {repo_shorthand}", exc_info=True)
                 raise e
 
-        logger.info(f"Found {len(markdown_files)} markdown files in github repo {repo_shorthand}")
-        logger.info(f"Found {len(org_files)} org files in github repo {repo_shorthand}")
+        logger.info(
+            f"Found {len(markdown_files)} md, {len(org_files)} org and {len(plaintext_files)} text files in github repo {repo_shorthand}"
+        )
         current_entries = []
 
         with timer(f"Extract markdown entries from github repo {repo_shorthand}", logger):
@@ -83,14 +88,10 @@ class GithubToEntries(TextToEntries):
                 *GithubToEntries.extract_org_entries(org_files)
             )
 
-        with timer(f"Extract commit messages from github repo {repo_shorthand}", logger):
-            current_entries += self.convert_commits_to_entries(self.get_commits(repo_url), repo)
-
-        with timer(f"Extract issues from github repo {repo_shorthand}", logger):
-            issue_entries = GithubToEntries.convert_issues_to_entries(
-                *GithubToEntries.extract_github_issues(self.get_issues(repo_url))
+        with timer(f"Extract plaintext entries from github repo {repo_shorthand}", logger):
+            current_entries += PlaintextToEntries.convert_text_files_to_entries(
+                *GithubToEntries.extract_plaintext_entries(plaintext_files)
             )
-            current_entries += issue_entries
 
         with timer(f"Split entries by max token size supported by model {repo_shorthand}", logger):
             current_entries = TextToEntries.split_entries_by_max_tokens(current_entries, max_tokens=256)
@@ -119,16 +120,16 @@ class GithubToEntries(TextToEntries):
         response = requests.get(repo_content_url, headers=headers, params=params)
         contents = response.json()
 
-        # Wait for rate limit reset if needed
-        result = self.wait_for_rate_limit_reset(response, self.get_files, repo_url, repo)
-        if result is not None:
-            return result
+        # Raise exception if hit rate limit
+        if response.status_code != 200 and response.headers.get("X-RateLimit-Remaining") == "0":
+            raise ConnectionAbortedError("Github rate limit reached")
 
         # Extract markdown files from the repository
-        markdown_files: List[Any] = []
-        org_files: List[Any] = []
+        markdown_files: List[Dict[str, str]] = []
+        org_files: List[Dict[str, str]] = []
+        plaintext_files: List[Dict[str, str]] = []
         if "tree" not in contents:
-            return markdown_files, org_files
+            return markdown_files, org_files, plaintext_files
 
         for item in contents["tree"]:
             # Find all markdown files in the repository
@@ -147,143 +148,45 @@ class GithubToEntries(TextToEntries):
                 # Add org file contents and URL to list
                 org_files += [{"content": self.get_file_contents(item["url"]), "path": url_path}]
 
-        return markdown_files, org_files
+            # Find, index remaining non-binary files in the repository
+            elif item["type"] == "blob":
+                url_path = f'https://github.com/{repo.owner}/{repo.name}/blob/{repo.branch}/{item["path"]}'
+                content_bytes = self.get_file_contents(item["url"], decode=False)
+                content_type, content_str = None, None
+                try:
+                    content_type = magika.identify_bytes(content_bytes).output.mime_type
+                    content_str = content_bytes.decode("utf-8")
+                except:
+                    logger.error(
+                        f"Unable to identify content type or decode content of file at {url_path}. Skip indexing it"
+                    )
+                    continue
 
-    def get_file_contents(self, file_url):
+                # Add non-binary file contents and URL to list
+                if content_type.startswith("text/"):
+                    plaintext_files += [{"content": content_str, "path": url_path}]
+
+        return markdown_files, org_files, plaintext_files
+
+    def get_file_contents(self, file_url, decode=True):
         # Get text from each markdown file
         headers = {"Accept": "application/vnd.github.v3.raw"}
         response = self.session.get(file_url, headers=headers, stream=True)
 
-        # Wait for rate limit reset if needed
-        result = self.wait_for_rate_limit_reset(response, self.get_file_contents, file_url)
-        if result is not None:
-            return result
+        # Stop indexing on hitting rate limit
+        if response.status_code != 200 and response.headers.get("X-RateLimit-Remaining") == "0":
+            raise ConnectionAbortedError("Github rate limit reached")
 
-        content = ""
+        content = "" if decode else b""
         for chunk in response.iter_content(chunk_size=2048):
             if chunk:
                 try:
-                    content += chunk.decode("utf-8")
+                    content += chunk.decode("utf-8") if decode else chunk
                 except Exception as e:
                     logger.error(f"Unable to decode chunk from {file_url}")
                     logger.error(e)
 
         return content
-
-    def get_commits(self, repo_url: str) -> List[Dict]:
-        return self._get_commits(f"{repo_url}/commits")
-
-    def _get_commits(self, commits_url: Union[str, None]) -> List[Dict]:
-        # Get commit messages from the repository using the Github API
-        params = {"per_page": 100}
-        commits = []
-
-        while commits_url is not None:
-            # Get the next page of commits
-            response = self.session.get(commits_url, params=params, stream=True)
-
-            # Read the streamed response into a JSON object
-            content = response.json()
-
-            # Wait for rate limit reset if needed
-            result = self.wait_for_rate_limit_reset(response, self._get_commits, commits_url)
-            if result is not None:
-                return result
-
-            # Extract commit messages from the response
-            for commit in content:
-                if "commit" in commit and "message" in commit["commit"] and "html_url" in commit:
-                    commits += [{"content": commit["commit"]["message"], "path": commit["html_url"]}]
-                else:
-                    logger.debug(f"Skipping commit with missing properties: {commit}")
-
-            # Get the URL for the next page of commits, if any
-            commits_url = response.links.get("next", {}).get("url")
-
-        return commits
-
-    def get_issues(self, repo_url: str) -> List[Dict]:
-        return self._get_issues(f"{repo_url}/issues")
-
-    def _get_issues(self, issues_url: Union[str, None]) -> List[Dict]:
-        issues = []
-        per_page = 100
-        params = {"per_page": per_page, "state": "all"}
-
-        while issues_url is not None:
-            # Get the next page of issues
-            response = self.session.get(issues_url, params=params, stream=True)  # type: ignore
-            raw_issues = response.json()
-
-            # Wait for rate limit reset if needed
-            result = self.wait_for_rate_limit_reset(response, self._get_issues, issues_url)
-            if result is not None:
-                return result
-
-            for issue in raw_issues:
-                username = issue["user"]["login"]
-                user_url = f"[{username}]({issue['user']['html_url']})"
-                issue_content = {
-                    "content": f"## [Issue {issue['number']}]({issue['html_url']}) {issue['title']}\nby {user_url}\n\n{issue['body']}",
-                    "path": issue["html_url"],
-                }
-                issue_content["created_at"] = {issue["created_at"]}
-                if issue["comments"] > 0:
-                    issue_content["comments"] = self.get_comments(issue["comments_url"])
-                issues += [issue_content]
-
-            issues_url = response.links.get("next", {}).get("url")
-
-        return issues
-
-    def get_comments(self, comments_url: Union[str, None]) -> List[Dict]:
-        # By default, the number of results per page is 30. We'll keep it as-is for now.
-        comments = []
-        per_page = 100
-        params = {"per_page": per_page}
-
-        while comments_url is not None:
-            # Get the next page of comments
-            response = self.session.get(comments_url, params=params, stream=True)
-            raw_comments = response.json()
-
-            # Wait for rate limit reset if needed
-            result = self.wait_for_rate_limit_reset(response, self.get_comments, comments_url)
-            if result is not None:
-                return result
-
-            for comment in raw_comments:
-                created_at = datetime.strptime(comment["created_at"], "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d %H:%M")
-                commenter = comment["user"]["login"]
-                commenter_url = comment["user"]["html_url"]
-                comment_url = comment["html_url"]
-                comment_url_link = f"[{created_at}]({comment_url})"
-                avatar_url = comment["user"]["avatar_url"]
-                avatar = f"![{commenter}]({avatar_url})"
-                comments += [
-                    {
-                        "content": f"### {avatar} [{commenter}]({commenter_url}) - ({comment_url_link})\n\n{comment['body']}"
-                    }
-                ]
-
-            comments_url = response.links.get("next", {}).get("url")
-
-        return comments
-
-    def convert_commits_to_entries(self, commits, repo: GithubRepoConfig) -> List[Entry]:
-        entries: List[Entry] = []
-        for commit in commits:
-            compiled = f'Commit message from {repo.owner}/{repo.name}:\n{commit["content"]}'
-            entries.append(
-                Entry(
-                    compiled=compiled,
-                    raw=f'### {commit["content"]}',
-                    heading=commit["content"].split("\n")[0],
-                    file=commit["path"],
-                )
-            )
-
-        return entries
 
     @staticmethod
     def extract_markdown_entries(markdown_files):
@@ -307,30 +210,12 @@ class GithubToEntries(TextToEntries):
         return entries, dict(entry_to_file_map)
 
     @staticmethod
-    def extract_github_issues(issues):
+    def extract_plaintext_entries(plaintext_files):
         entries = []
-        entry_to_file_map = {}
-        for issue in issues:
-            content = issue["content"]
-            if "comments" in issue:
-                for comment in issue["comments"]:
-                    content += "\n\n" + comment["content"]
-            entries.append(content)
-            entry_to_file_map[content] = {"path": issue["path"]}
-        return entries, entry_to_file_map
+        entry_to_file_map = []
 
-    @staticmethod
-    def convert_issues_to_entries(parsed_entries: List[str], entry_to_metadata_map: Dict[str, Dict]) -> List[Entry]:
-        entries = []
-        for entry in parsed_entries:
-            entry_file_name = entry_to_metadata_map[entry]["path"]
-            entries.append(
-                Entry(
-                    compiled=entry,
-                    raw=entry,
-                    heading=entry.split("\n")[0],
-                    file=entry_file_name,
-                )
+        for doc in plaintext_files:
+            entries, entry_to_file_map = PlaintextToEntries.process_single_plaintext_file(
+                doc["content"], doc["path"], entries, entry_to_file_map
             )
-
-        return entries
+        return entries, dict(entry_to_file_map)
