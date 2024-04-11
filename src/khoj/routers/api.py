@@ -5,7 +5,7 @@ import math
 import os
 import time
 import uuid
-from typing import Any, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
 from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
@@ -274,6 +274,7 @@ async def extract_references_and_questions(
     d: float,
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     location_data: LocationData = None,
+    send_status_func: Optional[Callable] = None,
 ):
     user = request.user.object if request.user.is_authenticated else None
 
@@ -345,6 +346,8 @@ async def extract_references_and_questions(
     with timer("Searching knowledge base took", logger):
         result_list = []
         logger.info(f"🔍 Searching knowledge base with queries: {inferred_queries}")
+        if send_status_func:
+            await send_status_func(f"**🔍 Searching Documents for:** {'\n- ' + '\n- '.join(inferred_queries)}")
         for query in inferred_queries:
             n_items = min(n, 3) if using_offline_chat else n
             result_list.extend(

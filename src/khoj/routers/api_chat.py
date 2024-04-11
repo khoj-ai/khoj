@@ -371,7 +371,7 @@ async def websocket_endpoint(
             q = q.replace(f"/{cmd.value}", "").strip()
 
         compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
-            websocket, None, meta_log, q, 7, 0.18, conversation_commands, location
+            websocket, None, meta_log, q, 7, 0.18, conversation_commands, location, send_status_update
         )
 
         if compiled_references:
