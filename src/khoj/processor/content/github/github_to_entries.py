@@ -154,16 +154,18 @@ class GithubToEntries(TextToEntries):
                 content_bytes = self.get_file_contents(item["url"], decode=False)
                 content_type, content_str = None, None
                 try:
-                    content_type = magika.identify_bytes(content_bytes).output.mime_type
-                    content_str = content_bytes.decode("utf-8")
+                    content_type = magika.identify_bytes(content_bytes).output.group
                 except:
-                    logger.error(
-                        f"Unable to identify content type or decode content of file at {url_path}. Skip indexing it"
-                    )
+                    logger.error(f"Unable to identify content type of file at {url_path}. Skip indexing it")
                     continue
 
                 # Add non-binary file contents and URL to list
-                if content_type.startswith("text/"):
+                if content_type in ["text", "code"]:
+                    try:
+                        content_str = content_bytes.decode("utf-8")
+                    except:
+                        logger.error(f"Unable to decode content of file at {url_path}. Skip indexing it")
+                        continue
                     plaintext_files += [{"content": content_str, "path": url_path}]
 
         return markdown_files, org_files, plaintext_files
