@@ -117,12 +117,16 @@ async function isPlainTextFile(filePath) {
     if (!isMagikaLoaded) {
         await magika.load();
         isMagikaLoaded = true;
+        validFileTypes = [
+            "org", "md", "pdf",
+            // all text file extensions known to Magika
+            ...magika.config.labels.filter(l => l.is_text == true).map(l => l.name)];
     }
     try {
         const fileContent = fs.readFileSync(filePath);
         const fileType = await magika.identifyBytes(fileContent);
         const fileLabel = magika.config.labels.filter(l => l.name == fileType.label)?.[0]
-        return fileLabel?.is_text
+        return fileLabel?.is_text && validFileTypes.includes(fileType?.label);
     } catch (err) {
         console.error("Failed to identify file type: ", err);
         return false;
