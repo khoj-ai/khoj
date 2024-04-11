@@ -67,7 +67,7 @@ def extract_questions(
         model_name=model,
         temperature=temperature,
         max_tokens=max_tokens,
-        model_kwargs={"stop": ["A: ", "\n"], "response_format": {"type": "json_object"}},
+        model_kwargs={"response_format": {"type": "json_object"}},
         openai_api_key=api_key,
     )
 
