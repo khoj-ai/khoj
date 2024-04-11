@@ -3,7 +3,7 @@ import json
 import logging
 import os
 from collections import defaultdict
-from typing import Dict, Tuple, Union
+from typing import Callable, Dict, Optional, Tuple, Union
 
 import aiohttp
 import requests
@@ -42,7 +42,9 @@ OLOSTEP_QUERY_PARAMS = {
 MAX_WEBPAGES_TO_READ = 1
 
 
-async def search_online(query: str, conversation_history: dict, location: LocationData):
+async def search_online(
+    query: str, conversation_history: dict, location: LocationData, send_status_func: Optional[Callable] = None
+):
     if not online_search_enabled():
         logger.warn("SERPER_DEV_API_KEY is not set")
         return {}
@@ -52,7 +54,9 @@ async def search_online(query: str, conversation_history: dict, location: Locati
     response_dict = {}
 
     for subquery in subqueries:
-        logger.info(f"Searching with Google for '{subquery}'")
+        if send_status_func:
+            await send_status_func(f"**🌐 Searching the Internet for**: {subquery}")
+        logger.info(f"🌐 Searching the Internet for '{subquery}'")
         response_dict[subquery] = search_with_google(subquery)
 
     # Gather distinct web pages from organic search results of each subquery without an instant answer
@@ -64,7 +68,10 @@ async def search_online(query: str, conversation_history: dict, location: Locati
     }
 
     # Read, extract relevant info from the retrieved web pages
-    logger.info(f"Reading web pages at: {webpage_links.keys()}")
+    if webpage_links:
+        logger.info(f"🌐👀 Reading web pages at: {list(webpage_links)}")
+        if send_status_func:
+            await send_status_func(f"**📖 Reading web pages**: {'\n- ' + '\n- '.join(list(webpage_links))}")
     tasks = [read_webpage_and_extract_content(subquery, link) for link, subquery in webpage_links.items()]
     results = await asyncio.gather(*tasks)
 
@@ -95,12 +102,18 @@ def search_with_google(subquery: str):
     return extracted_search_result
 
 
-async def read_webpages(query: str, conversation_history: dict, location: LocationData):
+async def read_webpages(
+    query: str, conversation_history: dict, location: LocationData, send_status_func: Optional[Callable] = None
+):
     "Infer web pages to read from the query and extract relevant information from them"
     logger.info(f"Inferring web pages to read")
+    if send_status_func:
+        await send_status_func(f"**🧐 Inferring web pages to read**")
     urls = await infer_webpage_urls(query, conversation_history, location)
 
     logger.info(f"Reading web pages at: {urls}")
+    if send_status_func:
+        await send_status_func(f"**📖 Reading web pages**: {'\n- ' + '\n- '.join(list(urls))}")
     tasks = [read_webpage_and_extract_content(query, url) for url in urls]
     results = await asyncio.gather(*tasks)
 

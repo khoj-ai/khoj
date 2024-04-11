@@ -4,7 +4,17 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from functools import partial
-from typing import Annotated, Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import (
+    Annotated,
+    Any,
+    Callable,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import openai
 from fastapi import Depends, Header, HTTPException, Request, UploadFile
@@ -497,6 +507,7 @@ async def text_to_image(
     location_data: LocationData,
     references: List[str],
     online_results: Dict[str, Any],
+    send_status_func: Optional[Callable] = None,
 ) -> Tuple[Optional[str], int, Optional[str], Optional[str]]:
     status_code = 200
     image = None
@@ -522,6 +533,8 @@ async def text_to_image(
                 chat_history += f"A: Improved Query: {chat['intent']['inferred-queries'][0]}\n"
         try:
             with timer("Improve the original user query", logger):
+                if send_status_func:
+                    await send_status_func("**✍🏽 Enhancing the Painting Prompt**")
                 improved_image_prompt = await generate_better_image_prompt(
                     message,
                     chat_history,
@@ -530,6 +543,8 @@ async def text_to_image(
                     online_results=online_results,
                 )
             with timer("Generate image with OpenAI", logger):
+                if send_status_func:
+                    await send_status_func(f"**🖼️ Painting using Enhanced Prompt**:\n{improved_image_prompt}")
                 response = state.openai_client.images.generate(
                     prompt=improved_image_prompt, model=text2image_model, response_format="b64_json"
                 )

@@ -343,7 +343,7 @@ async def websocket_endpoint(
 
         conversation_commands = [get_conversation_command(query=q, any_references=True)]
 
-        await send_status_update(f"**Processing query**: {q}")
+        await send_status_update(f"**👀 Understanding Query**: {q}")
 
         if conversation_commands == [ConversationCommand.Help]:
             conversation_config = await ConversationAdapters.aget_user_conversation_config(user)
@@ -358,7 +358,11 @@ async def websocket_endpoint(
 
         if conversation_commands == [ConversationCommand.Default]:
             conversation_commands = await aget_relevant_information_sources(q, meta_log)
+            conversation_commands_str = ", ".join([cmd.value for cmd in conversation_commands])
+            await send_status_update(f"**🗃️ Chose Data Sources to Search:** {conversation_commands_str}")
+
             mode = await aget_relevant_output_modes(q, meta_log)
+            await send_status_update(f"**🧑🏾‍💻 Decided Response Mode:** {mode.value}")
             if mode not in conversation_commands:
                 conversation_commands.append(mode)
 
@@ -366,17 +370,15 @@ async def websocket_endpoint(
             await conversation_command_rate_limiter.update_and_check_if_valid(websocket, cmd)
             q = q.replace(f"/{cmd.value}", "").strip()
 
-        await send_status_update(
-            f"**Using conversation commands:** {', '.join([cmd.value for cmd in conversation_commands])}"
-        )
-
         compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
             websocket, None, meta_log, q, 7, 0.18, conversation_commands, location
         )
 
         if compiled_references:
-            headings = set([c.split("\n")[0] for c in compiled_references])
-            await send_status_update(f"**Searching references**: {headings}")
+            headings = "\n- " + "\n- ".join(
+                set([" ".join(c.split("Path: ")[1:]).split("\n ")[0] for c in compiled_references])
+            )
+            await send_status_update(f"**📜 Found Relevant Notes**: {headings}")
 
         online_results: Dict = dict()
 
@@ -395,10 +397,7 @@ async def websocket_endpoint(
                     conversation_commands.append(ConversationCommand.Webpage)
             else:
                 try:
-                    await send_status_update("**Operation**: Searching the web for relevant information...")
-                    online_results = await search_online(defiltered_query, meta_log, location)
-                    online_searches = ", ".join([f"{query}" for query in online_results.keys()])
-                    await send_status_update(f"**Online searches**: {online_searches}")
+                    online_results = await search_online(defiltered_query, meta_log, location, send_status_update)
                 except ValueError as e:
                     logger.warning(f"Error searching online: {e}. Attempting to respond without online results")
                     await send_complete_llm_response(
@@ -408,13 +407,12 @@ async def websocket_endpoint(
 
         if ConversationCommand.Webpage in conversation_commands:
             try:
-                await send_status_update("**Operation**: Directly searching web pages...")
-                online_results = await read_webpages(defiltered_query, meta_log, location)
+                online_results = await read_webpages(defiltered_query, meta_log, location, send_status_update)
                 webpages = []
                 for query in online_results:
                     for webpage in online_results[query]["webpages"]:
                         webpages.append(webpage["link"])
-                await send_status_update(f"**Web pages read**: {webpages}")
+                await send_status_update(f"**📚 Read web pages**: {webpages}")
             except ValueError as e:
                 logger.warning(
                     f"Error directly reading webpages: {e}. Attempting to respond without online results", exc_info=True
@@ -427,10 +425,15 @@ async def websocket_endpoint(
                 api="chat",
                 metadata={"conversation_command": conversation_commands[0].value},
             )
-            await send_status_update("**Operation**: Augmenting your query and generating a superb image...")
             intent_type = "text-to-image"
             image, status_code, improved_image_prompt, image_url = await text_to_image(
-                q, user, meta_log, location_data=location, references=compiled_references, online_results=online_results
+                q,
+                user,
+                meta_log,
+                location_data=location,
+                references=compiled_references,
+                online_results=online_results,
+                send_status_func=send_status_update,
             )
             if image is None or status_code != 200:
                 content_obj = {
@@ -462,6 +465,7 @@ async def websocket_endpoint(
             await send_complete_llm_response(json.dumps(content_obj))
             continue
 
+        await send_status_update(f"**💭 Generating a well-informed response**")
         llm_response, chat_metadata = await agenerate_chat_response(
             defiltered_query,
             meta_log,
