@@ -102,22 +102,20 @@ def get_file_type(file_type: str, file_content: bytes) -> tuple[str, str]:
 
     # Infer content type from reading file content
     try:
-        content_identity = magika.identify_bytes(file_content).output
-        content_type = content_identity.mime_type
-        content_group = content_identity.group
+        content_group = magika.identify_bytes(file_content).output.group
     except Exception:
         # Fallback to using just file type if content type cannot be inferred
-        content_type = file_type
+        content_group = "unknown"
 
-    if file_type in ["text/markdown"] and content_group in ["code", "text"]:
+    if file_type in ["text/markdown"]:
         return "markdown", encoding
-    elif file_type in ["text/org"] and content_group in ["code", "text"]:
+    elif file_type in ["text/org"]:
         return "org", encoding
-    elif file_type in ["application/pdf"] and content_type == "application/pdf":
+    elif file_type in ["application/pdf"]:
         return "pdf", encoding
-    elif file_type in ["image/jpeg"] and content_type == "image/jpeg":
+    elif file_type in ["image/jpeg"]:
         return "jpeg", encoding
-    elif file_type in ["image/png"] and content_type == "image/png":
+    elif file_type in ["image/png"]:
         return "png", encoding
     elif content_group in ["code", "text"]:
         return "plaintext", encoding

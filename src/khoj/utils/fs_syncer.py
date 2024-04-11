@@ -51,11 +51,10 @@ def get_plaintext_files(config: TextContentConfig) -> dict[str, str]:
     def is_plaintextfile(file: str):
         "Check if file is plaintext file"
         # Check if file path exists
-        content_identity = magika.identify_path(Path(file)).output
-        if content_identity.mime_type not in ["inode/x-empty", "application/unknown"]:
-            return content_identity.group in ["text", "code"]
+        content_group = magika.identify_path(Path(file)).output.group
         # Use file extension to decide plaintext if file content is not identifiable
-        return file.endswith(("txt", "md", "markdown", "org", "mbox", "rst", "html", "htm", "xml"))
+        valid_text_file_extensions = ("txt", "md", "markdown", "org" "mbox", "rst", "html", "htm", "xml")
+        return file.endswith(valid_text_file_extensions) or content_group in ["text", "code"]
 
     def extract_html_content(html_content: str):
         "Extract content from HTML"
