@@ -19,7 +19,6 @@
     "@todesktop/runtime": "^1.3.0",
     "axios": "^1.6.4",
     "cron": "^2.4.3",
-    "electron-store": "^8.1.0",
-    "magika": "^0.2.13"
+    "electron-store": "^8.1.0"
   }
 }

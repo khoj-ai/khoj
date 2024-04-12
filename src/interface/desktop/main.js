@@ -1,5 +1,4 @@
 const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, shell } = require('electron');
-const Magika = require('magika').MagikaNode;
 const todesktop = require("@todesktop/runtime");
 const khojPackage = require('./package.json');
 
@@ -15,9 +14,13 @@ const KHOJ_URL = 'https://app.khoj.dev';
 
 const Store = require('electron-store');
 
-const magika = new Magika();
-let validFileTypes;
-const binaryFileTypes = ['pdf', 'png', 'jpg', 'jpeg']
+const textFileTypes = [
+    // Default valid file extensions supported by Khoj
+    'org', 'md', 'markdown', 'txt', 'html', 'xml',
+    // Other valid text file extensions from https://google.github.io/magika/model/config.json
+    'appleplist', 'asm', 'asp', 'batch', 'c', 'cs', 'css', 'csv', 'eml', 'go', 'html', 'ini', 'internetshortcut', 'java', 'javascript', 'json', 'latex', 'lisp', 'makefile', 'markdown', 'mht', 'mum', 'pem', 'perl', 'php', 'powershell', 'python', 'rdf', 'rst', 'rtf', 'ruby', 'rust', 'scala', 'shell', 'smali', 'sql', 'svg', 'symlinktext', 'txt', 'vba', 'winregistry', 'xml', 'yaml']
+const binaryFileTypes = ['pdf']
+const validFileTypes = textFileTypes.concat(binaryFileTypes);
 
 const schema = {
     files: {
@@ -68,7 +71,6 @@ const schema = {
     }
 };
 
-let isMagikaLoaded = false;
 let syncing = false;
 let state = {}
 const store = new Store({ schema });
@@ -113,24 +115,9 @@ function filenameToMimeType (filename) {
     }
 }
 
-async function isPlainTextFile(filePath) {
-    if (!isMagikaLoaded) {
-        await magika.load();
-        isMagikaLoaded = true;
-        validFileTypes = [
-            "org", "md", "pdf",
-            // all text file extensions known to Magika
-            ...magika.config.labels.filter(l => l.is_text == true).map(l => l.name)];
-    }
-    try {
-        const fileContent = fs.readFileSync(filePath);
-        const fileType = await magika.identifyBytes(fileContent);
-        const fileLabel = magika.config.labels.filter(l => l.name == fileType.label)?.[0]
-        return fileLabel?.is_text && validFileTypes.includes(fileType?.label);
-    } catch (err) {
-        console.error("Failed to identify file type: ", err);
-        return false;
-    }
+function isSupportedFileType(filePath) {
+    const fileExtension = filePath.split('.').pop();
+    return validFileTypes.includes(fileExtension);
 }
 
 async function processDirectory(filesToPush, folder) {
@@ -138,11 +125,16 @@ async function processDirectory(filesToPush, folder) {
 
     for (const file of files) {
         const filePath = path.join(file.path, file.name || '');
-        if (file.isFile() && await isPlainTextFile(filePath)) {
+        // Skip hidden files and folders
+        if (file.name.startsWith('.')) {
+            continue;
+        }
+        // Add supported files to index
+        if (file.isFile() && isSupportedFileType(filePath)) {
             console.log(`Add ${file.name} in ${file.path} for indexing`);
             filesToPush.push(filePath);
         }
-
+        // Recursively process subdirectories
         if (file.isDirectory()) {
             await processDirectory(filesToPush, {'path': filePath});
         }
@@ -262,15 +254,6 @@ async function pushDataToKhoj (regenerate = false) {
 pushDataToKhoj();
 
 async function handleFileOpen (type) {
-    if (!isMagikaLoaded) {
-        await magika.load();
-        isMagikaLoaded = true;
-        validFileTypes = [
-            "org", "md", "pdf",
-            // all text file extensions known to Magika
-            ...magika.config.labels.filter(l => l.is_text == true).map(l => l.name)];
-    }
-
     let { canceled, filePaths } = {canceled: true, filePaths: []};
     if (type === 'file') {
         ({ canceled, filePaths } = await dialog.showOpenDialog({properties: ['openFile' ], filters: [{ name: "Valid Khoj Files", extensions: validFileTypes }] }));
