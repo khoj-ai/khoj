@@ -2,14 +2,14 @@
    isort:skip_file
 """
 
-
 from contextlib import redirect_stdout
+import logging
 import io
 import os
 import sys
 import locale
 
-import logging
+from rich.logging import RichHandler
 import threading
 import warnings
 from importlib.metadata import version
@@ -26,7 +26,6 @@ import django
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from rich.logging import RichHandler
 import schedule
 
 from django.core.asgi import get_asgi_application
@@ -35,6 +34,15 @@ from django.core.management import call_command
 # Initialize Django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "khoj.app.settings")
 django.setup()
+
+# Setup Logger
+rich_handler = RichHandler(rich_tracebacks=True)
+rich_handler.setFormatter(fmt=logging.Formatter(fmt="%(name)s: %(message)s", datefmt="[%H:%M:%S.%f]"))
+logging.basicConfig(handlers=[rich_handler])
+
+logging.getLogger("uvicorn.error").setLevel(logging.INFO)
+
+logger = logging.getLogger("khoj")
 
 # Initialize Django Database
 db_migrate_output = io.StringIO()
@@ -81,13 +89,6 @@ from khoj.configure import configure_routes, initialize_server, configure_middle
 from khoj.utils import state
 from khoj.utils.cli import cli
 from khoj.utils.initialization import initialization
-
-# Setup Logger
-rich_handler = RichHandler(rich_tracebacks=True)
-rich_handler.setFormatter(fmt=logging.Formatter(fmt="%(message)s", datefmt="[%H:%M:%S.%f]"))
-logging.basicConfig(handlers=[rich_handler])
-
-logger = logging.getLogger("khoj")
 
 
 def run(should_start_server=True):
@@ -161,7 +162,13 @@ def start_server(app, host=None, port=None, socket=None):
         uvicorn.run(app, proxy_headers=True, uds=socket, log_level="debug", use_colors=True, log_config=None)
     else:
         uvicorn.run(
-            app, host=host, port=port, log_level="debug", use_colors=True, log_config=None, timeout_keep_alive=60
+            app,
+            host=host,
+            port=port,
+            log_level="debug" if in_debug_mode() else "info",
+            use_colors=True,
+            log_config=None,
+            timeout_keep_alive=60,
         )
     logger.info("🌒 Stopping Khoj")
 
