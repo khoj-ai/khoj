@@ -53,9 +53,18 @@ admin.site.register(ReflectiveQuestion)
 admin.site.register(UserSearchModelConfig)
 admin.site.register(TextToImageModelConfig)
 admin.site.register(ClientApplication)
-admin.site.register(Agent)
 admin.site.register(GithubConfig)
 admin.site.register(NotionConfig)
+
+
+@admin.register(Agent)
+class AgentAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "name",
+    )
+    search_fields = ("id", "name")
+    ordering = ("-created_at",)
 
 
 @admin.register(Entry)
@@ -85,6 +94,7 @@ class ConversationAdmin(admin.ModelAdmin):
         "client",
     )
     search_fields = ("id", "user__email", "user__username", "client__name")
+    list_filter = ("agent",)
     ordering = ("-created_at",)
 
     actions = ["export_selected_objects", "export_selected_minimal_objects"]
