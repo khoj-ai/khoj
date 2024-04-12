@@ -120,7 +120,7 @@ function isSupportedFileType(filePath) {
     return validFileTypes.includes(fileExtension);
 }
 
-async function processDirectory(filesToPush, folder) {
+function processDirectory(filesToPush, folder) {
     const files = fs.readdirSync(folder.path, { withFileTypes: true });
 
     for (const file of files) {
@@ -136,12 +136,12 @@ async function processDirectory(filesToPush, folder) {
         }
         // Recursively process subdirectories
         if (file.isDirectory()) {
-            await processDirectory(filesToPush, {'path': filePath});
+            processDirectory(filesToPush, {'path': filePath});
         }
     }
 }
 
-async function pushDataToKhoj (regenerate = false) {
+function pushDataToKhoj (regenerate = false) {
     // Don't sync if token or hostURL is not set or if already syncing
     if (store.get('khojToken') === '' || store.get('hostURL') === '' || syncing === true) {
         const win = BrowserWindow.getAllWindows()[0];
@@ -163,7 +163,7 @@ async function pushDataToKhoj (regenerate = false) {
 
     // Collect paths of all indexable files in configured folders
     for (const folder of folders) {
-        await processDirectory(filesToPush, folder);
+        processDirectory(filesToPush, folder);
     }
 
     const lastSync = store.get('lastSync') || [];
@@ -347,7 +347,7 @@ async function removeFolder (event, folderPath) {
 
 async function syncData (regenerate = false) {
     try {
-        await pushDataToKhoj(regenerate);
+        pushDataToKhoj(regenerate);
         const date = new Date();
         console.log('Pushing data to Khoj at: ', date);
     } catch (err) {
@@ -359,7 +359,7 @@ async function deleteAllFiles () {
     try {
         store.set('files', []);
         store.set('folders', []);
-        await pushDataToKhoj(true);
+        pushDataToKhoj(true);
         const date = new Date();
         console.log('Pushing data to Khoj at: ', date);
     } catch (err) {
@@ -395,9 +395,9 @@ const createWindow = (tab = 'chat.html') => {
       }
     })
 
-    const job = new cron('0 */10 * * * *', async function() {
+    const job = new cron('0 */10 * * * *', function() {
         try {
-            await pushDataToKhoj();
+            pushDataToKhoj();
             const date = new Date();
             console.log('Pushing data to Khoj at: ', date);
             win.webContents.send('update-state', state);
