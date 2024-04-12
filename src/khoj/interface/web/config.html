@@ -162,10 +162,7 @@
         <div class="section finalize-actions general-settings">
             <div class="section-cards">
                 <div class="finalize-buttons">
-                    <button id="configure" type="submit" title="Update index with the latest changes">💾 Save All</button>
-                </div>
-                <div class="finalize-buttons">
-                    <button id="reinitialize" type="submit" title="Regenerate index from scratch">🔄 Reinitialize</button>
+                    <button id="sync" type="submit" title="Regenerate index from scratch">♻ Sync</button>
                 </div>
             </div>
         </div>
@@ -478,28 +475,16 @@
         })
     }
 
-    var configure = document.getElementById("configure");
-    configure.addEventListener("click", function(event) {
-        event.preventDefault();
-        updateIndex(
-            force=false,
-            successText="Saved!",
-            errorText="Unable to configure. Raise issue on Khoj <a href='https://github.com/khoj-ai/khoj/issues'>Github</a> or <a href='https://discord.gg/BDgyabRM6e'>Discord</a>.",
-            button=configure,
-            loadingText="Saving...",
-            emoji="💾");
-    });
-
-    var reinitialize = document.getElementById("reinitialize");
-    reinitialize.addEventListener("click", function(event) {
+    var sync = document.getElementById("sync");
+    sync.addEventListener("click", function(event) {
         event.preventDefault();
         updateIndex(
             force=true,
-            successText="Reinitialized!",
-            errorText="Unable to reinitialize. Raise issue on Khoj <a href='https://github.com/khoj-ai/khoj/issues'>Github</a> or <a href='https://discord.gg/BDgyabRM6e'>Discord</a>.",
-            button=reinitialize,
-            loadingText="Reinitializing...",
-            emoji="🔄");
+            successText="Synced!",
+            errorText="Unable to sync. Raise issue on Khoj <a href='https://github.com/khoj-ai/khoj/issues'>Github</a> or <a href='https://discord.gg/BDgyabRM6e'>Discord</a>.",
+            button=sync,
+            loadingText="Syncing...",
+            emoji="♻");
     });
 
     function updateIndex(force, successText, errorText, button, loadingText, emoji) {
