@@ -66,6 +66,10 @@ Cheers to our awesome contributors! 🎉
 
 Made with [contrib.rocks](https://contrib.rocks).
 
+### Interested in Contributing?
+
+We are always looking for contributors to help us build new features, improve the project documentation, or fix bugs. If you're interested, please see our [Contributing Guidelines](https://docs.khoj.dev/contributing/development) and check out our [Contributors Project Board](https://github.com/orgs/khoj-ai/projects/4).
+
 ## [Sponsors](https://github.com/sponsors/khoj-ai)
 Shout out to our brilliant sponsors! 🌈
 
