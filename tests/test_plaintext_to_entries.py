@@ -45,7 +45,6 @@ def test_get_plaintext_files(tmp_path):
 
     group2_file1 = create_file(tmp_path, filename="group2-file1.markdown")
     group2_file2 = create_file(tmp_path, filename="group2-file2.markdown")
-    group2_file3 = create_file(tmp_path, filename="group2-file3.mbox")
     group2_file4 = create_file(tmp_path, filename="group2-file4.html")
     # Include via input-file field
     file1 = create_file(tmp_path, filename="notes.txt")
@@ -53,6 +52,7 @@ def test_get_plaintext_files(tmp_path):
     create_file(tmp_path, filename="group2-unincluded.py")
     create_file(tmp_path, filename="group2-unincluded.csv")
     create_file(tmp_path, filename="group2-unincluded.csv")
+    create_file(tmp_path, filename="group2-file3.mbox")
     # Not included by any filter
     create_file(tmp_path, filename="not-included-markdown.md")
     create_file(tmp_path, filename="not-included-text.txt")
@@ -60,7 +60,7 @@ def test_get_plaintext_files(tmp_path):
     expected_files = set(
         [
             os.path.join(tmp_path, file.name)
-            for file in [group1_file1, group1_file2, group2_file1, group2_file2, group2_file3, group2_file4, file1]
+            for file in [group1_file1, group1_file2, group2_file1, group2_file2, group2_file4, file1]
         ]
     )
 
