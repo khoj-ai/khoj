@@ -720,19 +720,15 @@
                     })
 
                     // Add fade out animation to loading screen and remove it after the animation ends
-                    let chatBodyWrapper = document.getElementById("chat-body-wrapper");
-                    chatBodyWrapperHeight = chatBodyWrapper.clientHeight;
-                    chatBody.style.height = chatBodyWrapperHeight;
-                    setTimeout(() => {
-                        loadingScreen.remove();
-                        chatBody.classList.remove("relative-position");
-                    }, 500);
+                    fadeOutLoadingAnimation(loadingScreen);
                 })
                 .catch(err => {
                     // If the server returns a 500 error with detail, render a setup hint.
-                    if (!firstRunSetupMessageRendered)
+                    if (!firstRunSetupMessageRendered) {
                         renderFirstRunSetupMessage();
-                    return;
+                        fadeOutLoadingAnimation(loadingScreen);
+                    }
+                     return;
                 });
 
             await refreshChatSessionsPanel();
@@ -780,6 +776,17 @@
                 document.getElementById("chat-input").value = query_via_url;
                 chat();
             }
+        }
+
+        function fadeOutLoadingAnimation(loadingScreen) {
+            let chatBody = document.getElementById("chat-body");
+            let chatBodyWrapper = document.getElementById("chat-body-wrapper");
+            chatBodyWrapperHeight = chatBodyWrapper.clientHeight;
+            chatBody.style.height = chatBodyWrapperHeight;
+            setTimeout(() => {
+                loadingScreen.remove();
+                chatBody.classList.remove("relative-position");
+            }, 500);
         }
 
         function renderFirstRunSetupMessage() {
