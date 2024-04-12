@@ -128,7 +128,7 @@ async def auth(request: Request):
             logger.log(logging.INFO, f"🥳 New User Created: {khoj_user.uuid}")
             return RedirectResponse(url=f"{next_url}", status_code=HTTP_302_FOUND)
 
-    return RedirectResponse(url=f"{next_url}")
+    return RedirectResponse(url=f"{next_url}", status_code=HTTP_302_FOUND)
 
 
 @auth_router.get("/logout")
