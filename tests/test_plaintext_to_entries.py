@@ -79,7 +79,7 @@ def test_get_plaintext_files(tmp_path):
     extracted_plaintext_files = get_plaintext_files(plaintext_config)
 
     # Assert
-    assert len(extracted_plaintext_files) == 7
+    assert len(extracted_plaintext_files) == len(expected_files)
     assert set(extracted_plaintext_files.keys()) == set(expected_files)
 
 
