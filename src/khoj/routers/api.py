@@ -315,8 +315,9 @@ async def extract_references_and_questions(
             using_offline_chat = True
             default_offline_llm = await ConversationAdapters.get_default_offline_llm()
             chat_model = default_offline_llm.chat_model
+            max_tokens = default_offline_llm.max_prompt_size
             if state.offline_chat_processor_config is None:
-                state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model=chat_model)
+                state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
 
             loaded_model = state.offline_chat_processor_config.loaded_model
 
@@ -326,6 +327,7 @@ async def extract_references_and_questions(
                 conversation_log=meta_log,
                 should_extract_questions=True,
                 location_data=location_data,
+                max_prompt_size=conversation_config.max_prompt_size,
             )
         elif conversation_config and conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
             openai_chat_config = await ConversationAdapters.get_openai_chat_config()

@@ -82,9 +82,10 @@ async def is_ready_to_chat(user: KhojUser):
 
     if has_offline_config and user_conversation_config and user_conversation_config.model_type == "offline":
         chat_model = user_conversation_config.chat_model
+        max_tokens = user_conversation_config.max_prompt_size
         if state.offline_chat_processor_config is None:
             logger.info("Loading Offline Chat Model...")
-            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model=chat_model)
+            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
         return True
 
     ready = has_openai_config or has_offline_config
@@ -385,10 +386,11 @@ async def send_message_to_model_wrapper(
         raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
 
     chat_model = conversation_config.chat_model
+    max_tokens = conversation_config.max_prompt_size
 
     if conversation_config.model_type == "offline":
         if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
-            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model)
+            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
 
         loaded_model = state.offline_chat_processor_config.loaded_model
         truncated_messages = generate_chatml_messages_with_context(
@@ -455,7 +457,9 @@ def generate_chat_response(
         conversation_config = ConversationAdapters.get_valid_conversation_config(user, conversation)
         if conversation_config.model_type == "offline":
             if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
-                state.offline_chat_processor_config = OfflineChatProcessorModel(conversation_config.chat_model)
+                chat_model = conversation_config.chat_model
+                max_tokens = conversation_config.max_prompt_size
+                state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
 
             loaded_model = state.offline_chat_processor_config.loaded_model
             chat_response = converse_offline(

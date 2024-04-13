@@ -17,6 +17,7 @@ from time import perf_counter
 from typing import TYPE_CHECKING, Optional, Union
 from urllib.parse import urlparse
 
+import psutil
 import torch
 from asgiref.sync import sync_to_async
 from magika import Magika
@@ -269,6 +270,17 @@ def log_telemetry(
 
     # Log telemetry data to telemetry endpoint
     return request_body
+
+
+def get_device_memory() -> int:
+    """Get device memory in GB"""
+    device = get_device()
+    if device.type == "cuda":
+        return torch.cuda.get_device_properties(device).total_memory
+    elif device.type == "mps":
+        return torch.mps.driver_allocated_memory()
+    else:
+        return psutil.virtual_memory().total
 
 
 def get_device() -> torch.device:
