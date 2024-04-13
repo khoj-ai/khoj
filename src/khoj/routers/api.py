@@ -289,9 +289,7 @@ async def extract_references_and_questions(
         return compiled_references, inferred_queries, q
 
     if not await sync_to_async(EntryAdapters.user_has_entries)(user=user):
-        logger.warning(
-            "No content index loaded, so cannot extract references from knowledge base. Please configure your data sources and update the index to chat with your notes."
-        )
+        logger.debug("No documents in knowledge base. Use a Khoj client to sync and chat with your docs.")
         return compiled_references, inferred_queries, q
 
     # Extract filter terms from user message

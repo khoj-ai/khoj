@@ -233,6 +233,10 @@ def get_server_id():
     return server_id
 
 
+def telemetry_disabled(app_config: AppConfig):
+    return not app_config or not app_config.should_log_telemetry
+
+
 def log_telemetry(
     telemetry_type: str,
     api: str = None,
@@ -242,7 +246,7 @@ def log_telemetry(
 ):
     """Log basic app usage telemetry like client, os, api called"""
     # Do not log usage telemetry, if telemetry is disabled via app config
-    if not app_config or not app_config.should_log_telemetry:
+    if telemetry_disabled(app_config):
         return []
 
     if properties.get("server_id") is None:

@@ -39,7 +39,7 @@ from khoj.routers.twilio import is_twilio_enabled
 from khoj.utils import constants, state
 from khoj.utils.config import SearchType
 from khoj.utils.fs_syncer import collect_files
-from khoj.utils.helpers import is_none_or_empty
+from khoj.utils.helpers import is_none_or_empty, telemetry_disabled
 from khoj.utils.rawconfig import FullConfig
 
 logger = logging.getLogger(__name__)
@@ -232,6 +232,9 @@ def configure_server(
         state.search_models = configure_search(state.search_models, state.config.search_type)
         setup_default_agent()
 
+        message = "📡 Telemetry disabled" if telemetry_disabled(state.config.app) else "📡 Telemetry enabled"
+        logger.info(message)
+
         if not init:
             initialize_content(regenerate, search_type, user)
 
@@ -329,9 +332,7 @@ def configure_search_types():
 
 @schedule.repeat(schedule.every(2).minutes)
 def upload_telemetry():
-    if not state.config or not state.config.app or not state.config.app.should_log_telemetry or not state.telemetry:
-        message = "📡 No telemetry to upload" if not state.telemetry else "📡 Telemetry logging disabled"
-        logger.debug(message)
+    if telemetry_disabled(state.config.app) or not state.telemetry:
         return
 
     try:
