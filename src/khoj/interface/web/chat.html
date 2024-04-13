@@ -754,9 +754,11 @@ To get started, just start typing below. You can also type / to see a list of co
         function uploadDataForIndexing(file) {
             var dropzone = document.getElementById('chat-body');
 
-            if (!allowedExtensions.includes(file.type) && !allowedFileEndings.includes(file.name.split('.').pop())) {
+            if (!file || (!allowedExtensions.includes(file.type) && !allowedFileEndings.includes(file.name.split('.').pop()))) {
                 dropzone.classList.remove('dragover');
-                alert("Sorry, that file type is not yet supported");
+                if (file) {
+                    alert("Sorry, that file type is not yet supported");
+                }
                 var overlayText = document.getElementById("dropzone-overlay");
                 if (overlayText != null) {
                     overlayText.remove();
@@ -1090,6 +1092,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
                     let agentMetadata = response.agent;
                     if (agentMetadata) {
+                        chatBody.innerHTML = "";
                         let agentName = agentMetadata.name;
                         let agentAvatar = agentMetadata.avatar;
                         let agentOwnedByUser = agentMetadata.isCreator;
@@ -1102,6 +1105,22 @@ To get started, just start typing below. You can also type / to see a list of co
                         agentAvatarElement.src = agentAvatar;
                         agentNameElement.textContent = agentName;
                         agentLinkElement.setAttribute("href", `/agent/${agentMetadata.slug}`);
+                        renderMessage(`Hello! I'm [${agentName}](/agent/${agentMetadata.slug}). I can:
+- 🧠 Answer general knowledge questions
+- 🔎 Get real-time answers from the internet
+- 📜 Find relevant info in your notes & documents
+- 💡 Be a sounding board for your ideas
+- 🌄 Generate images based on your context
+- 🎙️ Hear you talk (use the mic by the input box to say your message out loud)
+- 📚 Understand files you drag & drop here
+- 👩🏾‍🚀 Be tuned to your conversation needs via [agents](./agents)
+
+Get the Khoj [Desktop](https://khoj.dev/downloads), [Obsidian](https://docs.khoj.dev/clients/obsidian#setup), or [Emacs](https://docs.khoj.dev/clients/emacs#setup) app to keep your files in sync. You can manage all the files you've shared with me at any time by going to [your settings](/config/content-source/computer/).
+
+To get started, just start typing below. You can also type / to see a list of commands.
+
+**What's on your mind today?**
+                        `, "khoj")
 
                         if (agentOwnedByUser) {
                             let agentOwnedByUserElement = document.getElementById("agent-owned-by-user");

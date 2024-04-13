@@ -24,7 +24,10 @@
                         <img id="agent-avatar" src="{{ agent.avatar }}" alt="Agent Avatar">
                         <input type="text" id="agent-name-input" value="{{ agent.name }}" {% if agent.creator_not_self %} disabled {% endif %}>
                     </div>
-                    <div id="agent-instructions">Personality</div>
+                    <div id="agent-instructions">
+                        Personality
+                        <button id="toggle-agent-tuning" onclick="toggleAgentTuning()">↓</button>
+                    </div>
                     <div id="agent-tuning">
                         <p>{{ agent.personality }}</p>
                     </div>
@@ -96,7 +99,7 @@
             padding: 10px;
             border: none;
             border-radius: 8px;
-            background-color: var(--primary);
+            background-color: var(--summer-sun);
             font: inherit;
             color: var(--main-text-color);
             cursor: pointer;
@@ -240,6 +243,17 @@
             border-radius: 50%;
         }
 
+        div#agent-tuning {
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+        }
+
+        button#toggle-agent-tuning {
+            background-color: var(--primary) !important;
+            font-size: small !important;
+        }
+
         @media only screen and (min-width: 700px) {
             body {
                 grid-template-columns: auto min(70vw, 100%) auto;
@@ -263,6 +277,18 @@
                 window.location.href = "/";
             } else {
                 alert("Failed to start chat session");
+            }
+        }
+
+        function toggleAgentTuning() {
+            var agentTuning = document.getElementById('agent-tuning');
+            var toggleButton = document.getElementById('toggle-agent-tuning');
+            if (agentTuning.style.maxHeight === '0px') {
+                toggleButton.textContent = '↓';
+                agentTuning.style.maxHeight = '500px';
+            } else {
+                toggleButton.textContent = '↑';
+                agentTuning.style.maxHeight = '0px';
             }
         }
 
