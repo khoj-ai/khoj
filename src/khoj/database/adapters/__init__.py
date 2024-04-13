@@ -197,9 +197,6 @@ def get_user_name(user: KhojUser):
 
 
 def get_user_photo(user: KhojUser):
-    full_name = user.get_full_name()
-    if not is_none_or_empty(full_name):
-        return full_name
     google_profile: GoogleUser = GoogleUser.objects.filter(user=user).first()
     if google_profile:
         return google_profile.picture
