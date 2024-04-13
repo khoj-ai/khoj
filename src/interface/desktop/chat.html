@@ -726,9 +726,9 @@
                     // If the server returns a 500 error with detail, render a setup hint.
                     if (!firstRunSetupMessageRendered) {
                         renderFirstRunSetupMessage();
-                        fadeOutLoadingAnimation(loadingScreen);
                     }
-                     return;
+                    fadeOutLoadingAnimation(loadingScreen);
+                    return;
                 });
 
             await refreshChatSessionsPanel();
