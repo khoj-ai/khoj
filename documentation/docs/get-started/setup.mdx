@@ -134,7 +134,7 @@ python -m pip install khoj-assistant
  # CPU
  python -m pip install khoj-assistant
  # NVIDIA (CUDA) GPU
- CMAKE_ARGS="DLLAMA_CUBLAS=on" FORCE_CMAKE=1 python -m pip install khoj-assistant
+ CMAKE_ARGS="DLLAMA_CUDA=on" FORCE_CMAKE=1 python -m pip install khoj-assistant
  # AMD (ROCm) GPU
  CMAKE_ARGS="-DLLAMA_HIPBLAS=on" FORCE_CMAKE=1 python -m pip install khoj-assistant
  # VULCAN GPU
