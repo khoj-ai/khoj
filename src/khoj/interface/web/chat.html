@@ -244,6 +244,8 @@ To get started, just start typing below. You can also type / to see a list of co
                         imageMarkdown = `![](data:image/png;base64,${message})`;
                     } else if (intentType === "text-to-image2") {
                         imageMarkdown = `![](${message})`;
+                    } else if (intentType === "text-to-image-v3") {
+                        imageMarkdown = `![](data:image/webp;base64,${message})`;
                     }
                     const inferredQuery = inferredQueries?.[0];
                     if (inferredQuery) {
@@ -312,6 +314,8 @@ To get started, just start typing below. You can also type / to see a list of co
                     imageMarkdown = `![](data:image/png;base64,${message})`;
                 } else if (intentType === "text-to-image2") {
                     imageMarkdown = `![](${message})`;
+                } else if (intentType === "text-to-image-v3") {
+                    imageMarkdown = `![](data:image/webp;base64,${message})`;
                 }
                 const inferredQuery = inferredQueries?.[0];
                 if (inferredQuery) {
@@ -619,6 +623,8 @@ To get started, just start typing below. You can also type / to see a list of co
                     rawResponse += `![generated_image](data:image/png;base64,${imageJson.image})`;
                 } else if (imageJson.intentType === "text-to-image2") {
                     rawResponse += `![generated_image](${imageJson.image})`;
+                } else if (imageJson.intentType === "text-to-image-v3") {
+                    rawResponse = `![](data:image/webp;base64,${imageJson.image})`;
                 }
                 if (inferredQuery) {
                     rawResponse += `\n\n**Inferred Query**:\n\n${inferredQuery}`;

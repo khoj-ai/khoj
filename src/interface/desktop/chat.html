@@ -214,6 +214,8 @@
                         imageMarkdown = `![](data:image/png;base64,${message})`;
                     } else if (intentType === "text-to-image2") {
                         imageMarkdown = `![](${message})`;
+                    } else if (intentType === "text-to-image-v3") {
+                        imageMarkdown = `![](data:image/webp;base64,${message})`;
                     }
 
                     const inferredQuery = inferredQueries?.[0];
@@ -288,6 +290,8 @@
                     imageMarkdown = `![](data:image/png;base64,${message})`;
                 } else if (intentType === "text-to-image2") {
                     imageMarkdown = `![](${message})`;
+                } else if (intentType === "text-to-image-v3") {
+                    imageMarkdown = `![](data:image/webp;base64,${message})`;
                 }
                 const inferredQuery = inferredQueries?.[0];
                 if (inferredQuery) {
@@ -509,6 +513,8 @@
                             rawResponse += `![${query}](data:image/png;base64,${responseAsJson.image})`;
                         } else if (responseAsJson.intentType === "text-to-image2") {
                             rawResponse += `![${query}](${responseAsJson.image})`;
+                        } else if (responseAsJson.intentType === "text-to-image-v3") {
+                            rawResponse += `![${query}](data:image/webp;base64,${responseAsJson.image})`;
                         }
                         const inferredQueries = responseAsJson.inferredQueries?.[0];
                         if (inferredQueries) {

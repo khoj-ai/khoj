@@ -156,6 +156,8 @@ export class KhojChatModal extends Modal {
                 imageMarkdown = `![](data:image/png;base64,${message})`;
             } else if (intentType === "text-to-image2") {
                 imageMarkdown = `![](${message})`;
+            } else if (intentType === "text-to-image-v3") {
+                imageMarkdown = `![](data:image/webp;base64,${message})`;
             }
             if (inferredQueries) {
                 imageMarkdown += "\n\n**Inferred Query**:";
@@ -429,6 +431,8 @@ export class KhojChatModal extends Modal {
                             responseText += `![${query}](data:image/png;base64,${responseAsJson.image})`;
                         } else if (responseAsJson.intentType === "text-to-image2") {
                             responseText += `![${query}](${responseAsJson.image})`;
+                        } else if (responseAsJson.intentType === "text-to-image-v3") {
+                            responseText += `![${query}](data:image/webp;base64,${responseAsJson.image})`;
                         }
                         const inferredQuery = responseAsJson.inferredQueries?.[0];
                         if (inferredQuery) {
