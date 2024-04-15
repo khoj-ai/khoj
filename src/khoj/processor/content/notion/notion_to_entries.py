@@ -100,7 +100,7 @@ class NotionToEntries(TextToEntries):
 
         for response in responses:
             with timer("Processing response", logger=logger):
-                pages_or_databases = response["results"] if response.get("results") else []
+                pages_or_databases = response.get("results", [])
 
                 # Get all pages content
                 for p_or_d in pages_or_databases:
@@ -125,7 +125,7 @@ class NotionToEntries(TextToEntries):
 
         current_entries = []
         curr_heading = ""
-        for block in content["results"]:
+        for block in content.get("results", []):
             block_type = block.get("type")
 
             if block_type == None:
@@ -178,7 +178,7 @@ class NotionToEntries(TextToEntries):
         return f"\n<b>{heading}</b>\n"
 
     def process_nested_children(self, children, raw_content, block_type=None):
-        results = children["results"] if children.get("results") else []
+        results = children.get("results", [])
         for child in results:
             child_type = child.get("type")
             if child_type == None:
