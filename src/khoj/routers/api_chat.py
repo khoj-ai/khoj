@@ -114,7 +114,7 @@ def chat_history(
     if n > 0:
         meta_log["chat"] = meta_log["chat"][-n:]
     # Else return all messages except latest N
-    else:
+    elif n < 0:
         meta_log["chat"] = meta_log["chat"][:n]
 
     update_telemetry_state(
