@@ -76,6 +76,7 @@ def chat_history(
     request: Request,
     common: CommonQueryParams,
     conversation_id: Optional[int] = None,
+    n: Optional[int] = None,
 ):
     user = request.user.object
     validate_conversation_config()
@@ -108,6 +109,13 @@ def chat_history(
             "agent": agent_metadata,
         }
     )
+
+    # Get latest N messages if N > 0
+    if n > 0:
+        meta_log["chat"] = meta_log["chat"][-n:]
+    # Else return all messages except latest N
+    else:
+        meta_log["chat"] = meta_log["chat"][:n]
 
     update_telemetry_state(
         request=request,
