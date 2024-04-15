@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Optional
 
@@ -24,6 +24,7 @@ from khoj.database.adapters import (
     AgentAdapters,
     ClientApplicationAdapters,
     ConversationAdapters,
+    ProcessLockAdapters,
     SubscriptionState,
     aget_or_create_user_by_phone_number,
     aget_user_by_phone_number,
@@ -32,7 +33,7 @@ from khoj.database.adapters import (
     get_all_users,
     get_or_create_search_models,
 )
-from khoj.database.models import ClientApplication, KhojUser, Subscription
+from khoj.database.models import ClientApplication, KhojUser, ProcessLock, Subscription
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
 from khoj.routers.indexer import configure_content, configure_search
 from khoj.routers.twilio import is_twilio_enabled
@@ -306,9 +307,16 @@ def configure_middleware(app):
     app.add_middleware(SessionMiddleware, secret_key=os.environ.get("KHOJ_DJANGO_SECRET_KEY", "!secret"))
 
 
-@schedule.repeat(schedule.every(22).to(26).hours)
+@schedule.repeat(schedule.every(22).to(25).hours)
 def update_search_index():
     try:
+        if ProcessLockAdapters.is_process_locked(ProcessLock.Operation.UPDATE_EMBEDDINGS):
+            logger.info("🔒 Skipping update search index due to lock")
+            return
+        ProcessLockAdapters.set_process_lock(
+            ProcessLock.Operation.UPDATE_EMBEDDINGS, max_duration_in_seconds=60 * 60 * 12
+        )
+
         logger.info("📬 Updating content index via Scheduler")
         for user in get_all_users():
             all_files = collect_files(user=user)
@@ -318,6 +326,8 @@ def update_search_index():
         if not success:
             raise RuntimeError("Failed to update content index")
         logger.info("📪 Content index updated via Scheduler")
+
+        ProcessLockAdapters.remove_process_lock(ProcessLock.Operation.UPDATE_EMBEDDINGS)
     except Exception as e:
         logger.error(f"🚨 Error updating content index via Scheduler: {e}", exc_info=True)
 
