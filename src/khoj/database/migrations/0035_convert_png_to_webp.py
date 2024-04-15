@@ -30,11 +30,6 @@ def convert_png_images_to_webp(apps, schema_editor):
                     chat["intent"]["type"] = ImageIntentType.TEXT_TO_IMAGE_V3.value
                     webp_image_io.close()
 
-            if chat["by"] == "khoj" and chat["intent"]["type"] == ImageIntentType.TEXT_TO_IMAGE2.value:
-                print("❗️ Please MANUALLY update PNG images created by Khoj in your AWS S3 bucket to WebP format.")
-                # Convert PNG url to WebP url
-                chat["message"] = chat["message"].replace(".png", ".webp")
-
         # Save the updated conversation history
         conversation.save()
 
@@ -59,11 +54,6 @@ def convert_webp_images_to_png(apps, schema_editor):
                     chat["message"] = base64.b64encode(webp_image_bytes).decode()
                     chat["intent"]["type"] = ImageIntentType.TEXT_TO_IMAGE.value
                     webp_image_io.close()
-
-            if chat["by"] == "khoj" and chat["intent"]["type"] == ImageIntentType.TEXT_TO_IMAGE2.value:
-                # Convert WebP url to PNG url
-                print("❗️ Please MANUALLY update WebP images created by Khoj in your AWS S3 bucket to PNG format.")
-                chat["message"] = chat["message"].replace(".webp", ".png")
 
         # Save the updated conversation history
         conversation.save()
