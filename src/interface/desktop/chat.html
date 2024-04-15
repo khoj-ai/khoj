@@ -130,7 +130,7 @@
             return referenceButton;
         }
 
-        function renderMessage(message, by, dt=null, annotations=null, raw=false) {
+        function renderMessage(message, by, dt=null, annotations=null, raw=false, renderType="append") {
             let message_time = formatDate(dt ?? new Date());
             let by_name =  by == "khoj" ? "🏮 Khoj" : "🤔 You";
             let formattedMessage = formatHTMLMessage(message, raw);
@@ -153,10 +153,15 @@
 
             // Append chat message div to chat body
             let chatBody = document.getElementById("chat-body");
-            chatBody.appendChild(chatMessage);
-
-            // Scroll to bottom of chat-body element
-            chatBody.scrollTop = chatBody.scrollHeight;
+            if (renderType === "append") {
+                chatBody.appendChild(chatMessage);
+                // Scroll to bottom of chat-body element
+                chatBody.scrollTop = chatBody.scrollHeight;
+            } else if (renderType === "prepend") {
+                chatBody.insertBefore(chatMessage, chatBody.firstChild);
+            } else if (renderType === "return") {
+                return chatMessage;
+            }
 
             let chatBodyWrapper = document.getElementById("chat-body-wrapper");
             chatBodyWrapperHeight = chatBodyWrapper.clientHeight;
@@ -207,6 +212,7 @@
         }
 
         function renderMessageWithReference(message, by, context=null, dt=null, onlineContext=null, intentType=null, inferredQueries=null) {
+            // If no document or online context is provided, render the message as is
             if ((context == null || context.length == 0) && (onlineContext == null || (onlineContext && Object.keys(onlineContext).length == 0))) {
                 if (intentType?.includes("text-to-image")) {
                     let imageMarkdown;
@@ -222,24 +228,21 @@
                     if (inferredQuery) {
                         imageMarkdown += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
                     }
-                    renderMessage(imageMarkdown, by, dt);
-                    return;
+                    return renderMessage(imageMarkdown, by, dt, null, false, "return");
                 }
 
-                renderMessage(message, by, dt);
-                return;
+                return renderMessage(message, by, dt, null, false, "return");
             }
 
             if (context == null && onlineContext == null) {
-                renderMessage(message, by, dt);
-                return;
+                return renderMessage(message, by, dt, null, false, "return");
             }
 
             if ((context && context.length == 0) && (onlineContext == null || (onlineContext && Object.keys(onlineContext).length == 0))) {
-                renderMessage(message, by, dt);
-                return;
+                return renderMessage(message, by, dt, null, false, "return");
             }
 
+            // If document or online context is provided, render the message with its references
             let references = document.createElement('div');
 
             let referenceExpandButton = document.createElement('button');
@@ -297,11 +300,10 @@
                 if (inferredQuery) {
                     imageMarkdown += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
                 }
-                renderMessage(imageMarkdown, by, dt, references);
-                return;
+                return renderMessage(imageMarkdown, by, dt, references, false, "return");
             }
 
-            renderMessage(message, by, dt, references);
+            return renderMessage(message, by, dt, references, false, "return");
         }
 
         function formatHTMLMessage(htmlMessage, raw=false, willReplace=true) {
@@ -677,7 +679,7 @@
             let firstRunSetupMessageRendered = false;
             let chatBody = document.getElementById("chat-body");
             chatBody.innerHTML = "";
-            let chatHistoryUrl = `/api/chat/history?client=desktop`;
+            let chatHistoryUrl = `${hostURL}/api/chat/history?client=desktop`;
             if (chatBody.dataset.conversationId) {
                 chatHistoryUrl += `&conversation_id=${chatBody.dataset.conversationId}`;
             }
@@ -689,7 +691,8 @@
             loadingScreen.appendChild(yellowOrb);
             chatBody.appendChild(loadingScreen);
 
-            fetch(`${hostURL}${chatHistoryUrl}`, { headers })
+            // Get the most recent 10 chat messages from conversation history
+            fetch(`${chatHistoryUrl}&n=10`, { headers })
                 .then(response => response.json())
                 .then(data => {
                     if (data.detail) {
@@ -709,11 +712,21 @@
                     chatBody.dataset.conversationId = response.conversation_id;
                     chatBody.dataset.conversationTitle = response.slug || `New conversation 🌱`;
 
-                    const fullChatLog = response.chat || [];
+                    // Create a new IntersectionObserver
+                    let fetchRemainingMessagesObserver = new IntersectionObserver((entries, observer) => {
+                        entries.forEach(entry => {
+                            // If the element is in the viewport, fetch the remaining message and unobserve the element
+                            if (entry.isIntersecting) {
+                                fetchRemainingChatMessages(chatHistoryUrl);
+                                observer.unobserve(entry.target);
+                            }
+                        });
+                    }, {rootMargin: '0px 0px 0px 0px'});
 
-                    fullChatLog.forEach(chat_log => {
+                    const fullChatLog = response.chat || [];
+                    fullChatLog.forEach((chat_log, index) => {
                         if (chat_log.message != null) {
-                            renderMessageWithReference(
+                            let messageElement = renderMessageWithReference(
                                 chat_log.message,
                                 chat_log.by,
                                 chat_log.context,
@@ -721,9 +734,24 @@
                                 chat_log.onlineContext,
                                 chat_log.intent?.type,
                                 chat_log.intent?.["inferred-queries"]);
+                            chatBody.appendChild(messageElement);
+
+                            // When the 4th oldest message is within viewing distance (~60% scrolled up)
+                            // Fetch the remaining chat messages
+                            if (index === 4) {
+                                fetchRemainingMessagesObserver.observe(messageElement);
+                            }
                         }
                         loadingScreen.style.height = chatBody.scrollHeight + 'px';
                     })
+
+                    // Scroll to bottom of chat-body element
+                    chatBody.scrollTop = chatBody.scrollHeight;
+
+                    // Set height of chat-body element to the height of the chat-body-wrapper
+                    let chatBodyWrapper = document.getElementById("chat-body-wrapper");
+                    let chatBodyWrapperHeight = chatBodyWrapper.clientHeight;
+                    chatBody.style.height = chatBodyWrapperHeight;
 
                     // Add fade out animation to loading screen and remove it after the animation ends
                     fadeOutLoadingAnimation(loadingScreen);
@@ -782,6 +810,65 @@
                 document.getElementById("chat-input").value = query_via_url;
                 chat();
             }
+        }
+
+        function fetchRemainingChatMessages(chatHistoryUrl) {
+            // Create a new IntersectionObserver
+            let observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    // If the element is in the viewport, render the message and unobserve the element
+                    if (entry.isIntersecting) {
+                        let chat_log = entry.target.chat_log;
+                        let messageElement = renderMessageWithReference(
+                            chat_log.message,
+                            chat_log.by,
+                            chat_log.context,
+                            new Date(chat_log.created),
+                            chat_log.onlineContext,
+                            chat_log.intent?.type,
+                            chat_log.intent?.["inferred-queries"]
+                        );
+                        entry.target.replaceWith(messageElement);
+
+                        // Remove the observer after the element has been rendered
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, {rootMargin: '0px 0px 200px 0px'});  // Trigger when the element is within 200px of the viewport
+
+            // Fetch remaining chat messages from conversation history
+            fetch(`${chatHistoryUrl}&n=-10`, { method: "GET" })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status != "ok") {
+                        throw new Error(data.message);
+                    }
+                    return data.response;
+                })
+                .then(response => {
+                    const fullChatLog = response.chat || [];
+                    let chatBody = document.getElementById("chat-body");
+                    fullChatLog
+                    .reverse()
+                    .forEach(chat_log => {
+                        if (chat_log.message != null) {
+                            // Create a new element for each chat log
+                            let placeholder = document.createElement('div');
+                            placeholder.chat_log = chat_log;
+
+                            // Insert the message placeholder as the first child of chat body after the welcome message
+                            chatBody.insertBefore(placeholder, chatBody.firstChild.nextSibling);
+
+                            // Observe the element
+                            placeholder.style.height = "20px";
+                            observer.observe(placeholder);
+                        }
+                    });
+                })
+                .catch(err => {
+                    console.log(err);
+                    return;
+                });
         }
 
         function fadeOutLoadingAnimation(loadingScreen) {
