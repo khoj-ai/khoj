@@ -69,6 +69,7 @@ class GithubToEntries(TextToEntries):
                 markdown_files, org_files, plaintext_files = self.get_files(repo_url, repo)
             except ConnectionAbortedError as e:
                 logger.error(f"Github rate limit reached. Skip indexing github repo {repo_shorthand}")
+                raise e
             except Exception as e:
                 logger.error(f"Unable to download github repo {repo_shorthand}", exc_info=True)
                 raise e

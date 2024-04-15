@@ -76,6 +76,7 @@ def chat_history(
     request: Request,
     common: CommonQueryParams,
     conversation_id: Optional[int] = None,
+    n: Optional[int] = None,
 ):
     user = request.user.object
     validate_conversation_config()
@@ -108,6 +109,13 @@ def chat_history(
             "agent": agent_metadata,
         }
     )
+
+    # Get latest N messages if N > 0
+    if n > 0:
+        meta_log["chat"] = meta_log["chat"][-n:]
+    # Else return all messages except latest N
+    else:
+        meta_log["chat"] = meta_log["chat"][:n]
 
     update_telemetry_state(
         request=request,
@@ -425,8 +433,7 @@ async def websocket_endpoint(
                 api="chat",
                 metadata={"conversation_command": conversation_commands[0].value},
             )
-            intent_type = "text-to-image"
-            image, status_code, improved_image_prompt, image_url = await text_to_image(
+            image, status_code, improved_image_prompt, intent_type = await text_to_image(
                 q,
                 user,
                 meta_log,
@@ -445,9 +452,6 @@ async def websocket_endpoint(
                 await send_complete_llm_response(json.dumps(content_obj))
                 continue
 
-            if image_url:
-                intent_type = "text-to-image2"
-                image = image_url
             await sync_to_async(save_to_conversation_log)(
                 q,
                 image,
@@ -621,17 +625,13 @@ async def chat(
             metadata={"conversation_command": conversation_commands[0].value},
             **common.__dict__,
         )
-        intent_type = "text-to-image"
-        image, status_code, improved_image_prompt, image_url = await text_to_image(
+        image, status_code, improved_image_prompt, intent_type = await text_to_image(
             q, user, meta_log, location_data=location, references=compiled_references, online_results=online_results
         )
         if image is None:
             content_obj = {"image": image, "intentType": intent_type, "detail": improved_image_prompt}
             return Response(content=json.dumps(content_obj), media_type="application/json", status_code=status_code)
 
-        if image_url:
-            intent_type = "text-to-image2"
-            image = image_url
         await sync_to_async(save_to_conversation_log)(
             q,
             image,

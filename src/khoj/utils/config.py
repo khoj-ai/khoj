@@ -69,11 +69,11 @@ class OfflineChatProcessorConfig:
 
 
 class OfflineChatProcessorModel:
-    def __init__(self, chat_model: str = "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF"):
+    def __init__(self, chat_model: str = "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF", max_tokens: int = None):
         self.chat_model = chat_model
         self.loaded_model = None
         try:
-            self.loaded_model = download_model(self.chat_model)
+            self.loaded_model = download_model(self.chat_model, max_tokens=max_tokens)
         except ValueError as e:
             self.loaded_model = None
             logger.error(f"Error while loading offline chat model: {e}", exc_info=True)
