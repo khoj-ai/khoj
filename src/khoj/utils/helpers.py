@@ -329,6 +329,20 @@ mode_descriptions_for_llm = {
 }
 
 
+class ImageIntentType(Enum):
+    """
+    Chat message intent by Khoj for image responses.
+    Marks the schema used to reference image in chat messages
+    """
+
+    # Images as Inline PNG
+    TEXT_TO_IMAGE = "text-to-image"
+    # Images as URLs
+    TEXT_TO_IMAGE2 = "text-to-image2"
+    # Images as Inline WebP
+    TEXT_TO_IMAGE_V3 = "text-to-image-v3"
+
+
 def generate_random_name():
     # List of adjectives and nouns to choose from
     adjectives = [

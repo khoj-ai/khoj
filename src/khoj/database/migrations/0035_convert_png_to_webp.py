@@ -6,13 +6,15 @@ import io
 from django.db import migrations
 from PIL import Image
 
+from khoj.utils.helpers import ImageIntentType
+
 
 def convert_png_images_to_webp(apps, schema_editor):
     # Get the model from the versioned app registry to ensure the correct version is used
     Conversations = apps.get_model("database", "Conversation")
     for conversation in Conversations.objects.all():
         for chat in conversation.conversation_log["chat"]:
-            if chat["by"] == "khoj" and chat["intent"]["type"] == "text-to-image":
+            if chat["by"] == "khoj" and chat["intent"]["type"] == ImageIntentType.TEXT_TO_IMAGE.value:
                 # Decode the base64 encoded PNG image
                 decoded_image = base64.b64decode(chat["message"])
 
@@ -25,10 +27,10 @@ def convert_png_images_to_webp(apps, schema_editor):
                     # Encode the WebP image back to base64
                     webp_image_bytes = webp_image_io.getvalue()
                     chat["message"] = base64.b64encode(webp_image_bytes).decode()
-                    chat["intent"]["type"] = "text-to-image-v3"
+                    chat["intent"]["type"] = ImageIntentType.TEXT_TO_IMAGE_V3.value
                     webp_image_io.close()
 
-            if chat["by"] == "khoj" and chat["intent"]["type"] == "text-to-image2":
+            if chat["by"] == "khoj" and chat["intent"]["type"] == ImageIntentType.TEXT_TO_IMAGE2.value:
                 print("❗️ Please MANUALLY update PNG images created by Khoj in your AWS S3 bucket to WebP format.")
                 # Convert PNG url to WebP url
                 chat["message"] = chat["message"].replace(".png", ".webp")
@@ -42,7 +44,7 @@ def convert_webp_images_to_png(apps, schema_editor):
     Conversations = apps.get_model("database", "Conversation")
     for conversation in Conversations.objects.all():
         for chat in conversation.conversation_log["chat"]:
-            if chat["by"] == "khoj" and chat["intent"]["type"] == "text-to-image":
+            if chat["by"] == "khoj" and chat["intent"]["type"] == ImageIntentType.TEXT_TO_IMAGE_V3.value:
                 # Decode the base64 encoded PNG image
                 decoded_image = base64.b64decode(chat["message"])
 
@@ -55,10 +57,10 @@ def convert_webp_images_to_png(apps, schema_editor):
                     # Encode the WebP image back to base64
                     webp_image_bytes = webp_image_io.getvalue()
                     chat["message"] = base64.b64encode(webp_image_bytes).decode()
-                    chat["intent"]["type"] = "text-to-image"
+                    chat["intent"]["type"] = ImageIntentType.TEXT_TO_IMAGE.value
                     webp_image_io.close()
 
-            if chat["by"] == "khoj" and chat["intent"]["type"] == "text-to-image2":
+            if chat["by"] == "khoj" and chat["intent"]["type"] == ImageIntentType.TEXT_TO_IMAGE2.value:
                 # Convert WebP url to PNG url
                 print("❗️ Please MANUALLY update WebP images created by Khoj in your AWS S3 bucket to PNG format.")
                 chat["message"] = chat["message"].replace(".webp", ".png")

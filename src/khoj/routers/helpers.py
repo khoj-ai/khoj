@@ -49,6 +49,7 @@ from khoj.utils import state
 from khoj.utils.config import OfflineChatProcessorModel
 from khoj.utils.helpers import (
     ConversationCommand,
+    ImageIntentType,
     is_none_or_empty,
     is_valid_url,
     log_telemetry,
@@ -520,14 +521,14 @@ async def text_to_image(
     image = None
     response = None
     image_url = None
-    intent_type = "text-to-image-v3"
+    intent_type = ImageIntentType.TEXT_TO_IMAGE_V3
 
     text_to_image_config = await ConversationAdapters.aget_text_to_image_model_config()
     if not text_to_image_config:
         # If the user has not configured a text to image model, return an unsupported on server error
         status_code = 501
         message = "Failed to generate image. Setup image generation on the server."
-        return image_url or image, status_code, message, intent_type
+        return image_url or image, status_code, message, intent_type.value
     elif state.openai_client and text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
         logger.info("Generating image with OpenAI")
         text2image_model = text_to_image_config.model_name
@@ -572,24 +573,24 @@ async def text_to_image(
             with timer("Upload image to S3", logger):
                 image_url = upload_image(webp_image_bytes, user.uuid)
             if image_url:
-                intent_type = "text-to-image-v2"
+                intent_type = ImageIntentType.TEXT_TO_IMAGE2
             else:
-                intent_type = "text-to-image-v3"
+                intent_type = ImageIntentType.TEXT_TO_IMAGE_V3
                 image = base64.b64encode(webp_image_bytes).decode("utf-8")
 
-            return image_url or image, status_code, improved_image_prompt, intent_type
+            return image_url or image, status_code, improved_image_prompt, intent_type.value
         except openai.OpenAIError or openai.BadRequestError or openai.APIConnectionError as e:
             if "content_policy_violation" in e.message:
                 logger.error(f"Image Generation blocked by OpenAI: {e}")
                 status_code = e.status_code  # type: ignore
                 message = f"Image generation blocked by OpenAI: {e.message}"  # type: ignore
-                return image_url or image, status_code, message, intent_type
+                return image_url or image, status_code, message, intent_type.value
             else:
                 logger.error(f"Image Generation failed with {e}", exc_info=True)
                 message = f"Image generation failed with OpenAI error: {e.message}"  # type: ignore
                 status_code = e.status_code  # type: ignore
-                return image_url or image, status_code, message, intent_type
-    return image_url or image, status_code, response, intent_type
+                return image_url or image, status_code, message, intent_type.value
+    return image_url or image, status_code, response, intent_type.value
 
 
 class ApiUserRateLimiter:

@@ -23,6 +23,7 @@ from khoj.database.models import (
     TextToImageModelConfig,
     UserSearchModelConfig,
 )
+from khoj.utils.helpers import ImageIntentType
 
 
 class KhojUserAdmin(UserAdmin):
@@ -104,9 +105,12 @@ class ConversationAdmin(admin.ModelAdmin):
                     log["by"] == "khoj"
                     and log["intent"]
                     and log["intent"]["type"]
-                    and log["intent"]["type"] == "text-to-image"
+                    and (
+                        log["intent"]["type"] == ImageIntentType.TEXT_TO_IMAGE.value
+                        or log["intent"]["type"] == ImageIntentType.TEXT_TO_IMAGE_V3.value
+                    )
                 ):
-                    log["message"] = "image redacted for space"
+                    log["message"] = "inline image redacted for space"
                     chat_log[idx] = log
             modified_log["chat"] = chat_log
 
@@ -144,9 +148,12 @@ class ConversationAdmin(admin.ModelAdmin):
                     log["by"] == "khoj"
                     and log["intent"]
                     and log["intent"]["type"]
-                    and log["intent"]["type"] == "text-to-image"
+                    and (
+                        log["intent"]["type"] == ImageIntentType.TEXT_TO_IMAGE.value
+                        or log["intent"]["type"] == ImageIntentType.TEXT_TO_IMAGE_V3.value
+                    )
                 ):
-                    updated_log["message"] = "image redacted for space"
+                    updated_log["message"] = "inline image redacted for space"
                 chat_log[idx] = updated_log
             return_log["chat"] = chat_log
 
