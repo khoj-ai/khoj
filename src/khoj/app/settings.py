@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import os
 from pathlib import Path
 
-from khoj.utils.helpers import in_debug_mode
+from khoj.utils.helpers import in_debug_mode, is_env_var_true
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -50,8 +50,8 @@ else:
     CSRF_COOKIE_DOMAIN = KHOJ_DOMAIN
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = not is_env_var_true("KHOJ_NO_HTTPS")
+CSRF_COOKIE_SECURE = not is_env_var_true("KHOJ_NO_HTTPS")
 COOKIE_SAMESITE = "None"
 SESSION_COOKIE_SAMESITE = "None"
 
