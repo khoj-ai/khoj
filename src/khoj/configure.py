@@ -40,7 +40,7 @@ from khoj.routers.twilio import is_twilio_enabled
 from khoj.utils import constants, state
 from khoj.utils.config import SearchType
 from khoj.utils.fs_syncer import collect_files
-from khoj.utils.helpers import is_none_or_empty, telemetry_disabled
+from khoj.utils.helpers import is_none_or_empty, telemetry_disabled, timer
 from khoj.utils.rawconfig import FullConfig
 
 logger = logging.getLogger(__name__)
@@ -308,23 +308,24 @@ def configure_middleware(app):
 
 
 @schedule.repeat(schedule.every(22).to(25).hours)
-def update_search_index():
+def update_content_index():
     try:
         if ProcessLockAdapters.is_process_locked(ProcessLock.Operation.UPDATE_EMBEDDINGS):
-            logger.info("🔒 Skipping update search index due to lock")
+            logger.info("🔒 Skipping update content index due to lock")
             return
         ProcessLockAdapters.set_process_lock(
-            ProcessLock.Operation.UPDATE_EMBEDDINGS, max_duration_in_seconds=60 * 60 * 12
+            ProcessLock.Operation.UPDATE_EMBEDDINGS, max_duration_in_seconds=60 * 60 * 2
         )
 
-        logger.info("📬 Updating content index via Scheduler")
-        for user in get_all_users():
-            all_files = collect_files(user=user)
-            success = configure_content(all_files, user=user)
-        all_files = collect_files(user=None)
-        success = configure_content(all_files, user=None)
-        if not success:
-            raise RuntimeError("Failed to update content index")
+        with timer("📬 Updating content index via Scheduler"):
+            for user in get_all_users():
+                all_files = collect_files(user=user)
+                success = configure_content(all_files, user=user)
+            all_files = collect_files(user=None)
+            success = configure_content(all_files, user=None)
+            if not success:
+                raise RuntimeError("Failed to update content index")
+
         logger.info("📪 Content index updated via Scheduler")
 
         ProcessLockAdapters.remove_process_lock(ProcessLock.Operation.UPDATE_EMBEDDINGS)
