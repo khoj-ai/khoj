@@ -1,7 +1,11 @@
 import logging
 import os
 
-import resend
+try:
+    import resend
+except ImportError:
+    pass
+
 from django.conf import settings
 from jinja2 import Environment, FileSystemLoader
 
@@ -17,14 +21,13 @@ static_files = os.path.join(settings.BASE_DIR, "static")
 env = Environment(loader=FileSystemLoader(static_files))
 
 if not RESEND_API_KEY:
-    logger.info("RESEND_API_KEY not set - email sending disabled")
+    logger.warn("RESEND_API_KEY not set - email sending disabled")
+else:
+    resend.api_key = RESEND_API_KEY
 
 
 def is_resend_enabled():
     return bool(RESEND_API_KEY)
-
-
-resend.api_key = RESEND_API_KEY
 
 
 async def send_welcome_email(name, email):
