@@ -987,13 +987,14 @@
     }
 
     function renderFirstRunSetupMessage() {
-      first_run_message = `Hi 👋🏾, to get started:
+      first_run_message =
+        `<p class="inline-chat-heading">Hi 👋🏾, to get started:<p>
             <ol>
-                <li>Generate an API token in the <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToWebSettings()">Khoj Web settings</a></li>
-                <li>Paste it into the API Key field in the <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToSettings()">Khoj Desktop settings</a></li>
+                <li class="inline-chat-text">Generate an API token in the <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToWebSettings()">Khoj Web settings</a></li>
+                <li class="inline-chat-text">Paste it into the API Key field in the <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToSettings()">Khoj Desktop settings</a></li>
             </ol>`
-        .trim()
-        .replace(/(\r\n|\n|\r)/gm, "");
+          .trim()
+          .replace(/(\r\n|\n|\r)/gm, "");
 
       renderMessage(first_run_message, "khoj", null, null, true);
 
@@ -1984,11 +1985,47 @@
       border: 1px solid #475569;
       box-shadow: 0 0 16px var(--primary);
     }
+    .inline-chat-heading {
+      font-size: 20px;
+      font-weight: 300;
+      line-height: 1.5em;
+      color: var(--main-text-color);
+      margin: 0;
+      padding: 10px;
+      /* text-align: center; */
+    }
+
+    .inline-chat-text {
+      font-size: 18px;
+      font-weight: 300;
+      line-height: 1.5em;
+      color: var(--main-text-color);
+      margin: 0;
+      /* padding: 10px; */
+      padding-bottom: 25px;
+      /* text-align: center; */
+    }
 
     a.inline-chat-link {
-      color: #475569;
+      display: block;
+      text-align: center;
+      font-size: 14px;
+      /* line-height: 20px; */
+      color: #fff;
+      /* color: #475569; */
+      /* background-color: green; */
+      padding: 6px 15px;
+      border-radius: 999px;
       text-decoration: none;
-      border-bottom: 1px dotted #475569;
+      background-color: rgba(71, 85, 105, 0.6);
+      transition: background-color 0.3s ease-in-out;
+
+      /* border: 1px solid #475569; */
+      /* border-bottom: 1px dotted #475569; */
+    }
+
+    a.inline-chat-link:hover {
+      background-color: #475569;
     }
 
     a.reference-link {
