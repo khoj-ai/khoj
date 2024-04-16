@@ -1,367 +1,444 @@
 <html>
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
-        <title>Khoj - Settings</title>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0 maximum-scale=1.0"
+    />
+    <title>Khoj - Settings</title>
 
-        <link rel="icon" type="image/png" sizes="128x128" href="./assets/icons/favicon-128x128.png">
-        <link rel="manifest" href="./khoj.webmanifest">
-        <link rel="stylesheet" href="./assets/khoj.css">
-    </head>
-    <script src="./utils.js"></script>
-    <script>
-        window.addEventListener("DOMContentLoaded", async() => {
-            // Setup the header pane
-            document.getElementById("khoj-header").innerHTML = await populateHeaderPane();
-            // Setup the nav menu
-            document.getElementById("profile-picture").addEventListener("click", toggleNavMenu);
-            // Set the active nav pane
-            document.getElementById("settings-nav")?.classList.add("khoj-nav-selected");
-        })
-    </script>
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="128x128"
+      href="./assets/icons/favicon-128x128.png"
+    />
+    <link rel="manifest" href="./khoj.webmanifest" />
+    <link rel="stylesheet" href="./assets/khoj.css" />
+  </head>
+  <script src="./utils.js"></script>
+  <script>
+    window.addEventListener("DOMContentLoaded", async () => {
+      // Setup the header pane
+      document.getElementById("khoj-header").innerHTML =
+        await populateHeaderPane();
+      // Setup the nav menu
+      document
+        .getElementById("profile-picture")
+        .addEventListener("click", toggleNavMenu);
+      // Set the active nav pane
+      document
+        .getElementById("settings-nav")
+        ?.classList.add("khoj-nav-selected");
+    });
+  </script>
 
-    <body>
-        <!--Add Header Logo and Nav Pane-->
-        <div id="khoj-header" class="khoj-header"></div>
-        <div class="section-cards">
-            <div class="card-description-row">
-                <div class="card configuration">
-                    <div class="card-title-row">
-                        <img class="card-icon" src="./assets/icons/link.svg" alt="Khoj Server URL">
-                        <h3 class="card-title">
-                            Server URL
-                        </h3>
-                    </div>
-                    <div class="card-description-row">
-                        <input id="khoj-host-url" class="card-input" type="text">
-                    </div>
-                    <div class="card-title-row">
-                        <img class="card-icon" src="./assets/icons/key.svg" alt="Khoj Access Key">
-                        <h3 class="card-title">
-                            API Key
-                        </h3>
-                    </div>
-                    <div class="card-description-row">
-                        <input id="khoj-access-key" class="card-input" type="text" placeholder="Enter API key to access your Khoj">
-                    </div>
-                </div>
-            </div>
-            <div class="card-description-row">
-                <div class="card configuration">
-                    <div class="card-title-row">
-                        <img class="card-icon" src="./assets/icons/plaintext.svg" alt="File">
-                        <h3 class="card-title">
-                            Files
-                            <button id="toggle-files" class="card-button">
-                                <svg id="toggle-files-svg" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"></path></svg>
-                            </button>
-                        </h3>
-                    </div>
-                    <div class="card-description-row">
-                        <div id="current-files"></div>
-                    </div>
-                    <div class="card-action-row">
-                        <button id="update-file" class="card-button">
-                            Add
-                            <img class="add-files-icon" src="./assets/icons/circular-add.svg" alt="Add">
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div class="card-description-row">
-                <div class="card configuration">
-                    <div class="card-title-row">
-                        <img class="card-icon" src="./assets/icons/folder.svg" alt="Folder">
-                        <h3 class="card-title">
-                            Folders
-                            <button id="toggle-folders" class="card-button">
-                                <svg id="toggle-folders-svg" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"></path></svg>
-                            </button>
-                        </h3>
-                    </div>
-                    <div class="card-description-row">
-                        <div id="current-folders"></div>
-                    </div>
-                    <div class="card-action-row">
-                        <button id="update-folder" class="card-button">
-                            Add
-                            <img class="add-files-icon" src="./assets/icons/circular-add.svg" alt="Add">
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div class="section-action-row">
-                <div class="card-description-row">
-                    <button id="sync-force" class="sync-data">💾 Save</button>
-                </div>
-                <div class="card-description-row">
-                    <button id="delete-all" class="sync-data">🗑️ Delete All</button>
-                </div>
-            </div>
-            <div id="loading-bar" style="display: none;"></div>
-            <div class="card-description-row">
-                <div id="sync-status"></div>
-            </div>
+  <body>
+    <!--Add Header Logo and Nav Pane-->
+    <div id="khoj-header" class="khoj-header"></div>
+    <div class="section-cards">
+      <div class="card-description-row">
+        <div class="card configuration">
+          <div class="card-title-row">
+            <img
+              class="card-icon"
+              src="./assets/icons/link.svg"
+              alt="Khoj Server URL"
+            />
+            <h3 class="card-title">Server URL</h3>
+          </div>
+          <div class="card-description-row">
+            <input id="khoj-host-url" class="card-input" type="text" />
+          </div>
+          <div class="card-title-row">
+            <img
+              class="card-icon"
+              src="./assets/icons/key.svg"
+              alt="Khoj Access Key"
+            />
+            <h3 class="card-title">API Key</h3>
+          </div>
+          <div class="card-description-row">
+            <input
+              id="khoj-access-key"
+              class="card-input"
+              type="text"
+              placeholder="Enter API key to access your Khoj"
+            />
+          </div>
         </div>
-    </body>
+      </div>
+      <div class="card-description-row">
+        <div class="card configuration">
+          <div class="card-title-row">
+            <img
+              class="card-icon"
+              src="./assets/icons/plaintext.svg"
+              alt="File"
+            />
+            <h3 class="card-title">
+              Files
+              <button id="toggle-files" class="card-button">
+                <svg
+                  id="toggle-files-svg"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M12 5v14M5 12l7 7 7-7"></path>
+                </svg>
+              </button>
+            </h3>
+          </div>
+          <div class="card-description-row">
+            <div id="current-files"></div>
+          </div>
+          <div class="card-action-row">
+            <button id="update-file" class="card-button">
+              Add
+              <img
+                class="add-files-icon"
+                src="./assets/icons/circular-add.svg"
+                alt="Add"
+              />
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="card-description-row">
+        <div class="card configuration">
+          <div class="card-title-row">
+            <img
+              class="card-icon"
+              src="./assets/icons/folder.svg"
+              alt="Folder"
+            />
+            <h3 class="card-title">
+              Folders
+              <button id="toggle-folders" class="card-button">
+                <svg
+                  id="toggle-folders-svg"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M12 5v14M5 12l7 7 7-7"></path>
+                </svg>
+              </button>
+            </h3>
+          </div>
+          <div class="card-description-row">
+            <div id="current-folders"></div>
+          </div>
+          <div class="card-action-row">
+            <button id="update-folder" class="card-button">
+              Add
+              <img
+                class="add-files-icon"
+                src="./assets/icons/circular-add.svg"
+                alt="Add"
+              />
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="section-action-row">
+        <div class="card-description-row">
+          <button id="sync-force" class="sync-data">💾 Save</button>
+        </div>
+        <div class="card-description-row">
+          <button id="delete-all" class="sync-data">🗑️ Delete All</button>
+        </div>
+      </div>
+      <div id="loading-bar" style="display: none"></div>
+      <div class="card-description-row">
+        <div id="sync-status"></div>
+      </div>
+    </div>
+  </body>
 
-    <style>
-        @media only screen and (max-width: 600px) {
-            body {
-                display: grid;
-                grid-template-columns: 1fr;
-                grid-template-rows: 1fr auto;
-                font-size: small!important;
-            }
-            body > * {
-                grid-column: 1;
-            }
-        }
-        @media only screen and (min-width: 600px) {
-            body {
-                display: grid;
-                grid-template-columns: 1fr min(70vw, 100%) 1fr;
-                grid-template-rows: 80px auto;
-            }
-            body > * {
-                grid-column: 2;
-            }
-        }
-        body, input {
-            padding: 0px;
-            margin: 0px;
-            background: var(--background-color);
-            color: #475569;
-            font-family: var(--font-family);
-            font-size: small;
-            font-weight: 300;
-            line-height: 1.5em;
-        }
-        body > * {
-            padding: 10px;
-            margin: 10px;
-        }
+  <style>
+    @media only screen and (max-width: 600px) {
+      body {
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr auto;
+        font-size: small !important;
+      }
+      body > * {
+        grid-column: 1;
+      }
+    }
+    @media only screen and (min-width: 600px) {
+      body {
+        display: grid;
+        grid-template-columns: 1fr min(70vw, 100%) 1fr;
+        grid-template-rows: 80px auto;
+      }
+      body > * {
+        grid-column: 2;
+      }
+    }
+    body,
+    input {
+      padding: 0px;
+      margin: 0px;
+      background: var(--background-color);
+      color: #475569;
+      font-family: var(--font-family);
+      font-size: small;
+      font-weight: 300;
+      line-height: 1.5em;
+    }
+    body > * {
+      padding: 10px;
+      margin: 10px;
+    }
 
-        svg {
-            transition: transform 0.3s ease-in-out;
-        }
+    svg {
+      transition: transform 0.3s ease-in-out;
+    }
 
-        a.khoj-logo {
-            text-align: center;
-        }
+    a.khoj-logo {
+      text-align: center;
+    }
 
-        #loading-bar {
-            height: 10px;
-            width: 100%;
-            background-color: #ddd;
-            position: relative;
-            overflow: hidden;
-        }
+    #loading-bar {
+      height: 10px;
+      width: 100%;
+      background-color: #ddd;
+      position: relative;
+      overflow: hidden;
+    }
 
-        #loading-bar:before {
-            content: "";
-            display: block;
-            position: absolute;
-            left: -200px;
-            width: 200px;
-            height: 100%;
-            background-color: #2980b9;
-            animation: loading-bar 2s linear infinite;
-        }
+    #loading-bar:before {
+      content: "";
+      display: block;
+      position: absolute;
+      left: -200px;
+      width: 200px;
+      height: 100%;
+      background-color: #2980b9;
+      animation: loading-bar 2s linear infinite;
+    }
 
-        @keyframes loading-bar {
-            0% {
-                left: -200px;
-            }
-            100% {
-                left: 100%;
-            }
-        }
+    @keyframes loading-bar {
+      0% {
+        left: -200px;
+      }
+      100% {
+        left: 100%;
+      }
+    }
 
-        .card-input {
-            padding: 4px;
-            box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.3);
-            border: none;
-            width: 450px;
-        }
+    .card-input {
+      padding: 4px;
+      box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.3);
+      border: none;
+      width: 450px;
+    }
 
-        .card {
-            display: grid;
-            gap: 8px;
-            padding: 24px 16px;
-            width: 450px;
-            background: var(--background-color);
-            border: 1px solid rgb(229, 229, 229);
-            border-radius: 4px;
-            box-shadow: 0px 1px 3px 0px rgba(0,0,0,0.1),0px 1px 2px -1px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
+    .card {
+      display: grid;
+      gap: 8px;
+      padding: 24px 16px;
+      width: 450px;
+      background: var(--background-color);
+      border: 1px solid rgb(229, 229, 229);
+      border-radius: 4px;
+      box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1),
+        0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
 
-        .section-cards {
-            display: grid;
-            gap: 16px;
-            justify-items: center;
-            margin: 0;
-        }
-        .section-action-row {
-            display: grid;
-            grid-auto-flow: column;
-            gap: 16px;
-            height: fit-content;
-        }
+    .section-cards {
+      display: grid;
+      gap: 16px;
+      justify-items: center;
+      margin: 0;
+    }
+    .section-action-row {
+      display: grid;
+      grid-auto-flow: column;
+      gap: 16px;
+      height: fit-content;
+    }
 
-        .card-title-row {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            padding: 0;
-            gap: 12px;
-        }
-        .card-icon {
-            width: 28px;
-            height: 28px;
-        }
-        .add-files-icon {
-            width: 16px;
-            height: 16px;
-        }
-        .card-title {
-            font-size: medium;
-            font-weight: normal;
-            margin: 0;
-            padding: 0;
-            align-self: center;
-        }
-        .card-title-text {
-            vertical-align: middle;
-        }
-        .card-description {
-            margin: 0;
-            color: grey;
-            font-size: small;
-        }
-        .card-button-row {
-            display: grid;
-            grid-template-columns: auto;
-            text-align: right;
-        }
-        .card-button {
-            border: none;
-            font-weight: bold;
-            color: rgb(64,64,64);
-            background: transparent;
-            font-size: small;
-            cursor: pointer;
-            margin: 0;
-            padding: 0;
-            height: 32px;
-            text-align: right;
-        }
-        .primary-button {
-            border: none;
-            color: var(--background-color);
-            padding: 15px 32px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: small;
-        }
+    .card-title-row {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      padding: 0;
+      gap: 12px;
+    }
+    .card-icon {
+      width: 28px;
+      height: 28px;
+    }
+    .add-files-icon {
+      width: 16px;
+      height: 16px;
+    }
+    .card-title {
+      font-size: medium;
+      font-weight: normal;
+      margin: 0;
+      padding: 0;
+      align-self: center;
+    }
+    .card-title-text {
+      vertical-align: middle;
+    }
+    .card-description {
+      margin: 0;
+      color: grey;
+      font-size: small;
+    }
+    .card-button-row {
+      display: grid;
+      grid-template-columns: auto;
+      text-align: right;
+    }
+    .card-button {
+      border: none;
+      font-weight: bold;
+      color: rgb(64, 64, 64);
+      background: transparent;
+      font-size: small;
+      cursor: pointer;
+      margin: 0;
+      padding: 0;
+      height: 32px;
+      text-align: right;
+    }
+    .primary-button {
+      border: none;
+      color: var(--background-color);
+      padding: 15px 32px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: small;
+    }
 
-        button.card-button.disabled {
-            color: var(--flower);
-            background: transparent;
-            font-size: small;
-            cursor: pointer;
-            margin: 0;
-            padding: 0;
-            height: 32px;
-            text-align: right;
-            text-align: left;
-        }
+    button.card-button.disabled {
+      color: var(--flower);
+      background: transparent;
+      font-size: small;
+      cursor: pointer;
+      margin: 0;
+      padding: 0;
+      height: 32px;
+      text-align: right;
+      text-align: left;
+    }
 
-        button.card-button.happy {
-            color: var(--leaf);
-        }
+    button.card-button.happy {
+      color: var(--leaf);
+    }
 
-        img.configured-icon {
-            max-width: 16px;
-        }
+    img.configured-icon {
+      max-width: 16px;
+    }
 
-        div.card-action-row.enabled{
-            display: block;
-        }
+    div.card-action-row.enabled {
+      display: block;
+    }
 
-        img.configured-icon.enabled {
-            display: inline;
-        }
+    img.configured-icon.enabled {
+      display: inline;
+    }
 
-        div.card-action-row.disabled,
-        img.configured-icon.disabled {
-            display: none;
-        }
+    div.card-action-row.disabled,
+    img.configured-icon.disabled {
+      display: none;
+    }
 
-        div.file-element,
-        div.folder-element {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            border: 1px solid rgb(229, 229, 229);
-            border-radius: 4px;
-            box-shadow: 0px 1px 3px 0px rgba(0,0,0,0.1),0px 1px 2px -1px rgba(0,0,0,0.8);
-            padding: 4px;
-            margin-bottom: 8px;
-        }
+    div.file-element,
+    div.folder-element {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      border: 1px solid rgb(229, 229, 229);
+      border-radius: 4px;
+      box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1),
+        0px 1px 2px -1px rgba(0, 0, 0, 0.8);
+      padding: 4px;
+    }
 
-        div.content-name {
-            overflow-wrap: break-word;
-        }
+    div.file-parent-element,
+    div.folder-parent-element {
+      margin-bottom: 8px;
+    }
+    p.file-error,
+    p.folder-error {
+      margin: 0;
+      padding: 0;
+      font-size: 12px;
+      font-weight: 600;
+    }
 
-        div.remove-button-container {
-            text-align: right;
-        }
+    div.content-name {
+      overflow-wrap: break-word;
+    }
 
-        button.remove-folder-button,
-        button.remove-file-button {
-            background-color: rgb(253 214 214);
-            border-radius: 3px;
-            border: none;
-            color: var(--flower);
-            padding: 4px;
-        }
+    div.remove-button-container {
+      text-align: right;
+    }
 
-        button.remove-folder-button:hover,
-        button.remove-file-button:hover {
-            background-color: rgb(255 235 235);
-            border-radius: 3px;
-            border: none;
-            color: var(--flower);
-            padding: 4px;
-            cursor: pointer;
-        }
-        button.sync-data {
-            background-color: var(--primary-hover);
-            border: none;
-            color: var(--main-text-color);
-            padding: 12px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            box-shadow: 0px 5px 0px var(--background-color);
-        }
+    button.remove-folder-button,
+    button.remove-file-button {
+      background-color: rgb(253 214 214);
+      border-radius: 3px;
+      border: none;
+      color: var(--flower);
+      padding: 4px;
+    }
 
-        button.sync-data:hover {
-            background-color: var(--summer-sun);
-            box-shadow: 0px 3px 0px var(--background-color);
-        }
-        .sync-force-toggle {
-            align-content: center;
-            display: grid;
-            grid-auto-flow: column;
-            gap: 4px;
-        }
-    </style>
-    <script src="./renderer.js"></script>
+    button.remove-folder-button:hover,
+    button.remove-file-button:hover {
+      background-color: rgb(255 235 235);
+      border-radius: 3px;
+      border: none;
+      color: var(--flower);
+      padding: 4px;
+      cursor: pointer;
+    }
+    button.sync-data {
+      background-color: var(--primary-hover);
+      border: none;
+      color: var(--main-text-color);
+      padding: 12px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      box-shadow: 0px 5px 0px var(--background-color);
+    }
 
+    button.sync-data:hover {
+      background-color: var(--summer-sun);
+      box-shadow: 0px 3px 0px var(--background-color);
+    }
+    .sync-force-toggle {
+      align-content: center;
+      display: grid;
+      grid-auto-flow: column;
+      gap: 4px;
+    }
+  </style>
+  <script src="./renderer.js"></script>
 </html>
