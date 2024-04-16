@@ -98,6 +98,17 @@ class Agent(BaseModel):
     slug = models.CharField(max_length=200)
 
 
+class ProcessLock(BaseModel):
+    class Operation(models.TextChoices):
+        UPDATE_EMBEDDINGS = "update_embeddings"
+
+    # We need to make sure that some operations are thread-safe. To do so, add locks for potentially shared operations.
+    # For example, we need to make sure that only one process is updating the embeddings at a time.
+    name = models.CharField(max_length=200, choices=Operation.choices)
+    started_at = models.DateTimeField(auto_now_add=True)
+    max_duration_in_seconds = models.IntegerField(default=60 * 60 * 12)  # 12 hours
+
+
 @receiver(pre_save, sender=Agent)
 def verify_agent(sender, instance, **kwargs):
     # check if this is a new instance

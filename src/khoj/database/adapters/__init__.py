@@ -30,6 +30,7 @@ from khoj.database.models import (
     NotionConfig,
     OfflineChatProcessorConversationConfig,
     OpenAIProcessorConversationConfig,
+    ProcessLock,
     ReflectiveQuestion,
     SearchModelConfig,
     SpeechToTextModelOptions,
@@ -400,6 +401,32 @@ async def aget_user_search_model(user: KhojUser):
     if not config:
         return None
     return config.setting
+
+
+class ProcessLockAdapters:
+    @staticmethod
+    def get_process_lock(process_name: str):
+        return ProcessLock.objects.filter(name=process_name).first()
+
+    @staticmethod
+    def set_process_lock(process_name: str, max_duration_in_seconds: int = 600):
+        return ProcessLock.objects.create(name=process_name, max_duration_in_seconds=max_duration_in_seconds)
+
+    @staticmethod
+    def is_process_locked(process_name: str):
+        process_lock = ProcessLock.objects.filter(name=process_name).first()
+        if not process_lock:
+            return False
+        if process_lock.started_at + timedelta(seconds=process_lock.max_duration_in_seconds) < datetime.now(
+            tz=timezone.utc
+        ):
+            process_lock.delete()
+            return False
+        return True
+
+    @staticmethod
+    def remove_process_lock(process_name: str):
+        return ProcessLock.objects.filter(name=process_name).delete()
 
 
 class ClientApplicationAdapters:
