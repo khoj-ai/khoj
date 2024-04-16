@@ -79,6 +79,7 @@ dependencies = [
     "markdownify ~= 0.11.6",
     "websockets == 12.0",
     "psutil >= 5.8.0",
+    "huggingface-hub >= 0.22.2",
 ]
 dynamic = ["version"]
 
