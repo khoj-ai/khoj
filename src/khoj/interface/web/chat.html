@@ -30,9 +30,14 @@ To get started, just start typing below. You can also type / to see a list of co
         const allowedExtensions = ['text/org', 'text/markdown', 'text/plain', 'text/html', 'application/pdf'];
         const allowedFileEndings = ['org', 'md', 'txt', 'html', 'pdf'];
         let chatOptions = [];
-        function copyParentText(event) {
+        function createCopyParentText(message) {
+            return function(event) {
+                copyParentText(event, message);
+            }
+        }
+        function copyParentText(event, message=null) {
             const button = event.currentTarget;
-            const textContent = button.parentNode.textContent.trim();
+            const textContent = message ?? button.parentNode.textContent.trim();
             navigator.clipboard.writeText(textContent).then(() => {
                 button.firstChild.src = "/static/assets/icons/copy-button-success.svg";
                 setTimeout(() => {
@@ -332,9 +337,9 @@ To get started, just start typing below. You can also type / to see a list of co
             return renderMessage(message, by, dt, references, false, "return");
         }
 
-        function formatHTMLMessage(htmlMessage, raw=false, willReplace=true) {
+        function formatHTMLMessage(message, raw=false, willReplace=true) {
             var md = window.markdownit();
-            let newHTML = htmlMessage;
+            let newHTML = message;
 
             // Remove any text between <s>[INST] and </s> tags. These are spurious instructions for the AI chat model.
             newHTML = newHTML.replace(/<s>\[INST\].+(<\/s>)?/g, '');
@@ -366,7 +371,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 copyIcon.src = "/static/assets/icons/copy-button.svg";
                 copyIcon.classList.add("copy-icon");
                 copyButton.appendChild(copyIcon);
-                copyButton.addEventListener('click', copyParentText);
+                copyButton.addEventListener('click', createCopyParentText(message));
                 element.append(copyButton);
             }
 
