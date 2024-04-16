@@ -153,9 +153,6 @@ def configure_search(search_models: SearchModels, search_config: Optional[Search
     if search_models is None:
         search_models = SearchModels()
 
-    if search_config and search_config.image:
-        logger.info("🔍 🌄 Setting up image search model")
-
     return search_models
 
 
