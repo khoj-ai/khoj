@@ -755,6 +755,4 @@ app.whenReady().then(() => {
 
   tray.setToolTip("Khoj");
   tray.setContextMenu(contextMenu);
-
-  win.webContents.openDevTools();
 });

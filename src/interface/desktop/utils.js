@@ -64,7 +64,6 @@ async function populateHeaderPane() {
   let user_photo = userInfo?.photo;
   let is_active = userInfo?.is_active;
   let has_documents = userInfo?.has_documents;
-  console.log(userInfo);
   // Populate the header element with the navigation pane
   return `
         <a class="khoj-logo" href="/">
@@ -72,7 +71,7 @@ async function populateHeaderPane() {
         </a>
         <nav class="khoj-nav">
         ${
-          userInfo && userInfo.is_active
+          userInfo && userInfo.email
             ? `<div class="khoj-status-box">
             <span class="khoj-status-connected"></span>
              <span class="khoj-status-text">Connected to server</span>
