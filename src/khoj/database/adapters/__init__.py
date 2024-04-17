@@ -454,6 +454,13 @@ class ProcessLockAdapters:
             logger.info(f"🔓 Unlocked {operation} process after executing {func} {'Succeeded' if success else 'Failed'}")
 
 
+def run_with_process_lock(*args):
+    """Wrapper function used for scheduling jobs.
+    Required as APScheduler can't discover the `ProcessLockAdapter.run_with_lock' method on its own.
+    """
+    return ProcessLockAdapters.run_with_lock(*args)
+
+
 class ClientApplicationAdapters:
     @staticmethod
     async def aget_client_application_by_id(client_id: str, client_secret: str):
