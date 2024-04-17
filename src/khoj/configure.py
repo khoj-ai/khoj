@@ -320,7 +320,9 @@ def update_content_index():
 
 @schedule.repeat(schedule.every(22).to(25).hours)
 def update_content_index_regularly():
-    ProcessLockAdapters.run_with_lock(update_content_index, ProcessLock.Operation.UPDATE_EMBEDDINGS)
+    ProcessLockAdapters.run_with_lock(
+        update_content_index, ProcessLock.Operation.UPDATE_EMBEDDINGS, max_duration_in_seconds=60 * 60 * 2
+    )
 
 
 def configure_search_types():
