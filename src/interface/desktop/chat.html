@@ -888,10 +888,10 @@
         }
 
         function renderFirstRunSetupMessage() {
-            first_run_message = `<p class="inline-chat-heading">Hi 👋🏾, to get started:<p>
+            first_run_message = `<p class="first_run_message_heading">Hi 👋🏾, to get started:<p>
             <ol>
-                <li class="inline-chat-text">Generate an API token in the <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToWebSettings()">Khoj Web settings</a></li>
-                <li class="inline-chat-text">Paste it into the API Key field in the <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToSettings()">Khoj Desktop settings</a></li>
+                <li class="inline-chat-text">Generate an API token <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToWebSettings()">Khoj Web settings</a></li>
+                <li class="inline-chat-text">Paste it into the API Key field <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToSettings()">Khoj Desktop settings</a></li>
             </ol>`
             .trim()
             .replace(/(\r\n|\n|\r)/gm, "");
@@ -1714,15 +1714,14 @@
             border:1px solid #475569;
             box-shadow: 0 0 16px var(--primary);
         }
-        
-        .inline-chat-heading {
+
+        .first_run_message_heading {
         font-size: 20px;
         font-weight: 300;
         line-height: 1.5em;
         color: var(--main-text-color);
         margin: 0;
         padding: 10px;
-        /* text-align: center; */
         }
 
         .inline-chat-text {
