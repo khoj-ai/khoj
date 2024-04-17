@@ -166,7 +166,7 @@ def start_server(app, host=None, port=None, socket=None):
             app,
             host=host,
             port=port,
-            log_level="debug" if in_debug_mode() else "info",
+            log_level="debug" if state.verbose > 1 else "info",
             use_colors=True,
             log_config=None,
             timeout_keep_alive=60,
