@@ -109,7 +109,8 @@ class Agent(BaseModel):
 
 class ProcessLock(BaseModel):
     class Operation(models.TextChoices):
-        UPDATE_EMBEDDINGS = "update_embeddings"
+        INDEX_CONTENT = "index_content"
+        SCHEDULED_JOB = "scheduled_job"
 
     # We need to make sure that some operations are thread-safe. To do so, add locks for potentially shared operations.
     # For example, we need to make sure that only one process is updating the embeddings at a time.
