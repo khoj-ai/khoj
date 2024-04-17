@@ -89,7 +89,36 @@ nav.khoj-nav {
     grid-auto-flow: column;
     grid-gap: 32px;
     justify-self: right;
-}
+    align-items: center;
+  }
+  
+  .khoj-status-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 50px;
+    gap: 5px;
+  }
+  
+  .khoj-status-box .khoj-status-connected {
+    height: 13px;
+    width: 13px;
+    border-radius: 50%;
+    background-color: rgb(90, 235, 90);
+  }
+  .khoj-status-box .khoj-status-not-connected {
+    height: 13px;
+    width: 13px;
+    border-radius: 50%;
+    background-color: rgb(235, 90, 90);
+  }
+  
+  .khoj-status-box .khoj-status-text {
+    display: none;
+  }
+  .khoj-status-box:hover .khoj-status-text {
+    display: block;
+  }
 
 a.khoj-nav {
     display: flex;
