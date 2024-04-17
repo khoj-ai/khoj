@@ -1,3 +1,4 @@
+import functools
 import json
 import logging
 import math
@@ -13,8 +14,13 @@ from starlette.authentication import requires
 from starlette.websockets import WebSocketDisconnect
 from websockets import ConnectionClosedOK
 
-from khoj.database.adapters import ConversationAdapters, EntryAdapters, aget_user_name
-from khoj.database.models import KhojUser
+from khoj.database.adapters import (
+    ConversationAdapters,
+    EntryAdapters,
+    aget_user_name,
+    run_with_process_lock,
+)
+from khoj.database.models import KhojUser, ProcessLock
 from khoj.processor.conversation.prompts import (
     help_message,
     no_entries_found,
@@ -38,6 +44,7 @@ from khoj.routers.helpers import (
     get_conversation_command,
     is_ready_to_chat,
     schedule_query,
+    scheduled_chat,
     text_to_image,
     update_telemetry_state,
     validate_conversation_config,
@@ -384,35 +391,40 @@ async def websocket_endpoint(
 
         if ConversationCommand.Reminder in conversation_commands:
             crontime, inferred_query = await schedule_query(q, location, meta_log)
-            trigger = CronTrigger.from_crontab(crontime)
-            common = CommonQueryParamsClass(
-                client=websocket.user.client_app,
-                user_agent=websocket.headers.get("user-agent"),
-                host=websocket.headers.get("host"),
+            try:
+                trigger = CronTrigger.from_crontab(crontime)
+            except ValueError as e:
+                await send_complete_llm_response(f"Unable to create reminder with crontime schedule: {crontime}")
+                continue
+            partial_scheduled_chat = functools.partial(
+                scheduled_chat, inferred_query, websocket.user.object, websocket.url
             )
-            scope = websocket.scope.copy()
-            scope["path"] = "/api/chat"
-            scope["type"] = "http"
-            request = Request(scope)
+            try:
+                job = state.scheduler.add_job(
+                    run_with_process_lock,
+                    trigger=trigger,
+                    args=(
+                        partial_scheduled_chat,
+                        f"{ProcessLock.Operation.SCHEDULED_JOB}_{user.uuid}_{inferred_query}",
+                    ),
+                    id=f"job_{user.uuid}_{inferred_query}_{crontime}",
+                    name=f"{inferred_query}",
+                    max_instances=2,  # Allow second instance to kill any previous instance with stale lock
+                    jitter=30,
+                )
+            except:
+                await send_complete_llm_response(
+                    f"Unable to schedule reminder. Ensure the reminder doesn't already exist."
+                )
+                continue
+            next_run_time = job.next_run_time.strftime("%Y-%m-%d %H:%M:%S")
+            llm_response = f"""
+            ### 🕒 Scheduled Job
+- Query: **"{inferred_query}"**
+- Schedule: `{crontime}`
+- Next Run At: **{next_run_time}** UTC.
+            """.strip()
 
-            state.scheduler.add_job(
-                async_to_sync(chat),
-                trigger=trigger,
-                args=(request, common, inferred_query),
-                kwargs={
-                    "stream": False,
-                    "conversation_id": conversation_id,
-                    "city": city,
-                    "region": region,
-                    "country": country,
-                },
-                id=f"job_{user.uuid}_{inferred_query}",
-                replace_existing=True,
-            )
-
-            llm_response = (
-                f'🕒 Scheduled running Query: "{inferred_query}" on Schedule: `{crontime}` (in server timezone).'
-            )
             await sync_to_async(save_to_conversation_log)(
                 q,
                 llm_response,
@@ -421,6 +433,13 @@ async def websocket_endpoint(
                 intent_type="reminder",
                 client_application=websocket.user.client_app,
                 conversation_id=conversation_id,
+                inferred_queries=[inferred_query],
+                job_id=job.id,
+            )
+            common = CommonQueryParamsClass(
+                client=websocket.user.client_app,
+                user_agent=websocket.headers.get("user-agent"),
+                host=websocket.headers.get("host"),
             )
             update_telemetry_state(
                 request=websocket,
@@ -628,16 +647,41 @@ async def chat(
 
     if ConversationCommand.Reminder in conversation_commands:
         crontime, inferred_query = await schedule_query(q, location, meta_log)
-        trigger = CronTrigger.from_crontab(crontime)
-        state.scheduler.add_job(
-            async_to_sync(chat),
-            trigger=trigger,
-            args=(request, common, inferred_query, n, d, False, title, conversation_id, city, region, country),
-            id=f"job_{user.uuid}_{inferred_query}",
-            replace_existing=True,
-        )
+        try:
+            trigger = CronTrigger.from_crontab(crontime)
+        except ValueError as e:
+            return Response(
+                content=f"Unable to create reminder with crontime schedule: {crontime}",
+                media_type="text/plain",
+                status_code=500,
+            )
 
-        llm_response = f'🕒 Scheduled running Query: "{inferred_query}" on Schedule: `{crontime}` (in server timezone).'
+        partial_scheduled_chat = functools.partial(scheduled_chat, inferred_query, request.user.object, request.url)
+        try:
+            job = state.scheduler.add_job(
+                run_with_process_lock,
+                trigger=trigger,
+                args=(partial_scheduled_chat, f"{ProcessLock.Operation.SCHEDULED_JOB}_{user.uuid}_{inferred_query}"),
+                id=f"job_{user.uuid}_{inferred_query}_{crontime}",
+                name=f"{inferred_query}",
+                max_instances=2,  # Allow second instance to kill any previous instance with stale lock
+                jitter=30,
+            )
+        except:
+            return Response(
+                content=f"Unable to schedule reminder. Ensure the reminder doesn't already exist.",
+                media_type="text/plain",
+                status_code=500,
+            )
+
+        next_run_time = job.next_run_time.strftime("%Y-%m-%d %H:%M:%S")
+        llm_response = f"""
+        ### 🕒 Scheduled Job
+- Query: **"{inferred_query}"**
+- Schedule: `{crontime}`
+- Next Run At: **{next_run_time}** UTC.'
+        """.strip()
+
         await sync_to_async(save_to_conversation_log)(
             q,
             llm_response,
@@ -646,6 +690,8 @@ async def chat(
             intent_type="reminder",
             client_application=request.user.client_app,
             conversation_id=conversation_id,
+            inferred_queries=[inferred_query],
+            job_id=job.id,
         )
 
         if stream:

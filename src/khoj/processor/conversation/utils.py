@@ -101,6 +101,7 @@ def save_to_conversation_log(
     intent_type: str = "remember",
     client_application: ClientApplication = None,
     conversation_id: int = None,
+    job_id: str = None,
 ):
     user_message_time = user_message_time or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     updated_conversation = message_to_log(
@@ -111,6 +112,7 @@ def save_to_conversation_log(
             "context": compiled_references,
             "intent": {"inferred-queries": inferred_queries, "type": intent_type},
             "onlineContext": online_results,
+            "jobId": job_id,
         },
         conversation_log=meta_log.get("chat", []),
     )
