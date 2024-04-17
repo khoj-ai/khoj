@@ -53,17 +53,8 @@ class NotionContentConfig(ConfigBase):
     token: str
 
 
-class ImageContentConfig(ConfigBase):
-    input_directories: Optional[List[Path]] = None
-    input_filter: Optional[List[str]] = None
-    embeddings_file: Path
-    use_xmp_metadata: bool
-    batch_size: int
-
-
 class ContentConfig(ConfigBase):
     org: Optional[TextContentConfig] = None
-    image: Optional[ImageContentConfig] = None
     markdown: Optional[TextContentConfig] = None
     pdf: Optional[TextContentConfig] = None
     plaintext: Optional[TextContentConfig] = None
