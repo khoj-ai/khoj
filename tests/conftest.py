@@ -35,6 +35,7 @@ from tests.helpers import (
     ChatModelOptionsFactory,
     OfflineChatProcessorConversationConfigFactory,
     OpenAIProcessorConversationConfigFactory,
+    ProcessLockFactory,
     SubscriptionFactory,
     UserConversationProcessorConfigFactory,
     UserFactory,
@@ -204,6 +205,12 @@ def search_models(search_config: SearchConfig):
     search_models = SearchModels()
 
     return search_models
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def default_process_lock():
+    return ProcessLockFactory()
 
 
 @pytest.fixture
