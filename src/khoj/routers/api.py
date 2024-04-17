@@ -7,6 +7,7 @@ import time
 import uuid
 from typing import Any, Callable, List, Optional, Union
 
+from apscheduler.job import Job
 from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.requests import Request
@@ -386,3 +387,44 @@ def user_info(request: Request) -> Response:
 
     # Return user information as a JSON response
     return Response(content=json.dumps(user_info), media_type="application/json", status_code=200)
+
+
+@api.get("/tasks", response_class=Response)
+@requires(["authenticated"])
+def get_jobs(request: Request) -> Response:
+    user: KhojUser = request.user.object
+    tasks: list[Job] = state.scheduler.get_jobs()
+
+    # Collate all tasks assigned by user that are still active
+    tasks_info = [
+        {"id": task.id, "name": task.name, "next": task.next_run_time.strftime("%Y-%m-%d %H:%M")}
+        for task in tasks
+        if task.id.startswith(f"job_{user.uuid}_")
+    ]
+
+    # Return tasks information as a JSON response
+    return Response(content=json.dumps(tasks_info), media_type="application/json", status_code=200)
+
+
+@api.delete("/task", response_class=Response)
+@requires(["authenticated"])
+def delete_job(request: Request, task_id: str) -> Response:
+    user: KhojUser = request.user.object
+
+    # Perform validation checks
+    # Check if user is allowed to delete this task id
+    if not task_id.startswith(f"job_{user.uuid}_"):
+        return Response(content="Unauthorized job deletion request", status_code=403)
+    # Check if task with this task id exist
+    task: Job = state.scheduler.get_job(job_id=task_id)
+    if not task:
+        return Response(content="Invalid job", status_code=403)
+
+    # Collate info about user task to be deleted
+    task_info = {"id": task.id, "name": task.name, "next": task.next_run_time.strftime("%Y-%m-%d %H:%MS")}
+
+    # Delete job
+    task.remove()
+
+    # Return delete task information as a JSON response
+    return Response(content=json.dumps(task_info), media_type="application/json", status_code=200)
