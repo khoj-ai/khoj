@@ -273,7 +273,7 @@ def test_get_api_config_types(client, sample_org_data, default_user: KhojUser):
 
     # Assert
     assert response.status_code == 200
-    assert response.json() == ["all", "org", "image", "plaintext"]
+    assert response.json() == ["all", "org", "plaintext"]
 
 
 # ----------------------------------------------------------------------------------------------------
