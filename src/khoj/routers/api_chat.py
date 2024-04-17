@@ -2,6 +2,7 @@ import functools
 import json
 import logging
 import math
+from datetime import datetime
 from typing import Dict, Optional
 from urllib.parse import unquote
 
@@ -362,6 +363,7 @@ async def websocket_endpoint(
             await send_rate_limit_message(e.detail)
             break
 
+        user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         conversation_commands = [get_conversation_command(query=q, any_references=True)]
 
         await send_status_update(f"**👀 Understanding Query**: {q}")
@@ -432,6 +434,7 @@ async def websocket_endpoint(
                 llm_response,
                 user,
                 meta_log,
+                user_message_time,
                 intent_type="reminder",
                 client_application=websocket.user.client_app,
                 conversation_id=conversation_id,
@@ -531,6 +534,7 @@ async def websocket_endpoint(
                 image,
                 user,
                 meta_log,
+                user_message_time,
                 intent_type=intent_type,
                 inferred_queries=[improved_image_prompt],
                 client_application=websocket.user.client_app,
@@ -607,6 +611,7 @@ async def chat(
 ) -> Response:
     user: KhojUser = request.user.object
     q = unquote(q)
+    user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"Chat request by {user.username}: {q}")
 
     await is_ready_to_chat(user)
@@ -689,6 +694,7 @@ async def chat(
             llm_response,
             user,
             meta_log,
+            user_message_time,
             intent_type="reminder",
             client_application=request.user.client_app,
             conversation_id=conversation_id,
@@ -765,6 +771,7 @@ async def chat(
             image,
             user,
             meta_log,
+            user_message_time,
             intent_type=intent_type,
             inferred_queries=[improved_image_prompt],
             client_application=request.user.client_app,
