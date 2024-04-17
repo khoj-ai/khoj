@@ -465,14 +465,14 @@
             // Generate backend API URL to execute query
             let chatApi = `${hostURL}/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}&region=${region}&city=${city}&country=${countryName}`;
 
-            let new_response = document.createElement("div");
-            new_response.classList.add("chat-message", "khoj");
-            new_response.attributes["data-meta"] = "🏮 Khoj at " + formatDate(new Date());
-            chat_body.appendChild(new_response);
+            let newResponseEl = document.createElement("div");
+            newResponseEl.classList.add("chat-message", "khoj");
+            newResponseEl.attributes["data-meta"] = "🏮 Khoj at " + formatDate(new Date());
+            chat_body.appendChild(newResponseEl);
 
-            let newResponseText = document.createElement("div");
-            newResponseText.classList.add("chat-message-text", "khoj");
-            new_response.appendChild(newResponseText);
+            let newResponseTextEl = document.createElement("div");
+            newResponseTextEl.classList.add("chat-message-text", "khoj");
+            newResponseEl.appendChild(newResponseTextEl);
 
             // Temporary status message to indicate that Khoj is thinking
             let loadingEllipsis = document.createElement("div");
@@ -495,7 +495,7 @@
             loadingEllipsis.appendChild(thirdEllipsis);
             loadingEllipsis.appendChild(fourthEllipsis);
 
-            newResponseText.appendChild(loadingEllipsis);
+            newResponseTextEl.appendChild(loadingEllipsis);
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
 
             let chatTooltip = document.getElementById("chat-tooltip");
@@ -540,11 +540,11 @@
                     // If the chunk is not a JSON object, just display it as is
                     rawResponse += chunk;
                 } finally {
-                    newResponseText.innerHTML = "";
-                    newResponseText.appendChild(formatHTMLMessage(rawResponse));
+                    newResponseTextEl.innerHTML = "";
+                    newResponseTextEl.appendChild(formatHTMLMessage(rawResponse));
 
                     if (references != null) {
-                        newResponseText.appendChild(references);
+                        newResponseTextEl.appendChild(references);
                     }
 
                     document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
@@ -563,7 +563,7 @@
                         if (done) {
                             // Append any references after all the data has been streamed
                             if (references != {}) {
-                                newResponseText.appendChild(createReferenceSection(references));
+                                newResponseTextEl.appendChild(createReferenceSection(references));
                             }
                             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
                             document.getElementById("chat-input").removeAttribute("disabled");
@@ -576,8 +576,8 @@
                         if (chunk.includes("### compiled references:")) {
                             const additionalResponse = chunk.split("### compiled references:")[0];
                             rawResponse += additionalResponse;
-                            newResponseText.innerHTML = "";
-                            newResponseText.appendChild(formatHTMLMessage(rawResponse));
+                            newResponseTextEl.innerHTML = "";
+                            newResponseTextEl.appendChild(formatHTMLMessage(rawResponse));
 
                             const rawReference = chunk.split("### compiled references:")[1];
                             const rawReferenceAsJson = JSON.parse(rawReference);
@@ -589,14 +589,14 @@
                             readStream();
                         } else {
                             // Display response from Khoj
-                            if (newResponseText.getElementsByClassName("lds-ellipsis").length > 0) {
-                                newResponseText.removeChild(loadingEllipsis);
+                            if (newResponseTextEl.getElementsByClassName("lds-ellipsis").length > 0) {
+                                newResponseTextEl.removeChild(loadingEllipsis);
                             }
 
                             // If the chunk is not a JSON object, just display it as is
                             rawResponse += chunk;
-                            newResponseText.innerHTML = "";
-                            newResponseText.appendChild(formatHTMLMessage(rawResponse));
+                            newResponseTextEl.innerHTML = "";
+                            newResponseTextEl.appendChild(formatHTMLMessage(rawResponse));
 
                             readStream();
                         }

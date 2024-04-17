@@ -61,8 +61,8 @@ To get started, just start typing below. You can also type / to see a list of co
         let waitingForLocation = true;
 
         let websocketState = {
-            newResponseText: null,
-            newResponseElement: null,
+            newResponseTextEl: null,
+            newResponseEl: null,
             loadingEllipsis: null,
             references: {},
             rawResponse: "",
@@ -459,8 +459,6 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
         async function chat() {
-            // Extract required fields for search from form
-
             if (websocket) {
                 sendMessageViaWebSocket();
                 return;
@@ -899,8 +897,8 @@ To get started, just start typing below. You can also type / to see a list of co
             }
 
             websocketState = {
-                newResponseText: null,
-                newResponseElement: null,
+                newResponseTextEl: null,
+                newResponseEl: null,
                 loadingEllipsis: null,
                 references: {},
                 rawResponse: "",
@@ -920,12 +918,12 @@ To get started, just start typing below. You can also type / to see a list of co
                     } else if(chunk == "end_llm_response") {
                         console.log("Stopped streaming", new Date());
                         // Append any references after all the data has been streamed
-                        finalizeChatBodyResponse(websocketState.references, websocketState.newResponseText);
+                        finalizeChatBodyResponse(websocketState.references, websocketState.newResponseTextEl);
 
                         // Reset variables
                         websocketState = {
-                            newResponseText: null,
-                            newResponseElement: null,
+                            newResponseTextEl: null,
+                            newResponseEl: null,
                             loadingEllipsis: null,
                             references: {},
                             rawResponse: "",
@@ -950,9 +948,9 @@ To get started, just start typing below. You can also type / to see a list of co
                                     websocketState.rawResponse = rawResponse;
                                     websocketState.references = references;
                                 } else if (chunk.type == "status") {
-                                    handleStreamResponse(websocketState.newResponseText, chunk.message, null, false);
+                                    handleStreamResponse(websocketState.newResponseTextEl, chunk.message, null, false);
                                 } else if (chunk.type == "rate_limit") {
-                                    handleStreamResponse(websocketState.newResponseText, chunk.message, websocketState.loadingEllipsis, true);
+                                    handleStreamResponse(websocketState.newResponseTextEl, chunk.message, websocketState.loadingEllipsis, true);
                                 } else {
                                     rawResponse = chunk.response;
                                 }
@@ -961,21 +959,21 @@ To get started, just start typing below. You can also type / to see a list of co
                                 websocketState.rawResponse += chunk;
                             } finally {
                                 if (chunk.type != "status" && chunk.type != "rate_limit") {
-                                    addMessageToChatBody(websocketState.rawResponse, websocketState.newResponseText, websocketState.references);
+                                    addMessageToChatBody(websocketState.rawResponse, websocketState.newResponseTextEl, websocketState.references);
                                 }
                             }
                         } else {
 
                             // Handle streamed response of type text/event-stream or text/plain
                             if (chunk && chunk.includes("### compiled references:")) {
-                                ({ rawResponse, references } = handleCompiledReferences(websocketState.newResponseText, chunk, websocketState.references, websocketState.rawResponse));
+                                ({ rawResponse, references } = handleCompiledReferences(websocketState.newResponseTextEl, chunk, websocketState.references, websocketState.rawResponse));
                                 websocketState.rawResponse = rawResponse;
                                 websocketState.references = references;
                             } else {
                                 // If the chunk is not a JSON object, just display it as is
                                 websocketState.rawResponse += chunk;
-                                if (websocketState.newResponseText) {
-                                    handleStreamResponse(websocketState.newResponseText, websocketState.rawResponse, websocketState.loadingEllipsis);
+                                if (websocketState.newResponseTextEl) {
+                                    handleStreamResponse(websocketState.newResponseTextEl, websocketState.rawResponse, websocketState.loadingEllipsis);
                                 }
                             }
 
@@ -1024,19 +1022,19 @@ To get started, just start typing below. You can also type / to see a list of co
             autoResize();
             document.getElementById("chat-input").setAttribute("disabled", "disabled");
 
-            let newResponseElement = document.createElement("div");
-            newResponseElement.classList.add("chat-message", "khoj");
-            newResponseElement.attributes["data-meta"] = "🏮 Khoj at " + formatDate(new Date());
-            chatBody.appendChild(newResponseElement);
+            let newResponseEl = document.createElement("div");
+            newResponseEl.classList.add("chat-message", "khoj");
+            newResponseEl.attributes["data-meta"] = "🏮 Khoj at " + formatDate(new Date());
+            chatBody.appendChild(newResponseEl);
 
-            let newResponseText = document.createElement("div");
-            newResponseText.classList.add("chat-message-text", "khoj");
-            newResponseElement.appendChild(newResponseText);
+            let newResponseTextEl = document.createElement("div");
+            newResponseTextEl.classList.add("chat-message-text", "khoj");
+            newResponseEl.appendChild(newResponseTextEl);
 
             // Temporary status message to indicate that Khoj is thinking
             let loadingEllipsis = createLoadingEllipse();
 
-            newResponseText.appendChild(loadingEllipsis);
+            newResponseTextEl.appendChild(loadingEllipsis);
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
 
             let chatTooltip = document.getElementById("chat-tooltip");
@@ -1051,8 +1049,8 @@ To get started, just start typing below. You can also type / to see a list of co
             let references = {};
 
             websocketState = {
-                newResponseText,
-                newResponseElement,
+                newResponseTextEl,
+                newResponseEl,
                 loadingEllipsis,
                 references,
                 rawResponse,
