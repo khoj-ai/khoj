@@ -162,7 +162,12 @@
         <div class="section finalize-actions general-settings">
             <div class="section-cards">
                 <div class="finalize-buttons">
-                    <button id="sync" type="submit" title="Regenerate index from scratch">♻ Sync</button>
+                    <button id="sync" type="submit" title="Regenerate index from scratch">
+                        <img class="card-icon" src="/static/assets/icons/sync.svg" alt="Sync">
+                        <h3 class="card-title">
+                            Sync
+                        </h3>
+                    </button>
                 </div>
             </div>
         </div>
@@ -484,7 +489,7 @@
             errorText="Unable to sync. Raise issue on Khoj <a href='https://github.com/khoj-ai/khoj/issues'>Github</a> or <a href='https://discord.gg/BDgyabRM6e'>Discord</a>.",
             button=sync,
             loadingText="Syncing...",
-            emoji="♻");
+            emoji="");
     });
 
     function updateIndex(force, successText, errorText, button, loadingText, emoji) {
