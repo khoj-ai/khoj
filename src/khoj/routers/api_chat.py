@@ -211,7 +211,7 @@ async def clear_chat_history(
 
 @api_chat.post("/public/fork")
 @requires(["authenticated"])
-def duplicate_chat_history_public_conversation(
+def fork_public_conversation(
     request: Request,
     common: CommonQueryParams,
     public_conversation_slug: str,

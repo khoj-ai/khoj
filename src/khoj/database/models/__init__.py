@@ -243,7 +243,7 @@ class PublicConversation(BaseModel):
 
 
 @receiver(pre_save, sender=PublicConversation)
-def verify_agent(sender, instance, **kwargs):
+def verify_public_conversation(sender, instance, **kwargs):
     # check if this is a new instance
     if instance._state.adding:
         slug = re.sub(r"\W+", "-", instance.slug.lower())[:50]
