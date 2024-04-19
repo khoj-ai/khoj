@@ -1066,11 +1066,12 @@
                                 threeDotMenu.appendChild(conversationMenu);
 
                                 let deleteButton = document.createElement('button');
+                                deleteButton.type = "button";
                                 deleteButton.innerHTML = "Delete";
                                 deleteButton.classList.add("delete-conversation-button");
                                 deleteButton.classList.add("three-dot-menu-button-item");
-                                deleteButton.addEventListener('click', function() {
-                                    // Ask for confirmation before deleting chat session
+                                deleteButton.addEventListener('click', function(event) {
+                                    event.preventDefault();
                                     let confirmation = confirm('Are you sure you want to delete this chat session?');
                                     if (!confirmation) return;
                                     let deleteURL = `/api/chat/history?client=web&conversation_id=${incomingConversationId}`;
@@ -1882,6 +1883,7 @@
             text-align: left;
             display: flex;
             position: relative;
+            margin: 0 8px;
         }
 
         .three-dot-menu {

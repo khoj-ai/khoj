@@ -12,7 +12,12 @@ from starlette.authentication import requires
 from starlette.websockets import WebSocketDisconnect
 from websockets import ConnectionClosedOK
 
-from khoj.database.adapters import ConversationAdapters, EntryAdapters, aget_user_name
+from khoj.database.adapters import (
+    ConversationAdapters,
+    EntryAdapters,
+    PublicConversationAdapters,
+    aget_user_name,
+)
 from khoj.database.models import KhojUser
 from khoj.processor.conversation.prompts import (
     help_message,
@@ -128,6 +133,60 @@ def chat_history(
     return {"status": "ok", "response": meta_log}
 
 
+@api_chat.get("/public/history")
+def chat_public_history(
+    request: Request,
+    common: CommonQueryParams,
+    public_conversation_slug: str,
+    n: Optional[int] = None,
+):
+    user = request.user.object if request.user.is_authenticated else None
+
+    # Load Conversation History
+    conversation = PublicConversationAdapters.get_public_conversation_by_slug(public_conversation_slug)
+
+    if conversation is None:
+        return Response(
+            content=json.dumps({"status": "error", "message": f"Conversation: {public_conversation_slug} not found"}),
+            status_code=404,
+        )
+
+    agent_metadata = None
+    if conversation.agent:
+        agent_metadata = {
+            "slug": conversation.agent.slug,
+            "name": conversation.agent.name,
+            "avatar": conversation.agent.avatar,
+            "isCreator": conversation.agent.creator == user,
+        }
+
+    meta_log = conversation.conversation_log
+    meta_log.update(
+        {
+            "conversation_id": conversation.id,
+            "slug": conversation.title if conversation.title else conversation.slug,
+            "agent": agent_metadata,
+        }
+    )
+
+    if n:
+        # Get latest N messages if N > 0
+        if n > 0 and meta_log.get("chat"):
+            meta_log["chat"] = meta_log["chat"][-n:]
+        # Else return all messages except latest N
+        elif n < 0 and meta_log.get("chat"):
+            meta_log["chat"] = meta_log["chat"][:n]
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="chat_history",
+        **common.__dict__,
+    )
+
+    return {"status": "ok", "response": meta_log}
+
+
 @api_chat.delete("/history")
 @requires(["authenticated"])
 async def clear_chat_history(
@@ -148,6 +207,66 @@ async def clear_chat_history(
     )
 
     return {"status": "ok", "message": "Conversation history cleared"}
+
+
+@api_chat.post("/public/fork")
+@requires(["authenticated"])
+def duplicate_chat_history_public_conversation(
+    request: Request,
+    common: CommonQueryParams,
+    public_conversation_slug: str,
+):
+    user = request.user.object
+
+    # Load Conversation History
+    public_conversation = PublicConversationAdapters.get_public_conversation_by_slug(public_conversation_slug)
+
+    # Duplicate Conversation History to Public Conversation
+    ConversationAdapters.create_conversation_from_public_conversation(
+        user, public_conversation, request.user.client_app
+    )
+
+    chat_metadata = {"forked_conversation": public_conversation.slug}
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="fork_public_conversation",
+        **common.__dict__,
+        metadata=chat_metadata,
+    )
+
+    redirect_uri = str(request.app.url_path_for("chat_page"))
+
+    return Response(status_code=200, content=json.dumps({"status": "ok", "next_url": redirect_uri}))
+
+
+@api_chat.post("/public/duplicate")
+@requires(["authenticated"])
+def duplicate_chat_history_public_conversation(
+    request: Request,
+    common: CommonQueryParams,
+    conversation_id: int,
+):
+    user = request.user.object
+
+    # Duplicate Conversation History to Public Conversation
+    conversation = ConversationAdapters.get_conversation_by_user(user, request.user.client_app, conversation_id)
+
+    public_conversation = ConversationAdapters.make_public_conversation_copy(conversation)
+
+    public_conversation_url = PublicConversationAdapters.get_public_conversation_url(public_conversation)
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="duplicate_chat_history_public_conversation",
+        **common.__dict__,
+    )
+
+    return Response(
+        status_code=200, content=json.dumps({"status": "ok", "url": f"{request.client.host}{public_conversation_url}"})
+    )
 
 
 @api_chat.get("/sessions")

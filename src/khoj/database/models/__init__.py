@@ -1,3 +1,4 @@
+import re
 import uuid
 from random import choice
 
@@ -231,6 +232,32 @@ class Conversation(BaseModel):
     slug = models.CharField(max_length=200, default=None, null=True, blank=True)
     title = models.CharField(max_length=200, default=None, null=True, blank=True)
     agent = models.ForeignKey(Agent, on_delete=models.SET_NULL, default=None, null=True, blank=True)
+
+
+class PublicConversation(BaseModel):
+    source_owner = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
+    conversation_log = models.JSONField(default=dict)
+    slug = models.CharField(max_length=200, default=None, null=True, blank=True)
+    title = models.CharField(max_length=200, default=None, null=True, blank=True)
+    agent = models.ForeignKey(Agent, on_delete=models.SET_NULL, default=None, null=True, blank=True)
+
+
+@receiver(pre_save, sender=PublicConversation)
+def verify_agent(sender, instance, **kwargs):
+    # check if this is a new instance
+    if instance._state.adding:
+        slug = re.sub(r"\W+", "-", instance.slug.lower())[:50]
+        observed_random_numbers = set()
+        while PublicConversation.objects.filter(slug=slug).exists():
+            try:
+                random_number = choice([i for i in range(0, 1000) if i not in observed_random_numbers])
+            except IndexError:
+                raise ValidationError(
+                    "Unable to generate a unique slug for the Public Conversation. Please try again later."
+                )
+            observed_random_numbers.add(random_number)
+            slug = f"{slug}-{random_number}"
+        instance.slug = slug
 
 
 class ReflectiveQuestion(BaseModel):
