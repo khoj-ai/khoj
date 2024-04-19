@@ -890,8 +890,8 @@
         function renderFirstRunSetupMessage() {
             first_run_message = `<p class="first_run_message_heading">Hi 👋🏾, to get started:<p>
             <ol>
-                <li class="inline-chat-text">Generate an API token <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToWebSettings()">Khoj Web settings</a></li>
-                <li class="inline-chat-text">Paste it into the API Key field <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToSettings()">Khoj Desktop settings</a></li>
+                <li class="first_run_message_text">Generate an API token <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToWebSettings()">Khoj Web settings</a></li>
+                <li class="first_run_message_text">Paste it into the API Key field <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToSettings()">Khoj Desktop settings</a></li>
             </ol>`
             .trim()
             .replace(/(\r\n|\n|\r)/gm, "");
@@ -1724,7 +1724,7 @@
         padding: 10px;
         }
 
-        .inline-chat-text {
+        .first_run_message_text {
         font-size: 18px;
         font-weight: 300;
         line-height: 1.5em;
