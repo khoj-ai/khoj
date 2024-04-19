@@ -692,6 +692,12 @@ Learn more [here](https://khoj.dev).
         }
 
         function createNewConversation() {
+
+            if (!isLoggedIn) {
+                document.getElementById("login-modal").style.display = "block";
+                return;
+            }
+
             // Create a modal that appears in the middle of the entire screen. It should have a form to create a new conversation.
             let modal = document.createElement('div');
             modal.classList.add("modal");
@@ -904,10 +910,6 @@ Learn more [here](https://khoj.dev).
                             <svg id="send-button-img" onclick="continueConversation()" class="input-row-button-img" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                 <path fill-rule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8zm15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11.5z"/>
                             </svg>
-                            <svg id="stop-send-button-img" onclick="cancelSendMessage()" style="display: none" class="input-row-button-img" alt="Stop Message Send" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                <circle id="countdown-circle" class="countdown-circle" cx="8" cy="8" r="7" />
-                                <path d="M5 6.5A1.5 1.5 0 0 1 6.5 5h3A1.5 1.5 0 0 1 11 6.5v3A1.5 1.5 0 0 1 9.5 11h-3A1.5 1.5 0 0 1 5 9.5v-3z"/>
-                            </svg>
                         </button>
                     </div>
                 </div>
@@ -972,31 +974,6 @@ Learn more [here](https://khoj.dev).
             grid-column-gap: 10px;
             grid-row-gap: 10px;
             margin: 10px;
-        }
-
-        div#question-starters {
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            grid-column-gap: 8px;
-        }
-
-        button.question-starter {
-            background: var(--background-color);
-            color: var(--main-text-color);
-            border: 1px solid var(--main-text-color);
-            border-radius: 5px;
-            padding: 5px;
-            font-size: 14px;
-            font-weight: 300;
-            line-height: 1.5em;
-            cursor: pointer;
-            transition: background 0.2s ease-in-out;
-            text-align: left;
-            max-height: 75px;
-            transition: max-height 0.3s ease-in-out;
-            overflow: hidden;
-        }
-        button.question-starter:hover {
-            background: var(--primary-hover);
         }
 
         button.reference-button {
@@ -1184,13 +1161,6 @@ Learn more [here](https://khoj.dev).
         }
 
         /* add chat metatdata to bottom of bubble */
-        .chat-message::after {
-            content: attr(data-meta);
-            display: block;
-            font-size: x-small;
-            color: var(--main-text-color);
-            margin: -8px 4px 0px 0px;
-        }
         /* move message by khoj to left */
         .chat-message.khoj {
             margin-left: auto;
@@ -1264,34 +1234,11 @@ Learn more [here](https://khoj.dev).
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        /* add left protrusion to khoj chat bubble */
-        .chat-message-text.khoj:after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: -7px;
-            border: 10px solid transparent;
-            border-top-color: var(--primary);
-            border-bottom: 0;
-            transform: rotate(-60deg);
-        }
         /* color chat bubble by you dark grey */
         .chat-message-text.you {
             color: #f8fafc;
             background: #475569;
             margin-right: auto;
-        }
-        /* add right protrusion to you chat bubble */
-        .chat-message-text.you:after {
-            content: '';
-            position: absolute;
-            top: 91%;
-            right: -2px;
-            border: 10px solid transparent;
-            border-left-color: var(--main-text-color);
-            border-right: 0;
-            margin-top: -10px;
-            transform: rotate(-60deg)
         }
         img.text-to-image {
             max-width: 60%;
@@ -1359,22 +1306,6 @@ Learn more [here](https://khoj.dev).
             width: 28px;
             height: 28px;
             transform: rotateY(-180deg) rotateZ(-90deg);
-        }
-        #countdown-circle {
-            stroke-dasharray: 44px;  /* The circumference of the circle with 7px radius */
-            stroke-dashoffset: 0px;
-            stroke-linecap: round;
-            stroke-width: 1px;
-            stroke: var(--main-text-color);
-            fill: none;
-        }
-        @keyframes countdown {
-            from {
-                stroke-dashoffset: 0px;
-            }
-            to {
-                stroke-dashoffset: -44px;  /* The circumference of the circle with 7px radius */
-            }
         }
 
         .option-enabled {
