@@ -888,10 +888,10 @@
         }
 
         function renderFirstRunSetupMessage() {
-            first_run_message = `<p class="first_run_message_heading">Hi 👋🏾, to get started:<p>
+            first_run_message = `<p class="first-run-message-heading">Hi 👋🏾, to get started:<p>
             <ol>
-                <li class="first_run_message_text">Generate an API token <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToWebSettings()">Khoj Web settings</a></li>
-                <li class="first_run_message_text">Paste it into the API Key field <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToSettings()">Khoj Desktop settings</a></li>
+                <li class="first-run-message-text">Generate an API token <a class='first-run-message-link' href="#" onclick="window.navigateAPI.navigateToWebSettings()">Khoj Web settings</a></li>
+                <li class="first-run-message-text">Paste it into the API Key field <a class='first-run-message-link' href="#" onclick="window.navigateAPI.navigateToSettings()">Khoj Desktop settings</a></li>
             </ol>`
             .trim()
             .replace(/(\r\n|\n|\r)/gm, "");
@@ -1715,7 +1715,7 @@
             box-shadow: 0 0 16px var(--primary);
         }
 
-        .first_run_message_heading {
+        .first-run-message-heading {
         font-size: 20px;
         font-weight: 300;
         line-height: 1.5em;
@@ -1724,7 +1724,7 @@
         padding: 10px;
         }
 
-        .first_run_message_text {
+        .first-run-message-text {
         font-size: 18px;
         font-weight: 300;
         line-height: 1.5em;
@@ -1746,6 +1746,21 @@
         }
 
         a.inline-chat-link:hover {
+        background-color: #475569;
+        }
+        a.first-run-message-link {
+        display: block;
+        text-align: center;
+        font-size: 14px;
+        color: #fff;
+        padding: 6px 15px;
+        border-radius: 999px;
+        text-decoration: none;
+        background-color: rgba(71, 85, 105, 0.6);
+        transition: background-color 0.3s ease-in-out;
+        }
+
+        a.first-run-message-link:hover {
         background-color: #475569;
         }
 
