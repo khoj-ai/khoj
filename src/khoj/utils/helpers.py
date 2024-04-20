@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Optional, Union
 from urllib.parse import urlparse
 
 import psutil
+import requests
 import torch
 from asgiref.sync import sync_to_async
 from magika import Magika
@@ -395,5 +396,13 @@ def is_valid_url(url: str) -> bool:
     try:
         result = urlparse(url.strip())
         return all([result.scheme, result.netloc])
+    except:
+        return False
+
+
+def is_internet_connected():
+    try:
+        response = requests.head("https://www.google.com")
+        return response.status_code == 200
     except:
         return False

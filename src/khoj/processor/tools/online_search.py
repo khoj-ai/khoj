@@ -15,7 +15,7 @@ from khoj.routers.helpers import (
     generate_online_subqueries,
     infer_webpage_urls,
 )
-from khoj.utils.helpers import is_none_or_empty, timer
+from khoj.utils.helpers import is_internet_connected, is_none_or_empty, timer
 from khoj.utils.rawconfig import LocationData
 
 logger = logging.getLogger(__name__)
@@ -47,6 +47,9 @@ async def search_online(
 ):
     if not online_search_enabled():
         logger.warn("SERPER_DEV_API_KEY is not set")
+        return {}
+    if not is_internet_connected():
+        logger.warn("Cannot search online as not connected to internet")
         return {}
 
     # Breakdown the query into subqueries to get the correct answer
