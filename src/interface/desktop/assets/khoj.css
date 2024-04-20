@@ -116,9 +116,6 @@ nav.khoj-nav {
   .khoj-status-box .khoj-status-text {
     display: none;
   }
-  .khoj-status-box:hover .khoj-status-text {
-    display: block;
-  }
 
 a.khoj-nav {
     display: flex;
