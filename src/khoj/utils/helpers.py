@@ -17,6 +17,8 @@ from time import perf_counter
 from typing import TYPE_CHECKING, Optional, Union
 from urllib.parse import urlparse
 
+import psutil
+import requests
 import torch
 from asgiref.sync import sync_to_async
 from magika import Magika
@@ -233,6 +235,10 @@ def get_server_id():
     return server_id
 
 
+def telemetry_disabled(app_config: AppConfig):
+    return not app_config or not app_config.should_log_telemetry
+
+
 def log_telemetry(
     telemetry_type: str,
     api: str = None,
@@ -242,7 +248,7 @@ def log_telemetry(
 ):
     """Log basic app usage telemetry like client, os, api called"""
     # Do not log usage telemetry, if telemetry is disabled via app config
-    if not app_config or not app_config.should_log_telemetry:
+    if telemetry_disabled(app_config):
         return []
 
     if properties.get("server_id") is None:
@@ -265,6 +271,17 @@ def log_telemetry(
 
     # Log telemetry data to telemetry endpoint
     return request_body
+
+
+def get_device_memory() -> int:
+    """Get device memory in GB"""
+    device = get_device()
+    if device.type == "cuda":
+        return torch.cuda.get_device_properties(device).total_memory
+    elif device.type == "mps":
+        return torch.mps.driver_allocated_memory()
+    else:
+        return psutil.virtual_memory().total
 
 
 def get_device() -> torch.device:
@@ -311,6 +328,20 @@ mode_descriptions_for_llm = {
     ConversationCommand.Image: "Use this if you think the user is requesting an image or visual response to their query.",
     ConversationCommand.Default: "Use this if the other response modes don't seem to fit the query.",
 }
+
+
+class ImageIntentType(Enum):
+    """
+    Chat message intent by Khoj for image responses.
+    Marks the schema used to reference image in chat messages
+    """
+
+    # Images as Inline PNG
+    TEXT_TO_IMAGE = "text-to-image"
+    # Images as URLs
+    TEXT_TO_IMAGE2 = "text-to-image2"
+    # Images as Inline WebP
+    TEXT_TO_IMAGE_V3 = "text-to-image-v3"
 
 
 def generate_random_name():
@@ -365,5 +396,13 @@ def is_valid_url(url: str) -> bool:
     try:
         result = urlparse(url.strip())
         return all([result.scheme, result.netloc])
+    except:
+        return False
+
+
+def is_internet_connected():
+    try:
+        response = requests.head("https://www.google.com")
+        return response.status_code == 200
     except:
         return False

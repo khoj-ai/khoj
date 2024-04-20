@@ -14,7 +14,7 @@ import threading
 import warnings
 from importlib.metadata import version
 
-from khoj.utils.helpers import in_debug_mode
+from khoj.utils.helpers import in_debug_mode, is_env_var_true
 
 # Ignore non-actionable warnings
 warnings.filterwarnings("ignore", message=r"snapshot_download.py has been made private", category=FutureWarning)
@@ -73,7 +73,8 @@ app.add_middleware(
         "http://localhost",  # To allow access from Obsidian Android app
         "http://localhost:*",
         "http://127.0.0.1:*",
-        f"https://{KHOJ_DOMAIN}",
+        f"https://{KHOJ_DOMAIN}" if not is_env_var_true("KHOJ_NO_HTTPS") else f"http://{KHOJ_DOMAIN}",
+        f"https://{KHOJ_DOMAIN}:*" if not is_env_var_true("KHOJ_NO_HTTPS") else f"http://{KHOJ_DOMAIN}:*",
         "app://khoj.dev",
     ],
     allow_credentials=True,
@@ -165,7 +166,7 @@ def start_server(app, host=None, port=None, socket=None):
             app,
             host=host,
             port=port,
-            log_level="debug" if in_debug_mode() else "info",
+            log_level="debug" if state.verbose > 1 else "info",
             use_colors=True,
             log_config=None,
             timeout_keep_alive=60,

@@ -1,5 +1,6 @@
 import json
 import logging
+import math
 import queue
 from datetime import datetime
 from time import perf_counter
@@ -141,14 +142,12 @@ def generate_chatml_messages_with_context(
     tokenizer_name=None,
 ):
     """Generate messages for ChatGPT with context from previous conversation"""
-    # Set max prompt size from user config, pre-configured for model or to default prompt size
-    try:
-        max_prompt_size = max_prompt_size or model_to_prompt_size[model_name]
-    except:
-        max_prompt_size = 2000
-        logger.warning(
-            f"Fallback to default prompt size: {max_prompt_size}.\nConfigure max_prompt_size for unsupported model: {model_name} in Khoj settings to longer context window."
-        )
+    # Set max prompt size from user config or based on pre-configured for model and machine specs
+    if not max_prompt_size:
+        if loaded_model:
+            max_prompt_size = min(loaded_model.n_ctx(), model_to_prompt_size.get(model_name, math.inf))
+        else:
+            max_prompt_size = model_to_prompt_size.get(model_name, 2000)
 
     # Scale lookback turns proportional to max prompt size supported by model
     lookback_turns = max_prompt_size // 750
@@ -187,7 +186,7 @@ def truncate_messages(
     max_prompt_size,
     model_name: str,
     loaded_model: Optional[Llama] = None,
-    tokenizer_name=None,
+    tokenizer_name="hf-internal-testing/llama-tokenizer",
 ) -> list[ChatMessage]:
     """Truncate messages to fit within max prompt size supported by model"""
 
@@ -197,15 +196,11 @@ def truncate_messages(
         elif model_name.startswith("gpt-"):
             encoder = tiktoken.encoding_for_model(model_name)
         else:
-            try:
-                encoder = download_model(model_name).tokenizer()
-            except:
-                encoder = AutoTokenizer.from_pretrained(tokenizer_name or model_to_tokenizer[model_name])
+            encoder = download_model(model_name).tokenizer()
     except:
-        default_tokenizer = "hf-internal-testing/llama-tokenizer"
-        encoder = AutoTokenizer.from_pretrained(default_tokenizer)
+        encoder = AutoTokenizer.from_pretrained(tokenizer_name)
         logger.warning(
-            f"Fallback to default chat model tokenizer: {default_tokenizer}.\nConfigure tokenizer for unsupported model: {model_name} in Khoj settings to improve context stuffing."
+            f"Fallback to default chat model tokenizer: {tokenizer_name}.\nConfigure tokenizer for unsupported model: {model_name} in Khoj settings to improve context stuffing."
         )
 
     # Extract system message from messages

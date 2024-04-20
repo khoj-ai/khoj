@@ -5,7 +5,7 @@ import secrets
 import sys
 from datetime import date, datetime, timedelta, timezone
 from enum import Enum
-from typing import List, Optional, Type
+from typing import Callable, List, Optional, Type
 
 from asgiref.sync import sync_to_async
 from django.contrib.sessions.backends.db import SessionStore
@@ -30,6 +30,7 @@ from khoj.database.models import (
     NotionConfig,
     OfflineChatProcessorConversationConfig,
     OpenAIProcessorConversationConfig,
+    ProcessLock,
     ReflectiveQuestion,
     SearchModelConfig,
     SpeechToTextModelOptions,
@@ -45,7 +46,7 @@ from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
 from khoj.utils import state
 from khoj.utils.config import OfflineChatProcessorModel
-from khoj.utils.helpers import generate_random_name, is_none_or_empty
+from khoj.utils.helpers import generate_random_name, is_none_or_empty, timer
 
 logger = logging.getLogger(__name__)
 
@@ -197,9 +198,6 @@ def get_user_name(user: KhojUser):
 
 
 def get_user_photo(user: KhojUser):
-    full_name = user.get_full_name()
-    if not is_none_or_empty(full_name):
-        return full_name
     google_profile: GoogleUser = GoogleUser.objects.filter(user=user).first()
     if google_profile:
         return google_profile.picture
@@ -403,6 +401,58 @@ async def aget_user_search_model(user: KhojUser):
     if not config:
         return None
     return config.setting
+
+
+class ProcessLockAdapters:
+    @staticmethod
+    def get_process_lock(process_name: str):
+        return ProcessLock.objects.filter(name=process_name).first()
+
+    @staticmethod
+    def set_process_lock(process_name: str, max_duration_in_seconds: int = 600):
+        return ProcessLock.objects.create(name=process_name, max_duration_in_seconds=max_duration_in_seconds)
+
+    @staticmethod
+    def is_process_locked(process_name: str):
+        process_lock = ProcessLock.objects.filter(name=process_name).first()
+        if not process_lock:
+            return False
+        if process_lock.started_at + timedelta(seconds=process_lock.max_duration_in_seconds) < datetime.now(
+            tz=timezone.utc
+        ):
+            process_lock.delete()
+            logger.info(f"🔓 Deleted stale {process_name} process lock on timeout")
+            return False
+        return True
+
+    @staticmethod
+    def remove_process_lock(process_name: str):
+        return ProcessLock.objects.filter(name=process_name).delete()
+
+    @staticmethod
+    def run_with_lock(func: Callable, operation: ProcessLock.Operation, max_duration_in_seconds: int = 600):
+        # Exit early if process lock is already taken
+        if ProcessLockAdapters.is_process_locked(operation):
+            logger.info(f"🔒 Skip executing {func} as {operation} lock is already taken")
+            return
+
+        success = False
+        try:
+            # Set process lock
+            ProcessLockAdapters.set_process_lock(operation, max_duration_in_seconds)
+            logger.info(f"🔐 Locked {operation} to execute {func}")
+
+            # Execute Function
+            with timer(f"🔒 Run {func} with {operation} process lock", logger):
+                func()
+            success = True
+        except Exception as e:
+            logger.error(f"🚨 Error executing {func} with {operation} process lock: {e}", exc_info=True)
+            success = False
+        finally:
+            # Remove Process Lock
+            ProcessLockAdapters.remove_process_lock(operation)
+            logger.info(f"🔓 Unlocked {operation} process after executing {func} {'Succeeded' if success else 'Failed'}")
 
 
 class ClientApplicationAdapters:

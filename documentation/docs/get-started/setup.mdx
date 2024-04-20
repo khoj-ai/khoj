@@ -134,7 +134,7 @@ python -m pip install khoj-assistant
  # CPU
  python -m pip install khoj-assistant
  # NVIDIA (CUDA) GPU
- CMAKE_ARGS="DLLAMA_CUBLAS=on" FORCE_CMAKE=1 python -m pip install khoj-assistant
+ CMAKE_ARGS="DLLAMA_CUDA=on" FORCE_CMAKE=1 python -m pip install khoj-assistant
  # AMD (ROCm) GPU
  CMAKE_ARGS="-DLLAMA_HIPBLAS=on" FORCE_CMAKE=1 python -m pip install khoj-assistant
  # VULCAN GPU
@@ -189,10 +189,12 @@ Note: To start Khoj automatically in the background use [Task scheduler](https:/
 
 ### Setup Notes
 
-Optionally, you can use Khoj with a custom domain as well. To do so, you need to set the `KHOJ_DOMAIN` environment variable to your domain (e.g., `export KHOJ_DOMAIN=my-khoj-domain.com` or add it to your `docker-compose.yml`). By default, the Khoj server you set up will not be accessible outside of `localhost` or `127.0.0.1`.
+You can use Khoj with a custom domain as well. To do so, you need to set the `KHOJ_DOMAIN` environment variable to your domain (e.g., `export KHOJ_DOMAIN=my-khoj-domain.com` or add it to your `docker-compose.yml`). By default, the Khoj server you set up will not be accessible outside of `localhost` or `127.0.0.1`.
 
-:::warning[Must use an SSL certificate]
-If you're using a custom domain, you must use an SSL certificate. You can use [Let's Encrypt](https://letsencrypt.org/) to get a free SSL certificate for your domain.
+:::warning[Without HTTPS certificate]
+To expose Khoj on a custom domain over the public internet, use of an SSL certificate is strongly recommended. You can use [Let's Encrypt](https://letsencrypt.org/) to get a free SSL certificate for your domain.
+
+To disable HTTPS, set the `KHOJ_NO_HTTPS` environment variable to `True`. This can be useful if Khoj is only accessible behind a secure, private network.
 :::
 
 ### 2. Configure

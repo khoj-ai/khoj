@@ -1,4 +1,6 @@
 import asyncio
+import base64
+import io
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor
@@ -18,6 +20,7 @@ from typing import (
 
 import openai
 from fastapi import Depends, Header, HTTPException, Request, UploadFile
+from PIL import Image
 from starlette.authentication import has_required_scope
 
 from khoj.database.adapters import AgentAdapters, ConversationAdapters, EntryAdapters
@@ -46,6 +49,7 @@ from khoj.utils import state
 from khoj.utils.config import OfflineChatProcessorModel
 from khoj.utils.helpers import (
     ConversationCommand,
+    ImageIntentType,
     is_none_or_empty,
     is_valid_url,
     log_telemetry,
@@ -79,9 +83,10 @@ async def is_ready_to_chat(user: KhojUser):
 
     if has_offline_config and user_conversation_config and user_conversation_config.model_type == "offline":
         chat_model = user_conversation_config.chat_model
+        max_tokens = user_conversation_config.max_prompt_size
         if state.offline_chat_processor_config is None:
             logger.info("Loading Offline Chat Model...")
-            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model=chat_model)
+            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
         return True
 
     ready = has_openai_config or has_offline_config
@@ -382,10 +387,11 @@ async def send_message_to_model_wrapper(
         raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
 
     chat_model = conversation_config.chat_model
+    max_tokens = conversation_config.max_prompt_size
 
     if conversation_config.model_type == "offline":
         if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
-            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model)
+            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
 
         loaded_model = state.offline_chat_processor_config.loaded_model
         truncated_messages = generate_chatml_messages_with_context(
@@ -452,7 +458,9 @@ def generate_chat_response(
         conversation_config = ConversationAdapters.get_valid_conversation_config(user, conversation)
         if conversation_config.model_type == "offline":
             if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
-                state.offline_chat_processor_config = OfflineChatProcessorModel(conversation_config.chat_model)
+                chat_model = conversation_config.chat_model
+                max_tokens = conversation_config.max_prompt_size
+                state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
 
             loaded_model = state.offline_chat_processor_config.loaded_model
             chat_response = converse_offline(
@@ -508,18 +516,19 @@ async def text_to_image(
     references: List[str],
     online_results: Dict[str, Any],
     send_status_func: Optional[Callable] = None,
-) -> Tuple[Optional[str], int, Optional[str], Optional[str]]:
+) -> Tuple[Optional[str], int, Optional[str], str]:
     status_code = 200
     image = None
     response = None
     image_url = None
+    intent_type = ImageIntentType.TEXT_TO_IMAGE_V3
 
     text_to_image_config = await ConversationAdapters.aget_text_to_image_model_config()
     if not text_to_image_config:
         # If the user has not configured a text to image model, return an unsupported on server error
         status_code = 501
         message = "Failed to generate image. Setup image generation on the server."
-        return image, status_code, message, image_url
+        return image_url or image, status_code, message, intent_type.value
     elif state.openai_client and text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
         logger.info("Generating image with OpenAI")
         text2image_model = text_to_image_config.model_name
@@ -550,21 +559,38 @@ async def text_to_image(
                 )
                 image = response.data[0].b64_json
 
+            with timer("Convert image to webp", logger):
+                # Convert png to webp for faster loading
+                decoded_image = base64.b64decode(image)
+                image_io = io.BytesIO(decoded_image)
+                png_image = Image.open(image_io)
+                webp_image_io = io.BytesIO()
+                png_image.save(webp_image_io, "WEBP")
+                webp_image_bytes = webp_image_io.getvalue()
+                webp_image_io.close()
+                image_io.close()
+
             with timer("Upload image to S3", logger):
-                image_url = upload_image(image, user.uuid)
-            return image, status_code, improved_image_prompt, image_url
+                image_url = upload_image(webp_image_bytes, user.uuid)
+            if image_url:
+                intent_type = ImageIntentType.TEXT_TO_IMAGE2
+            else:
+                intent_type = ImageIntentType.TEXT_TO_IMAGE_V3
+                image = base64.b64encode(webp_image_bytes).decode("utf-8")
+
+            return image_url or image, status_code, improved_image_prompt, intent_type.value
         except openai.OpenAIError or openai.BadRequestError or openai.APIConnectionError as e:
             if "content_policy_violation" in e.message:
                 logger.error(f"Image Generation blocked by OpenAI: {e}")
                 status_code = e.status_code  # type: ignore
                 message = f"Image generation blocked by OpenAI: {e.message}"  # type: ignore
-                return image, status_code, message, image_url
+                return image_url or image, status_code, message, intent_type.value
             else:
                 logger.error(f"Image Generation failed with {e}", exc_info=True)
                 message = f"Image generation failed with OpenAI error: {e.message}"  # type: ignore
                 status_code = e.status_code  # type: ignore
-                return image, status_code, message, image_url
-    return image, status_code, response, image_url
+                return image_url or image, status_code, message, intent_type.value
+    return image_url or image, status_code, response, intent_type.value
 
 
 class ApiUserRateLimiter:

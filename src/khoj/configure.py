@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Optional
 
@@ -24,6 +24,7 @@ from khoj.database.adapters import (
     AgentAdapters,
     ClientApplicationAdapters,
     ConversationAdapters,
+    ProcessLockAdapters,
     SubscriptionState,
     aget_or_create_user_by_phone_number,
     aget_user_by_phone_number,
@@ -32,14 +33,14 @@ from khoj.database.adapters import (
     get_all_users,
     get_or_create_search_models,
 )
-from khoj.database.models import ClientApplication, KhojUser, Subscription
+from khoj.database.models import ClientApplication, KhojUser, ProcessLock, Subscription
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
 from khoj.routers.indexer import configure_content, configure_search
 from khoj.routers.twilio import is_twilio_enabled
 from khoj.utils import constants, state
 from khoj.utils.config import SearchType
 from khoj.utils.fs_syncer import collect_files
-from khoj.utils.helpers import is_none_or_empty
+from khoj.utils.helpers import is_none_or_empty, telemetry_disabled, timer
 from khoj.utils.rawconfig import FullConfig
 
 logger = logging.getLogger(__name__)
@@ -232,6 +233,9 @@ def configure_server(
         state.search_models = configure_search(state.search_models, state.config.search_type)
         setup_default_agent()
 
+        message = "📡 Telemetry disabled" if telemetry_disabled(state.config.app) else "📡 Telemetry enabled"
+        logger.info(message)
+
         if not init:
             initialize_content(regenerate, search_type, user)
 
@@ -303,20 +307,22 @@ def configure_middleware(app):
     app.add_middleware(SessionMiddleware, secret_key=os.environ.get("KHOJ_DJANGO_SECRET_KEY", "!secret"))
 
 
-@schedule.repeat(schedule.every(22).to(26).hours)
-def update_search_index():
-    try:
-        logger.info("📬 Updating content index via Scheduler")
-        for user in get_all_users():
-            all_files = collect_files(user=user)
-            success = configure_content(all_files, user=user)
-        all_files = collect_files(user=None)
-        success = configure_content(all_files, user=None)
-        if not success:
-            raise RuntimeError("Failed to update content index")
-        logger.info("📪 Content index updated via Scheduler")
-    except Exception as e:
-        logger.error(f"🚨 Error updating content index via Scheduler: {e}", exc_info=True)
+def update_content_index():
+    for user in get_all_users():
+        all_files = collect_files(user=user)
+        success = configure_content(all_files, user=user)
+    all_files = collect_files(user=None)
+    success = configure_content(all_files, user=None)
+    if not success:
+        raise RuntimeError("Failed to update content index")
+    logger.info("📪 Content index updated via Scheduler")
+
+
+@schedule.repeat(schedule.every(22).to(25).hours)
+def update_content_index_regularly():
+    ProcessLockAdapters.run_with_lock(
+        update_content_index, ProcessLock.Operation.UPDATE_EMBEDDINGS, max_duration_in_seconds=60 * 60 * 2
+    )
 
 
 def configure_search_types():
@@ -329,9 +335,7 @@ def configure_search_types():
 
 @schedule.repeat(schedule.every(2).minutes)
 def upload_telemetry():
-    if not state.config or not state.config.app or not state.config.app.should_log_telemetry or not state.telemetry:
-        message = "📡 No telemetry to upload" if not state.telemetry else "📡 Telemetry logging disabled"
-        logger.debug(message)
+    if telemetry_disabled(state.config.app) or not state.telemetry:
         return
 
     try:

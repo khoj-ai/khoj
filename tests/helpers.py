@@ -11,6 +11,7 @@ from khoj.database.models import (
     KhojUser,
     OfflineChatProcessorConversationConfig,
     OpenAIProcessorConversationConfig,
+    ProcessLock,
     SearchModelConfig,
     Subscription,
     UserConversationConfig,
@@ -93,3 +94,10 @@ class SubscriptionFactory(factory.django.DjangoModelFactory):
     type = "standard"
     is_recurring = False
     renewal_date = make_aware(datetime.strptime("2100-04-01", "%Y-%m-%d"))
+
+
+class ProcessLockFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = ProcessLock
+
+    name = "test_lock"

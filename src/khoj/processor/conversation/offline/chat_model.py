@@ -30,6 +30,7 @@ def extract_questions_offline(
     use_history: bool = True,
     should_extract_questions: bool = True,
     location_data: LocationData = None,
+    max_prompt_size: int = None,
 ) -> List[str]:
     """
     Infer search queries to retrieve relevant notes to answer user query
@@ -41,7 +42,7 @@ def extract_questions_offline(
         return all_questions
 
     assert loaded_model is None or isinstance(loaded_model, Llama), "loaded_model must be of type Llama, if configured"
-    offline_chat_model = loaded_model or download_model(model)
+    offline_chat_model = loaded_model or download_model(model, max_tokens=max_prompt_size)
 
     location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
 
@@ -67,12 +68,14 @@ def extract_questions_offline(
         location=location,
     )
     messages = generate_chatml_messages_with_context(
-        example_questions, model_name=model, loaded_model=offline_chat_model
+        example_questions, model_name=model, loaded_model=offline_chat_model, max_prompt_size=max_prompt_size
     )
 
     state.chat_lock.acquire()
     try:
-        response = send_message_to_model_offline(messages, loaded_model=offline_chat_model)
+        response = send_message_to_model_offline(
+            messages, loaded_model=offline_chat_model, max_prompt_size=max_prompt_size
+        )
     finally:
         state.chat_lock.release()
 
@@ -138,7 +141,7 @@ def converse_offline(
     """
     # Initialize Variables
     assert loaded_model is None or isinstance(loaded_model, Llama), "loaded_model must be of type Llama, if configured"
-    offline_chat_model = loaded_model or download_model(model)
+    offline_chat_model = loaded_model or download_model(model, max_tokens=max_prompt_size)
     compiled_references_message = "\n\n".join({f"{item}" for item in references})
 
     current_date = datetime.now().strftime("%Y-%m-%d")
@@ -190,18 +193,18 @@ def converse_offline(
     )
 
     g = ThreadedGenerator(references, online_results, completion_func=completion_func)
-    t = Thread(target=llm_thread, args=(g, messages, offline_chat_model))
+    t = Thread(target=llm_thread, args=(g, messages, offline_chat_model, max_prompt_size))
     t.start()
     return g
 
 
-def llm_thread(g, messages: List[ChatMessage], model: Any):
+def llm_thread(g, messages: List[ChatMessage], model: Any, max_prompt_size: int = None):
     stop_phrases = ["<s>", "INST]", "Notes:"]
 
     state.chat_lock.acquire()
     try:
         response_iterator = send_message_to_model_offline(
-            messages, loaded_model=model, stop=stop_phrases, streaming=True
+            messages, loaded_model=model, stop=stop_phrases, max_prompt_size=max_prompt_size, streaming=True
         )
         for response in response_iterator:
             g.send(response["choices"][0]["delta"].get("content", ""))
@@ -216,9 +219,10 @@ def send_message_to_model_offline(
     model="NousResearch/Hermes-2-Pro-Mistral-7B-GGUF",
     streaming=False,
     stop=[],
+    max_prompt_size: int = None,
 ):
     assert loaded_model is None or isinstance(loaded_model, Llama), "loaded_model must be of type Llama, if configured"
-    offline_chat_model = loaded_model or download_model(model)
+    offline_chat_model = loaded_model or download_model(model, max_tokens=max_prompt_size)
     messages_dict = [{"role": message.role, "content": message.content} for message in messages]
     response = offline_chat_model.create_chat_completion(messages_dict, stop=stop, stream=streaming)
     if streaming:
