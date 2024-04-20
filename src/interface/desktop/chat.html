@@ -669,17 +669,6 @@
             document.getElementById("profile-picture").addEventListener("click", toggleNavMenu);
             // Set the active nav pane
             document.getElementById("chat-nav")?.classList.add("khoj-nav-selected");
-
-            const khojStatusBox = document.querySelector(".khoj-status-box");
-            const khojStatusText = document.querySelector(".khoj-status-text");
-
-            khojStatusBox.addEventListener("mouseover", function(){
-                khojStatusText.style.display = "block";
-            });
-
-            khojStatusBox.addEventListener("mouseout", function(){
-                khojStatusText.style.display = "none";
-            });
         })
 
         window.addEventListener('load', async() => {
