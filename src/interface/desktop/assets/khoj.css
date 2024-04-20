@@ -4,11 +4,11 @@
 
 [data-theme="light"],
 :root:not([data-theme="dark"]) {
-    --primary: #f9f5de;
-    --primary-hover: #fee285;
+    --primary: #9ad4f8;
+    --primary-hover: #33b0fd;
     --primary-focus: rgba(255, 179, 0, 0.125);
     --primary-inverse: rgba(0, 0, 0, 0.75);
-    --background-color: #f5f4f3;
+    --background-color: #cbf9f5;
     --main-text-color: #475569;
     --summer-sun: #fcc50b;
     --water: #44b9da;
@@ -21,11 +21,11 @@
 /* Automatically enabled if user has Dark mode enabled */
 @media only screen and (prefers-color-scheme: dark) {
     :root:not([data-theme]) {
-        --primary: #f9f5de;
-        --primary-hover: #fee285;
+        --primary: #9ad4f8;
+        --primary-hover: #33b0fd;
         --primary-focus: rgba(255, 179, 0, 0.25);
         --primary-inverse: rgba(0, 0, 0, 0.75);
-        --background-color: #f5f4f3;
+        --background-color: #cbf9f5;
         --main-text-color: #475569;
         --summer-sun: #fcc50b;
         --water: #44b9da;
@@ -37,11 +37,11 @@
 /* Amber Dark scheme (Forced) */
 /* Enabled if forced with data-theme="dark" */
 [data-theme="dark"] {
-    --primary: #fee285;
+    --primary: #33b0fd;
     --primary-hover: #fcc50b;
     --primary-focus: rgba(255, 179, 0, 0.25);
     --primary-inverse: rgba(0, 0, 0, 0.75);
-    --background-color: #f5f4f3;
+    --background-color: #cbf9f5;
     --main-text-color: #475569;
     --summer-sun: #fcc50b;
     --water: #44b9da;

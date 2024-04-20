@@ -8,8 +8,8 @@ If your plugin does not need CSS, delete this file.
 */
 
 :root {
-    --khoj-winter-sun: #f9f5de;
-    --khoj-sun: #fee285;
+    --khoj-winter-sun: #b6f3ff;
+    --khoj-sun: #7cd8ff;
     --khoj-storm-grey: #475569;
  }
 

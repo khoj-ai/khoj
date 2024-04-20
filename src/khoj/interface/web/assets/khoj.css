@@ -4,14 +4,14 @@
 
 [data-theme="light"],
 :root:not([data-theme="dark"]) {
-    --primary: #f9f5de;
-    --primary-hover: #fee285;
+    --primary: #9ad4f8 !important;
+    --primary-hover: #33b0fd !important;
     --primary-focus: rgba(255, 179, 0, 0.125);
     --primary-inverse: rgba(0, 0, 0, 0.75);
-    --background-color: #f5f4f3;
+    --background-color: #cbf9f5;
     --frosted-background-color: rgba(245, 244, 243, 0.75);
     --main-text-color: #475569;
-    --summer-sun: #fcc50b;
+    --summer-sun: #0bfce8 !important;
     --water: #44b9da;
     --leaf: #7b990a;
     --flower: #ffaeae;
@@ -22,14 +22,14 @@
 /* Automatically enabled if user has Dark mode enabled */
 @media only screen and (prefers-color-scheme: dark) {
     :root:not([data-theme]) {
-        --primary: #f9f5de;
-        --primary-hover: #fee285;
-        --primary-focus: rgba(255, 179, 0, 0.25);
+        --primary: #9ad4f8 !important;
+        --primary-hover: #33b0fd !important;
+        --primary-focus: rgba(255, 179, 0, 0.125);
         --primary-inverse: rgba(0, 0, 0, 0.75);
-        --background-color: #f5f4f3;
+        --background-color: #cbf9f5;
         --frosted-background-color: rgba(245, 244, 243, 0.75);
         --main-text-color: #475569;
-        --summer-sun: #fcc50b;
+        --summer-sun: #0bfce8 !important;
         --water: #44b9da;
         --leaf: #7b990a;
         --flower: #ffaeae;
@@ -43,7 +43,7 @@
     --primary-hover: #fee285;
     --primary-focus: rgba(255, 179, 0, 0.25);
     --primary-inverse: rgba(0, 0, 0, 0.75);
-    --background-color: #f5f4f3;
+    --background-color: #cbf9f5;
     --frosted-background-color: rgba(245, 244, 243, 0.75);
     --main-text-color: #475569;
     --summer-sun: #fcc50b;
