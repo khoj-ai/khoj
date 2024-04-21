@@ -549,27 +549,56 @@ async def test_infer_webpage_urls_actor_extracts_correct_links(chat_client):
 @pytest.mark.anyio
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.parametrize(
-    "user_query, location, expected_crontime, expected_queries",
+    "user_query, location, expected_crontime, expected_qs, unexpected_qs",
     [
         (
-            "Share the weather forecast for the next day at 19:30",
-            ("Boston", "MA", "USA"),
-            "30 23 * * *",
-            ["weather forecast", "boston"],
+            "Share the weather forecast for the next day daily at 7:30pm",
+            ("Ubud", "Bali", "Indonesia"),
+            "30 11 * * *",  # ensure correctly converts to utc
+            ["weather forecast", "ubud"],
+            ["7:30"],
+        ),
+        (
+            "Notify me when the new President of Brazil is announced",
+            ("Sao Paulo", "Sao Paulo", "Brazil"),
+            "* *",  # crontime is variable
+            ["brazil", "president"],
+            ["notify"],  # ensure reminder isn't re-triggered on scheduled query run
+        ),
+        (
+            "Let me know whenever Elon leaves Twitter. Check this every afternoon at 12",
+            ("Karachi", "Sindh", "Pakistan"),
+            "0 7 * * *",  # ensure correctly converts to utc
+            ["elon", "twitter"],
+            ["12"],
+        ),
+        (
+            "Draw a wallpaper every morning using the current weather",
+            ("Bogota", "Cundinamarca", "Colombia"),
+            "* * *",  # daily crontime
+            ["weather", "wallpaper", "bogota"],
+            ["every"],
         ),
     ],
 )
-async def test_infer_task_scheduling_request(chat_client, user_query, location, expected_crontime, expected_queries):
+async def test_infer_task_scheduling_request(
+    chat_client, user_query, location, expected_crontime, expected_qs, unexpected_qs
+):
     # Arrange
     location_data = LocationData(city=location[0], region=location[1], country=location[2])
 
     # Act
     crontime, inferred_query = await schedule_query(user_query, location_data, {})
+    inferred_query = inferred_query.lower()
 
     # Assert
     assert expected_crontime in crontime
-    for query in expected_queries:
-        assert query in inferred_query.lower()
+    for expected_q in expected_qs:
+        assert expected_q in inferred_query, f"Expected fragment {expected_q} in query: {inferred_query}"
+    for unexpected_q in unexpected_qs:
+        assert (
+            unexpected_q not in inferred_query
+        ), f"Did not expect fragment '{unexpected_q}' in query: '{inferred_query}'"
 
 
 # ----------------------------------------------------------------------------------------------------

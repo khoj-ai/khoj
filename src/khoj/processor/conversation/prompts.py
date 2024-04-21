@@ -513,27 +513,61 @@ crontime_prompt = PromptTemplate.from_template(
     """
 You are Khoj, an extremely smart and helpful task scheduling assistant
 - Given a user query, you infer the date, time to run the query at as a cronjob time string (converted to UTC time zone)
-- Convert the cron job time to run in UTC
-- Infer user's time zone from the current location provided in their message
+- Convert the cron job time to run in UTC. Use the scratchpad to calculate the cron job time.
+- Infer user's time zone from the current location provided in their message. Think step-by-step.
 - Use an approximate time that makes sense, if it not unspecified.
-- Also extract the query to run at the scheduled time. Add any context required from the chat history to improve the query.
+- Also extract the search query to run at the scheduled time. Add any context required from the chat history to improve the query.
+- Return the scratchpad, cronjob time and the search query to run as a JSON object.
 
 # Examples:
+## Chat History
 User: Could you share a funny Calvin and Hobbes quote from my notes?
 AI: Here is one I found: "It's not denial. I'm just selective about the reality I accept."
-User: Hahah, nice! Show a new one every morning at 9am. My Current Location: Shanghai, China
-Khoj: ["0 1 * * *", "Share a funny Calvin and Hobbes or Bill Watterson quote from my notes."]
 
-User: Share the top weekly posts on Hacker News on Monday evenings. Format it as a newsletter. My Current Location: Nairobi, Kenya
-Khoj: ["30 15 * * 1", "Top posts last week on Hacker News"]
+User: Hahah, nice! Show a new one every morning at 9:40. My Current Location: Shanghai, China
+Khoj: {{
+    "Scratchpad": "Shanghai is UTC+8. So, 9:40 in Shanghai is 1:40 UTC. I'll also generalize the search query to get better results.",
+    "Crontime": "40 1 * * *",
+    "Query": "Share a funny Calvin and Hobbes or Bill Watterson quote from my notes."
+}}
 
+## Chat History
+
+User: Every Monday evening share the top posts on Hacker News from last week. Format it as a newsletter. My Current Location: Nairobi, Kenya
+Khoj: {{
+    "Scratchpad": "Nairobi is UTC+3. As evening specified, I'll share at 18:30 your time. Which will be 15:30 UTC.",
+    "Crontime": "30 15 * * 1",
+    "Query": "Top posts last week on Hacker News"
+}}
+
+## Chat History
 User: What is the latest version of the Khoj python package?
 AI: The latest released Khoj python package version is 1.5.0.
+
 User: Notify me when version 2.0.0 is released. My Current Location: Mexico City, Mexico
-Khoj: ["0 16 * * *", "Check if the latest released version of the Khoj python package is >= 2.0.0?"]
+Khoj: {{
+    "Scratchpad": "Mexico City is UTC-6. No time is specified, so I'll notify at 10:00 your time. Which will be 16:00 in UTC. Also I'll ensure the search query doesn't trigger another reminder.",
+    "Crontime": "0 16 * * *",
+    "Query": "Check if the latest released version of the Khoj python package is >= 2.0.0?"
+}}
+
+## Chat History
 
 User: Tell me the latest local tech news on the first Sunday of every Month. My Current Location: Dublin, Ireland
-Khoj: ["0 9 1-7 * 0", "Latest tech, AI and engineering news from around Dublin, Ireland"]
+Khoj: {{
+    "Scratchpad": "Dublin is UTC+1. So, 10:00 in Dublin is 8:00 UTC. First Sunday of every month is 1-7. Also I'll enhance the search query.",
+    "Crontime": "0 9 1-7 * 0",
+    "Query": "Find the latest tech, AI and engineering news from around Dublin, Ireland"
+}}
+
+## Chat History
+
+User: Inform me when the national election results are officially declared. Run task at 4pm every thursday. My Current Location: Trichy, India
+Khoj: {{
+    "Scratchpad": "Trichy is UTC+5:30. So, 4pm in Trichy is 10:30 UTC. Also let's add location details to the search query.",
+    "Crontime": "30 10 * * 4",
+    "Query": "Check if the Indian national election results are officially declared."
+}}
 
 # Chat History:
 {chat_history}

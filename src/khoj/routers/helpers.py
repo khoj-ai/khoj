@@ -336,15 +336,15 @@ async def schedule_query(q: str, location_data: LocationData, conversation_histo
         chat_history=chat_history,
     )
 
-    raw_response = await send_message_to_model_wrapper(crontime_prompt)
+    raw_response = await send_message_to_model_wrapper(crontime_prompt, response_type="json_object")
 
     # Validate that the response is a non-empty, JSON-serializable list
     try:
         raw_response = raw_response.strip()
-        response: List[str] = json.loads(raw_response)
-        if not isinstance(response, list) or not response or len(response) != 2:
+        response: Dict[str, str] = json.loads(raw_response)
+        if not response or not isinstance(response, Dict) or len(response) != 3:
             raise AssertionError(f"Invalid response for scheduling query : {response}")
-        return tuple(response)
+        return tuple(response.values())[1:]
     except Exception:
         raise AssertionError(f"Invalid response for scheduling query: {raw_response}")
 
