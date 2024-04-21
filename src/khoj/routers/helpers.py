@@ -475,6 +475,51 @@ async def send_message_to_model_wrapper(
         raise HTTPException(status_code=500, detail="Invalid conversation config")
 
 
+def send_message_to_model_wrapper_sync(
+    message: str,
+    system_message: str = "",
+    response_type: str = "text",
+):
+    conversation_config: ChatModelOptions = ConversationAdapters.get_default_conversation_config()
+
+    if conversation_config is None:
+        raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
+
+    chat_model = conversation_config.chat_model
+    max_tokens = conversation_config.max_prompt_size
+
+    if conversation_config.model_type == "offline":
+        if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
+            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
+
+        loaded_model = state.offline_chat_processor_config.loaded_model
+        truncated_messages = generate_chatml_messages_with_context(
+            user_message=message, system_message=system_message, model_name=chat_model, loaded_model=loaded_model
+        )
+
+        return send_message_to_model_offline(
+            messages=truncated_messages,
+            loaded_model=loaded_model,
+            model=chat_model,
+            streaming=False,
+        )
+
+    elif conversation_config.model_type == "openai":
+        openai_chat_config = ConversationAdapters.get_openai_conversation_config()
+        api_key = openai_chat_config.api_key
+        truncated_messages = generate_chatml_messages_with_context(
+            user_message=message, system_message=system_message, model_name=chat_model
+        )
+
+        openai_response = send_message_to_model(
+            messages=truncated_messages, api_key=api_key, model=chat_model, response_type=response_type
+        )
+
+        return openai_response
+    else:
+        raise HTTPException(status_code=500, detail="Invalid conversation config")
+
+
 def generate_chat_response(
     q: str,
     meta_log: dict,
@@ -790,16 +835,41 @@ class CommonQueryParamsClass:
 CommonQueryParams = Annotated[CommonQueryParamsClass, Depends()]
 
 
-def scheduled_chat(query, user: KhojUser, calling_url: URL):
-    # Construct the URL, header for the chat API
-    scheme = "http" if calling_url.scheme == "http" or calling_url.scheme == "ws" else "https"
-    # Replace the original scheduling query with the scheduled query
-    query_dict = parse_qs(calling_url.query)
-    query_dict["q"] = [query]
-    # Convert the dictionary back into a query string
-    scheduled_query = urlencode(query_dict, doseq=True)
-    url = f"{scheme}://{calling_url.netloc}/api/chat?{scheduled_query}"
+def should_notify(original_query: str, executed_query: str, ai_response: str) -> bool:
+    """
+    Decide whether to notify the user of the AI response.
+    Default to notifying the user for now.
+    """
+    if any(is_none_or_empty(message) for message in [original_query, executed_query, ai_response]):
+        return False
 
+    to_notify_or_not = prompts.to_notify_or_not.format(
+        original_query=original_query,
+        executed_query=executed_query,
+        response=ai_response,
+    )
+
+    with timer("Chat actor: Decide to notify user of AI response", logger):
+        try:
+            response = send_message_to_model_wrapper_sync(to_notify_or_not)
+            return "no" not in response.lower()
+        except:
+            return True
+
+
+def scheduled_chat(executing_query: str, scheduling_query: str, user: KhojUser, calling_url: URL):
+    # Extract relevant params from the original URL
+    scheme = "http" if not calling_url.is_secure else "https"
+    query_dict = parse_qs(calling_url.query)
+
+    # Replace the original scheduling query with the scheduled query
+    query_dict["q"] = [executing_query]
+
+    # Construct the URL to call the chat API with the scheduled query string
+    encoded_query = urlencode(query_dict, doseq=True)
+    url = f"{scheme}://{calling_url.netloc}/api/chat?{encoded_query}"
+
+    # Construct the Headers for the chat API
     headers = {"User-Agent": "Khoj"}
     if not state.anonymous_mode:
         # Add authorization request header in non-anonymous mode
@@ -811,4 +881,20 @@ def scheduled_chat(query, user: KhojUser, calling_url: URL):
         headers["Authorization"] = f"Bearer {token}"
 
     # Call the chat API endpoint with authenticated user token and query
-    return requests.get(url, headers=headers)
+    raw_response = requests.get(url, headers=headers)
+
+    # Stop if the chat API call was not successful
+    if raw_response.status_code != 200:
+        logger.error(f"Failed to run schedule chat: {raw_response.text}")
+        return None
+
+    # Extract the AI response from the chat API response
+    if raw_response.headers.get("Content-Type") == "application/json":
+        response_map = raw_response.json()
+        ai_response = response_map.get("response") or response_map.get("image")
+    else:
+        ai_response = raw_response.text
+
+    # Notify user if the AI response is satisfactory
+    if should_notify(original_query=scheduling_query, executed_query=executing_query, ai_response=ai_response):
+        return raw_response

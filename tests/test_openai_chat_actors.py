@@ -13,6 +13,7 @@ from khoj.routers.helpers import (
     generate_online_subqueries,
     infer_webpage_urls,
     schedule_query,
+    should_notify,
 )
 from khoj.utils.helpers import ConversationCommand
 from khoj.utils.rawconfig import LocationData
@@ -569,6 +570,48 @@ async def test_infer_task_scheduling_request(chat_client, user_query, location, 
     assert expected_crontime in crontime
     for query in expected_queries:
         assert query in inferred_query.lower()
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.anyio
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize(
+    "scheduling_query, executing_query, generated_response, expected_should_notify",
+    [
+        (
+            "Notify me if it is going to rain tomorrow?",
+            "What's the weather forecast for tomorrow?",
+            "It is sunny and warm tomorrow.",
+            False,
+        ),
+        (
+            "Summarize the latest news every morning",
+            "Summarize today's news",
+            "Today in the news: AI is taking over the world",
+            True,
+        ),
+        (
+            "Create a weather wallpaper every morning using the current weather",
+            "Paint a weather wallpaper using the current weather",
+            "https://khoj-generated-wallpaper.khoj.dev/user110/weathervane.webp",
+            True,
+        ),
+        (
+            "Let me know the election results once they are offically declared",
+            "What are the results of the elections? Has the winner been declared?",
+            "The election results has not been declared yet.",
+            False,
+        ),
+    ],
+)
+def test_decision_on_when_to_notify_scheduled_task_results(
+    chat_client, scheduling_query, executing_query, generated_response, expected_should_notify
+):
+    # Act
+    generated_should_notify = should_notify(scheduling_query, executing_query, generated_response)
+
+    # Assert
+    assert generated_should_notify == expected_should_notify
 
 
 # Helpers

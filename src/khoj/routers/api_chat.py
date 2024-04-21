@@ -8,7 +8,7 @@ from typing import Dict, Optional
 from urllib.parse import unquote
 
 from apscheduler.triggers.cron import CronTrigger
-from asgiref.sync import async_to_sync, sync_to_async
+from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket
 from fastapi.requests import Request
 from fastapi.responses import Response, StreamingResponse
@@ -404,7 +404,7 @@ async def websocket_endpoint(
             # Generate the job id from the hash of inferred_query and crontime
             job_id = hashlib.md5(f"{inferred_query}_{crontime}".encode("utf-8")).hexdigest()
             partial_scheduled_chat = functools.partial(
-                scheduled_chat, inferred_query, websocket.user.object, websocket.url
+                scheduled_chat, inferred_query, q, websocket.user.object, websocket.url
             )
             try:
                 job = state.scheduler.add_job(
@@ -668,7 +668,7 @@ async def chat(
 
         # Generate the job id from the hash of inferred_query and crontime
         job_id = hashlib.md5(f"{inferred_query}_{crontime}".encode("utf-8")).hexdigest()
-        partial_scheduled_chat = functools.partial(scheduled_chat, inferred_query, request.user.object, request.url)
+        partial_scheduled_chat = functools.partial(scheduled_chat, inferred_query, q, request.user.object, request.url)
         try:
             job = state.scheduler.add_job(
                 run_with_process_lock,
