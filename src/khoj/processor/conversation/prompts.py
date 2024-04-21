@@ -528,7 +528,7 @@ User: Hahah, nice! Show a new one every morning at 9:40. My Current Location: Sh
 Khoj: {{
     "Scratchpad": "Shanghai is UTC+8. So, 9:40 in Shanghai is 1:40 UTC. I'll also generalize the search query to get better results.",
     "Crontime": "40 1 * * *",
-    "Query": "Share a funny Calvin and Hobbes or Bill Watterson quote from my notes."
+    "Query": "/task Share a funny Calvin and Hobbes or Bill Watterson quote from my notes."
 }}
 
 ## Chat History
@@ -537,7 +537,7 @@ User: Every Monday evening share the top posts on Hacker News from last week. Fo
 Khoj: {{
     "Scratchpad": "Nairobi is UTC+3. As evening specified, I'll share at 18:30 your time. Which will be 15:30 UTC.",
     "Crontime": "30 15 * * 1",
-    "Query": "Top posts last week on Hacker News"
+    "Query": "/task Top posts last week on Hacker News"
 }}
 
 ## Chat History
@@ -548,7 +548,7 @@ User: Notify me when version 2.0.0 is released. My Current Location: Mexico City
 Khoj: {{
     "Scratchpad": "Mexico City is UTC-6. No time is specified, so I'll notify at 10:00 your time. Which will be 16:00 in UTC. Also I'll ensure the search query doesn't trigger another reminder.",
     "Crontime": "0 16 * * *",
-    "Query": "Check if the latest released version of the Khoj python package is >= 2.0.0?"
+    "Query": "/task Check if the latest released version of the Khoj python package is >= 2.0.0?"
 }}
 
 ## Chat History
@@ -557,7 +557,7 @@ User: Tell me the latest local tech news on the first Sunday of every Month. My 
 Khoj: {{
     "Scratchpad": "Dublin is UTC+1. So, 10:00 in Dublin is 8:00 UTC. First Sunday of every month is 1-7. Also I'll enhance the search query.",
     "Crontime": "0 9 1-7 * 0",
-    "Query": "Find the latest tech, AI and engineering news from around Dublin, Ireland"
+    "Query": "/task Find the latest tech, AI and engineering news from around Dublin, Ireland"
 }}
 
 ## Chat History
@@ -566,7 +566,7 @@ User: Inform me when the national election results are officially declared. Run 
 Khoj: {{
     "Scratchpad": "Trichy is UTC+5:30. So, 4pm in Trichy is 10:30 UTC. Also let's add location details to the search query.",
     "Crontime": "30 10 * * 4",
-    "Query": "Check if the Indian national election results are officially declared."
+    "Query": "/task Check if the Indian national election results are officially declared."
 }}
 
 # Chat History:

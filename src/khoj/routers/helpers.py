@@ -163,6 +163,8 @@ def get_conversation_command(query: str, any_references: bool = False) -> Conver
         return ConversationCommand.Online
     elif query.startswith("/image"):
         return ConversationCommand.Image
+    elif query.startswith("/task"):
+        return ConversationCommand.Task
     # If no relevant notes found for the given query
     elif not any_references:
         return ConversationCommand.General
@@ -220,7 +222,7 @@ async def aget_relevant_information_sources(query: str, conversation_history: di
         return [ConversationCommand.Default]
 
 
-async def aget_relevant_output_modes(query: str, conversation_history: dict):
+async def aget_relevant_output_modes(query: str, conversation_history: dict, is_task: bool = False):
     """
     Given a query, determine which of the available tools the agent should use in order to answer appropriately.
     """
@@ -229,6 +231,9 @@ async def aget_relevant_output_modes(query: str, conversation_history: dict):
     mode_options_str = ""
 
     for mode, description in mode_descriptions_for_llm.items():
+        # Do not allow tasks to schedule another task
+        if is_task and mode == ConversationCommand.Reminder:
+            continue
         mode_options[mode.value] = description
         mode_options_str += f'- "{mode.value}": "{description}"\n'
 

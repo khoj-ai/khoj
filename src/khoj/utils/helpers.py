@@ -305,6 +305,7 @@ class ConversationCommand(str, Enum):
     Webpage = "webpage"
     Image = "image"
     Reminder = "reminder"
+    Task = "task"
 
 
 command_descriptions = {
@@ -315,6 +316,7 @@ command_descriptions = {
     ConversationCommand.Webpage: "Get information from webpage links provided by you.",
     ConversationCommand.Image: "Generate images by describing your imagination in words.",
     ConversationCommand.Reminder: "Schedule your query to run at a specified time or interval.",
+    ConversationCommand.Task: "Scheduled task running at previously specified schedule.",
     ConversationCommand.Help: "Display a help message with all available commands and other metadata.",
 }
 
