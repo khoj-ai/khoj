@@ -30,7 +30,7 @@ def is_resend_enabled():
     return bool(RESEND_API_KEY)
 
 
-async def send_welcome_email(name, email):
+def send_welcome_email(name, email):
     if not is_resend_enabled():
         logger.debug("Email sending disabled")
         return
@@ -44,6 +44,25 @@ async def send_welcome_email(name, email):
             "from": "team@khoj.dev",
             "to": email,
             "subject": f"Welcome to Khoj, {name}!" if name else "Welcome to Khoj!",
+            "html": html_content,
+        }
+    )
+
+
+def send_task_email(name, email, query, result):
+    if not is_resend_enabled():
+        logger.debug("Email sending disabled")
+        return
+
+    template = env.get_template("task.html")
+
+    html_content = template.render(name=name, query=query, result=result)
+
+    resend.Emails.send(
+        {
+            "from": "Khoj <khoj@khoj.dev>",
+            "to": email,
+            "subject": f'✨ Your Task Results for "{query}"',
             "html": html_content,
         }
     )
