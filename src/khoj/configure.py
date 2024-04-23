@@ -283,7 +283,6 @@ def configure_routes(app):
     app.include_router(indexer, prefix="/api/v1/index")
     app.include_router(notion_router, prefix="/api/notion")
     app.include_router(web_client)
-    app.include_router(email, prefix="/email")
 
     if not state.anonymous_mode:
         from khoj.routers.auth import auth_router

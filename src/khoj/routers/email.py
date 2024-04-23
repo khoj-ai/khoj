@@ -62,19 +62,18 @@ class TextData(BaseModel):
     sentiment: str
 
 
-@email.post("/sendmail")
-async def feedback(data: TextData):
+async def feedback(uquery, kquery, sentiment):
     # console debug messages
-    print("SENDING USER FEEDBACK...")
-    print(f"User Query: {data.uquery}\n")
-    print(f"Khoj Response: {data.kquery}\n")
-    print(f"Sentiment: {data.sentiment}\n")
+    logger.debug("SENDING USER FEEDBACK...")
+    logger.debug(f"User Query: {uquery}\n")
+    logger.debug(f"Khoj Response: {kquery}\n")
+    logger.debug(f"Sentiment: {sentiment}\n")
     # rendering feedback email using feedback.html as template
     template = env.get_template("feedback.html")
     html_content = template.render(
-        uquery=data.uquery if not is_none_or_empty(data.uquery) else "N/A",
-        kquery=data.kquery if not is_none_or_empty(data.kquery) else "N/A",
-        sentiment=data.sentiment if not is_none_or_empty(data.sentiment) else "N/A",
+        uquery=uquery if not is_none_or_empty(uquery) else "N/A",
+        kquery=kquery if not is_none_or_empty(kquery) else "N/A",
+        sentiment=sentiment if not is_none_or_empty(sentiment) else "N/A",
     )
     # send feedback from two fixed accounts
     r = resend.Emails.send(

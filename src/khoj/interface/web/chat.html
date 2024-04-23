@@ -358,12 +358,12 @@ To get started, just start typing below. You can also type / to see a list of co
             return renderMessage(message, by, dt, references, false, "return");
         }
         //handler function for posting feedback data to endpoint
-        function sendmail(_uquery="", _kquery="", _sentiment="") {
+        function sendFeedback(_uquery="", _kquery="", _sentiment="") {
             console.log("Function Call");
             const uquery = _uquery;
             const kquery = _kquery;
             const sentiment = _sentiment;
-            fetch('/email/sendmail', {
+            fetch('/api/chat/feedback', {
                 method: 'POST',
                 headers: {
                 'Content-Type': 'application/json'
@@ -371,12 +371,6 @@ To get started, just start typing below. You can also type / to see a list of co
                 body: JSON.stringify({uquery: uquery, kquery: kquery, sentiment: sentiment})
             })
             .then(response => response.json())
-            .then(data => {
-                console.log('Success:', data);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
         }
 
         function formatHTMLMessage(message, raw=false, willReplace=true) {
@@ -437,7 +431,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 thumbsUpButton.onclick = function() {
                     khojQuery = newHTML;
                     thumbsUpIcon.src = "/static/assets/icons/confirm-icon.svg";
-                    sendmail(userQuery,khojQuery,"Good Response");
+                    sendFeedback(userQuery,khojQuery,"Good Response");
                 };
 
                 // Create thumbs-down button
@@ -450,7 +444,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 thumbsDownButton.onclick = function() {
                     khojQuery = newHTML;
                     thumbsDownIcon.src = "/static/assets/icons/confirm-icon.svg";
-                    sendmail(userQuery,khojQuery,"Bad Response");
+                    sendFeedback(userQuery,khojQuery,"Bad Response");
                 };
 
                 // Append buttons to parent element
