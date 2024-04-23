@@ -2,6 +2,7 @@ import glob
 import logging
 import math
 import os
+from typing import Any, Dict
 
 from huggingface_hub.constants import HF_HUB_CACHE
 
@@ -14,11 +15,15 @@ logger = logging.getLogger(__name__)
 def download_model(repo_id: str, filename: str = "*Q4_K_M.gguf", max_tokens: int = None):
     # Initialize Model Parameters
     # Use n_ctx=0 to get context size from the model
-    kwargs = {"n_threads": 4, "n_ctx": 0, "verbose": False}
+    kwargs: Dict[str, Any] = {"n_threads": 4, "n_ctx": 0, "verbose": False}
 
     # Decide whether to load model to GPU or CPU
     device = "gpu" if state.chat_on_gpu and state.device != "cpu" else "cpu"
     kwargs["n_gpu_layers"] = -1 if device == "gpu" else 0
+
+    # Add chat format if known
+    if "llama-3" in repo_id.lower():
+        kwargs["chat_format"] = "llama-3"
 
     # Check if the model is already downloaded
     model_path = load_model_from_cache(repo_id, filename)
