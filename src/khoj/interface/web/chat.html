@@ -164,11 +164,32 @@ To get started, just start typing below. You can also type / to see a list of co
 
             return referenceButton;
         }
-
+        var userQuery = "";
+        var khojQuery = "";
         function renderMessage(message, by, dt=null, annotations=null, raw=false, renderType="append") {
             let message_time = formatDate(dt ?? new Date());
             let by_name =  by == "khoj" ? "🏮 Khoj" : "🤔 You";
             let formattedMessage = formatHTMLMessage(message, raw);
+            //update userQuery or khojQuery to latest query for feedback purposes
+            if(by !== "khoj"){
+                raw = formattedMessage.innerHTML;
+                userQuery = raw.match(/<p>(.*?)<\/p>/)[1];
+            }
+
+            //find the thumbs up and thumbs down buttons from the message formatter
+            var thumbsUpButtons = formattedMessage.querySelectorAll('.thumbs-up-button');
+            var thumbsDownButtons = formattedMessage.querySelectorAll('.thumbs-down-button');
+
+            //only render the feedback options if the message is a response from khoj
+            if(by !== "khoj"){
+                thumbsUpButtons.forEach(function(element) {
+                    element.parentNode.removeChild(element);
+                });
+                thumbsDownButtons.forEach(function(element) {
+                    element.parentNode.removeChild(element);
+                });
+            }
+
 
             // Create a new div for the chat message
             let chatMessage = document.createElement('div');
@@ -336,6 +357,27 @@ To get started, just start typing below. You can also type / to see a list of co
 
             return renderMessage(message, by, dt, references, false, "return");
         }
+        //handler function for posting feedback data to endpoint
+        function sendmail(_uquery="", _kquery="", _sentiment="") {
+            console.log("Function Call");
+            const uquery = _uquery;
+            const kquery = _kquery;
+            const sentiment = _sentiment;
+            fetch('/email/sendmail', {
+                method: 'POST',
+                headers: {
+                'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({uquery: uquery, kquery: kquery, sentiment: sentiment})
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
 
         function formatHTMLMessage(message, raw=false, willReplace=true) {
             var md = window.markdownit();
@@ -372,7 +414,47 @@ To get started, just start typing below. You can also type / to see a list of co
                 copyIcon.classList.add("copy-icon");
                 copyButton.appendChild(copyIcon);
                 copyButton.addEventListener('click', createCopyParentText(message));
-                element.append(copyButton);
+
+                var thumbsUpButtons = document.querySelectorAll('.thumbs-up-button');
+                var thumbsDownButtons = document.querySelectorAll('.thumbs-down-button');
+
+                //clear out old feedback buttons as we can't access this data anymore
+                thumbsUpButtons.forEach(function(element) {
+                    element.parentNode.removeChild(element);
+                });
+                thumbsDownButtons.forEach(function(element) {
+                    element.parentNode.removeChild(element);
+                });
+
+
+                //create thumbs-up button
+                let thumbsUpButton = document.createElement('button');
+                thumbsUpButton.className = 'thumbs-up-button';
+                let thumbsUpIcon = document.createElement("img");
+                thumbsUpIcon.src = "/static/assets/icons/thumbs-up-svgrepo-com.svg";
+                thumbsUpIcon.classList.add("thumbs-up-icon");
+                thumbsUpButton.appendChild(thumbsUpIcon);
+                thumbsUpButton.onclick = function() {
+                    khojQuery = newHTML;
+                    thumbsUpIcon.src = "/static/assets/icons/confirm-icon.svg";
+                    sendmail(userQuery,khojQuery,"Good Response");
+                };
+
+                // Create thumbs-down button
+                let thumbsDownButton = document.createElement('button');
+                thumbsDownButton.className = 'thumbs-down-button';
+                let thumbsDownIcon = document.createElement("img");
+                thumbsDownIcon.src = "/static/assets/icons/thumbs-down-svgrepo-com.svg";
+                thumbsDownIcon.classList.add("thumbs-down-icon");
+                thumbsDownButton.appendChild(thumbsDownIcon);
+                thumbsDownButton.onclick = function() {
+                    khojQuery = newHTML;
+                    thumbsDownIcon.src = "/static/assets/icons/confirm-icon.svg";
+                    sendmail(userQuery,khojQuery,"Bad Response");
+                };
+
+                // Append buttons to parent element
+                element.append(copyButton, thumbsDownButton, thumbsUpButton);
             }
 
             // Get any elements with a class that starts with "language"
@@ -2286,6 +2368,32 @@ To get started, just start typing below. You can also type / to see a list of co
             float: right;
         }
 
+        button.thumbs-up-button {
+            border-radius: 4px;
+            background-color: var(--background-color);
+            border: 1px solid var(--main-text-color);
+            text-align: center;
+            font-size: 16px;
+            transition: all 0.5s;
+            cursor: pointer;
+            padding: 4px;
+            float: right;
+            margin-right: 4px;
+        }
+
+        button.thumbs-down-button {
+            border-radius: 4px;
+            background-color: var(--background-color);
+            border: 1px solid var(--main-text-color);
+            text-align: center;
+            font-size: 16px;
+            transition: all 0.5s;
+            cursor: pointer;
+            padding: 4px;
+            float: right;
+            margin-right:4px;
+        }
+
         button.copy-button span {
             cursor: pointer;
             display: inline-block;
@@ -2294,11 +2402,31 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
         img.copy-icon {
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
+        }
+
+        img.thumbs-up-icon {
+            width: 18px;
+            height: 18px;
+        }
+
+        img.thumbs-down-icon {
+            width: 18px;
+            height: 18px;
         }
 
         button.copy-button:hover {
+            background-color: var(--primary-hover);
+            color: #f5f5f5;
+        }
+
+        button.thumbs-up-button:hover {
+            background-color: var(--primary-hover);
+            color: #f5f5f5;
+        }
+
+        button.thumbs-down-button:hover {
             background-color: var(--primary-hover);
             color: #f5f5f5;
         }

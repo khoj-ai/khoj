@@ -271,6 +271,7 @@ def configure_routes(app):
     from khoj.routers.api_agents import api_agents
     from khoj.routers.api_chat import api_chat
     from khoj.routers.api_config import api_config
+    from khoj.routers.email import email
     from khoj.routers.indexer import indexer
     from khoj.routers.notion import notion_router
     from khoj.routers.web_client import web_client
@@ -282,6 +283,7 @@ def configure_routes(app):
     app.include_router(indexer, prefix="/api/v1/index")
     app.include_router(notion_router, prefix="/api/notion")
     app.include_router(web_client)
+    app.include_router(email, prefix="/email")
 
     if not state.anonymous_mode:
         from khoj.routers.auth import auth_router
