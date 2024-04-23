@@ -409,7 +409,7 @@ async def send_message_to_model_wrapper(
         openai_chat_config = await ConversationAdapters.aget_openai_conversation_config()
         api_key = openai_chat_config.api_key
         truncated_messages = generate_chatml_messages_with_context(
-            user_message=message, system_message=system_message, model_name=chat_model
+            user_message=message, system_message=system_message, model_name=chat_model, max_prompt_size=max_tokens
         )
 
         openai_response = send_message_to_model(
@@ -457,11 +457,6 @@ def generate_chat_response(
 
         conversation_config = ConversationAdapters.get_valid_conversation_config(user, conversation)
         if conversation_config.model_type == "offline":
-            if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
-                chat_model = conversation_config.chat_model
-                max_tokens = conversation_config.max_prompt_size
-                state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
-
             loaded_model = state.offline_chat_processor_config.loaded_model
             chat_response = converse_offline(
                 references=compiled_references,
