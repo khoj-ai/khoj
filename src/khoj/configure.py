@@ -271,7 +271,6 @@ def configure_routes(app):
     from khoj.routers.api_agents import api_agents
     from khoj.routers.api_chat import api_chat
     from khoj.routers.api_config import api_config
-    from khoj.routers.email import email
     from khoj.routers.indexer import indexer
     from khoj.routers.notion import notion_router
     from khoj.routers.web_client import web_client
