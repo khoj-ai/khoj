@@ -13,7 +13,7 @@ from transformers import AutoTokenizer
 
 from khoj.database.adapters import ConversationAdapters
 from khoj.database.models import ClientApplication, KhojUser
-from khoj.processor.conversation.offline.utils import download_model
+from khoj.processor.conversation.offline.utils import download_model, infer_max_tokens
 from khoj.utils.helpers import is_none_or_empty, merge_dicts
 
 logger = logging.getLogger(__name__)
@@ -145,7 +145,7 @@ def generate_chatml_messages_with_context(
     # Set max prompt size from user config or based on pre-configured for model and machine specs
     if not max_prompt_size:
         if loaded_model:
-            max_prompt_size = min(loaded_model.n_ctx(), model_to_prompt_size.get(model_name, math.inf))
+            max_prompt_size = infer_max_tokens(loaded_model.n_ctx(), model_to_prompt_size.get(model_name, math.inf))
         else:
             max_prompt_size = model_to_prompt_size.get(model_name, 2000)
 
