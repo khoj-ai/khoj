@@ -116,7 +116,7 @@ function filenameToMimeType (filename) {
 }
 
 function isSupportedFileType(filePath) {
-    const fileExtension = filePath.split('.').pop();
+    const fileExtension = filePath.split('.').pop().toLowerCase();
     return validFileTypes.includes(fileExtension);
 }
 
