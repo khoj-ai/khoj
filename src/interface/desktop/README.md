@@ -1,17 +1,25 @@
 # Run it locally
+
 ## Prerequisites
+
 Install the runtime dependencies. This command should install all dev dependencies.
+
 ```bash
-yarn add
+yarn install
 ```
 
 Run the application
+
 ```bash
 yarn start
 ```
+
 # Deploying the Electron App
+
 ## Prerequisites
+
 Install the ToDesktop CLI. Full documentation can be found here: https://www.npmjs.com/package/@todesktop/cli
+
 ```bash
 yarn global add @todesktop/cli
 ```
