@@ -69,12 +69,15 @@ function makeFileElement(file) {
     let buttonContainer = document.createElement("div");
     buttonContainer.classList.add("remove-button-container");
     let removeFileButton = document.createElement("button");
+    let fileSyncedImage = document.createElement("img")
+    fileSyncedImage.classList.add("file-synced-image");
     removeFileButton.classList.add("remove-file-button");
     removeFileButton.innerHTML = "🗑️";
     removeFileButton.addEventListener("click", () => {
         removeFile(file.path);
     });
     buttonContainer.appendChild(removeFileButton);
+    buttonContainer.insertAdjacentElement("afterbegin",fileSyncedImage);
     fileElement.appendChild(buttonContainer);
     return fileElement;
 }
@@ -150,6 +153,7 @@ async function handleFileOpen(type) {
 }
 
 window.updateStateAPI.onUpdateState((event, state) => {
+    const fileSyncedImage = document.querySelectorAll(".file-synced-image");
     console.log("state was updated", state);
     loadingBar.style.display = 'none';
     let syncStatusElement = document.getElementById("sync-status");
@@ -157,8 +161,19 @@ window.updateStateAPI.onUpdateState((event, state) => {
     nextSyncTime = new Date();
     nextSyncTime.setMinutes(Math.ceil((nextSyncTime.getMinutes() + 1) / 10) * 10);
     if (state.completed == false) {
+
+        fileSyncedImage.forEach((image)=> {
+            image.style.display = "block"
+            image.src = "./assets/icons/file-not-synced.svg"
+        })
         if (state.error) syncStatusElement.innerHTML = state.error;
         return;
+    } else {
+        fileSyncedImage.forEach((image)=> {
+            image.style.display = "block"
+            image.src = "./assets/icons/file-synced.svg"
+        })
+
     }
     const options = { hour: '2-digit', minute: '2-digit' };
     syncStatusElement.innerHTML = `⏱️ Synced at ${currentTime.toLocaleTimeString(undefined, options)}. Next sync at ${nextSyncTime.toLocaleTimeString(undefined, options)}.`;
