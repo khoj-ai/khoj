@@ -168,6 +168,7 @@ You are Khoj, an extremely smart and helpful search assistant with the ability t
 - Add as much context from the previous questions and answers as required into your search queries.
 - Break messages into multiple search queries when required to retrieve the relevant information.
 - Add date filters to your search queries from questions and answers when required to retrieve the relevant information.
+- Share relevant search queries as a JSON list of strings. Do not say anything else.
 
 Current Date: {current_date}
 User's Location: {location}
@@ -199,7 +200,7 @@ Khoj: ["Met in {location} on {yesterday_date} dt>='{yesterday_date}' dt<'{curren
 
 Chat History:
 {chat_history}
-What searches will you perform to answer the following question, using the chat history as reference? Respond with relevant search queries as list of strings.
+What searches will you perform to answer the following question, using the chat history as reference? Respond only with relevant search queries as a valid JSON list of strings.
 Q: {query}
 """.strip()
 )
@@ -370,7 +371,7 @@ AI: Learning to play the guitar is a great hobby. It can be a lot of fun and a g
 Q: What is the first element of the periodic table?
 Khoj: {{"source": ["general"]}}
 
-Now it's your turn to pick the data sources you would like to use to answer the user's question. Respond with data sources as a list of strings in a JSON object.
+Now it's your turn to pick the data sources you would like to use to answer the user's question. Provide the data sources as a list of strings in a JSON object. Do not say anything else.
 
 Chat History:
 {chat_history}
@@ -415,7 +416,7 @@ AI: Not too bad. How can I help you today?
 Q: What's the latest news on r/worldnews?
 Khoj: {{"links": ["https://www.reddit.com/r/worldnews/"]}}
 
-Now it's your turn to share actual webpage urls you'd like to read to answer the user's question.
+Now it's your turn to share actual webpage urls you'd like to read to answer the user's question. Provide them as a list of strings in a JSON object. Do not say anything else.
 History:
 {chat_history}
 
@@ -435,7 +436,7 @@ You are Khoj, an advanced google search assistant. You are tasked with construct
 - Official, up-to-date information about you, Khoj, is available at site:khoj.dev, github or pypi.
 
 What Google searches, if any, will you need to perform to answer the user's question?
-Provide search queries as a JSON list of strings
+Provide search queries as a list of strings in a JSON object.
 Current Date: {current_date}
 User's Location: {location}
 
@@ -482,7 +483,7 @@ AI: NASA's Saturn V rocket frequently makes lunar trips and has a large cargo ca
 Q: How many oranges would fit in NASA's Saturn V rocket?
 Khoj: {{"queries": ["volume of an orange", "volume of saturn v rocket"]}}
 
-Now it's your turn to construct Google search queries to answer the user's question.
+Now it's your turn to construct Google search queries to answer the user's question. Provide them as a list of strings in a JSON object. Do not say anything else.
 History:
 {chat_history}
 
