@@ -28,7 +28,6 @@ from khoj.database.models import (
     KhojApiUser,
     KhojUser,
     NotionConfig,
-    OfflineChatProcessorConversationConfig,
     OpenAIProcessorConversationConfig,
     ProcessLock,
     ReflectiveQuestion,
@@ -629,18 +628,6 @@ class ConversationAdapters:
         return await OpenAIProcessorConversationConfig.objects.filter().afirst()
 
     @staticmethod
-    def get_offline_chat_conversation_config():
-        return OfflineChatProcessorConversationConfig.objects.filter().first()
-
-    @staticmethod
-    async def aget_offline_chat_conversation_config():
-        return await OfflineChatProcessorConversationConfig.objects.filter().afirst()
-
-    @staticmethod
-    def has_valid_offline_conversation_config():
-        return OfflineChatProcessorConversationConfig.objects.filter(enabled=True).exists()
-
-    @staticmethod
     def has_valid_openai_conversation_config():
         return OpenAIProcessorConversationConfig.objects.filter().exists()
 
@@ -711,14 +698,6 @@ class ConversationAdapters:
         user_conversation_config.save()
 
     @staticmethod
-    def has_offline_chat():
-        return OfflineChatProcessorConversationConfig.objects.filter(enabled=True).exists()
-
-    @staticmethod
-    async def ahas_offline_chat():
-        return await OfflineChatProcessorConversationConfig.objects.filter(enabled=True).aexists()
-
-    @staticmethod
     async def get_default_offline_llm():
         return await ChatModelOptions.objects.filter(model_type="offline").afirst()
 
@@ -765,8 +744,6 @@ class ConversationAdapters:
 
     @staticmethod
     def get_valid_conversation_config(user: KhojUser, conversation: Conversation):
-        offline_chat_config = ConversationAdapters.get_offline_chat_conversation_config()
-
         if conversation.agent and conversation.agent.chat_model:
             conversation_config = conversation.agent.chat_model
         else:
@@ -775,7 +752,7 @@ class ConversationAdapters:
         if conversation_config is None:
             conversation_config = ConversationAdapters.get_default_conversation_config()
 
-        if offline_chat_config and offline_chat_config.enabled and conversation_config.model_type == "offline":
+        if conversation_config.model_type == "offline":
             if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
                 chat_model = conversation_config.chat_model
                 max_tokens = conversation_config.max_prompt_size

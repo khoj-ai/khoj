@@ -9,7 +9,6 @@ from khoj.database.models import (
     Conversation,
     KhojApiUser,
     KhojUser,
-    OfflineChatProcessorConversationConfig,
     OpenAIProcessorConversationConfig,
     ProcessLock,
     SearchModelConfig,
@@ -53,13 +52,6 @@ class UserConversationProcessorConfigFactory(factory.django.DjangoModelFactory):
 
     user = factory.SubFactory(UserFactory)
     setting = factory.SubFactory(ChatModelOptionsFactory)
-
-
-class OfflineChatProcessorConversationConfigFactory(factory.django.DjangoModelFactory):
-    class Meta:
-        model = OfflineChatProcessorConversationConfig
-
-    enabled = True
 
 
 class OpenAIProcessorConversationConfigFactory(factory.django.DjangoModelFactory):

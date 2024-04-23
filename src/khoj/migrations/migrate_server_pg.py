@@ -62,7 +62,6 @@ from packaging import version
 
 from khoj.database.models import (
     ChatModelOptions,
-    OfflineChatProcessorConversationConfig,
     OpenAIProcessorConversationConfig,
     SearchModelConfig,
 )
@@ -103,9 +102,6 @@ def migrate_server_pg(args):
 
             if "offline-chat" in raw_config["processor"]["conversation"]:
                 offline_chat = raw_config["processor"]["conversation"]["offline-chat"]
-                OfflineChatProcessorConversationConfig.objects.create(
-                    enabled=offline_chat.get("enable-offline-chat"),
-                )
                 ChatModelOptions.objects.create(
                     chat_model=offline_chat.get("chat-model"),
                     tokenizer=processor_conversation.get("tokenizer"),

@@ -81,7 +81,6 @@ class OpenAIProcessorConfig(ConfigBase):
 
 
 class OfflineChatProcessorConfig(ConfigBase):
-    enable_offline_chat: Optional[bool] = False
     chat_model: Optional[str] = "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF"
 
 

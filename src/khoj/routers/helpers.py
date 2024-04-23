@@ -65,23 +65,20 @@ executor = ThreadPoolExecutor(max_workers=1)
 
 
 def validate_conversation_config():
-    if (
-        ConversationAdapters.has_valid_offline_conversation_config()
-        or ConversationAdapters.has_valid_openai_conversation_config()
-    ):
-        if ConversationAdapters.get_default_conversation_config() is None:
-            raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
-        return
+    default_config = ConversationAdapters.get_default_conversation_config()
 
-    raise HTTPException(status_code=500, detail="Set your OpenAI API key or enable Local LLM via Khoj settings.")
+    if default_config is None:
+        raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
+
+    if default_config.model_type == "openai" and not ConversationAdapters.has_valid_openai_conversation_config():
+        raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
 
 
 async def is_ready_to_chat(user: KhojUser):
-    has_offline_config = await ConversationAdapters.ahas_offline_chat()
     has_openai_config = await ConversationAdapters.has_openai_chat()
     user_conversation_config = await ConversationAdapters.aget_user_conversation_config(user)
 
-    if has_offline_config and user_conversation_config and user_conversation_config.model_type == "offline":
+    if user_conversation_config and user_conversation_config.model_type == "offline":
         chat_model = user_conversation_config.chat_model
         max_tokens = user_conversation_config.max_prompt_size
         if state.offline_chat_processor_config is None:
@@ -89,9 +86,7 @@ async def is_ready_to_chat(user: KhojUser):
             state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
         return True
 
-    ready = has_openai_config or has_offline_config
-
-    if not ready:
+    if not has_openai_config:
         raise HTTPException(status_code=500, detail="Set your OpenAI API key or enable Local LLM via Khoj settings.")
 
 

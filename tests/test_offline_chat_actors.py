@@ -24,7 +24,7 @@ from khoj.utils.constants import default_offline_chat_model
 
 @pytest.fixture(scope="session")
 def loaded_model():
-    return download_model(default_offline_chat_model)
+    return download_model(default_offline_chat_model, max_tokens=5000)
 
 
 freezegun.configure(extend_ignore_list=["transformers"])

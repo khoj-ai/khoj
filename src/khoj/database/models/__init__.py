@@ -201,10 +201,6 @@ class OpenAIProcessorConversationConfig(BaseModel):
     api_key = models.CharField(max_length=200)
 
 
-class OfflineChatProcessorConversationConfig(BaseModel):
-    enabled = models.BooleanField(default=False)
-
-
 class SpeechToTextModelOptions(BaseModel):
     class ModelType(models.TextChoices):
         OPENAI = "openai"
