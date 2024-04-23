@@ -675,28 +675,35 @@
             await loadChat();
         });
 
-        async function loadChat() {
-            // Load chat history
+        async function getChatHistoryUrl() {
             const hostURL = await window.hostURLAPI.getURL();
             const khojToken = await window.tokenAPI.getToken();
             const headers = { 'Authorization': `Bearer ${khojToken}` };
 
-            let firstRunSetupMessageRendered = false;
             let chatBody = document.getElementById("chat-body");
             chatBody.innerHTML = "";
             let chatHistoryUrl = `${hostURL}/api/chat/history?client=desktop`;
             if (chatBody.dataset.conversationId) {
                 chatHistoryUrl += `&conversation_id=${chatBody.dataset.conversationId}`;
             }
+            return { chatHistoryUrl, headers };
+        }
+
+        async function loadChat() {
+            // Load chat history and body
+            const hostURL = await window.hostURLAPI.getURL();
+            const { chatHistoryUrl, headers } = await getChatHistoryUrl();
 
             // Create loading screen and add it to chat-body
             let loadingScreen = document.createElement('div');
             loadingScreen.classList.add("loading-spinner");
             let yellowOrb = document.createElement('div');
             loadingScreen.appendChild(yellowOrb);
+            let chatBody = document.getElementById("chat-body");
             chatBody.appendChild(loadingScreen);
 
             // Get the most recent 10 chat messages from conversation history
+            let firstRunSetupMessageRendered = false;
             fetch(`${chatHistoryUrl}&n=10`, { headers })
                 .then(response => response.json())
                 .then(data => {
@@ -722,7 +729,7 @@
                         entries.forEach(entry => {
                             // If the element is in the viewport, fetch the remaining message and unobserve the element
                             if (entry.isIntersecting) {
-                                fetchRemainingChatMessages(chatHistoryUrl);
+                                fetchRemainingChatMessages(chatHistoryUrl, headers);
                                 observer.unobserve(entry.target);
                             }
                         });
@@ -817,7 +824,7 @@
             }
         }
 
-        function fetchRemainingChatMessages(chatHistoryUrl) {
+        function fetchRemainingChatMessages(chatHistoryUrl, headers) {
             // Create a new IntersectionObserver
             let observer = new IntersectionObserver((entries, observer) => {
                 entries.forEach(entry => {
@@ -842,7 +849,7 @@
             }, {rootMargin: '0px 0px 200px 0px'});  // Trigger when the element is within 200px of the viewport
 
             // Fetch remaining chat messages from conversation history
-            fetch(`${chatHistoryUrl}&n=-10`, { method: "GET" })
+            fetch(`${chatHistoryUrl}&n=-10`, { headers })
                 .then(response => response.json())
                 .then(data => {
                     if (data.status != "ok") {
