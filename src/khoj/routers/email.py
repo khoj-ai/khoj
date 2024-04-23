@@ -25,11 +25,6 @@ if not RESEND_API_KEY:
 else:
     resend.api_key = RESEND_API_KEY
 
-from fastapi import APIRouter
-
-email = APIRouter()
-
-
 def is_resend_enabled():
     return bool(RESEND_API_KEY)
 
