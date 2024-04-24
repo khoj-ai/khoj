@@ -185,7 +185,7 @@ class SearchModelConfig(BaseModel):
     bi_encoder_model_config = models.JSONField(default=dict)
     bi_encoder_query_encode_config = models.JSONField(default=dict)
     bi_encoder_docs_encode_config = models.JSONField(default=dict)
-    cross_encoder = models.CharField(max_length=200, default="cross-encoder/ms-marco-MiniLM-L-6-v2")
+    cross_encoder = models.CharField(max_length=200, default="mixedbread-ai/mxbai-rerank-xsmall-v1")
     embeddings_inference_endpoint = models.CharField(max_length=200, default=None, null=True, blank=True)
     embeddings_inference_endpoint_api_key = models.CharField(max_length=200, default=None, null=True, blank=True)
     cross_encoder_inference_endpoint = models.CharField(max_length=200, default=None, null=True, blank=True)

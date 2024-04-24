@@ -92,7 +92,7 @@ class EmbeddingsModel:
 class CrossEncoderModel:
     def __init__(
         self,
-        model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2",
+        model_name: str = "mixedbread-ai/mxbai-rerank-xsmall-v1",
         cross_encoder_inference_endpoint: str = None,
         cross_encoder_inference_endpoint_api_key: str = None,
     ):
