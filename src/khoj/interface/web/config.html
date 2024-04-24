@@ -191,9 +191,15 @@
                     </select>
                 </div>
                 <div class="card-action-row">
+                    {% if (not billing_enabled) or (subscription_state != 'unsubscribed' and subscription_state != 'expired') %}
                     <button id="save-model" class="card-button happy" onclick="updateChatModel()">
                         Save
                     </button>
+                    {% else %}
+                    <button id="save-model" class="card-button" disabled>
+                        Subscribe to use different models
+                    </button>
+                    {% endif %}
                 </div>
             </div>
         </div>
