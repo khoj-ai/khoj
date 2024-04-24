@@ -70,12 +70,11 @@ def validate_conversation_config():
     if default_config is None:
         raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
 
-    if default_config.model_type == "openai" and not ConversationAdapters.has_valid_openai_conversation_config():
+    if default_config.model_type == "openai" and not default_config.openai_config:
         raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
 
 
 async def is_ready_to_chat(user: KhojUser):
-    has_openai_config = await ConversationAdapters.has_openai_chat()
     user_conversation_config = await ConversationAdapters.aget_user_conversation_config(user)
 
     if user_conversation_config and user_conversation_config.model_type == "offline":
@@ -86,8 +85,14 @@ async def is_ready_to_chat(user: KhojUser):
             state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
         return True
 
-    if not has_openai_config:
-        raise HTTPException(status_code=500, detail="Set your OpenAI API key or enable Local LLM via Khoj settings.")
+    if (
+        user_conversation_config
+        and user_conversation_config.model_type == "openai"
+        and user_conversation_config.openai_config
+    ):
+        return True
+
+    raise HTTPException(status_code=500, detail="Set your OpenAI API key or enable Local LLM via Khoj settings.")
 
 
 def update_telemetry_state(
@@ -407,7 +412,7 @@ async def send_message_to_model_wrapper(
         )
 
     elif conversation_config.model_type == "openai":
-        openai_chat_config = await ConversationAdapters.aget_openai_conversation_config()
+        openai_chat_config = conversation_config.openai_config
         api_key = openai_chat_config.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
@@ -480,7 +485,7 @@ def generate_chat_response(
             )
 
         elif conversation_config.model_type == "openai":
-            openai_chat_config = ConversationAdapters.get_openai_conversation_config()
+            openai_chat_config = conversation_config.openai_config
             api_key = openai_chat_config.api_key
             chat_model = conversation_config.chat_model
             chat_response = converse(

@@ -624,10 +624,6 @@ class ConversationAdapters:
         return OpenAIProcessorConversationConfig.objects.filter().first()
 
     @staticmethod
-    async def aget_openai_conversation_config():
-        return await OpenAIProcessorConversationConfig.objects.filter().afirst()
-
-    @staticmethod
     def has_valid_openai_conversation_config():
         return OpenAIProcessorConversationConfig.objects.filter().exists()
 
@@ -659,7 +655,7 @@ class ConversationAdapters:
 
     @staticmethod
     async def aget_default_conversation_config():
-        return await ChatModelOptions.objects.filter().afirst()
+        return await ChatModelOptions.objects.filter().prefetch_related("openai_config").afirst()
 
     @staticmethod
     def save_conversation(
@@ -698,27 +694,13 @@ class ConversationAdapters:
         user_conversation_config.save()
 
     @staticmethod
-    async def get_default_offline_llm():
-        return await ChatModelOptions.objects.filter(model_type="offline").afirst()
-
-    @staticmethod
     async def aget_user_conversation_config(user: KhojUser):
-        config = await UserConversationConfig.objects.filter(user=user).prefetch_related("setting").afirst()
+        config = (
+            await UserConversationConfig.objects.filter(user=user).prefetch_related("setting__openai_config").afirst()
+        )
         if not config:
             return None
         return config.setting
-
-    @staticmethod
-    async def has_openai_chat():
-        return await OpenAIProcessorConversationConfig.objects.filter().aexists()
-
-    @staticmethod
-    async def aget_default_openai_llm():
-        return await ChatModelOptions.objects.filter(model_type="openai").afirst()
-
-    @staticmethod
-    async def get_openai_chat_config():
-        return await OpenAIProcessorConversationConfig.objects.filter().afirst()
 
     @staticmethod
     async def get_speech_to_text_config():
@@ -760,8 +742,7 @@ class ConversationAdapters:
 
             return conversation_config
 
-        openai_chat_config = ConversationAdapters.get_openai_conversation_config()
-        if openai_chat_config and conversation_config.model_type == "openai":
+        if conversation_config.model_type == "openai" and conversation_config.openai_config:
             return conversation_config
 
         else:

@@ -380,7 +380,7 @@ async def websocket_endpoint(
             q = q.replace(f"/{cmd.value}", "").strip()
 
         compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
-            websocket, None, meta_log, q, 7, 0.18, conversation_commands, location, send_status_update
+            websocket, meta_log, q, 7, 0.18, conversation_commands, location, send_status_update
         )
 
         if compiled_references:
@@ -575,7 +575,7 @@ async def chat(
     user_name = await aget_user_name(user)
 
     compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
-        request, common, meta_log, q, (n or 5), (d or math.inf), conversation_commands, location
+        request, meta_log, q, (n or 5), (d or math.inf), conversation_commands, location
     )
     online_results: Dict[str, Dict] = {}
 

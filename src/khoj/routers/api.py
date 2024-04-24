@@ -267,7 +267,6 @@ async def transcribe(
 
 async def extract_references_and_questions(
     request: Request,
-    common: CommonQueryParams,
     meta_log: dict,
     q: str,
     n: int,
@@ -303,14 +302,12 @@ async def extract_references_and_questions(
     # Infer search queries from user message
     with timer("Extracting search queries took", logger):
         # If we've reached here, either the user has enabled offline chat or the openai model is enabled.
-        conversation_config = await ConversationAdapters.aget_conversation_config(user)
-        if conversation_config is None:
-            conversation_config = await ConversationAdapters.aget_default_conversation_config()
+        conversation_config = await ConversationAdapters.aget_default_conversation_config()
+
         if conversation_config.model_type == ChatModelOptions.ModelType.OFFLINE:
             using_offline_chat = True
-            default_offline_llm = await ConversationAdapters.get_default_offline_llm()
-            chat_model = default_offline_llm.chat_model
-            max_tokens = default_offline_llm.max_prompt_size
+            chat_model = conversation_config.chat_model
+            max_tokens = conversation_config.max_prompt_size
             if state.offline_chat_processor_config is None:
                 state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
 
@@ -324,11 +321,10 @@ async def extract_references_and_questions(
                 location_data=location_data,
                 max_prompt_size=conversation_config.max_prompt_size,
             )
-        elif conversation_config and conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
-            openai_chat_config = await ConversationAdapters.get_openai_chat_config()
-            default_openai_llm = await ConversationAdapters.aget_default_openai_llm()
+        elif conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
+            openai_chat_config = conversation_config.openai_config
             api_key = openai_chat_config.api_key
-            chat_model = default_openai_llm.chat_model
+            chat_model = conversation_config.chat_model
             inferred_queries = extract_questions(
                 defiltered_query,
                 model=chat_model,
