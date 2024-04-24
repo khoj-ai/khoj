@@ -495,6 +495,7 @@ def generate_chat_response(
                 conversation_log=meta_log,
                 model=chat_model,
                 api_key=api_key,
+                api_base_url=openai_chat_config.api_base_url,
                 completion_func=partial_completion,
                 conversation_commands=conversation_commands,
                 max_prompt_size=conversation_config.max_prompt_size,

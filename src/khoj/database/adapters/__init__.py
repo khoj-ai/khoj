@@ -726,7 +726,8 @@ class ConversationAdapters:
 
     @staticmethod
     def get_valid_conversation_config(user: KhojUser, conversation: Conversation):
-        if conversation.agent and conversation.agent.chat_model:
+        agent: Agent = conversation.agent if AgentAdapters.get_default_agent() != conversation.agent else None
+        if agent and agent.chat_model:
             conversation_config = conversation.agent.chat_model
         else:
             conversation_config = ConversationAdapters.get_conversation_config(user)

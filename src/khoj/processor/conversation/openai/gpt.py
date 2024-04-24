@@ -109,6 +109,7 @@ def converse(
     conversation_log={},
     model: str = "gpt-3.5-turbo",
     api_key: Optional[str] = None,
+    api_base_url: Optional[str] = None,
     temperature: float = 0.2,
     completion_func=None,
     conversation_commands=[ConversationCommand.Default],
@@ -178,6 +179,7 @@ def converse(
         model_name=model,
         temperature=temperature,
         openai_api_key=api_key,
+        api_base_url=api_base_url,
         completion_func=completion_func,
         model_kwargs={"stop": ["Notes:\n["]},
     )

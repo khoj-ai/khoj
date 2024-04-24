@@ -74,16 +74,19 @@ def chat_completion_with_backoff(
     model_name,
     temperature,
     openai_api_key=None,
+    api_base_url=None,
     completion_func=None,
     model_kwargs=None,
 ):
     g = ThreadedGenerator(compiled_references, online_results, completion_func=completion_func)
-    t = Thread(target=llm_thread, args=(g, messages, model_name, temperature, openai_api_key, model_kwargs))
+    t = Thread(
+        target=llm_thread, args=(g, messages, model_name, temperature, openai_api_key, api_base_url, model_kwargs)
+    )
     t.start()
     return g
 
 
-def llm_thread(g, messages, model_name, temperature, openai_api_key=None, model_kwargs=None):
+def llm_thread(g, messages, model_name, temperature, openai_api_key=None, api_base_url=None, model_kwargs=None):
     callback_handler = StreamingChatCallbackHandler(g)
     chat = ChatOpenAI(
         streaming=True,
@@ -92,6 +95,7 @@ def llm_thread(g, messages, model_name, temperature, openai_api_key=None, model_
         model_name=model_name,  # type: ignore
         temperature=temperature,
         openai_api_key=openai_api_key or os.getenv("OPENAI_API_KEY"),
+        openai_api_base=api_base_url,
         model_kwargs=model_kwargs,
         request_timeout=20,
         max_retries=1,
