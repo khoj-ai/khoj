@@ -179,16 +179,27 @@ class SearchModelConfig(BaseModel):
     class ModelType(models.TextChoices):
         TEXT = "text"
 
+    # This is the model name exposed to users on their settings page
     name = models.CharField(max_length=200, default="default")
+    # Type of content the model can generate embeddings for
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.TEXT)
+    # Bi-encoder model of sentence-transformer type to load from HuggingFace
     bi_encoder = models.CharField(max_length=200, default="thenlper/gte-small")
+    # Config passed to the sentence-transformer model constructor. E.g device="cuda:0", trust_remote_server=True etc.
     bi_encoder_model_config = models.JSONField(default=dict)
+    # Query encode configs like prompt, precision, normalize_embeddings, etc. for sentence-transformer models
     bi_encoder_query_encode_config = models.JSONField(default=dict)
+    # Docs encode configs like prompt, precision, normalize_embeddings, etc. for sentence-transformer models
     bi_encoder_docs_encode_config = models.JSONField(default=dict)
+    # Cross-encoder model of sentence-transformer type to load from HuggingFace
     cross_encoder = models.CharField(max_length=200, default="mixedbread-ai/mxbai-rerank-xsmall-v1")
+    # Inference server API endpoint to use for embeddings inference. Bi-encoder model should be hosted on this server
     embeddings_inference_endpoint = models.CharField(max_length=200, default=None, null=True, blank=True)
+    # Inference server API Key to use for embeddings inference. Bi-encoder model should be hosted on this server
     embeddings_inference_endpoint_api_key = models.CharField(max_length=200, default=None, null=True, blank=True)
+    # Inference server API endpoint to use for embeddings inference. Cross-encoder model should be hosted on this server
     cross_encoder_inference_endpoint = models.CharField(max_length=200, default=None, null=True, blank=True)
+    # Inference server API Key to use for embeddings inference. Cross-encoder model should be hosted on this server
     cross_encoder_inference_endpoint_api_key = models.CharField(max_length=200, default=None, null=True, blank=True)
 
 

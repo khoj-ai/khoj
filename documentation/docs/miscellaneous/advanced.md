@@ -10,6 +10,8 @@ For example, the [paraphrase-multilingual-MiniLM-L12-v2](https://huggingface.co/
 1. Manually update the search config in server's admin settings page. Go to [the search config](http://localhost:42110/server/admin/database/searchmodelconfig/). Either create a new one, if none exists, or update the existing one. Set the bi_encoder to `sentence-transformers/multi-qa-MiniLM-L6-cos-v1` and the cross_encoder to `mixedbread-ai/mxbai-rerank-xsmall-v1`.
 2. Regenerate your content index from all the relevant clients. This step is very important, as you'll need to re-encode all your content with the new model.
 
+Note: If you use a search model that expects a prefix (e.g [mixedbread-ai/mxbai-embed-large-v1](https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1)) to the query (or docs) string before encoding. Update the `bi_encoder_query_encode_config` field with `{prompt: <prefix-prompt>}`. Eg. `{prompt: "Represent this query for searching documents"}`. You can pass a valid JSON object that the SentenceTransformer `encode` function accepts
+
 ## Query Filters
 
 Use structured query syntax to filter entries from your knowledge based used by search results or chat responses.
