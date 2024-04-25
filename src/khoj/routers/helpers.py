@@ -753,7 +753,7 @@ async def text_to_image(
         status_code = 501
         message = "Failed to generate image. Setup image generation on the server."
         return image_url or image, status_code, message, intent_type.value
-    elif state.openai_client and text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
+    elif state.openai_client:
         logger.info("Generating image with OpenAI")
         text2image_model = text_to_image_config.model_name
         chat_history = ""
@@ -775,17 +775,36 @@ async def text_to_image(
                     note_references=references,
                     online_results=online_results,
                 )
-            with timer("Generate image with OpenAI", logger):
-                if send_status_func:
-                    await send_status_func(f"**🖼️ Painting using Enhanced Prompt**:\n{improved_image_prompt}")
-                response = state.openai_client.images.generate(
-                    prompt=improved_image_prompt, model=text2image_model, response_format="b64_json"
-                )
-                image = response.data[0].b64_json
+            if send_status_func:
+                await send_status_func(f"**🖼️ Painting using Enhanced Prompt**:\n{improved_image_prompt}")
+
+            if text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
+                with timer("Generate image with OpenAI", logger):
+                    response = state.openai_client.images.generate(
+                        prompt=improved_image_prompt, model=text2image_model, response_format="b64_json"
+                    )
+                    image = response.data[0].b64_json
+                    decoded_image = base64.b64decode(image)
+
+            elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.STABILITYAI:
+                with timer("Generate image with Stability AI", logger):
+                    response = requests.post(
+                        f"https://api.stability.ai/v2beta/stable-image/generate/sd3",
+                        headers={"authorization": f"Bearer {text_to_image_config.api_key}", "accept": "image/*"},
+                        files={"none": ""},
+                        data={
+                            "prompt": improved_image_prompt,
+                            "model": text2image_model,
+                            "mode": "text-to-image",
+                            "output_format": "png",
+                            "seed": 1032622926,
+                            "aspect_ratio": "1:1",
+                        },
+                    )
+                    decoded_image = response.content
 
             with timer("Convert image to webp", logger):
                 # Convert png to webp for faster loading
-                decoded_image = base64.b64decode(image)
                 image_io = io.BytesIO(decoded_image)
                 png_image = Image.open(image_io)
                 webp_image_io = io.BytesIO()

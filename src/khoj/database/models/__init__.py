@@ -234,9 +234,11 @@ class SearchModelConfig(BaseModel):
 class TextToImageModelConfig(BaseModel):
     class ModelType(models.TextChoices):
         OPENAI = "openai"
+        STABILITYAI = "stability-ai"
 
     model_name = models.CharField(max_length=200, default="dall-e-3")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OPENAI)
+    api_key = models.CharField(max_length=200, default=None, null=True, blank=True)
 
 
 class SpeechToTextModelOptions(BaseModel):
