@@ -453,12 +453,14 @@ async def generate_better_image_prompt(
     location_data: LocationData,
     note_references: List[Dict[str, Any]],
     online_results: Optional[dict] = None,
+    model_type: Optional[str] = None,
 ) -> str:
     """
     Generate a better image prompt from the given query
     """
 
     today_date = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
+    model_type = model_type or TextToImageModelConfig.ModelType.OPENAI
 
     if location_data:
         location = f"{location_data.city}, {location_data.region}, {location_data.country}"
@@ -477,14 +479,24 @@ async def generate_better_image_prompt(
             elif online_results[result].get("webpages"):
                 simplified_online_results[result] = online_results[result]["webpages"]
 
-    image_prompt = prompts.image_generation_improve_prompt.format(
-        query=q,
-        chat_history=conversation_history,
-        location=location_prompt,
-        current_date=today_date,
-        references=user_references,
-        online_results=simplified_online_results,
-    )
+    if model_type == TextToImageModelConfig.ModelType.OPENAI:
+        image_prompt = prompts.image_generation_improve_prompt_dalle.format(
+            query=q,
+            chat_history=conversation_history,
+            location=location_prompt,
+            current_date=today_date,
+            references=user_references,
+            online_results=simplified_online_results,
+        )
+    elif model_type == TextToImageModelConfig.ModelType.STABILITYAI:
+        image_prompt = prompts.image_generation_improve_prompt_sd.format(
+            query=q,
+            chat_history=conversation_history,
+            location=location_prompt,
+            current_date=today_date,
+            references=user_references,
+            online_results=simplified_online_results,
+        )
 
     summarizer_model: ChatModelOptions = await ConversationAdapters.aget_summarizer_conversation_config()
 
@@ -774,6 +786,7 @@ async def text_to_image(
                     location_data=location_data,
                     note_references=references,
                     online_results=online_results,
+                    model_type=text_to_image_config.model_type,
                 )
             if send_status_func:
                 await send_status_func(f"**🖼️ Painting using Enhanced Prompt**:\n{improved_image_prompt}")
