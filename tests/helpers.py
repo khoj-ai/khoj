@@ -75,7 +75,7 @@ class SearchModelFactory(factory.django.DjangoModelFactory):
     name = "default"
     model_type = "text"
     bi_encoder = "thenlper/gte-small"
-    cross_encoder = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    cross_encoder = "mixedbread-ai/mxbai-rerank-xsmall-v1"
 
 
 class SubscriptionFactory(factory.django.DjangoModelFactory):

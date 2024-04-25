@@ -64,12 +64,11 @@ dependencies = [
     "pymupdf >= 1.23.5",
     "django == 4.2.10",
     "authlib == 1.2.1",
-    "llama-cpp-python == 0.2.56",
+    "llama-cpp-python == 0.2.64",
     "itsdangerous == 2.1.2",
     "httpx == 0.25.0",
     "pgvector == 0.2.4",
     "psycopg2-binary == 2.9.9",
-    "gunicorn == 21.2.0",
     "lxml == 4.9.3",
     "tzdata == 2023.3",
     "rapidocr-onnxruntime == 1.3.11; python_version<'3.12'",
@@ -93,6 +92,7 @@ khoj = "khoj.main:run"
 
 [project.optional-dependencies]
 prod = [
+    "gunicorn == 22.0.0",
     "google-auth == 2.23.3",
     "stripe == 7.3.0",
     "twilio == 8.11",

@@ -116,29 +116,41 @@ function filenameToMimeType (filename) {
 }
 
 function isSupportedFileType(filePath) {
-    const fileExtension = filePath.split('.').pop();
+    const fileExtension = filePath.split('.').pop().toLowerCase();
     return validFileTypes.includes(fileExtension);
 }
 
 function processDirectory(filesToPush, folder) {
-    const files = fs.readdirSync(folder.path, { withFileTypes: true });
+    try {
+        const files = fs.readdirSync(folder.path, { withFileTypes: true });
 
-    for (const file of files) {
-        const filePath = path.join(file.path, file.name || '');
-        // Skip hidden files and folders
-        if (file.name.startsWith('.')) {
-            continue;
+        for (const file of files) {
+            const filePath = path.join(file.path, file.name || '');
+            // Skip hidden files and folders
+            if (file.name.startsWith('.')) {
+                continue;
+            }
+            // Add supported files to index
+            if (file.isFile() && isSupportedFileType(filePath)) {
+                console.log(`Add ${file.name} in ${file.path} for indexing`);
+                filesToPush.push(filePath);
+            }
+            // Recursively process subdirectories
+            if (file.isDirectory()) {
+                processDirectory(filesToPush, {'path': filePath});
+            }
         }
-        // Add supported files to index
-        if (file.isFile() && isSupportedFileType(filePath)) {
-            console.log(`Add ${file.name} in ${file.path} for indexing`);
-            filesToPush.push(filePath);
+    } catch (err) {
+        if (err.code === 'EACCES') {
+            console.error(`Access denied to ${folder.path}`);
+        } else if (err.code === 'ENOENT') {
+            console.error(`${folder.path} does not exist`);
+        } else {
+            console.error(`An error occurred while reading directory: ${error.message}`);
         }
-        // Recursively process subdirectories
-        if (file.isDirectory()) {
-            processDirectory(filesToPush, {'path': filePath});
-        }
+        return;
     }
+
 }
 
 function pushDataToKhoj (regenerate = false) {
