@@ -15,6 +15,7 @@ export class KhojChatModal extends Modal {
     region: string;
     city: string;
     countryName: string;
+    timezone: string;
 
     constructor(app: App, setting: KhojSetting) {
         super(app);
@@ -30,6 +31,7 @@ export class KhojChatModal extends Modal {
                 this.region = data.region;
                 this.city = data.city;
                 this.countryName = data.country_name;
+                this.timezone = data.timezone;
             })
             .catch(err => {
                 console.log(err);
@@ -393,7 +395,7 @@ export class KhojChatModal extends Modal {
 
         // Get chat response from Khoj backend
         let encodedQuery = encodeURIComponent(query);
-        let chatUrl = `${this.setting.khojUrl}/api/chat?q=${encodedQuery}&n=${this.setting.resultsCount}&client=obsidian&stream=true&region=${this.region}&city=${this.city}&country=${this.countryName}`;
+        let chatUrl = `${this.setting.khojUrl}/api/chat?q=${encodedQuery}&n=${this.setting.resultsCount}&client=obsidian&stream=true&region=${this.region}&city=${this.city}&country=${this.countryName}&timezone=${this.timezone}`;
         let responseElement = this.createKhojResponseDiv();
 
         // Temporary status message to indicate that Khoj is thinking

@@ -80,6 +80,7 @@ dependencies = [
     "psutil >= 5.8.0",
     "huggingface-hub >= 0.22.2",
     "apscheduler ~= 3.10.0",
+    "pytz ~= 2024.1",
 ]
 dynamic = ["version"]
 

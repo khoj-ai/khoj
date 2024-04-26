@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Dict, Optional
 from urllib.parse import unquote
 
+import pytz
 from apscheduler.triggers.cron import CronTrigger
 from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket
@@ -273,6 +274,7 @@ async def websocket_endpoint(
     city: Optional[str] = None,
     region: Optional[str] = None,
     country: Optional[str] = None,
+    timezone: Optional[str] = None,
 ):
     connection_alive = True
 
@@ -426,13 +428,19 @@ async def websocket_endpoint(
                     f"Unable to schedule reminder. Ensure the reminder doesn't already exist."
                 )
                 continue
+            # Display next run time in user timezone instead of UTC
+            user_timezone = pytz.timezone(timezone)
+            next_run_time_utc = job.next_run_time.replace(tzinfo=pytz.utc)
+            next_run_time_user_tz = next_run_time_utc.astimezone(user_timezone)
+            next_run_time = next_run_time_user_tz.strftime("%Y-%m-%d %H:%M %Z (%z)")
+            # Remove /task prefix from inferred_query
             unprefixed_inferred_query = re.sub(r"^\/task\s*", "", inferred_query)
-            next_run_time = job.next_run_time.strftime("%Y-%m-%d %H:%M:%S")
+            # Create the scheduled task response
             llm_response = f"""
             ### 🕒 Scheduled Task
 - Query: **"{unprefixed_inferred_query}"**
-- Schedule: `{crontime}`
-- Next Run At: **{next_run_time}** UTC.
+- Schedule: `{crontime}` UTC (+0000)
+- Next Run At: **{next_run_time}**.
             """.strip()
 
             await sync_to_async(save_to_conversation_log)(
@@ -608,6 +616,7 @@ async def chat(
     city: Optional[str] = None,
     region: Optional[str] = None,
     country: Optional[str] = None,
+    timezone: Optional[str] = None,
     rate_limiter_per_minute=Depends(
         ApiUserRateLimiter(requests=5, subscribed_requests=60, window=60, slug="chat_minute")
     ),
@@ -691,13 +700,19 @@ async def chat(
                 status_code=500,
             )
 
+        # Display next run time in user timezone instead of UTC
+        user_timezone = pytz.timezone(timezone)
+        next_run_time_utc = job.next_run_time.replace(tzinfo=pytz.utc)
+        next_run_time_user_tz = next_run_time_utc.astimezone(user_timezone)
+        next_run_time = next_run_time_user_tz.strftime("%Y-%m-%d %H:%M %Z (%z)")
+        # Remove /task prefix from inferred_query
         unprefixed_inferred_query = re.sub(r"^\/task\s*", "", inferred_query)
-        next_run_time = job.next_run_time.strftime("%Y-%m-%d %H:%M:%S")
+        # Create the scheduled task response
         llm_response = f"""
         ### 🕒 Scheduled Task
 - Query: **"{unprefixed_inferred_query}"**
-- Schedule: `{crontime}`
-- Next Run At: **{next_run_time}** UTC.'
+- Schedule: `{crontime}` UTC (+0000)
+- Next Run At: **{next_run_time}**.'
         """.strip()
 
         await sync_to_async(save_to_conversation_log)(

@@ -58,6 +58,7 @@ To get started, just start typing below. You can also type / to see a list of co
         let region = null;
         let city = null;
         let countryName = null;
+        let timezone = null;
         let waitingForLocation = true;
 
         let websocketState = {
@@ -74,13 +75,14 @@ To get started, just start typing below. You can also type / to see a list of co
                 region = data.region;
                 city = data.city;
                 countryName = data.country_name;
+                timezone = data.timezone;
             })
             .catch(err => {
                 console.log(err);
                 return;
             })
             .finally(() => {
-                console.debug("Region:", region, "City:", city, "Country:", countryName);
+                console.debug("Region:", region, "City:", city, "Country:", countryName, "Timezone:", timezone);
                 waitingForLocation = false;
                 setupWebSocket();
             });
@@ -511,7 +513,7 @@ To get started, just start typing below. You can also type / to see a list of co
             chatInput.classList.remove("option-enabled");
 
             // Generate backend API URL to execute query
-            let url = `/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}&region=${region}&city=${city}&country=${countryName}`;
+            let url = `/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}&region=${region}&city=${city}&country=${countryName}&timezone=${timezone}`;
 
             // Call specified Khoj API
             let response = await fetch(url);
@@ -906,7 +908,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
             if (chatBody.dataset.conversationId) {
                 webSocketUrl += `?conversation_id=${chatBody.dataset.conversationId}`;
-                webSocketUrl += (!!region && !!city && !!countryName) ? `&region=${region}&city=${city}&country=${countryName}` : '';
+                webSocketUrl += (!!region && !!city && !!countryName) && !!timezone ? `&region=${region}&city=${city}&country=${countryName}&timezone=${timezone}` : '';
 
                 websocket = new WebSocket(webSocketUrl);
                 websocket.onmessage = function(event) {

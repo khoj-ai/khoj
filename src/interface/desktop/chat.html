@@ -40,6 +40,7 @@
         let region = null;
         let city = null;
         let countryName = null;
+        let timezone = null;
 
         fetch("https://ipapi.co/json")
             .then(response => response.json())
@@ -47,6 +48,7 @@
                 region = data.region;
                 city = data.city;
                 countryName = data.country_name;
+                timezone = data.timezone;
             })
             .catch(err => {
                 console.log(err);
@@ -463,7 +465,7 @@
             }
 
             // Generate backend API URL to execute query
-            let chatApi = `${hostURL}/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}&region=${region}&city=${city}&country=${countryName}`;
+            let chatApi = `${hostURL}/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}&region=${region}&city=${city}&country=${countryName}&timezone=${timezone}`;
 
             let newResponseEl = document.createElement("div");
             newResponseEl.classList.add("chat-message", "khoj");
