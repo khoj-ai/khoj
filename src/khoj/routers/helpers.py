@@ -502,8 +502,11 @@ async def generate_better_image_prompt(
 
     with timer("Chat actor: Generate contextual image prompt", logger):
         response = await send_message_to_model_wrapper(image_prompt, chat_model_option=summarizer_model)
+        response = response.strip()
+        if response.startswith(('"', "'")) and response.endswith(('"', "'")):
+            response = response[1:-1]
 
-    return response.strip()
+    return response
 
 
 async def send_message_to_model_wrapper(
