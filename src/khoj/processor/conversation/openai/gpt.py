@@ -59,7 +59,7 @@ def extract_questions(
         yesterday_date=(today - timedelta(days=1)).strftime("%Y-%m-%d"),
         location=location,
     )
-    messages = [ChatMessage(content=prompt, role="assistant")]
+    messages = [ChatMessage(content=prompt, role="user")]
 
     # Get Response from GPT
     response = completion_with_backoff(
