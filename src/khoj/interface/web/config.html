@@ -661,8 +661,6 @@
 
     function deleteTask(taskId) {
         const scheduledTaskList = document.getElementById("scheduled-tasks-list");
-        // url encode the task id
-        taskId = encodeURIComponent(taskId);
         fetch(`/api/task?task_id=${taskId}`, {
             method: 'DELETE',
         })

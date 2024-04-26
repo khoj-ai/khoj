@@ -1,4 +1,5 @@
 import functools
+import hashlib
 import json
 import logging
 import math
@@ -400,6 +401,8 @@ async def websocket_endpoint(
             except ValueError as e:
                 await send_complete_llm_response(f"Unable to create reminder with crontime schedule: {crontime}")
                 continue
+            # Generate the job id from the hash of inferred_query and crontime
+            job_id = hashlib.md5(f"{inferred_query}_{crontime}".encode("utf-8")).hexdigest()
             partial_scheduled_chat = functools.partial(
                 scheduled_chat, inferred_query, websocket.user.object, websocket.url
             )
@@ -411,7 +414,7 @@ async def websocket_endpoint(
                         partial_scheduled_chat,
                         f"{ProcessLock.Operation.SCHEDULED_JOB}_{user.uuid}_{inferred_query}",
                     ),
-                    id=f"job_{user.uuid}_{inferred_query}_{crontime}",
+                    id=f"job_{user.uuid}_{job_id}",
                     name=f"{inferred_query}",
                     max_instances=2,  # Allow second instance to kill any previous instance with stale lock
                     jitter=30,
@@ -663,13 +666,15 @@ async def chat(
                 status_code=500,
             )
 
+        # Generate the job id from the hash of inferred_query and crontime
+        job_id = hashlib.md5(f"{inferred_query}_{crontime}".encode("utf-8")).hexdigest()
         partial_scheduled_chat = functools.partial(scheduled_chat, inferred_query, request.user.object, request.url)
         try:
             job = state.scheduler.add_job(
                 run_with_process_lock,
                 trigger=trigger,
                 args=(partial_scheduled_chat, f"{ProcessLock.Operation.SCHEDULED_JOB}_{user.uuid}_{inferred_query}"),
-                id=f"job_{user.uuid}_{inferred_query}_{crontime}",
+                id=f"job_{user.uuid}_{job_id}",
                 name=f"{inferred_query}",
                 max_instances=2,  # Allow second instance to kill any previous instance with stale lock
                 jitter=30,
