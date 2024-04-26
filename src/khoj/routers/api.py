@@ -3,6 +3,7 @@ import json
 import logging
 import math
 import os
+import re
 import time
 import uuid
 from typing import Any, Callable, List, Optional, Union
@@ -397,7 +398,11 @@ def get_jobs(request: Request) -> Response:
 
     # Collate all tasks assigned by user that are still active
     tasks_info = [
-        {"id": task.id, "name": task.name, "next": task.next_run_time.strftime("%Y-%m-%d %H:%M")}
+        {
+            "id": task.id,
+            "name": re.sub(r"^/task\s*", "", task.name),
+            "next": task.next_run_time.strftime("%Y-%m-%d %H:%M"),
+        }
         for task in tasks
         if task.id.startswith(f"job_{user.uuid}_")
     ]

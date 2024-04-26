@@ -3,6 +3,7 @@ import base64
 import io
 import json
 import logging
+import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from functools import partial
@@ -858,8 +859,15 @@ def should_notify(original_query: str, executed_query: str, ai_response: str) ->
     with timer("Chat actor: Decide to notify user of AI response", logger):
         try:
             response = send_message_to_model_wrapper_sync(to_notify_or_not)
-            return "no" not in response.lower()
+            should_notify_result = "no" not in response.lower()
+            logger.info(
+                f'Decided to {"not " if not should_notify_result else ""}notify user of scheduled task response.'
+            )
+            return should_notify_result
         except:
+            logger.warning(
+                f"Fallback to notify user of scheduled task response as failed to infer should notify or not."
+            )
             return True
 
 
@@ -895,7 +903,7 @@ def scheduled_chat(executing_query: str, scheduling_query: str, user: KhojUser, 
         return None
 
     # Extract the AI response from the chat API response
-    cleaned_query = scheduling_query.replace("/task", "", 1).strip()
+    cleaned_query = re.sub(r"^/task\s*", "", scheduling_query).strip()
     if raw_response.headers.get("Content-Type") == "application/json":
         response_map = raw_response.json()
         ai_response = response_map.get("response") or response_map.get("image")

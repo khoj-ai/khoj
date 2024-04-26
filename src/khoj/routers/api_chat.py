@@ -3,6 +3,7 @@ import hashlib
 import json
 import logging
 import math
+import re
 from datetime import datetime
 from typing import Dict, Optional
 from urllib.parse import unquote
@@ -425,10 +426,11 @@ async def websocket_endpoint(
                     f"Unable to schedule reminder. Ensure the reminder doesn't already exist."
                 )
                 continue
+            unprefixed_inferred_query = re.sub(r"^\/task\s*", "", inferred_query)
             next_run_time = job.next_run_time.strftime("%Y-%m-%d %H:%M:%S")
             llm_response = f"""
-            ### 🕒 Scheduled Job
-- Query: **"{inferred_query}"**
+            ### 🕒 Scheduled Task
+- Query: **"{unprefixed_inferred_query}"**
 - Schedule: `{crontime}`
 - Next Run At: **{next_run_time}** UTC.
             """.strip()
@@ -689,10 +691,11 @@ async def chat(
                 status_code=500,
             )
 
+        unprefixed_inferred_query = re.sub(r"^\/task\s*", "", inferred_query)
         next_run_time = job.next_run_time.strftime("%Y-%m-%d %H:%M:%S")
         llm_response = f"""
-        ### 🕒 Scheduled Job
-- Query: **"{inferred_query}"**
+        ### 🕒 Scheduled Task
+- Query: **"{unprefixed_inferred_query}"**
 - Schedule: `{crontime}`
 - Next Run At: **{next_run_time}** UTC.'
         """.strip()
