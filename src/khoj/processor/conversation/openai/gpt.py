@@ -64,11 +64,12 @@ def extract_questions(
     # Get Response from GPT
     response = completion_with_backoff(
         messages=messages,
-        model_name=model,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        model_kwargs={"response_format": {"type": "json_object"}},
-        openai_api_key=api_key,
+        completion_kwargs={"temperature": temperature, "max_tokens": max_tokens},
+        model_kwargs={
+            "model_name": model,
+            "openai_api_key": api_key,
+            "model_kwargs": {"response_format": {"type": "json_object"}},
+        },
     )
 
     # Extract, Clean Message from GPT's Response
@@ -96,9 +97,11 @@ def send_message_to_model(messages, api_key, model, response_type="text"):
     # Get Response from GPT
     return completion_with_backoff(
         messages=messages,
-        model=model,
-        openai_api_key=api_key,
-        model_kwargs={"response_format": {"type": response_type}},
+        model_kwargs={
+            "model_name": model,
+            "openai_api_key": api_key,
+            "model_kwargs": {"response_format": {"type": response_type}},
+        },
     )
 
 

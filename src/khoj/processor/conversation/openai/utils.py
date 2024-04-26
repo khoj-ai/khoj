@@ -43,13 +43,12 @@ class StreamingChatCallbackHandler(StreamingStdOutCallbackHandler):
     before_sleep=before_sleep_log(logger, logging.DEBUG),
     reraise=True,
 )
-def completion_with_backoff(**kwargs) -> str:
-    messages = kwargs.pop("messages")
-    if not "openai_api_key" in kwargs:
-        kwargs["openai_api_key"] = os.getenv("OPENAI_API_KEY")
-    llm = ChatOpenAI(**kwargs, request_timeout=20, max_retries=1)
+def completion_with_backoff(messages, model_kwargs={}, completion_kwargs={}) -> str:
+    if not "openai_api_key" in model_kwargs:
+        model_kwargs["openai_api_key"] = os.getenv("OPENAI_API_KEY")
+    llm = ChatOpenAI(**model_kwargs, request_timeout=20, max_retries=1)
     aggregated_response = ""
-    for chunk in llm.stream(messages):
+    for chunk in llm.stream(messages, **completion_kwargs):
         aggregated_response += chunk.content
     return aggregated_response
 
