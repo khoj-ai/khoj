@@ -407,6 +407,7 @@ async def websocket_endpoint(
                 continue
             # Generate the job id from the hash of inferred_query and crontime
             job_id = hashlib.md5(f"{inferred_query}_{crontime}".encode("utf-8")).hexdigest()
+            query_id = hashlib.md5(f"{inferred_query}".encode("utf-8")).hexdigest()
             partial_scheduled_chat = functools.partial(
                 scheduled_chat, inferred_query, q, websocket.user.object, websocket.url
             )
@@ -416,7 +417,7 @@ async def websocket_endpoint(
                     trigger=trigger,
                     args=(
                         partial_scheduled_chat,
-                        f"{ProcessLock.Operation.SCHEDULED_JOB}_{user.uuid}_{inferred_query}",
+                        f"{ProcessLock.Operation.SCHEDULED_JOB}_{user.uuid}_{query_id}",
                     ),
                     id=f"job_{user.uuid}_{job_id}",
                     name=f"{inferred_query}",
@@ -682,12 +683,13 @@ async def chat(
 
         # Generate the job id from the hash of inferred_query and crontime
         job_id = hashlib.md5(f"{inferred_query}_{crontime}".encode("utf-8")).hexdigest()
+        query_id = hashlib.md5(f"{inferred_query}".encode("utf-8")).hexdigest()
         partial_scheduled_chat = functools.partial(scheduled_chat, inferred_query, q, request.user.object, request.url)
         try:
             job = state.scheduler.add_job(
                 run_with_process_lock,
                 trigger=trigger,
-                args=(partial_scheduled_chat, f"{ProcessLock.Operation.SCHEDULED_JOB}_{user.uuid}_{inferred_query}"),
+                args=(partial_scheduled_chat, f"{ProcessLock.Operation.SCHEDULED_JOB}_{user.uuid}_{query_id}"),
                 id=f"job_{user.uuid}_{job_id}",
                 name=f"{inferred_query}",
                 max_instances=2,  # Allow second instance to kill any previous instance with stale lock

@@ -60,11 +60,14 @@ def send_task_email(name, email, query, result):
     html_result = markdown_it.MarkdownIt().render(result)
     html_content = template.render(name=name, query=query, result=html_result)
 
-    resend.Emails.send(
+    query_for_subject_line = query.replace("\n", " ").replace('"', "").replace("'", "")
+
+    r = resend.Emails.send(
         {
             "from": "Khoj <khoj@khoj.dev>",
             "to": email,
-            "subject": f'✨ Your Task Results for "{query}"',
+            "subject": f'✨ Your Task Results for "{query_for_subject_line}"',
             "html": html_content,
         }
     )
+    return r
