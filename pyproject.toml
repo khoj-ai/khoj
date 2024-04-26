@@ -76,6 +76,7 @@ dependencies = [
     "django-phonenumber-field == 7.3.0",
     "phonenumbers == 8.13.27",
     "markdownify ~= 0.11.6",
+    "markdown-it-py ~= 3.0.0",
     "websockets == 12.0",
     "psutil >= 5.8.0",
     "huggingface-hub >= 0.22.2",

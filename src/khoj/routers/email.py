@@ -6,6 +6,7 @@ try:
 except ImportError:
     pass
 
+import markdown_it
 from django.conf import settings
 from jinja2 import Environment, FileSystemLoader
 
@@ -56,7 +57,8 @@ def send_task_email(name, email, query, result):
 
     template = env.get_template("task.html")
 
-    html_content = template.render(name=name, query=query, result=result)
+    html_result = markdown_it.MarkdownIt().render(result)
+    html_content = template.render(name=name, query=query, result=html_result)
 
     resend.Emails.send(
         {
