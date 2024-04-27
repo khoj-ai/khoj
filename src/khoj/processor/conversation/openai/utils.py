@@ -39,7 +39,7 @@ def completion_with_backoff(
     client_key = f"{openai_api_key}--{api_base_url}"
     client: openai.OpenAI = openai_clients.get(client_key)
     if not client:
-        client: openai.OpenAI = openai.OpenAI(
+        client = openai.OpenAI(
             api_key=openai_api_key or os.getenv("OPENAI_API_KEY"),
             base_url=api_base_url,
         )
