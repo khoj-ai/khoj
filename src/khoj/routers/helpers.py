@@ -416,6 +416,7 @@ async def send_message_to_model_wrapper(
     elif conversation_config.model_type == "openai":
         openai_chat_config = conversation_config.openai_config
         api_key = openai_chat_config.api_key
+        api_base_url = openai_chat_config.api_base_url
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
             system_message=system_message,
@@ -425,7 +426,11 @@ async def send_message_to_model_wrapper(
         )
 
         openai_response = send_message_to_model(
-            messages=truncated_messages, api_key=api_key, model=chat_model, response_type=response_type
+            messages=truncated_messages,
+            api_key=api_key,
+            model=chat_model,
+            response_type=response_type,
+            api_base_url=api_base_url,
         )
 
         return openai_response
