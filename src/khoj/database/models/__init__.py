@@ -73,6 +73,12 @@ class Subscription(BaseModel):
     renewal_date = models.DateTimeField(null=True, default=None, blank=True)
 
 
+class OpenAIProcessorConversationConfig(BaseModel):
+    name = models.CharField(max_length=200)
+    api_key = models.CharField(max_length=200)
+    api_base_url = models.URLField(max_length=200, default=None, blank=True, null=True)
+
+
 class ChatModelOptions(BaseModel):
     class ModelType(models.TextChoices):
         OPENAI = "openai"
@@ -82,6 +88,9 @@ class ChatModelOptions(BaseModel):
     tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)
     chat_model = models.CharField(max_length=200, default="NousResearch/Hermes-2-Pro-Mistral-7B-GGUF")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
+    openai_config = models.ForeignKey(
+        OpenAIProcessorConversationConfig, on_delete=models.CASCADE, default=None, null=True, blank=True
+    )
 
 
 class Agent(BaseModel):
@@ -209,10 +218,6 @@ class TextToImageModelConfig(BaseModel):
 
     model_name = models.CharField(max_length=200, default="dall-e-3")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OPENAI)
-
-
-class OpenAIProcessorConversationConfig(BaseModel):
-    api_key = models.CharField(max_length=200)
 
 
 class SpeechToTextModelOptions(BaseModel):

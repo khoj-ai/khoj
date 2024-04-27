@@ -23,6 +23,7 @@ def extract_questions(
     model: Optional[str] = "gpt-4-turbo-preview",
     conversation_log={},
     api_key=None,
+    api_base_url=None,
     temperature=0,
     max_tokens=100,
     location_data: LocationData = None,
@@ -64,12 +65,12 @@ def extract_questions(
     # Get Response from GPT
     response = completion_with_backoff(
         messages=messages,
-        completion_kwargs={"temperature": temperature, "max_tokens": max_tokens},
-        model_kwargs={
-            "model_name": model,
-            "openai_api_key": api_key,
-            "model_kwargs": {"response_format": {"type": "json_object"}},
-        },
+        model=model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        api_base_url=api_base_url,
+        model_kwargs={"response_format": {"type": "json_object"}},
+        openai_api_key=api_key,
     )
 
     # Extract, Clean Message from GPT's Response
@@ -89,7 +90,7 @@ def extract_questions(
     return questions
 
 
-def send_message_to_model(messages, api_key, model, response_type="text"):
+def send_message_to_model(messages, api_key, model, response_type="text", api_base_url=None):
     """
     Send message to model
     """
@@ -97,11 +98,10 @@ def send_message_to_model(messages, api_key, model, response_type="text"):
     # Get Response from GPT
     return completion_with_backoff(
         messages=messages,
-        model_kwargs={
-            "model_name": model,
-            "openai_api_key": api_key,
-            "model_kwargs": {"response_format": {"type": response_type}},
-        },
+        model=model,
+        openai_api_key=api_key,
+        api_base_url=api_base_url,
+        model_kwargs={"response_format": {"type": response_type}},
     )
 
 
@@ -112,6 +112,7 @@ def converse(
     conversation_log={},
     model: str = "gpt-3.5-turbo",
     api_key: Optional[str] = None,
+    api_base_url: Optional[str] = None,
     temperature: float = 0.2,
     completion_func=None,
     conversation_commands=[ConversationCommand.Default],
@@ -181,6 +182,7 @@ def converse(
         model_name=model,
         temperature=temperature,
         openai_api_key=api_key,
+        api_base_url=api_base_url,
         completion_func=completion_func,
         model_kwargs={"stop": ["Notes:\n["]},
     )

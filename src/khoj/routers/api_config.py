@@ -7,7 +7,7 @@ from asgiref.sync import sync_to_async
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.requests import Request
 from fastapi.responses import Response
-from starlette.authentication import requires
+from starlette.authentication import has_required_scope, requires
 
 from khoj.database import adapters
 from khoj.database.adapters import ConversationAdapters, EntryAdapters
@@ -20,6 +20,7 @@ from khoj.database.models import (
     LocalPdfConfig,
     LocalPlaintextConfig,
     NotionConfig,
+    Subscription,
 )
 from khoj.routers.helpers import CommonQueryParams, update_telemetry_state
 from khoj.utils import constants, state
@@ -236,6 +237,10 @@ async def update_chat_model(
     client: Optional[str] = None,
 ):
     user = request.user.object
+    subscribed = has_required_scope(request, ["premium"])
+
+    if not subscribed:
+        raise HTTPException(status_code=403, detail="User is not subscribed to premium")
 
     new_config = await ConversationAdapters.aset_user_conversation_processor(user, int(id))
 

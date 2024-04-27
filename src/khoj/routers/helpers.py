@@ -70,13 +70,14 @@ def validate_conversation_config():
     if default_config is None:
         raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
 
-    if default_config.model_type == "openai" and not ConversationAdapters.has_valid_openai_conversation_config():
+    if default_config.model_type == "openai" and not default_config.openai_config:
         raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
 
 
 async def is_ready_to_chat(user: KhojUser):
-    has_openai_config = await ConversationAdapters.has_openai_chat()
-    user_conversation_config = await ConversationAdapters.aget_user_conversation_config(user)
+    user_conversation_config = (await ConversationAdapters.aget_user_conversation_config(user)) or (
+        await ConversationAdapters.aget_default_conversation_config()
+    )
 
     if user_conversation_config and user_conversation_config.model_type == "offline":
         chat_model = user_conversation_config.chat_model
@@ -86,8 +87,14 @@ async def is_ready_to_chat(user: KhojUser):
             state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
         return True
 
-    if not has_openai_config:
-        raise HTTPException(status_code=500, detail="Set your OpenAI API key or enable Local LLM via Khoj settings.")
+    if (
+        user_conversation_config
+        and user_conversation_config.model_type == "openai"
+        and user_conversation_config.openai_config
+    ):
+        return True
+
+    raise HTTPException(status_code=500, detail="Set your OpenAI API key or enable Local LLM via Khoj settings.")
 
 
 def update_telemetry_state(
@@ -407,8 +414,9 @@ async def send_message_to_model_wrapper(
         )
 
     elif conversation_config.model_type == "openai":
-        openai_chat_config = await ConversationAdapters.aget_openai_conversation_config()
+        openai_chat_config = conversation_config.openai_config
         api_key = openai_chat_config.api_key
+        api_base_url = openai_chat_config.api_base_url
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
             system_message=system_message,
@@ -418,7 +426,11 @@ async def send_message_to_model_wrapper(
         )
 
         openai_response = send_message_to_model(
-            messages=truncated_messages, api_key=api_key, model=chat_model, response_type=response_type
+            messages=truncated_messages,
+            api_key=api_key,
+            model=chat_model,
+            response_type=response_type,
+            api_base_url=api_base_url,
         )
 
         return openai_response
@@ -480,7 +492,7 @@ def generate_chat_response(
             )
 
         elif conversation_config.model_type == "openai":
-            openai_chat_config = ConversationAdapters.get_openai_conversation_config()
+            openai_chat_config = conversation_config.openai_config
             api_key = openai_chat_config.api_key
             chat_model = conversation_config.chat_model
             chat_response = converse(
@@ -490,6 +502,7 @@ def generate_chat_response(
                 conversation_log=meta_log,
                 model=chat_model,
                 api_key=api_key,
+                api_base_url=openai_chat_config.api_base_url,
                 completion_func=partial_completion,
                 conversation_commands=conversation_commands,
                 max_prompt_size=conversation_config.max_prompt_size,
