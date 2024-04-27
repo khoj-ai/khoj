@@ -170,11 +170,21 @@ function pushDataToKhoj (regenerate = false) {
 
     // Collect paths of all configured files to index
     for (const file of files) {
+        // Remove files that no longer exist
+        if (!fs.existsSync(file.path)) {
+            console.error(`${file.path} does not exist`);
+            continue;
+        }
         filesToPush.push(file.path);
     }
 
     // Collect paths of all indexable files in configured folders
     for (const folder of folders) {
+        // Remove folders that no longer exist
+        if (!fs.existsSync(folder.path)) {
+            console.error(`${folder.path} does not exist`);
+            continue;
+        }
         processDirectory(filesToPush, folder);
     }
 
