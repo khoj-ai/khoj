@@ -32,6 +32,7 @@ from khoj.routers.helpers import (
     ApiUserRateLimiter,
     CommonQueryParams,
     ConversationCommandRateLimiter,
+    create_automation,
     update_telemetry_state,
 )
 from khoj.search_filter.date_filter import DateFilter
@@ -446,4 +447,43 @@ def delete_automation(request: Request, automation_id: str) -> Response:
     automation.remove()
 
     # Return deleted automation information as a JSON response
+    return Response(content=json.dumps(automation_info), media_type="application/json", status_code=200)
+
+
+@api.post("/automation", response_class=Response)
+@requires(["authenticated"])
+async def make_automation(
+    request: Request,
+    q: str,
+    city: Optional[str] = None,
+    region: Optional[str] = None,
+    country: Optional[str] = None,
+    timezone: Optional[str] = None,
+) -> Response:
+    user: KhojUser = request.user.object
+    if city or region or country:
+        location = LocationData(city=city, region=region, country=country)
+
+    # Create automation with scheduling query and location data
+    try:
+        automation, crontime, query_to_run, subject = await create_automation(q, location, timezone, user, request.url)
+    except Exception as e:
+        logger.error(f"Error creating automation {q} for {user.email}: {e}")
+        return Response(
+            content=f"Unable to create automation. Ensure the automation doesn't already exist.",
+            media_type="text/plain",
+            status_code=500,
+        )
+
+    # Collate info about the created user automation
+    schedule = f'{cron_descriptor.get_description(crontime)} {automation.next_run_time.strftime("%Z")}'
+    automation_info = {
+        "id": automation.id,
+        "subject": subject,
+        "query_to_run": query_to_run,
+        "scheduling_request": crontime,
+        "schedule": schedule,
+        "next": automation.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z"),
+    }
+    # Return information about the created automation as a JSON response
     return Response(content=json.dumps(automation_info), media_type="application/json", status_code=200)

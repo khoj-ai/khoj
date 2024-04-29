@@ -295,8 +295,8 @@
                 <tbody id="automations-list"></tbody>
             </table>
             <div class="card-action-row">
-                <button class="card-button happy" id="create-automation" onclick="createAutomation()">
-                    Create Task
+                <button class="card-button happy" id="create-automation">
+                    Create Automation
                 </button>
             </div>
         </div>
@@ -699,6 +699,28 @@
                 AutomationsList.innerHTML = automations.map(generateAutomationRow).join("");
             });
     }
+
+    async function createAutomation() {
+        const scheduling_request = window.prompt("Describe the automation you want to create");
+        if (!scheduling_request) return;
+
+        const ip_response = await fetch("https://ipapi.co/json");
+        const ip_data = await ip_response.json();
+
+        const query_string = `q=${scheduling_request}&city=${ip_data.city}&region=${ip_data.region}&country=${ip_data.country_name}&timezone=${ip_data.timezone}`;
+        const automation_response = await fetch(`/api/automation?${query_string}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+        if (!automation_response.ok) {
+            throw new Error(`Failed to create automation: ${automation_response.status}`);
+        }
+
+        listAutomations();
+    }
+    document.getElementById("create-automation").addEventListener("click", async () => { await createAutomation(); });
 
     function getIndexedDataSize() {
         document.getElementById("indexed-data-size").innerHTML = "Calculating...";
