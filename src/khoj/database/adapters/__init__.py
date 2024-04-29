@@ -1,12 +1,16 @@
+import json
 import logging
 import math
 import random
+import re
 import secrets
 import sys
 from datetime import date, datetime, timedelta, timezone
 from enum import Enum
-from typing import Callable, List, Optional, Type
+from typing import Callable, Iterable, List, Optional, Type
 
+import cron_descriptor
+from apscheduler.job import Job
 from asgiref.sync import sync_to_async
 from django.contrib.sessions.backends.db import SessionStore
 from django.db import models
@@ -908,3 +912,57 @@ class EntryAdapters:
     @staticmethod
     def get_unique_file_sources(user: KhojUser):
         return Entry.objects.filter(user=user).values_list("file_source", flat=True).distinct().all()
+
+
+class AutomationAdapters:
+    @staticmethod
+    def get_automations(user: KhojUser) -> Iterable[Job]:
+        all_automations: Iterable[Job] = state.scheduler.get_jobs()
+        for automation in all_automations:
+            if automation.id.startswith(f"automation_{user.uuid}_"):
+                yield automation
+
+    @staticmethod
+    def get_automations_metadata(user: KhojUser):
+        for automation in AutomationAdapters.get_automations(user):
+            automation_metadata = json.loads(automation.name)
+            crontime = automation_metadata["crontime"]
+            timezone = automation.next_run_time.strftime("%Z")
+            schedule = f"{cron_descriptor.get_description(crontime)} {timezone}"
+            yield {
+                "id": automation.id,
+                "subject": automation_metadata["subject"],
+                "query_to_run": re.sub(r"^/automated_task\s*", "", automation_metadata["query_to_run"]),
+                "scheduling_request": automation_metadata["scheduling_request"],
+                "schedule": schedule,
+                "next": automation.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z"),
+            }
+
+    @staticmethod
+    def get_automation(user: KhojUser, automation_id: str) -> Job:
+        # Perform validation checks
+        # Check if user is allowed to delete this automation id
+        if not automation_id.startswith(f"automation_{user.uuid}_"):
+            raise ValueError("Invalid automation id")
+        # Check if automation with this id exist
+        automation: Job = state.scheduler.get_job(job_id=automation_id)
+        if not automation:
+            raise ValueError("Invalid automation id")
+
+        return automation
+
+    @staticmethod
+    def delete_automation(user: KhojUser, automation_id: str):
+        # Get valid, user-owned automation
+        automation: Job = AutomationAdapters.get_automation(user, automation_id)
+
+        # Collate info about user automation to be deleted
+        automation_metadata = json.loads(automation.name)
+        automation_info = {
+            "id": automation.id,
+            "name": automation_metadata["query_to_run"],
+            "next": automation.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z"),
+        }
+
+        automation.remove()
+        return automation_info
