@@ -86,7 +86,7 @@ def get_tokens(request: Request):
 
 @auth_router.delete("/token")
 @requires(["authenticated"], redirect="login_page")
-async def delete_token(request: Request, token: str) -> str:
+async def delete_token(request: Request, token: str):
     "Delete API token for given user"
     return await delete_khoj_token(user=request.user.object, token=token)
 
