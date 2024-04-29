@@ -397,15 +397,17 @@ def get_jobs(request: Request) -> Response:
     tasks: list[Job] = state.scheduler.get_jobs()
 
     # Collate all tasks assigned by user that are still active
-    tasks_info = [
-        {
-            "id": task.id,
-            "name": re.sub(r"^/task\s*", "", task.name),
-            "next": task.next_run_time.strftime("%Y-%m-%d %H:%M"),
-        }
-        for task in tasks
-        if task.id.startswith(f"job_{user.uuid}_")
-    ]
+    tasks_info = []
+    for task in tasks:
+        if task.id.startswith(f"job_{user.uuid}_"):
+            task_metadata = json.loads(task.name)
+            tasks_info.append(
+                {
+                    "id": task.id,
+                    "name": re.sub(r"^/task\s*", "", task_metadata["inferred_query"]),
+                    "next": task.next_run_time.strftime("%Y-%m-%d %H:%M"),
+                }
+            )
 
     # Return tasks information as a JSON response
     return Response(content=json.dumps(tasks_info), media_type="application/json", status_code=200)
@@ -426,7 +428,12 @@ def delete_job(request: Request, task_id: str) -> Response:
         return Response(content="Invalid job", status_code=403)
 
     # Collate info about user task to be deleted
-    task_info = {"id": task.id, "name": task.name, "next": task.next_run_time.strftime("%Y-%m-%d %H:%MS")}
+    task_metadata = json.loads(task.name)
+    task_info = {
+        "id": task.id,
+        "name": task_metadata["inferred_query"],
+        "next": task.next_run_time.strftime("%Y-%m-%d %H:%MS"),
+    }
 
     # Delete job
     task.remove()

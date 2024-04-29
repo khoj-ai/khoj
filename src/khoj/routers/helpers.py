@@ -926,8 +926,11 @@ async def create_scheduled_task(
     crontime, inferred_query, subject = await schedule_query(q, location, meta_log)
     trigger = CronTrigger.from_crontab(crontime, user_timezone)
     # Generate id and metadata used by task scheduler and process locks for the task runs
-    job_id = f"job_{user.uuid}_" + hashlib.md5(f"{inferred_query}_{crontime}".encode("utf-8")).hexdigest()
+    job_metadata = json.dumps(
+        {"inferred_query": inferred_query, "original_query": q, "subject": subject, "crontime": crontime}
+    )
     query_id = hashlib.md5(f"{inferred_query}".encode("utf-8")).hexdigest()
+    job_id = f"job_{user.uuid}_{crontime}_{query_id}"
     job = state.scheduler.add_job(
         run_with_process_lock,
         trigger=trigger,
@@ -943,7 +946,7 @@ async def create_scheduled_task(
             "calling_url": calling_url,
         },
         id=job_id,
-        name=f"{inferred_query}",
+        name=job_metadata,
         max_instances=2,  # Allow second instance to kill any previous instance with stale lock
         jitter=30,
     )
