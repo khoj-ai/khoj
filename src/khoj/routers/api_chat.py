@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Dict, Optional
 from urllib.parse import unquote
 
+import cron_descriptor
 from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket
 from fastapi.requests import Request
@@ -398,16 +399,19 @@ async def websocket_endpoint(
                 await send_complete_llm_response(f"Unable to schedule task. Ensure the task doesn't already exist.")
                 continue
             # Display next run time in user timezone instead of UTC
-            next_run_time = job.next_run_time.strftime("%Y-%m-%d %H:%M %Z (%z)")
+            schedule = f'{cron_descriptor.get_description(crontime)} {job.next_run_time.strftime("%Z")}'
+            next_run_time = job.next_run_time.strftime("%Y-%m-%d %H:%M %Z")
             # Remove /task prefix from inferred_query
             unprefixed_inferred_query = re.sub(r"^\/task\s*", "", inferred_query)
             # Create the scheduled task response
             llm_response = f"""
             ### 🕒 Scheduled Task
-- Query: **"{unprefixed_inferred_query}"**
 - Subject: **{subject}**
-- Schedule: `{crontime}`
-- Next Run At: **{next_run_time}**.
+- Query: "{unprefixed_inferred_query}"
+- Schedule: `{schedule}`
+- Next Run At: {next_run_time}
+
+Manage your tasks [here](/config#tasks).
             """.strip()
 
             await sync_to_async(save_to_conversation_log)(
@@ -649,16 +653,19 @@ async def chat(
                 status_code=500,
             )
         # Display next run time in user timezone instead of UTC
-        next_run_time = job.next_run_time.strftime("%Y-%m-%d %H:%M %Z (%z)")
+        schedule = f'{cron_descriptor.get_description(crontime)} {job.next_run_time.strftime("%Z")}'
+        next_run_time = job.next_run_time.strftime("%Y-%m-%d %H:%M %Z")
         # Remove /task prefix from inferred_query
         unprefixed_inferred_query = re.sub(r"^\/task\s*", "", inferred_query)
         # Create the scheduled task response
         llm_response = f"""
         ### 🕒 Scheduled Task
-- Query: **"{unprefixed_inferred_query}"**
 - Subject: **{subject}**
-- Schedule: `{crontime}`
-- Next Run At: **{next_run_time}**.'
+- Query: "{unprefixed_inferred_query}"
+- Schedule: `{schedule}`
+- Next Run At: {next_run_time}
+
+Manage your tasks [here](/config#tasks).
         """.strip()
 
         await sync_to_async(save_to_conversation_log)(

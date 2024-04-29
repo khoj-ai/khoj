@@ -286,7 +286,9 @@
                 <thead>
                 <tr>
                     <th scope="col">Name</th>
-                    <th scope="col">Next Run</th>
+                    <th scope="col">Scheduling Request</th>
+                    <th scope="col">Query to Run</th>
+                    <th scope="col">Schedule</th>
                     <th scope="col">Actions</th>
                 </tr>
                 </thead>
@@ -674,12 +676,17 @@
 
     function generateTaskRow(taskObj) {
         let taskId = taskObj.id;
-        let taskName = taskObj.name;
-        let taskNextRun = taskObj.next;
+        let taskSchedulingRequest = taskObj.scheduling_request;
+        let taskQuery = taskObj.query_to_run;
+        let taskSubject = taskObj.subject;
+        let taskNextRun = `Next run at ${taskObj.next}`;
+        let taskSchedule = taskObj.schedule;
         return `
             <tr id="scheduled-task-item-${taskId}">
-                <td><b>${taskName}</b></td>
-                <td id="scheduled-task-${taskId}">${taskNextRun}</td>
+                <td><b>${taskSubject}</b></td>
+                <td><b>${taskSchedulingRequest}</b></td>
+                <td><b>${taskQuery}</b></td>
+                <td id="scheduled-task-${taskId}" title="${taskNextRun}">${taskSchedule}</td>
                 <td>
                     <img onclick="deleteTask('${taskId}')" class="configured-icon api-key-action enabled" src="/static/assets/icons/trash-solid.svg" alt="Delete Task" title="Delete Task">
                 </td>

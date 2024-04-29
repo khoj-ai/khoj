@@ -8,6 +8,7 @@ import time
 import uuid
 from typing import Any, Callable, List, Optional, Union
 
+import cron_descriptor
 from apscheduler.job import Job
 from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
@@ -401,11 +402,17 @@ def get_jobs(request: Request) -> Response:
     for task in tasks:
         if task.id.startswith(f"job_{user.uuid}_"):
             task_metadata = json.loads(task.name)
+            schedule = (
+                f'{cron_descriptor.get_description(task_metadata["crontime"])} {task.next_run_time.strftime("%Z")}'
+            )
             tasks_info.append(
                 {
                     "id": task.id,
-                    "name": re.sub(r"^/task\s*", "", task_metadata["inferred_query"]),
-                    "next": task.next_run_time.strftime("%Y-%m-%d %H:%M"),
+                    "subject": task_metadata["subject"],
+                    "query_to_run": re.sub(r"^/task\s*", "", task_metadata["query_to_run"]),
+                    "scheduling_request": task_metadata["scheduling_request"],
+                    "schedule": schedule,
+                    "next": task.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z"),
                 }
             )
 

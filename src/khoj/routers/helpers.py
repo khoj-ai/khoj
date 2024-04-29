@@ -872,13 +872,13 @@ def should_notify(original_query: str, executed_query: str, ai_response: str) ->
             return True
 
 
-def scheduled_chat(executing_query: str, scheduling_query: str, subject: str, user: KhojUser, calling_url: URL):
+def scheduled_chat(query_to_run: str, scheduling_request: str, subject: str, user: KhojUser, calling_url: URL):
     # Extract relevant params from the original URL
     scheme = "http" if not calling_url.is_secure else "https"
     query_dict = parse_qs(calling_url.query)
 
     # Replace the original scheduling query with the scheduled query
-    query_dict["q"] = [executing_query]
+    query_dict["q"] = [query_to_run]
 
     # Construct the URL to call the chat API with the scheduled query string
     encoded_query = urlencode(query_dict, doseq=True)
@@ -904,7 +904,7 @@ def scheduled_chat(executing_query: str, scheduling_query: str, subject: str, us
         return None
 
     # Extract the AI response from the chat API response
-    cleaned_query = re.sub(r"^/task\s*", "", scheduling_query).strip()
+    cleaned_query = re.sub(r"^/task\s*", "", query_to_run).strip()
     if raw_response.headers.get("Content-Type") == "application/json":
         response_map = raw_response.json()
         ai_response = response_map.get("response") or response_map.get("image")
@@ -912,9 +912,9 @@ def scheduled_chat(executing_query: str, scheduling_query: str, subject: str, us
         ai_response = raw_response.text
 
     # Notify user if the AI response is satisfactory
-    if should_notify(original_query=scheduling_query, executed_query=cleaned_query, ai_response=ai_response):
+    if should_notify(original_query=scheduling_request, executed_query=cleaned_query, ai_response=ai_response):
         if is_resend_enabled():
-            send_task_email(user.get_short_name(), user.email, scheduling_query, ai_response, subject)
+            send_task_email(user.get_short_name(), user.email, scheduling_request, ai_response, subject)
         else:
             return raw_response
 
@@ -923,14 +923,14 @@ async def create_scheduled_task(
     q: str, location: LocationData, timezone: str, user: KhojUser, calling_url: URL, meta_log: dict = {}
 ):
     user_timezone = pytz.timezone(timezone)
-    crontime, inferred_query, subject = await schedule_query(q, location, meta_log)
-    trigger = CronTrigger.from_crontab(crontime, user_timezone)
+    crontime_string, query_to_run, subject = await schedule_query(q, location, meta_log)
+    trigger = CronTrigger.from_crontab(crontime_string, user_timezone)
     # Generate id and metadata used by task scheduler and process locks for the task runs
     job_metadata = json.dumps(
-        {"inferred_query": inferred_query, "original_query": q, "subject": subject, "crontime": crontime}
+        {"query_to_run": query_to_run, "scheduling_request": q, "subject": subject, "crontime": crontime_string}
     )
-    query_id = hashlib.md5(f"{inferred_query}".encode("utf-8")).hexdigest()
-    job_id = f"job_{user.uuid}_{crontime}_{query_id}"
+    query_id = hashlib.md5(f"{query_to_run}".encode("utf-8")).hexdigest()
+    job_id = f"job_{user.uuid}_{crontime_string}_{query_id}"
     job = state.scheduler.add_job(
         run_with_process_lock,
         trigger=trigger,
@@ -939,8 +939,8 @@ async def create_scheduled_task(
             f"{ProcessLock.Operation.SCHEDULED_JOB}_{user.uuid}_{query_id}",
         ),
         kwargs={
-            "executing_query": inferred_query,
-            "scheduling_query": q,
+            "query_to_run": query_to_run,
+            "scheduling_request": q,
             "subject": subject,
             "user": user,
             "calling_url": calling_url,
@@ -950,4 +950,4 @@ async def create_scheduled_task(
         max_instances=2,  # Allow second instance to kill any previous instance with stale lock
         jitter=30,
     )
-    return job, crontime, inferred_query, subject
+    return job, crontime_string, query_to_run, subject

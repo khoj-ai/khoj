@@ -82,6 +82,7 @@ dependencies = [
     "huggingface-hub >= 0.22.2",
     "apscheduler ~= 3.10.0",
     "pytz ~= 2024.1",
+    "cron-descriptor == 1.4.3",
 ]
 dynamic = ["version"]
 
