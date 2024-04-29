@@ -40,6 +40,8 @@ CSRF_TRUSTED_ORIGINS = [
     f"https://app.{KHOJ_DOMAIN}",
 ]
 
+DISABLE_HTTPS = is_env_var_true("KHOJ_NO_HTTPS")
+
 COOKIE_SAMESITE = "None"
 if DEBUG or os.getenv("KHOJ_DOMAIN") == None:
     SESSION_COOKIE_DOMAIN = "localhost"
@@ -48,13 +50,21 @@ else:
     # Production Settings
     SESSION_COOKIE_DOMAIN = KHOJ_DOMAIN
     CSRF_COOKIE_DOMAIN = KHOJ_DOMAIN
-    if not is_env_var_true("KHOJ_NO_HTTPS"):
+    if not DISABLE_HTTPS:
         SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-SESSION_COOKIE_SECURE = not is_env_var_true("KHOJ_NO_HTTPS")
-CSRF_COOKIE_SECURE = not is_env_var_true("KHOJ_NO_HTTPS")
-COOKIE_SAMESITE = "None"
-SESSION_COOKIE_SAMESITE = "None"
+if DISABLE_HTTPS:
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+
+    # These need to be set to Lax in order to work with http in some browsers. See reference: https://docs.djangoproject.com/en/5.0/ref/settings/#std-setting-SESSION_COOKIE_SECURE
+    COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_SAMESITE = "Lax"
+else:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    COOKIE_SAMESITE = "None"
+    SESSION_COOKIE_SAMESITE = "None"
 
 # Application definition
 
