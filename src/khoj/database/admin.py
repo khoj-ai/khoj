@@ -17,6 +17,7 @@ from khoj.database.models import (
     OpenAIProcessorConversationConfig,
     ReflectiveQuestion,
     SearchModelConfig,
+    ServerChatSettings,
     SpeechToTextModelOptions,
     Subscription,
     TextToImageModelConfig,
@@ -54,6 +55,7 @@ admin.site.register(TextToImageModelConfig)
 admin.site.register(ClientApplication)
 admin.site.register(GithubConfig)
 admin.site.register(NotionConfig)
+admin.site.register(ServerChatSettings)
 
 
 @admin.register(Agent)
