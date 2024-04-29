@@ -1,0 +1,23 @@
+<svg
+   shape-rendering="geometricPrecision"
+   text-rendering="geometricPrecision"
+   image-rendering="optimizeQuality"
+   fill-rule="evenodd"
+   clip-rule="evenodd"
+   viewBox="0 0 512 512"
+   version="1.1"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <ellipse
+     style="fill:none;;stroke:#000000;stroke-width:50;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+     cx="256.91525"
+     cy="255.90652"
+     rx="229.04117"
+     ry="228.01408" />
+  <path
+     style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:50;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+     d="m 256.81156,119.9742 0.54637,272.93295" />
+  <path
+     style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:50;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+     d="M 112.29371,257.08475 H 399.09612" />
+</svg>

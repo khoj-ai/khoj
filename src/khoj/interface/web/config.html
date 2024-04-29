@@ -276,8 +276,10 @@
         <h2 class="section-title">Automations</h2>
         <div id="automations" class="api-settings">
             <div class="card-title-row">
-                <img class="card-icon" src="/static/assets/icons/key.svg" alt="Automations">
-                <h3 class="card-title">Automations</h3>
+                <img class="card-icon" src="/static/assets/icons/automation.svg" alt="Automations">
+                <h3 class="card-title">
+                    <span>Automations</span>
+                </h3>
             </div>
             <div class="card-description-row">
                 <p id="tasks-settings-card-description" class="card-description">Manage your automations</p>
@@ -296,6 +298,7 @@
             </table>
             <div class="card-action-row">
                 <button class="card-button happy" id="create-automation">
+                    <img class="automation-action-icon" src="/static/assets/icons/new.svg" alt="Automations">
                     Create Automation
                 </button>
             </div>
@@ -607,13 +610,18 @@
     function copyAPIKey(token) {
         // Copy API key to clipboard
         navigator.clipboard.writeText(token);
-        // Flash the API key copied message
-        const copyApiKeyButton = document.getElementById(`api-key-${token}`);
-        original_html = copyApiKeyButton.innerHTML
+        // Flash the API key copied icon
+        const apiKeyColumn = document.getElementById(`api-key-${token}`);
+        const original_html = apiKeyColumn.innerHTML;
+        const copyApiKeyButton = document.getElementById(`api-key-copy-${token}`);
         setTimeout(function() {
-            copyApiKeyButton.innerHTML = "✅ Copied!";
+            copyApiKeyButton.src = "/static/assets/icons/copy-button-success.svg";
+            setTimeout(() => {
+                copyApiKeyButton.src = "/static/assets/icons/copy-button.svg";
+            }, 1000);
+            apiKeyColumn.innerHTML = "✅ Copied!";
             setTimeout(function() {
-                copyApiKeyButton.innerHTML = original_html;
+                apiKeyColumn.innerHTML = original_html;
             }, 1000);
         }, 100);
     }
@@ -641,8 +649,8 @@
                 <td><b>${tokenName}</b></td>
                 <td id="api-key-${token}">${truncatedToken}</td>
                 <td>
-                    <img onclick="copyAPIKey('${token}')" class="configured-icon api-key-action enabled" src="/static/assets/icons/copy-solid.svg" alt="Copy API Key" title="Copy API Key">
-                    <img onclick="deleteAPIKey('${token}')" class="configured-icon api-key-action enabled" src="/static/assets/icons/trash-solid.svg" alt="Delete API Key" title="Delete API Key">
+                    <img id="api-key-copy-${token}" onclick="copyAPIKey('${token}')" class="configured-icon api-key-action enabled" src="/static/assets/icons/copy-button.svg" alt="Copy API Key" title="Copy API Key">
+                    <img id="api-key-delete-${token}" onclick="deleteAPIKey('${token}')" class="configured-icon api-key-action enabled" src="/static/assets/icons/delete.svg" alt="Delete API Key" title="Delete API Key">
                 </td>
             </tr>
         `;
@@ -684,7 +692,7 @@
                 <td><b>${automationObj.query_to_run}</b></td>
                 <td id="automation-${automationId}" title="${automationNextRun}">${automationObj.schedule}</td>
                 <td>
-                    <img onclick="deleteAutomation('${automationId}')" class="configured-icon api-key-action enabled" src="/static/assets/icons/trash-solid.svg" alt="Delete Automation" title="Delete Automation">
+                    <img onclick="deleteAutomation('${automationId}')" class="automation-row-icon api-key-action enabled" src="/static/assets/icons/delete.svg" alt="Delete Automation" title="Delete Automation">
                 </td>
             </tr>
         `;

@@ -407,8 +407,10 @@ async def websocket_endpoint(
             # Remove /automated_task prefix from inferred_query
             unprefixed_query_to_run = re.sub(r"^\/automated_task\s*", "", query_to_run)
             # Create the automation response
+            scheme = "http" if not websocket.url.is_secure else "https"
+            automation_icon_url = f"{scheme}://{websocket.url.netloc}/static/assets/icons/automation.svg"
             llm_response = f"""
-            ### 🕒 Automation
+            ### ![]({automation_icon_url}) Created Automation
 - Subject: **{subject}**
 - Query to Run: "{unprefixed_query_to_run}"
 - Schedule: `{schedule}`
@@ -661,8 +663,10 @@ async def chat(
         # Remove /automated_task prefix from inferred_query
         unprefixed_query_to_run = re.sub(r"^\/automated_task\s*", "", query_to_run)
         # Create the Automation response
+        scheme = "http" if not request.url.is_secure else "https"
+        automation_icon_url = f"{scheme}://{request.url.netloc}/static/assets/icons/automation.svg"
         llm_response = f"""
-        ### 🕒 Automation
+        ### ![]({automation_icon_url}) Created Automation
 - Subject: **{subject}**
 - Query to Run: "{unprefixed_query_to_run}"
 - Schedule: `{schedule}`
