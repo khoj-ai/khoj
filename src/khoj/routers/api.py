@@ -487,3 +487,40 @@ async def make_automation(
     }
     # Return information about the created automation as a JSON response
     return Response(content=json.dumps(automation_info), media_type="application/json", status_code=200)
+
+
+@api.patch("/automation", response_class=Response)
+@requires(["authenticated"])
+def edit_job(
+    request: Request, automation_id: str, query_to_run: Optional[str] = None, crontime: Optional[str] = None
+) -> Response:
+    user: KhojUser = request.user.object
+
+    # Perform validation checks
+    # Check at least one of query or crontime is provided
+    if not query_to_run and not crontime:
+        return Response(content="A query or crontime is required", status_code=400)
+    # Check if user is allowed to edit this automation id
+    if not automation_id.startswith(f"automation_{user.uuid}_"):
+        return Response(content="Unauthorized automation deletion request", status_code=403)
+    # Check if automation with this id exist
+    automation: Job = state.scheduler.get_job(job_id=automation_id)
+    if not automation:
+        return Response(content="Invalid automation", status_code=403)
+    if not query_to_run.startswith("/automated_task"):
+        query_to_run = f"/automated_task {query_to_run}"
+
+    # Update automation with new query
+    automation_metadata = json.loads(automation.name)
+    automation_metadata["query_to_run"] = query_to_run
+    automation.modify(kwargs={"query_to_run": query_to_run}, name=json.dumps(automation_metadata))
+
+    # Collate info about the modified user automation
+    automation_info = {
+        "id": automation.id,
+        "name": automation.name,
+        "next": automation.next_run_time.strftime("%Y-%m-%d %H:%MS"),
+    }
+
+    # Return modified automation information as a JSON response
+    return Response(content=json.dumps(automation_info), media_type="application/json", status_code=200)

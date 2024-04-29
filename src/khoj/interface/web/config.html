@@ -689,10 +689,11 @@
             <tr id="automation-item-${automationId}">
                 <td><b>${automationObj.subject}</b></td>
                 <td><b>${automationObj.scheduling_request}</b></td>
-                <td><b>${automationObj.query_to_run}</b></td>
+                <td id="automation-query-to-run-${automationId}"><b>${automationObj.query_to_run}</b></td>
                 <td id="automation-${automationId}" title="${automationNextRun}">${automationObj.schedule}</td>
                 <td>
                     <img onclick="deleteAutomation('${automationId}')" class="automation-row-icon api-key-action enabled" src="/static/assets/icons/delete.svg" alt="Delete Automation" title="Delete Automation">
+                    <img onclick="editAutomation('${automationId}')" class="automation-row-icon api-key-action enabled" src="/static/assets/icons/edit.svg" alt="Edit Automation" title="Edit Automation">
                 </td>
             </tr>
         `;
@@ -729,6 +730,23 @@
         listAutomations();
     }
     document.getElementById("create-automation").addEventListener("click", async () => { await createAutomation(); });
+
+    function editAutomation(automationId) {
+        const query_to_run = window.prompt("What is the query you want to run on this automation's schedule?");
+        if (!query_to_run) return;
+
+        fetch(`/api/automation?automation_id=${automationId}&query_to_run=${query_to_run}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        }).then(response => {
+            if (response.ok) {
+                const automationQueryToRunColumn = document.getElementById(`automation-query-to-run-${automationId}`);
+                automationQueryToRunColumn.innerHTML = `<b>${query_to_run}</b>`;
+            }
+        });
+    }
 
     function getIndexedDataSize() {
         document.getElementById("indexed-data-size").innerHTML = "Calculating...";
