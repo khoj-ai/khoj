@@ -67,8 +67,8 @@ async def send_query_feedback(uquery, kquery, sentiment, user_email):
     # send feedback from two fixed accounts
     r = resend.Emails.send(
         {
-            "from": "team@khoj.dev",
-            "to": "saba@khoj.dev",
+            "from": "saba@khoj.dev",
+            "to": "team@khoj.dev",
             "subject": f"User Feedback",
             "html": html_content,
         }
