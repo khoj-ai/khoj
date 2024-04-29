@@ -50,7 +50,7 @@ def send_welcome_email(name, email):
     )
 
 
-def send_task_email(name, email, query, result):
+def send_task_email(name, email, query, result, subject):
     if not is_resend_enabled():
         logger.debug("Email sending disabled")
         return
@@ -60,13 +60,11 @@ def send_task_email(name, email, query, result):
     html_result = markdown_it.MarkdownIt().render(result)
     html_content = template.render(name=name, query=query, result=html_result)
 
-    query_for_subject_line = query.replace("\n", " ").replace('"', "").replace("'", "")
-
     r = resend.Emails.send(
         {
             "from": "Khoj <khoj@khoj.dev>",
             "to": email,
-            "subject": f'✨ Your Task Results for "{query_for_subject_line}"',
+            "subject": f"✨ {subject}",
             "html": html_content,
         }
     )

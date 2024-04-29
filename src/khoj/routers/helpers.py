@@ -332,14 +332,10 @@ async def schedule_query(q: str, location_data: LocationData, conversation_histo
     """
     Schedule the date, time to run the query. Assume the server timezone is UTC.
     """
-    user_location = (
-        f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Greenwich"
-    )
     chat_history = construct_chat_history(conversation_history)
 
     crontime_prompt = prompts.crontime_prompt.format(
         query=q,
-        user_location=user_location,
         chat_history=chat_history,
     )
 
@@ -351,7 +347,7 @@ async def schedule_query(q: str, location_data: LocationData, conversation_histo
         response: Dict[str, str] = json.loads(raw_response)
         if not response or not isinstance(response, Dict) or len(response) != 3:
             raise AssertionError(f"Invalid response for scheduling query : {response}")
-        return tuple(response.values())[1:]
+        return response.get("crontime"), response.get("query"), response.get("subject")
     except Exception:
         raise AssertionError(f"Invalid response for scheduling query: {raw_response}")
 
@@ -871,7 +867,7 @@ def should_notify(original_query: str, executed_query: str, ai_response: str) ->
             return True
 
 
-def scheduled_chat(executing_query: str, scheduling_query: str, user: KhojUser, calling_url: URL):
+def scheduled_chat(executing_query: str, scheduling_query: str, subject: str, user: KhojUser, calling_url: URL):
     # Extract relevant params from the original URL
     scheme = "http" if not calling_url.is_secure else "https"
     query_dict = parse_qs(calling_url.query)
@@ -913,6 +909,6 @@ def scheduled_chat(executing_query: str, scheduling_query: str, user: KhojUser, 
     # Notify user if the AI response is satisfactory
     if should_notify(original_query=scheduling_query, executed_query=cleaned_query, ai_response=ai_response):
         if is_resend_enabled():
-            send_task_email(user.get_short_name(), user.email, scheduling_query, ai_response)
+            send_task_email(user.get_short_name(), user.email, scheduling_query, ai_response, subject)
         else:
             return raw_response

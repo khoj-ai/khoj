@@ -399,17 +399,18 @@ async def websocket_endpoint(
             q = q.replace(f"/{cmd.value}", "").strip()
 
         if ConversationCommand.Reminder in conversation_commands:
-            crontime, inferred_query = await schedule_query(q, location, meta_log)
+            user_timezone = pytz.timezone(timezone)
+            crontime, inferred_query, subject = await schedule_query(q, location, meta_log)
             try:
-                trigger = CronTrigger.from_crontab(crontime)
+                trigger = CronTrigger.from_crontab(crontime, user_timezone)
             except ValueError as e:
                 await send_complete_llm_response(f"Unable to create reminder with crontime schedule: {crontime}")
                 continue
             # Generate the job id from the hash of inferred_query and crontime
-            job_id = hashlib.md5(f"{inferred_query}_{crontime}".encode("utf-8")).hexdigest()
+            job_id = f"job_{user.uuid}_" + hashlib.md5(f"{inferred_query}_{crontime}".encode("utf-8")).hexdigest()
             query_id = hashlib.md5(f"{inferred_query}".encode("utf-8")).hexdigest()
             partial_scheduled_chat = functools.partial(
-                scheduled_chat, inferred_query, q, websocket.user.object, websocket.url
+                scheduled_chat, inferred_query, q, subject, websocket.user.object, websocket.url
             )
             try:
                 job = state.scheduler.add_job(
@@ -419,7 +420,7 @@ async def websocket_endpoint(
                         partial_scheduled_chat,
                         f"{ProcessLock.Operation.SCHEDULED_JOB}_{user.uuid}_{query_id}",
                     ),
-                    id=f"job_{user.uuid}_{job_id}",
+                    id=job_id,
                     name=f"{inferred_query}",
                     max_instances=2,  # Allow second instance to kill any previous instance with stale lock
                     jitter=30,
@@ -430,17 +431,15 @@ async def websocket_endpoint(
                 )
                 continue
             # Display next run time in user timezone instead of UTC
-            user_timezone = pytz.timezone(timezone)
-            next_run_time_utc = job.next_run_time.replace(tzinfo=pytz.utc)
-            next_run_time_user_tz = next_run_time_utc.astimezone(user_timezone)
-            next_run_time = next_run_time_user_tz.strftime("%Y-%m-%d %H:%M %Z (%z)")
+            next_run_time = job.next_run_time.strftime("%Y-%m-%d %H:%M %Z (%z)")
             # Remove /task prefix from inferred_query
             unprefixed_inferred_query = re.sub(r"^\/task\s*", "", inferred_query)
             # Create the scheduled task response
             llm_response = f"""
             ### 🕒 Scheduled Task
 - Query: **"{unprefixed_inferred_query}"**
-- Schedule: `{crontime}` UTC (+0000)
+- Subject: **{subject}**
+- Schedule: `{crontime}`
 - Next Run At: **{next_run_time}**.
             """.strip()
 
@@ -671,9 +670,10 @@ async def chat(
     user_name = await aget_user_name(user)
 
     if ConversationCommand.Reminder in conversation_commands:
-        crontime, inferred_query = await schedule_query(q, location, meta_log)
+        user_timezone = pytz.timezone(timezone)
+        crontime, inferred_query, subject = await schedule_query(q, location, meta_log)
         try:
-            trigger = CronTrigger.from_crontab(crontime)
+            trigger = CronTrigger.from_crontab(crontime, user_timezone)
         except ValueError as e:
             return Response(
                 content=f"Unable to create reminder with crontime schedule: {crontime}",
@@ -682,15 +682,17 @@ async def chat(
             )
 
         # Generate the job id from the hash of inferred_query and crontime
-        job_id = hashlib.md5(f"{inferred_query}_{crontime}".encode("utf-8")).hexdigest()
+        job_id = f"job_{user.uuid}_" + hashlib.md5(f"{inferred_query}_{crontime}".encode("utf-8")).hexdigest()
         query_id = hashlib.md5(f"{inferred_query}".encode("utf-8")).hexdigest()
-        partial_scheduled_chat = functools.partial(scheduled_chat, inferred_query, q, request.user.object, request.url)
+        partial_scheduled_chat = functools.partial(
+            scheduled_chat, inferred_query, q, subject, request.user.object, request.url
+        )
         try:
             job = state.scheduler.add_job(
                 run_with_process_lock,
                 trigger=trigger,
                 args=(partial_scheduled_chat, f"{ProcessLock.Operation.SCHEDULED_JOB}_{user.uuid}_{query_id}"),
-                id=f"job_{user.uuid}_{job_id}",
+                id=job_id,
                 name=f"{inferred_query}",
                 max_instances=2,  # Allow second instance to kill any previous instance with stale lock
                 jitter=30,
@@ -701,19 +703,16 @@ async def chat(
                 media_type="text/plain",
                 status_code=500,
             )
-
         # Display next run time in user timezone instead of UTC
-        user_timezone = pytz.timezone(timezone)
-        next_run_time_utc = job.next_run_time.replace(tzinfo=pytz.utc)
-        next_run_time_user_tz = next_run_time_utc.astimezone(user_timezone)
-        next_run_time = next_run_time_user_tz.strftime("%Y-%m-%d %H:%M %Z (%z)")
+        next_run_time = job.next_run_time.strftime("%Y-%m-%d %H:%M %Z (%z)")
         # Remove /task prefix from inferred_query
         unprefixed_inferred_query = re.sub(r"^\/task\s*", "", inferred_query)
         # Create the scheduled task response
         llm_response = f"""
         ### 🕒 Scheduled Task
 - Query: **"{unprefixed_inferred_query}"**
-- Schedule: `{crontime}` UTC (+0000)
+- Subject: **{subject}**
+- Schedule: `{crontime}`
 - Next Run At: **{next_run_time}**.'
         """.strip()
 
