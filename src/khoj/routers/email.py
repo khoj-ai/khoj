@@ -47,37 +47,30 @@ async def send_welcome_email(name, email):
         }
     )
 
-
-from pydantic import BaseModel
-
-
-class TextData(BaseModel):
-    uquery: str
-    kquery: str
-    sentiment: str
-
-
-async def feedback(uquery, kquery, sentiment):
-    # console debug messages
+async def send_query_feedback(uquery, kquery, sentiment, user_email):
+    if not is_resend_enabled():
+        logger.debug("Email sending disabled")
+        return
     logger.debug("SENDING USER FEEDBACK...")
     logger.debug(f"User Query: {uquery}\n")
     logger.debug(f"Khoj Response: {kquery}\n")
     logger.debug(f"Sentiment: {sentiment}\n")
+    logger.debug(f"User Email: {user_email}")
     # rendering feedback email using feedback.html as template
     template = env.get_template("feedback.html")
     html_content = template.render(
         uquery=uquery if not is_none_or_empty(uquery) else "N/A",
         kquery=kquery if not is_none_or_empty(kquery) else "N/A",
         sentiment=sentiment if not is_none_or_empty(sentiment) else "N/A",
+        user_email=user_email if not is_none_or_empty(user_email) else "N/A"
     )
     # send feedback from two fixed accounts
     r = resend.Emails.send(
         {
-            "from": "saba@khoj.dev",
-            "to": "team@khoj.dev",
+            "from": "team@khoj.dev",
+            "to": "saba@khoj.dev",
             "subject": f"User Feedback",
             "html": html_content,
         }
     )
-
     return {"message": "Sent Email"}
