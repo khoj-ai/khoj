@@ -48,7 +48,8 @@ else:
     # Production Settings
     SESSION_COOKIE_DOMAIN = KHOJ_DOMAIN
     CSRF_COOKIE_DOMAIN = KHOJ_DOMAIN
-    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    if not is_env_var_true("KHOJ_NO_HTTPS"):
+        SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 SESSION_COOKIE_SECURE = not is_env_var_true("KHOJ_NO_HTTPS")
 CSRF_COOKIE_SECURE = not is_env_var_true("KHOJ_NO_HTTPS")
