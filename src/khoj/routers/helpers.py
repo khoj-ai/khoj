@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import hashlib
 import io
 import json
 import logging
@@ -21,7 +22,9 @@ from typing import (
 from urllib.parse import parse_qs, urlencode
 
 import openai
+import pytz
 import requests
+from apscheduler.triggers.cron import CronTrigger
 from fastapi import Depends, Header, HTTPException, Request, UploadFile
 from PIL import Image
 from starlette.authentication import has_required_scope
@@ -33,12 +36,14 @@ from khoj.database.adapters import (
     EntryAdapters,
     create_khoj_token,
     get_khoj_tokens,
+    run_with_process_lock,
 )
 from khoj.database.models import (
     ChatModelOptions,
     ClientApplication,
     Conversation,
     KhojUser,
+    ProcessLock,
     Subscription,
     TextToImageModelConfig,
     UserRequests,
@@ -912,3 +917,34 @@ def scheduled_chat(executing_query: str, scheduling_query: str, subject: str, us
             send_task_email(user.get_short_name(), user.email, scheduling_query, ai_response, subject)
         else:
             return raw_response
+
+
+async def create_scheduled_task(
+    q: str, location: LocationData, timezone: str, user: KhojUser, calling_url: URL, meta_log: dict = {}
+):
+    user_timezone = pytz.timezone(timezone)
+    crontime, inferred_query, subject = await schedule_query(q, location, meta_log)
+    trigger = CronTrigger.from_crontab(crontime, user_timezone)
+    # Generate id and metadata used by task scheduler and process locks for the task runs
+    job_id = f"job_{user.uuid}_" + hashlib.md5(f"{inferred_query}_{crontime}".encode("utf-8")).hexdigest()
+    query_id = hashlib.md5(f"{inferred_query}".encode("utf-8")).hexdigest()
+    job = state.scheduler.add_job(
+        run_with_process_lock,
+        trigger=trigger,
+        args=(
+            scheduled_chat,
+            f"{ProcessLock.Operation.SCHEDULED_JOB}_{user.uuid}_{query_id}",
+        ),
+        kwargs={
+            "executing_query": inferred_query,
+            "scheduling_query": q,
+            "subject": subject,
+            "user": user,
+            "calling_url": calling_url,
+        },
+        id=job_id,
+        name=f"{inferred_query}",
+        max_instances=2,  # Allow second instance to kill any previous instance with stale lock
+        jitter=30,
+    )
+    return job, crontime, inferred_query, subject

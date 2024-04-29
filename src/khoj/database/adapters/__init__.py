@@ -429,7 +429,7 @@ class ProcessLockAdapters:
         return ProcessLock.objects.filter(name=process_name).delete()
 
     @staticmethod
-    def run_with_lock(func: Callable, operation: ProcessLock.Operation, max_duration_in_seconds: int = 600):
+    def run_with_lock(func: Callable, operation: ProcessLock.Operation, max_duration_in_seconds: int = 600, **kwargs):
         # Exit early if process lock is already taken
         if ProcessLockAdapters.is_process_locked(operation):
             logger.info(f"🔒 Skip executing {func} as {operation} lock is already taken")
@@ -443,7 +443,7 @@ class ProcessLockAdapters:
 
             # Execute Function
             with timer(f"🔒 Run {func} with {operation} process lock", logger):
-                func()
+                func(**kwargs)
             success = True
         except Exception as e:
             logger.error(f"🚨 Error executing {func} with {operation} process lock: {e}", exc_info=True)
@@ -454,11 +454,11 @@ class ProcessLockAdapters:
             logger.info(f"🔓 Unlocked {operation} process after executing {func} {'Succeeded' if success else 'Failed'}")
 
 
-def run_with_process_lock(*args):
+def run_with_process_lock(*args, **kwargs):
     """Wrapper function used for scheduling jobs.
     Required as APScheduler can't discover the `ProcessLockAdapter.run_with_lock' method on its own.
     """
-    return ProcessLockAdapters.run_with_lock(*args)
+    return ProcessLockAdapters.run_with_lock(*args, **kwargs)
 
 
 class ClientApplicationAdapters:
