@@ -32,7 +32,7 @@
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/computer.png" alt="Computer">
                     <h3 id="card-title-computer" class="card-title">
-                        Files
+                        <span>Files</span>
                         <img id="configured-icon-computer"
                             style="display: {% if not current_model_state.computer %}none{% endif %}"
                             class="configured-icon"
@@ -64,7 +64,7 @@
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/github.svg" alt="Github">
                     <h3 class="card-title">
-                        Github
+                        <span>Github</span>
                         <img id="configured-icon-github"
                             class="configured-icon"
                             src="/static/assets/icons/confirm-icon.svg"
@@ -97,7 +97,7 @@
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/notion.svg" alt="Notion">
                     <h3 class="card-title">
-                        Notion
+                        <span>Notion</span>
                         <img id="configured-icon-notion"
                             class="configured-icon"
                             src="/static/assets/icons/confirm-icon.svg"
@@ -139,7 +139,7 @@
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/web.svg" alt="Language">
                     <h3 class="card-title">
-                        Language
+                        <span>Language</span>
                     </h3>
                 </div>
                 <div class="card-description-row">
@@ -180,7 +180,7 @@
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/chat.svg" alt="Chat">
                     <h3 class="card-title">
-                        Chat
+                        <span>Chat</span>
                     </h3>
                 </div>
                 <div class="card-description-row">
@@ -211,7 +211,9 @@
         <div id="clients-api" class="api-settings">
             <div class="card-title-row">
                 <img class="card-icon" src="/static/assets/icons/key.svg" alt="API Key">
-                <h3 class="card-title">API Keys</h3>
+                <h3 class="card-title">
+                    <span>API Keys</span>
+                </h3>
             </div>
             <div class="card-description-row">
                 <p id="api-settings-card-description" class="card-description">Manage access from your client apps to Khoj</p>
@@ -237,7 +239,9 @@
         <div id="phone-number-input-card" class="api-settings">
             <div class="card-title-row">
                 <img class="card-icon" src="/static/assets/icons/whatsapp.svg" alt="WhatsApp icon">
-                <h3 class="card-title">WhatsApp</h3>
+                <h3 class="card-title">
+                    <span>WhatsApp</span>
+                </h3>
             </div>
             <div class="card-description-row">
                 <p id="api-settings-card-description-verified" class="card-description" style="{{ 'display: none;' if not phone_number else '' }}">Your number is connected. You can now chat with Khoj on WhatsApp at <a href="https://wa.me/18488004242">+1-848-800-4242</a>. Learn more about the integration <a href="https://docs.khoj.dev/clients/whatsapp">here</a>.</p>
