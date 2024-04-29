@@ -170,8 +170,8 @@ def get_conversation_command(query: str, any_references: bool = False) -> Conver
         return ConversationCommand.Online
     elif query.startswith("/image"):
         return ConversationCommand.Image
-    elif query.startswith("/task"):
-        return ConversationCommand.Task
+    elif query.startswith("/automated_task"):
+        return ConversationCommand.AutomatedTask
     # If no relevant notes found for the given query
     elif not any_references:
         return ConversationCommand.General
@@ -239,7 +239,7 @@ async def aget_relevant_output_modes(query: str, conversation_history: dict, is_
 
     for mode, description in mode_descriptions_for_llm.items():
         # Do not allow tasks to schedule another task
-        if is_task and mode == ConversationCommand.Reminder:
+        if is_task and mode == ConversationCommand.Automation:
             continue
         mode_options[mode.value] = description
         mode_options_str += f'- "{mode.value}": "{description}"\n'
@@ -857,18 +857,14 @@ def should_notify(original_query: str, executed_query: str, ai_response: str) ->
         response=ai_response,
     )
 
-    with timer("Chat actor: Decide to notify user of AI response", logger):
+    with timer("Chat actor: Decide to notify user of automation response", logger):
         try:
             response = send_message_to_model_wrapper_sync(to_notify_or_not)
             should_notify_result = "no" not in response.lower()
-            logger.info(
-                f'Decided to {"not " if not should_notify_result else ""}notify user of scheduled task response.'
-            )
+            logger.info(f'Decided to {"not " if not should_notify_result else ""}notify user of automation response.')
             return should_notify_result
         except:
-            logger.warning(
-                f"Fallback to notify user of scheduled task response as failed to infer should notify or not."
-            )
+            logger.warning(f"Fallback to notify user of automation response as failed to infer should notify or not.")
             return True
 
 
@@ -904,7 +900,7 @@ def scheduled_chat(query_to_run: str, scheduling_request: str, subject: str, use
         return None
 
     # Extract the AI response from the chat API response
-    cleaned_query = re.sub(r"^/task\s*", "", query_to_run).strip()
+    cleaned_query = re.sub(r"^/automated_task\s*", "", query_to_run).strip()
     if raw_response.headers.get("Content-Type") == "application/json":
         response_map = raw_response.json()
         ai_response = response_map.get("response") or response_map.get("image")
@@ -919,7 +915,7 @@ def scheduled_chat(query_to_run: str, scheduling_request: str, subject: str, use
             return raw_response
 
 
-async def create_scheduled_task(
+async def create_automation(
     q: str, location: LocationData, timezone: str, user: KhojUser, calling_url: URL, meta_log: dict = {}
 ):
     user_timezone = pytz.timezone(timezone)
@@ -930,7 +926,7 @@ async def create_scheduled_task(
         {"query_to_run": query_to_run, "scheduling_request": q, "subject": subject, "crontime": crontime_string}
     )
     query_id = hashlib.md5(f"{query_to_run}".encode("utf-8")).hexdigest()
-    job_id = f"job_{user.uuid}_{crontime_string}_{query_id}"
+    job_id = f"automation_{user.uuid}_{crontime_string}_{query_id}"
     job = state.scheduler.add_job(
         run_with_process_lock,
         trigger=trigger,

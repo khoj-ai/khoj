@@ -58,7 +58,7 @@ def send_task_email(name, email, query, result, subject):
     template = env.get_template("task.html")
 
     html_result = markdown_it.MarkdownIt().render(result)
-    html_content = template.render(name=name, query=query, result=html_result)
+    html_content = template.render(name=name, subject=subject, query=query, result=html_result)
 
     r = resend.Emails.send(
         {

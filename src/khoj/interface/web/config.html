@@ -272,17 +272,17 @@
         {% endif %}
     </div>
     {% endif %}
-    <div id="tasks" class="section">
-        <h2 class="section-title">Scheduled Tasks</h2>
-        <div id="scheduled-tasks" class="api-settings">
+    <div id="automations" class="section">
+        <h2 class="section-title">Automations</h2>
+        <div id="automations" class="api-settings">
             <div class="card-title-row">
-                <img class="card-icon" src="/static/assets/icons/key.svg" alt="Scheduled Tasks">
-                <h3 class="card-title">Tasks</h3>
+                <img class="card-icon" src="/static/assets/icons/key.svg" alt="Automations">
+                <h3 class="card-title">Automations</h3>
             </div>
             <div class="card-description-row">
-                <p id="tasks-settings-card-description" class="card-description">Manage your scheduled tasks</p>
+                <p id="tasks-settings-card-description" class="card-description">Manage your automations</p>
             </div>
-            <table id="scheduled-tasks-table">
+            <table id="automations-table">
                 <thead>
                 <tr>
                     <th scope="col">Name</th>
@@ -292,10 +292,10 @@
                     <th scope="col">Actions</th>
                 </tr>
                 </thead>
-                <tbody id="scheduled-tasks-list"></tbody>
+                <tbody id="automations-list"></tbody>
             </table>
             <div class="card-action-row">
-                <button class="card-button happy" id="create-scheduled-task" onclick="createScheduledTask()">
+                <button class="card-button happy" id="create-automation" onclick="createAutomation()">
                     Create Task
                 </button>
             </div>
@@ -661,46 +661,42 @@
     // List user's API keys on page load
     listApiKeys();
 
-    function deleteTask(taskId) {
-        const scheduledTaskList = document.getElementById("scheduled-tasks-list");
-        fetch(`/api/task?task_id=${taskId}`, {
+    function deleteAutomation(automationId) {
+        const AutomationList = document.getElementById("automations-list");
+        fetch(`/api/automation?automation_id=${automationId}`, {
             method: 'DELETE',
         })
         .then(response => {
             if (response.status == 200) {
-                const scheduledTaskItem = document.getElementById(`scheduled-task-item-${taskId}`);
-                scheduledTaskList.removeChild(scheduledTaskItem);
+                const AutomationItem = document.getElementById(`automation-item-${automationId}`);
+                AutomationList.removeChild(AutomationItem);
             }
         });
     }
 
-    function generateTaskRow(taskObj) {
-        let taskId = taskObj.id;
-        let taskSchedulingRequest = taskObj.scheduling_request;
-        let taskQuery = taskObj.query_to_run;
-        let taskSubject = taskObj.subject;
-        let taskNextRun = `Next run at ${taskObj.next}`;
-        let taskSchedule = taskObj.schedule;
+    function generateAutomationRow(automationObj) {
+        let automationId = automationObj.id;
+        let automationNextRun = `Next run at ${automationObj.next}`;
         return `
-            <tr id="scheduled-task-item-${taskId}">
-                <td><b>${taskSubject}</b></td>
-                <td><b>${taskSchedulingRequest}</b></td>
-                <td><b>${taskQuery}</b></td>
-                <td id="scheduled-task-${taskId}" title="${taskNextRun}">${taskSchedule}</td>
+            <tr id="automation-item-${automationId}">
+                <td><b>${automationObj.subject}</b></td>
+                <td><b>${automationObj.scheduling_request}</b></td>
+                <td><b>${automationObj.query_to_run}</b></td>
+                <td id="automation-${automationId}" title="${automationNextRun}">${automationObj.schedule}</td>
                 <td>
-                    <img onclick="deleteTask('${taskId}')" class="configured-icon api-key-action enabled" src="/static/assets/icons/trash-solid.svg" alt="Delete Task" title="Delete Task">
+                    <img onclick="deleteAutomation('${automationId}')" class="configured-icon api-key-action enabled" src="/static/assets/icons/trash-solid.svg" alt="Delete Automation" title="Delete Automation">
                 </td>
             </tr>
         `;
     }
 
-    function listScheduledTasks() {
-        const scheduledTasksList = document.getElementById("scheduled-tasks-list");
-        fetch('/api/tasks')
+    function listAutomations() {
+        const AutomationsList = document.getElementById("automations-list");
+        fetch('/api/automations')
             .then(response => response.json())
-            .then(tasks => {
-                if (!tasks?.length > 0) return;
-                scheduledTasksList.innerHTML = tasks.map(generateTaskRow).join("");
+            .then(automations => {
+                if (!automations?.length > 0) return;
+                AutomationsList.innerHTML = automations.map(generateAutomationRow).join("");
             });
     }
 
@@ -713,8 +709,8 @@
             });
     }
 
-    // List user's scheduled tasks on page load
-    listScheduledTasks();
+    // List user's automations on page load
+    listAutomations();
 
     function removeFile(path) {
         fetch('/api/config/data/file?filename=' + path, {

@@ -391,59 +391,59 @@ def user_info(request: Request) -> Response:
     return Response(content=json.dumps(user_info), media_type="application/json", status_code=200)
 
 
-@api.get("/tasks", response_class=Response)
+@api.get("/automations", response_class=Response)
 @requires(["authenticated"])
-def get_jobs(request: Request) -> Response:
+def get_automations(request: Request) -> Response:
     user: KhojUser = request.user.object
-    tasks: list[Job] = state.scheduler.get_jobs()
+    automations: list[Job] = state.scheduler.get_jobs()
 
-    # Collate all tasks assigned by user that are still active
-    tasks_info = []
-    for task in tasks:
-        if task.id.startswith(f"job_{user.uuid}_"):
-            task_metadata = json.loads(task.name)
-            schedule = (
-                f'{cron_descriptor.get_description(task_metadata["crontime"])} {task.next_run_time.strftime("%Z")}'
-            )
-            tasks_info.append(
+    # Collate all automations created by user that are still active
+    automations_info = []
+    for automation in automations:
+        if automation.id.startswith(f"automation_{user.uuid}_"):
+            automation_metadata = json.loads(automation.name)
+            crontime = automation_metadata["crontime"]
+            timezone = automation.next_run_time.strftime("%Z")
+            schedule = f"{cron_descriptor.get_description(crontime)} {timezone}"
+            automations_info.append(
                 {
-                    "id": task.id,
-                    "subject": task_metadata["subject"],
-                    "query_to_run": re.sub(r"^/task\s*", "", task_metadata["query_to_run"]),
-                    "scheduling_request": task_metadata["scheduling_request"],
+                    "id": automation.id,
+                    "subject": automation_metadata["subject"],
+                    "query_to_run": re.sub(r"^/automated_task\s*", "", automation_metadata["query_to_run"]),
+                    "scheduling_request": automation_metadata["scheduling_request"],
                     "schedule": schedule,
-                    "next": task.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z"),
+                    "next": automation.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z"),
                 }
             )
 
     # Return tasks information as a JSON response
-    return Response(content=json.dumps(tasks_info), media_type="application/json", status_code=200)
+    return Response(content=json.dumps(automations_info), media_type="application/json", status_code=200)
 
 
-@api.delete("/task", response_class=Response)
+@api.delete("/automation", response_class=Response)
 @requires(["authenticated"])
-def delete_job(request: Request, task_id: str) -> Response:
+def delete_automation(request: Request, automation_id: str) -> Response:
     user: KhojUser = request.user.object
 
     # Perform validation checks
-    # Check if user is allowed to delete this task id
-    if not task_id.startswith(f"job_{user.uuid}_"):
+    # Check if user is allowed to delete this automation id
+    if not automation_id.startswith(f"automation_{user.uuid}_"):
         return Response(content="Unauthorized job deletion request", status_code=403)
-    # Check if task with this task id exist
-    task: Job = state.scheduler.get_job(job_id=task_id)
-    if not task:
+    # Check if automation with this id exist
+    automation: Job = state.scheduler.get_job(job_id=automation_id)
+    if not automation:
         return Response(content="Invalid job", status_code=403)
 
     # Collate info about user task to be deleted
-    task_metadata = json.loads(task.name)
-    task_info = {
-        "id": task.id,
-        "name": task_metadata["inferred_query"],
-        "next": task.next_run_time.strftime("%Y-%m-%d %H:%MS"),
+    automation_metadata = json.loads(automation.name)
+    automation_info = {
+        "id": automation.id,
+        "name": automation_metadata["query_to_run"],
+        "next": automation.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z"),
     }
 
     # Delete job
-    task.remove()
+    automation.remove()
 
-    # Return delete task information as a JSON response
-    return Response(content=json.dumps(task_info), media_type="application/json", status_code=200)
+    # Return deleted automation information as a JSON response
+    return Response(content=json.dumps(automation_info), media_type="application/json", status_code=200)

@@ -37,7 +37,7 @@ from khoj.routers.helpers import (
     agenerate_chat_response,
     aget_relevant_information_sources,
     aget_relevant_output_modes,
-    create_scheduled_task,
+    create_automation,
     get_conversation_command,
     is_ready_to_chat,
     text_to_image,
@@ -217,7 +217,8 @@ async def chat_options(
 ) -> Response:
     cmd_options = {}
     for cmd in ConversationCommand:
-        cmd_options[cmd.value] = command_descriptions[cmd]
+        if cmd in command_descriptions:
+            cmd_options[cmd.value] = command_descriptions[cmd]
 
     update_telemetry_state(
         request=request,
@@ -373,14 +374,14 @@ async def websocket_endpoint(
             continue
 
         meta_log = conversation.conversation_log
-        is_task = conversation_commands == [ConversationCommand.Task]
+        is_automated_task = conversation_commands == [ConversationCommand.AutomatedTask]
 
-        if conversation_commands == [ConversationCommand.Default] or is_task:
+        if conversation_commands == [ConversationCommand.Default] or is_automated_task:
             conversation_commands = await aget_relevant_information_sources(q, meta_log)
             conversation_commands_str = ", ".join([cmd.value for cmd in conversation_commands])
             await send_status_update(f"**🗃️ Chose Data Sources to Search:** {conversation_commands_str}")
 
-            mode = await aget_relevant_output_modes(q, meta_log, is_task)
+            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task)
             await send_status_update(f"**🧑🏾‍💻 Decided Response Mode:** {mode.value}")
             if mode not in conversation_commands:
                 conversation_commands.append(mode)
@@ -389,29 +390,31 @@ async def websocket_endpoint(
             await conversation_command_rate_limiter.update_and_check_if_valid(websocket, cmd)
             q = q.replace(f"/{cmd.value}", "").strip()
 
-        if ConversationCommand.Reminder in conversation_commands:
+        if ConversationCommand.Automation in conversation_commands:
             try:
-                job, crontime, inferred_query, subject = await create_scheduled_task(
+                automation, crontime, query_to_run, subject = await create_automation(
                     q, location, timezone, user, websocket.url, meta_log
                 )
             except Exception as e:
                 logger.error(f"Error scheduling task {q} for {user.email}: {e}")
-                await send_complete_llm_response(f"Unable to schedule task. Ensure the task doesn't already exist.")
+                await send_complete_llm_response(
+                    f"Unable to create automation. Ensure the automation doesn't already exist."
+                )
                 continue
             # Display next run time in user timezone instead of UTC
-            schedule = f'{cron_descriptor.get_description(crontime)} {job.next_run_time.strftime("%Z")}'
-            next_run_time = job.next_run_time.strftime("%Y-%m-%d %H:%M %Z")
-            # Remove /task prefix from inferred_query
-            unprefixed_inferred_query = re.sub(r"^\/task\s*", "", inferred_query)
-            # Create the scheduled task response
+            schedule = f'{cron_descriptor.get_description(crontime)} {automation.next_run_time.strftime("%Z")}'
+            next_run_time = automation.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z")
+            # Remove /automated_task prefix from inferred_query
+            unprefixed_query_to_run = re.sub(r"^\/automated_task\s*", "", query_to_run)
+            # Create the automation response
             llm_response = f"""
-            ### 🕒 Scheduled Task
+            ### 🕒 Automation
 - Subject: **{subject}**
-- Query: "{unprefixed_inferred_query}"
+- Query to Run: "{unprefixed_query_to_run}"
 - Schedule: `{schedule}`
 - Next Run At: {next_run_time}
 
-Manage your tasks [here](/config#tasks).
+Manage your tasks [here](/config#automations).
             """.strip()
 
             await sync_to_async(save_to_conversation_log)(
@@ -420,11 +423,11 @@ Manage your tasks [here](/config#tasks).
                 user,
                 meta_log,
                 user_message_time,
-                intent_type="reminder",
+                intent_type="automation",
                 client_application=websocket.user.client_app,
                 conversation_id=conversation_id,
-                inferred_queries=[inferred_query],
-                job_id=job.id,
+                inferred_queries=[query_to_run],
+                automation_id=automation.id,
             )
             common = CommonQueryParamsClass(
                 client=websocket.user.client_app,
@@ -621,7 +624,7 @@ async def chat(
     else:
         meta_log = conversation.conversation_log
 
-    is_task = conversation_commands == [ConversationCommand.Task]
+    is_task = conversation_commands == [ConversationCommand.AutomatedTask]
 
     if conversation_commands == [ConversationCommand.Default] or is_task:
         conversation_commands = await aget_relevant_information_sources(q, meta_log)
@@ -640,32 +643,32 @@ async def chat(
 
     user_name = await aget_user_name(user)
 
-    if ConversationCommand.Reminder in conversation_commands:
+    if ConversationCommand.Automation in conversation_commands:
         try:
-            job, crontime, inferred_query, subject = await create_scheduled_task(
+            automation, crontime, query_to_run, subject = await create_automation(
                 q, location, timezone, user, request.url, meta_log
             )
         except Exception as e:
-            logger.error(f"Error scheduling task {q} for {user.email}: {e}")
+            logger.error(f"Error creating automation {q} for {user.email}: {e}")
             return Response(
-                content=f"Unable to schedule task. Ensure the task doesn't already exist.",
+                content=f"Unable to create automation. Ensure the automation doesn't already exist.",
                 media_type="text/plain",
                 status_code=500,
             )
         # Display next run time in user timezone instead of UTC
-        schedule = f'{cron_descriptor.get_description(crontime)} {job.next_run_time.strftime("%Z")}'
-        next_run_time = job.next_run_time.strftime("%Y-%m-%d %H:%M %Z")
-        # Remove /task prefix from inferred_query
-        unprefixed_inferred_query = re.sub(r"^\/task\s*", "", inferred_query)
-        # Create the scheduled task response
+        schedule = f'{cron_descriptor.get_description(crontime)} {automation.next_run_time.strftime("%Z")}'
+        next_run_time = automation.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z")
+        # Remove /automated_task prefix from inferred_query
+        unprefixed_query_to_run = re.sub(r"^\/automated_task\s*", "", query_to_run)
+        # Create the Automation response
         llm_response = f"""
-        ### 🕒 Scheduled Task
+        ### 🕒 Automation
 - Subject: **{subject}**
-- Query: "{unprefixed_inferred_query}"
+- Query to Run: "{unprefixed_query_to_run}"
 - Schedule: `{schedule}`
 - Next Run At: {next_run_time}
 
-Manage your tasks [here](/config#tasks).
+Manage your automations [here](/config#automations).
         """.strip()
 
         await sync_to_async(save_to_conversation_log)(
@@ -674,11 +677,11 @@ Manage your tasks [here](/config#tasks).
             user,
             meta_log,
             user_message_time,
-            intent_type="reminder",
+            intent_type="automation",
             client_application=request.user.client_app,
             conversation_id=conversation_id,
-            inferred_queries=[inferred_query],
-            job_id=job.id,
+            inferred_queries=[query_to_run],
+            automation_id=automation.id,
         )
 
         if stream:
