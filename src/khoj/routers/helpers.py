@@ -25,6 +25,7 @@ import openai
 import pytz
 import requests
 from apscheduler.triggers.cron import CronTrigger
+from asgiref.sync import sync_to_async
 from fastapi import Depends, Header, HTTPException, Request, UploadFile
 from PIL import Image
 from starlette.authentication import has_required_scope
@@ -927,7 +928,7 @@ async def create_automation(
     )
     query_id = hashlib.md5(f"{query_to_run}".encode("utf-8")).hexdigest()
     job_id = f"automation_{user.uuid}_{crontime_string}_{query_id}"
-    job = state.scheduler.add_job(
+    job = await sync_to_async(state.scheduler.add_job)(
         run_with_process_lock,
         trigger=trigger,
         args=(

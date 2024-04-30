@@ -128,20 +128,16 @@ def run(should_start_server=True):
     poll_task_scheduler()
 
     # Setup Background Scheduler
-    from django.conf import settings as django_settings
+    from django_apscheduler.jobstores import DjangoJobStore
 
-    django_db = django_settings.DATABASES["default"]
     state.scheduler = BackgroundScheduler(
         {
-            "apscheduler.jobstores.default": {
-                "type": "sqlalchemy",
-                "url": f'postgresql://{django_db["USER"]}:{django_db["PASSWORD"]}@{django_db["HOST"]}:{django_db["PORT"]}/{django_db["NAME"]}',
-            },
             "apscheduler.timezone": "UTC",
             "apscheduler.job_defaults.misfire_grace_time": "60",  # Useful to run scheduled jobs even when worker delayed because it was busy or down
             "apscheduler.job_defaults.coalesce": "true",  # Combine multiple jobs into one if they are scheduled at the same time
         }
     )
+    state.scheduler.add_jobstore(DjangoJobStore(), "default")
     state.scheduler.start()
 
     # Start Server
