@@ -21,9 +21,11 @@ from typing import (
 )
 from urllib.parse import parse_qs, urlencode
 
+import cron_descriptor
 import openai
 import pytz
 import requests
+from apscheduler.job import Job
 from apscheduler.triggers.cron import CronTrigger
 from asgiref.sync import sync_to_async
 from fastapi import Depends, Header, HTTPException, Request, UploadFile
@@ -948,3 +950,23 @@ async def create_automation(
         jitter=30,
     )
     return job, crontime_string, query_to_run, subject
+
+
+def construct_automation_created_message(automation: Job, crontime: str, query_to_run: str, subject: str, url: URL):
+    # Display next run time in user timezone instead of UTC
+    schedule = f'{cron_descriptor.get_description(crontime)} {automation.next_run_time.strftime("%Z")}'
+    next_run_time = automation.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z")
+    # Remove /automated_task prefix from inferred_query
+    unprefixed_query_to_run = re.sub(r"^\/automated_task\s*", "", query_to_run)
+    # Create the automation response
+    scheme = "http" if not url.is_secure else "https"
+    automation_icon_url = f"{scheme}://{url.netloc}/static/assets/icons/automation.svg"
+    return f"""
+    ### ![]({automation_icon_url}) Created Automation
+- Subject: **{subject}**
+- Query to Run: "{unprefixed_query_to_run}"
+- Schedule: `{schedule}`
+- Next Run At: {next_run_time}
+
+Manage your tasks [here](/config#automations).
+    """.strip()

@@ -1,12 +1,10 @@
 import json
 import logging
 import math
-import re
 from datetime import datetime
 from typing import Dict, Optional
 from urllib.parse import unquote
 
-import cron_descriptor
 from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket
 from fastapi.requests import Request
@@ -37,6 +35,7 @@ from khoj.routers.helpers import (
     agenerate_chat_response,
     aget_relevant_information_sources,
     aget_relevant_output_modes,
+    construct_automation_created_message,
     create_automation,
     get_conversation_command,
     is_ready_to_chat,
@@ -401,24 +400,10 @@ async def websocket_endpoint(
                     f"Unable to create automation. Ensure the automation doesn't already exist."
                 )
                 continue
-            # Display next run time in user timezone instead of UTC
-            schedule = f'{cron_descriptor.get_description(crontime)} {automation.next_run_time.strftime("%Z")}'
-            next_run_time = automation.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z")
-            # Remove /automated_task prefix from inferred_query
-            unprefixed_query_to_run = re.sub(r"^\/automated_task\s*", "", query_to_run)
-            # Create the automation response
-            scheme = "http" if not websocket.url.is_secure else "https"
-            automation_icon_url = f"{scheme}://{websocket.url.netloc}/static/assets/icons/automation.svg"
-            llm_response = f"""
-            ### ![]({automation_icon_url}) Created Automation
-- Subject: **{subject}**
-- Query to Run: "{unprefixed_query_to_run}"
-- Schedule: `{schedule}`
-- Next Run At: {next_run_time}
 
-Manage your tasks [here](/config#automations).
-            """.strip()
-
+            llm_response = construct_automation_created_message(
+                automation, crontime, query_to_run, subject, websocket.url
+            )
             await sync_to_async(save_to_conversation_log)(
                 q,
                 llm_response,
@@ -657,24 +642,8 @@ async def chat(
                 media_type="text/plain",
                 status_code=500,
             )
-        # Display next run time in user timezone instead of UTC
-        schedule = f'{cron_descriptor.get_description(crontime)} {automation.next_run_time.strftime("%Z")}'
-        next_run_time = automation.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z")
-        # Remove /automated_task prefix from inferred_query
-        unprefixed_query_to_run = re.sub(r"^\/automated_task\s*", "", query_to_run)
-        # Create the Automation response
-        scheme = "http" if not request.url.is_secure else "https"
-        automation_icon_url = f"{scheme}://{request.url.netloc}/static/assets/icons/automation.svg"
-        llm_response = f"""
-        ### ![]({automation_icon_url}) Created Automation
-- Subject: **{subject}**
-- Query to Run: "{unprefixed_query_to_run}"
-- Schedule: `{schedule}`
-- Next Run At: {next_run_time}
 
-Manage your automations [here](/config#automations).
-        """.strip()
-
+        llm_response = construct_automation_created_message(automation, crontime, query_to_run, subject, request.url)
         await sync_to_async(save_to_conversation_log)(
             q,
             llm_response,
