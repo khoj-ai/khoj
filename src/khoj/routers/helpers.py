@@ -922,14 +922,32 @@ async def create_automation(
     q: str, location: LocationData, timezone: str, user: KhojUser, calling_url: URL, meta_log: dict = {}
 ):
     user_timezone = pytz.timezone(timezone)
-    crontime_string, query_to_run, subject = await schedule_query(q, location, meta_log)
-    trigger = CronTrigger.from_crontab(crontime_string, user_timezone)
+    crontime, query_to_run, subject = await schedule_query(q, location, meta_log)
+    job = await schedule_automation(query_to_run, subject, crontime, user_timezone, q, user, calling_url)
+    return job, crontime, query_to_run, subject
+
+
+async def schedule_automation(
+    query_to_run: str,
+    subject: str,
+    crontime: str,
+    user_timezone,
+    scheduling_request: str,
+    user: KhojUser,
+    calling_url: URL,
+):
+    trigger = CronTrigger.from_crontab(crontime, user_timezone)
     # Generate id and metadata used by task scheduler and process locks for the task runs
     job_metadata = json.dumps(
-        {"query_to_run": query_to_run, "scheduling_request": q, "subject": subject, "crontime": crontime_string}
+        {
+            "query_to_run": query_to_run,
+            "scheduling_request": scheduling_request,
+            "subject": subject,
+            "crontime": crontime,
+        }
     )
-    query_id = hashlib.md5(f"{query_to_run}{crontime_string}".encode("utf-8")).hexdigest()
-    job_id = f"automation_{user.uuid}_{crontime_string}_{query_id}"
+    query_id = hashlib.md5(f"{query_to_run}_{crontime}".encode("utf-8")).hexdigest()
+    job_id = f"automation_{user.uuid}_{query_id}"
     job = await sync_to_async(state.scheduler.add_job)(
         run_with_process_lock,
         trigger=trigger,
@@ -939,7 +957,7 @@ async def create_automation(
         ),
         kwargs={
             "query_to_run": query_to_run,
-            "scheduling_request": q,
+            "scheduling_request": scheduling_request,
             "subject": subject,
             "user": user,
             "calling_url": calling_url,
@@ -949,7 +967,7 @@ async def create_automation(
         max_instances=2,  # Allow second instance to kill any previous instance with stale lock
         jitter=30,
     )
-    return job, crontime_string, query_to_run, subject
+    return job
 
 
 def construct_automation_created_message(automation: Job, crontime: str, query_to_run: str, subject: str, url: URL):
@@ -968,5 +986,5 @@ def construct_automation_created_message(automation: Job, crontime: str, query_t
 - Schedule: `{schedule}`
 - Next Run At: {next_run_time}
 
-Manage your tasks [here](/config#automations).
+Manage your automations [here](/automations).
     """.strip()

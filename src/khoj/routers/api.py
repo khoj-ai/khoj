@@ -8,7 +8,9 @@ import uuid
 from typing import Any, Callable, List, Optional, Union
 
 import cron_descriptor
+import pytz
 from apscheduler.job import Job
+from apscheduler.triggers.cron import CronTrigger
 from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.requests import Request
@@ -33,6 +35,7 @@ from khoj.routers.helpers import (
     CommonQueryParams,
     ConversationCommandRateLimiter,
     create_automation,
+    schedule_automation,
     update_telemetry_state,
 )
 from khoj.search_filter.date_filter import DateFilter
@@ -41,7 +44,7 @@ from khoj.search_filter.word_filter import WordFilter
 from khoj.search_type import text_search
 from khoj.utils import state
 from khoj.utils.config import OfflineChatProcessorModel
-from khoj.utils.helpers import ConversationCommand, timer
+from khoj.utils.helpers import ConversationCommand, is_none_or_empty, timer
 from khoj.utils.rawconfig import LocationData, SearchResponse
 from khoj.utils.state import SearchType
 
@@ -411,8 +414,8 @@ def delete_automation(request: Request, automation_id: str) -> Response:
 
     try:
         automation_info = AutomationAdapters.delete_automation(user, automation_id)
-    except ValueError as e:
-        return Response(content="Could not find automation", status_code=403)
+    except ValueError:
+        return Response(status_code=204)
 
     # Return deleted automation information as a JSON response
     return Response(content=json.dumps(automation_info), media_type="application/json", status_code=200)
@@ -420,21 +423,44 @@ def delete_automation(request: Request, automation_id: str) -> Response:
 
 @api.post("/automation", response_class=Response)
 @requires(["authenticated"])
-async def make_automation(
+async def post_automation(
     request: Request,
     q: str,
+    subject: str,
+    crontime: str,
     city: Optional[str] = None,
     region: Optional[str] = None,
     country: Optional[str] = None,
     timezone: Optional[str] = None,
 ) -> Response:
     user: KhojUser = request.user.object
-    if city or region or country:
-        location = LocationData(city=city, region=region, country=country)
 
-    # Create automation with scheduling query and location data
+    # Perform validation checks
+    if is_none_or_empty(q) or is_none_or_empty(subject) or is_none_or_empty(crontime):
+        return Response(content="A query, subject and crontime is required", status_code=400)
+    if not cron_descriptor.get_description(crontime):
+        return Response(content="Invalid crontime", status_code=400)
+
+    # Normalize query parameters
+    # Add /automated_task prefix to query if not present
+    q = q.strip()
+    if not q.startswith("/automated_task"):
+        query_to_run = f"/automated_task {q}"
+    # Normalize crontime for AP Scheduler CronTrigger
+    crontime = crontime.strip()
+    if len(crontime.split(" ")) > 5:
+        # Truncate crontime to 5 fields
+        crontime = " ".join(crontime.split(" ")[:5])
+    # Convert crontime to standard unix crontime
+    crontime = crontime.replace("?", "*")
+    subject = subject.strip()
+
+    # Schedule automation with query_to_run, timezone, subject directly provided by user
     try:
-        automation, crontime, query_to_run, subject = await create_automation(q, location, timezone, user, request.url)
+        # Get user timezone
+        user_timezone = pytz.timezone(timezone)
+        # Use the query to run as the scheduling request if the scheduling request is unset
+        automation = await schedule_automation(query_to_run, subject, crontime, user_timezone, q, user, request.url)
     except Exception as e:
         logger.error(f"Error creating automation {q} for {user.email}: {e}")
         return Response(
@@ -449,25 +475,36 @@ async def make_automation(
         "id": automation.id,
         "subject": subject,
         "query_to_run": query_to_run,
-        "scheduling_request": crontime,
+        "scheduling_request": query_to_run,
         "schedule": schedule,
+        "crontime": crontime,
         "next": automation.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z"),
     }
+
     # Return information about the created automation as a JSON response
     return Response(content=json.dumps(automation_info), media_type="application/json", status_code=200)
 
 
-@api.patch("/automation", response_class=Response)
+@api.put("/automation", response_class=Response)
 @requires(["authenticated"])
 def edit_job(
-    request: Request, automation_id: str, query_to_run: Optional[str] = None, crontime: Optional[str] = None
+    request: Request,
+    automation_id: str,
+    q: Optional[str],
+    subject: Optional[str],
+    crontime: Optional[str],
+    city: Optional[str] = None,
+    region: Optional[str] = None,
+    country: Optional[str] = None,
+    timezone: Optional[str] = None,
 ) -> Response:
     user: KhojUser = request.user.object
 
     # Perform validation checks
-    # Check at least one of query or crontime is provided
-    if not query_to_run and not crontime:
-        return Response(content="A query or crontime is required", status_code=400)
+    if is_none_or_empty(q) or is_none_or_empty(subject) or is_none_or_empty(crontime):
+        return Response(content="A query, subject and crontime is required", status_code=400)
+    if not cron_descriptor.get_description(crontime):
+        return Response(content="Invalid crontime", status_code=400)
 
     # Check, get automation to edit
     try:
@@ -475,14 +512,31 @@ def edit_job(
     except ValueError as e:
         return Response(content="Invalid automation", status_code=403)
 
+    # Normalize query parameters
     # Add /automated_task prefix to query if not present
-    if not query_to_run.startswith("/automated_task"):
-        query_to_run = f"/automated_task {query_to_run}"
+    q = q.strip()
+    if not q.startswith("/automated_task"):
+        query_to_run = f"/automated_task {q}"
+    # Normalize crontime for AP Scheduler CronTrigger
+    crontime = crontime.strip()
+    if len(crontime.split(" ")) > 5:
+        # Truncate crontime to 5 fields
+        crontime = " ".join(crontime.split(" ")[:5])
+    # Convert crontime to standard unix crontime
+    crontime = crontime.replace("?", "*")
 
-    # Update automation with new query
+    # Construct updated automation metadata
     automation_metadata = json.loads(automation.name)
     automation_metadata["query_to_run"] = query_to_run
-    automation.modify(kwargs={"query_to_run": query_to_run}, name=json.dumps(automation_metadata))
+    automation_metadata["subject"] = subject.strip()
+
+    # Modify automation with updated query, subject, crontime
+    automation.modify(kwargs={"query_to_run": query_to_run, "subject": subject}, name=json.dumps(automation_metadata))
+
+    # Reschedule automation if crontime updated
+    trigger = CronTrigger.from_crontab(crontime)
+    if automation.trigger != trigger:
+        automation.reschedule(trigger=trigger)
 
     # Collate info about the modified user automation
     automation_info = {

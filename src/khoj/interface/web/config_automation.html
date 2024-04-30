@@ -1,0 +1,251 @@
+{% extends "base_config.html" %}
+{% block content %}
+<div class="page">
+    <div class="section">
+        <h2 class="section-title">
+            <img class="card-icon" src="/static/assets/icons/automation.svg?v={{ khoj_version }}" alt="Automate">
+            <span class="card-title-text">Automate</span>
+            <div class="instructions">
+                <a href="https://docs.khoj.dev/features/automations">ⓘ Help</a>
+            </div>
+        </h2>
+        <div class="section-body">
+            <h4>Automations</h4>
+            <button id="create-automation-button" type="button" class="positive-button">
+               <img class="automation-action-icon" src="/static/assets/icons/new.svg" alt="Automations">
+               <span id="create-automation-button-text">Create</span>
+            </button>
+            <div id="automations" class="section-cards"></div>
+        </div>
+    </div>
+</div>
+<script src="/static/assets/natural-cron.min.js"></script>
+<style>
+    td {
+        padding: 10px 0;
+    }
+    div.automation {
+        width: 100%;
+        height: 100%;
+        grid-template-rows: none;
+    }
+    #create-automation-button {
+        width: auto;
+    }
+    div#automations {
+        margin-bottom: 12px;
+    }
+    button.negative-button {
+        background-color: gainsboro;
+    }
+    .positive-button {
+        background-color: var(--primary-hover);
+    }
+    .positive-button:hover {
+        background-color: var(--summer-sun);
+    }
+</style>
+<script>
+    function deleteAutomation(automationId) {
+        const AutomationList = document.getElementById("automations");
+        fetch(`/api/automation?automation_id=${automationId}`, {
+            method: 'DELETE',
+        })
+        .then(response => {
+            if (response.status == 200 || response.status == 204) {
+                const AutomationItem = document.getElementById(`automation-card-${automationId}`);
+                AutomationList.removeChild(AutomationItem);
+            }
+        });
+    }
+
+    function updateAutomationRow(automation) {
+        let automationId = automation.id;
+        let automationNextRun = `Next run at ${automation.next}\nCron: ${automation.crontime}`;
+
+        let scheduleEl = document.getElementById(`automation-schedule-${automationId}`);
+        scheduleEl.setAttribute('data-original', automation.schedule);
+        scheduleEl.setAttribute('data-cron', automation.crontime);
+        scheduleEl.setAttribute('title', automationNextRun);
+        scheduleEl.value = automation.schedule;
+
+        let subjectEl = document.getElementById(`automation-subject-${automationId}`);
+        subjectEl.setAttribute('data-original', automation.subject);
+        subjectEl.value = automation.subject;
+
+        let queryEl = document.getElementById(`automation-queryToRun-${automationId}`);
+        queryEl.setAttribute('data-original', automation.query_to_run);
+        queryEl.value = automation.query_to_run;
+    }
+
+    function generateAutomationRow(automation) {
+        let automationId = automation.id;
+        let automationNextRun = `Next run at ${automation.next}\nCron: ${automation.crontime}`;
+        let automationEl = document.createElement("div");
+        automationEl.innerHTML = `
+            <div class="card automation" id="automation-card-${automationId}">
+                <label for="subject">Subject</label>
+                <input type="text"
+                       id="automation-subject-${automationId}"
+                       name="subject"
+                       data-original="${automation.subject}"
+                       value="${automation.subject}">
+                <label for="query-to-run">Query to Run</label>
+                <textarea id="automation-queryToRun-${automationId}"
+                          data-original="${automation.query_to_run}"
+                          name="query-to-run">${automation.query_to_run}</textarea>
+                <label for="schedule">Schedule</label>
+                <input type="text"
+                       id="automation-schedule-${automationId}"
+                       name="schedule"
+                       data-cron="${automation.crontime}"
+                       data-original="${automation.schedule}"
+                       title="${automationNextRun}"
+                       value="${automation.schedule}">
+                <button type="button"
+                        class="save-automation-button positive-button"
+                        id="save-automation-button-${automationId}">Save</button>
+                <button type="button"
+                        class="delete-automation-button negative-button"
+                        id="delete-automation-button-${automationId}">Delete</button>
+                <div id="automation-success-${automationId}" style="display: none;"></div>
+            </div>
+        `;
+
+        let saveAutomationButtonEl = automationEl.querySelector(`#save-automation-button-${automation.id}`);
+        saveAutomationButtonEl.addEventListener("click", async () => { await saveAutomation(automation.id); });
+        let deleteAutomationButtonEl = automationEl.querySelector(`#delete-automation-button-${automation.id}`);
+        deleteAutomationButtonEl.addEventListener("click", () => { deleteAutomation(automation.id); });
+
+        return automationEl.firstElementChild;
+    }
+
+    function listAutomations() {
+        const AutomationsList = document.getElementById("automations");
+        fetch('/api/automations')
+            .then(response => response.json())
+            .then(automations => {
+                if (!automations?.length > 0) return;
+                AutomationsList.innerHTML = ''; // Clear existing content
+                AutomationsList.append(...automations.map(automation => generateAutomationRow(automation)))
+            });
+    }
+    listAutomations();
+
+    function enableSaveOnlyWhenInputsChanged() {
+        const inputs = document.querySelectorAll('input[name="schedule"], textarea[name="query-to-run"], input[name="subject"]');
+        inputs.forEach(input => {
+            input.addEventListener('change', function() {
+                // Get automation id by splitting the id by "-" and taking all elements after the second one
+                const automationId = this.id.split("-").slice(2).join("-");
+                let anyChanged = false;
+                let inputNameStubs = ["subject", "query-to-run", "schedule"]
+                for (let stub of inputNameStubs) {
+                    let el = document.getElementById(`automation-${stub}-${automationId}`);
+                    let originalValue = el.getAttribute('data-original');
+                    let currentValue = el.value;
+                    if (originalValue !== currentValue) {
+                        anyChanged = true;
+                        break;
+                    }
+                }
+                document.getElementById(`save-automation-button-${automationId}`).disabled = !anyChanged;
+            });
+        });
+    }
+
+    async function saveAutomation(automationId, create=false) {
+        const subject = encodeURIComponent(document.getElementById(`automation-subject-${automationId}`).value);
+        const queryToRun = encodeURIComponent(document.getElementById(`automation-queryToRun-${automationId}`).value);
+        const scheduleEl = document.getElementById(`automation-schedule-${automationId}`);
+        const notificationEl = document.getElementById(`automation-success-${automationId}`);
+        const saveButtonEl = document.getElementById(`save-automation-button-${automationId}`);
+        const actOn = create ? "Create" : "Save";
+
+        if (subject === "" || queryToRun == "" || scheduleEl.value == "") {
+            return;
+        }
+
+        // Get client location information from IP
+        const ip_response = await fetch("https://ipapi.co/json")
+        const ip_data = await ip_response.json();
+
+        // Get cron string from natural language user schedule, if changed
+        const crontime = scheduleEl.getAttribute('data-original') !== scheduleEl.value ? getCronString(scheduleEl.value) : scheduleEl.getAttribute('data-cron');
+        const encodedCrontime = encodeURIComponent(crontime);
+
+        // Construct query string and select method for API call
+        let query_string = `q=${queryToRun}&subject=${subject}&crontime=${encodedCrontime}&city=${ip_data.city}&region=${ip_data.region}&country=${ip_data.country_name}&timezone=${ip_data.timezone}`;
+        let method = "POST";
+        if (!create) {
+            query_string += `&automation_id=${automationId}`;
+            method = "PUT"
+        }
+
+        fetch(`/api/automation?${query_string}`, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.ok ? response.json() : Promise.reject(data))
+        .then(automation => {
+            if (create) {
+                const automationEl = document.getElementById(`automation-card-${automationId}`);
+                automationEl.replaceWith(generateAutomationRow(automation));
+            } else {
+                updateAutomationRow(automation);
+            }
+
+            notificationEl.style.display = "none";
+            saveButtonEl.textContent = `✅ Automation ${actOn}d`;
+            setTimeout(function() {
+                saveButtonEl.textContent = "Save";
+            }, 2000);
+        })
+        .catch(error => {
+            notificationEl.textContent = `⚠️ Failed to ${actOn.toLowerCase()} automations.`;
+            notificationEl.style.display = "block";
+            saveButtonEl.textContent = `⚠️ Failed to ${actOn.toLowerCase()} automations`;
+            setTimeout(function() {
+                saveButtonEl.textContent = actOn;
+            }, 2000);
+            return;
+        });
+    }
+
+    const create_automation_button = document.getElementById("create-automation-button");
+    create_automation_button.addEventListener("click", function(event) {
+        event.preventDefault();
+        var automationEl = document.createElement("div");
+        automationEl.classList.add("card");
+        automationEl.classList.add("automation");
+        const placeholderId = Date.now();
+        automationEl.id = "automation-card-" + placeholderId;
+        automationEl.innerHTML = `
+            <label for="subject">Subject</label>
+            <input type="text"
+                   id="automation-subject-${placeholderId}"
+                   name="subject"
+                   placeholder="My Personal Newsletter">
+            <label for="query-to-run">Query to Run</label>
+            <textarea id="automation-queryToRun-${placeholderId}" placeholder="Share a Newsletter including: 1. Weather forecast for this Week. 2. A Book Highlight from my Notes. 3. Recap News from Last Week"></textarea>
+            <label for="schedule">Schedule</label>
+            <input type="text"
+                   id="automation-schedule-${placeholderId}"
+                   name="schedule"
+                   placeholder="9AM every morning">
+            <button type="button"
+                    class="save-automation-button"
+                    onclick="saveAutomation(${placeholderId}, true)"
+                    id="save-automation-button-${placeholderId}">Create</button>
+            <button type="button"
+                    class="delete-automation-button"
+                    onclick="deleteAutomation(${placeholderId}, true)"
+                    id="delete-automation-button-${placeholderId}">Delete</button>
+            <div id="automation-success-${placeholderId}" style="display: none;"></div>
+        `;
+        document.getElementById("automations").insertBefore(automationEl, document.getElementById("automations").firstChild);
+    })
+</script>
+{% endblock %}
