@@ -470,16 +470,7 @@ async def post_automation(
         )
 
     # Collate info about the created user automation
-    schedule = f'{cron_descriptor.get_description(crontime)} {automation.next_run_time.strftime("%Z")}'
-    automation_info = {
-        "id": automation.id,
-        "subject": subject,
-        "query_to_run": query_to_run,
-        "scheduling_request": query_to_run,
-        "schedule": schedule,
-        "crontime": crontime,
-        "next": automation.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z"),
-    }
+    automation_info = AutomationAdapters.get_automation_metadata(user, automation)
 
     # Return information about the created automation as a JSON response
     return Response(content=json.dumps(automation_info), media_type="application/json", status_code=200)
@@ -538,12 +529,9 @@ def edit_job(
     if automation.trigger != trigger:
         automation.reschedule(trigger=trigger)
 
-    # Collate info about the modified user automation
-    automation_info = {
-        "id": automation.id,
-        "name": automation.name,
-        "next": automation.next_run_time.strftime("%Y-%m-%d %H:%MS"),
-    }
+    # Collate info about the updated user automation
+    automation = AutomationAdapters.get_automation(user, automation.id)
+    automation_info = AutomationAdapters.get_automation_metadata(user, automation)
 
     # Return modified automation information as a JSON response
     return Response(content=json.dumps(automation_info), media_type="application/json", status_code=200)

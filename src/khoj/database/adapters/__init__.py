@@ -930,20 +930,30 @@ class AutomationAdapters:
                 yield automation
 
     @staticmethod
+    def get_automation_metadata(user: KhojUser, automation: Job):
+        # Perform validation checks
+        # Check if user is allowed to delete this automation id
+        if not automation.id.startswith(f"automation_{user.uuid}_"):
+            raise ValueError("Invalid automation id")
+
+        automation_metadata = json.loads(automation.name)
+        crontime = automation_metadata["crontime"]
+        timezone = automation.next_run_time.strftime("%Z")
+        schedule = f"{cron_descriptor.get_description(crontime)} {timezone}"
+        return {
+            "id": automation.id,
+            "subject": automation_metadata["subject"],
+            "query_to_run": re.sub(r"^/automated_task\s*", "", automation_metadata["query_to_run"]),
+            "scheduling_request": automation_metadata["scheduling_request"],
+            "schedule": schedule,
+            "crontime": crontime,
+            "next": automation.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z"),
+        }
+
+    @staticmethod
     def get_automations_metadata(user: KhojUser):
         for automation in AutomationAdapters.get_automations(user):
-            automation_metadata = json.loads(automation.name)
-            crontime = automation_metadata["crontime"]
-            timezone = automation.next_run_time.strftime("%Z")
-            schedule = f"{cron_descriptor.get_description(crontime)} {timezone}"
-            yield {
-                "id": automation.id,
-                "subject": automation_metadata["subject"],
-                "query_to_run": re.sub(r"^/automated_task\s*", "", automation_metadata["query_to_run"]),
-                "scheduling_request": automation_metadata["scheduling_request"],
-                "schedule": schedule,
-                "next": automation.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z"),
-            }
+            yield AutomationAdapters.get_automation_metadata(user, automation)
 
     @staticmethod
     def get_automation(user: KhojUser, automation_id: str) -> Job:
@@ -964,12 +974,7 @@ class AutomationAdapters:
         automation: Job = AutomationAdapters.get_automation(user, automation_id)
 
         # Collate info about user automation to be deleted
-        automation_metadata = json.loads(automation.name)
-        automation_info = {
-            "id": automation.id,
-            "name": automation_metadata["query_to_run"],
-            "next": automation.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z"),
-        }
+        automation_metadata = AutomationAdapters.get_automation_metadata(user, automation)
 
         automation.remove()
-        return automation_info
+        return automation_metadata
