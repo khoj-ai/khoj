@@ -338,7 +338,8 @@ async def websocket_endpoint(
     await websocket.accept()
     while connection_alive:
         try:
-            await sync_to_async(conversation.refresh_from_db)(fields=["conversation_log"])
+            if conversation:
+                await sync_to_async(conversation.refresh_from_db)(fields=["conversation_log"])
             q = await websocket.receive_text()
         except WebSocketDisconnect:
             logger.debug(f"User {user} disconnected web socket")
