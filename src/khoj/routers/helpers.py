@@ -185,7 +185,7 @@ async def agenerate_chat_response(*args):
     return await loop.run_in_executor(executor, generate_chat_response, *args)
 
 
-async def aget_relevant_information_sources(query: str, conversation_history: dict):
+async def aget_relevant_information_sources(query: str, conversation_history: dict, is_task: bool):
     """
     Given a query, determine which of the available tools the agent should use in order to answer appropriately.
     """
@@ -216,7 +216,7 @@ async def aget_relevant_information_sources(query: str, conversation_history: di
             logger.error(f"Invalid response for determining relevant tools: {response}")
             return tool_options
 
-        final_response = []
+        final_response = [] if not is_task else [ConversationCommand.AutomatedTask]
         for llm_suggested_tool in response:
             if llm_suggested_tool in tool_options.keys():
                 # Check whether the tool exists as a valid ConversationCommand
@@ -926,7 +926,7 @@ async def create_automation(
     job_metadata = json.dumps(
         {"query_to_run": query_to_run, "scheduling_request": q, "subject": subject, "crontime": crontime_string}
     )
-    query_id = hashlib.md5(f"{query_to_run}".encode("utf-8")).hexdigest()
+    query_id = hashlib.md5(f"{query_to_run}{crontime_string}".encode("utf-8")).hexdigest()
     job_id = f"automation_{user.uuid}_{crontime_string}_{query_id}"
     job = await sync_to_async(state.scheduler.add_job)(
         run_with_process_lock,
