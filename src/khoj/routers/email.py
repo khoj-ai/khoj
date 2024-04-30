@@ -31,7 +31,7 @@ def is_resend_enabled():
     return bool(RESEND_API_KEY)
 
 
-def send_welcome_email(name, email):
+async def send_welcome_email(name, email):
     if not is_resend_enabled():
         logger.debug("Email sending disabled")
         return
