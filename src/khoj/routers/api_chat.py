@@ -377,7 +377,7 @@ async def websocket_endpoint(
         is_automated_task = conversation_commands == [ConversationCommand.AutomatedTask]
 
         if conversation_commands == [ConversationCommand.Default] or is_automated_task:
-            conversation_commands = await aget_relevant_information_sources(q, meta_log)
+            conversation_commands = await aget_relevant_information_sources(q, meta_log, is_automated_task)
             conversation_commands_str = ", ".join([cmd.value for cmd in conversation_commands])
             await send_status_update(f"**🗃️ Chose Data Sources to Search:** {conversation_commands_str}")
 
@@ -626,11 +626,11 @@ async def chat(
     else:
         meta_log = conversation.conversation_log
 
-    is_task = conversation_commands == [ConversationCommand.AutomatedTask]
+    is_automated_task = conversation_commands == [ConversationCommand.AutomatedTask]
 
-    if conversation_commands == [ConversationCommand.Default] or is_task:
-        conversation_commands = await aget_relevant_information_sources(q, meta_log)
-        mode = await aget_relevant_output_modes(q, meta_log, is_task)
+    if conversation_commands == [ConversationCommand.Default] or is_automated_task:
+        conversation_commands = await aget_relevant_information_sources(q, meta_log, is_automated_task)
+        mode = await aget_relevant_output_modes(q, meta_log, is_automated_task)
         if mode not in conversation_commands:
             conversation_commands.append(mode)
 
