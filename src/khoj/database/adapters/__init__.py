@@ -72,7 +72,14 @@ async def set_notion_config(token: str, user: KhojUser):
     return notion_config
 
 
-async def create_khoj_token(user: KhojUser, name=None):
+def create_khoj_token(user: KhojUser, name=None):
+    "Create Khoj API key for user"
+    token = f"kk-{secrets.token_urlsafe(32)}"
+    name = name or f"{generate_random_name().title()}"
+    return KhojApiUser.objects.create(token=token, user=user, name=name)
+
+
+async def acreate_khoj_token(user: KhojUser, name=None):
     "Create Khoj API key for user"
     token = f"kk-{secrets.token_urlsafe(32)}"
     name = name or f"{generate_random_name().title()}"

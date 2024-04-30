@@ -886,9 +886,9 @@ def scheduled_chat(query_to_run: str, scheduling_request: str, subject: str, use
         # Add authorization request header in non-anonymous mode
         token = get_khoj_tokens(user)
         if is_none_or_empty(token):
-            token = create_khoj_token(user)
+            token = create_khoj_token(user).token
         else:
-            token = token[0]
+            token = token[0].token
         headers["Authorization"] = f"Bearer {token}"
 
     # Call the chat API endpoint with authenticated user token and query
