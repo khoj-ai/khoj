@@ -44,7 +44,7 @@ async def send_welcome_email(name, email):
         {
             "from": "team@khoj.dev",
             "to": email,
-            "subject": f"{name}, four ways to use Khoj!" if name else "Four ways to use Khoj!",
+            "subject": f"{name}, four ways to use Khoj" if name else "Four ways to use Khoj",
             "html": html_content,
         }
     )
