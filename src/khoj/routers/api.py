@@ -34,7 +34,6 @@ from khoj.routers.helpers import (
     ApiUserRateLimiter,
     CommonQueryParams,
     ConversationCommandRateLimiter,
-    create_automation,
     schedule_automation,
     update_telemetry_state,
 )
@@ -457,10 +456,8 @@ async def post_automation(
 
     # Schedule automation with query_to_run, timezone, subject directly provided by user
     try:
-        # Get user timezone
-        user_timezone = pytz.timezone(timezone)
         # Use the query to run as the scheduling request if the scheduling request is unset
-        automation = await schedule_automation(query_to_run, subject, crontime, user_timezone, q, user, request.url)
+        automation = await schedule_automation(query_to_run, subject, crontime, timezone, q, user, request.url)
     except Exception as e:
         logger.error(f"Error creating automation {q} for {user.email}: {e}")
         return Response(
@@ -518,14 +515,26 @@ def edit_job(
 
     # Construct updated automation metadata
     automation_metadata = json.loads(automation.name)
+    automation_metadata["scheduling_request"] = q
     automation_metadata["query_to_run"] = query_to_run
     automation_metadata["subject"] = subject.strip()
+    automation_metadata["crontime"] = crontime
 
-    # Modify automation with updated query, subject, crontime
-    automation.modify(kwargs={"query_to_run": query_to_run, "subject": subject}, name=json.dumps(automation_metadata))
+    # Modify automation with updated query, subject
+    automation.modify(
+        name=json.dumps(automation_metadata),
+        kwargs={
+            "query_to_run": query_to_run,
+            "subject": subject,
+            "scheduling_request": q,
+            "user": user,
+            "calling_url": request.url,
+        },
+    )
 
     # Reschedule automation if crontime updated
-    trigger = CronTrigger.from_crontab(crontime)
+    user_timezone = pytz.timezone(timezone)
+    trigger = CronTrigger.from_crontab(crontime, user_timezone)
     if automation.trigger != trigger:
         automation.reschedule(trigger=trigger)
 

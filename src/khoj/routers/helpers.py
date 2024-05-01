@@ -919,9 +919,8 @@ def scheduled_chat(query_to_run: str, scheduling_request: str, subject: str, use
 
 
 async def create_automation(q: str, timezone: str, user: KhojUser, calling_url: URL, meta_log: dict = {}):
-    user_timezone = pytz.timezone(timezone)
     crontime, query_to_run, subject = await schedule_query(q, meta_log)
-    job = await schedule_automation(query_to_run, subject, crontime, user_timezone, q, user, calling_url)
+    job = await schedule_automation(query_to_run, subject, crontime, timezone, q, user, calling_url)
     return job, crontime, query_to_run, subject
 
 
@@ -929,11 +928,12 @@ async def schedule_automation(
     query_to_run: str,
     subject: str,
     crontime: str,
-    user_timezone,
+    timezone: str,
     scheduling_request: str,
     user: KhojUser,
     calling_url: URL,
 ):
+    user_timezone = pytz.timezone(timezone)
     trigger = CronTrigger.from_crontab(crontime, user_timezone)
     # Generate id and metadata used by task scheduler and process locks for the task runs
     job_metadata = json.dumps(
