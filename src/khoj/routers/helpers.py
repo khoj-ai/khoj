@@ -336,7 +336,7 @@ async def generate_online_subqueries(q: str, conversation_history: dict, locatio
         return [q]
 
 
-async def schedule_query(q: str, location_data: LocationData, conversation_history: dict) -> Tuple[str, ...]:
+async def schedule_query(q: str, conversation_history: dict) -> Tuple[str, ...]:
     """
     Schedule the date, time to run the query. Assume the server timezone is UTC.
     """
@@ -918,11 +918,9 @@ def scheduled_chat(query_to_run: str, scheduling_request: str, subject: str, use
             return raw_response
 
 
-async def create_automation(
-    q: str, location: LocationData, timezone: str, user: KhojUser, calling_url: URL, meta_log: dict = {}
-):
+async def create_automation(q: str, timezone: str, user: KhojUser, calling_url: URL, meta_log: dict = {}):
     user_timezone = pytz.timezone(timezone)
-    crontime, query_to_run, subject = await schedule_query(q, location, meta_log)
+    crontime, query_to_run, subject = await schedule_query(q, meta_log)
     job = await schedule_automation(query_to_run, subject, crontime, user_timezone, q, user, calling_url)
     return job, crontime, query_to_run, subject
 

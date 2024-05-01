@@ -392,7 +392,7 @@ async def websocket_endpoint(
         if ConversationCommand.Automation in conversation_commands:
             try:
                 automation, crontime, query_to_run, subject = await create_automation(
-                    q, location, timezone, user, websocket.url, meta_log
+                    q, timezone, user, websocket.url, meta_log
                 )
             except Exception as e:
                 logger.error(f"Error scheduling task {q} for {user.email}: {e}")
@@ -633,7 +633,7 @@ async def chat(
     if ConversationCommand.Automation in conversation_commands:
         try:
             automation, crontime, query_to_run, subject = await create_automation(
-                q, location, timezone, user, request.url, meta_log
+                q, timezone, user, request.url, meta_log
             )
         except Exception as e:
             logger.error(f"Error creating automation {q} for {user.email}: {e}")
