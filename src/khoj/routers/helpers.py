@@ -925,7 +925,7 @@ def scheduled_chat(query_to_run: str, scheduling_request: str, subject: str, use
     # Notify user if the AI response is satisfactory
     if should_notify(original_query=scheduling_request, executed_query=cleaned_query, ai_response=ai_response):
         if is_resend_enabled():
-            send_task_email(user.get_short_name(), user.email, scheduling_request, ai_response, subject)
+            send_task_email(user.get_short_name(), user.email, cleaned_query, ai_response, subject)
         else:
             return raw_response
 
