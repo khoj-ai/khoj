@@ -5,14 +5,14 @@
         <h2 class="section-title">
             <img class="card-icon" src="/static/assets/icons/automation.svg?v={{ khoj_version }}" alt="Automate">
             <span class="card-title-text">Automate</span>
-            <!-- <div class="instructions">
-                <a href="https://docs.khoj.dev/features/automations">ⓘ Help</a>
-            </div> -->
+            <div class="instructions">
+                You can automate queries to run on a schedule using Khoj's automations. Results will be sent straight to your inbox.
+            </div>
         </h2>
         <div class="section-body">
             <button id="create-automation-button" type="button" class="positive-button">
                <img class="automation-action-icon" src="/static/assets/icons/new.svg" alt="Automations">
-               <span id="create-automation-button-text">Create</span>
+               <span id="create-automation-button-text">Build</span>
             </button>
             <div id="automations" class="section-cards"></div>
         </div>
@@ -27,6 +27,8 @@
         width: 100%;
         height: 100%;
         grid-template-rows: none;
+        background-color: var(--frosted-background-color);
+        padding: 12px;
     }
     #create-automation-button {
         width: auto;
@@ -60,10 +62,9 @@
     }
 
     div.new-automation {
-        background-color: #f9f9f9;
+        background-color: var(--frosted-background-color);
         border-radius: 10px;
         box-shadow: 0 4px 6px 0 hsla(0, 0%, 0%, 0.2);
-        padding: 20px;
         margin-bottom: 20px;
         transition: box-shadow 0.3s ease, transform 0.3s ease;
     }
