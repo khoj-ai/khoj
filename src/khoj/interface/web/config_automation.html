@@ -172,6 +172,17 @@
 
         // Get cron string from natural language user schedule, if changed
         const crontime = scheduleEl.getAttribute('data-original') !== scheduleEl.value ? getCronString(scheduleEl.value) : scheduleEl.getAttribute('data-cron');
+        if (crontime.startsWith("ERROR:")) {
+            notificationEl.textContent = `⚠️ Failed to automate. Fix or simplify Schedule input field.`;
+            notificationEl.style.display = "block";
+            let originalScheduleElBorder = scheduleEl.style.border;
+            scheduleEl.style.border = "2px solid red";
+            setTimeout(function() {
+                scheduleEl.style.border = originalScheduleElBorder;
+            }, 2000);
+
+            return;
+        }
         const encodedCrontime = encodeURIComponent(crontime);
 
         // Construct query string and select method for API call
