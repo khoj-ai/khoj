@@ -187,6 +187,18 @@ async def agenerate_chat_response(*args):
     return await loop.run_in_executor(executor, generate_chat_response, *args)
 
 
+async def acreate_title_from_query(query: str) -> str:
+    """
+    Create a title from the given query
+    """
+    title_generation_prompt = prompts.subject_generation.format(query=query)
+
+    with timer("Chat actor: Generate title from query", logger):
+        response = await send_message_to_model_wrapper(title_generation_prompt)
+
+    return response.strip()
+
+
 async def aget_relevant_information_sources(query: str, conversation_history: dict, is_task: bool):
     """
     Given a query, determine which of the available tools the agent should use in order to answer appropriately.
@@ -913,7 +925,7 @@ def scheduled_chat(query_to_run: str, scheduling_request: str, subject: str, use
     # Notify user if the AI response is satisfactory
     if should_notify(original_query=scheduling_request, executed_query=cleaned_query, ai_response=ai_response):
         if is_resend_enabled():
-            send_task_email(user.get_short_name(), user.email, scheduling_request, ai_response, subject)
+            send_task_email(user.get_short_name(), user.email, cleaned_query, ai_response, subject)
         else:
             return raw_response
 

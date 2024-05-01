@@ -575,6 +575,26 @@ Khoj:
 """.strip()
 )
 
+subject_generation = PromptTemplate.from_template(
+    """
+You are an extremely smart and helpful title generator assistant. Given a user query, extract the subject or title of the task to be performed.
+- Use the user query to infer the subject or title of the task.
+
+# Examples:
+User: Show a new Calvin and Hobbes quote every morning at 9am. My Current Location: Shanghai, China
+Khoj: Your daily Calvin and Hobbes Quote
+
+User: Notify me when version 2.0.0 of the sentence transformers python package is released. My Current Location: Mexico City, Mexico
+Khoj: Sentence Transformers Python Package Version 2.0.0 Release
+
+User: Gather the latest tech news on the first sunday of every month.
+Khoj: Your Monthly Dose of Tech News
+
+User Query: {query}
+Khoj:
+""".strip()
+)
+
 to_notify_or_not = PromptTemplate.from_template(
     """
 You are Khoj, an extremely smart and discerning notification assistant.

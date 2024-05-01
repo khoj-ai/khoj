@@ -34,6 +34,7 @@ from khoj.routers.helpers import (
     ApiUserRateLimiter,
     CommonQueryParams,
     ConversationCommandRateLimiter,
+    acreate_title_from_query,
     schedule_automation,
     update_telemetry_state,
 )
@@ -425,7 +426,6 @@ def delete_automation(request: Request, automation_id: str) -> Response:
 async def post_automation(
     request: Request,
     q: str,
-    subject: str,
     crontime: str,
     city: Optional[str] = None,
     region: Optional[str] = None,
@@ -435,8 +435,8 @@ async def post_automation(
     user: KhojUser = request.user.object
 
     # Perform validation checks
-    if is_none_or_empty(q) or is_none_or_empty(subject) or is_none_or_empty(crontime):
-        return Response(content="A query, subject and crontime is required", status_code=400)
+    if is_none_or_empty(q) or is_none_or_empty(crontime):
+        return Response(content="A query and crontime is required", status_code=400)
     if not cron_descriptor.get_description(crontime):
         return Response(content="Invalid crontime", status_code=400)
 
@@ -452,7 +452,7 @@ async def post_automation(
         crontime = " ".join(crontime.split(" ")[:5])
     # Convert crontime to standard unix crontime
     crontime = crontime.replace("?", "*")
-    subject = subject.strip()
+    subject = await acreate_title_from_query(q)
 
     # Schedule automation with query_to_run, timezone, subject directly provided by user
     try:

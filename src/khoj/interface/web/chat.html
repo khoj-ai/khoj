@@ -1170,7 +1170,7 @@ To get started, just start typing below. You can also type / to see a list of co
                                 chat_log.message,
                                 chat_log.by,
                                 chat_log.context,
-                                new Date(chat_log.created),
+                                new Date(chat_log.created + "Z"),
                                 chat_log.onlineContext,
                                 chat_log.intent?.type,
                                 chat_log.intent?.["inferred-queries"]);
@@ -1265,7 +1265,7 @@ To get started, just start typing below. You can also type / to see a list of co
                             chat_log.message,
                             chat_log.by,
                             chat_log.context,
-                            new Date(chat_log.created),
+                            new Date(chat_log.created + "Z"),
                             chat_log.onlineContext,
                             chat_log.intent?.type,
                             chat_log.intent?.["inferred-queries"]
@@ -2164,7 +2164,7 @@ To get started, just start typing below. You can also type / to see a list of co
         #chat-input {
             font-family: var(--font-family);
             font-size: medium;
-            height: 36px;
+            height: 48px;
             border-radius: 16px;
             resize: none;
             overflow-y: hidden;

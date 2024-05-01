@@ -6,6 +6,7 @@ from contextlib import redirect_stdout
 import logging
 import io
 import os
+import atexit
 import sys
 import locale
 
@@ -93,6 +94,11 @@ from khoj.utils.cli import cli
 from khoj.utils.initialization import initialization
 
 
+def shutdown_scheduler():
+    logger.info("🌑 Shutting down Khoj")
+    state.scheduler.shutdown()
+
+
 def run(should_start_server=True):
     # Turn Tokenizers Parallelism Off. App does not support it.
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -158,9 +164,8 @@ def run(should_start_server=True):
     # If the server is started through gunicorn (external to the script), don't start the server
     if should_start_server:
         start_server(app, host=args.host, port=args.port, socket=args.socket)
-
-    # Teardown
-    state.scheduler.shutdown()
+        # Teardown
+        shutdown_scheduler()
 
 
 def set_state(args):
@@ -202,3 +207,4 @@ if __name__ == "__main__":
     run()
 else:
     run(should_start_server=False)
+    atexit.register(shutdown_scheduler)

@@ -44,7 +44,7 @@ async def send_welcome_email(name, email):
         {
             "from": "team@khoj.dev",
             "to": email,
-            "subject": f"Welcome to Khoj, {name}!" if name else "Welcome to Khoj!",
+            "subject": f"{name}, four ways to use Khoj!" if name else "Four ways to use Khoj!",
             "html": html_content,
         }
     )
@@ -54,6 +54,8 @@ def send_task_email(name, email, query, result, subject):
     if not is_resend_enabled():
         logger.debug("Email sending disabled")
         return
+
+    logger.info(f"Sending email to {email} for task {subject}")
 
     template = env.get_template("task.html")
 
