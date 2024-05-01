@@ -23,6 +23,7 @@ warnings.filterwarnings("ignore", message=r"legacy way to download files from th
 
 import uvicorn
 import django
+from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -126,6 +127,19 @@ def run(should_start_server=True):
     # Setup task scheduler
     poll_task_scheduler()
 
+    # Setup Background Scheduler
+    from django_apscheduler.jobstores import DjangoJobStore
+
+    state.scheduler = BackgroundScheduler(
+        {
+            "apscheduler.timezone": "UTC",
+            "apscheduler.job_defaults.misfire_grace_time": "60",  # Useful to run scheduled jobs even when worker delayed because it was busy or down
+            "apscheduler.job_defaults.coalesce": "true",  # Combine multiple jobs into one if they are scheduled at the same time
+        }
+    )
+    state.scheduler.add_jobstore(DjangoJobStore(), "default")
+    state.scheduler.start()
+
     # Start Server
     configure_routes(app)
 
@@ -144,6 +158,9 @@ def run(should_start_server=True):
     # If the server is started through gunicorn (external to the script), don't start the server
     if should_start_server:
         start_server(app, host=args.host, port=args.port, socket=args.socket)
+
+    # Teardown
+    state.scheduler.shutdown()
 
 
 def set_state(args):

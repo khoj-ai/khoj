@@ -11,6 +11,7 @@ from starlette.authentication import has_required_scope, requires
 from khoj.database import adapters
 from khoj.database.adapters import (
     AgentAdapters,
+    AutomationAdapters,
     ConversationAdapters,
     EntryAdapters,
     get_user_github_config,
@@ -355,6 +356,26 @@ def computer_config_page(request: Request):
 
     return templates.TemplateResponse(
         "content_source_computer_input.html",
+        context={
+            "request": request,
+            "username": user.username,
+            "user_photo": user_picture,
+            "is_active": has_required_scope(request, ["premium"]),
+            "has_documents": has_documents,
+            "khoj_version": state.khoj_version,
+        },
+    )
+
+
+@web_client.get("/automations", response_class=HTMLResponse)
+@requires(["authenticated"], redirect="login_page")
+def automations_config_page(request: Request):
+    user = request.user.object
+    user_picture = request.session.get("user", {}).get("picture")
+    has_documents = EntryAdapters.user_has_entries(user=user)
+
+    return templates.TemplateResponse(
+        "config_automation.html",
         context={
             "request": request,
             "username": user.username,
