@@ -937,14 +937,6 @@ class AutomationAdapters:
         if not automation.id.startswith(f"automation_{user.uuid}_"):
             raise ValueError("Invalid automation id")
 
-        django_job = DjangoJob.objects.filter(id=automation.id).first()
-        execution = DjangoJobExecution.objects.filter(job=django_job)
-
-        last_run_time = None
-
-        if execution.exists():
-            last_run_time = execution.latest("run_time").run_time
-
         automation_metadata = json.loads(automation.name)
         crontime = automation_metadata["crontime"]
         timezone = automation.next_run_time.strftime("%Z")
@@ -957,8 +949,24 @@ class AutomationAdapters:
             "schedule": schedule,
             "crontime": crontime,
             "next": automation.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z"),
-            "last_run": last_run_time.strftime("%Y-%m-%d %I:%M %p %Z") if last_run_time else None,
         }
+
+    @staticmethod
+    def get_job_last_run(user: KhojUser, automation: Job):
+        # Perform validation checks
+        # Check if user is allowed to delete this automation id
+        if not automation.id.startswith(f"automation_{user.uuid}_"):
+            raise ValueError("Invalid automation id")
+
+        django_job = DjangoJob.objects.filter(id=automation.id).first()
+        execution = DjangoJobExecution.objects.filter(job=django_job, status="Executed")
+
+        last_run_time = None
+
+        if execution.exists():
+            last_run_time = execution.latest("run_time").run_time
+
+        return last_run_time.strftime("%Y-%m-%d %I:%M %p %Z") if last_run_time else None
 
     @staticmethod
     def get_automations_metadata(user: KhojUser):

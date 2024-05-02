@@ -891,9 +891,7 @@ def scheduled_chat(
     if job_id:
         # Get the job object and check whether the time is valid for it to run. This helps avoid race conditions that cause the same job to be run multiple times.
         job = AutomationAdapters.get_automation(user, job_id)
-        metadata = AutomationAdapters.get_automation_metadata(user, job)
-
-        last_run_time = metadata.get("last_run", None)
+        last_run_time = AutomationAdapters.get_job_last_run(user, job)
 
         # Convert last_run_time from %Y-%m-%d %I:%M %p %Z to datetime object
         if last_run_time:
