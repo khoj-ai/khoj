@@ -74,6 +74,38 @@
         transform: translateY(-5px);
     }
 
+    .hide-details {
+        display: none !important;
+    }
+
+    div.card-header {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        grid-gap: 8px;
+        align-items: baseline;
+        padding: 8px;
+        background-color: var(--frosted-background-color);
+    }
+
+    div.card-header:hover {
+        cursor: pointer;
+    }
+
+    div.toggle-icon {
+        width: 24px;
+        height: 24px;
+    }
+
+    @keyframes confirmation {
+        0% { background-color: normal; transform: scale(1); }
+        50% { background-color: var(--primary); transform: scale(1.1); }
+        100% { background-color: normal; transform: scale(1); }
+    }
+
+    .confirmation {
+        animation: confirmation 1s;
+    }
+
 </style>
 <script>
     function deleteAutomation(automationId) {
@@ -108,30 +140,44 @@
         queryEl.value = automation.query_to_run;
     }
 
+    function onClickAutomationCard(automationId) {
+        const automationIDElements = document.querySelectorAll(`.${automationId}`);
+        automationIDElements.forEach(el => {
+            el.classList.toggle("hide-details");
+        });
+    }
+
     function generateAutomationRow(automation) {
         let automationId = automation.id;
         let automationNextRun = `Next run at ${automation.next}\nCron: ${automation.crontime}`;
         let automationEl = document.createElement("div");
         automationEl.innerHTML = `
             <div class="card automation" id="automation-card-${automationId}">
-                <input type="text"
-                       id="automation-subject-${automationId}"
-                       name="subject"
-                       data-original="${automation.subject}"
-                       value="${automation.subject}">
-                <label for="query-to-run">Your automation</label>
+                <div class="card-header" onclick="onClickAutomationCard('${automationId}')">
+                    <input type="text"
+                        id="automation-subject-${automationId}"
+                        name="subject"
+                        data-original="${automation.subject}"
+                        value="${automation.subject}">
+                    <div class="toggle-icon">
+                        <img src="/static/assets/icons/collapse.svg" alt="Toggle" class="toggle-icon">
+                    </div>
+                </div>
+                <label for="query-to-run" class="hide-details ${automationId}">Your automation</label>
                 <textarea id="automation-queryToRun-${automationId}"
+                          class="hide-details ${automationId}"
                           data-original="${automation.query_to_run}"
                           name="query-to-run">${automation.query_to_run}</textarea>
-                <label for="schedule">Schedule</label>
+                <label for="schedule" class="hide-details">Schedule</label>
                 <input type="text"
+                       class="hide-details ${automationId}"
                        id="automation-schedule-${automationId}"
                        name="schedule"
                        data-cron="${automation.crontime}"
                        data-original="${automation.schedule}"
                        title="${automationNextRun}"
                        value="${automation.schedule}">
-                <div class="automation-buttons">
+                <div class="hide-details automation-buttons ${automationId}">
                     <button type="button"
                             class="delete-automation-button negative-button"
                             id="delete-automation-button-${automationId}">Delete</button>
@@ -236,7 +282,11 @@
         .then(automation => {
             if (create) {
                 const automationEl = document.getElementById(`automation-card-${automationId}`);
-                automationEl.replaceWith(generateAutomationRow(automation));
+                // Create a more interesting confirmation animation.
+                automationEl.classList.add("confirmation")
+                setTimeout(function() {
+                    automationEl.replaceWith(generateAutomationRow(automation));
+                }, 1000);
             } else {
                 updateAutomationRow(automation);
             }
