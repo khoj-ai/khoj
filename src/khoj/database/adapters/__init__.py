@@ -16,6 +16,7 @@ from django.contrib.sessions.backends.db import SessionStore
 from django.db import models
 from django.db.models import Q
 from django.db.models.manager import BaseManager
+from django_apscheduler.models import DjangoJob, DjangoJobExecution
 from fastapi import HTTPException
 from pgvector.django import CosineDistance
 from torch import Tensor
@@ -936,6 +937,14 @@ class AutomationAdapters:
         if not automation.id.startswith(f"automation_{user.uuid}_"):
             raise ValueError("Invalid automation id")
 
+        django_job = DjangoJob.objects.filter(id=automation.id).first()
+        execution = DjangoJobExecution.objects.filter(job=django_job)
+
+        last_run_time = None
+
+        if execution.exists():
+            last_run_time = execution.latest("run_time").run_time
+
         automation_metadata = json.loads(automation.name)
         crontime = automation_metadata["crontime"]
         timezone = automation.next_run_time.strftime("%Z")
@@ -948,6 +957,7 @@ class AutomationAdapters:
             "schedule": schedule,
             "crontime": crontime,
             "next": automation.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z"),
+            "last_run": last_run_time.strftime("%Y-%m-%d %I:%M %p %Z") if last_run_time else None,
         }
 
     @staticmethod

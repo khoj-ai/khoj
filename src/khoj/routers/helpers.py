@@ -35,6 +35,7 @@ from starlette.requests import URL
 
 from khoj.database.adapters import (
     AgentAdapters,
+    AutomationAdapters,
     ConversationAdapters,
     EntryAdapters,
     create_khoj_token,
@@ -883,7 +884,26 @@ def should_notify(original_query: str, executed_query: str, ai_response: str) ->
             return True
 
 
-def scheduled_chat(query_to_run: str, scheduling_request: str, subject: str, user: KhojUser, calling_url: URL):
+def scheduled_chat(
+    query_to_run: str, scheduling_request: str, subject: str, user: KhojUser, calling_url: URL, job_id: str = None
+):
+    logger.info(f"Processing scheduled_chat: {query_to_run}")
+    if job_id:
+        # Get the job object and check whether the time is valid for it to run. This helps avoid race conditions that cause the same job to be run multiple times.
+        job = AutomationAdapters.get_automation(user, job_id)
+        metadata = AutomationAdapters.get_automation_metadata(user, job)
+
+        last_run_time = metadata.get("last_run", None)
+
+        # Convert last_run_time from %Y-%m-%d %I:%M %p %Z to datetime object
+        if last_run_time:
+            last_run_time = datetime.strptime(last_run_time, "%Y-%m-%d %I:%M %p %Z").replace(tzinfo=timezone.utc)
+
+            # If the last run time was within the last 6 hours, don't run it again. This helps avoid multithreading issues and rate limits.
+            if (datetime.now(timezone.utc) - last_run_time).total_seconds() < 21600:
+                logger.info(f"Skipping scheduled chat {job_id} as the next run time is in the future.")
+                return
+
     # Extract relevant params from the original URL
     scheme = "http" if not calling_url.is_secure else "https"
     query_dict = parse_qs(calling_url.query)
@@ -971,6 +991,7 @@ async def schedule_automation(
             "subject": subject,
             "user": user,
             "calling_url": calling_url,
+            "job_id": job_id,
         },
         id=job_id,
         name=job_metadata,
