@@ -341,20 +341,6 @@ To get started, just start typing below. You can also type / to see a list of co
             return renderMessage(message, by, dt, references, false, "return");
         }
 
-        // Helper function to get all text nodes in an element
-        function getTextNodesIn(node) {
-            let textNodes = [];
-            if (node.nodeType == 3) {
-                textNodes.push(node);
-            } else {
-                let children = node.childNodes;
-                for (let i = 0; i < children.length; i++) {
-                    textNodes.push(...getTextNodesIn(children[i]));
-                }
-            }
-            return textNodes;
-        }
-
         function formatHTMLMessage(message, raw=false, willReplace=true) {
             var md = window.markdownit();
             let newHTML = message;
@@ -392,22 +378,6 @@ To get started, just start typing below. You can also type / to see a list of co
                 copyButton.addEventListener('click', createCopyParentText(message));
                 element.append(copyButton);
             }
-
-            // Find potential LaTeX strings and render them
-            // let textNodes = getTextNodesIn(element);
-            // for (let node of textNodes) {
-            //     let latexMatch = node.textContent.match(/(\[\s*.*\s*\])/g);
-
-            //     if (latexMatch) {
-            //         for (let latex of latexMatch) {
-            //             let span = document.createElement('span');
-            //             span.classList.add("katex-rendered")
-            //             katex.render(latex.replace(/(\]\n*$|^\n*\[)|(\)$|^\()/g, ''), span);
-            //             node.parentNode.insertBefore(span, node.nextSibling);
-            //         }
-            //         node.parentNode.removeChild(node);
-            //     }
-            // }
 
             // Get any elements with a class that starts with "language"
             let codeBlockElements = element.querySelectorAll('[class^="language-"]');
