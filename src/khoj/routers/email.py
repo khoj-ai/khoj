@@ -64,7 +64,7 @@ def send_task_email(name, email, query, result, subject):
 
     r = resend.Emails.send(
         {
-            "from": "Khoj <khoj@automations.khoj.dev>",
+            "from": "Khoj <khoj@khoj.dev>",
             "to": email,
             "subject": f"✨ {subject}",
             "html": html_content,
