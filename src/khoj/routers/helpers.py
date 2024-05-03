@@ -172,6 +172,8 @@ def get_conversation_command(query: str, any_references: bool = False) -> Conver
         return ConversationCommand.General
     elif query.startswith("/online"):
         return ConversationCommand.Online
+    elif query.startswith("/webpage"):
+        return ConversationCommand.Webpage
     elif query.startswith("/image"):
         return ConversationCommand.Image
     elif query.startswith("/automated_task"):

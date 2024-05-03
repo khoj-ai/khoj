@@ -414,8 +414,8 @@ History:
 User: I like to use Hacker News to get my tech news.
 AI: Hacker News is an online forum for sharing and discussing the latest tech news. It is a great place to learn about new technologies and startups.
 
-Q: Summarize this post about vector database on Hacker News, https://news.ycombinator.com/item?id=12345
-Khoj: {{"links": ["https://news.ycombinator.com/item?id=12345"]}}
+Q: Summarize top posts on Hacker News today
+Khoj: {{"links": ["https://news.ycombinator.com/best"]}}
 
 History:
 User: I'm currently living in New York but I'm thinking about moving to San Francisco.
@@ -460,8 +460,13 @@ History:
 User: I like to use Hacker News to get my tech news.
 AI: Hacker News is an online forum for sharing and discussing the latest tech news. It is a great place to learn about new technologies and startups.
 
-Q: Summarize posts about vector databases on Hacker News since Feb 2024
-Khoj: {{"queries": ["site:news.ycombinator.com vector database since 1 February 2024"]}}
+Q: Summarize the top posts on HackerNews
+Khoj: {{"queries": ["top posts on HackerNews"]}}
+
+History:
+
+Q: Tell me the latest news about the farmers protest in Colombia and China on Reuters
+Khoj: {{"queries": ["site:reuters.com farmers protest Colombia", "site:reuters.com farmers protest China"]}}
 
 History:
 User: I'm currently living in New York but I'm thinking about moving to San Francisco.
