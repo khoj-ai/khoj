@@ -10,15 +10,6 @@
         <link rel="icon" type="image/png" sizes="128x128" href="/static/assets/icons/favicon-128x128.png?v={{ khoj_version }}">
         <link rel="apple-touch-icon" href="/static/assets/icons/favicon-128x128.png?v={{ khoj_version }}">
         <link rel="manifest" href="/static/khoj.webmanifest?v={{ khoj_version }}">
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css" integrity="sha384-wcIxkf4k558AjM3Yz3BBFQUbk/zgIYC2R0QpeeYb+TwlBVMrlgLqwRjRtGZiK7ww" crossorigin="anonymous">
-
-
-        <!-- The loading of KaTeX is deferred to speed up page rendering -->
-        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js" integrity="sha384-hIoBPJpTUs74ddyc4bFZSM1TVlQDA60VBbJS0oA934VSz82sBx1X7kSx2ATBDIyd" crossorigin="anonymous"></script>
-
-        <!-- To automatically render math in text elements, include the auto-render extension: -->
-        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous"
-            onload="renderMathInElement(document.body);"></script>
     </head>
     <script type="text/javascript" src="/static/assets/utils.js?v={{ khoj_version }}"></script>
     <script type="text/javascript" src="/static/assets/markdown-it.min.js?v={{ khoj_version }}"></script>
@@ -403,20 +394,20 @@ To get started, just start typing below. You can also type / to see a list of co
             }
 
             // Find potential LaTeX strings and render them
-            let textNodes = getTextNodesIn(element);
-            for (let node of textNodes) {
-                let latexMatch = node.textContent.match(/(\[\s*.*\s*\])/g);
+            // let textNodes = getTextNodesIn(element);
+            // for (let node of textNodes) {
+            //     let latexMatch = node.textContent.match(/(\[\s*.*\s*\])/g);
 
-                if (latexMatch) {
-                    for (let latex of latexMatch) {
-                        let span = document.createElement('span');
-                        span.classList.add("katex-rendered")
-                        katex.render(latex.replace(/(\]\n*$|^\n*\[)|(\)$|^\()/g, ''), span);
-                        node.parentNode.insertBefore(span, node.nextSibling);
-                    }
-                    node.parentNode.removeChild(node);
-                }
-            }
+            //     if (latexMatch) {
+            //         for (let latex of latexMatch) {
+            //             let span = document.createElement('span');
+            //             span.classList.add("katex-rendered")
+            //             katex.render(latex.replace(/(\]\n*$|^\n*\[)|(\)$|^\()/g, ''), span);
+            //             node.parentNode.insertBefore(span, node.nextSibling);
+            //         }
+            //         node.parentNode.removeChild(node);
+            //     }
+            // }
 
             // Get any elements with a class that starts with "language"
             let codeBlockElements = element.querySelectorAll('[class^="language-"]');
@@ -1239,19 +1230,6 @@ To get started, just start typing below. You can also type / to see a list of co
                         chatBody.classList.remove("relative-position");
                         setupDropZone();
                     }, 500);
-
-                    renderMathInElement(document.body, {
-                        // customised options
-                        // • auto-render specific keys, e.g.:
-                        delimiters: [
-                            {left: '$$', right: '$$', display: true},
-                            {left: '$', right: '$', display: false},
-                            {left: '\\(', right: '\\)', display: false},
-                            {left: '\\[', right: '\\]', display: true}
-                        ],
-                        // • rendering keys, e.g.:
-                        throwOnError : false
-                    });
 
                 })
                 .catch(err => {
@@ -2126,6 +2104,7 @@ To get started, just start typing below. You can also type / to see a list of co
             display: inline-block;
             max-width: 80%;
             text-align: left;
+            white-space: pre-line;
         }
         /* color chat bubble by khoj blue */
         .chat-message-text.khoj {
@@ -2496,10 +2475,6 @@ To get started, just start typing below. You can also type / to see a list of co
             position: absolute;
             right: 4;
             top: 4;
-        }
-
-        span.katex-rendered {
-            display: flex;
         }
 
         button.three-dot-menu-button-item {
