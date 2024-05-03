@@ -967,6 +967,7 @@ async def schedule_automation(
 ):
     user_timezone = pytz.timezone(timezone)
     trigger = CronTrigger.from_crontab(crontime, user_timezone)
+    trigger.jitter = 60
     # Generate id and metadata used by task scheduler and process locks for the task runs
     job_metadata = json.dumps(
         {
@@ -996,7 +997,6 @@ async def schedule_automation(
         id=job_id,
         name=job_metadata,
         max_instances=2,  # Allow second instance to kill any previous instance with stale lock
-        jitter=30,
     )
     return job
 
