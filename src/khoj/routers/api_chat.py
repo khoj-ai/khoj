@@ -401,9 +401,7 @@ async def websocket_endpoint(
                 )
                 continue
 
-            llm_response = construct_automation_created_message(
-                automation, crontime, query_to_run, subject, websocket.url
-            )
+            llm_response = construct_automation_created_message(automation, crontime, query_to_run, subject)
             await sync_to_async(save_to_conversation_log)(
                 q,
                 llm_response,
@@ -643,7 +641,7 @@ async def chat(
                 status_code=500,
             )
 
-        llm_response = construct_automation_created_message(automation, crontime, query_to_run, subject, request.url)
+        llm_response = construct_automation_created_message(automation, crontime, query_to_run, subject)
         await sync_to_async(save_to_conversation_log)(
             q,
             llm_response,

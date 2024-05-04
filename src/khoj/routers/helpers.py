@@ -1001,15 +1001,14 @@ async def schedule_automation(
     return job
 
 
-def construct_automation_created_message(automation: Job, crontime: str, query_to_run: str, subject: str, url: URL):
+def construct_automation_created_message(automation: Job, crontime: str, query_to_run: str, subject: str):
     # Display next run time in user timezone instead of UTC
     schedule = f'{cron_descriptor.get_description(crontime)} {automation.next_run_time.strftime("%Z")}'
     next_run_time = automation.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z")
     # Remove /automated_task prefix from inferred_query
     unprefixed_query_to_run = re.sub(r"^\/automated_task\s*", "", query_to_run)
     # Create the automation response
-    scheme = "http" if not url.is_secure else "https"
-    automation_icon_url = f"{scheme}://{url.netloc}/static/assets/icons/automation.svg"
+    automation_icon_url = f"/static/assets/icons/automation.svg"
     return f"""
     ### ![]({automation_icon_url}) Created Automation
 - Subject: **{subject}**
