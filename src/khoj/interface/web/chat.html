@@ -1601,22 +1601,26 @@ To get started, just start typing below. You can also type / to see a list of co
                                             let shareModalBody = document.createElement('div');
                                             shareModalBody.classList.add("modal-body");
                                             let shareModalText = document.createElement('p');
-                                            shareModalText.textContent = "Use this link to share your conversation with others:";
+                                            shareModalText.textContent = "The link has been copied to your clipboard. Use it to share your conversation with others!";
                                             let shareModalLink = document.createElement('input');
                                             shareModalLink.setAttribute("value", shareURL);
                                             shareModalLink.setAttribute("readonly", "");
+                                            shareModalLink.classList.add("share-link");
                                             let copyButton = document.createElement('button');
                                             copyButton.textContent = "Copy";
                                             copyButton.addEventListener('click', function() {
                                                 shareModalLink.select();
                                                 document.execCommand('copy');
                                             });
+                                            copyButton.id = "copy-share-url-button";
                                             shareModalBody.appendChild(shareModalText);
                                             shareModalBody.appendChild(shareModalLink);
                                             shareModalBody.appendChild(copyButton);
                                             shareModalContent.appendChild(shareModalBody);
                                             shareModal.appendChild(shareModalContent);
                                             document.body.appendChild(shareModal);
+                                            shareModalLink.select();
+                                            document.execCommand('copy');
                                         })
                                         .catch(err => {
                                             return;
@@ -2508,6 +2512,7 @@ To get started, just start typing below. You can also type / to see a list of co
             margin-bottom: 8px;
         }
 
+        button#copy-share-url-button,
         button#new-conversation-button {
             display: inline-flex;
             align-items: center;
@@ -2736,7 +2741,7 @@ To get started, just start typing below. You can also type / to see a list of co
             margin: 15% auto; /* 15% from the top and centered */
             padding: 20px;
             border: 1px solid #888;
-            width: 250px;
+            width: 300px;
             text-align: left;
             background: var(--background-color);
             border-radius: 5px;
@@ -2810,6 +2815,28 @@ To get started, just start typing below. You can also type / to see a list of co
             border: 1px solid var(--main-text-color);
         }
 
+        .share-link {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            font-family: 'Courier New', monospace;
+            color: #333;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        .share-link:focus {
+            outline: none;
+            border-color: #007BFF;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
+
+        button#copy-share-url-button,
         button#new-conversation-submit-button {
             background: var(--summer-sun);
             transition: background 0.2s ease-in-out;
@@ -2820,6 +2847,7 @@ To get started, just start typing below. You can also type / to see a list of co
             transition: background 0.2s ease-in-out;
         }
 
+        button#copy-share-url-button:hover,
         button#new-conversation-submit-button:hover {
             background: var(--primary);
         }
