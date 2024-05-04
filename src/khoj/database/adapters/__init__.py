@@ -16,6 +16,7 @@ from django.contrib.sessions.backends.db import SessionStore
 from django.db import models
 from django.db.models import Q
 from django.db.models.manager import BaseManager
+from django.db.utils import IntegrityError
 from django_apscheduler.models import DjangoJob, DjangoJobExecution
 from fastapi import HTTPException
 from pgvector.django import CosineDistance
@@ -457,6 +458,9 @@ class ProcessLockAdapters:
             with timer(f"🔒 Run {func} with {operation} process lock", logger):
                 func(**kwargs)
             success = True
+        except IntegrityError as e:
+            logger.error(f"⚠️ Unable to create the process lock for {func} with {operation}: {e}", exc_info=True)
+            success = False
         except Exception as e:
             logger.error(f"🚨 Error executing {func} with {operation} process lock: {e}", exc_info=True)
             success = False

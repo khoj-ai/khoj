@@ -114,7 +114,7 @@ class ProcessLock(BaseModel):
 
     # We need to make sure that some operations are thread-safe. To do so, add locks for potentially shared operations.
     # For example, we need to make sure that only one process is updating the embeddings at a time.
-    name = models.CharField(max_length=200, choices=Operation.choices)
+    name = models.CharField(max_length=200, choices=Operation.choices, unique=True)
     started_at = models.DateTimeField(auto_now_add=True)
     max_duration_in_seconds = models.IntegerField(default=60 * 60 * 12)  # 12 hours
 
