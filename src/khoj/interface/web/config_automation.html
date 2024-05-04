@@ -232,13 +232,25 @@
     }
 
     async function saveAutomation(automationId, create=false) {
-        const queryToRun = encodeURIComponent(document.getElementById(`automation-queryToRun-${automationId}`).value);
         const scheduleEl = document.getElementById(`automation-schedule-${automationId}`);
         const notificationEl = document.getElementById(`automation-success-${automationId}`);
         const saveButtonEl = document.getElementById(`save-automation-button-${automationId}`);
+        const queryToRunEl = document.getElementById(`automation-queryToRun-${automationId}`);
+        const queryToRun = encodeURIComponent(queryToRunEl.value);
         const actOn = create ? "Create" : "Save";
 
         if (queryToRun == "" || scheduleEl.value == "") {
+            notificationEl.textContent = `⚠️ Failed to automate. All input fields need to be filled.`;
+            notificationEl.style.display = "block";
+            let originalQueryToRunElBorder = queryToRunEl.style.border;
+            if (queryToRun === "") queryToRunEl.style.border = "2px solid red";
+            let originalScheduleElBorder = scheduleEl.style.border;
+            if (scheduleEl.value === "") scheduleEl.style.border = "2px solid red";
+            setTimeout(function() {
+                if (queryToRun == "") queryToRunEl.style.border = originalQueryToRunElBorder;
+                if (scheduleEl.value == "") scheduleEl.style.border = originalScheduleElBorder;
+            }, 2000);
+
             return;
         }
 
