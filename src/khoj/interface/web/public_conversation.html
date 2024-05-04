@@ -2,7 +2,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
-        <title>Khoj - Chat</title>
+        <title>Khoj: {{ public_conversation_slug | replace("-", " ")}}</title>
 
         <link rel="stylesheet" href="/static/assets/khoj.css?v={{ khoj_version }}">
         <link rel="icon" type="image/png" sizes="128x128" href="/static/assets/icons/favicon-128x128.png?v={{ khoj_version }}">
@@ -480,7 +480,7 @@ To get started, just start typing below. You can also type / to see a list of co
             let chatBody = document.getElementById("chat-body");
             chatBody.innerHTML = "";
             chatBody.classList.add("relative-position");
-            let chatHistoryUrl = `/api/chat/public/history?client=web`;
+            let chatHistoryUrl = `/api/chat/share/history?client=web`;
             chatHistoryUrl += `&public_conversation_slug=${publicConversationSlug}`;
 
             if (window.screen.width < 700) {
@@ -618,7 +618,7 @@ Learn more [here](https://khoj.dev).
                 return;
             }
 
-            let forkConversationAPI = "/api/chat/public/fork" + "?public_conversation_slug=" + publicConversationSlug;
+            let forkConversationAPI = "/api/chat/share/fork" + "?public_conversation_slug=" + publicConversationSlug;
             fetch(forkConversationAPI, { method: "POST" })
                 .then(response => response.json())
                 .then(data => {

@@ -1540,7 +1540,7 @@ To get started, just start typing below. You can also type / to see a list of co
                                     event.preventDefault();
                                     let confirmation = confirm('Are you sure you want to share this chat session? This will make the conversation public.');
                                     if (!confirmation) return;
-                                    let duplicateURL = `/api/chat/public/duplicate?client=web&conversation_id=${incomingConversationId}`;
+                                    let duplicateURL = `/api/chat/share?client=web&conversation_id=${incomingConversationId}`;
                                     fetch(duplicateURL , { method: "POST" })
                                         .then(response => response.ok ? response.json() : Promise.reject(response))
                                         .then(data => {

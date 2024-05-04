@@ -260,19 +260,23 @@ class PublicConversation(BaseModel):
 
 @receiver(pre_save, sender=PublicConversation)
 def verify_public_conversation(sender, instance, **kwargs):
+    def generate_random_alphanumeric(length):
+        characters = "0123456789abcdefghijklmnopqrstuvwxyz"
+        return "".join(choice(characters) for _ in range(length))
+
     # check if this is a new instance
     if instance._state.adding:
         slug = re.sub(r"\W+", "-", instance.slug.lower())[:50]
-        observed_random_numbers = set()
+        observed_random_id = set()
         while PublicConversation.objects.filter(slug=slug).exists():
             try:
-                random_number = choice([i for i in range(0, 1000) if i not in observed_random_numbers])
+                random_id = generate_random_alphanumeric(7)
             except IndexError:
                 raise ValidationError(
                     "Unable to generate a unique slug for the Public Conversation. Please try again later."
                 )
-            observed_random_numbers.add(random_number)
-            slug = f"{slug}-{random_number}"
+            observed_random_id.add(random_id)
+            slug = f"{slug}-{random_id}"
         instance.slug = slug
 
 

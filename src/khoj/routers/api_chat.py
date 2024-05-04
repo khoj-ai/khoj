@@ -137,7 +137,7 @@ def chat_history(
     return {"status": "ok", "response": meta_log}
 
 
-@api_chat.get("/public/history")
+@api_chat.get("/share/history")
 def chat_public_history(
     request: Request,
     common: CommonQueryParams,
@@ -213,7 +213,7 @@ async def clear_chat_history(
     return {"status": "ok", "message": "Conversation history cleared"}
 
 
-@api_chat.post("/public/fork")
+@api_chat.post("/share/fork")
 @requires(["authenticated"])
 def fork_public_conversation(
     request: Request,
@@ -225,7 +225,7 @@ def fork_public_conversation(
     # Load Conversation History
     public_conversation = PublicConversationAdapters.get_public_conversation_by_slug(public_conversation_slug)
 
-    # Duplicate Conversation History to Public Conversation
+    # Duplicate Public Conversation to User's Private Conversation
     ConversationAdapters.create_conversation_from_public_conversation(
         user, public_conversation, request.user.client_app
     )
@@ -245,7 +245,7 @@ def fork_public_conversation(
     return Response(status_code=200, content=json.dumps({"status": "ok", "next_url": redirect_uri}))
 
 
-@api_chat.post("/public/duplicate")
+@api_chat.post("/share")
 @requires(["authenticated"])
 def duplicate_chat_history_public_conversation(
     request: Request,
