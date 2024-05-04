@@ -14,8 +14,8 @@ from khoj.database.models import (
     GithubConfig,
     KhojUser,
     NotionConfig,
-    OfflineChatProcessorConversationConfig,
     OpenAIProcessorConversationConfig,
+    ProcessLock,
     ReflectiveQuestion,
     SearchModelConfig,
     SpeechToTextModelOptions,
@@ -45,9 +45,9 @@ class KhojUserAdmin(UserAdmin):
 admin.site.register(KhojUser, KhojUserAdmin)
 
 admin.site.register(ChatModelOptions)
+admin.site.register(ProcessLock)
 admin.site.register(SpeechToTextModelOptions)
 admin.site.register(OpenAIProcessorConversationConfig)
-admin.site.register(OfflineChatProcessorConversationConfig)
 admin.site.register(SearchModelConfig)
 admin.site.register(Subscription)
 admin.site.register(ReflectiveQuestion)

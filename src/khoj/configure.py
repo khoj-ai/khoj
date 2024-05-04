@@ -216,6 +216,9 @@ def configure_server(
                         model.bi_encoder,
                         model.embeddings_inference_endpoint,
                         model.embeddings_inference_endpoint_api_key,
+                        query_encode_kwargs=model.bi_encoder_query_encode_config,
+                        docs_encode_kwargs=model.bi_encoder_docs_encode_config,
+                        model_kwargs=model.bi_encoder_model_config,
                     )
                 }
             )
@@ -321,7 +324,7 @@ def update_content_index():
 @schedule.repeat(schedule.every(22).to(25).hours)
 def update_content_index_regularly():
     ProcessLockAdapters.run_with_lock(
-        update_content_index, ProcessLock.Operation.UPDATE_EMBEDDINGS, max_duration_in_seconds=60 * 60 * 2
+        update_content_index, ProcessLock.Operation.INDEX_CONTENT, max_duration_in_seconds=60 * 60 * 2
     )
 
 

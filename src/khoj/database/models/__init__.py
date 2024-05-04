@@ -74,6 +74,12 @@ class Subscription(BaseModel):
     renewal_date = models.DateTimeField(null=True, default=None, blank=True)
 
 
+class OpenAIProcessorConversationConfig(BaseModel):
+    name = models.CharField(max_length=200)
+    api_key = models.CharField(max_length=200)
+    api_base_url = models.URLField(max_length=200, default=None, blank=True, null=True)
+
+
 class ChatModelOptions(BaseModel):
     class ModelType(models.TextChoices):
         OPENAI = "openai"
@@ -83,6 +89,9 @@ class ChatModelOptions(BaseModel):
     tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)
     chat_model = models.CharField(max_length=200, default="NousResearch/Hermes-2-Pro-Mistral-7B-GGUF")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
+    openai_config = models.ForeignKey(
+        OpenAIProcessorConversationConfig, on_delete=models.CASCADE, default=None, null=True, blank=True
+    )
 
 
 class Agent(BaseModel):
@@ -101,7 +110,8 @@ class Agent(BaseModel):
 
 class ProcessLock(BaseModel):
     class Operation(models.TextChoices):
-        UPDATE_EMBEDDINGS = "update_embeddings"
+        INDEX_CONTENT = "index_content"
+        SCHEDULED_JOB = "scheduled_job"
 
     # We need to make sure that some operations are thread-safe. To do so, add locks for potentially shared operations.
     # For example, we need to make sure that only one process is updating the embeddings at a time.
@@ -180,13 +190,27 @@ class SearchModelConfig(BaseModel):
     class ModelType(models.TextChoices):
         TEXT = "text"
 
+    # This is the model name exposed to users on their settings page
     name = models.CharField(max_length=200, default="default")
+    # Type of content the model can generate embeddings for
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.TEXT)
+    # Bi-encoder model of sentence-transformer type to load from HuggingFace
     bi_encoder = models.CharField(max_length=200, default="thenlper/gte-small")
-    cross_encoder = models.CharField(max_length=200, default="cross-encoder/ms-marco-MiniLM-L-6-v2")
+    # Config passed to the sentence-transformer model constructor. E.g device="cuda:0", trust_remote_server=True etc.
+    bi_encoder_model_config = models.JSONField(default=dict)
+    # Query encode configs like prompt, precision, normalize_embeddings, etc. for sentence-transformer models
+    bi_encoder_query_encode_config = models.JSONField(default=dict)
+    # Docs encode configs like prompt, precision, normalize_embeddings, etc. for sentence-transformer models
+    bi_encoder_docs_encode_config = models.JSONField(default=dict)
+    # Cross-encoder model of sentence-transformer type to load from HuggingFace
+    cross_encoder = models.CharField(max_length=200, default="mixedbread-ai/mxbai-rerank-xsmall-v1")
+    # Inference server API endpoint to use for embeddings inference. Bi-encoder model should be hosted on this server
     embeddings_inference_endpoint = models.CharField(max_length=200, default=None, null=True, blank=True)
+    # Inference server API Key to use for embeddings inference. Bi-encoder model should be hosted on this server
     embeddings_inference_endpoint_api_key = models.CharField(max_length=200, default=None, null=True, blank=True)
+    # Inference server API endpoint to use for embeddings inference. Cross-encoder model should be hosted on this server
     cross_encoder_inference_endpoint = models.CharField(max_length=200, default=None, null=True, blank=True)
+    # Inference server API Key to use for embeddings inference. Cross-encoder model should be hosted on this server
     cross_encoder_inference_endpoint_api_key = models.CharField(max_length=200, default=None, null=True, blank=True)
 
 
@@ -196,14 +220,6 @@ class TextToImageModelConfig(BaseModel):
 
     model_name = models.CharField(max_length=200, default="dall-e-3")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OPENAI)
-
-
-class OpenAIProcessorConversationConfig(BaseModel):
-    api_key = models.CharField(max_length=200)
-
-
-class OfflineChatProcessorConversationConfig(BaseModel):
-    enabled = models.BooleanField(default=False)
 
 
 class SpeechToTextModelOptions(BaseModel):

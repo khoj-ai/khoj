@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Optional, Union
 from urllib.parse import urlparse
 
 import psutil
+import requests
 import torch
 from asgiref.sync import sync_to_async
 from magika import Magika
@@ -303,6 +304,8 @@ class ConversationCommand(str, Enum):
     Online = "online"
     Webpage = "webpage"
     Image = "image"
+    Automation = "automation"
+    AutomatedTask = "automated_task"
 
 
 command_descriptions = {
@@ -312,6 +315,7 @@ command_descriptions = {
     ConversationCommand.Online: "Search for information on the internet.",
     ConversationCommand.Webpage: "Get information from webpage links provided by you.",
     ConversationCommand.Image: "Generate images by describing your imagination in words.",
+    ConversationCommand.Automation: "Automatically run your query at a specified time or interval.",
     ConversationCommand.Help: "Display a help message with all available commands and other metadata.",
 }
 
@@ -324,7 +328,8 @@ tool_descriptions_for_llm = {
 }
 
 mode_descriptions_for_llm = {
-    ConversationCommand.Image: "Use this if you think the user is requesting an image or visual response to their query.",
+    ConversationCommand.Image: "Use this if the user is requesting an image or visual response to their query.",
+    ConversationCommand.Automation: "Use this if the user is requesting a response at a scheduled date or time.",
     ConversationCommand.Default: "Use this if the other response modes don't seem to fit the query.",
 }
 
@@ -395,5 +400,13 @@ def is_valid_url(url: str) -> bool:
     try:
         result = urlparse(url.strip())
         return all([result.scheme, result.netloc])
+    except:
+        return False
+
+
+def is_internet_connected():
+    try:
+        response = requests.head("https://www.google.com")
+        return response.status_code == 200
     except:
         return False

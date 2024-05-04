@@ -40,6 +40,7 @@
         let region = null;
         let city = null;
         let countryName = null;
+        let timezone = null;
 
         fetch("https://ipapi.co/json")
             .then(response => response.json())
@@ -47,6 +48,7 @@
                 region = data.region;
                 city = data.city;
                 countryName = data.country_name;
+                timezone = data.timezone;
             })
             .catch(err => {
                 console.log(err);
@@ -463,16 +465,16 @@
             }
 
             // Generate backend API URL to execute query
-            let chatApi = `${hostURL}/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}&region=${region}&city=${city}&country=${countryName}`;
+            let chatApi = `${hostURL}/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}&region=${region}&city=${city}&country=${countryName}&timezone=${timezone}`;
 
-            let new_response = document.createElement("div");
-            new_response.classList.add("chat-message", "khoj");
-            new_response.attributes["data-meta"] = "🏮 Khoj at " + formatDate(new Date());
-            chat_body.appendChild(new_response);
+            let newResponseEl = document.createElement("div");
+            newResponseEl.classList.add("chat-message", "khoj");
+            newResponseEl.attributes["data-meta"] = "🏮 Khoj at " + formatDate(new Date());
+            chat_body.appendChild(newResponseEl);
 
-            let newResponseText = document.createElement("div");
-            newResponseText.classList.add("chat-message-text", "khoj");
-            new_response.appendChild(newResponseText);
+            let newResponseTextEl = document.createElement("div");
+            newResponseTextEl.classList.add("chat-message-text", "khoj");
+            newResponseEl.appendChild(newResponseTextEl);
 
             // Temporary status message to indicate that Khoj is thinking
             let loadingEllipsis = document.createElement("div");
@@ -495,7 +497,7 @@
             loadingEllipsis.appendChild(thirdEllipsis);
             loadingEllipsis.appendChild(fourthEllipsis);
 
-            newResponseText.appendChild(loadingEllipsis);
+            newResponseTextEl.appendChild(loadingEllipsis);
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
 
             let chatTooltip = document.getElementById("chat-tooltip");
@@ -540,11 +542,11 @@
                     // If the chunk is not a JSON object, just display it as is
                     rawResponse += chunk;
                 } finally {
-                    newResponseText.innerHTML = "";
-                    newResponseText.appendChild(formatHTMLMessage(rawResponse));
+                    newResponseTextEl.innerHTML = "";
+                    newResponseTextEl.appendChild(formatHTMLMessage(rawResponse));
 
                     if (references != null) {
-                        newResponseText.appendChild(references);
+                        newResponseTextEl.appendChild(references);
                     }
 
                     document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
@@ -563,7 +565,7 @@
                         if (done) {
                             // Append any references after all the data has been streamed
                             if (references != {}) {
-                                newResponseText.appendChild(createReferenceSection(references));
+                                newResponseTextEl.appendChild(createReferenceSection(references));
                             }
                             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
                             document.getElementById("chat-input").removeAttribute("disabled");
@@ -576,8 +578,8 @@
                         if (chunk.includes("### compiled references:")) {
                             const additionalResponse = chunk.split("### compiled references:")[0];
                             rawResponse += additionalResponse;
-                            newResponseText.innerHTML = "";
-                            newResponseText.appendChild(formatHTMLMessage(rawResponse));
+                            newResponseTextEl.innerHTML = "";
+                            newResponseTextEl.appendChild(formatHTMLMessage(rawResponse));
 
                             const rawReference = chunk.split("### compiled references:")[1];
                             const rawReferenceAsJson = JSON.parse(rawReference);
@@ -589,14 +591,14 @@
                             readStream();
                         } else {
                             // Display response from Khoj
-                            if (newResponseText.getElementsByClassName("lds-ellipsis").length > 0) {
-                                newResponseText.removeChild(loadingEllipsis);
+                            if (newResponseTextEl.getElementsByClassName("lds-ellipsis").length > 0) {
+                                newResponseTextEl.removeChild(loadingEllipsis);
                             }
 
                             // If the chunk is not a JSON object, just display it as is
                             rawResponse += chunk;
-                            newResponseText.innerHTML = "";
-                            newResponseText.appendChild(formatHTMLMessage(rawResponse));
+                            newResponseTextEl.innerHTML = "";
+                            newResponseTextEl.appendChild(formatHTMLMessage(rawResponse));
 
                             readStream();
                         }
@@ -675,28 +677,35 @@
             await loadChat();
         });
 
-        async function loadChat() {
-            // Load chat history
+        async function getChatHistoryUrl() {
             const hostURL = await window.hostURLAPI.getURL();
             const khojToken = await window.tokenAPI.getToken();
             const headers = { 'Authorization': `Bearer ${khojToken}` };
 
-            let firstRunSetupMessageRendered = false;
             let chatBody = document.getElementById("chat-body");
             chatBody.innerHTML = "";
             let chatHistoryUrl = `${hostURL}/api/chat/history?client=desktop`;
             if (chatBody.dataset.conversationId) {
                 chatHistoryUrl += `&conversation_id=${chatBody.dataset.conversationId}`;
             }
+            return { chatHistoryUrl, headers };
+        }
+
+        async function loadChat() {
+            // Load chat history and body
+            const hostURL = await window.hostURLAPI.getURL();
+            const { chatHistoryUrl, headers } = await getChatHistoryUrl();
 
             // Create loading screen and add it to chat-body
             let loadingScreen = document.createElement('div');
             loadingScreen.classList.add("loading-spinner");
             let yellowOrb = document.createElement('div');
             loadingScreen.appendChild(yellowOrb);
+            let chatBody = document.getElementById("chat-body");
             chatBody.appendChild(loadingScreen);
 
             // Get the most recent 10 chat messages from conversation history
+            let firstRunSetupMessageRendered = false;
             fetch(`${chatHistoryUrl}&n=10`, { headers })
                 .then(response => response.json())
                 .then(data => {
@@ -722,7 +731,7 @@
                         entries.forEach(entry => {
                             // If the element is in the viewport, fetch the remaining message and unobserve the element
                             if (entry.isIntersecting) {
-                                fetchRemainingChatMessages(chatHistoryUrl);
+                                fetchRemainingChatMessages(chatHistoryUrl, headers);
                                 observer.unobserve(entry.target);
                             }
                         });
@@ -817,7 +826,7 @@
             }
         }
 
-        function fetchRemainingChatMessages(chatHistoryUrl) {
+        function fetchRemainingChatMessages(chatHistoryUrl, headers) {
             // Create a new IntersectionObserver
             let observer = new IntersectionObserver((entries, observer) => {
                 entries.forEach(entry => {
@@ -842,7 +851,7 @@
             }, {rootMargin: '0px 0px 200px 0px'});  // Trigger when the element is within 200px of the viewport
 
             // Fetch remaining chat messages from conversation history
-            fetch(`${chatHistoryUrl}&n=-10`, { method: "GET" })
+            fetch(`${chatHistoryUrl}&n=-10`, { headers })
                 .then(response => response.json())
                 .then(data => {
                     if (data.status != "ok") {
@@ -888,10 +897,10 @@
         }
 
         function renderFirstRunSetupMessage() {
-            first_run_message = `Hi 👋🏾, to get started:
+            first_run_message = `<p class="first-run-message-heading">Hi 👋🏾, to get started:<p>
             <ol>
-                <li>Generate an API token in the <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToWebSettings()">Khoj Web settings</a></li>
-                <li>Paste it into the API Key field in the <a class='inline-chat-link' href="#" onclick="window.navigateAPI.navigateToSettings()">Khoj Desktop settings</a></li>
+                <li class="first-run-message-text">Generate an API token <a class='first-run-message-link' href="#" onclick="window.navigateAPI.navigateToWebSettings()">Khoj Web settings</a></li>
+                <li class="first-run-message-text">Paste it into the API Key field <a class='first-run-message-link' href="#" onclick="window.navigateAPI.navigateToSettings()">Khoj Desktop settings</a></li>
             </ol>`
             .trim()
             .replace(/(\r\n|\n|\r)/gm, "");
@@ -1396,11 +1405,13 @@
         .chat-message.khoj {
             margin-left: auto;
             text-align: left;
+            height: fit-content;
         }
         /* move message by you to right */
         .chat-message.you {
             margin-right: auto;
             text-align: right;
+            height: fit-content;
         }
         /* basic style chat message text */
         .chat-message-text {
@@ -1499,7 +1510,7 @@
         #chat-input {
             font-family: var(--font-family);
             font-size: small;
-            height: 36px;
+            height: 48px;
             border-radius: 16px;
             resize: none;
             overflow-y: hidden;
@@ -1716,10 +1727,44 @@
             box-shadow: 0 0 16px var(--primary);
         }
 
+        .first-run-message-heading {
+            font-size: 20px;
+            font-weight: 300;
+            line-height: 1.5em;
+            color: var(--main-text-color);
+            margin: 0;
+            padding: 10px;
+        }
+
+        .first-run-message-text {
+            font-size: 18px;
+            font-weight: 300;
+            line-height: 1.5em;
+            color: var(--main-text-color);
+            margin: 0;
+            padding-bottom: 25px;
+        }
+
         a.inline-chat-link {
             color: #475569;
             text-decoration: none;
             border-bottom: 1px dotted #475569;
+        }
+
+        a.first-run-message-link {
+            display: block;
+            text-align: center;
+            font-size: 14px;
+            color: #fff;
+            padding: 6px 15px;
+            border-radius: 999px;
+            text-decoration: none;
+            background-color: rgba(71, 85, 105, 0.6);
+            transition: background-color 0.3s ease-in-out;
+        }
+
+        a.first-run-message-link:hover {
+            background-color: #475569;
         }
 
         a.reference-link {

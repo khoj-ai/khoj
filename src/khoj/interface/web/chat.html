@@ -2,6 +2,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
+        <meta property="og:image" content="https://khoj-web-bucket.s3.amazonaws.com/khoj_hero.png">
         <title>Khoj - Chat</title>
 
         <link rel="stylesheet" href="/static/assets/khoj.css?v={{ khoj_version }}">
@@ -57,11 +58,12 @@ To get started, just start typing below. You can also type / to see a list of co
         let region = null;
         let city = null;
         let countryName = null;
+        let timezone = null;
         let waitingForLocation = true;
 
         let websocketState = {
-            newResponseText: null,
-            newResponseElement: null,
+            newResponseTextEl: null,
+            newResponseEl: null,
             loadingEllipsis: null,
             references: {},
             rawResponse: "",
@@ -73,13 +75,14 @@ To get started, just start typing below. You can also type / to see a list of co
                 region = data.region;
                 city = data.city;
                 countryName = data.country_name;
+                timezone = data.timezone;
             })
             .catch(err => {
                 console.log(err);
                 return;
             })
             .finally(() => {
-                console.debug("Region:", region, "City:", city, "Country:", countryName);
+                console.debug("Region:", region, "City:", city, "Country:", countryName, "Timezone:", timezone);
                 waitingForLocation = false;
                 setupWebSocket();
             });
@@ -458,8 +461,6 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
         async function chat() {
-            // Extract required fields for search from form
-
             if (websocket) {
                 sendMessageViaWebSocket();
                 return;
@@ -512,7 +513,7 @@ To get started, just start typing below. You can also type / to see a list of co
             chatInput.classList.remove("option-enabled");
 
             // Generate backend API URL to execute query
-            let url = `/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}&region=${region}&city=${city}&country=${countryName}`;
+            let url = `/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}&region=${region}&city=${city}&country=${countryName}&timezone=${timezone}`;
 
             // Call specified Khoj API
             let response = await fetch(url);
@@ -898,8 +899,8 @@ To get started, just start typing below. You can also type / to see a list of co
             }
 
             websocketState = {
-                newResponseText: null,
-                newResponseElement: null,
+                newResponseTextEl: null,
+                newResponseEl: null,
                 loadingEllipsis: null,
                 references: {},
                 rawResponse: "",
@@ -907,7 +908,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
             if (chatBody.dataset.conversationId) {
                 webSocketUrl += `?conversation_id=${chatBody.dataset.conversationId}`;
-                webSocketUrl += (!!region && !!city && !!countryName) ? `&region=${region}&city=${city}&country=${countryName}` : '';
+                webSocketUrl += (!!region && !!city && !!countryName) && !!timezone ? `&region=${region}&city=${city}&country=${countryName}&timezone=${timezone}` : '';
 
                 websocket = new WebSocket(webSocketUrl);
                 websocket.onmessage = function(event) {
@@ -919,12 +920,12 @@ To get started, just start typing below. You can also type / to see a list of co
                     } else if(chunk == "end_llm_response") {
                         console.log("Stopped streaming", new Date());
                         // Append any references after all the data has been streamed
-                        finalizeChatBodyResponse(websocketState.references, websocketState.newResponseText);
+                        finalizeChatBodyResponse(websocketState.references, websocketState.newResponseTextEl);
 
                         // Reset variables
                         websocketState = {
-                            newResponseText: null,
-                            newResponseElement: null,
+                            newResponseTextEl: null,
+                            newResponseEl: null,
                             loadingEllipsis: null,
                             references: {},
                             rawResponse: "",
@@ -949,9 +950,9 @@ To get started, just start typing below. You can also type / to see a list of co
                                     websocketState.rawResponse = rawResponse;
                                     websocketState.references = references;
                                 } else if (chunk.type == "status") {
-                                    handleStreamResponse(websocketState.newResponseText, chunk.message, null, false);
+                                    handleStreamResponse(websocketState.newResponseTextEl, chunk.message, null, false);
                                 } else if (chunk.type == "rate_limit") {
-                                    handleStreamResponse(websocketState.newResponseText, chunk.message, websocketState.loadingEllipsis, true);
+                                    handleStreamResponse(websocketState.newResponseTextEl, chunk.message, websocketState.loadingEllipsis, true);
                                 } else {
                                     rawResponse = chunk.response;
                                 }
@@ -960,21 +961,21 @@ To get started, just start typing below. You can also type / to see a list of co
                                 websocketState.rawResponse += chunk;
                             } finally {
                                 if (chunk.type != "status" && chunk.type != "rate_limit") {
-                                    addMessageToChatBody(websocketState.rawResponse, websocketState.newResponseText, websocketState.references);
+                                    addMessageToChatBody(websocketState.rawResponse, websocketState.newResponseTextEl, websocketState.references);
                                 }
                             }
                         } else {
 
                             // Handle streamed response of type text/event-stream or text/plain
                             if (chunk && chunk.includes("### compiled references:")) {
-                                ({ rawResponse, references } = handleCompiledReferences(websocketState.newResponseText, chunk, websocketState.references, websocketState.rawResponse));
+                                ({ rawResponse, references } = handleCompiledReferences(websocketState.newResponseTextEl, chunk, websocketState.references, websocketState.rawResponse));
                                 websocketState.rawResponse = rawResponse;
                                 websocketState.references = references;
                             } else {
                                 // If the chunk is not a JSON object, just display it as is
                                 websocketState.rawResponse += chunk;
-                                if (websocketState.newResponseText) {
-                                    handleStreamResponse(websocketState.newResponseText, websocketState.rawResponse, websocketState.loadingEllipsis);
+                                if (websocketState.newResponseTextEl) {
+                                    handleStreamResponse(websocketState.newResponseTextEl, websocketState.rawResponse, websocketState.loadingEllipsis);
                                 }
                             }
 
@@ -1023,19 +1024,19 @@ To get started, just start typing below. You can also type / to see a list of co
             autoResize();
             document.getElementById("chat-input").setAttribute("disabled", "disabled");
 
-            let newResponseElement = document.createElement("div");
-            newResponseElement.classList.add("chat-message", "khoj");
-            newResponseElement.attributes["data-meta"] = "🏮 Khoj at " + formatDate(new Date());
-            chatBody.appendChild(newResponseElement);
+            let newResponseEl = document.createElement("div");
+            newResponseEl.classList.add("chat-message", "khoj");
+            newResponseEl.attributes["data-meta"] = "🏮 Khoj at " + formatDate(new Date());
+            chatBody.appendChild(newResponseEl);
 
-            let newResponseText = document.createElement("div");
-            newResponseText.classList.add("chat-message-text", "khoj");
-            newResponseElement.appendChild(newResponseText);
+            let newResponseTextEl = document.createElement("div");
+            newResponseTextEl.classList.add("chat-message-text", "khoj");
+            newResponseEl.appendChild(newResponseTextEl);
 
             // Temporary status message to indicate that Khoj is thinking
             let loadingEllipsis = createLoadingEllipse();
 
-            newResponseText.appendChild(loadingEllipsis);
+            newResponseTextEl.appendChild(loadingEllipsis);
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
 
             let chatTooltip = document.getElementById("chat-tooltip");
@@ -1050,8 +1051,8 @@ To get started, just start typing below. You can also type / to see a list of co
             let references = {};
 
             websocketState = {
-                newResponseText,
-                newResponseElement,
+                newResponseTextEl,
+                newResponseEl,
                 loadingEllipsis,
                 references,
                 rawResponse,
@@ -1169,7 +1170,7 @@ To get started, just start typing below. You can also type / to see a list of co
                                 chat_log.message,
                                 chat_log.by,
                                 chat_log.context,
-                                new Date(chat_log.created),
+                                new Date(chat_log.created + "Z"),
                                 chat_log.onlineContext,
                                 chat_log.intent?.type,
                                 chat_log.intent?.["inferred-queries"]);
@@ -1264,7 +1265,7 @@ To get started, just start typing below. You can also type / to see a list of co
                             chat_log.message,
                             chat_log.by,
                             chat_log.context,
-                            new Date(chat_log.created),
+                            new Date(chat_log.created + "Z"),
                             chat_log.onlineContext,
                             chat_log.intent?.type,
                             chat_log.intent?.["inferred-queries"]
@@ -2119,11 +2120,13 @@ To get started, just start typing below. You can also type / to see a list of co
         .chat-message.khoj {
             margin-left: auto;
             text-align: left;
+            height: fit-content;
         }
         /* move message by you to right */
         .chat-message.you {
             margin-right: auto;
             text-align: right;
+            height: fit-content;
         }
         /* basic style chat message text */
         .chat-message-text {
@@ -2198,6 +2201,10 @@ To get started, just start typing below. You can also type / to see a list of co
         img.text-to-image {
             max-width: 60%;
         }
+        h3 > img.text-to-image {
+            height: 24px;
+            vertical-align: sub;
+        }
 
         #chat-footer {
             padding: 0;
@@ -2221,7 +2228,7 @@ To get started, just start typing below. You can also type / to see a list of co
         #chat-input {
             font-family: var(--font-family);
             font-size: medium;
-            height: 36px;
+            height: 48px;
             border-radius: 16px;
             resize: none;
             overflow-y: hidden;

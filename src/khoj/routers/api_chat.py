@@ -1,6 +1,7 @@
 import json
 import logging
 import math
+from datetime import datetime
 from typing import Dict, Optional
 from urllib.parse import unquote
 
@@ -34,10 +35,13 @@ from khoj.routers.api import extract_references_and_questions
 from khoj.routers.helpers import (
     ApiUserRateLimiter,
     CommonQueryParams,
+    CommonQueryParamsClass,
     ConversationCommandRateLimiter,
     agenerate_chat_response,
     aget_relevant_information_sources,
     aget_relevant_output_modes,
+    construct_automation_created_message,
+    create_automation,
     get_conversation_command,
     is_ready_to_chat,
     text_to_image,
@@ -331,7 +335,8 @@ async def chat_options(
 ) -> Response:
     cmd_options = {}
     for cmd in ConversationCommand:
-        cmd_options[cmd.value] = command_descriptions[cmd]
+        if cmd in command_descriptions:
+            cmd_options[cmd.value] = command_descriptions[cmd]
 
     update_telemetry_state(
         request=request,
@@ -379,6 +384,7 @@ async def websocket_endpoint(
     city: Optional[str] = None,
     region: Optional[str] = None,
     country: Optional[str] = None,
+    timezone: Optional[str] = None,
 ):
     connection_alive = True
 
@@ -457,6 +463,8 @@ async def websocket_endpoint(
     await websocket.accept()
     while connection_alive:
         try:
+            if conversation:
+                await sync_to_async(conversation.refresh_from_db)(fields=["conversation_log"])
             q = await websocket.receive_text()
         except WebSocketDisconnect:
             logger.debug(f"User {user} disconnected web socket")
@@ -469,6 +477,7 @@ async def websocket_endpoint(
             await send_rate_limit_message(e.detail)
             break
 
+        user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         conversation_commands = [get_conversation_command(query=q, any_references=True)]
 
         await send_status_update(f"**👀 Understanding Query**: {q}")
@@ -483,13 +492,14 @@ async def websocket_endpoint(
             continue
 
         meta_log = conversation.conversation_log
+        is_automated_task = conversation_commands == [ConversationCommand.AutomatedTask]
 
-        if conversation_commands == [ConversationCommand.Default]:
-            conversation_commands = await aget_relevant_information_sources(q, meta_log)
+        if conversation_commands == [ConversationCommand.Default] or is_automated_task:
+            conversation_commands = await aget_relevant_information_sources(q, meta_log, is_automated_task)
             conversation_commands_str = ", ".join([cmd.value for cmd in conversation_commands])
             await send_status_update(f"**🗃️ Chose Data Sources to Search:** {conversation_commands_str}")
 
-            mode = await aget_relevant_output_modes(q, meta_log)
+            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task)
             await send_status_update(f"**🧑🏾‍💻 Decided Response Mode:** {mode.value}")
             if mode not in conversation_commands:
                 conversation_commands.append(mode)
@@ -498,8 +508,47 @@ async def websocket_endpoint(
             await conversation_command_rate_limiter.update_and_check_if_valid(websocket, cmd)
             q = q.replace(f"/{cmd.value}", "").strip()
 
+        if ConversationCommand.Automation in conversation_commands:
+            try:
+                automation, crontime, query_to_run, subject = await create_automation(
+                    q, timezone, user, websocket.url, meta_log
+                )
+            except Exception as e:
+                logger.error(f"Error scheduling task {q} for {user.email}: {e}")
+                await send_complete_llm_response(
+                    f"Unable to create automation. Ensure the automation doesn't already exist."
+                )
+                continue
+
+            llm_response = construct_automation_created_message(automation, crontime, query_to_run, subject)
+            await sync_to_async(save_to_conversation_log)(
+                q,
+                llm_response,
+                user,
+                meta_log,
+                user_message_time,
+                intent_type="automation",
+                client_application=websocket.user.client_app,
+                conversation_id=conversation_id,
+                inferred_queries=[query_to_run],
+                automation_id=automation.id,
+            )
+            common = CommonQueryParamsClass(
+                client=websocket.user.client_app,
+                user_agent=websocket.headers.get("user-agent"),
+                host=websocket.headers.get("host"),
+            )
+            update_telemetry_state(
+                request=websocket,
+                telemetry_type="api",
+                api="chat",
+                **common.__dict__,
+            )
+            await send_complete_llm_response(llm_response)
+            continue
+
         compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
-            websocket, None, meta_log, q, 7, 0.18, conversation_commands, location, send_status_update
+            websocket, meta_log, q, 7, 0.18, conversation_commands, location, send_status_update
         )
 
         if compiled_references:
@@ -577,6 +626,7 @@ async def websocket_endpoint(
                 image,
                 user,
                 meta_log,
+                user_message_time,
                 intent_type=intent_type,
                 inferred_queries=[improved_image_prompt],
                 client_application=websocket.user.client_app,
@@ -644,6 +694,7 @@ async def chat(
     city: Optional[str] = None,
     region: Optional[str] = None,
     country: Optional[str] = None,
+    timezone: Optional[str] = None,
     rate_limiter_per_minute=Depends(
         ApiUserRateLimiter(requests=5, subscribed_requests=60, window=60, slug="chat_minute")
     ),
@@ -653,6 +704,7 @@ async def chat(
 ) -> Response:
     user: KhojUser = request.user.object
     q = unquote(q)
+    user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"Chat request by {user.username}: {q}")
 
     await is_ready_to_chat(user)
@@ -676,9 +728,11 @@ async def chat(
     else:
         meta_log = conversation.conversation_log
 
-    if conversation_commands == [ConversationCommand.Default]:
-        conversation_commands = await aget_relevant_information_sources(q, meta_log)
-        mode = await aget_relevant_output_modes(q, meta_log)
+    is_automated_task = conversation_commands == [ConversationCommand.AutomatedTask]
+
+    if conversation_commands == [ConversationCommand.Default] or is_automated_task:
+        conversation_commands = await aget_relevant_information_sources(q, meta_log, is_automated_task)
+        mode = await aget_relevant_output_modes(q, meta_log, is_automated_task)
         if mode not in conversation_commands:
             conversation_commands.append(mode)
 
@@ -693,8 +747,40 @@ async def chat(
 
     user_name = await aget_user_name(user)
 
+    if ConversationCommand.Automation in conversation_commands:
+        try:
+            automation, crontime, query_to_run, subject = await create_automation(
+                q, timezone, user, request.url, meta_log
+            )
+        except Exception as e:
+            logger.error(f"Error creating automation {q} for {user.email}: {e}")
+            return Response(
+                content=f"Unable to create automation. Ensure the automation doesn't already exist.",
+                media_type="text/plain",
+                status_code=500,
+            )
+
+        llm_response = construct_automation_created_message(automation, crontime, query_to_run, subject)
+        await sync_to_async(save_to_conversation_log)(
+            q,
+            llm_response,
+            user,
+            meta_log,
+            user_message_time,
+            intent_type="automation",
+            client_application=request.user.client_app,
+            conversation_id=conversation_id,
+            inferred_queries=[query_to_run],
+            automation_id=automation.id,
+        )
+
+        if stream:
+            return StreamingResponse(llm_response, media_type="text/event-stream", status_code=200)
+        else:
+            return Response(content=llm_response, media_type="text/plain", status_code=200)
+
     compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
-        request, common, meta_log, q, (n or 5), (d or math.inf), conversation_commands, location
+        request, meta_log, q, (n or 5), (d or math.inf), conversation_commands, location
     )
     online_results: Dict[str, Dict] = {}
 
@@ -757,6 +843,7 @@ async def chat(
             image,
             user,
             meta_log,
+            user_message_time,
             intent_type=intent_type,
             inferred_queries=[improved_image_prompt],
             client_application=request.user.client_app,

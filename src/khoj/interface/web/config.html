@@ -22,7 +22,7 @@
                 </div>
             </div>
         </div>
-        <h2 class="section-title">Content</h2>
+        <h2 class="section-title" style="margin-top: 48px; padding-bottom: 8px;">Content</h2>
         <button id="compute-index-size" class="card-button" onclick="getIndexedDataSize()">
             Data Usage
         </button>
@@ -32,7 +32,7 @@
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/computer.png" alt="Computer">
                     <h3 id="card-title-computer" class="card-title">
-                        Files
+                        <span>Files</span>
                         <img id="configured-icon-computer"
                             style="display: {% if not current_model_state.computer %}none{% endif %}"
                             class="configured-icon"
@@ -64,7 +64,7 @@
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/github.svg" alt="Github">
                     <h3 class="card-title">
-                        Github
+                        <span>Github</span>
                         <img id="configured-icon-github"
                             class="configured-icon"
                             src="/static/assets/icons/confirm-icon.svg"
@@ -97,7 +97,7 @@
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/notion.svg" alt="Notion">
                     <h3 class="card-title">
-                        Notion
+                        <span>Notion</span>
                         <img id="configured-icon-notion"
                             class="configured-icon"
                             src="/static/assets/icons/confirm-icon.svg"
@@ -139,7 +139,7 @@
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/web.svg" alt="Language">
                     <h3 class="card-title">
-                        Language
+                        <span>Language</span>
                     </h3>
                 </div>
                 <div class="card-description-row">
@@ -162,10 +162,12 @@
         <div class="section finalize-actions general-settings">
             <div class="section-cards">
                 <div class="finalize-buttons">
-                    <button id="configure" type="submit" title="Update index with the latest changes">💾 Save All</button>
-                </div>
-                <div class="finalize-buttons">
-                    <button id="reinitialize" type="submit" title="Regenerate index from scratch">🔄 Reinitialize</button>
+                    <button id="sync" type="submit" title="Regenerate index from scratch for Notion, GitHub configuration" style="display: flex; justify-content: center;">
+                        <img class="card-icon" src="/static/assets/icons/sync.svg" alt="Sync">
+                        <h3 class="card-title">
+                            Sync
+                        </h3>
+                    </button>
                 </div>
             </div>
         </div>
@@ -178,7 +180,7 @@
                 <div class="card-title-row">
                     <img class="card-icon" src="/static/assets/icons/chat.svg" alt="Chat">
                     <h3 class="card-title">
-                        Chat
+                        <span>Chat</span>
                     </h3>
                 </div>
                 <div class="card-description-row">
@@ -189,9 +191,15 @@
                     </select>
                 </div>
                 <div class="card-action-row">
+                    {% if (not billing_enabled) or (subscription_state != 'unsubscribed' and subscription_state != 'expired') %}
                     <button id="save-model" class="card-button happy" onclick="updateChatModel()">
                         Save
                     </button>
+                    {% else %}
+                    <button id="save-model" class="card-button" disabled>
+                        Subscribe to use different models
+                    </button>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -203,7 +211,9 @@
         <div id="clients-api" class="api-settings">
             <div class="card-title-row">
                 <img class="card-icon" src="/static/assets/icons/key.svg" alt="API Key">
-                <h3 class="card-title">API Keys</h3>
+                <h3 class="card-title">
+                    <span>API Keys</span>
+                </h3>
             </div>
             <div class="card-description-row">
                 <p id="api-settings-card-description" class="card-description">Manage access from your client apps to Khoj</p>
@@ -229,7 +239,9 @@
         <div id="phone-number-input-card" class="api-settings">
             <div class="card-title-row">
                 <img class="card-icon" src="/static/assets/icons/whatsapp.svg" alt="WhatsApp icon">
-                <h3 class="card-title">WhatsApp</h3>
+                <h3 class="card-title">
+                    <span>WhatsApp</span>
+                </h3>
             </div>
             <div class="card-description-row">
                 <p id="api-settings-card-description-verified" class="card-description" style="{{ 'display: none;' if not phone_number else '' }}">Your number is connected. You can now chat with Khoj on WhatsApp at <a href="https://wa.me/18488004242">+1-848-800-4242</a>. Learn more about the integration <a href="https://docs.khoj.dev/clients/whatsapp">here</a>.</p>
@@ -324,7 +336,6 @@
     </div>
     {% endif %}
     <div class="section"></div>
-    </div>
     <div class="section" id="notification-banner-parent">
         <div id="notification-banner" style="display: none;"></div>
     </div>
@@ -478,28 +489,16 @@
         })
     }
 
-    var configure = document.getElementById("configure");
-    configure.addEventListener("click", function(event) {
-        event.preventDefault();
-        updateIndex(
-            force=false,
-            successText="Saved!",
-            errorText="Unable to configure. Raise issue on Khoj <a href='https://github.com/khoj-ai/khoj/issues'>Github</a> or <a href='https://discord.gg/BDgyabRM6e'>Discord</a>.",
-            button=configure,
-            loadingText="Saving...",
-            emoji="💾");
-    });
-
-    var reinitialize = document.getElementById("reinitialize");
-    reinitialize.addEventListener("click", function(event) {
+    var sync = document.getElementById("sync");
+    sync.addEventListener("click", function(event) {
         event.preventDefault();
         updateIndex(
             force=true,
-            successText="Reinitialized!",
-            errorText="Unable to reinitialize. Raise issue on Khoj <a href='https://github.com/khoj-ai/khoj/issues'>Github</a> or <a href='https://discord.gg/BDgyabRM6e'>Discord</a>.",
-            button=reinitialize,
-            loadingText="Reinitializing...",
-            emoji="🔄");
+            successText="Synced!",
+            errorText="Unable to sync. Raise issue on Khoj <a href='https://github.com/khoj-ai/khoj/issues'>Github</a> or <a href='https://discord.gg/BDgyabRM6e'>Discord</a>.",
+            button=sync,
+            loadingText="Syncing...",
+            emoji="");
     });
 
     function updateIndex(force, successText, errorText, button, loadingText, emoji) {
@@ -577,13 +576,18 @@
     function copyAPIKey(token) {
         // Copy API key to clipboard
         navigator.clipboard.writeText(token);
-        // Flash the API key copied message
-        const copyApiKeyButton = document.getElementById(`api-key-${token}`);
-        original_html = copyApiKeyButton.innerHTML
+        // Flash the API key copied icon
+        const apiKeyColumn = document.getElementById(`api-key-${token}`);
+        const original_html = apiKeyColumn.innerHTML;
+        const copyApiKeyButton = document.getElementById(`api-key-copy-${token}`);
         setTimeout(function() {
-            copyApiKeyButton.innerHTML = "✅ Copied!";
+            copyApiKeyButton.src = "/static/assets/icons/copy-button-success.svg";
+            setTimeout(() => {
+                copyApiKeyButton.src = "/static/assets/icons/copy-button.svg";
+            }, 1000);
+            apiKeyColumn.innerHTML = "✅ Copied!";
             setTimeout(function() {
-                copyApiKeyButton.innerHTML = original_html;
+                apiKeyColumn.innerHTML = original_html;
             }, 1000);
         }, 100);
     }
@@ -611,12 +615,11 @@
                 <td><b>${tokenName}</b></td>
                 <td id="api-key-${token}">${truncatedToken}</td>
                 <td>
-                    <img onclick="copyAPIKey('${token}')" class="configured-icon api-key-action enabled" src="/static/assets/icons/copy-solid.svg" alt="Copy API Key" title="Copy API Key">
-                    <img onclick="deleteAPIKey('${token}')" class="configured-icon api-key-action enabled" src="/static/assets/icons/trash-solid.svg" alt="Delete API Key" title="Delete API Key">
+                    <img id="api-key-copy-${token}" onclick="copyAPIKey('${token}')" class="configured-icon api-key-action enabled" src="/static/assets/icons/copy-button.svg" alt="Copy API Key" title="Copy API Key">
+                    <img id="api-key-delete-${token}" onclick="deleteAPIKey('${token}')" class="configured-icon api-key-action enabled" src="/static/assets/icons/delete.svg" alt="Delete API Key" title="Delete API Key">
                 </td>
             </tr>
         `;
-
     }
 
     function listApiKeys() {
@@ -624,8 +627,91 @@
         fetch('/auth/token')
             .then(response => response.json())
             .then(tokens => {
-                apiKeyList.innerHTML = tokens.map(generateTokenRow).join("");
+                if (!tokens?.length > 0) return;
+                apiKeyList.innerHTML = tokens?.map(generateTokenRow).join("");
             });
+    }
+
+    // List user's API keys on page load
+    listApiKeys();
+
+    function deleteAutomation(automationId) {
+        const AutomationList = document.getElementById("automations-list");
+        fetch(`/api/automation?automation_id=${automationId}`, {
+            method: 'DELETE',
+        })
+        .then(response => {
+            if (response.status == 200) {
+                const AutomationItem = document.getElementById(`automation-item-${automationId}`);
+                AutomationList.removeChild(AutomationItem);
+            }
+        });
+    }
+
+    function generateAutomationRow(automationObj) {
+        let automationId = automationObj.id;
+        let automationNextRun = `Next run at ${automationObj.next}`;
+        return `
+            <tr id="automation-item-${automationId}">
+                <td><b>${automationObj.subject}</b></td>
+                <td><b>${automationObj.scheduling_request}</b></td>
+                <td id="automation-query-to-run-${automationId}"><b>${automationObj.query_to_run}</b></td>
+                <td id="automation-${automationId}" title="${automationNextRun}">${automationObj.schedule}</td>
+                <td>
+                    <img onclick="deleteAutomation('${automationId}')" class="automation-row-icon api-key-action enabled" src="/static/assets/icons/delete.svg" alt="Delete Automation" title="Delete Automation">
+                    <img onclick="editAutomation('${automationId}')" class="automation-row-icon api-key-action enabled" src="/static/assets/icons/edit.svg" alt="Edit Automation" title="Edit Automation">
+                </td>
+            </tr>
+        `;
+    }
+
+    function listAutomations() {
+        const AutomationsList = document.getElementById("automations-list");
+        fetch('/api/automations')
+            .then(response => response.json())
+            .then(automations => {
+                if (!automations?.length > 0) return;
+                AutomationsList.innerHTML = automations.map(generateAutomationRow).join("");
+            });
+    }
+
+    async function createAutomation() {
+        const scheduling_request = window.prompt("Describe the automation you want to create");
+        if (!scheduling_request) return;
+
+        const ip_response = await fetch("https://ipapi.co/json");
+        const ip_data = await ip_response.json();
+
+        const query_string = `q=${scheduling_request}&city=${ip_data.city}&region=${ip_data.region}&country=${ip_data.country_name}&timezone=${ip_data.timezone}`;
+        const automation_response = await fetch(`/api/automation?${query_string}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+        if (!automation_response.ok) {
+            throw new Error(`Failed to create automation: ${automation_response.status}`);
+        }
+
+        listAutomations();
+    }
+    document.getElementById("create-automation").addEventListener("click", async () => { await createAutomation(); });
+
+    function editAutomation(automationId) {
+        const query_to_run = window.prompt("What is the query you want to run on this automation's schedule?");
+        if (!query_to_run) return;
+
+        fetch(`/api/automation?automation_id=${automationId}&query_to_run=${query_to_run}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        }).then(response => {
+            if (response.ok) {
+                const automationQueryToRunColumn = document.getElementById(`automation-query-to-run-${automationId}`);
+                automationQueryToRunColumn.innerHTML = `<b>${query_to_run}</b>`;
+            }
+        });
     }
 
     function getIndexedDataSize() {
@@ -637,8 +723,8 @@
             });
     }
 
-    // List user's API keys on page load
-    listApiKeys();
+    // List user's automations on page load
+    listAutomations();
 
     function removeFile(path) {
         fetch('/api/config/data/file?filename=' + path, {
