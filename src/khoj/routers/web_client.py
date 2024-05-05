@@ -368,7 +368,7 @@ def computer_config_page(request: Request):
     )
 
 
-@web_client.get("/share/{public_conversation_slug}", response_class=HTMLResponse)
+@web_client.get("/share/chat/{public_conversation_slug}", response_class=HTMLResponse)
 def view_public_conversation(request: Request):
     public_conversation_slug = request.path_params.get("public_conversation_slug")
     public_conversation = PublicConversationAdapters.get_public_conversation_by_slug(public_conversation_slug)

@@ -569,7 +569,7 @@ class PublicConversationAdapters:
     @staticmethod
     def get_public_conversation_url(public_conversation: PublicConversation):
         # Public conversations are viewable by anyone, but not editable.
-        return f"/share/{public_conversation.slug}/"
+        return f"/share/chat/{public_conversation.slug}/"
 
 
 class ConversationAdapters:

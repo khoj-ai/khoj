@@ -138,7 +138,7 @@ def chat_history(
 
 
 @api_chat.get("/share/history")
-def chat_public_history(
+def get_shared_chat(
     request: Request,
     common: CommonQueryParams,
     public_conversation_slug: str,
@@ -184,7 +184,7 @@ def chat_public_history(
     update_telemetry_state(
         request=request,
         telemetry_type="api",
-        api="chat_history",
+        api="public_conversation_history",
         **common.__dict__,
     )
 
@@ -264,7 +264,7 @@ def duplicate_chat_history_public_conversation(
     update_telemetry_state(
         request=request,
         telemetry_type="api",
-        api="duplicate_chat_history_public_conversation",
+        api="post_chat_share",
         **common.__dict__,
     )
 
