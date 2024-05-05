@@ -1,18 +1,44 @@
+<!DOCTYPE html>
 <html>
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
-        <title>Khoj - Chat</title>
+        <title>Khoj: {{ public_conversation_slug | replace("-", " ")}}</title>
 
-        <link rel="stylesheet" href="./assets/khoj.css">
-        <link rel="icon" type="image/png" sizes="128x128" href="./assets/icons/favicon-128x128.png">
-        <link rel="manifest" href="/static/khoj.webmanifest">
+        <link rel="stylesheet" href="/static/assets/khoj.css?v={{ khoj_version }}">
+        <link rel="icon" type="image/png" sizes="128x128" href="/static/assets/icons/favicon-128x128.png?v={{ khoj_version }}">
+        <link rel="apple-touch-icon" href="/static/assets/icons/favicon-128x128.png?v={{ khoj_version }}">
+        <link rel="manifest" href="/static/khoj.webmanifest?v={{ khoj_version }}">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css" integrity="sha384-wcIxkf4k558AjM3Yz3BBFQUbk/zgIYC2R0QpeeYb+TwlBVMrlgLqwRjRtGZiK7ww" crossorigin="anonymous">
+
+        <!-- The loading of KaTeX is deferred to speed up page rendering -->
+        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js" integrity="sha384-hIoBPJpTUs74ddyc4bFZSM1TVlQDA60VBbJS0oA934VSz82sBx1X7kSx2ATBDIyd" crossorigin="anonymous"></script>
+
+        <!-- To automatically render math in text elements, include the auto-render extension: -->
+        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous"
+            onload="renderMathInElement(document.body);"></script>
     </head>
-    <script type="text/javascript" src="./assets/markdown-it.min.js"></script>
-    <script src="./utils.js"></script>
-
+    <script type="text/javascript" src="/static/assets/utils.js?v={{ khoj_version }}"></script>
+    <script type="text/javascript" src="/static/assets/markdown-it.min.js?v={{ khoj_version }}"></script>
     <script>
-        let chatOptions = [];
+        let welcome_message = `
+Hi, I am Khoj, your open, personal AI 👋🏽. I can:
+- 🧠 Answer general knowledge questions
+- 💡 Be a sounding board for your ideas
+- 📜 Chat with your notes & documents
+- 🌄 Generate images based on your messages
+- 🔎 Search the web for answers to your questions
+- 🎙️ Listen to your audio messages (use the mic by the input box to speak your message)
+- 📚 Understand files you drag & drop here
+- 👩🏾‍🚀 Be tuned to your conversation needs via [agents](./agents)
+
+Get the Khoj [Desktop](https://khoj.dev/downloads), [Obsidian](https://docs.khoj.dev/clients/obsidian#setup), [Emacs](https://docs.khoj.dev/clients/emacs#setup) apps to search, chat with your 🖥️ computer docs. You can manage all the files you've shared with me at any time by going to [your settings](/config/content-source/computer/).
+
+To get started, just start typing below. You can also type / to see a list of commands.
+`.trim()
+        let isLoggedIn = "{{ username }}" !== "None"
+        let publicConversationSlug = "{{ public_conversation_slug }}";
+
         function createCopyParentText(message) {
             return function(event) {
                 copyParentText(event, message);
@@ -22,38 +48,20 @@
             const button = event.currentTarget;
             const textContent = message ?? button.parentNode.textContent.trim();
             navigator.clipboard.writeText(textContent).then(() => {
-                button.firstChild.src = "./assets/icons/copy-button-success.svg";
+                button.firstChild.src = "/static/assets/icons/copy-button-success.svg";
                 setTimeout(() => {
-                    button.firstChild.src = "./assets/icons/copy-button.svg";
+                    button.firstChild.src = "/static/assets/icons/copy-button.svg";
                 }, 1000);
             }).catch((error) => {
-                console.error("Error copying text to clipboard:", error);
+                console.error("Error copying programmatic output to clipboard:", error);
                 const originalButtonText = button.innerHTML;
                 button.innerHTML = "⛔️";
                 setTimeout(() => {
                     button.innerHTML = originalButtonText;
-                    button.firstChild.src = "./assets/icons/copy-button.svg";
-                }, 2000);
+                    button.firstChild.src = "/static/assets/icons/copy-button.svg";
+                }, 1000);
             });
         }
-
-        let region = null;
-        let city = null;
-        let countryName = null;
-        let timezone = null;
-
-        fetch("https://ipapi.co/json")
-            .then(response => response.json())
-            .then(data => {
-                region = data.region;
-                city = data.city;
-                countryName = data.country_name;
-                timezone = data.timezone;
-            })
-            .catch(err => {
-                console.log(err);
-                return;
-            });
 
         function formatDate(date) {
             // Format date in HH:MM, DD MMM YYYY format
@@ -67,7 +75,7 @@
             let escaped_ref = reference.replaceAll('"', '&quot;');
 
             // Generate HTML for Chat Reference
-            let short_ref = escaped_ref.slice(0, 100);
+            let short_ref = escaped_ref.slice(0, 140);
             short_ref = short_ref.length < escaped_ref.length ? short_ref + "..." : short_ref;
             let referenceButton = document.createElement('button');
             referenceButton.textContent = short_ref;
@@ -109,7 +117,6 @@
             linkElement.setAttribute('href', link);
             linkElement.setAttribute('target', '_blank');
             linkElement.setAttribute('rel', 'noopener noreferrer');
-            linkElement.classList.add("inline-chat-link");
             linkElement.classList.add("reference-link");
             linkElement.setAttribute('title', title);
             linkElement.textContent = title;
@@ -139,13 +146,11 @@
 
         function renderMessage(message, by, dt=null, annotations=null, raw=false, renderType="append") {
             let message_time = formatDate(dt ?? new Date());
-            let by_name =  by == "khoj" ? "🏮 Khoj" : "🤔 You";
             let formattedMessage = formatHTMLMessage(message, raw);
 
             // Create a new div for the chat message
             let chatMessage = document.createElement('div');
             chatMessage.className = `chat-message ${by}`;
-            chatMessage.dataset.meta = `${by_name} at ${message_time}`;
 
             // Create a new div for the chat message text and append it to the chat message
             let chatMessageText = document.createElement('div');
@@ -164,7 +169,8 @@
                 chatBody.appendChild(chatMessage);
                 // Scroll to bottom of chat-body element
                 chatBody.scrollTop = chatBody.scrollHeight;
-            } else if (renderType === "prepend") {
+            } else if (renderType === "prepend"){
+                let chatBody = document.getElementById("chat-body");
                 chatBody.insertBefore(chatMessage, chatBody.firstChild);
             } else if (renderType === "return") {
                 return chatMessage;
@@ -230,7 +236,6 @@
                     } else if (intentType === "text-to-image-v3") {
                         imageMarkdown = `![](data:image/webp;base64,${message})`;
                     }
-
                     const inferredQuery = inferredQueries?.[0];
                     if (inferredQuery) {
                         imageMarkdown += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
@@ -238,10 +243,6 @@
                     return renderMessage(imageMarkdown, by, dt, null, false, "return");
                 }
 
-                return renderMessage(message, by, dt, null, false, "return");
-            }
-
-            if (context == null && onlineContext == null) {
                 return renderMessage(message, by, dt, null, false, "return");
             }
 
@@ -317,6 +318,10 @@
             var md = window.markdownit();
             let newHTML = message;
 
+            // Replace LaTeX delimiters with placeholders
+            newHTML = newHTML.replace(/\\\(/g, 'LEFTPAREN').replace(/\\\)/g, 'RIGHTPAREN')
+                                .replace(/\\\[/g, 'LEFTBRACKET').replace(/\\\]/g, 'RIGHTBRACKET');
+
             // Remove any text between <s>[INST] and </s> tags. These are spurious instructions for the AI chat model.
             newHTML = newHTML.replace(/<s>\[INST\].+(<\/s>)?/g, '');
 
@@ -333,28 +338,46 @@
 
             // Render markdown
             newHTML = raw ? newHTML : md.render(newHTML);
+
+            // Replace placeholders with LaTeX delimiters
+            newHTML = newHTML.replace(/LEFTPAREN/g, '\\(').replace(/RIGHTPAREN/g, '\\)')
+                            .replace(/LEFTBRACKET/g, '\\[').replace(/RIGHTBRACKET/g, '\\]');
+
             // Set rendered markdown to HTML DOM element
             let element = document.createElement('div');
             element.innerHTML = newHTML;
             element.className = "chat-message-text-response";
 
-            // Add a copy button to each chat message
+            // Add a copy button to each chat message, if it doesn't already exist
             if (willReplace === true) {
                 let copyButton = document.createElement('button');
                 copyButton.classList.add("copy-button");
                 copyButton.title = "Copy Message";
                 let copyIcon = document.createElement("img");
-                copyIcon.src = "./assets/icons/copy-button.svg";
+                copyIcon.src = "/static/assets/icons/copy-button.svg";
                 copyIcon.classList.add("copy-icon");
                 copyButton.appendChild(copyIcon);
                 copyButton.addEventListener('click', createCopyParentText(message));
                 element.append(copyButton);
             }
 
+            renderMathInElement(element, {
+                // customised options
+                // • auto-render specific keys, e.g.:
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true}
+                ],
+                // • rendering keys, e.g.:
+                throwOnError : false
+            });
+
             // Get any elements with a class that starts with "language"
             let codeBlockElements = element.querySelectorAll('[class^="language-"]');
             // For each element, add a parent div with the class "programmatic-output"
-            codeBlockElements.forEach((codeElement, key) => {
+            codeBlockElements.forEach((codeElement) => {
                 // Create the parent div
                 let parentDiv = document.createElement('div');
                 parentDiv.classList.add("programmatic-output");
@@ -362,13 +385,13 @@
                 codeElement.parentNode.insertBefore(parentDiv, codeElement);
                 // Move the code element into the parent div
                 parentDiv.appendChild(codeElement);
-                // Add a copy button to each element
+                // Add a copy button to each code block, if it doesn't already exist
                 if (willReplace === true) {
                     let copyButton = document.createElement('button');
                     copyButton.classList.add("copy-button");
                     copyButton.title = "Copy Code";
                     let copyIcon = document.createElement("img");
-                    copyIcon.src = "./assets/icons/copy-button.svg";
+                    copyIcon.src = "/static/assets/icons/copy-button.svg";
                     copyIcon.classList.add("copy-icon");
                     copyButton.appendChild(copyIcon);
                     copyButton.addEventListener('click', copyParentText);
@@ -407,7 +430,7 @@
                     referenceSection.appendChild(polishedReference);
                 });
             }
-            if (references.hasOwnProperty("online")){
+            if (references.hasOwnProperty("online")) {
                 numReferences += processOnlineReferences(referenceSection, references["online"]);
             }
 
@@ -433,49 +456,7 @@
             return referencesDiv;
         }
 
-        async function chat() {
-            // Extract required fields for search from form
-            let query = document.getElementById("chat-input").value.trim();
-            let resultsCount = localStorage.getItem("khojResultsCount") || 5;
-            console.log(`Query: ${query}`);
-
-            // Short circuit on empty query
-            if (query.length === 0)
-                return;
-
-            // Add message by user to chat body
-            renderMessage(query, "you");
-            document.getElementById("chat-input").value = "";
-            autoResize();
-            document.getElementById("chat-input").setAttribute("disabled", "disabled");
-
-            let chat_body = document.getElementById("chat-body");
-
-            let conversationID = chat_body.dataset.conversationId;
-            let hostURL = await window.hostURLAPI.getURL();
-            const khojToken = await window.tokenAPI.getToken();
-            const headers = { 'Authorization': `Bearer ${khojToken}` };
-
-            if (!conversationID) {
-                let response = await fetch(`${hostURL}/api/chat/sessions`, { method: "POST", headers });
-                let data = await response.json();
-                conversationID = data.conversation_id;
-                chat_body.dataset.conversationId = conversationID;
-                await refreshChatSessionsPanel();
-            }
-
-            // Generate backend API URL to execute query
-            let chatApi = `${hostURL}/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}&region=${region}&city=${city}&country=${countryName}&timezone=${timezone}`;
-
-            let newResponseEl = document.createElement("div");
-            newResponseEl.classList.add("chat-message", "khoj");
-            newResponseEl.attributes["data-meta"] = "🏮 Khoj at " + formatDate(new Date());
-            chat_body.appendChild(newResponseEl);
-
-            let newResponseTextEl = document.createElement("div");
-            newResponseTextEl.classList.add("chat-message-text", "khoj");
-            newResponseEl.appendChild(newResponseTextEl);
-
+        function createLoadingEllipse() {
             // Temporary status message to indicate that Khoj is thinking
             let loadingEllipsis = document.createElement("div");
             loadingEllipsis.classList.add("lds-ellipsis");
@@ -497,165 +478,24 @@
             loadingEllipsis.appendChild(thirdEllipsis);
             loadingEllipsis.appendChild(fourthEllipsis);
 
-            newResponseTextEl.appendChild(loadingEllipsis);
+            return loadingEllipsis;
+        }
+
+        function addMessageToChatBody(rawResponse, newResponseElement, references) {
+            newResponseElement.innerHTML = "";
+            newResponseElement.appendChild(formatHTMLMessage(rawResponse));
+
+            finalizeChatBodyResponse(references, newResponseElement);
+        }
+
+        function finalizeChatBodyResponse(references, newResponseElement) {
+            if (references != null && Object.keys(references).length > 0) {
+                newResponseElement.appendChild(createReferenceSection(references));
+            }
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
-
-            let chatTooltip = document.getElementById("chat-tooltip");
-            chatTooltip.style.display = "none";
-
-            let chatInput = document.getElementById("chat-input");
-            chatInput.classList.remove("option-enabled");
-
-            // Call Khoj chat API
-            let response = await fetch(chatApi, { headers });
-            let rawResponse = "";
-            let references = null;
-            const contentType = response.headers.get("content-type");
-
-            if (contentType === "application/json") {
-                // Handle JSON response
-                try {
-                    const responseAsJson = await response.json();
-                    if (responseAsJson.image) {
-                        // If response has image field, response is a generated image.
-                        if (responseAsJson.intentType === "text-to-image") {
-                            rawResponse += `![${query}](data:image/png;base64,${responseAsJson.image})`;
-                        } else if (responseAsJson.intentType === "text-to-image2") {
-                            rawResponse += `![${query}](${responseAsJson.image})`;
-                        } else if (responseAsJson.intentType === "text-to-image-v3") {
-                            rawResponse += `![${query}](data:image/webp;base64,${responseAsJson.image})`;
-                        }
-                        const inferredQueries = responseAsJson.inferredQueries?.[0];
-                        if (inferredQueries) {
-                            rawResponse += `\n\n**Inferred Query**:\n\n${inferredQueries}`;
-                        }
-                    }
-                    if (responseAsJson.context) {
-                        const rawReferenceAsJson = responseAsJson.context;
-                        references = createReferenceSection(rawReferenceAsJson);
-                    }
-                    if (responseAsJson.detail) {
-                        // If response has detail field, response is an error message.
-                        rawResponse += responseAsJson.detail;
-                    }
-                } catch (error) {
-                    // If the chunk is not a JSON object, just display it as is
-                    rawResponse += chunk;
-                } finally {
-                    newResponseTextEl.innerHTML = "";
-                    newResponseTextEl.appendChild(formatHTMLMessage(rawResponse));
-
-                    if (references != null) {
-                        newResponseTextEl.appendChild(references);
-                    }
-
-                    document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
-                    document.getElementById("chat-input").removeAttribute("disabled");
-                }
-            } else {
-                // Handle streamed response of type text/event-stream or text/plain
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let references = {};
-
-                readStream();
-
-                function readStream() {
-                    reader.read().then(({ done, value }) => {
-                        if (done) {
-                            // Append any references after all the data has been streamed
-                            if (references != {}) {
-                                newResponseTextEl.appendChild(createReferenceSection(references));
-                            }
-                            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
-                            document.getElementById("chat-input").removeAttribute("disabled");
-                            return;
-                        }
-
-                        // Decode message chunk from stream
-                        const chunk = decoder.decode(value, { stream: true });
-
-                        if (chunk.includes("### compiled references:")) {
-                            const additionalResponse = chunk.split("### compiled references:")[0];
-                            rawResponse += additionalResponse;
-                            newResponseTextEl.innerHTML = "";
-                            newResponseTextEl.appendChild(formatHTMLMessage(rawResponse));
-
-                            const rawReference = chunk.split("### compiled references:")[1];
-                            const rawReferenceAsJson = JSON.parse(rawReference);
-                            if (rawReferenceAsJson instanceof Array) {
-                                references["notes"] = rawReferenceAsJson;
-                            } else if (typeof rawReferenceAsJson === "object" && rawReferenceAsJson !== null) {
-                                references["online"] = rawReferenceAsJson;
-                            }
-                            readStream();
-                        } else {
-                            // Display response from Khoj
-                            if (newResponseTextEl.getElementsByClassName("lds-ellipsis").length > 0) {
-                                newResponseTextEl.removeChild(loadingEllipsis);
-                            }
-
-                            // If the chunk is not a JSON object, just display it as is
-                            rawResponse += chunk;
-                            newResponseTextEl.innerHTML = "";
-                            newResponseTextEl.appendChild(formatHTMLMessage(rawResponse));
-
-                            readStream();
-                        }
-
-                        // Scroll to bottom of chat window as chat response is streamed
-                        document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
-                    });
-                }
-            }
-        }
-
-        function incrementalChat(event) {
-            if (!event.shiftKey && event.key === 'Enter') {
-                event.preventDefault();
-                chat();
-            }
-        }
-
-        function onChatInput() {
-            let chatInput = document.getElementById("chat-input");
-            chatInput.value = chatInput.value.trimStart();
-
-            let questionStarterSuggestions = document.getElementById("question-starters");
-            questionStarterSuggestions.innerHTML = "";
-            questionStarterSuggestions.style.display = "none";
-
-            if (chatInput.value.startsWith("/") && chatInput.value.split(" ").length === 1) {
-                let chatTooltip = document.getElementById("chat-tooltip");
-                chatTooltip.style.display = "block";
-                let helpText = "<div>";
-                const command = chatInput.value.split(" ")[0].substring(1);
-                for (let key in chatOptions) {
-                    if (!!!command || key.startsWith(command)) {
-                        helpText += "<b>/" + key + "</b>: " + chatOptions[key] + "<br>";
-                    }
-                }
-                chatTooltip.innerHTML = helpText;
-            } else if (chatInput.value.startsWith("/")) {
-                const firstWord = chatInput.value.split(" ")[0];
-                if (firstWord.substring(1) in chatOptions) {
-                    chatInput.classList.add("option-enabled");
-                } else {
-                    chatInput.classList.remove("option-enabled");
-                }
-                let chatTooltip = document.getElementById("chat-tooltip");
-                chatTooltip.style.display = "none";
-            } else {
-                let chatTooltip = document.getElementById("chat-tooltip");
-                chatTooltip.style.display = "none";
-                chatInput.classList.remove("option-enabled");
-            }
-
-            autoResize();
         }
 
         function autoResize() {
-            const textarea = document.getElementById('chat-input');
             const scrollTop = textarea.scrollTop;
             textarea.style.height = '0';
             const scrollHeight = textarea.scrollHeight + 8;  // +8 accounts for padding
@@ -664,74 +504,92 @@
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
         }
 
-        window.addEventListener("DOMContentLoaded", async() => {
-            // Setup the header pane
-            document.getElementById("khoj-header").innerHTML = await populateHeaderPane();
-            // Setup the nav menu
-            document.getElementById("profile-picture").addEventListener("click", toggleNavMenu);
-            // Set the active nav pane
-            document.getElementById("chat-nav")?.classList.add("khoj-nav-selected");
-        })
+        window.onload = loadChat;
 
-        window.addEventListener('load', async() => {
-            await loadChat();
-        });
 
-        async function getChatHistoryUrl() {
-            const hostURL = await window.hostURLAPI.getURL();
-            const khojToken = await window.tokenAPI.getToken();
-            const headers = { 'Authorization': `Bearer ${khojToken}` };
-
+        function loadChat() {
             let chatBody = document.getElementById("chat-body");
             chatBody.innerHTML = "";
-            let chatHistoryUrl = `${hostURL}/api/chat/history?client=desktop`;
-            if (chatBody.dataset.conversationId) {
-                chatHistoryUrl += `&conversation_id=${chatBody.dataset.conversationId}`;
-            }
-            return { chatHistoryUrl, headers };
-        }
+            chatBody.classList.add("relative-position");
+            let chatHistoryUrl = `/api/chat/share/history?client=web`;
+            chatHistoryUrl += `&public_conversation_slug=${publicConversationSlug}`;
 
-        async function loadChat() {
-            // Load chat history and body
-            const hostURL = await window.hostURLAPI.getURL();
-            const { chatHistoryUrl, headers } = await getChatHistoryUrl();
+            if (window.screen.width < 700) {
+                handleCollapseSidePanel();
+            }
 
             // Create loading screen and add it to chat-body
             let loadingScreen = document.createElement('div');
             loadingScreen.classList.add("loading-spinner");
             let yellowOrb = document.createElement('div');
             loadingScreen.appendChild(yellowOrb);
-            let chatBody = document.getElementById("chat-body");
             chatBody.appendChild(loadingScreen);
 
             // Get the most recent 10 chat messages from conversation history
-            let firstRunSetupMessageRendered = false;
-            fetch(`${chatHistoryUrl}&n=10`, { headers })
+            fetch(`${chatHistoryUrl}&n=10`, { method: "GET" })
                 .then(response => response.json())
                 .then(data => {
                     if (data.detail) {
                         // If the server returns a 500 error with detail, render a setup hint.
-                        renderFirstRunSetupMessage();
-                        firstRunSetupMessageRendered = true;
+                        let setupMsg = "Hi 👋🏾, to start chatting add available chat models options via <a class='inline-chat-link' href='/server/admin'>the Django Admin panel</a> on the Server";
+                        renderMessage(setupMsg, "khoj", null, null, true);
                     } else if (data.status != "ok") {
                         throw new Error(data.message);
                     } else {
                         // Set welcome message on load
-                        renderMessage("Hey 👋🏾, what's up?", "khoj");
+                        renderMessage(welcome_message, "khoj");
                     }
                     return data.response;
                 })
                 .then(response => {
+                    // Render conversation history, if any
                     let chatBody = document.getElementById("chat-body");
                     chatBody.dataset.conversationId = response.conversation_id;
                     chatBody.dataset.conversationTitle = response.slug || `New conversation 🌱`;
+
+                    let agentMetadata = response.agent;
+                    if (agentMetadata) {
+                        chatBody.innerHTML = "";
+                        let agentName = agentMetadata.name;
+                        let agentAvatar = agentMetadata.avatar;
+
+                        let agentAvatarElement = document.getElementById("agent-avatar");
+                        let agentNameElement = document.getElementById("agent-name");
+
+                        let agentLinkElement = document.getElementById("agent-link");
+
+                        agentAvatarElement.src = agentAvatar;
+                        agentNameElement.textContent = agentName;
+                        agentLinkElement.setAttribute("href", `/agent/${agentMetadata.slug}`);
+                        renderMessage(`Hello! I'm [${agentName}](/agent/${agentMetadata.slug}). I can:
+- 🧠 Answer general knowledge questions
+- 🔎 Get real-time answers from the internet
+- 📜 Find relevant info in your notes & documents
+- 💡 Be a sounding board for your ideas
+- 🌄 Generate images based on your context
+- 🎙️ Hear you talk (use the mic by the input box to say your message out loud)
+- 📚 Understand files you drag & drop here
+- 👩🏾‍🚀 Be tuned to your conversation needs via [agents](./agents)
+
+Learn more [here](https://khoj.dev).
+
+**What's on your mind today?**
+                        `, "khoj")
+
+
+                        let agentMetadataElement = document.getElementById("agent-metadata");
+                        agentMetadataElement.style.display = "block";
+                    } else {
+                        let agentMetadataElement = document.getElementById("agent-metadata");
+                        agentMetadataElement.style.display = "none";
+                    }
 
                     // Create a new IntersectionObserver
                     let fetchRemainingMessagesObserver = new IntersectionObserver((entries, observer) => {
                         entries.forEach(entry => {
                             // If the element is in the viewport, fetch the remaining message and unobserve the element
                             if (entry.isIntersecting) {
-                                fetchRemainingChatMessages(chatHistoryUrl, headers);
+                                fetchRemainingChatMessages(chatHistoryUrl);
                                 observer.unobserve(entry.target);
                             }
                         });
@@ -739,6 +597,7 @@
 
                     const fullChatLog = response.chat || [];
                     fullChatLog.forEach((chat_log, index) => {
+                        // Render the last 10 messages immediately
                         if (chat_log.message != null) {
                             let messageElement = renderMessageWithReference(
                                 chat_log.message,
@@ -750,14 +609,14 @@
                                 chat_log.intent?.["inferred-queries"]);
                             chatBody.appendChild(messageElement);
 
-                            // When the 4th oldest message is within viewing distance (~60% scrolled up)
+                            // When the 4th oldest message is within viewing distance (~60% scroll up)
                             // Fetch the remaining chat messages
                             if (index === 4) {
                                 fetchRemainingMessagesObserver.observe(messageElement);
                             }
                         }
                         loadingScreen.style.height = chatBody.scrollHeight + 'px';
-                    })
+                    });
 
                     // Scroll to bottom of chat-body element
                     chatBody.scrollTop = chatBody.scrollHeight;
@@ -768,65 +627,43 @@
                     chatBody.style.height = chatBodyWrapperHeight;
 
                     // Add fade out animation to loading screen and remove it after the animation ends
-                    fadeOutLoadingAnimation(loadingScreen);
+                    setTimeout(() => {
+                        loadingScreen.remove();
+                        chatBody.classList.remove("relative-position");
+                    }, 500);
+
                 })
                 .catch(err => {
-                    // If the server returns a 500 error with detail, render a setup hint.
-                    if (!firstRunSetupMessageRendered) {
-                        renderFirstRunSetupMessage();
-                    }
-                    fadeOutLoadingAnimation(loadingScreen);
+                    console.log(err);
                     return;
                 });
 
-            await refreshChatSessionsPanel();
-
-            fetch(`${hostURL}/api/chat/starters?client=desktop`, { headers })
-                .then(response => response.json())
-                .then(data => {
-                    // Render conversation starters, if any
-                    if (data.length > 0) {
-                        let questionStarterSuggestions = document.getElementById("question-starters");
-                        questionStarterSuggestions.innerHTML = "";
-                        data.forEach((questionStarter) => {
-                            let questionStarterButton = document.createElement('button');
-                            questionStarterButton.innerHTML = questionStarter;
-                            questionStarterButton.classList.add("question-starter");
-                            questionStarterButton.addEventListener('click', function() {
-                                questionStarterSuggestions.style.display = "none";
-                                document.getElementById("chat-input").value = questionStarter;
-                                chat();
-                            });
-                            questionStarterSuggestions.appendChild(questionStarterButton);
-                        });
-                        questionStarterSuggestions.style.display = "grid";
-                    }
-                })
-                .catch(err => {
-                    return;
-                });
-
-            fetch(`${hostURL}/api/chat/options`, { headers })
-                .then(response => response.json())
-                .then(data => {
-                    // Render chat options, if any
-                    if (data) {
-                        chatOptions = data;
-                    }
-                })
-                .catch(err => {
-                    return;
-                });
-
-            // Fill query field with value passed in URL query parameters, if any.
-            var query_via_url = new URLSearchParams(window.location.search).get("q");
-            if (query_via_url) {
-                document.getElementById("chat-input").value = query_via_url;
-                chat();
-            }
         }
 
-        function fetchRemainingChatMessages(chatHistoryUrl, headers) {
+
+        function continueConversation(event) {
+            event.preventDefault();
+
+            if (!isLoggedIn) {
+                document.getElementById("login-modal").style.display = "block";
+                return;
+            }
+
+            let forkConversationAPI = "/api/chat/share/fork" + "?public_conversation_slug=" + publicConversationSlug;
+            fetch(forkConversationAPI, { method: "POST" })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status != "ok") {
+                        throw new Error(data.detail);
+                    }
+                    return data.next_url;
+                })
+                .then(next_url => {
+                    window.location.href = next_url;
+                });
+        }
+
+        function fetchRemainingChatMessages(chatHistoryUrl) {
             // Create a new IntersectionObserver
             let observer = new IntersectionObserver((entries, observer) => {
                 entries.forEach(entry => {
@@ -851,7 +688,7 @@
             }, {rootMargin: '0px 0px 200px 0px'});  // Trigger when the element is within 200px of the viewport
 
             // Fetch remaining chat messages from conversation history
-            fetch(`${chatHistoryUrl}&n=-10`, { headers })
+            fetch(`${chatHistoryUrl}&n=-10`, { method: "GET" })
                 .then(response => response.json())
                 .then(data => {
                     if (data.status != "ok") {
@@ -885,367 +722,187 @@
                 });
         }
 
-        function fadeOutLoadingAnimation(loadingScreen) {
-            let chatBody = document.getElementById("chat-body");
-            let chatBodyWrapper = document.getElementById("chat-body-wrapper");
-            chatBodyWrapperHeight = chatBodyWrapper.clientHeight;
-            chatBody.style.height = chatBodyWrapperHeight;
-            setTimeout(() => {
-                loadingScreen.remove();
-                chatBody.classList.remove("relative-position");
-            }, 500);
-        }
-
-        function renderFirstRunSetupMessage() {
-            first_run_message = `<p class="first-run-message-heading">Hi 👋🏾, to get started:<p>
-            <ol>
-                <li class="first-run-message-text">Generate an API token <a class='first-run-message-link' href="#" onclick="window.navigateAPI.navigateToWebSettings()">Khoj Web settings</a></li>
-                <li class="first-run-message-text">Paste it into the API Key field <a class='first-run-message-link' href="#" onclick="window.navigateAPI.navigateToSettings()">Khoj Desktop settings</a></li>
-            </ol>`
-            .trim()
-            .replace(/(\r\n|\n|\r)/gm, "");
-
-            renderMessage(first_run_message, "khoj", null, null, true);
-
-            // Disable chat input field and update placeholder text
-            document.getElementById("chat-input").setAttribute("disabled", "disabled");
-            document.getElementById("chat-input").setAttribute("placeholder", "Configure Khoj to enable chat");
-        }
-
-        function flashStatusInChatInput(message) {
-            // Get chat input element and original placeholder
-            let chatInput = document.getElementById("chat-input");
-            let originalPlaceholder = chatInput.placeholder;
-            // Set placeholder to message
-            chatInput.placeholder = message;
-            // Reset placeholder after 2 seconds
-            setTimeout(() => {
-                chatInput.placeholder = originalPlaceholder;
-            }, 2000);
-        }
-
         function createNewConversation() {
-            let chatBody = document.getElementById("chat-body");
-            chatBody.innerHTML = "";
-            flashStatusInChatInput("📝 New conversation started");
-            chatBody.dataset.conversationId = "";
-            chatBody.dataset.conversationTitle = "";
-            renderMessage("Hey 👋🏾, what's up?", "khoj");
-        }
 
-        async function clearConversationHistory() {
-            let chatInput = document.getElementById("chat-input");
-            let originalPlaceholder = chatInput.placeholder;
-            let chatBody = document.getElementById("chat-body");
-            let conversationId = chatBody.dataset.conversationId;
-
-            let deleteURL = `/api/chat/history?client=desktop`;
-            if (conversationId) {
-                deleteURL += `&conversation_id=${conversationId}`;
+            if (!isLoggedIn) {
+                document.getElementById("login-modal").style.display = "block";
+                return;
             }
 
-            const hostURL = await window.hostURLAPI.getURL();
-            const khojToken = await window.tokenAPI.getToken();
-            const headers = { 'Authorization': `Bearer ${khojToken}` };
+            // Create a modal that appears in the middle of the entire screen. It should have a form to create a new conversation.
+            let modal = document.createElement('div');
+            modal.classList.add("modal");
+            modal.id = "new-conversation-modal";
+            let modalContent = document.createElement('div');
+            modalContent.classList.add("modal-content");
+            let modalHeader = document.createElement('div');
+            modalHeader.classList.add("modal-header");
+            let modalTitle = document.createElement('h2');
+            modalTitle.textContent = "New Conversation";
+            let modalCloseButton = document.createElement('button');
+            modalCloseButton.classList.add("modal-close-button");
+            modalCloseButton.innerHTML = "&times;";
+            modalCloseButton.addEventListener('click', function() {
+                modal.remove();
+            });
+            modalHeader.appendChild(modalTitle);
+            modalHeader.appendChild(modalCloseButton);
+            modalContent.appendChild(modalHeader);
+            let modalBody = document.createElement('div');
+            modalBody.classList.add("modal-body");
 
-            fetch(`${hostURL}${deleteURL}`, { method: "DELETE", headers })
-                .then(response => response.ok ? response.json() : Promise.reject(response))
-                .then(data => {
-                    chatBody.innerHTML = "";
-                    chatBody.dataset.conversationId = "";
-                    chatBody.dataset.conversationTitle = "";
-                    loadChat();
-                })
-                .catch(err => {
-                    flashStatusInChatInput("⛔️ Failed to clear conversation history");
-                })
-        }
+            let agentDropDownPicker = document.createElement('select');
+            agentDropDownPicker.setAttribute("id", "agent-dropdown-picker");
+            agentDropDownPicker.setAttribute("name", "agent-dropdown-picker");
 
-        async function refreshChatSessionsPanel() {
-            const hostURL = await window.hostURLAPI.getURL();
-            const khojToken = await window.tokenAPI.getToken();
-            const headers = { 'Authorization': `Bearer ${khojToken}` };
+            let agentDropDownLabel = document.createElement('label');
+            agentDropDownLabel.setAttribute("for", "agent-dropdown-picker");
+            agentDropDownLabel.textContent = "Who do you want to talk to?";
 
-            fetch(`${hostURL}/api/chat/sessions`, { method: "GET", headers })
+            fetch('/api/agents')
                 .then(response => response.json())
                 .then(data => {
-                    let conversationListBody = document.getElementById("conversation-list-body");
-                    conversationListBody.innerHTML = "";
-                    let conversationListBodyHeader = document.getElementById("conversation-list-header");
-
-                    let chatBody = document.getElementById("chat-body");
-                    conversationId = chatBody.dataset.conversationId;
-
                     if (data.length > 0) {
-                        conversationListBodyHeader.style.display = "block";
-                        for (let index in data) {
-                            let conversation = data[index];
-                            let conversationButton = document.createElement('div');
-                            let incomingConversationId = conversation["conversation_id"];
-                            const conversationTitle = conversation["slug"] || `New conversation 🌱`;
-                            conversationButton.textContent = conversationTitle;
-                            conversationButton.classList.add("conversation-button");
-                            if (incomingConversationId == conversationId) {
-                                conversationButton.classList.add("selected-conversation");
-                            }
-                            conversationButton.addEventListener('click', function() {
-                                let chatBody = document.getElementById("chat-body");
-                                chatBody.innerHTML = "";
-                                chatBody.dataset.conversationId = incomingConversationId;
-                                chatBody.dataset.conversationTitle = conversationTitle;
-                                loadChat();
-                            });
-                            let threeDotMenu = document.createElement('div');
-                            threeDotMenu.classList.add("three-dot-menu");
-                            let threeDotMenuButton = document.createElement('button');
-                            threeDotMenuButton.innerHTML = "⋮";
-                            threeDotMenuButton.classList.add("three-dot-menu-button");
-                            threeDotMenuButton.addEventListener('click', function(event) {
-                                event.stopPropagation();
-
-                                let existingChildren = threeDotMenu.children;
-
-                                if (existingChildren.length > 1) {
-                                    // Skip deleting the first, since that's the menu button.
-                                    for (let i = 1; i < existingChildren.length; i++) {
-                                        existingChildren[i].remove();
-                                    }
-                                    return;
-                                }
-
-                                let conversationMenu = document.createElement('div');
-                                conversationMenu.classList.add("conversation-menu");
-
-                                let editTitleButton = document.createElement('button');
-                                editTitleButton.innerHTML = "Rename";
-                                editTitleButton.classList.add("edit-title-button");
-                                editTitleButton.classList.add("three-dot-menu-button-item");
-                                editTitleButton.addEventListener('click', function(event) {
-                                    event.stopPropagation();
-
-                                    let conversationMenuChildren = conversationMenu.children;
-
-                                    let totalItems = conversationMenuChildren.length;
-
-                                    for (let i = totalItems - 1; i >= 0; i--) {
-                                        conversationMenuChildren[i].remove();
-                                    }
-
-                                    // Create a dialog box to get new title for conversation
-                                    let conversationTitleInputBox = document.createElement('div');
-                                    conversationTitleInputBox.classList.add("conversation-title-input-box");
-                                    let conversationTitleInput = document.createElement('input');
-                                    conversationTitleInput.classList.add("conversation-title-input");
-
-                                    conversationTitleInput.value = conversationTitle;
-
-                                    conversationTitleInput.addEventListener('click', function(event) {
-                                        event.stopPropagation();
-                                    });
-                                    conversationTitleInput.addEventListener('keydown', function(event) {
-                                        if (event.key === "Enter") {
-                                            event.preventDefault();
-                                            conversationTitleInputButton.click();
-                                        }
-                                    });
-                                    conversationTitleInputBox.appendChild(conversationTitleInput);
-                                    let conversationTitleInputButton = document.createElement('button');
-                                    conversationTitleInputButton.innerHTML = "Save";
-                                    conversationTitleInputButton.classList.add("three-dot-menu-button-item");
-                                    conversationTitleInputButton.addEventListener('click', function(event) {
-                                        event.stopPropagation();
-                                        let newTitle = conversationTitleInput.value;
-                                        if (newTitle != null) {
-                                            let editURL = `/api/chat/title?client=web&conversation_id=${incomingConversationId}&title=${newTitle}`;
-                                            fetch(`${hostURL}${editURL}` , { method: "PATCH", headers })
-                                                .then(response => response.ok ? response.json() : Promise.reject(response))
-                                                .then(data => {
-                                                    conversationButton.textContent = newTitle;
-                                                })
-                                                .catch(err => {
-                                                    return;
-                                                });
-                                        conversationTitleInputBox.remove();
-                                    }});
-                                    conversationTitleInputBox.appendChild(conversationTitleInputButton);
-                                    conversationMenu.appendChild(conversationTitleInputBox);
-                                });
-
-                                conversationMenu.appendChild(editTitleButton);
-                                threeDotMenu.appendChild(conversationMenu);
-
-                                let deleteButton = document.createElement('button');
-                                deleteButton.type = "button";
-                                deleteButton.innerHTML = "Delete";
-                                deleteButton.classList.add("delete-conversation-button");
-                                deleteButton.classList.add("three-dot-menu-button-item");
-                                deleteButton.addEventListener('click', function(event) {
-                                    event.preventDefault();
-                                    let confirmation = confirm('Are you sure you want to delete this chat session?');
-                                    if (!confirmation) return;
-                                    let deleteURL = `/api/chat/history?client=web&conversation_id=${incomingConversationId}`;
-                                    fetch(`${hostURL}${deleteURL}` , { method: "DELETE", headers })
-                                        .then(response => response.ok ? response.json() : Promise.reject(response))
-                                        .then(data => {
-                                            let chatBody = document.getElementById("chat-body");
-                                            chatBody.innerHTML = "";
-                                            chatBody.dataset.conversationId = "";
-                                            chatBody.dataset.conversationTitle = "";
-                                            loadChat();
-                                        })
-                                        .catch(err => {
-                                            return;
-                                        });
-                                });
-
-                                conversationMenu.appendChild(deleteButton);
-                                threeDotMenu.appendChild(conversationMenu);
-                            });
-                            threeDotMenu.appendChild(threeDotMenuButton);
-                            conversationButton.appendChild(threeDotMenu);
-                            conversationListBody.appendChild(conversationButton);
-                        }
+                        data.forEach((agent) => {
+                            let agentOption = document.createElement('option');
+                            agentOption.setAttribute("value", agent.slug);
+                            agentOption.textContent = agent.name;
+                            agentDropDownPicker.appendChild(agentOption);
+                        });
                     }
-                }).catch(err => {
+                })
+                .catch(err => {
                     return;
-            });
-        }
+                });
 
-        let sendMessageTimeout;
-        let mediaRecorder;
-        async function speechToText(event) {
-            event.preventDefault();
-            const speakButtonImg = document.getElementById('speak-button-img');
-            const stopRecordButtonImg = document.getElementById('stop-record-button-img');
-            const sendButtonImg = document.getElementById('send-button-img');
-            const stopSendButtonImg = document.getElementById('stop-send-button-img');
-            const chatInput = document.getElementById('chat-input');
+            let seeAllAgentsLink = document.createElement('a');
+            seeAllAgentsLink.setAttribute("href", "/agents");
+            seeAllAgentsLink.setAttribute("target", "_blank");
+            seeAllAgentsLink.textContent = "See all agents";
 
-            const hostURL = await window.hostURLAPI.getURL();
-            let url = `${hostURL}/api/transcribe?client=desktop`;
-            const khojToken = await window.tokenAPI.getToken();
-            const headers = { 'Authorization': `Bearer ${khojToken}` };
+            let newConversationSubmitButton = document.createElement('button');
+            newConversationSubmitButton.setAttribute("type", "submit");
+            newConversationSubmitButton.textContent = "Go";
+            newConversationSubmitButton.id = "new-conversation-submit-button";
 
-            const sendToServer = (audioBlob) => {
-                const formData = new FormData();
-                formData.append('file', audioBlob);
-
-                fetch(url, { method: 'POST', body: formData, headers})
-                    .then(response => response.ok ? response.json() : Promise.reject(response))
-                    .then(data => { chatInput.value += data.text.trimStart(); autoResize(); })
-                    .then(() => {
-                        // Don't auto-send empty messages
-                        if (chatInput.value.length === 0) return;
-
-                        // Send message after 3 seconds, unless stop send button is clicked
-                        sendButtonImg.style.display = 'none';
-                        stopSendButtonImg.style.display = 'initial';
-
-                        // Start the countdown timer UI
-                        document.getElementById('countdown-circle').style.animation = "countdown 3s linear 1 forwards";
-
-                        sendMessageTimeout = setTimeout(() => {
-                            // Revert to showing send-button and hide the stop-send-button
-                            sendButtonImg.style.display = 'initial';
-                            stopSendButtonImg.style.display = 'none';
-
-                            // Stop the countdown timer UI
-                            document.getElementById('countdown-circle').style.animation = "none";
-
-                            // Send message
-                            chat();
-                        }, 3000);
+            newConversationSubmitButton.addEventListener('click', function(event) {
+                event.preventDefault();
+                let agentSlug = agentDropDownPicker.value;
+                let createURL = `/api/chat/sessions?client=web&agent_slug=${agentSlug}`;
+                let chatBody = document.getElementById("chat-body");
+                fetch(createURL, { method: "POST" })
+                    .then(response => response.json())
+                    .then(data => {
+                        chatBody.dataset.conversationId = data.conversation_id;
+                        modal.remove();
+                        loadChat();
                     })
                     .catch(err => {
-                        if (err.status === 501) {
-                          flashStatusInChatInput("⛔️ Configure speech-to-text model on server.")
-                        } else if (err.status === 422) {
-                          flashStatusInChatInput("⛔️ Audio file to large to process.")
-                        } else {
-                          flashStatusInChatInput("⛔️ Failed to transcribe audio.")
-                        }
+                        return;
                     });
-            };
+            });
 
-            const handleRecording = (stream) => {
-                const audioChunks = [];
-                const recordingConfig = { mimeType: 'audio/webm' };
-                mediaRecorder = new MediaRecorder(stream, recordingConfig);
+            let closeButton = document.createElement('button');
+            closeButton.id = "close-button";
+            closeButton.innerHTML = "Close";
+            closeButton.classList.add("close-button");
+            closeButton.addEventListener('click', function() {
+                modal.remove();
+            });
 
-                mediaRecorder.addEventListener("dataavailable", function(event) {
-                    if (event.data.size > 0) audioChunks.push(event.data);
-                });
+            modalBody.appendChild(agentDropDownLabel);
+            modalBody.appendChild(agentDropDownPicker);
+            modalBody.appendChild(seeAllAgentsLink);
 
-                mediaRecorder.addEventListener("stop", function() {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                    sendToServer(audioBlob);
-                });
+            let modalFooter = document.createElement('div');
+            modalFooter.classList.add("modal-footer");
+            modalFooter.appendChild(closeButton);
+            modalFooter.appendChild(newConversationSubmitButton);
+            modalBody.appendChild(modalFooter);
 
-                mediaRecorder.start();
-                speakButtonImg.style.display = 'none';
-                stopRecordButtonImg.style.display = 'initial';
-            };
-
-            // Toggle recording
-            if (!mediaRecorder || mediaRecorder.state === 'inactive' || event.type === 'touchstart') {
-                navigator.mediaDevices
-                ?.getUserMedia({ audio: true })
-                .then(handleRecording)
-                .catch((e) => {
-                    flashStatusInChatInput("⛔️ Failed to access microphone");
-                });
-            } else if (mediaRecorder.state === 'recording' || event.type === 'touchend' || event.type === 'touchcancel') {
-                mediaRecorder.stop();
-                mediaRecorder.stream.getTracks().forEach(track => track.stop());
-                mediaRecorder = null;
-                speakButtonImg.style.display = 'initial';
-                stopRecordButtonImg.style.display = 'none';
-            }
+            modalContent.appendChild(modalBody);
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
         }
 
-        function cancelSendMessage() {
-            // Cancel the chat() call if the stop-send-button is clicked
-            clearTimeout(sendMessageTimeout);
-
-            // Revert to showing send-button and hide the stop-send-button
-            document.getElementById('stop-send-button-img').style.display = 'none';
-            document.getElementById('send-button-img').style.display = 'initial';
-
-            // Stop the countdown timer UI
-            document.getElementById('countdown-circle').style.animation = "none";
-        };
 
         function handleCollapseSidePanel() {
             document.getElementById('side-panel').classList.toggle('collapsed');
             document.getElementById('new-conversation').classList.toggle('collapsed');
-            document.getElementById('existing-conversations').classList.toggle('collapsed');
             document.getElementById('side-panel-collapse').style.transform = document.getElementById('side-panel').classList.contains('collapsed') ? 'rotate(0deg)' : 'rotate(180deg)';
         }
     </script>
     <body>
-        <div id="khoj-empty-container" class="khoj-empty-container"></div>
+        <div id="khoj-empty-container" class="khoj-empty-container">
+        </div>
+
+        <!-- Login Modal -->
+        <div id="login-modal" style="display: none;">
+            <img class="khoj-logo" src="/static/assets/icons/favicon-128x128.png" alt="Khoj"></img>
+            <div class="login-modal-title">Login to continue</div>
+            <!-- Sign Up/Login with Google OAuth -->
+            <div
+                class="g_id_signin"
+                data-shape="circle"
+                data-text="continue_with"
+                data-logo_alignment="center"
+                data-size="large"
+                data-type="standard">
+            </div>
+            <div id="g_id_onload"
+                data-client_id="{{ google_client_id }}"
+                data-ux_mode="redirect"
+                data-login_uri="{{ redirect_uri }}"
+                data-auto-select="true">
+            </div>
+        </div>
 
         <!--Add Header Logo and Nav Pane-->
-        <div id="khoj-header" class="khoj-header"></div>
-
+        {% import 'utils.html' as utils %}
+        {{ utils.heading_pane(user_photo, username, is_active, has_documents) }}
         <div id="chat-section-wrapper">
             <div id="side-panel-wrapper">
                 <div id="side-panel">
                     <div id="new-conversation">
-                       <div id="conversation-list-header" style="display: none;">Conversations</div>
+                       <div id="conversation-list-header">Agents</div>
                        <button class="side-panel-button" id="new-conversation-button" onclick="createNewConversation()">
-                            New
+                            New Topic
                             <svg class="new-convo-button" viewBox="0 0 40 40" fill="#000000" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M16 0c-8.836 0-16 7.163-16 16s7.163 16 16 16c8.837 0 16-7.163 16-16s-7.163-16-16-16zM16 30.032c-7.72 0-14-6.312-14-14.032s6.28-14 14-14 14 6.28 14 14-6.28 14.032-14 14.032zM23 15h-6v-6c0-0.552-0.448-1-1-1s-1 0.448-1 1v6h-6c-0.552 0-1 0.448-1 1s0.448 1 1 1h6v6c0 0.552 0.448 1 1 1s1-0.448 1-1v-6h6c0.552 0 1-0.448 1-1s-0.448-1-1-1z"></path>
                             </svg>
                         </button>
                     </div>
-                    <div id="existing-conversations">
-                        <div id="conversation-list">
-                            <div id="conversation-list-header" style="display: none;">Recent Conversations</div>
-                            <div id="conversation-list-body"></div>
+                    <div id="other-agents">
+                        <div id="agents-list">
+                            {% for agent in agents %}
+                                <a class="inline-chat-link agent-link" href="/agent/{{ agent.slug }}">
+                                    <div class="agent-metadata-content">
+                                        <div class="agent-avatar-wrapper">
+                                            <img class="agent-avatar" src="{{ agent.avatar }}" alt="Agent Avatar" />
+                                        </div>
+                                        <div class="agent-name-wrapper">
+                                            <div class="agent-name">
+                                                {{ agent.name }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
+                            {% endfor %}
                         </div>
                     </div>
+                    <a id="agent-link" class="inline-chat-link" href="">
+                        <div id="agent-metadata" style="display: none;">
+                            Current Agent
+                            <div id="agent-metadata-content">
+                                <div id="agent-avatar-wrapper">
+                                    <img id="agent-avatar" src="" alt="Agent Avatar" />
+                                </div>
+                                <div id="agent-name-wrapper">
+                                    <div id="agent-name"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
                 </div>
                 <div id="collapse-side-panel">
                     <button
@@ -1263,16 +920,14 @@
                 <!-- Chat Body -->
                 <div id="chat-body"></div>
 
-                <!-- Chat Suggestions -->
-                <div id="question-starters" style="display: none;"></div>
-
                 <!-- Chat Footer -->
                 <div id="chat-footer">
                     <div id="chat-tooltip" style="display: none;"></div>
                     <div id="input-row">
-                        <textarea id="chat-input" class="option" oninput="onChatInput()" onkeydown=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands"></textarea>
-                        <button id="speak-button" class="input-row-button"
-                            ontouchstart="speechToText(event)" ontouchend="speechToText(event)" ontouchcancel="speechToText(event)" onmousedown="speechToText(event)">
+                        <button id="continue-conversation" class="main-call-to-action" onclick="continueConversation(event)">
+                            Continue this conversation
+                        </button>
+                        <button id="speak-button" class="input-row-button" onclick="continueConversation(event)">
                             <svg id="speak-button-img" class="input-row-button-img" alt="Transcribe" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                 <path d="M3.5 6.5A.5.5 0 0 1 4 7v1a4 4 0 0 0 8 0V7a.5.5 0 0 1 1 0v1a5 5 0 0 1-4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 .5-.5z"/>
                                 <path d="M10 8a2 2 0 1 1-4 0V3a2 2 0 1 1 4 0v5zM8 0a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V3a3 3 0 0 0-3-3z"/>
@@ -1283,12 +938,8 @@
                             </svg>
                         </button>
                         <button id="send-button" class="input-row-button" alt="Send message">
-                            <svg id="send-button-img" onclick="chat()" class="input-row-button-img" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <svg id="send-button-img" onclick="continueConversation()" class="input-row-button-img" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                 <path fill-rule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8zm15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11.5z"/>
-                            </svg>
-                            <svg id="stop-send-button-img" onclick="cancelSendMessage()" style="display: none" class="input-row-button-img" alt="Stop Message Send" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                <circle id="countdown-circle" class="countdown-circle" cx="8" cy="8" r="7" />
-                                <path d="M5 6.5A1.5 1.5 0 0 1 6.5 5h3A1.5 1.5 0 0 1 11 6.5v3A1.5 1.5 0 0 1 9.5 11h-3A1.5 1.5 0 0 1 5 9.5v-3z"/>
                             </svg>
                         </button>
                     </div>
@@ -1296,7 +947,13 @@
             </div>
         </div>
     </body>
-
+    <script>
+        // Set the active nav pane
+        let chatNav = document.getElementById("chat-nav");
+        if (chatNav) {
+            chatNav.classList.add("khoj-nav-selected");
+        }
+    </script>
     <style>
         html, body {
             height: 100%;
@@ -1310,304 +967,15 @@
             color: var(--main-text-color);
             text-align: center;
             font-family: var(--font-family);
-            font-size: small;
+            font-size: medium;
             font-weight: 300;
             line-height: 1.5em;
+            height: 100vh;
+            margin: 0;
         }
-
         body > * {
             padding: 10px;
             margin: 10px;
-        }
-
-        input.conversation-title-input {
-            font-family: var(--font-family);
-            font-size: 14px;
-            font-weight: 300;
-            line-height: 1.5em;
-            padding: 5px;
-            border: 1px solid var(--main-text-color);
-            border-radius: 5px;
-            margin: 4px;
-        }
-
-        input.conversation-title-input:focus {
-            outline: none;
-        }
-
-        #chat-section-wrapper {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            grid-column-gap: 10px;
-            grid-row-gap: 10px;
-            padding: 10px;
-            margin: 10px;
-            overflow-y: scroll;
-        }
-
-        #chat-body-wrapper {
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        #side-panel {
-            width: 250px;
-            padding: 10px;
-            background: var(--background-color);
-            border-radius: 5px;
-            box-shadow: 0 0 11px #aaa;
-            overflow-y: scroll;
-            text-align: left;
-            transition: width 0.3s ease-in-out;
-        }
-
-        div#side-panel.collapsed {
-            width: 0;
-            padding: 0;
-            display: block;
-            overflow: hidden;
-        }
-
-        div#collapse-side-panel {
-            align-self: center;
-            padding: 8px;
-        }
-
-        div#conversation-list-body {
-            display: grid;
-            grid-template-columns: 1fr;
-            grid-gap: 8px;
-        }
-
-        div#side-panel-wrapper {
-            display: flex
-        }
-
-
-        #chat-body {
-            height: 100%;
-            font-size: small;
-            margin: 0px;
-            line-height: 20px;
-            overflow-y: scroll;
-            overflow-x: hidden;
-        }
-        /* add chat metatdata to bottom of bubble */
-        .chat-message::after {
-            content: attr(data-meta);
-            display: block;
-            font-size: x-small;
-            color: #475569;
-            margin: -8px 4px 0px 0px;
-        }
-        /* move message by khoj to left */
-        .chat-message.khoj {
-            margin-left: auto;
-            text-align: left;
-            height: fit-content;
-        }
-        /* move message by you to right */
-        .chat-message.you {
-            margin-right: auto;
-            text-align: right;
-            height: fit-content;
-        }
-        /* basic style chat message text */
-        .chat-message-text {
-            margin: 10px;
-            border-radius: 10px;
-            padding: 10px;
-            position: relative;
-            display: inline-block;
-            max-width: 80%;
-            text-align: left;
-            white-space: pre-line;
-        }
-        /* color chat bubble by khoj blue */
-        .chat-message-text.khoj {
-            color: var(--primary-inverse);
-            background: var(--primary);
-            margin-left: auto;
-        }
-        .chat-message-text ol,
-        .chat-message-text ul {
-            white-space: normal;
-            margin: 0;
-        }
-        .chat-message-text-response {
-            margin-bottom: 0px;
-        }
-
-        /* Spinner symbol when the chat message is loading */
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid var(--primary-inverse);
-            border-radius: 50%;
-            width: 12px;
-            height: 12px;
-            animation: spin 2s linear infinite;
-            margin: 0px 0px 0px 10px;
-            display: inline-block;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        /* add left protrusion to khoj chat bubble */
-        .chat-message-text.khoj:after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: -7px;
-            border: 10px solid transparent;
-            border-top-color: var(--primary);
-            border-bottom: 0;
-            transform: rotate(-60deg);
-        }
-        /* color chat bubble by you dark grey */
-        .chat-message-text.you {
-            color: #f8fafc;
-            background: #475569;
-            margin-right: auto;
-        }
-        /* add right protrusion to you chat bubble */
-        .chat-message-text.you:after {
-            content: '';
-            position: absolute;
-            top: 91%;
-            right: -2px;
-            border: 10px solid transparent;
-            border-left-color: #475569;
-            border-right: 0;
-            margin-top: -10px;
-            transform: rotate(-60deg)
-        }
-        img.text-to-image {
-            max-width: 60%;
-        }
-
-        #chat-footer {
-            padding: 0;
-            margin: 8px;
-            display: grid;
-            grid-template-columns: minmax(70px, 100%);
-            grid-column-gap: 10px;
-            grid-row-gap: 10px;
-        }
-        #input-row {
-            display: grid;
-            grid-template-columns: auto 32px 40px;
-            grid-column-gap: 10px;
-            grid-row-gap: 10px;
-            background: #f9fafc;
-            align-items: center;
-            background-color: var(--background-color);
-        }
-        .option:hover {
-            box-shadow: 0 0 11px #aaa;
-        }
-        #chat-input {
-            font-family: var(--font-family);
-            font-size: small;
-            height: 48px;
-            border-radius: 16px;
-            resize: none;
-            overflow-y: hidden;
-            max-height: 200px;
-            box-sizing: border-box;
-            padding: 7px 0 0 12px;
-            line-height: 1.5em;
-            margin: 0;
-        }
-        #chat-input:focus {
-            outline: none !important;
-        }
-        .input-row-button {
-            background: var(--background-color);
-            border: none;
-            box-shadow: none;
-            border-radius: 50%;
-            font-size: 14px;
-            font-weight: 300;
-            padding: 0;
-            line-height: 1.5em;
-            cursor: pointer;
-            transition: background 0.3s ease-in-out;
-            width: 40px;
-            height: 40px;
-            margin-top: -2px;
-            margin-left: -5px;
-        }
-
-        .side-panel-button {
-            background: var(--background-color);
-            border: none;
-            box-shadow: none;
-            font-size: 14px;
-            font-weight: 300;
-            line-height: 1.5em;
-            cursor: pointer;
-            transition: background 0.3s ease-in-out;
-            border-radius: 5%;;
-            font-family: var(--font-family);
-        }
-
-        svg#side-panel-collapse {
-            width: 30px;
-            height: 30px;
-        }
-
-        .side-panel-button:hover,
-        .input-row-button:hover {
-            background: var(--primary-hover);
-        }
-
-        .side-panel-button:active,
-        .input-row-button:active {
-            background: var(--primary-active);
-        }
-        .input-row-button-img {
-            width: 24px;
-            height: 24px;
-        }
-        #send-button {
-            padding: 0;
-            position: relative;
-        }
-        #send-button-img {
-            width: 28px;
-            height: 28px;
-            background: var(--primary-hover);
-            border-radius: 50%;
-        }
-        #stop-send-button-img {
-            position: absolute;
-            top: 6px;
-            right: 6px;
-            width: 28px;
-            height: 28px;
-            transform: rotateY(-180deg) rotateZ(-90deg);
-        }
-        #countdown-circle {
-            stroke-dasharray: 44px;  /* The circumference of the circle with 7px radius */
-            stroke-dashoffset: 0px;
-            stroke-linecap: round;
-            stroke-width: 1px;
-            stroke: var(--main-text-color);
-            fill: none;
-        }
-        @keyframes countdown {
-            from {
-                stroke-dashoffset: 0px;
-            }
-            to {
-                stroke-dashoffset: -44px;  /* The circumference of the circle with 7px radius */
-            }
-        }
-
-        .option-enabled {
-            box-shadow: 0 0 12px rgb(119, 156, 46);
         }
 
         div.collapsed {
@@ -1618,6 +986,9 @@
             display: block;
         }
 
+        div.references {
+            padding-top: 8px;
+        }
         div.reference {
             display: grid;
             grid-template-rows: auto;
@@ -1636,46 +1007,12 @@
             margin: 10px;
         }
 
-        div#question-starters {
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            grid-column-gap: 8px;
-        }
-
-        button.question-starter {
-            background: var(--background-color);
-            color: var(--main-text-color);
-            border: 1px solid var(--main-text-color);
-            border-radius: 16px;
-            padding: 5px;
-            font-size: 14px;
-            font-weight: 300;
-            line-height: 1.5em;
-            cursor: pointer;
-            transition: background 0.2s ease-in-out;
-            text-align: left;
-            max-height: 75px;
-            transition: max-height 0.3s ease-in-out;
-            overflow: hidden;
-        }
-        button.question-starter:hover {
-            background: var(--primary-hover);
-        }
-
-        code.chat-response {
-            background: var(--primary-hover);
-            color: var(--primary-inverse);
-            border-radius: 5px;
-            padding: 5px;
-            font-size: 14px;
-            font-weight: 300;
-            line-height: 1.5em;
-        }
-
         button.reference-button {
             background: var(--background-color);
             color: var(--main-text-color);
             border: 1px solid var(--main-text-color);
             border-radius: 5px;
+            padding: 5px;
             font-size: 14px;
             font-weight: 300;
             line-height: 1.5em;
@@ -1721,50 +1058,301 @@
             background: var(--primary-hover);
         }
 
+        code.chat-response {
+            background: var(--primary-hover);
+            color: var(--primary-inverse);
+            border-radius: 5px;
+            padding: 5px;
+            font-size: 14px;
+            font-weight: 300;
+            line-height: 1.5em;
+        }
+
+        input.conversation-title-input {
+            font-family: var(--font-family);
+            font-size: 14px;
+            font-weight: 300;
+            line-height: 1.5em;
+            padding: 5px;
+            border: 1px solid var(--main-text-color);
+            border-radius: 5px;
+            margin: 4px;
+        }
+
+        input.conversation-title-input:focus {
+            outline: none;
+        }
+
+        #chat-section-wrapper {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            grid-column-gap: 10px;
+            grid-row-gap: 10px;
+            padding: 10px;
+            margin: 10px;
+            overflow-y: scroll;
+        }
+
+        #chat-body-wrapper {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #side-panel {
+            width: 250px;
+            padding: 10px;
+            background: var(--background-color);
+            border-radius: 5px;
+            box-shadow: 0 0 11px #aaa;
+            text-align: left;
+            transition: width 0.3s ease-in-out;
+            max-height: 100%;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+        }
+
+        div#side-panel.collapsed {
+            width: 0;
+            padding: 0;
+            display: block;
+            overflow: hidden;
+        }
+
+        div#collapse-side-panel {
+            align-self: center;
+            padding: 8px;
+        }
+
+        div#conversation-list-body {
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-gap: 8px;
+        }
+
+        div#conversation-list {
+            height: 1;
+        }
+
+        div#side-panel-wrapper {
+            display: flex;
+        }
+
+        #chat-body {
+            height: 100%;
+            font-size: medium;
+            margin: 0px;
+            line-height: 20px;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            transition: background-color 0.2s;
+            transition: opacity 0.2s;
+        }
+
+        #chat-body.dragover {
+            background-color: var(--primary-active);
+        }
+
+        .relative-position {
+            position: relative;
+        }
+
+        #chat-body.dragover {
+            opacity: 50%;
+        }
+
+        div.loading-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #333;
+            z-index: 9999; /* This is the important part */
+        }
+
+        button.main-call-to-action {
+            font-size: 24px;
+            font-weight: bold;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--summer-sun);
+            font: inherit;
+            color: var(--main-text-color);
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button.main-call-to-action:hover {
+            background-color: var(--primary-hover);
+            box-shadow: 0 0 10px var(--primary-hover);
+        }
+
+        /* add chat metatdata to bottom of bubble */
+        /* move message by khoj to left */
+        .chat-message.khoj {
+            margin-left: auto;
+            text-align: left;
+        }
+        /* move message by you to right */
+        .chat-message.you {
+            margin-right: auto;
+            text-align: right;
+        }
+        /* basic style chat message text */
+        .chat-message-text {
+            margin: 10px;
+            border-radius: 10px;
+            padding: 10px;
+            position: relative;
+            display: inline-block;
+            max-width: 80%;
+            text-align: left;
+            white-space: pre-line;
+        }
+        /* color chat bubble by khoj blue */
+        .chat-message-text.khoj {
+            color: var(--primary-inverse);
+            background: var(--primary);
+            margin-left: auto;
+        }
+        .chat-message-text ol,
+        .chat-message-text ul {
+            white-space: normal;
+            margin: 0;
+        }
+        .chat-message-text-response {
+            margin-bottom: 0px;
+        }
+
+        .side-panel-button {
+            background: none;
+            border: none;
+            box-shadow: none;
+            font-size: 14px;
+            font-weight: 300;
+            line-height: 1.5em;
+            cursor: pointer;
+            transition: background 0.3s ease-in-out;
+            border-radius: 5%;;
+            font-family: var(--font-family);
+        }
+
+        .side-panel-button:hover,
+        .input-row-button:hover {
+            background: var(--primary-hover);
+        }
+        .side-panel-button:active,
+        .input-row-button:active {
+            background: var(--primary-active);
+        }
+
+        /* Spinner symbol when the chat message is loading */
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-inverse);
+            border-radius: 50%;
+            width: 12px;
+            height: 12px;
+            animation: spin 2s linear infinite;
+            margin: 0px 0px 0px 10px;
+            display: inline-block;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* color chat bubble by you dark grey */
+        .chat-message-text.you {
+            color: #f8fafc;
+            background: #475569;
+            margin-right: auto;
+        }
+        img.text-to-image {
+            max-width: 60%;
+        }
+
+        #chat-footer {
+            padding: 0;
+            margin: 8px;
+            display: grid;
+            grid-template-columns: minmax(70px, 100%);
+            grid-column-gap: 10px;
+            grid-row-gap: 10px;
+        }
+        #input-row {
+            display: grid;
+            grid-template-columns: auto 40px 32px;
+            grid-column-gap: 10px;
+            grid-row-gap: 10px;
+            background: var(--background-color);
+            align-items: center;
+        }
+        .option:hover {
+            box-shadow: 0 0 11px #aaa;
+        }
+        .input-row-button {
+            background: var(--background-color);
+            border: none;
+            box-shadow: none;
+            border-radius: 50%;
+            font-size: 14px;
+            font-weight: 300;
+            line-height: 1.5em;
+            cursor: pointer;
+            transition: background 0.3s ease-in-out;
+            width: 40px;
+            height: 40px;
+            margin-top: -2px;
+            margin-left: -5px;
+        }
+
+        svg#side-panel-collapse {
+            width: 30px;
+            height: 30px;
+        }
+
+        .input-row-button-img {
+            width: 24px;
+            height: 24px;
+        }
+        #send-button {
+            padding: 0;
+            position: relative;
+        }
+        #send-button-img {
+            width: 28px;
+            height: 28px;
+            background: var(--primary-hover);
+            border-radius: 50%;
+        }
+
+        #stop-send-button-img {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 28px;
+            height: 28px;
+            transform: rotateY(-180deg) rotateZ(-90deg);
+        }
+
+        .option-enabled {
+            box-shadow: 0 0 12px rgb(119, 156, 46);
+        }
+
         .option-enabled:focus {
             outline: none !important;
             border:1px solid #475569;
             box-shadow: 0 0 16px var(--primary);
         }
 
-        .first-run-message-heading {
-            font-size: 20px;
-            font-weight: 300;
-            line-height: 1.5em;
-            color: var(--main-text-color);
-            margin: 0;
-            padding: 10px;
-        }
-
-        .first-run-message-text {
-            font-size: 18px;
-            font-weight: 300;
-            line-height: 1.5em;
-            color: var(--main-text-color);
-            margin: 0;
-            padding-bottom: 25px;
-        }
-
         a.inline-chat-link {
-            color: #475569;
+            color: var(--main-text-color);
             text-decoration: none;
-            border-bottom: 1px dotted #475569;
-        }
-
-        a.first-run-message-link {
-            display: block;
-            text-align: center;
-            font-size: 14px;
-            color: #fff;
-            padding: 6px 15px;
-            border-radius: 999px;
-            text-decoration: none;
-            background-color: rgba(71, 85, 105, 0.6);
-            transition: background-color 0.3s ease-in-out;
-        }
-
-        a.first-run-message-link:hover {
-            background-color: #475569;
+            border-bottom: 1px dotted var(--main-text-color);
         }
 
         a.reference-link {
@@ -1805,9 +1393,33 @@
             text-wrap: unset;
         }
 
-        div.khoj-empty-container {
-            padding: 0;
-            margin: 0;
+        div#login-modal {
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr auto auto 1fr;
+            gap: 32px;
+            min-height: 300px;
+            z-index: 1;
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 4px 4px var(--main-text-color);
+            border-radius: 8px;
+            padding: 40px;
+            background: linear-gradient(145deg, var(--background-color), var(--primary-hover));
+        }
+
+        div.g_id_signin {
+            margin: 0 auto;
+            display: block;
+        }
+
+        div.login-modal-title {
+            text-align: center;
+            line-height: 28px;
+            font-size: 24px;
+            font-weight: 500;
         }
 
         @media (pointer: coarse), (hover: none) {
@@ -1829,11 +1441,11 @@
                 color: #f8fafc;
                 border-radius: 2px;
                 box-shadow: 1px 1px 4px 0 rgba(0, 0, 0, 0.4);
-                font-size: small;
+                font-size: 14px;
                 padding: 2px 4px;
             }
         }
-        @media only screen and (max-width: 600px) {
+        @media only screen and (max-width: 700px) {
             body {
                 grid-template-columns: 1fr;
                 grid-template-rows: auto auto minmax(80px, 100%) auto;
@@ -1879,13 +1491,17 @@
                 padding: 0px;
             }
         }
-        @media only screen and (min-width: 600px) {
+        @media only screen and (min-width: 700px) {
             body {
                 grid-template-columns: auto min(90vw, 100%) auto;
                 grid-template-rows: auto auto minmax(80px, 100%) auto;
             }
             body > * {
                 grid-column: 2;
+            }
+
+            div#login-modal {
+                z-index: 1;
             }
         }
 
@@ -1905,7 +1521,8 @@
             font-size: large;
             text-align: left;
             border-bottom: 1px solid var(--main-text-color);
-            margin: 8px 0;
+            margin-top: 8px;
+            margin-bottom: 8px;
         }
 
         button#new-conversation-button {
@@ -1933,13 +1550,10 @@
 
         .three-dot-menu {
             display: none;
-            /* background: var(--background-color); */
-            /* border: 1px solid var(--main-text-color); */
             border-radius: 5px;
-            /* position: relative; */
             position: absolute;
-            right: 4;
-            top: 4;
+            right: 4px;
+            top: 4px;
         }
 
         button.three-dot-menu-button-item {
@@ -2019,8 +1633,23 @@
             text-align: center;
         }
 
+        div.khoj-empty-container {
+            margin: 0px;
+            padding: 0px;
+        }
+
         p {
             margin: 0;
+        }
+
+
+        div#other-agents {
+            max-height: 95%;
+            overflow-y: scroll;
+        }
+
+        div#agents-list {
+            height: 1px;
         }
 
         div.programmatic-output {
@@ -2030,7 +1659,7 @@
             box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
             color: #333;
             font-family: monospace;
-            font-size: small;
+            font-size: 14px;
             line-height: 1.5;
             margin: 10px 0;
             overflow-x: auto;
@@ -2075,6 +1704,157 @@
                 border-color: var(--water);
             }
         }
+
+        #agent-metadata-content, .agent-metadata-content {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            padding: 10px;
+            background-color: var(--primary);
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+
+        #agent-metadata, .agent-metadata {
+            border-top: 1px solid black;
+            padding-top: 10px;
+        }
+
+        #agent-avatar-wrapper, .agent-avatar-wrapper {
+            margin-right: 10px;
+        }
+
+        #agent-avatar, .agent-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        #agent-name-wrapper, .agent-name-wrapper {
+            display: grid;
+            align-items: center;
+        }
+
+        #agent-name, .agent-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .modal {
+            position: fixed; /* Stay in place */
+            z-index: 1; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            margin: 0px;
+        }
+
+        .modal-content {
+            margin: 15% auto; /* 15% from the top and centered */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 250px;
+            text-align: left;
+            background: var(--background-color);
+            border-radius: 5px;
+            box-shadow: 0 0 11px #aaa;
+            text-align: left;
+        }
+
+        .modal-header {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            color: var(--main-text-color);
+            align-items: baseline;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            text-align: left;
+        }
+
+        .modal-body {
+            display: grid;
+            grid-auto-flow: row;
+            gap: 8px;
+        }
+
+        .modal-body a {
+            /* text-decoration: none; */
+            color: var(--summer-sun);
+        }
+
+        .modal-close-button {
+            margin: 0;
+            font-size: 20px;
+            background: none;
+            border: none;
+            color: var(--summer-sun);
+        }
+
+        .modal-close-button:hover,
+        .modal-close-button:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        #new-conversation-form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        #new-conversation-form label,
+        #new-conversation-form input,
+        #new-conversation-form button {
+            margin-bottom: 10px;
+        }
+
+        #new-conversation-form button {
+            cursor: pointer;
+        }
+
+        .modal-footer {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-gap: 12px;
+        }
+
+        .modal-body button {
+            cursor: pointer;
+            border-radius: 12px;
+            padding: 8px;
+            border: 1px solid var(--main-text-color);
+        }
+
+        button#new-conversation-submit-button {
+            background: var(--summer-sun);
+            transition: background 0.2s ease-in-out;
+        }
+
+        button#close-button {
+            background: var(--background-color);
+            transition: background 0.2s ease-in-out;
+        }
+
+        button#new-conversation-submit-button:hover {
+            background: var(--primary);
+        }
+
+        button#close-button:hover {
+            background: var(--primary-hover);
+        }
+
+        .modal-body select {
+            padding: 8px;
+            border-radius: 12px;
+            border: 1px solid var(--main-text-color);
+        }
+
 
         .lds-ellipsis {
             display: inline-block;
@@ -2131,5 +1911,8 @@
                 transform: translate(24px, 0);
             }
         }
+
+
     </style>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </html>

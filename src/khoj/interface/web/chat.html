@@ -1562,11 +1562,79 @@ To get started, just start typing below. You can also type / to see a list of co
                                 conversationMenu.appendChild(editTitleButton);
                                 threeDotMenu.appendChild(conversationMenu);
 
+                                let shareButton = document.createElement('button');
+                                shareButton.innerHTML = "Share";
+                                shareButton.type = "button";
+                                shareButton.classList.add("share-conversation-button");
+                                shareButton.classList.add("three-dot-menu-button-item");
+                                shareButton.addEventListener('click', function(event) {
+                                    event.preventDefault();
+                                    let confirmation = confirm('Are you sure you want to share this chat session? This will make the conversation public.');
+                                    if (!confirmation) return;
+                                    let duplicateURL = `/api/chat/share?client=web&conversation_id=${incomingConversationId}`;
+                                    fetch(duplicateURL , { method: "POST" })
+                                        .then(response => response.ok ? response.json() : Promise.reject(response))
+                                        .then(data => {
+                                            if (data.status == "ok") {
+                                                flashStatusInChatInput("✅ Conversation shared successfully");
+                                            }
+                                            // Make a pop-up that shows data.url to share the conversation
+                                            let shareURL = data.url;
+                                            let shareModal = document.createElement('div');
+                                            shareModal.classList.add("modal");
+                                            shareModal.id = "share-conversation-modal";
+                                            let shareModalContent = document.createElement('div');
+                                            shareModalContent.classList.add("modal-content");
+                                            let shareModalHeader = document.createElement('div');
+                                            shareModalHeader.classList.add("modal-header");
+                                            let shareModalTitle = document.createElement('h2');
+                                            shareModalTitle.textContent = "Share Conversation";
+                                            let shareModalCloseButton = document.createElement('button');
+                                            shareModalCloseButton.classList.add("modal-close-button");
+                                            shareModalCloseButton.innerHTML = "&times;";
+                                            shareModalCloseButton.addEventListener('click', function() {
+                                                shareModal.remove();
+                                            });
+                                            shareModalHeader.appendChild(shareModalTitle);
+                                            shareModalHeader.appendChild(shareModalCloseButton);
+                                            shareModalContent.appendChild(shareModalHeader);
+                                            let shareModalBody = document.createElement('div');
+                                            shareModalBody.classList.add("modal-body");
+                                            let shareModalText = document.createElement('p');
+                                            shareModalText.textContent = "The link has been copied to your clipboard. Use it to share your conversation with others!";
+                                            let shareModalLink = document.createElement('input');
+                                            shareModalLink.setAttribute("value", shareURL);
+                                            shareModalLink.setAttribute("readonly", "");
+                                            shareModalLink.classList.add("share-link");
+                                            let copyButton = document.createElement('button');
+                                            copyButton.textContent = "Copy";
+                                            copyButton.addEventListener('click', function() {
+                                                shareModalLink.select();
+                                                document.execCommand('copy');
+                                            });
+                                            copyButton.id = "copy-share-url-button";
+                                            shareModalBody.appendChild(shareModalText);
+                                            shareModalBody.appendChild(shareModalLink);
+                                            shareModalBody.appendChild(copyButton);
+                                            shareModalContent.appendChild(shareModalBody);
+                                            shareModal.appendChild(shareModalContent);
+                                            document.body.appendChild(shareModal);
+                                            shareModalLink.select();
+                                            document.execCommand('copy');
+                                        })
+                                        .catch(err => {
+                                            return;
+                                        });
+                                });
+                                conversationMenu.appendChild(shareButton);
+
                                 let deleteButton = document.createElement('button');
+                                deleteButton.type = "button";
                                 deleteButton.innerHTML = "Delete";
                                 deleteButton.classList.add("delete-conversation-button");
                                 deleteButton.classList.add("three-dot-menu-button-item");
-                                deleteButton.addEventListener('click', function() {
+                                deleteButton.addEventListener('click', function(event) {
+                                    event.preventDefault();
                                     // Ask for confirmation before deleting chat session
                                     let confirmation = confirm('Are you sure you want to delete this chat session?');
                                     if (!confirmation) return;
@@ -2225,7 +2293,7 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
         .side-panel-button {
-            background: var(--background-color);
+            background: none;
             border: none;
             box-shadow: none;
             font-size: 14px;
@@ -2444,6 +2512,7 @@ To get started, just start typing below. You can also type / to see a list of co
             margin-bottom: 8px;
         }
 
+        button#copy-share-url-button,
         button#new-conversation-button {
             display: inline-flex;
             align-items: center;
@@ -2464,14 +2533,12 @@ To get started, just start typing below. You can also type / to see a list of co
             text-align: left;
             display: flex;
             position: relative;
+            margin: 0 8px;
         }
 
         .three-dot-menu {
             display: block;
-            /* background: var(--background-color); */
-            /* border: 1px solid var(--main-text-color); */
             border-radius: 5px;
-            /* position: relative; */
             position: absolute;
             right: 4px;
             top: 4px;
@@ -2653,13 +2720,6 @@ To get started, just start typing below. You can also type / to see a list of co
             color: #333;
         }
 
-        #agent-instructions {
-            font-size: 14px;
-            color: #666;
-            height: 50px;
-            overflow: auto;
-        }
-
         #agent-owned-by-user {
             font-size: 12px;
             color: #007BFF;
@@ -2681,7 +2741,7 @@ To get started, just start typing below. You can also type / to see a list of co
             margin: 15% auto; /* 15% from the top and centered */
             padding: 20px;
             border: 1px solid #888;
-            width: 250px;
+            width: 300px;
             text-align: left;
             background: var(--background-color);
             border-radius: 5px;
@@ -2755,6 +2815,28 @@ To get started, just start typing below. You can also type / to see a list of co
             border: 1px solid var(--main-text-color);
         }
 
+        .share-link {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            font-family: 'Courier New', monospace;
+            color: #333;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        .share-link:focus {
+            outline: none;
+            border-color: #007BFF;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
+
+        button#copy-share-url-button,
         button#new-conversation-submit-button {
             background: var(--summer-sun);
             transition: background 0.2s ease-in-out;
@@ -2765,6 +2847,7 @@ To get started, just start typing below. You can also type / to see a list of co
             transition: background 0.2s ease-in-out;
         }
 
+        button#copy-share-url-button:hover,
         button#new-conversation-submit-button:hover {
             background: var(--primary);
         }

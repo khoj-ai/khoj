@@ -36,6 +36,7 @@ from khoj.database.models import (
     NotionConfig,
     OpenAIProcessorConversationConfig,
     ProcessLock,
+    PublicConversation,
     ReflectiveQuestion,
     SearchModelConfig,
     SpeechToTextModelOptions,
@@ -560,7 +561,28 @@ class AgentAdapters:
         return await Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).afirst()
 
 
+class PublicConversationAdapters:
+    @staticmethod
+    def get_public_conversation_by_slug(slug: str):
+        return PublicConversation.objects.filter(slug=slug).first()
+
+    @staticmethod
+    def get_public_conversation_url(public_conversation: PublicConversation):
+        # Public conversations are viewable by anyone, but not editable.
+        return f"/share/chat/{public_conversation.slug}/"
+
+
 class ConversationAdapters:
+    @staticmethod
+    def make_public_conversation_copy(conversation: Conversation):
+        return PublicConversation.objects.create(
+            source_owner=conversation.user,
+            agent=conversation.agent,
+            conversation_log=conversation.conversation_log,
+            slug=conversation.slug,
+            title=conversation.title,
+        )
+
     @staticmethod
     def get_conversation_by_user(
         user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None
@@ -679,6 +701,19 @@ class ConversationAdapters:
     @staticmethod
     async def aget_default_conversation_config():
         return await ChatModelOptions.objects.filter().prefetch_related("openai_config").afirst()
+
+    @staticmethod
+    def create_conversation_from_public_conversation(
+        user: KhojUser, public_conversation: PublicConversation, client_app: ClientApplication
+    ):
+        return Conversation.objects.create(
+            user=user,
+            conversation_log=public_conversation.conversation_log,
+            client=client_app,
+            slug=public_conversation.slug,
+            title=public_conversation.title,
+            agent=public_conversation.agent,
+        )
 
     @staticmethod
     def save_conversation(
