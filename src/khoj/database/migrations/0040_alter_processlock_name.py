@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
         ProcessLock.objects.all().delete()
 
     dependencies = [
-        ("database", "0040_merge_20240504_1010"),
+        ("database", "0039_merge_20240501_0301"),
     ]
 
     operations = [
@@ -22,5 +22,5 @@ class Migration(migrations.Migration):
                 unique=True,
             ),
         ),
-        migrations.RunPython(delete_all_existing_process_locks),
+        migrations.RunPython(delete_all_existing_process_locks, reverse_code=migrations.RunPython.noop),
     ]
