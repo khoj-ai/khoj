@@ -127,9 +127,15 @@ export class KhojChatView extends ItemView {
         chatInput.placeholder = placeholderText;
         chatInput.disabled = !getChatHistorySucessfully;
 
-        // Scroll to bottom of modal, till the send message input box
-        this.scrollChatToBottom();
-        chatInput.focus();
+        // Scroll to bottom of chat messages and focus on chat input field, once messages rendered
+        requestAnimationFrame(() => {
+            // Ensure layout and paint have occurred
+            requestAnimationFrame(() => {
+                this.scrollChatToBottom();
+                const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+                chatInput?.focus();
+            });
+        });
     }
 
     generateReference(messageEl: Element, reference: string, index: number) {
@@ -651,7 +657,7 @@ export class KhojChatView extends ItemView {
     }
 
     scrollChatToBottom() {
-        let sendButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("khoj-chat-send")[0];
-        sendButton.scrollIntoView({ behavior: "auto", block: "center" });
+        const chat_body_el = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
+        if (!!chat_body_el) chat_body_el.scrollTop = chat_body_el.scrollHeight;
     }
 }
