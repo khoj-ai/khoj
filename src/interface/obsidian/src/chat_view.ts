@@ -1,7 +1,7 @@
-import { ItemView, MarkdownRenderer, WorkspaceLeaf, request, requestUrl, setIcon } from 'obsidian';
+import { MarkdownRenderer, WorkspaceLeaf, request, requestUrl, setIcon } from 'obsidian';
 import { KhojSetting } from 'src/settings';
-
-export const KHOJ_CHAT_VIEW = "khoj-chat-view";
+import { KhojPaneView } from 'src/pane_view';
+import { KhojView } from 'src/utils';
 
 export interface ChatJsonResult {
     image?: string;
@@ -11,7 +11,7 @@ export interface ChatJsonResult {
 }
 
 
-export class KhojChatView extends ItemView {
+export class KhojChatView extends KhojPaneView {
     result: string;
     setting: KhojSetting;
     region: string;
@@ -20,33 +20,15 @@ export class KhojChatView extends ItemView {
     timezone: string;
 
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
-        super(leaf);
-
-        this.setting = setting;
-
-        // Register Modal Keybindings to send user message
-        // this.scope.register([], 'Enter', async () => { await this.chat() });
-
-        fetch("https://ipapi.co/json")
-            .then(response => response.json())
-            .then(data => {
-                this.region = data.region;
-                this.city = data.city;
-                this.countryName = data.country_name;
-                this.timezone = data.timezone;
-            })
-            .catch(err => {
-                console.log(err);
-                return;
-            });
+        super(leaf, setting);
     }
 
     getViewType(): string {
-        return KHOJ_CHAT_VIEW;
+        return KhojView.CHAT;
     }
 
     getDisplayText(): string {
-        return "Khoj";
+        return "Khoj Chat";
     }
 
     getIcon(): string {
@@ -70,8 +52,7 @@ export class KhojChatView extends ItemView {
         let { contentEl } = this;
         contentEl.addClass("khoj-chat");
 
-        // Add title to the Khoj Chat modal
-        contentEl.createEl("h1", ({ attr: { id: "khoj-chat-title" }, text: "Khoj Chat" }));
+        super.onOpen();
 
         // Create area for chat logs
         let chatBodyEl = contentEl.createDiv({ attr: { id: "khoj-chat-body", class: "khoj-chat-body" } });

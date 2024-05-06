@@ -1,4 +1,4 @@
-import { FileSystemAdapter, Notice, Vault, Modal, TFile, request } from 'obsidian';
+import { FileSystemAdapter, Notice, Vault, Modal, TFile, request, setIcon } from 'obsidian';
 import { KhojSetting, UserInfo } from 'src/settings'
 
 export function getVaultAbsolutePath(vault: Vault): string {
@@ -213,4 +213,94 @@ export function getBackendStatusMessage(
         return `✅ Signed in to Khoj`;
     else
         return `✅ Signed in to Khoj as ${userEmail}`;
+}
+
+export async function populateHeaderPane(headerEl: Element, setting: KhojSetting): Promise<void> {
+    let userInfo: UserInfo | null = null;
+    try {
+        const { userInfo: extractedUserInfo } = await canConnectToBackend(setting.khojUrl, setting.khojApiKey, false);
+        userInfo = extractedUserInfo;
+    } catch (error) {
+        console.error("❗️Could not connect to Khoj");
+    }
+
+    // Add Khoj title to header element
+    const titleEl = headerEl.createDiv();
+    titleEl.className = 'khoj-logo';
+    titleEl.textContent = "KHOJ"
+
+    // Populate the header element with the navigation pane
+    // Create the nav element
+    const nav = headerEl.createEl('nav');
+    nav.className = 'khoj-nav';
+
+    // Create the chat link
+    const chatLink = nav.createEl('a');
+    chatLink.id = 'chat-nav';
+    chatLink.className = 'khoj-nav chat-nav';
+
+    // Create the chat icon
+    const chatIcon = chatLink.createEl('span');
+    chatIcon.className = 'khoj-nav-icon khoj-nav-icon-chat';
+    setIcon(chatIcon, 'khoj-chat');
+
+    // Create the chat text
+    const chatText = chatLink.createEl('span');
+    chatText.className = 'khoj-nav-item-text';
+    chatText.textContent = 'Chat';
+
+    // Append the chat icon and text to the chat link
+    chatLink.appendChild(chatIcon);
+    chatLink.appendChild(chatText);
+
+    // Create the search link
+    const searchLink = nav.createEl('a');
+    searchLink.id = 'search-nav';
+    searchLink.className = 'khoj-nav search-nav';
+
+    // Create the search icon
+    const searchIcon = searchLink.createEl('span');
+    searchIcon.className = 'khoj-nav-icon khoj-nav-icon-search';
+
+    // Create the search text
+    const searchText = searchLink.createEl('span');
+    searchText.className = 'khoj-nav-item-text';
+    searchText.textContent = 'Search';
+
+    // Append the search icon and text to the search link
+    searchLink.appendChild(searchIcon);
+    searchLink.appendChild(searchText);
+
+    // Create the search link
+    const similarLink = nav.createEl('a');
+    similarLink.id = 'similar-nav';
+    similarLink.className = 'khoj-nav similar-nav';
+
+    // Create the search icon
+    const similarIcon = searchLink.createEl('span');
+    similarIcon.id = 'similar-nav-icon';
+    similarIcon.className = 'khoj-nav-icon khoj-nav-icon-similar';
+    setIcon(similarIcon, 'webhook');
+
+    // Create the search text
+    const similarText = searchLink.createEl('span');
+    similarText.className = 'khoj-nav-item-text';
+    similarText.textContent = 'Similar';
+
+    // Append the search icon and text to the search link
+    similarLink.appendChild(similarIcon);
+    similarLink.appendChild(similarText);
+
+    // Append the nav items to the nav element
+    nav.appendChild(chatLink);
+    nav.appendChild(searchLink);
+    nav.appendChild(similarLink);
+
+    // Append the title, nav items to the header element
+    headerEl.appendChild(titleEl);
+    headerEl.appendChild(nav);
+}
+
+export enum KhojView {
+    CHAT = "khoj-chat-view",
 }

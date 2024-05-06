@@ -1,8 +1,8 @@
 import { Plugin, WorkspaceLeaf } from 'obsidian';
 import { KhojSetting, KhojSettingTab, DEFAULT_SETTINGS } from 'src/settings'
 import { KhojSearchModal } from 'src/search_modal'
-import { KhojChatView, KHOJ_CHAT_VIEW } from 'src/chat_view'
-import { updateContentIndex, canConnectToBackend } from './utils';
+import { KhojChatView } from 'src/chat_view'
+import { updateContentIndex, canConnectToBackend, KhojView } from './utils';
 
 
 export default class Khoj extends Plugin {
@@ -30,14 +30,14 @@ export default class Khoj extends Plugin {
         this.addCommand({
             id: 'chat',
             name: 'Chat',
-            callback: () => { this.activateView(KHOJ_CHAT_VIEW); }
+            callback: () => { this.activateView(KhojView.CHAT); }
         });
 
-        this.registerView(KHOJ_CHAT_VIEW, (leaf) => new KhojChatView(leaf, this.settings));
+        this.registerView(KhojView.CHAT, (leaf) => new KhojChatView(leaf, this.settings));
 
         // Create an icon in the left ribbon.
         this.addRibbonIcon('message-circle', 'Khoj', (_: MouseEvent) => {
-            this.activateView(KHOJ_CHAT_VIEW);
+            this.activateView(KhojView.CHAT);
         });
 
         // Add a settings tab so the user can configure khoj
@@ -72,7 +72,7 @@ export default class Khoj extends Plugin {
         this.unload();
     }
 
-    async activateView(viewType: string) {
+    async activateView(viewType: KhojView) {
         const { workspace } = this.app;
 
         let leaf: WorkspaceLeaf | null = null;
