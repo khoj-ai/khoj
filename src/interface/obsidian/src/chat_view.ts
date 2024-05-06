@@ -1,5 +1,7 @@
-import { App, MarkdownRenderer, Modal, request, requestUrl, setIcon } from 'obsidian';
+import { ItemView, MarkdownRenderer, WorkspaceLeaf, request, requestUrl, setIcon } from 'obsidian';
 import { KhojSetting } from 'src/settings';
+
+export const KHOJ_CHAT_VIEW = "khoj-chat-view";
 
 export interface ChatJsonResult {
     image?: string;
@@ -9,7 +11,7 @@ export interface ChatJsonResult {
 }
 
 
-export class KhojChatModal extends Modal {
+export class KhojChatView extends ItemView {
     result: string;
     setting: KhojSetting;
     region: string;
@@ -17,13 +19,13 @@ export class KhojChatModal extends Modal {
     countryName: string;
     timezone: string;
 
-    constructor(app: App, setting: KhojSetting) {
-        super(app);
+    constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
+        super(leaf);
+
         this.setting = setting;
 
         // Register Modal Keybindings to send user message
-        this.scope.register([], 'Enter', async () => { await this.chat() });
-
+        // this.scope.register([], 'Enter', async () => { await this.chat() });
 
         fetch("https://ipapi.co/json")
             .then(response => response.json())
@@ -37,6 +39,18 @@ export class KhojChatModal extends Modal {
                 console.log(err);
                 return;
             });
+    }
+
+    getViewType(): string {
+        return KHOJ_CHAT_VIEW;
+    }
+
+    getDisplayText(): string {
+        return "Khoj";
+    }
+
+    getIcon(): string {
+        return "message-circle";
     }
 
     async chat() {
@@ -503,7 +517,7 @@ export class KhojChatModal extends Modal {
         event.preventDefault();
         const transcribeButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("khoj-transcribe")[0];
         const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
-        const sendButton = <HTMLButtonElement>this.modalEl.getElementsByClassName("khoj-chat-send")[0]
+        const sendButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("khoj-chat-send")[0]
 
         const generateRequestBody = async (audioBlob: Blob, boundary_string: string) => {
             const boundary = `------${boundary_string}`;
@@ -606,7 +620,7 @@ export class KhojChatModal extends Modal {
         clearTimeout(this.sendMessageTimeout);
 
         // Revert to showing send-button and hide the stop-send-button
-        let sendButton = <HTMLButtonElement>this.modalEl.getElementsByClassName("khoj-chat-send")[0];
+        let sendButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("khoj-chat-send")[0];
         setIcon(sendButton, "arrow-up-circle");
         let sendImg = <SVGElement>sendButton.getElementsByClassName("lucide-arrow-up-circle")[0]
         sendImg.addEventListener('click', async (_) => { await this.chat() });
@@ -637,7 +651,7 @@ export class KhojChatModal extends Modal {
     }
 
     scrollChatToBottom() {
-        let sendButton = <HTMLButtonElement>this.modalEl.getElementsByClassName("khoj-chat-send")[0];
+        let sendButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("khoj-chat-send")[0];
         sendButton.scrollIntoView({ behavior: "auto", block: "center" });
     }
 }
