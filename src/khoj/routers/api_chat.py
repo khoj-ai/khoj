@@ -262,6 +262,7 @@ def duplicate_chat_history_public_conversation(
     public_conversation_url = PublicConversationAdapters.get_public_conversation_url(public_conversation)
 
     domain = request.headers.get("host")
+    scheme = request.url.scheme
 
     update_telemetry_state(
         request=request,
@@ -270,7 +271,9 @@ def duplicate_chat_history_public_conversation(
         **common.__dict__,
     )
 
-    return Response(status_code=200, content=json.dumps({"status": "ok", "url": f"{domain}{public_conversation_url}"}))
+    return Response(
+        status_code=200, content=json.dumps({"status": "ok", "url": f"{scheme}://{domain}{public_conversation_url}"})
+    )
 
 
 @api_chat.get("/sessions")
