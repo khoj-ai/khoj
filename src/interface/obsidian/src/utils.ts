@@ -1,5 +1,5 @@
 import { FileSystemAdapter, Notice, Vault, Modal, TFile, request } from 'obsidian';
-import { KhojSetting } from 'src/settings'
+import { KhojSetting, UserInfo } from 'src/settings'
 
 export function getVaultAbsolutePath(vault: Vault): string {
     let adaptor = vault.adapter;
@@ -173,31 +173,30 @@ export async function canConnectToBackend(
     khojUrl: string,
     khojApiKey: string,
     showNotice: boolean = false
-): Promise<{ connectedToBackend: boolean; statusMessage: string, userEmail: string }> {
+): Promise<{ connectedToBackend: boolean; statusMessage: string, userInfo: UserInfo | null }> {
     let connectedToBackend = false;
-    let userEmail: string = '';
+    let userInfo: UserInfo | null = null;
 
     if (!!khojUrl) {
         let headers  = !!khojApiKey ? { "Authorization": `Bearer ${khojApiKey}` } : undefined;
-        await request({ url: `${khojUrl}/api/health`, method: "GET", headers: headers })
-        .then(response => {
+        try {
+            let response = await request({ url: `${khojUrl}/api/v1/user`, method: "GET", headers: headers })
             connectedToBackend = true;
-            userEmail = JSON.parse(response)?.email;
-        })
-        .catch(error => {
+            userInfo = JSON.parse(response);
+        } catch (error) {
             connectedToBackend = false;
             console.log(`Khoj connection error:\n\n${error}`);
-        });
+        };
     }
 
-    let statusMessage: string = getBackendStatusMessage(connectedToBackend, userEmail, khojUrl, khojApiKey);
+    let statusMessage: string = getBackendStatusMessage(connectedToBackend, userInfo?.email, khojUrl, khojApiKey);
     if (showNotice) new Notice(statusMessage);
-    return { connectedToBackend, statusMessage, userEmail };
+    return { connectedToBackend, statusMessage, userInfo };
 }
 
 export function getBackendStatusMessage(
     connectedToServer: boolean,
-    userEmail: string,
+    userEmail: string | undefined,
     khojUrl: string,
     khojApiKey: string
 ): string {
