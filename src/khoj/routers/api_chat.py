@@ -43,6 +43,7 @@ from khoj.routers.helpers import (
     construct_automation_created_message,
     create_automation,
     get_conversation_command,
+    is_query_empty,
     is_ready_to_chat,
     text_to_image,
     update_telemetry_state,
@@ -480,6 +481,14 @@ async def websocket_endpoint(
             await send_rate_limit_message(e.detail)
             break
 
+        if is_query_empty(q):
+            await send_message("start_llm_response")
+            await send_message(
+                "It seems like your query is incomplete. Could you please provide more details or specify what you need help with?"
+            )
+            await send_message("end_llm_response")
+            continue
+
         user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         conversation_commands = [get_conversation_command(query=q, any_references=True)]
 
@@ -707,6 +716,12 @@ async def chat(
 ) -> Response:
     user: KhojUser = request.user.object
     q = unquote(q)
+    if is_query_empty(q):
+        return Response(
+            content="It seems like your query is incomplete. Could you please provide more details or specify what you need help with?",
+            media_type="text/plain",
+            status_code=400,
+        )
     user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"Chat request by {user.username}: {q}")
 

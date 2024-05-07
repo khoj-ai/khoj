@@ -84,6 +84,10 @@ logger = logging.getLogger(__name__)
 executor = ThreadPoolExecutor(max_workers=1)
 
 
+def is_query_empty(query: str) -> bool:
+    return is_none_or_empty(query.strip())
+
+
 def validate_conversation_config():
     default_config = ConversationAdapters.get_default_conversation_config()
 
