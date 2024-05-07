@@ -1,7 +1,7 @@
 import { MarkdownRenderer, WorkspaceLeaf, request, requestUrl, setIcon } from 'obsidian';
 import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
-import { KhojView, createCopyParentText } from 'src/utils';
+import { KhojView, createCopyParentText, pasteTextAtCursor } from 'src/utils';
 
 export interface ChatJsonResult {
     image?: string;
@@ -244,6 +244,14 @@ export class KhojChatView extends KhojPaneView {
             setIcon(copyButton, "copy-plus");
             copyButton.addEventListener('click', createCopyParentText(message));
             chat_message_body_text_el.append(copyButton);
+
+            // Add button to paste into current buffer
+            let pasteToFile = chatMessageEl.createEl('button');
+            pasteToFile.classList.add("copy-button");
+            pasteToFile.title = "Paste Message to File";
+            setIcon(pasteToFile, "clipboard-paste");
+            pasteToFile.addEventListener('click', (event) => { pasteTextAtCursor(createCopyParentText(message, 'clipboard-paste')(event)); });
+            chat_message_body_text_el.append(pasteToFile);
         }
 
         // Remove user-select: none property to make text selectable

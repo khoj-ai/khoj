@@ -1,4 +1,4 @@
-import { FileSystemAdapter, Notice, Vault, Modal, TFile, request, setIcon } from 'obsidian';
+import { FileSystemAdapter, Notice, Vault, Modal, TFile, request, setIcon, Editor } from 'obsidian';
 import { KhojSetting, UserInfo } from 'src/settings'
 
 export function getVaultAbsolutePath(vault: Vault): string {
@@ -331,5 +331,19 @@ function copyParentText(event: MouseEvent, message: string, originalButton: stri
 export function createCopyParentText(message: string, originalButton: string = 'copy-plus') {
     return function(event: MouseEvent) {
         return copyParentText(event, message, originalButton);
+    }
+}
+
+export function pasteTextAtCursor(text: string | undefined) {
+    // Get the current active file's editor
+    const editor: Editor = this.app.workspace.getActiveFileView()?.editor
+    if (!editor || !text) return;
+    const cursor = editor.getCursor();
+    // If there is a selection, replace it with the text
+    if (editor?.getSelection()) {
+        editor.replaceSelection(text);
+    // If there is no selection, insert the text at the cursor position
+    } else if (cursor) {
+        editor.replaceRange(text, cursor);
     }
 }
