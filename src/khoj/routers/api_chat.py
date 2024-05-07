@@ -756,7 +756,7 @@ async def chat(
                 q, timezone, user, request.url, meta_log
             )
         except Exception as e:
-            logger.error(f"Error creating automation {q} for {user.email}: {e}")
+            logger.error(f"Error creating automation {q} for {user.email}: {e}", exc_info=True)
             return Response(
                 content=f"Unable to create automation. Ensure the automation doesn't already exist.",
                 media_type="text/plain",
