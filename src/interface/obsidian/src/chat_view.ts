@@ -1,7 +1,7 @@
 import { MarkdownRenderer, WorkspaceLeaf, request, requestUrl, setIcon } from 'obsidian';
 import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
-import { KhojView } from 'src/utils';
+import { KhojView, createCopyParentText } from 'src/utils';
 
 export interface ChatJsonResult {
     image?: string;
@@ -214,7 +214,7 @@ export class KhojChatView extends KhojPaneView {
         referenceExpandButton.innerHTML = expandButtonText;
     }
 
-    renderMessage(chatEl: Element, message: string, sender: string, dt?: Date, raw: boolean=false): Element {
+    renderMessage(chatEl: Element, message: string, sender: string, dt?: Date, raw: boolean=false, willReplace: boolean=true): Element {
         let message_time = this.formatDate(dt ?? new Date());
         let emojified_sender = sender == "khoj" ? "🏮 Khoj" : "🤔 You";
 
@@ -234,6 +234,16 @@ export class KhojChatView extends KhojPaneView {
         } else {
             // @ts-ignore
             MarkdownRenderer.renderMarkdown(message, chat_message_body_text_el, '', null);
+        }
+
+        // Add a copy button to each chat message
+        if (willReplace === true) {
+            let copyButton = chatMessageEl.createEl('button');
+            copyButton.classList.add("copy-button");
+            copyButton.title = "Copy Message to Clipboard";
+            setIcon(copyButton, "copy-plus");
+            copyButton.addEventListener('click', createCopyParentText(message));
+            chat_message_body_text_el.append(copyButton);
         }
 
         // Remove user-select: none property to make text selectable

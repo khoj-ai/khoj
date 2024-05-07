@@ -304,3 +304,32 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
 export enum KhojView {
     CHAT = "khoj-chat-view",
 }
+
+function copyParentText(event: MouseEvent, message: string, originalButton: string) {
+    const button = event.currentTarget as HTMLElement;
+    if (!button || !button?.parentNode?.textContent) return;
+    if (!!button.firstChild) button.removeChild(button.firstChild as HTMLImageElement);
+    const textContent = message ?? button.parentNode.textContent.trim();
+    navigator.clipboard.writeText(textContent).then(() => {
+        setIcon((button as HTMLElement), 'copy-check');
+        setTimeout(() => {
+            setIcon((button as HTMLElement), originalButton);
+        }, 1000);
+    }).catch((error) => {
+        console.error("Error copying text to clipboard:", error);
+        const originalButtonText = button.innerHTML;
+        button.innerHTML = "⛔️";
+        setTimeout(() => {
+            button.innerHTML = originalButtonText;
+            setIcon((button as HTMLElement), originalButton);
+        }, 2000);
+    });
+
+    return textContent;
+}
+
+export function createCopyParentText(message: string, originalButton: string = 'copy-plus') {
+    return function(event: MouseEvent) {
+        return copyParentText(event, message, originalButton);
+    }
+}

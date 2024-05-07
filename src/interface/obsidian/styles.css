@@ -416,6 +416,42 @@ span.khoj-nav-item-text {
     padding-left: 8px;
 }
 
+/* Copy button */
+button.copy-button {
+    border-radius: 4px;
+    background-color: var(--background-color);
+    border: 1px solid var(--main-text-color);
+    text-align: center;
+    font-size: 16px;
+    transition: all 0.5s;
+    cursor: pointer;
+    padding: 4px;
+    float: right;
+}
+button.copy-button span {
+    cursor: pointer;
+    display: inline-block;
+    position: relative;
+    transition: 0.5s;
+}
+img.copy-icon {
+    width: 16px;
+    height: 16px;
+}
+.you button.copy-button {
+    color: var(--text-on-accent);
+}
+.khoj button.copy-button {
+    color: var(--khoj-storm-grey);
+}
+.you button.copy-button:hover {
+    color: var(--khoj-storm-grey);
+    background: var(--text-on-accent);
+}
+.khoj button.copy-button:hover {
+    background: var(--text-on-accent);
+}
+
 @media only screen and (max-width: 600px) {
     div.khoj-header {
         display: grid;
