@@ -355,7 +355,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
             // Replace LaTeX delimiters with placeholders
             newHTML = newHTML.replace(/\\\(/g, 'LEFTPAREN').replace(/\\\)/g, 'RIGHTPAREN')
-                                .replace(/\\\[/g, 'LEFTBRACKET').replace(/\\\]/g, 'RIGHTBRACKET');
+                             .replace(/\\\[/g, 'LEFTBRACKET').replace(/\\\]/g, 'RIGHTBRACKET');
 
             // Remove any text between <s>[INST] and </s> tags. These are spurious instructions for the AI chat model.
             newHTML = newHTML.replace(/<s>\[INST\].+(<\/s>)?/g, '');
@@ -376,7 +376,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
             // Replace placeholders with LaTeX delimiters
             newHTML = newHTML.replace(/LEFTPAREN/g, '\\(').replace(/RIGHTPAREN/g, '\\)')
-                            .replace(/LEFTBRACKET/g, '\\[').replace(/RIGHTBRACKET/g, '\\]');
+                             .replace(/LEFTBRACKET/g, '\\[').replace(/RIGHTBRACKET/g, '\\]');
 
             // Set rendered markdown to HTML DOM element
             let element = document.createElement('div');
@@ -1039,11 +1039,7 @@ To get started, just start typing below. You can also type / to see a list of co
             }
         }
 
-        function sendMessageViaWebSocket(event) {
-            if (event) {
-                event.preventDefault();
-            }
-
+        function sendMessageViaWebSocket() {
             let chatBody = document.getElementById("chat-body");
 
             var query = document.getElementById("chat-input").value.trim();

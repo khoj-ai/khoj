@@ -155,14 +155,14 @@ div.expanded.reference-section {
     grid-auto-flow: row;
     grid-column-gap: 10px;
     grid-row-gap: 10px;
-    margin: 10px;
+    margin: 10px 0;
 }
 button.reference-button {
-    background: var(--color-base-00);
-    color: var(--color-base-100);
+    background: var(--khoj-winter-sun);
+    color: var(--khoj-storm-grey);
     border: 1px solid var(--khoj-storm-grey);
     border-radius: 5px;
-    padding: 5px;
+    padding: 4px;
     font-size: 14px;
     font-weight: 300;
     line-height: 1.5em;
@@ -192,11 +192,12 @@ button.reference-button[aria-expanded="true"]::before {
     transform: rotate(90deg);
 }
 button.reference-expand-button {
-    background: var(--color-base-00);
-    color: var(--color-base-100);
+    background: var(--khoj-winter-sun);
+    color: var(--khoj-storm-grey);
     border: 1px solid var(--khoj-storm-grey);
     border-radius: 5px;
-    padding: 5px;
+    padding: 8px;
+    margin-top: 8px;
     font-size: 14px;
     font-weight: 300;
     line-height: 1.5em;
@@ -206,7 +207,7 @@ button.reference-expand-button {
 }
 button.reference-expand-button:hover {
     background: var(--khoj-sun);
-    color: var(--color-base-00);
+    color: var(--khoj-storm-grey);
 }
 a.inline-chat-link {
     color: #475569;
@@ -426,6 +427,7 @@ button.copy-button {
     transition: all 0.5s;
     cursor: pointer;
     padding: 4px;
+    margin-top: 8px;
     float: right;
 }
 button.copy-button span {
