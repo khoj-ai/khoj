@@ -4,12 +4,7 @@ import { KhojSearchModal } from 'src/search_modal';
 import { KhojView, populateHeaderPane } from './utils';
 
 export abstract class KhojPaneView extends ItemView {
-    result: string;
     setting: KhojSetting;
-    region: string;
-    city: string;
-    countryName: string;
-    timezone: string;
 
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
         super(leaf);
@@ -18,19 +13,6 @@ export abstract class KhojPaneView extends ItemView {
 
         // Register Modal Keybindings to send user message
         // this.scope.register([], 'Enter', async () => { await this.chat() });
-
-        fetch("https://ipapi.co/json")
-            .then(response => response.json())
-            .then(data => {
-                this.region = data.region;
-                this.city = data.city;
-                this.countryName = data.country_name;
-                this.timezone = data.timezone;
-            })
-            .catch(err => {
-                console.log(err);
-                return;
-            });
     }
 
     async onOpen() {
