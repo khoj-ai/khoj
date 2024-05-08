@@ -6,15 +6,24 @@
             <img class="card-icon" src="/static/assets/icons/automation.svg?v={{ khoj_version }}" alt="Automate">
             <span class="card-title-text">Automate (Preview)</span>
             <div class="instructions">
-                You can automate queries to run on a schedule using Khoj's automations for smart reminders. Results will be sent straight to your inbox. This is an experimental feature, so your results may vary. Report any issues to <a class="inline-link-light" href="mailto:team@khoj.dev">team@khoj.dev</a>.
+                Automations allow you to schedule smart reminders using Khoj. This is an experimental feature, so your results may vary! Send any feedback to <a class="inline-link-light" href="mailto:team@khoj.dev">team@khoj.dev</a>.
+            </div>
+            <div class="instructions notice">
+                Sending automation results to <a class="inline-link-light" href="mailto:{{ username}}">{{ username }}</a>.
             </div>
         </h2>
         <div class="section-body">
             <button id="create-automation-button" type="button" class="positive-button">
                <img class="automation-action-icon" src="/static/assets/icons/new.svg" alt="Automations">
-               <span id="create-automation-button-text">Build</span>
+               <span id="create-automation-button-text">Build Your Own</span>
             </button>
             <div id="automations" class="section-cards"></div>
+            <div id="suggested-automations">
+                <h2 class="section-title">
+                    <span class="card-title-text">Suggested Automations</span>
+                </h2>
+                <div id="suggested-automations-list" class="section-cards"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -27,21 +36,43 @@
         width: 100%;
         height: 100%;
         grid-template-rows: none;
-        background-color: var(--frosted-background-color);
-        padding: 12px;
+        background-color: white;
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: rgba(3, 3, 3, 0.08) 0px 1px 12px;
+        transition: box-shadow 0.3s ease, transform 0.3s ease;
     }
+
+    textarea.fake-input,
+    input.fake-input {
+        height: auto;
+        padding-top: 0px;
+        padding-bottom: 0px;
+        padding-left: 0px;
+        padding-right: 0px;
+        border: none;
+    }
+
     #create-automation-button {
         width: auto;
     }
+
+    div.notice {
+        border-top: 1px solid black;
+        padding-top: 8px;
+    }
+
+    div#suggested-automations-list,
     div#automations {
         margin-bottom: 12px;
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
     }
+
     button.negative-button {
         background-color: gainsboro;
     }
     .positive-button {
-        background-color: var(--primary-hover);
+        background-color: var(--primary-hover)
     }
     .positive-button:hover {
         background-color: var(--summer-sun);
@@ -50,11 +81,17 @@
     div.automation-buttons {
         display: grid;
         grid-gap: 8px;
-        grid-template-columns: 1fr 3fr;
+        grid-template-columns: 1fr 1fr 1fr;
     }
 
     button.save-automation-button {
         background-color: var(--summer-sun);
+    }
+
+    button.save-automation-button,
+    button.delete-automation-button {
+        padding: 8px;
+        margin-bottom: 0;
     }
 
     button.save-automation-button:hover {
@@ -62,13 +99,13 @@
     }
 
     div.new-automation {
-        background-color: var(--frosted-background-color);
-        border-radius: 10px;
+        border-radius: 20px;
         box-shadow: 0 4px 6px 0 hsla(0, 0%, 0%, 0.2);
         margin-bottom: 20px;
         transition: box-shadow 0.3s ease, transform 0.3s ease;
     }
 
+    div.automation:hover,
     div.new-automation:hover {
         box-shadow: 0 10px 15px 0 hsla(0, 0%, 0%, 0.1);
         transform: translateY(-5px);
@@ -80,13 +117,42 @@
 
     div.card-header {
         display: grid;
-        grid-template-columns: 1fr auto;
+        grid-template-rows: auto 1fr;
         grid-gap: 8px;
         align-items: baseline;
-        padding: 8px;
-        background-color: var(--frosted-background-color);
+    }
+    input.schedule {
+        font-size: medium;
+        height: auto;
+        font-weight: lighter !important;
     }
 
+    h2.section-title {
+        font-size: larger;
+    }
+
+    div.card-header input {
+        font-weight: bold;
+        margin-bottom: 0 !important;
+    }
+
+    div.automation textarea {
+        width: 100%;
+        box-sizing: border-box;
+        border-radius: 4px;
+        resize: none;
+    }
+
+    img.promo-image {
+        width: 100%;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
+
+
+    div.card-header textarea,
+    div.card-header input,
     div.card-header:hover {
         cursor: pointer;
     }
@@ -104,6 +170,16 @@
 
     .confirmation {
         animation: confirmation 1s;
+    }
+
+    @media screen and (max-width: 600px) {
+        div#automations,
+        div#suggested-automations-list {
+            grid-template-columns: 1fr;
+        }
+        div.automation-buttons {
+            grid-template-columns: 1fr;
+        }
     }
 
 </style>
@@ -143,11 +219,13 @@
     function onClickAutomationCard(automationId) {
         const automationIDElements = document.querySelectorAll(`.${automationId}`);
         automationIDElements.forEach(el => {
-            el.classList.toggle("hide-details");
+            // Only toggle the first time the button is clicked
+            el.classList.remove("hide-details");
+            el.classList.remove("fake-input");
         });
     }
 
-    function generateAutomationRow(automation) {
+    function generateAutomationRow(automation, isSuggested=false) {
         let automationId = automation.id;
         let automationNextRun = `Next run at ${automation.next}\nCron: ${automation.crontime}`;
         let automationEl = document.createElement("div");
@@ -156,43 +234,61 @@
                 <div class="card-header" onclick="onClickAutomationCard('${automationId}')">
                     <input type="text"
                         id="automation-subject-${automationId}"
+                        class="${automationId} fake-input"
                         name="subject"
                         data-original="${automation.subject}"
                         value="${automation.subject}">
-                    <div class="toggle-icon">
-                        <img src="/static/assets/icons/collapse.svg" alt="Toggle" class="toggle-icon">
-                    </div>
-                </div>
-                <label for="query-to-run" class="hide-details ${automationId}">Your automation</label>
-                <textarea id="automation-queryToRun-${automationId}"
-                          class="hide-details ${automationId}"
-                          data-original="${automation.query_to_run}"
-                          name="query-to-run">${automation.query_to_run}</textarea>
-                <label for="schedule" class="hide-details">Schedule</label>
-                <input type="text"
-                       class="hide-details ${automationId}"
+                    <input type="text"
                        id="automation-schedule-${automationId}"
                        name="schedule"
+                       class="schedule ${automationId} fake-input"
                        data-cron="${automation.crontime}"
                        data-original="${automation.schedule}"
                        title="${automationNextRun}"
                        value="${automation.schedule}">
-                <div class="hide-details automation-buttons ${automationId}">
-                    <button type="button"
-                            class="delete-automation-button negative-button"
-                            id="delete-automation-button-${automationId}">Delete</button>
-                    <button type="button"
-                            class="save-automation-button positive-button"
-                            id="save-automation-button-${automationId}">Save</button>
+                    <textarea id="automation-queryToRun-${automationId}"
+                        class="automation-instructions ${automationId} fake-input"
+                        data-original="${automation.query_to_run}"
+                        name="query-to-run">${automation.query_to_run}</textarea>
+                    ${isSuggested ?
+                        `<img class=promo-image src="${automation.promoImage}" alt="Promo Image">`:
+                        ""
+                    }
+                </div>
+                <div id="automation-buttons-wrapper">
+                    <div class="automation-buttons">
+                        <div id="empty-div"></div>
+                        ${isSuggested ?
+                            `<div id="empty-div"></div>`:
+                            `
+                            <button type="button"
+                                    class="delete-automation-button negative-button"
+                                    id="delete-automation-button-${automationId}">Delete</button>
+                            `
+                        }
+                        <button type="button"
+                                class="save-automation-button positive-button"
+                                id="save-automation-button-${automationId}">
+                                    ${isSuggested ? "Add" : "Save"}
+                                </button>
+                    </div>
                 </div>
                 <div id="automation-success-${automationId}" style="display: none;"></div>
             </div>
         `;
 
+        let automationButtonsSection = automationEl.querySelector(".automation-buttons");
+        if (!isSuggested) {
+            automationButtonsSection.classList.add("hide-details");
+            automationButtonsSection.classList.add(automationId);
+        }
+
         let saveAutomationButtonEl = automationEl.querySelector(`#save-automation-button-${automation.id}`);
-        saveAutomationButtonEl.addEventListener("click", async () => { await saveAutomation(automation.id); });
+        saveAutomationButtonEl.addEventListener("click", async () => { await saveAutomation(automation.id, isSuggested); });
         let deleteAutomationButtonEl = automationEl.querySelector(`#delete-automation-button-${automation.id}`);
-        deleteAutomationButtonEl.addEventListener("click", () => { deleteAutomation(automation.id); });
+        if (deleteAutomationButtonEl) {
+            deleteAutomationButtonEl.addEventListener("click", () => { deleteAutomation(automation.id); });
+        }
 
         return automationEl.firstElementChild;
     }
@@ -208,6 +304,56 @@
             });
     }
     listAutomations();
+
+    let timestamp = Math.floor(Date.now() / 1000);
+
+    let suggestedAutomationsMetadata = [
+        {
+            "subject": "Weekly Newsletter",
+            "query_to_run": "Share a Newsletter including: 1. Weather forecast for this Week. 2. Recap news from last week 3. A nice quote to start the week.",
+            "schedule": "9AM every Monday",
+            "next": "Next run at 9AM on Monday",
+            "crontime": "0 9 * * 1",
+            "id": "suggested-automation" + timestamp,
+            "promoImage": "https://khoj-generated-images.s3.amazonaws.com/98aef1b2-5493-41ba-a252-2ab7ab122901/f4cde8a5-522d-4515-9d2e-52565171b1b8.webp",
+        },
+        {
+            "subject": "Daily Weather Update",
+            "query_to_run": "Get the weather forecast for today and tomorrow",
+            "schedule": "9AM every morning",
+            "next": "Next run at 9AM today",
+            "crontime": "0 9 * * *",
+            "id": "suggested-automation" + (timestamp + 1),
+            "promoImage": "https://khoj-generated-images.s3.amazonaws.com/98aef1b2-5493-41ba-a252-2ab7ab122901/94d9c576-b37a-45d6-bc2e-59879c15ab79.webp",
+        },
+        {
+            "subject": "Front Page of Hacker News",
+            "query_to_run": "Summarize the top 5 posts from https://news.ycombinator.com/best and share them with me, including links",
+            "schedule": "9PM on every Wednesday",
+            "next": "Next run at 9PM on Wednesday",
+            "crontime": "0 21 * * 3",
+            "id": "suggested-automation" + (timestamp + 2),
+            "promoImage": "https://khoj-generated-images.s3.amazonaws.com/98aef1b2-5493-41ba-a252-2ab7ab122901/17d22551-6b8c-4628-b12d-c767d8e8bec1.webp",
+        },
+        {
+            "subject": "Market Summary",
+            "query_to_run": "Get the market summary for today and share it with me. Focus on tech stocks and the S&P 500.",
+            "schedule": "9AM on every weekday",
+            "next": "Next run at 9AM on Monday",
+            "crontime": "0 9 * * 1-5",
+            "id": "suggested-automation" + (timestamp + 3),
+            "promoImage": "https://khoj-generated-images.s3.amazonaws.com/98aef1b2-5493-41ba-a252-2ab7ab122901/fd7dbfe7-c7f8-4bc9-ac18-652199fc07d9.webp",
+        }
+    ];
+
+    TODO: filter out suggested automations that are already in the list of automations
+
+    function listSuggestedAutomations() {
+        const SuggestedAutomationsList = document.getElementById("suggested-automations-list");
+        SuggestedAutomationsList.innerHTML = ''; // Clear existing content
+        SuggestedAutomationsList.append(...suggestedAutomationsMetadata.map(automation => generateAutomationRow(automation, true)));
+    }
+    listSuggestedAutomations();
 
     function enableSaveOnlyWhenInputsChanged() {
         const inputs = document.querySelectorAll('input[name="schedule"], textarea[name="query-to-run"], input[name="subject"]');
@@ -297,6 +443,15 @@
                 // Create a more interesting confirmation animation.
                 automationEl.classList.add("confirmation")
                 setTimeout(function() {
+
+                    // Check if automationEl is a child of #automations or #suggested-automations-list
+                    // If #suggested-automations-list, remove the element from the list and add it to #automations
+                    let parentEl = automationEl.parentElement;
+                    let isSuggested = parentEl.id === "suggested-automations-list";
+                    if (isSuggested) {
+                        parentEl.removeChild(automationEl);
+                        document.getElementById("automations").prepend(automationEl);
+                    }
                     automationEl.replaceWith(generateAutomationRow(automation));
                 }, 1000);
             } else {
@@ -330,7 +485,7 @@
         const placeholderId = Date.now();
         automationEl.id = "automation-card-" + placeholderId;
         automationEl.innerHTML = `
-            <label for="query-to-run">Your new automation</label>
+            <label for="query-to-run">Instructions</label>
             <textarea id="automation-queryToRun-${placeholderId}" placeholder="Share a Newsletter including: 1. Weather forecast for this Week. 2. A Book Highlight from my Notes. 3. Recap News from Last Week"></textarea>
             <label for="schedule">Schedule</label>
             <input type="text"
