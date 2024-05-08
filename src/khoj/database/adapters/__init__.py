@@ -439,8 +439,8 @@ class ProcessLockAdapters:
         return True
 
     @staticmethod
-    def remove_process_lock(process_name: str):
-        return ProcessLock.objects.filter(name=process_name).delete()
+    def remove_process_lock(process_lock: ProcessLock):
+        return process_lock.delete()
 
     @staticmethod
     def run_with_lock(func: Callable, operation: ProcessLock.Operation, max_duration_in_seconds: int = 600, **kwargs):
@@ -450,9 +450,10 @@ class ProcessLockAdapters:
             return
 
         success = False
+        process_lock = None
         try:
             # Set process lock
-            ProcessLockAdapters.set_process_lock(operation, max_duration_in_seconds)
+            process_lock = ProcessLockAdapters.set_process_lock(operation, max_duration_in_seconds)
             logger.info(f"🔐 Locked {operation} to execute {func}")
 
             # Execute Function
@@ -467,8 +468,13 @@ class ProcessLockAdapters:
             success = False
         finally:
             # Remove Process Lock
-            ProcessLockAdapters.remove_process_lock(operation)
-            logger.info(f"🔓 Unlocked {operation} process after executing {func} {'Succeeded' if success else 'Failed'}")
+            if process_lock:
+                ProcessLockAdapters.remove_process_lock(process_lock)
+                logger.info(
+                    f"🔓 Unlocked {operation} process after executing {func} {'Succeeded' if success else 'Failed'}"
+                )
+            else:
+                logger.info(f"Skip removing {operation} process lock as it was not set")
 
 
 def run_with_process_lock(*args, **kwargs):
