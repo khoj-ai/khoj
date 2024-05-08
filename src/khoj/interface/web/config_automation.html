@@ -293,18 +293,6 @@
         return automationEl.firstElementChild;
     }
 
-    function listAutomations() {
-        const AutomationsList = document.getElementById("automations");
-        fetch('/api/automations')
-            .then(response => response.json())
-            .then(automations => {
-                if (!automations?.length > 0) return;
-                AutomationsList.innerHTML = ''; // Clear existing content
-                AutomationsList.append(...automations.map(automation => generateAutomationRow(automation)))
-            });
-    }
-    listAutomations();
-
     let timestamp = Math.floor(Date.now() / 1000);
 
     let suggestedAutomationsMetadata = [
@@ -346,7 +334,36 @@
         }
     ];
 
-    TODO: filter out suggested automations that are already in the list of automations
+    function listAutomations() {
+        const AutomationsList = document.getElementById("automations");
+        fetch('/api/automations')
+            .then(response => response.json())
+            .then(automations => {
+                if (!automations?.length > 0) return;
+                AutomationsList.innerHTML = ''; // Clear existing content
+                AutomationsList.append(...automations.map(automation => generateAutomationRow(automation)));
+                // Check if any of the automations 'query-to-run' fields match the suggested automations
+                automations.forEach(automation => {
+                    suggestedAutomationsMetadata.forEach(suggestedAutomation => {
+                        if (automation.query_to_run === suggestedAutomation.query_to_run) {
+                            let suggestedAutomationEl = document.getElementById(`automation-card-${suggestedAutomation.id}`);
+                            suggestedAutomationEl.remove();
+                        }
+                    });
+                });
+            });
+    }
+    listAutomations();
+
+    if (suggestedAutomationsMetadata.length > 0) {
+        suggestedAutomationsMetadata.forEach(automation => {
+            automation.id = "suggested-automation" + timestamp;
+            timestamp++;
+        });
+    }
+
+
+
 
     function listSuggestedAutomations() {
         const SuggestedAutomationsList = document.getElementById("suggested-automations-list");
