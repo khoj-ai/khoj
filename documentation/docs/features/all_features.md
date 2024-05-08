@@ -29,6 +29,6 @@ Khoj is available as a [Desktop app](/clients/desktop), [Emacs package](/clients
 ![](/img/khoj_clients.svg ':size=400px')
 
 ### Supported Data Sources
-Khoj can understand your org-mode, markdown, PDF, plaintext files, [Github projects](/online-data-sources/github_integration) and [Notion pages](/online-data-sources/notion_integration).
+Khoj can understand your org-mode, markdown, PDF, plaintext files, [Github projects](/data-sources/github_integration) and [Notion pages](/data-sources/notion_integration).
 
 ![](/img/khoj_datasources.svg ':size=200px')

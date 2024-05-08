@@ -199,7 +199,7 @@ img.khoj-logo {
     border: 3px solid var(--primary-hover);
 }
 
-@media screen and (max-width: 700px) {
+@media screen and (max-width: 1000px) {
     .khoj-nav-dropdown-content {
         display: block;
         grid-auto-flow: row;
@@ -215,7 +215,7 @@ img.khoj-logo {
     }
 }
 
-@media only screen and (max-width: 700px) {
+@media only screen and (max-width: 1000px) {
     div.khoj-header {
         display: grid;
         grid-auto-flow: column;
