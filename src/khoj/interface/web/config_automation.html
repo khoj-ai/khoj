@@ -26,6 +26,9 @@
             </div>
         </div>
     </div>
+    <div id="footer">
+        <a href="/">Back to Chat</a>
+    </div>
 </div>
 <script src="/static/assets/natural-cron.min.js"></script>
 <style>
@@ -41,6 +44,22 @@
         padding: 20px;
         box-shadow: rgba(3, 3, 3, 0.08) 0px 1px 12px;
         transition: box-shadow 0.3s ease, transform 0.3s ease;
+    }
+
+    div#footer {
+        width: auto;
+        padding: 10px;
+        background-color: var(--background-color);
+        border-top: 1px solid var(--main-text-color);
+        text-align: left;
+        margin-top: 12px;
+        margin-bottom: 12px;
+    }
+
+    div#footer a {
+        font-size: 18px;
+        font-weight: bold;
+        color: var(--primary-color);
     }
 
     textarea.fake-input,
@@ -478,6 +497,19 @@
             notificationEl.style.display = "none";
             saveButtonEl.textContent = `✅ Automation ${actOn}d`;
             setTimeout(function() {
+                const automationIDElements = document.querySelectorAll(`.${automationId}`);
+                automationIDElements.forEach(el => {
+                    // If it has the class automation-buttons, turn on the hide-details class
+                    if (el.classList.contains("automation-buttons"))
+                    {
+                        el.classList.add("hide-details");
+                    }
+                    // If it has the class automationId, turn on the fake-input class
+                    else if (el.classList.contains(automationId))
+                    {
+                        el.classList.add("fake-input");
+                    }
+                });
                 saveButtonEl.textContent = "Save";
             }, 2000);
         })
