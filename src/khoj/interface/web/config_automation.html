@@ -534,13 +534,13 @@
         const placeholderId = Date.now();
         automationEl.id = "automation-card-" + placeholderId;
         automationEl.innerHTML = `
-            <label for="query-to-run">Instructions</label>
-            <textarea id="automation-queryToRun-${placeholderId}" placeholder="Share a Newsletter including: 1. Weather forecast for this Week. 2. A Book Highlight from my Notes. 3. Recap News from Last Week"></textarea>
             <label for="schedule">Schedule</label>
             <input type="text"
                    id="automation-schedule-${placeholderId}"
                    name="schedule"
                    placeholder="9AM every morning">
+            <label for="query-to-run">Instructions</label>
+            <textarea id="automation-queryToRun-${placeholderId}" placeholder="Provide me with a mindful moment, reminding me to be centered."></textarea>
             <div class="automation-buttons">
                 <button type="button"
                         class="delete-automation-button negative-button"
