@@ -42,7 +42,7 @@ async def send_welcome_email(name, email):
 
     r = resend.Emails.send(
         {
-            "from": "team@khoj.dev",
+            "sender": "team@khoj.dev",
             "to": email,
             "subject": f"{name}, four ways to use Khoj" if name else "Four ways to use Khoj",
             "html": html_content,
@@ -64,7 +64,7 @@ def send_task_email(name, email, query, result, subject):
 
     r = resend.Emails.send(
         {
-            "from": "Khoj <khoj@khoj.dev>",
+            "sender": "Khoj <khoj@khoj.dev>",
             "to": email,
             "subject": f"✨ {subject}",
             "html": html_content,
