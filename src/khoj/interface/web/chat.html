@@ -164,16 +164,14 @@ To get started, just start typing below. You can also type / to see a list of co
 
             return referenceButton;
         }
-        var userQuery = "";
         var khojQuery = "";
-        function renderMessage(message, by, dt=null, annotations=null, raw=false, renderType="append") {
+        function renderMessage(message, by, dt=null, annotations=null, raw=false, renderType="append", userQuery=null) {
             let message_time = formatDate(dt ?? new Date());
             let by_name =  by == "khoj" ? "🏮 Khoj" : "🤔 You";
-            let formattedMessage = formatHTMLMessage(message, raw);
+            let formattedMessage = formatHTMLMessage(message, raw, true, userQuery);
             //update userQuery or khojQuery to latest query for feedback purposes
             if(by !== "khoj"){
                 raw = formattedMessage.innerHTML;
-                userQuery = raw.match(/<p>(.*?)<\/p>/)[1];
             }
 
             //find the thumbs up and thumbs down buttons from the message formatter
@@ -268,7 +266,7 @@ To get started, just start typing below. You can also type / to see a list of co
             return numOnlineReferences;
         }
 
-        function renderMessageWithReference(message, by, context=null, dt=null, onlineContext=null, intentType=null, inferredQueries=null) {
+        function renderMessageWithReference(message, by, context=null, dt=null, onlineContext=null, intentType=null, inferredQueries=null, userQuery) {
             // If no document or online context is provided, render the message as is
             if ((context == null || context.length == 0) && (onlineContext == null || (onlineContext && Object.keys(onlineContext).length == 0))) {
                 if (intentType?.includes("text-to-image")) {
@@ -284,14 +282,14 @@ To get started, just start typing below. You can also type / to see a list of co
                     if (inferredQuery) {
                         imageMarkdown += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
                     }
-                    return renderMessage(imageMarkdown, by, dt, null, false, "return");
+                    return renderMessage(imageMarkdown, by, dt, null, false, "return", userQuery);
                 }
 
-                return renderMessage(message, by, dt, null, false, "return");
+                return renderMessage(message, by, dt, null, false, "return", userQuery);
             }
 
             if ((context && context.length == 0) && (onlineContext == null || (onlineContext && Object.keys(onlineContext).length == 0))) {
-                return renderMessage(message, by, dt, null, false, "return");
+                return renderMessage(message, by, dt, null, false, "return", userQuery);
             }
 
             // If document or online context is provided, render the message with its references
@@ -352,10 +350,10 @@ To get started, just start typing below. You can also type / to see a list of co
                 if (inferredQuery) {
                     imageMarkdown += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
                 }
-                return renderMessage(imageMarkdown, by, dt, references, false, "return");
+                return renderMessage(imageMarkdown, by, dt, references, false, "return", userQuery);
             }
 
-            return renderMessage(message, by, dt, references, false, "return");
+            return renderMessage(message, by, dt, references, false, "return", userQuery);
         }
         //handler function for posting feedback data to endpoint
         function sendFeedback(_uquery="", _kquery="", _sentiment="") {
@@ -372,10 +370,9 @@ To get started, just start typing below. You can also type / to see a list of co
             .then(response => response.json())
         }
 
-        function formatHTMLMessage(message, raw=false, willReplace=true) {
+        function formatHTMLMessage(message, raw=false, willReplace=true, userQuery) {
             var md = window.markdownit();
             let newHTML = message;
-
             // Remove any text between <s>[INST] and </s> tags. These are spurious instructions for the AI chat model.
             newHTML = newHTML.replace(/<s>\[INST\].+(<\/s>)?/g, '');
 
@@ -407,18 +404,6 @@ To get started, just start typing below. You can also type / to see a list of co
                 copyIcon.classList.add("copy-icon");
                 copyButton.appendChild(copyIcon);
                 copyButton.addEventListener('click', createCopyParentText(message));
-
-                var thumbsUpButtons = document.querySelectorAll('.thumbs-up-button');
-                var thumbsDownButtons = document.querySelectorAll('.thumbs-down-button');
-
-                //clear out old feedback buttons as we can't access this data anymore
-                thumbsUpButtons.forEach(function(element) {
-                    element.parentNode.removeChild(element);
-                });
-                thumbsDownButtons.forEach(function(element) {
-                    element.parentNode.removeChild(element);
-                });
-
 
                 //create thumbs-up button
                 let thumbsUpButton = document.createElement('button');
@@ -1247,7 +1232,8 @@ To get started, just start typing below. You can also type / to see a list of co
                                 new Date(chat_log.created),
                                 chat_log.onlineContext,
                                 chat_log.intent?.type,
-                                chat_log.intent?.["inferred-queries"]);
+                                chat_log.intent?.["inferred-queries"],
+                                chat_log.intent?.query);
                             chatBody.appendChild(messageElement);
 
                             // When the 4th oldest message is within viewing distance (~60% scroll up)
@@ -1342,7 +1328,8 @@ To get started, just start typing below. You can also type / to see a list of co
                             new Date(chat_log.created),
                             chat_log.onlineContext,
                             chat_log.intent?.type,
-                            chat_log.intent?.["inferred-queries"]
+                            chat_log.intent?.["inferred-queries"],
+                            chat_log.intent?.query
                         );
                         entry.target.replaceWith(messageElement);
 
