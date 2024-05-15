@@ -64,12 +64,11 @@ dependencies = [
     "pymupdf >= 1.23.5",
     "django == 4.2.10",
     "authlib == 1.2.1",
-    "llama-cpp-python == 0.2.56",
+    "llama-cpp-python == 0.2.64",
     "itsdangerous == 2.1.2",
     "httpx == 0.25.0",
     "pgvector == 0.2.4",
     "psycopg2-binary == 2.9.9",
-    "gunicorn == 21.2.0",
     "lxml == 4.9.3",
     "tzdata == 2023.3",
     "rapidocr-onnxruntime == 1.3.11; python_version<'3.12'",
@@ -77,9 +76,14 @@ dependencies = [
     "django-phonenumber-field == 7.3.0",
     "phonenumbers == 8.13.27",
     "markdownify ~= 0.11.6",
+    "markdown-it-py ~= 3.0.0",
     "websockets == 12.0",
     "psutil >= 5.8.0",
     "huggingface-hub >= 0.22.2",
+    "apscheduler ~= 3.10.0",
+    "pytz ~= 2024.1",
+    "cron-descriptor == 1.4.3",
+    "django_apscheduler == 0.6.2",
 ]
 dynamic = ["version"]
 
@@ -93,11 +97,12 @@ khoj = "khoj.main:run"
 
 [project.optional-dependencies]
 prod = [
+    "gunicorn == 22.0.0",
     "google-auth == 2.23.3",
     "stripe == 7.3.0",
     "twilio == 8.11",
     "boto3 >= 1.34.57",
-    "resend >= 0.8.0",
+    "resend >= 1.0.1",
 ]
 dev = [
     "khoj-assistant[prod]",

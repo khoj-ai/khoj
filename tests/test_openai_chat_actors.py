@@ -12,8 +12,11 @@ from khoj.routers.helpers import (
     aget_relevant_output_modes,
     generate_online_subqueries,
     infer_webpage_urls,
+    schedule_query,
+    should_notify,
 )
 from khoj.utils.helpers import ConversationCommand
+from khoj.utils.rawconfig import LocationData
 
 # Initialize variables for tests
 api_key = os.getenv("OPENAI_API_KEY")
@@ -490,71 +493,42 @@ async def test_websearch_khoj_website_for_info_about_khoj(chat_client):
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.anyio
 @pytest.mark.django_db(transaction=True)
-async def test_use_default_response_mode(chat_client):
-    # Arrange
-    user_query = "What's the latest in the Israel/Palestine conflict?"
-
+@pytest.mark.parametrize(
+    "user_query, expected_mode",
+    [
+        ("What's the latest in the Israel/Palestine conflict?", "default"),
+        ("Summarize the latest tech news every Monday evening", "reminder"),
+        ("Paint a scenery in Timbuktu in the winter", "image"),
+        ("Remind me, when did I last visit the Serengeti?", "default"),
+    ],
+)
+async def test_use_default_response_mode(chat_client, user_query, expected_mode):
     # Act
     mode = await aget_relevant_output_modes(user_query, {})
 
     # Assert
-    assert mode.value == "default"
+    assert mode.value == expected_mode
 
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.anyio
 @pytest.mark.django_db(transaction=True)
-async def test_use_image_response_mode(chat_client):
-    # Arrange
-    user_query = "Paint a scenery in Timbuktu in the winter"
-
-    # Act
-    mode = await aget_relevant_output_modes(user_query, {})
-
-    # Assert
-    assert mode.value == "image"
-
-
-# ----------------------------------------------------------------------------------------------------
-@pytest.mark.anyio
-@pytest.mark.django_db(transaction=True)
-async def test_select_data_sources_actor_chooses_to_search_notes(chat_client):
-    # Arrange
-    user_query = "Where did I learn to swim?"
-
+@pytest.mark.parametrize(
+    "user_query, expected_conversation_commands",
+    [
+        ("Where did I learn to swim?", [ConversationCommand.Notes]),
+        ("Where is the nearest hospital?", [ConversationCommand.Online]),
+        ("Summarize the wikipedia page on the history of the internet", [ConversationCommand.Webpage]),
+    ],
+)
+async def test_select_data_sources_actor_chooses_to_search_notes(
+    chat_client, user_query, expected_conversation_commands
+):
     # Act
     conversation_commands = await aget_relevant_information_sources(user_query, {})
 
     # Assert
-    assert ConversationCommand.Notes in conversation_commands
-
-
-# ----------------------------------------------------------------------------------------------------
-@pytest.mark.anyio
-@pytest.mark.django_db(transaction=True)
-async def test_select_data_sources_actor_chooses_to_search_online(chat_client):
-    # Arrange
-    user_query = "Where is the nearest hospital?"
-
-    # Act
-    conversation_commands = await aget_relevant_information_sources(user_query, {})
-
-    # Assert
-    assert ConversationCommand.Online in conversation_commands
-
-
-# ----------------------------------------------------------------------------------------------------
-@pytest.mark.anyio
-@pytest.mark.django_db(transaction=True)
-async def test_select_data_sources_actor_chooses_to_read_webpage(chat_client):
-    # Arrange
-    user_query = "Summarize the wikipedia page on the history of the internet"
-
-    # Act
-    conversation_commands = await aget_relevant_information_sources(user_query, {})
-
-    # Assert
-    assert ConversationCommand.Webpage in conversation_commands
+    assert expected_conversation_commands in conversation_commands
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -569,6 +543,104 @@ async def test_infer_webpage_urls_actor_extracts_correct_links(chat_client):
 
     # Assert
     assert "https://en.wikipedia.org/wiki/History_of_the_Internet" in urls
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.anyio
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize(
+    "user_query, location, expected_crontime, expected_qs, unexpected_qs",
+    [
+        (
+            "Share the weather forecast for the next day daily at 7:30pm",
+            ("Ubud", "Bali", "Indonesia"),
+            "30 11 * * *",  # ensure correctly converts to utc
+            ["weather forecast", "ubud"],
+            ["7:30"],
+        ),
+        (
+            "Notify me when the new President of Brazil is announced",
+            ("Sao Paulo", "Sao Paulo", "Brazil"),
+            "* *",  # crontime is variable
+            ["brazil", "president"],
+            ["notify"],  # ensure reminder isn't re-triggered on scheduled query run
+        ),
+        (
+            "Let me know whenever Elon leaves Twitter. Check this every afternoon at 12",
+            ("Karachi", "Sindh", "Pakistan"),
+            "0 7 * * *",  # ensure correctly converts to utc
+            ["elon", "twitter"],
+            ["12"],
+        ),
+        (
+            "Draw a wallpaper every morning using the current weather",
+            ("Bogota", "Cundinamarca", "Colombia"),
+            "* * *",  # daily crontime
+            ["weather", "wallpaper", "bogota"],
+            ["every"],
+        ),
+    ],
+)
+async def test_infer_task_scheduling_request(
+    chat_client, user_query, location, expected_crontime, expected_qs, unexpected_qs
+):
+    # Arrange
+    location_data = LocationData(city=location[0], region=location[1], country=location[2])
+
+    # Act
+    crontime, inferred_query = await schedule_query(user_query, location_data, {})
+    inferred_query = inferred_query.lower()
+
+    # Assert
+    assert expected_crontime in crontime
+    for expected_q in expected_qs:
+        assert expected_q in inferred_query, f"Expected fragment {expected_q} in query: {inferred_query}"
+    for unexpected_q in unexpected_qs:
+        assert (
+            unexpected_q not in inferred_query
+        ), f"Did not expect fragment '{unexpected_q}' in query: '{inferred_query}'"
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.anyio
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize(
+    "scheduling_query, executing_query, generated_response, expected_should_notify",
+    [
+        (
+            "Notify me if it is going to rain tomorrow?",
+            "What's the weather forecast for tomorrow?",
+            "It is sunny and warm tomorrow.",
+            False,
+        ),
+        (
+            "Summarize the latest news every morning",
+            "Summarize today's news",
+            "Today in the news: AI is taking over the world",
+            True,
+        ),
+        (
+            "Create a weather wallpaper every morning using the current weather",
+            "Paint a weather wallpaper using the current weather",
+            "https://khoj-generated-wallpaper.khoj.dev/user110/weathervane.webp",
+            True,
+        ),
+        (
+            "Let me know the election results once they are offically declared",
+            "What are the results of the elections? Has the winner been declared?",
+            "The election results has not been declared yet.",
+            False,
+        ),
+    ],
+)
+def test_decision_on_when_to_notify_scheduled_task_results(
+    chat_client, scheduling_query, executing_query, generated_response, expected_should_notify
+):
+    # Act
+    generated_should_notify = should_notify(scheduling_query, executing_query, generated_response)
+
+    # Assert
+    assert generated_should_notify == expected_should_notify
 
 
 # Helpers

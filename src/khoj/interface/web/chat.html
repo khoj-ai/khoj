@@ -1,13 +1,22 @@
+<!DOCTYPE html>
 <html>
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
+        <meta property="og:image" content="https://khoj-web-bucket.s3.amazonaws.com/khoj_hero.png">
         <title>Khoj - Chat</title>
 
         <link rel="stylesheet" href="/static/assets/khoj.css?v={{ khoj_version }}">
         <link rel="icon" type="image/png" sizes="128x128" href="/static/assets/icons/favicon-128x128.png?v={{ khoj_version }}">
         <link rel="apple-touch-icon" href="/static/assets/icons/favicon-128x128.png?v={{ khoj_version }}">
         <link rel="manifest" href="/static/khoj.webmanifest?v={{ khoj_version }}">
+        <link rel="stylesheet" href="https://assets.khoj.dev/katex/katex.min.css">
+
+        <!-- The loading of KaTeX is deferred to speed up page rendering -->
+        <script defer src="https://assets.khoj.dev/katex/katex.min.js"></script>
+
+        <!-- To automatically render math in text elements, include the auto-render extension: -->
+        <script defer src="https://assets.khoj.dev/katex/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
     </head>
     <script type="text/javascript" src="/static/assets/utils.js?v={{ khoj_version }}"></script>
     <script type="text/javascript" src="/static/assets/markdown-it.min.js?v={{ khoj_version }}"></script>
@@ -57,11 +66,12 @@ To get started, just start typing below. You can also type / to see a list of co
         let region = null;
         let city = null;
         let countryName = null;
+        let timezone = null;
         let waitingForLocation = true;
 
         let websocketState = {
-            newResponseText: null,
-            newResponseElement: null,
+            newResponseTextEl: null,
+            newResponseEl: null,
             loadingEllipsis: null,
             references: {},
             rawResponse: "",
@@ -73,13 +83,14 @@ To get started, just start typing below. You can also type / to see a list of co
                 region = data.region;
                 city = data.city;
                 countryName = data.country_name;
+                timezone = data.timezone;
             })
             .catch(err => {
                 console.log(err);
                 return;
             })
             .finally(() => {
-                console.debug("Region:", region, "City:", city, "Country:", countryName);
+                console.debug("Region:", region, "City:", city, "Country:", countryName, "Timezone:", timezone);
                 waitingForLocation = false;
                 setupWebSocket();
             });
@@ -373,6 +384,11 @@ To get started, just start typing below. You can also type / to see a list of co
         function formatHTMLMessage(message, raw=false, willReplace=true, userQuery) {
             var md = window.markdownit();
             let newHTML = message;
+
+            // Replace LaTeX delimiters with placeholders
+            newHTML = newHTML.replace(/\\\(/g, 'LEFTPAREN').replace(/\\\)/g, 'RIGHTPAREN')
+                                .replace(/\\\[/g, 'LEFTBRACKET').replace(/\\\]/g, 'RIGHTBRACKET');
+
             // Remove any text between <s>[INST] and </s> tags. These are spurious instructions for the AI chat model.
             newHTML = newHTML.replace(/<s>\[INST\].+(<\/s>)?/g, '');
 
@@ -389,6 +405,11 @@ To get started, just start typing below. You can also type / to see a list of co
 
             // Render markdown
             newHTML = raw ? newHTML : md.render(newHTML);
+
+            // Replace placeholders with LaTeX delimiters
+            newHTML = newHTML.replace(/LEFTPAREN/g, '\\(').replace(/RIGHTPAREN/g, '\\)')
+                            .replace(/LEFTBRACKET/g, '\\[').replace(/RIGHTBRACKET/g, '\\]');
+
             // Set rendered markdown to HTML DOM element
             let element = document.createElement('div');
             element.innerHTML = newHTML;
@@ -434,6 +455,18 @@ To get started, just start typing below. You can also type / to see a list of co
                 // Append buttons to parent element
                 element.append(copyButton, thumbsDownButton, thumbsUpButton);
             }
+
+            renderMathInElement(element, {
+                // customised options
+                // • auto-render specific keys, e.g.:
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true}
+                ],
+                // • rendering keys, e.g.:
+                throwOnError : false
+            });
 
             // Get any elements with a class that starts with "language"
             let codeBlockElements = element.querySelectorAll('[class^="language-"]');
@@ -518,8 +551,6 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
         async function chat() {
-            // Extract required fields for search from form
-
             if (websocket) {
                 sendMessageViaWebSocket();
                 return;
@@ -572,7 +603,7 @@ To get started, just start typing below. You can also type / to see a list of co
             chatInput.classList.remove("option-enabled");
 
             // Generate backend API URL to execute query
-            let url = `/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}&region=${region}&city=${city}&country=${countryName}`;
+            let url = `/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}&region=${region}&city=${city}&country=${countryName}&timezone=${timezone}`;
 
             // Call specified Khoj API
             let response = await fetch(url);
@@ -958,8 +989,8 @@ To get started, just start typing below. You can also type / to see a list of co
             }
 
             websocketState = {
-                newResponseText: null,
-                newResponseElement: null,
+                newResponseTextEl: null,
+                newResponseEl: null,
                 loadingEllipsis: null,
                 references: {},
                 rawResponse: "",
@@ -967,7 +998,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
             if (chatBody.dataset.conversationId) {
                 webSocketUrl += `?conversation_id=${chatBody.dataset.conversationId}`;
-                webSocketUrl += (!!region && !!city && !!countryName) ? `&region=${region}&city=${city}&country=${countryName}` : '';
+                webSocketUrl += (!!region && !!city && !!countryName) && !!timezone ? `&region=${region}&city=${city}&country=${countryName}&timezone=${timezone}` : '';
 
                 websocket = new WebSocket(webSocketUrl);
                 websocket.onmessage = function(event) {
@@ -979,12 +1010,12 @@ To get started, just start typing below. You can also type / to see a list of co
                     } else if(chunk == "end_llm_response") {
                         console.log("Stopped streaming", new Date());
                         // Append any references after all the data has been streamed
-                        finalizeChatBodyResponse(websocketState.references, websocketState.newResponseText);
+                        finalizeChatBodyResponse(websocketState.references, websocketState.newResponseTextEl);
 
                         // Reset variables
                         websocketState = {
-                            newResponseText: null,
-                            newResponseElement: null,
+                            newResponseTextEl: null,
+                            newResponseEl: null,
                             loadingEllipsis: null,
                             references: {},
                             rawResponse: "",
@@ -1009,9 +1040,9 @@ To get started, just start typing below. You can also type / to see a list of co
                                     websocketState.rawResponse = rawResponse;
                                     websocketState.references = references;
                                 } else if (chunk.type == "status") {
-                                    handleStreamResponse(websocketState.newResponseText, chunk.message, null, false);
+                                    handleStreamResponse(websocketState.newResponseTextEl, chunk.message, null, false);
                                 } else if (chunk.type == "rate_limit") {
-                                    handleStreamResponse(websocketState.newResponseText, chunk.message, websocketState.loadingEllipsis, true);
+                                    handleStreamResponse(websocketState.newResponseTextEl, chunk.message, websocketState.loadingEllipsis, true);
                                 } else {
                                     rawResponse = chunk.response;
                                 }
@@ -1020,21 +1051,21 @@ To get started, just start typing below. You can also type / to see a list of co
                                 websocketState.rawResponse += chunk;
                             } finally {
                                 if (chunk.type != "status" && chunk.type != "rate_limit") {
-                                    addMessageToChatBody(websocketState.rawResponse, websocketState.newResponseText, websocketState.references);
+                                    addMessageToChatBody(websocketState.rawResponse, websocketState.newResponseTextEl, websocketState.references);
                                 }
                             }
                         } else {
 
                             // Handle streamed response of type text/event-stream or text/plain
                             if (chunk && chunk.includes("### compiled references:")) {
-                                ({ rawResponse, references } = handleCompiledReferences(websocketState.newResponseText, chunk, websocketState.references, websocketState.rawResponse));
+                                ({ rawResponse, references } = handleCompiledReferences(websocketState.newResponseTextEl, chunk, websocketState.references, websocketState.rawResponse));
                                 websocketState.rawResponse = rawResponse;
                                 websocketState.references = references;
                             } else {
                                 // If the chunk is not a JSON object, just display it as is
                                 websocketState.rawResponse += chunk;
-                                if (websocketState.newResponseText) {
-                                    handleStreamResponse(websocketState.newResponseText, websocketState.rawResponse, websocketState.loadingEllipsis);
+                                if (websocketState.newResponseTextEl) {
+                                    handleStreamResponse(websocketState.newResponseTextEl, websocketState.rawResponse, websocketState.loadingEllipsis);
                                 }
                             }
 
@@ -1083,19 +1114,19 @@ To get started, just start typing below. You can also type / to see a list of co
             autoResize();
             document.getElementById("chat-input").setAttribute("disabled", "disabled");
 
-            let newResponseElement = document.createElement("div");
-            newResponseElement.classList.add("chat-message", "khoj");
-            newResponseElement.attributes["data-meta"] = "🏮 Khoj at " + formatDate(new Date());
-            chatBody.appendChild(newResponseElement);
+            let newResponseEl = document.createElement("div");
+            newResponseEl.classList.add("chat-message", "khoj");
+            newResponseEl.attributes["data-meta"] = "🏮 Khoj at " + formatDate(new Date());
+            chatBody.appendChild(newResponseEl);
 
-            let newResponseText = document.createElement("div");
-            newResponseText.classList.add("chat-message-text", "khoj");
-            newResponseElement.appendChild(newResponseText);
+            let newResponseTextEl = document.createElement("div");
+            newResponseTextEl.classList.add("chat-message-text", "khoj");
+            newResponseEl.appendChild(newResponseTextEl);
 
             // Temporary status message to indicate that Khoj is thinking
             let loadingEllipsis = createLoadingEllipse();
 
-            newResponseText.appendChild(loadingEllipsis);
+            newResponseTextEl.appendChild(loadingEllipsis);
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
 
             let chatTooltip = document.getElementById("chat-tooltip");
@@ -1110,8 +1141,8 @@ To get started, just start typing below. You can also type / to see a list of co
             let references = {};
 
             websocketState = {
-                newResponseText,
-                newResponseElement,
+                newResponseTextEl,
+                newResponseEl,
                 loadingEllipsis,
                 references,
                 rawResponse,
@@ -1229,7 +1260,7 @@ To get started, just start typing below. You can also type / to see a list of co
                                 chat_log.message,
                                 chat_log.by,
                                 chat_log.context,
-                                new Date(chat_log.created),
+                                new Date(chat_log.created + "Z"),
                                 chat_log.onlineContext,
                                 chat_log.intent?.type,
                                 chat_log.intent?.["inferred-queries"],
@@ -1325,7 +1356,7 @@ To get started, just start typing below. You can also type / to see a list of co
                             chat_log.message,
                             chat_log.by,
                             chat_log.context,
-                            new Date(chat_log.created),
+                            new Date(chat_log.created + "Z"),
                             chat_log.onlineContext,
                             chat_log.intent?.type,
                             chat_log.intent?.["inferred-queries"],
@@ -1592,11 +1623,79 @@ To get started, just start typing below. You can also type / to see a list of co
                                 conversationMenu.appendChild(editTitleButton);
                                 threeDotMenu.appendChild(conversationMenu);
 
+                                let shareButton = document.createElement('button');
+                                shareButton.innerHTML = "Share";
+                                shareButton.type = "button";
+                                shareButton.classList.add("share-conversation-button");
+                                shareButton.classList.add("three-dot-menu-button-item");
+                                shareButton.addEventListener('click', function(event) {
+                                    event.preventDefault();
+                                    let confirmation = confirm('Are you sure you want to share this chat session? This will make the conversation public.');
+                                    if (!confirmation) return;
+                                    let duplicateURL = `/api/chat/share?client=web&conversation_id=${incomingConversationId}`;
+                                    fetch(duplicateURL , { method: "POST" })
+                                        .then(response => response.ok ? response.json() : Promise.reject(response))
+                                        .then(data => {
+                                            if (data.status == "ok") {
+                                                flashStatusInChatInput("✅ Conversation shared successfully");
+                                            }
+                                            // Make a pop-up that shows data.url to share the conversation
+                                            let shareURL = data.url;
+                                            let shareModal = document.createElement('div');
+                                            shareModal.classList.add("modal");
+                                            shareModal.id = "share-conversation-modal";
+                                            let shareModalContent = document.createElement('div');
+                                            shareModalContent.classList.add("modal-content");
+                                            let shareModalHeader = document.createElement('div');
+                                            shareModalHeader.classList.add("modal-header");
+                                            let shareModalTitle = document.createElement('h2');
+                                            shareModalTitle.textContent = "Share Conversation";
+                                            let shareModalCloseButton = document.createElement('button');
+                                            shareModalCloseButton.classList.add("modal-close-button");
+                                            shareModalCloseButton.innerHTML = "&times;";
+                                            shareModalCloseButton.addEventListener('click', function() {
+                                                shareModal.remove();
+                                            });
+                                            shareModalHeader.appendChild(shareModalTitle);
+                                            shareModalHeader.appendChild(shareModalCloseButton);
+                                            shareModalContent.appendChild(shareModalHeader);
+                                            let shareModalBody = document.createElement('div');
+                                            shareModalBody.classList.add("modal-body");
+                                            let shareModalText = document.createElement('p');
+                                            shareModalText.textContent = "The link has been copied to your clipboard. Use it to share your conversation with others!";
+                                            let shareModalLink = document.createElement('input');
+                                            shareModalLink.setAttribute("value", shareURL);
+                                            shareModalLink.setAttribute("readonly", "");
+                                            shareModalLink.classList.add("share-link");
+                                            let copyButton = document.createElement('button');
+                                            copyButton.textContent = "Copy";
+                                            copyButton.addEventListener('click', function() {
+                                                shareModalLink.select();
+                                                document.execCommand('copy');
+                                            });
+                                            copyButton.id = "copy-share-url-button";
+                                            shareModalBody.appendChild(shareModalText);
+                                            shareModalBody.appendChild(shareModalLink);
+                                            shareModalBody.appendChild(copyButton);
+                                            shareModalContent.appendChild(shareModalBody);
+                                            shareModal.appendChild(shareModalContent);
+                                            document.body.appendChild(shareModal);
+                                            shareModalLink.select();
+                                            document.execCommand('copy');
+                                        })
+                                        .catch(err => {
+                                            return;
+                                        });
+                                });
+                                conversationMenu.appendChild(shareButton);
+
                                 let deleteButton = document.createElement('button');
+                                deleteButton.type = "button";
                                 deleteButton.innerHTML = "Delete";
                                 deleteButton.classList.add("delete-conversation-button");
                                 deleteButton.classList.add("three-dot-menu-button-item");
-                                deleteButton.addEventListener('click', function() {
+                                deleteButton.addEventListener('click', function(event) {
+                                    event.preventDefault();
                                     // Ask for confirmation before deleting chat session
                                     let confirmation = confirm('Are you sure you want to delete this chat session?');
                                     if (!confirmation) return;
@@ -2048,7 +2147,7 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
         div#conversation-list {
-            height: 1;
+            height: 1px;
         }
 
         div#side-panel-wrapper {
@@ -2117,11 +2216,13 @@ To get started, just start typing below. You can also type / to see a list of co
         .chat-message.khoj {
             margin-left: auto;
             text-align: left;
+            height: fit-content;
         }
         /* move message by you to right */
         .chat-message.you {
             margin-right: auto;
             text-align: right;
+            height: fit-content;
         }
         /* basic style chat message text */
         .chat-message-text {
@@ -2196,6 +2297,10 @@ To get started, just start typing below. You can also type / to see a list of co
         img.text-to-image {
             max-width: 60%;
         }
+        h3 > img.text-to-image {
+            height: 24px;
+            vertical-align: sub;
+        }
 
         #chat-footer {
             padding: 0;
@@ -2219,7 +2324,7 @@ To get started, just start typing below. You can also type / to see a list of co
         #chat-input {
             font-family: var(--font-family);
             font-size: medium;
-            height: 36px;
+            height: 48px;
             border-radius: 16px;
             resize: none;
             overflow-y: hidden;
@@ -2249,7 +2354,7 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
         .side-panel-button {
-            background: var(--background-color);
+            background: none;
             border: none;
             box-shadow: none;
             font-size: 14px;
@@ -2514,6 +2619,7 @@ To get started, just start typing below. You can also type / to see a list of co
             margin-bottom: 8px;
         }
 
+        button#copy-share-url-button,
         button#new-conversation-button {
             display: inline-flex;
             align-items: center;
@@ -2534,17 +2640,15 @@ To get started, just start typing below. You can also type / to see a list of co
             text-align: left;
             display: flex;
             position: relative;
+            margin: 0 8px;
         }
 
         .three-dot-menu {
-            display: none;
-            /* background: var(--background-color); */
-            /* border: 1px solid var(--main-text-color); */
+            display: block;
             border-radius: 5px;
-            /* position: relative; */
             position: absolute;
-            right: 4;
-            top: 4;
+            right: 4px;
+            top: 4px;
         }
 
         button.three-dot-menu-button-item {
@@ -2723,13 +2827,6 @@ To get started, just start typing below. You can also type / to see a list of co
             color: #333;
         }
 
-        #agent-instructions {
-            font-size: 14px;
-            color: #666;
-            height: 50px;
-            overflow: auto;
-        }
-
         #agent-owned-by-user {
             font-size: 12px;
             color: #007BFF;
@@ -2751,7 +2848,7 @@ To get started, just start typing below. You can also type / to see a list of co
             margin: 15% auto; /* 15% from the top and centered */
             padding: 20px;
             border: 1px solid #888;
-            width: 250px;
+            width: 300px;
             text-align: left;
             background: var(--background-color);
             border-radius: 5px;
@@ -2825,6 +2922,28 @@ To get started, just start typing below. You can also type / to see a list of co
             border: 1px solid var(--main-text-color);
         }
 
+        .share-link {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            font-family: 'Courier New', monospace;
+            color: #333;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        .share-link:focus {
+            outline: none;
+            border-color: #007BFF;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
+
+        button#copy-share-url-button,
         button#new-conversation-submit-button {
             background: var(--summer-sun);
             transition: background 0.2s ease-in-out;
@@ -2835,6 +2954,7 @@ To get started, just start typing below. You can also type / to see a list of co
             transition: background 0.2s ease-in-out;
         }
 
+        button#copy-share-url-button:hover,
         button#new-conversation-submit-button:hover {
             background: var(--primary);
         }

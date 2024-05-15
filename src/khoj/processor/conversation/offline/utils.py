@@ -2,6 +2,7 @@ import glob
 import logging
 import math
 import os
+from typing import Any, Dict
 
 from huggingface_hub.constants import HF_HUB_CACHE
 
@@ -14,11 +15,15 @@ logger = logging.getLogger(__name__)
 def download_model(repo_id: str, filename: str = "*Q4_K_M.gguf", max_tokens: int = None):
     # Initialize Model Parameters
     # Use n_ctx=0 to get context size from the model
-    kwargs = {"n_threads": 4, "n_ctx": 0, "verbose": False}
+    kwargs: Dict[str, Any] = {"n_threads": 4, "n_ctx": 0, "verbose": False}
 
     # Decide whether to load model to GPU or CPU
     device = "gpu" if state.chat_on_gpu and state.device != "cpu" else "cpu"
     kwargs["n_gpu_layers"] = -1 if device == "gpu" else 0
+
+    # Add chat format if known
+    if "llama-3" in repo_id.lower():
+        kwargs["chat_format"] = "llama-3"
 
     # Check if the model is already downloaded
     model_path = load_model_from_cache(repo_id, filename)
@@ -65,10 +70,9 @@ def load_model_from_cache(repo_id: str, filename: str, repo_type="models"):
         return None
 
 
-def infer_max_tokens(model_context_window: int, configured_max_tokens=math.inf) -> int:
+def infer_max_tokens(model_context_window: int, configured_max_tokens=None) -> int:
     """Infer max prompt size based on device memory and max context window supported by the model"""
+    configured_max_tokens = math.inf if configured_max_tokens is None else configured_max_tokens
     vram_based_n_ctx = int(get_device_memory() / 2e6)  # based on heuristic
-    if configured_max_tokens:
-        return min(configured_max_tokens, model_context_window)
-    else:
-        return min(vram_based_n_ctx, model_context_window)
+    configured_max_tokens = configured_max_tokens or math.inf  # do not use if set to None
+    return min(configured_max_tokens, vram_based_n_ctx, model_context_window)

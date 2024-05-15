@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
         <link rel="icon" type="image/png" sizes="128x128" href="/static/assets/icons/favicon-128x128.png?v={{ khoj_version }}">
-        <title>Khoj - Settings</title>
+        <title>Khoj</title>
         <link rel="stylesheet" href="/static/assets/pico.min.css?v={{ khoj_version }}">
         <link rel="stylesheet" href="/static/assets/khoj.css?v={{ khoj_version }}">
         <script
@@ -24,9 +24,11 @@
 
             <div class="filler"></div>
         </div>
-        <div class=”content”>
+        <div class="content khoj-header-wrapper">
+            <div class="filler"></div>
             {% block content %}
             {% endblock %}
+            <div class="filler"></div>
         </div>
     </body>
     <script>
@@ -62,7 +64,7 @@
         }
         .section {
             display: grid;
-            justify-self: center;
+            justify-self: normal;
         }
 
         div.section-manage-files,
@@ -103,7 +105,7 @@
 
         .section-title {
             margin: 0;
-            padding: 12px 0 16px 0;
+            padding: 0 0 16px 0;
             font-size: 32;
             font-weight: normal;
         }
@@ -118,7 +120,7 @@
             grid-template-rows: repeat(3, 1fr);
             gap: 8px;
             padding: 24px 16px 8px;
-            width: 320px;
+            width: 100%;
             height: 180px;
             background: var(--background-color);
             border: 1px solid rgb(229, 229, 229);
@@ -162,14 +164,14 @@
             height: 40px;
         }
         .card-title {
-            font-size: medium;
+            font-size: x-large;
             font-weight: normal;
             margin: 0;
             padding: 0;
-            align-self: center;
+            align-self: end;
         }
         .card-title-text {
-            vertical-align: middle;
+            vertical-align: text-top;
         }
         .card-description {
             margin: 0;
@@ -257,6 +259,14 @@
             color: var(--leaf);
         }
 
+        img.automation-action-icon {
+            width: 16px;
+            padding-bottom: 2px;
+        }
+        img.automation-row-icon {
+            max-width: 24px;
+        }
+
         img.configured-icon {
             max-width: 16px;
         }
@@ -326,7 +336,7 @@
 
 
         div.api-settings {
-            width: 640px;
+            width: 100%;
         }
 
         img.api-key-action:hover {

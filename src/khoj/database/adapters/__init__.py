@@ -1,17 +1,23 @@
+import json
 import logging
 import math
 import random
+import re
 import secrets
 import sys
 from datetime import date, datetime, timedelta, timezone
 from enum import Enum
-from typing import Callable, List, Optional, Type
+from typing import Callable, Iterable, List, Optional, Type
 
+import cron_descriptor
+from apscheduler.job import Job
 from asgiref.sync import sync_to_async
 from django.contrib.sessions.backends.db import SessionStore
 from django.db import models
 from django.db.models import Q
 from django.db.models.manager import BaseManager
+from django.db.utils import IntegrityError
+from django_apscheduler.models import DjangoJob, DjangoJobExecution
 from fastapi import HTTPException
 from pgvector.django import CosineDistance
 from torch import Tensor
@@ -28,9 +34,9 @@ from khoj.database.models import (
     KhojApiUser,
     KhojUser,
     NotionConfig,
-    OfflineChatProcessorConversationConfig,
     OpenAIProcessorConversationConfig,
     ProcessLock,
+    PublicConversation,
     ReflectiveQuestion,
     SearchModelConfig,
     SpeechToTextModelOptions,
@@ -69,7 +75,14 @@ async def set_notion_config(token: str, user: KhojUser):
     return notion_config
 
 
-async def create_khoj_token(user: KhojUser, name=None):
+def create_khoj_token(user: KhojUser, name=None):
+    "Create Khoj API key for user"
+    token = f"kk-{secrets.token_urlsafe(32)}"
+    name = name or f"{generate_random_name().title()}"
+    return KhojApiUser.objects.create(token=token, user=user, name=name)
+
+
+async def acreate_khoj_token(user: KhojUser, name=None):
     "Create Khoj API key for user"
     token = f"kk-{secrets.token_urlsafe(32)}"
     name = name or f"{generate_random_name().title()}"
@@ -426,33 +439,49 @@ class ProcessLockAdapters:
         return True
 
     @staticmethod
-    def remove_process_lock(process_name: str):
-        return ProcessLock.objects.filter(name=process_name).delete()
+    def remove_process_lock(process_lock: ProcessLock):
+        return process_lock.delete()
 
     @staticmethod
-    def run_with_lock(func: Callable, operation: ProcessLock.Operation, max_duration_in_seconds: int = 600):
+    def run_with_lock(func: Callable, operation: ProcessLock.Operation, max_duration_in_seconds: int = 600, **kwargs):
         # Exit early if process lock is already taken
         if ProcessLockAdapters.is_process_locked(operation):
             logger.info(f"🔒 Skip executing {func} as {operation} lock is already taken")
             return
 
         success = False
+        process_lock = None
         try:
             # Set process lock
-            ProcessLockAdapters.set_process_lock(operation, max_duration_in_seconds)
+            process_lock = ProcessLockAdapters.set_process_lock(operation, max_duration_in_seconds)
             logger.info(f"🔐 Locked {operation} to execute {func}")
 
             # Execute Function
             with timer(f"🔒 Run {func} with {operation} process lock", logger):
-                func()
+                func(**kwargs)
             success = True
+        except IntegrityError as e:
+            logger.error(f"⚠️ Unable to create the process lock for {func} with {operation}: {e}")
+            success = False
         except Exception as e:
             logger.error(f"🚨 Error executing {func} with {operation} process lock: {e}", exc_info=True)
             success = False
         finally:
             # Remove Process Lock
-            ProcessLockAdapters.remove_process_lock(operation)
-            logger.info(f"🔓 Unlocked {operation} process after executing {func} {'Succeeded' if success else 'Failed'}")
+            if process_lock:
+                ProcessLockAdapters.remove_process_lock(process_lock)
+                logger.info(
+                    f"🔓 Unlocked {operation} process after executing {func} {'Succeeded' if success else 'Failed'}"
+                )
+            else:
+                logger.info(f"Skip removing {operation} process lock as it was not set")
+
+
+def run_with_process_lock(*args, **kwargs):
+    """Wrapper function used for scheduling jobs.
+    Required as APScheduler can't discover the `ProcessLockAdapter.run_with_lock' method on its own.
+    """
+    return ProcessLockAdapters.run_with_lock(*args, **kwargs)
 
 
 class ClientApplicationAdapters:
@@ -538,7 +567,28 @@ class AgentAdapters:
         return await Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).afirst()
 
 
+class PublicConversationAdapters:
+    @staticmethod
+    def get_public_conversation_by_slug(slug: str):
+        return PublicConversation.objects.filter(slug=slug).first()
+
+    @staticmethod
+    def get_public_conversation_url(public_conversation: PublicConversation):
+        # Public conversations are viewable by anyone, but not editable.
+        return f"/share/chat/{public_conversation.slug}/"
+
+
 class ConversationAdapters:
+    @staticmethod
+    def make_public_conversation_copy(conversation: Conversation):
+        return PublicConversation.objects.create(
+            source_owner=conversation.user,
+            agent=conversation.agent,
+            conversation_log=conversation.conversation_log,
+            slug=conversation.slug,
+            title=conversation.title,
+        )
+
     @staticmethod
     def get_conversation_by_user(
         user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None
@@ -625,22 +675,6 @@ class ConversationAdapters:
         return OpenAIProcessorConversationConfig.objects.filter().first()
 
     @staticmethod
-    async def aget_openai_conversation_config():
-        return await OpenAIProcessorConversationConfig.objects.filter().afirst()
-
-    @staticmethod
-    def get_offline_chat_conversation_config():
-        return OfflineChatProcessorConversationConfig.objects.filter().first()
-
-    @staticmethod
-    async def aget_offline_chat_conversation_config():
-        return await OfflineChatProcessorConversationConfig.objects.filter().afirst()
-
-    @staticmethod
-    def has_valid_offline_conversation_config():
-        return OfflineChatProcessorConversationConfig.objects.filter(enabled=True).exists()
-
-    @staticmethod
     def has_valid_openai_conversation_config():
         return OpenAIProcessorConversationConfig.objects.filter().exists()
 
@@ -672,7 +706,20 @@ class ConversationAdapters:
 
     @staticmethod
     async def aget_default_conversation_config():
-        return await ChatModelOptions.objects.filter().afirst()
+        return await ChatModelOptions.objects.filter().prefetch_related("openai_config").afirst()
+
+    @staticmethod
+    def create_conversation_from_public_conversation(
+        user: KhojUser, public_conversation: PublicConversation, client_app: ClientApplication
+    ):
+        return Conversation.objects.create(
+            user=user,
+            conversation_log=public_conversation.conversation_log,
+            client=client_app,
+            slug=public_conversation.slug,
+            title=public_conversation.title,
+            agent=public_conversation.agent,
+        )
 
     @staticmethod
     def save_conversation(
@@ -711,35 +758,13 @@ class ConversationAdapters:
         user_conversation_config.save()
 
     @staticmethod
-    def has_offline_chat():
-        return OfflineChatProcessorConversationConfig.objects.filter(enabled=True).exists()
-
-    @staticmethod
-    async def ahas_offline_chat():
-        return await OfflineChatProcessorConversationConfig.objects.filter(enabled=True).aexists()
-
-    @staticmethod
-    async def get_default_offline_llm():
-        return await ChatModelOptions.objects.filter(model_type="offline").afirst()
-
-    @staticmethod
     async def aget_user_conversation_config(user: KhojUser):
-        config = await UserConversationConfig.objects.filter(user=user).prefetch_related("setting").afirst()
+        config = (
+            await UserConversationConfig.objects.filter(user=user).prefetch_related("setting__openai_config").afirst()
+        )
         if not config:
             return None
         return config.setting
-
-    @staticmethod
-    async def has_openai_chat():
-        return await OpenAIProcessorConversationConfig.objects.filter().aexists()
-
-    @staticmethod
-    async def aget_default_openai_llm():
-        return await ChatModelOptions.objects.filter(model_type="openai").afirst()
-
-    @staticmethod
-    async def get_openai_chat_config():
-        return await OpenAIProcessorConversationConfig.objects.filter().afirst()
 
     @staticmethod
     async def get_speech_to_text_config():
@@ -765,9 +790,8 @@ class ConversationAdapters:
 
     @staticmethod
     def get_valid_conversation_config(user: KhojUser, conversation: Conversation):
-        offline_chat_config = ConversationAdapters.get_offline_chat_conversation_config()
-
-        if conversation.agent and conversation.agent.chat_model:
+        agent: Agent = conversation.agent if AgentAdapters.get_default_agent() != conversation.agent else None
+        if agent and agent.chat_model:
             conversation_config = conversation.agent.chat_model
         else:
             conversation_config = ConversationAdapters.get_conversation_config(user)
@@ -775,14 +799,15 @@ class ConversationAdapters:
         if conversation_config is None:
             conversation_config = ConversationAdapters.get_default_conversation_config()
 
-        if offline_chat_config and offline_chat_config.enabled and conversation_config.model_type == "offline":
+        if conversation_config.model_type == "offline":
             if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
-                state.offline_chat_processor_config = OfflineChatProcessorModel(conversation_config.chat_model)
+                chat_model = conversation_config.chat_model
+                max_tokens = conversation_config.max_prompt_size
+                state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
 
             return conversation_config
 
-        openai_chat_config = ConversationAdapters.get_openai_conversation_config()
-        if openai_chat_config and conversation_config.model_type == "openai":
+        if conversation_config.model_type == "openai" and conversation_config.openai_config:
             return conversation_config
 
         else:
@@ -940,3 +965,79 @@ class EntryAdapters:
     @staticmethod
     def get_unique_file_sources(user: KhojUser):
         return Entry.objects.filter(user=user).values_list("file_source", flat=True).distinct().all()
+
+
+class AutomationAdapters:
+    @staticmethod
+    def get_automations(user: KhojUser) -> Iterable[Job]:
+        all_automations: Iterable[Job] = state.scheduler.get_jobs()
+        for automation in all_automations:
+            if automation.id.startswith(f"automation_{user.uuid}_"):
+                yield automation
+
+    @staticmethod
+    def get_automation_metadata(user: KhojUser, automation: Job):
+        # Perform validation checks
+        # Check if user is allowed to delete this automation id
+        if not automation.id.startswith(f"automation_{user.uuid}_"):
+            raise ValueError("Invalid automation id")
+
+        automation_metadata = json.loads(automation.name)
+        crontime = automation_metadata["crontime"]
+        timezone = automation.next_run_time.strftime("%Z")
+        schedule = f"{cron_descriptor.get_description(crontime)} {timezone}"
+        return {
+            "id": automation.id,
+            "subject": automation_metadata["subject"],
+            "query_to_run": re.sub(r"^/automated_task\s*", "", automation_metadata["query_to_run"]),
+            "scheduling_request": automation_metadata["scheduling_request"],
+            "schedule": schedule,
+            "crontime": crontime,
+            "next": automation.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z"),
+        }
+
+    @staticmethod
+    def get_job_last_run(user: KhojUser, automation: Job):
+        # Perform validation checks
+        # Check if user is allowed to delete this automation id
+        if not automation.id.startswith(f"automation_{user.uuid}_"):
+            raise ValueError("Invalid automation id")
+
+        django_job = DjangoJob.objects.filter(id=automation.id).first()
+        execution = DjangoJobExecution.objects.filter(job=django_job, status="Executed")
+
+        last_run_time = None
+
+        if execution.exists():
+            last_run_time = execution.latest("run_time").run_time
+
+        return last_run_time.strftime("%Y-%m-%d %I:%M %p %Z") if last_run_time else None
+
+    @staticmethod
+    def get_automations_metadata(user: KhojUser):
+        for automation in AutomationAdapters.get_automations(user):
+            yield AutomationAdapters.get_automation_metadata(user, automation)
+
+    @staticmethod
+    def get_automation(user: KhojUser, automation_id: str) -> Job:
+        # Perform validation checks
+        # Check if user is allowed to delete this automation id
+        if not automation_id.startswith(f"automation_{user.uuid}_"):
+            raise ValueError("Invalid automation id")
+        # Check if automation with this id exist
+        automation: Job = state.scheduler.get_job(job_id=automation_id)
+        if not automation:
+            raise ValueError("Invalid automation id")
+
+        return automation
+
+    @staticmethod
+    def delete_automation(user: KhojUser, automation_id: str):
+        # Get valid, user-owned automation
+        automation: Job = AutomationAdapters.get_automation(user, automation_id)
+
+        # Collate info about user automation to be deleted
+        automation_metadata = AutomationAdapters.get_automation_metadata(user, automation)
+
+        automation.remove()
+        return automation_metadata

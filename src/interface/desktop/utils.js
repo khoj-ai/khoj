@@ -59,6 +59,17 @@ async function populateHeaderPane() {
             <img class="khoj-logo" src="./assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
         </a>
         <nav class="khoj-nav">
+        ${
+            userInfo && userInfo.email
+              ? `<div class="khoj-status-box">
+              <span class="khoj-status-connected"></span>
+               <span class="khoj-status-text">Connected to server</span>
+               </div>`
+              : `<div class="khoj-status-box">
+              <span class="khoj-status-not-connected"></span>
+               <span class="khoj-status-text">Not connected to server</span>
+               </div>`
+          }
             <a id="chat-nav" class="khoj-nav" href="./chat.html">
               <img class="nav-icon" src="./assets/icons/chat.svg" alt="Chat">
               <span class="khoj-nav-item-text">Chat</span>

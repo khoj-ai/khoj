@@ -23,6 +23,7 @@ def extract_questions(
     model: Optional[str] = "gpt-4-turbo-preview",
     conversation_log={},
     api_key=None,
+    api_base_url=None,
     temperature=0,
     max_tokens=100,
     location_data: LocationData = None,
@@ -59,14 +60,15 @@ def extract_questions(
         yesterday_date=(today - timedelta(days=1)).strftime("%Y-%m-%d"),
         location=location,
     )
-    messages = [ChatMessage(content=prompt, role="assistant")]
+    messages = [ChatMessage(content=prompt, role="user")]
 
     # Get Response from GPT
     response = completion_with_backoff(
         messages=messages,
-        model_name=model,
+        model=model,
         temperature=temperature,
         max_tokens=max_tokens,
+        api_base_url=api_base_url,
         model_kwargs={"response_format": {"type": "json_object"}},
         openai_api_key=api_key,
     )
@@ -88,7 +90,7 @@ def extract_questions(
     return questions
 
 
-def send_message_to_model(messages, api_key, model, response_type="text"):
+def send_message_to_model(messages, api_key, model, response_type="text", api_base_url=None):
     """
     Send message to model
     """
@@ -98,6 +100,7 @@ def send_message_to_model(messages, api_key, model, response_type="text"):
         messages=messages,
         model=model,
         openai_api_key=api_key,
+        api_base_url=api_base_url,
         model_kwargs={"response_format": {"type": response_type}},
     )
 
@@ -109,6 +112,7 @@ def converse(
     conversation_log={},
     model: str = "gpt-3.5-turbo",
     api_key: Optional[str] = None,
+    api_base_url: Optional[str] = None,
     temperature: float = 0.2,
     completion_func=None,
     conversation_commands=[ConversationCommand.Default],
@@ -178,6 +182,7 @@ def converse(
         model_name=model,
         temperature=temperature,
         openai_api_key=api_key,
+        api_base_url=api_base_url,
         completion_func=completion_func,
         model_kwargs={"stop": ["Notes:\n["]},
     )

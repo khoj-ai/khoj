@@ -13,7 +13,8 @@ from transformers import AutoTokenizer
 
 from khoj.database.adapters import ConversationAdapters
 from khoj.database.models import ClientApplication, KhojUser
-from khoj.processor.conversation.offline.utils import download_model
+from khoj.processor.conversation.offline.utils import download_model, infer_max_tokens
+from khoj.utils import state
 from khoj.utils.helpers import is_none_or_empty, merge_dicts
 
 logger = logging.getLogger(__name__)
@@ -101,6 +102,7 @@ def save_to_conversation_log(
     intent_type: str = "remember",
     client_application: ClientApplication = None,
     conversation_id: int = None,
+    automation_id: str = None,
 ):
     user_message_time = user_message_time or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     updated_conversation = message_to_log(
@@ -111,6 +113,7 @@ def save_to_conversation_log(
             "context": compiled_references,
             "intent": {"inferred-queries": inferred_queries, "type": intent_type},
             "onlineContext": online_results,
+            "automationId": automation_id,
         },
         conversation_log=meta_log.get("chat", []),
     )
@@ -145,7 +148,7 @@ def generate_chatml_messages_with_context(
     # Set max prompt size from user config or based on pre-configured for model and machine specs
     if not max_prompt_size:
         if loaded_model:
-            max_prompt_size = min(loaded_model.n_ctx(), model_to_prompt_size.get(model_name, math.inf))
+            max_prompt_size = infer_max_tokens(loaded_model.n_ctx(), model_to_prompt_size.get(model_name, math.inf))
         else:
             max_prompt_size = model_to_prompt_size.get(model_name, 2000)
 
@@ -186,19 +189,31 @@ def truncate_messages(
     max_prompt_size,
     model_name: str,
     loaded_model: Optional[Llama] = None,
-    tokenizer_name="hf-internal-testing/llama-tokenizer",
+    tokenizer_name=None,
 ) -> list[ChatMessage]:
     """Truncate messages to fit within max prompt size supported by model"""
+
+    default_tokenizer = "hf-internal-testing/llama-tokenizer"
 
     try:
         if loaded_model:
             encoder = loaded_model.tokenizer()
         elif model_name.startswith("gpt-"):
             encoder = tiktoken.encoding_for_model(model_name)
+        elif tokenizer_name:
+            if tokenizer_name in state.pretrained_tokenizers:
+                encoder = state.pretrained_tokenizers[tokenizer_name]
+            else:
+                encoder = AutoTokenizer.from_pretrained(tokenizer_name)
+                state.pretrained_tokenizers[tokenizer_name] = encoder
         else:
             encoder = download_model(model_name).tokenizer()
     except:
-        encoder = AutoTokenizer.from_pretrained(tokenizer_name)
+        if default_tokenizer in state.pretrained_tokenizers:
+            encoder = state.pretrained_tokenizers[default_tokenizer]
+        else:
+            encoder = AutoTokenizer.from_pretrained(default_tokenizer)
+            state.pretrained_tokenizers[default_tokenizer] = encoder
         logger.warning(
             f"Fallback to default chat model tokenizer: {tokenizer_name}.\nConfigure tokenizer for unsupported model: {model_name} in Khoj settings to improve context stuffing."
         )

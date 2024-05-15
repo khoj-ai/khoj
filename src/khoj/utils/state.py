@@ -2,8 +2,9 @@ import os
 import threading
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from openai import OpenAI
 from whisper import Whisper
 
@@ -29,11 +30,13 @@ cli_args: List[str] = None
 query_cache: Dict[str, LRU] = defaultdict(LRU)
 chat_lock = threading.Lock()
 SearchType = utils_config.SearchType
+scheduler: BackgroundScheduler = None
 telemetry: List[Dict[str, str]] = []
 khoj_version: str = None
 device = get_device()
 chat_on_gpu: bool = True
 anonymous_mode: bool = False
+pretrained_tokenizers: Dict[str, Any] = dict()
 billing_enabled: bool = (
     os.getenv("STRIPE_API_KEY") is not None
     and os.getenv("STRIPE_SIGNING_SECRET") is not None
