@@ -52,13 +52,11 @@ async def send_welcome_email(name, email):
 
 async def send_query_feedback(uquery, kquery, sentiment, user_email):
     if not is_resend_enabled():
-        logger.debug("Email sending disabled")
+        logger.debug(f"Sentiment: {sentiment}, Query: {uquery}, Khoj Response: {kquery}")
         return
-    logger.debug("SENDING USER FEEDBACK...")
-    logger.debug(f"User Query: {uquery}\n")
-    logger.debug(f"Khoj Response: {kquery}\n")
-    logger.debug(f"Sentiment: {sentiment}\n")
-    logger.debug(f"User Email: {user_email}")
+
+    logger.info(f"Sending feedback email for query {uquery}")
+
     # rendering feedback email using feedback.html as template
     template = env.get_template("feedback.html")
     html_content = template.render(
@@ -70,7 +68,7 @@ async def send_query_feedback(uquery, kquery, sentiment, user_email):
     # send feedback from two fixed accounts
     r = resend.Emails.send(
         {
-            "from": "saba@khoj.dev",
+            "sender": "saba@khoj.dev",
             "to": "team@khoj.dev",
             "subject": f"User Feedback",
             "html": html_content,
