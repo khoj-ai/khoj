@@ -172,36 +172,36 @@ export class KhojChatView extends KhojPaneView {
             let onlineReference = onlineContext[subquery];
             if (onlineReference.organic && onlineReference.organic.length > 0) {
                 numOnlineReferences += onlineReference.organic.length;
-                for (let index in onlineReference.organic) {
-                    let reference = onlineReference.organic[index];
-                    let polishedReference = this.generateOnlineReference(referenceSection, reference, index);
+                for (let key in onlineReference.organic) {
+                    let reference = onlineReference.organic[key];
+                    let polishedReference = this.generateOnlineReference(referenceSection, reference, key);
                     referenceSection.appendChild(polishedReference);
                 }
             }
 
             if (onlineReference.knowledgeGraph && onlineReference.knowledgeGraph.length > 0) {
                 numOnlineReferences += onlineReference.knowledgeGraph.length;
-                for (let index in onlineReference.knowledgeGraph) {
-                    let reference = onlineReference.knowledgeGraph[index];
-                    let polishedReference = this.generateOnlineReference(referenceSection, reference, index);
+                for (let key in onlineReference.knowledgeGraph) {
+                    let reference = onlineReference.knowledgeGraph[key];
+                    let polishedReference = this.generateOnlineReference(referenceSection, reference, key);
                     referenceSection.appendChild(polishedReference);
                 }
             }
 
             if (onlineReference.peopleAlsoAsk && onlineReference.peopleAlsoAsk.length > 0) {
                 numOnlineReferences += onlineReference.peopleAlsoAsk.length;
-                for (let index in onlineReference.peopleAlsoAsk) {
-                    let reference = onlineReference.peopleAlsoAsk[index];
-                    let polishedReference = this.generateOnlineReference(referenceSection, reference, index);
+                for (let key in onlineReference.peopleAlsoAsk) {
+                    let reference = onlineReference.peopleAlsoAsk[key];
+                    let polishedReference = this.generateOnlineReference(referenceSection, reference, key);
                     referenceSection.appendChild(polishedReference);
                 }
             }
 
             if (onlineReference.webpages && onlineReference.webpages.length > 0) {
                 numOnlineReferences += onlineReference.webpages.length;
-                for (let index in onlineReference.webpages) {
-                    let reference = onlineReference.webpages[index];
-                    let polishedReference = this.generateOnlineReference(referenceSection, reference, index);
+                for (let key in onlineReference.webpages) {
+                    let reference = onlineReference.webpages[key];
+                    let polishedReference = this.generateOnlineReference(referenceSection, reference, key);
                     referenceSection.appendChild(polishedReference);
                 }
             }
@@ -215,14 +215,10 @@ export class KhojChatView extends KhojPaneView {
         let title = reference.title || reference.link;
         let link = reference.link;
         let snippet = reference.snippet;
-        let question = reference.question;
-        if (question) {
-            question = `<b>Question:</b> ${question}<br><br>`;
-        } else {
-            question = "";
-        }
+        let question = reference.question ? `<b>Question:</b> ${reference.question}<br><br>` : "";
 
-        let linkElement = messageEl.createEl('a');
+        let referenceButton = messageEl.createEl('button');
+        let linkElement = referenceButton.createEl('a');
         linkElement.setAttribute('href', link);
         linkElement.setAttribute('target', '_blank');
         linkElement.setAttribute('rel', 'noopener noreferrer');
@@ -230,8 +226,6 @@ export class KhojChatView extends KhojPaneView {
         linkElement.setAttribute('title', title);
         linkElement.textContent = title;
 
-        let referenceButton = messageEl.createEl('button');
-        referenceButton.innerHTML = linkElement.outerHTML;
         referenceButton.id = `ref-${index}`;
         referenceButton.classList.add("reference-button");
         referenceButton.classList.add("collapsed");
@@ -325,68 +319,53 @@ export class KhojChatView extends KhojPaneView {
         return chat_message_body_text_el;
     }
 
-    renderMessageWithReferences(chatEl: Element, message: string, sender: string, context?: string[], dt?: Date, intentType?: string, inferredQueries?: string) {
-        if (!message) {
-            return;
-        } else if (intentType?.includes("text-to-image")) {
-            let imageMarkdown = "";
-            if (intentType === "text-to-image") {
-                imageMarkdown = `![](data:image/png;base64,${message})`;
-            } else if (intentType === "text-to-image2") {
-                imageMarkdown = `![](${message})`;
-            } else if (intentType === "text-to-image-v3") {
-                imageMarkdown = `![](data:image/webp;base64,${message})`;
-            }
-            if (inferredQueries) {
-                imageMarkdown += "\n\n**Inferred Query**:";
-                for (let inferredQuery of inferredQueries) {
-                    imageMarkdown += `\n\n${inferredQuery}`;
-                }
-            }
-            this.renderMessage(chatEl, imageMarkdown, sender, dt);
-            return;
-        } else if (!context) {
-            this.renderMessage(chatEl, message, sender, dt);
-            return;
-        } else if (!!context && context?.length === 0) {
-            this.renderMessage(chatEl, message, sender, dt);
-            return;
-        }
-        let chatMessageEl = this.renderMessage(chatEl, message, sender, dt);
-        let chatMessageBodyEl = chatMessageEl.getElementsByClassName("khoj-chat-message-text")[0]
-        let references = chatMessageBodyEl.createDiv();
+    renderMessageWithReferences(
+        chatEl: Element,
+        message: string,
+        sender: string,
+        context?: string[],
+        dt?: Date,
+        intentType?: string,
+        inferredQueries?: string[],
+    ) {
+        if (!message) return;
 
-        let referenceExpandButton = references.createEl('button');
-        referenceExpandButton.classList.add("reference-expand-button");
-        let numReferences = 0;
-
-        if (context) {
-            numReferences += context.length;
+        let chatMessageEl;
+        if (intentType?.includes("text-to-image")) {
+            let imageMarkdown = this.generateImageMarkdown(message, intentType, inferredQueries);
+            chatMessageEl = this.renderMessage(chatEl, imageMarkdown, sender, dt);
+        } else {
+            chatMessageEl = this.renderMessage(chatEl, message, sender, dt);
         }
 
-        let referenceSection = references.createEl('div');
-        referenceSection.classList.add("reference-section");
-        referenceSection.classList.add("collapsed");
-
-        referenceExpandButton.addEventListener('click', function() {
-            if (referenceSection.classList.contains("collapsed")) {
-                referenceSection.classList.remove("collapsed");
-                referenceSection.classList.add("expanded");
-            } else {
-                referenceSection.classList.add("collapsed");
-                referenceSection.classList.remove("expanded");
-            }
-        });
-
-        references.classList.add("references");
-        if (context) {
-            context.map((reference, index) => {
-                this.generateReference(referenceSection, reference, index + 1);
-            });
+        // If no document or online context is provided, skip rendering the reference section
+        if (context == null || context.length == 0) {
+            return;
         }
 
-        let expandButtonText = numReferences == 1 ? "1 reference" : `${numReferences} references`;
-        referenceExpandButton.innerHTML = expandButtonText;
+        // If document or online context is provided, render the message with its references
+        let references: any = {};
+        if (!!context) references["notes"] = context;
+        let chatMessageBodyEl = chatMessageEl.getElementsByClassName("khoj-chat-message-text")[0];
+        chatMessageBodyEl.appendChild(this.createReferenceSection(references));
+    }
+
+    generateImageMarkdown(message: string, intentType: string, inferredQueries?: string[]) {
+        let imageMarkdown = "";
+        if (intentType === "text-to-image") {
+            imageMarkdown = `![](data:image/png;base64,${message})`;
+        } else if (intentType === "text-to-image2") {
+            imageMarkdown = `![](${message})`;
+        } else if (intentType === "text-to-image-v3") {
+            imageMarkdown = `![](data:image/webp;base64,${message})`;
+        }
+        if (inferredQueries) {
+            imageMarkdown += "\n\n**Inferred Query**:";
+            for (let inferredQuery of inferredQueries) {
+                imageMarkdown += `\n\n${inferredQuery}`;
+            }
+        }
+        return imageMarkdown;
     }
 
     renderMessage(chatEl: Element, message: string, sender: string, dt?: Date, raw: boolean=false, willReplace: boolean=true): Element {
@@ -423,7 +402,7 @@ export class KhojChatView extends KhojPaneView {
             // Add button to paste into current buffer
             let pasteToFile = chatMessageEl.createEl('button');
             pasteToFile.classList.add("copy-button");
-            pasteToFile.title = "Paste Message to File";
+            pasteToFile.title = "Paste Message to Current File";
             setIcon(pasteToFile, "clipboard-paste");
             pasteToFile.addEventListener('click', (event) => { pasteTextAtCursor(createCopyParentText(message, 'clipboard-paste')(event)); });
             chat_message_body_text_el.append(pasteToFile);
@@ -435,7 +414,7 @@ export class KhojChatView extends KhojPaneView {
         // Scroll to bottom after inserting chat messages
         this.scrollChatToBottom();
 
-        return chatMessageEl
+        return chatMessageEl;
     }
 
     createKhojResponseDiv(dt?: Date): HTMLDivElement {
@@ -548,41 +527,8 @@ export class KhojChatView extends KhojPaneView {
                 await this.renderIncrementalMessage(responseElement, additionalResponse);
 
                 const rawReferenceAsJson = JSON.parse(rawReference);
-                let references = responseElement.createDiv();
-                references.classList.add("references");
-
-                let referenceExpandButton = references.createEl('button');
-                referenceExpandButton.classList.add("reference-expand-button");
-
-                let referenceSection = references.createDiv();
-                referenceSection.classList.add("reference-section");
-                referenceSection.classList.add("collapsed");
-
-                let numReferences = 0;
-
-                // If rawReferenceAsJson is a list, then count the length
-                if (Array.isArray(rawReferenceAsJson)) {
-                    numReferences = rawReferenceAsJson.length;
-
-                    rawReferenceAsJson.forEach((reference, index) => {
-                        this.generateReference(referenceSection, reference, index);
-                    });
-                }
-                references.appendChild(referenceExpandButton);
-
-                referenceExpandButton.addEventListener('click', function() {
-                    if (referenceSection.classList.contains("collapsed")) {
-                        referenceSection.classList.remove("collapsed");
-                        referenceSection.classList.add("expanded");
-                    } else {
-                        referenceSection.classList.add("collapsed");
-                        referenceSection.classList.remove("expanded");
-                    }
-                });
-
-                let expandButtonText = numReferences == 1 ? "1 reference" : `${numReferences} references`;
-                referenceExpandButton.innerHTML = expandButtonText;
-                references.appendChild(referenceSection);
+                let references = this.extractReferences(rawReferenceAsJson);
+                responseElement.appendChild(this.createReferenceSection(references));
             } else {
                 // Render incremental chat response
                 await this.renderIncrementalMessage(responseElement, responseText);
@@ -898,18 +844,15 @@ export class KhojChatView extends KhojPaneView {
 
     handleCompiledReferences(rawResponseElement: HTMLElement | null, chunk: string, references: any, rawResponse: string) {
         if (!rawResponseElement || !chunk) return { rawResponse, references };
-        const additionalResponse = chunk.split("### compiled references:")[0];
+
+        const [additionalResponse, rawReference] = chunk.split("### compiled references:", 2);
         rawResponse += additionalResponse;
         rawResponseElement.innerHTML = "";
         rawResponseElement.appendChild(this.formatHTMLMessage(rawResponse));
 
-        const rawReference = chunk.split("### compiled references:")[1];
         const rawReferenceAsJson = JSON.parse(rawReference);
-        if (rawReferenceAsJson instanceof Array) {
-            references["notes"] = rawReferenceAsJson;
-        } else if (typeof rawReferenceAsJson === "object" && rawReferenceAsJson !== null) {
-            references["online"] = rawReferenceAsJson;
-        }
+        references = this.extractReferences(rawReferenceAsJson);
+
         return { rawResponse, references };
     }
 
@@ -929,20 +872,23 @@ export class KhojChatView extends KhojPaneView {
                 rawResponse += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
             }
         }
-        let references: any = {};
+        let references = {};
         if (imageJson.context && imageJson.context.length > 0) {
-            const rawReferenceAsJson = imageJson.context;
-            if (rawReferenceAsJson instanceof Array) {
-                references["notes"] = rawReferenceAsJson;
-            } else if (typeof rawReferenceAsJson === "object" && rawReferenceAsJson !== null) {
-                references["online"] = rawReferenceAsJson;
-            }
+            references = this.extractReferences(imageJson.context);
         }
         if (imageJson.detail) {
             // If response has detail field, response is an error message.
             rawResponse += imageJson.detail;
         }
         return { rawResponse, references };
+    }
+
+    extractReferences(rawReferenceAsJson: any): object {
+        let references: any = {};
+        if (rawReferenceAsJson instanceof Array) {
+            references["notes"] = rawReferenceAsJson;
+        }
+        return references;
     }
 
     addMessageToChatBody(rawResponse: string, newResponseElement: HTMLElement | null, references: any) {
@@ -1146,7 +1092,6 @@ export class KhojChatView extends KhojPaneView {
 
         // Temporary status message to indicate that Khoj is thinking
         let loadingEllipsis = this.createLoadingEllipse();
-
         newResponseTextEl.appendChild(loadingEllipsis);
         chatBody.scrollTop = chatBody.scrollHeight;
 
