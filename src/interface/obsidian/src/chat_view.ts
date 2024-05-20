@@ -324,6 +324,7 @@ export class KhojChatView extends KhojPaneView {
         message: string,
         sender: string,
         context?: string[],
+        onlineContext?: object,
         dt?: Date,
         intentType?: string,
         inferredQueries?: string[],
@@ -339,13 +340,15 @@ export class KhojChatView extends KhojPaneView {
         }
 
         // If no document or online context is provided, skip rendering the reference section
-        if (context == null || context.length == 0) {
+        if ((context == null || context.length == 0)
+            && (onlineContext == null || (onlineContext && Object.keys(onlineContext).length == 0))) {
             return;
         }
 
         // If document or online context is provided, render the message with its references
         let references: any = {};
         if (!!context) references["notes"] = context;
+        if (!!onlineContext) references["online"] = onlineContext;
         let chatMessageBodyEl = chatMessageEl.getElementsByClassName("khoj-chat-message-text")[0];
         chatMessageBodyEl.appendChild(this.createReferenceSection(references));
     }
@@ -493,6 +496,7 @@ export class KhojChatView extends KhojPaneView {
                         chatLog.message,
                         chatLog.by,
                         chatLog.context,
+                        chatLog.onlineContext,
                         new Date(chatLog.created),
                         chatLog.intent?.type,
                         chatLog.intent?.["inferred-queries"],
@@ -887,6 +891,8 @@ export class KhojChatView extends KhojPaneView {
         let references: any = {};
         if (rawReferenceAsJson instanceof Array) {
             references["notes"] = rawReferenceAsJson;
+        } else if (typeof rawReferenceAsJson === "object" && rawReferenceAsJson !== null) {
+            references["online"] = rawReferenceAsJson;
         }
         return references;
     }
