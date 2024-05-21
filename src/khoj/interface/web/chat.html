@@ -175,11 +175,30 @@ To get started, just start typing below. You can also type / to see a list of co
 
             return referenceButton;
         }
-
-        function renderMessage(message, by, dt=null, annotations=null, raw=false, renderType="append") {
+        var khojQuery = "";
+        function renderMessage(message, by, dt=null, annotations=null, raw=false, renderType="append", userQuery=null) {
             let message_time = formatDate(dt ?? new Date());
             let by_name =  by == "khoj" ? "🏮 Khoj" : "🤔 You";
-            let formattedMessage = formatHTMLMessage(message, raw);
+            let formattedMessage = formatHTMLMessage(message, raw, true, userQuery);
+            //update userQuery or khojQuery to latest query for feedback purposes
+            if(by !== "khoj"){
+                raw = formattedMessage.innerHTML;
+            }
+
+            //find the thumbs up and thumbs down buttons from the message formatter
+            var thumbsUpButtons = formattedMessage.querySelectorAll('.thumbs-up-button');
+            var thumbsDownButtons = formattedMessage.querySelectorAll('.thumbs-down-button');
+
+            //only render the feedback options if the message is a response from khoj
+            if(by !== "khoj"){
+                thumbsUpButtons.forEach(function(element) {
+                    element.parentNode.removeChild(element);
+                });
+                thumbsDownButtons.forEach(function(element) {
+                    element.parentNode.removeChild(element);
+                });
+            }
+
 
             // Create a new div for the chat message
             let chatMessage = document.createElement('div');
@@ -258,7 +277,7 @@ To get started, just start typing below. You can also type / to see a list of co
             return numOnlineReferences;
         }
 
-        function renderMessageWithReference(message, by, context=null, dt=null, onlineContext=null, intentType=null, inferredQueries=null) {
+        function renderMessageWithReference(message, by, context=null, dt=null, onlineContext=null, intentType=null, inferredQueries=null, userQuery) {
             // If no document or online context is provided, render the message as is
             if ((context == null || context.length == 0) && (onlineContext == null || (onlineContext && Object.keys(onlineContext).length == 0))) {
                 if (intentType?.includes("text-to-image")) {
@@ -274,14 +293,14 @@ To get started, just start typing below. You can also type / to see a list of co
                     if (inferredQuery) {
                         imageMarkdown += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
                     }
-                    return renderMessage(imageMarkdown, by, dt, null, false, "return");
+                    return renderMessage(imageMarkdown, by, dt, null, false, "return", userQuery);
                 }
 
-                return renderMessage(message, by, dt, null, false, "return");
+                return renderMessage(message, by, dt, null, false, "return", userQuery);
             }
 
             if ((context && context.length == 0) && (onlineContext == null || (onlineContext && Object.keys(onlineContext).length == 0))) {
-                return renderMessage(message, by, dt, null, false, "return");
+                return renderMessage(message, by, dt, null, false, "return", userQuery);
             }
 
             // If document or online context is provided, render the message with its references
@@ -342,13 +361,27 @@ To get started, just start typing below. You can also type / to see a list of co
                 if (inferredQuery) {
                     imageMarkdown += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
                 }
-                return renderMessage(imageMarkdown, by, dt, references, false, "return");
+                return renderMessage(imageMarkdown, by, dt, references, false, "return", userQuery);
             }
 
-            return renderMessage(message, by, dt, references, false, "return");
+            return renderMessage(message, by, dt, references, false, "return", userQuery);
+        }
+        //handler function for posting feedback data to endpoint
+        function sendFeedback(_uquery="", _kquery="", _sentiment="") {
+            const uquery = _uquery;
+            const kquery = _kquery;
+            const sentiment = _sentiment;
+            fetch('/api/chat/feedback', {
+                method: 'POST',
+                headers: {
+                'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({uquery: uquery, kquery: kquery, sentiment: sentiment})
+            })
+            .then(response => response.json())
         }
 
-        function formatHTMLMessage(message, raw=false, willReplace=true) {
+        function formatHTMLMessage(message, raw=false, willReplace=true, userQuery) {
             var md = window.markdownit();
             let newHTML = message;
 
@@ -392,7 +425,35 @@ To get started, just start typing below. You can also type / to see a list of co
                 copyIcon.classList.add("copy-icon");
                 copyButton.appendChild(copyIcon);
                 copyButton.addEventListener('click', createCopyParentText(message));
-                element.append(copyButton);
+
+                //create thumbs-up button
+                let thumbsUpButton = document.createElement('button');
+                thumbsUpButton.className = 'thumbs-up-button';
+                let thumbsUpIcon = document.createElement("img");
+                thumbsUpIcon.src = "/static/assets/icons/thumbs-up-svgrepo-com.svg";
+                thumbsUpIcon.classList.add("thumbs-up-icon");
+                thumbsUpButton.appendChild(thumbsUpIcon);
+                thumbsUpButton.onclick = function() {
+                    khojQuery = newHTML;
+                    thumbsUpIcon.src = "/static/assets/icons/confirm-icon.svg";
+                    sendFeedback(userQuery ,khojQuery, "Good Response");
+                };
+
+                // Create thumbs-down button
+                let thumbsDownButton = document.createElement('button');
+                thumbsDownButton.className = 'thumbs-down-button';
+                let thumbsDownIcon = document.createElement("img");
+                thumbsDownIcon.src = "/static/assets/icons/thumbs-down-svgrepo-com.svg";
+                thumbsDownIcon.classList.add("thumbs-down-icon");
+                thumbsDownButton.appendChild(thumbsDownIcon);
+                thumbsDownButton.onclick = function() {
+                    khojQuery = newHTML;
+                    thumbsDownIcon.src = "/static/assets/icons/confirm-icon.svg";
+                    sendFeedback(userQuery, khojQuery, "Bad Response");
+                };
+
+                // Append buttons to parent element
+                element.append(copyButton, thumbsDownButton, thumbsUpButton);
             }
 
             renderMathInElement(element, {
@@ -590,7 +651,7 @@ To get started, just start typing below. You can also type / to see a list of co
                         } else {
                             // If the chunk is not a JSON object, just display it as is
                             rawResponse += chunk;
-                            handleStreamResponse(newResponseText, rawResponse, loadingEllipsis);
+                            handleStreamResponse(newResponseText, rawResponse, query, loadingEllipsis);
                             readStream();
                         }
                     });
@@ -626,14 +687,14 @@ To get started, just start typing below. You can also type / to see a list of co
             return loadingEllipsis;
         }
 
-        function handleStreamResponse(newResponseElement, rawResponse, loadingEllipsis, replace=true) {
+        function handleStreamResponse(newResponseElement, rawResponse, rawQuery, loadingEllipsis, replace=true) {
             if (newResponseElement.getElementsByClassName("lds-ellipsis").length > 0 && loadingEllipsis) {
                 newResponseElement.removeChild(loadingEllipsis);
             }
             if (replace) {
                 newResponseElement.innerHTML = "";
             }
-            newResponseElement.appendChild(formatHTMLMessage(rawResponse, false, replace));
+            newResponseElement.appendChild(formatHTMLMessage(rawResponse, false, replace, rawQuery));
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
         }
 
@@ -933,6 +994,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 loadingEllipsis: null,
                 references: {},
                 rawResponse: "",
+                rawQuery: "",
             }
 
             if (chatBody.dataset.conversationId) {
@@ -951,6 +1013,7 @@ To get started, just start typing below. You can also type / to see a list of co
                         // Append any references after all the data has been streamed
                         finalizeChatBodyResponse(websocketState.references, websocketState.newResponseTextEl);
 
+                        const liveQuery = websocketState.rawQuery;
                         // Reset variables
                         websocketState = {
                             newResponseTextEl: null,
@@ -958,6 +1021,7 @@ To get started, just start typing below. You can also type / to see a list of co
                             loadingEllipsis: null,
                             references: {},
                             rawResponse: "",
+                            rawQuery: liveQuery,
                         }
                     } else {
                         try {
@@ -979,9 +1043,9 @@ To get started, just start typing below. You can also type / to see a list of co
                                     websocketState.rawResponse = rawResponse;
                                     websocketState.references = references;
                                 } else if (chunk.type == "status") {
-                                    handleStreamResponse(websocketState.newResponseTextEl, chunk.message, null, false);
+                                    handleStreamResponse(websocketState.newResponseTextEl, chunk.message, websocketState.rawQuery, null, false);
                                 } else if (chunk.type == "rate_limit") {
-                                    handleStreamResponse(websocketState.newResponseTextEl, chunk.message, websocketState.loadingEllipsis, true);
+                                    handleStreamResponse(websocketState.newResponseTextEl, chunk.message, websocketState.rawQuery, websocketState.loadingEllipsis, true);
                                 } else {
                                     rawResponse = chunk.response;
                                 }
@@ -1004,7 +1068,7 @@ To get started, just start typing below. You can also type / to see a list of co
                                 // If the chunk is not a JSON object, just display it as is
                                 websocketState.rawResponse += chunk;
                                 if (websocketState.newResponseTextEl) {
-                                    handleStreamResponse(websocketState.newResponseTextEl, websocketState.rawResponse, websocketState.loadingEllipsis);
+                                    handleStreamResponse(websocketState.newResponseTextEl, websocketState.rawResponse, websocketState.rawQuery, websocketState.loadingEllipsis);
                                 }
                             }
 
@@ -1085,6 +1149,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 loadingEllipsis,
                 references,
                 rawResponse,
+                rawQuery: query,
             }
         }
 
@@ -1202,7 +1267,8 @@ To get started, just start typing below. You can also type / to see a list of co
                                 new Date(chat_log.created + "Z"),
                                 chat_log.onlineContext,
                                 chat_log.intent?.type,
-                                chat_log.intent?.["inferred-queries"]);
+                                chat_log.intent?.["inferred-queries"],
+                                chat_log.intent?.query);
                             chatBody.appendChild(messageElement);
 
                             // When the 4th oldest message is within viewing distance (~60% scroll up)
@@ -1297,7 +1363,8 @@ To get started, just start typing below. You can also type / to see a list of co
                             new Date(chat_log.created + "Z"),
                             chat_log.onlineContext,
                             chat_log.intent?.type,
-                            chat_log.intent?.["inferred-queries"]
+                            chat_log.intent?.["inferred-queries"],
+                            chat_log.intent?.query
                         );
                         entry.target.replaceWith(messageElement);
 
@@ -2390,6 +2457,32 @@ To get started, just start typing below. You can also type / to see a list of co
             float: right;
         }
 
+        button.thumbs-up-button {
+            border-radius: 4px;
+            background-color: var(--background-color);
+            border: 1px solid var(--main-text-color);
+            text-align: center;
+            font-size: 16px;
+            transition: all 0.5s;
+            cursor: pointer;
+            padding: 4px;
+            float: right;
+            margin-right: 4px;
+        }
+
+        button.thumbs-down-button {
+            border-radius: 4px;
+            background-color: var(--background-color);
+            border: 1px solid var(--main-text-color);
+            text-align: center;
+            font-size: 16px;
+            transition: all 0.5s;
+            cursor: pointer;
+            padding: 4px;
+            float: right;
+            margin-right:4px;
+        }
+
         button.copy-button span {
             cursor: pointer;
             display: inline-block;
@@ -2398,11 +2491,31 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
         img.copy-icon {
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
+        }
+
+        img.thumbs-up-icon {
+            width: 18px;
+            height: 18px;
+        }
+
+        img.thumbs-down-icon {
+            width: 18px;
+            height: 18px;
         }
 
         button.copy-button:hover {
+            background-color: var(--primary-hover);
+            color: #f5f5f5;
+        }
+
+        button.thumbs-up-button:hover {
+            background-color: var(--primary-hover);
+            color: #f5f5f5;
+        }
+
+        button.thumbs-down-button:hover {
             background-color: var(--primary-hover);
             color: #f5f5f5;
         }
