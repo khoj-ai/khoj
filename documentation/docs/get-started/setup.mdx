@@ -199,15 +199,24 @@ To disable HTTPS, set the `KHOJ_NO_HTTPS` environment variable to `True`. This c
 
 ### 2. Configure
 1. Go to http://localhost:42110/server/admin and login with your admin credentials.
-    1. Go to [OpenAI settings](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/) in the server admin settings to add an OpenAI processor conversation config. This is where you set your API key. Alternatively, you can go to the [offline chat settings](http://localhost:42110/server/admin/database/offlinechatprocessorconversationconfig/) and simply create a new setting with `Enabled` set to `True`.
-    2. Go to the ChatModelOptions if you want to add additional models for chat.
-       - Set the `chat-model` field to a supported chat model[^1] of your choice. For example, you can specify `gpt-4-turbo-preview` if you're using OpenAI or `NousResearch/Hermes-2-Pro-Mistral-7B-GGUF` if you're using offline chat.
-       - Make sure to set the `model-type` field to `OpenAI` or `Offline` respectively.
-       - The `tokenizer` and `max-prompt-size` fields are optional. Set them only when using a non-standard model (i.e not mistral, gpt or llama2 model).
+#### Configure Chat Model
+##### Configure OpenAI or a custom OpenAI-compatible proxy server
+1. Go to the [OpenAI settings](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/) in the server admin settings to add an OpenAI processor conversation config. This is where you set your API key and server API base URL. The API base URL is optional - it's only relevant if you're using another OpenAI-compatible proxy server.
+2. Go over to configure your [chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/). Set the `chat-model` field to a supported chat model[^1] of your choice. For example, you can specify `gpt-4-turbo-preview` if you're using OpenAI.
+    - Make sure to set the `model-type` field to `OpenAI`.
+    - The `tokenizer` and `max-prompt-size` fields are optional. Set them only if you're sure of the tokenizer or token limit for the model you're using. Contact us if you're unsure what to do here.
+
+##### Configure Offline Chat
+1. No need to setup a conversation processor config!
+2. Go over to configure your [chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/). Set the `chat-model` field to a supported chat model[^1] of your choice. For example, we recommend `NousResearch/Hermes-2-Pro-Mistral-7B-GGUF`, but [any gguf model on huggingface](https://huggingface.co/models?library=gguf) should work.
+  - Make sure to set the `model-type` to `Offline`. Do not set `openai config`.
+  - The `tokenizer` and `max-prompt-size` fields are optional. Set them only when using a non-standard model (i.e not mistral, gpt or llama2 model) when you know the token limit.
+
+#### Share your data
 1. Select files and folders to index [using the desktop client](/get-started/setup#2-download-the-desktop-client). When you click 'Save', the files will be sent to your server for indexing.
     - Select Notion workspaces and Github repositories to index using the web interface.
 
-[^1]: Khoj, by default, can use [OpenAI GPT3.5+ chat models](https://platform.openai.com/docs/models/overview) or [GGUF chat models](https://huggingface.co/models?library=gguf). See [this section](/miscellaneous/advanced#use-openai-compatible-llm-api-server-self-hosting) to use non-standard chat models
+[^1]: Khoj, by default, can use [OpenAI GPT3.5+ chat models](https://platform.openai.com/docs/models/overview) or [GGUF chat models](https://huggingface.co/models?library=gguf). See [this section](/miscellaneous/advanced#use-openai-compatible-llm-api-server-self-hosting) on how to locally use OpenAI-format compatible proxy servers.
 
 :::tip[Note]
 Using Safari on Mac? You might not be able to login to the admin panel. Try using Chrome or Firefox instead.

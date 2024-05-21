@@ -22,7 +22,7 @@ on:
 
 jobs:
   test:
-    name: Run Tests
+    name: Setup Application and Lint
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -42,7 +42,7 @@ jobs:
           python -m pip install --upgrade pip
 
       - name: ⬇️ Install Application
-        run: pip install --upgrade .[dev]
+        run: pip install --no-cache-dir --upgrade .[dev]
 
       - name: 🌡️ Validate Application
         run: pre-commit run --hook-stage manual --all

@@ -1,3 +1,4 @@
+import re
 import uuid
 from random import choice
 
@@ -73,6 +74,12 @@ class Subscription(BaseModel):
     renewal_date = models.DateTimeField(null=True, default=None, blank=True)
 
 
+class OpenAIProcessorConversationConfig(BaseModel):
+    name = models.CharField(max_length=200)
+    api_key = models.CharField(max_length=200)
+    api_base_url = models.URLField(max_length=200, default=None, blank=True, null=True)
+
+
 class ChatModelOptions(BaseModel):
     class ModelType(models.TextChoices):
         OPENAI = "openai"
@@ -82,6 +89,9 @@ class ChatModelOptions(BaseModel):
     tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)
     chat_model = models.CharField(max_length=200, default="NousResearch/Hermes-2-Pro-Mistral-7B-GGUF")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
+    openai_config = models.ForeignKey(
+        OpenAIProcessorConversationConfig, on_delete=models.CASCADE, default=None, null=True, blank=True
+    )
 
 
 class Agent(BaseModel):
@@ -100,11 +110,12 @@ class Agent(BaseModel):
 
 class ProcessLock(BaseModel):
     class Operation(models.TextChoices):
-        UPDATE_EMBEDDINGS = "update_embeddings"
+        INDEX_CONTENT = "index_content"
+        SCHEDULED_JOB = "scheduled_job"
 
     # We need to make sure that some operations are thread-safe. To do so, add locks for potentially shared operations.
     # For example, we need to make sure that only one process is updating the embeddings at a time.
-    name = models.CharField(max_length=200, choices=Operation.choices)
+    name = models.CharField(max_length=200, choices=Operation.choices, unique=True)
     started_at = models.DateTimeField(auto_now_add=True)
     max_duration_in_seconds = models.IntegerField(default=60 * 60 * 12)  # 12 hours
 
@@ -211,10 +222,6 @@ class TextToImageModelConfig(BaseModel):
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OPENAI)
 
 
-class OpenAIProcessorConversationConfig(BaseModel):
-    api_key = models.CharField(max_length=200)
-
-
 class SpeechToTextModelOptions(BaseModel):
     class ModelType(models.TextChoices):
         OPENAI = "openai"
@@ -241,6 +248,36 @@ class Conversation(BaseModel):
     slug = models.CharField(max_length=200, default=None, null=True, blank=True)
     title = models.CharField(max_length=200, default=None, null=True, blank=True)
     agent = models.ForeignKey(Agent, on_delete=models.SET_NULL, default=None, null=True, blank=True)
+
+
+class PublicConversation(BaseModel):
+    source_owner = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
+    conversation_log = models.JSONField(default=dict)
+    slug = models.CharField(max_length=200, default=None, null=True, blank=True)
+    title = models.CharField(max_length=200, default=None, null=True, blank=True)
+    agent = models.ForeignKey(Agent, on_delete=models.SET_NULL, default=None, null=True, blank=True)
+
+
+@receiver(pre_save, sender=PublicConversation)
+def verify_public_conversation(sender, instance, **kwargs):
+    def generate_random_alphanumeric(length):
+        characters = "0123456789abcdefghijklmnopqrstuvwxyz"
+        return "".join(choice(characters) for _ in range(length))
+
+    # check if this is a new instance
+    if instance._state.adding:
+        slug = re.sub(r"\W+", "-", instance.slug.lower())[:50]
+        observed_random_id = set()
+        while PublicConversation.objects.filter(slug=slug).exists():
+            try:
+                random_id = generate_random_alphanumeric(7)
+            except IndexError:
+                raise ValidationError(
+                    "Unable to generate a unique slug for the Public Conversation. Please try again later."
+                )
+            observed_random_id.add(random_id)
+            slug = f"{slug}-{random_id}"
+        instance.slug = slug
 
 
 class ReflectiveQuestion(BaseModel):
