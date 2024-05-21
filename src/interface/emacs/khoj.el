@@ -420,7 +420,7 @@ Auto invokes setup steps on calling main entrypoint."
          (inhibit-message t)
          (message-log-max nil)
          (batch-size 30))
-	(dolist (files (khoj--split-file-list files-to-index batch-size))
+	(dolist (files (-partition-all batch-size files-to-index))
       (khoj--send-index-update-request (khoj--render-update-files-as-request-body files boundary) boundary content-type type-query force))
     (when delete-files
         (khoj--send-index-update-request (khoj--render-delete-files-as-request-body delete-files boundary) boundary content-type type-query force))
@@ -434,22 +434,6 @@ delete them. return delete-file-list."
       (when (not (member indexed-file upload-files))
         (push indexed-file delete-files)))
     delete-files))
-
-(defun khoj--split-file-list (file-list size)
-  "Split `FILE-LIST' into subgroups of `SIZE' files each."
-  (let ((subgroups '())
-        (current-group '()))
-    (dolist (file file-list)
-      (if (= (length current-group) size)
-          ;; If the current group has size files, start a new group
-          (progn
-            (push current-group subgroups)
-            (setq current-group '()))
-        (push file current-group)))
-    ;; Add the last group if it's not empty
-    (when current-group
-      (push (nreverse current-group) subgroups))
-    (nreverse subgroups)))  ; Reverse to maintain the original order of file-list
 
 (defun khoj--send-index-update-request (body boundary &optional content-type type-query force)
   "Send `BODY' request to khoj server. 'TYPE-QUERY' is appended to the URL.
@@ -502,7 +486,6 @@ Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request.
   (with-temp-buffer
     (set-buffer-multibyte nil)
     (insert "\n")
-    (debug delete-files)
     (dolist (file-to-index delete-files)
       (let ((content-type (khoj--filename-to-mime-type file-to-index))
             (file-name (encode-coding-string  file-to-index 'utf-8)))
