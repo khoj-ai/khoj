@@ -36,6 +36,7 @@ from khoj.routers.helpers import (
     ConversationCommandRateLimiter,
     acreate_title_from_query,
     schedule_automation,
+    scheduled_chat,
     update_telemetry_state,
 )
 from khoj.search_filter.date_filter import DateFilter
@@ -476,6 +477,32 @@ async def post_automation(
 
     # Return information about the created automation as a JSON response
     return Response(content=json.dumps(automation_info), media_type="application/json", status_code=200)
+
+
+@api.post("/trigger/automation", response_class=Response)
+@requires(["authenticated"])
+def trigger_manual_job(
+    request: Request,
+    automation_id: str,
+):
+    user: KhojUser = request.user.object
+
+    # Check, get automation to edit
+    try:
+        automation: Job = AutomationAdapters.get_automation(user, automation_id)
+    except ValueError as e:
+        return Response(content="Invalid automation", status_code=403)
+
+    automation_metadata = json.loads(automation.name)
+
+    # Manually trigger the automation immediately. TODO make this non-blocking. Trigger the job and return a 200 response indicating the user should take a look at their inbox.
+    scheduled_chat(
+        automation_metadata["query_to_run"],
+        automation_metadata["scheduling_request"],
+        automation_metadata["subject"],
+        user,
+        automation_metadata["calling_url"],
+    )
 
 
 @api.put("/automation", response_class=Response)

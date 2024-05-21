@@ -286,6 +286,22 @@
         });
     }
 
+    function sendAPreviewAutomation(automationId) {
+        const notificationEl = document.getElementById(`automation-success-${automationId}`);
+
+        fetch("/api/trigger/automation")
+            .then(response => response.json())
+            .then(automations => {
+                notificationEl.style.display = 'block';
+                notificationEl.textContent = "Automation triggered. Check your inbox!"
+            })
+            .catch(error => {
+                notificationEl.style.display = 'block';
+                notificationEl.textContent = "Sorry, something went wrong. Try again later."
+            })
+
+    }
+
     function clickCancelEdit(event, automationId) {
         event.preventDefault();
         event.stopPropagation();
@@ -350,7 +366,7 @@
                             `
                             <button type="button"
                                     class="cancel-edit-automation-button negative-button"
-                                    onclick="clickCancelEdit(event, '${automationId}')">Cancel</button>
+                                    onclick="sendAPreviewAutomation(event, '${automationId}')">Preview</button>
                             <button type="button"
                                     class="delete-automation-button negative-button"
                                     id="delete-automation-button-${automationId}">Delete</button>
@@ -760,6 +776,7 @@
         }
 
         // Create a loading animation while waiting for the API response
+        // TODO add a more pleasant loading symbol here.
         notificationEl.textContent = `⏳ ${actOn}ing automation...`;
         notificationEl.style.display = "block";
 
