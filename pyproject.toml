@@ -59,6 +59,7 @@ dependencies = [
     "aiohttp ~= 3.9.0",
     "langchain <= 0.2.0",
     "langchain-openai >= 0.0.5",
+    "langchain-community == 0.0.27",
     "requests >= 2.26.0",
     "anyio == 3.7.1",
     "pymupdf >= 1.23.5",
