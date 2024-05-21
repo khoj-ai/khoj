@@ -436,7 +436,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 thumbsUpButton.onclick = function() {
                     khojQuery = newHTML;
                     thumbsUpIcon.src = "/static/assets/icons/confirm-icon.svg";
-                    sendFeedback(userQuery,khojQuery,"Good Response");
+                    sendFeedback(userQuery ,khojQuery, "Good Response");
                 };
 
                 // Create thumbs-down button
@@ -449,7 +449,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 thumbsDownButton.onclick = function() {
                     khojQuery = newHTML;
                     thumbsDownIcon.src = "/static/assets/icons/confirm-icon.svg";
-                    sendFeedback(userQuery,khojQuery,"Bad Response");
+                    sendFeedback(userQuery, khojQuery, "Bad Response");
                 };
 
                 // Append buttons to parent element
@@ -651,7 +651,7 @@ To get started, just start typing below. You can also type / to see a list of co
                         } else {
                             // If the chunk is not a JSON object, just display it as is
                             rawResponse += chunk;
-                            handleStreamResponse(newResponseText, rawResponse, loadingEllipsis);
+                            handleStreamResponse(newResponseText, rawResponse, query, loadingEllipsis);
                             readStream();
                         }
                     });
@@ -687,14 +687,14 @@ To get started, just start typing below. You can also type / to see a list of co
             return loadingEllipsis;
         }
 
-        function handleStreamResponse(newResponseElement, rawResponse, loadingEllipsis, replace=true) {
+        function handleStreamResponse(newResponseElement, rawResponse, rawQuery, loadingEllipsis, replace=true) {
             if (newResponseElement.getElementsByClassName("lds-ellipsis").length > 0 && loadingEllipsis) {
                 newResponseElement.removeChild(loadingEllipsis);
             }
             if (replace) {
                 newResponseElement.innerHTML = "";
             }
-            newResponseElement.appendChild(formatHTMLMessage(rawResponse, false, replace));
+            newResponseElement.appendChild(formatHTMLMessage(rawResponse, false, replace, rawQuery));
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
         }
 
@@ -994,6 +994,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 loadingEllipsis: null,
                 references: {},
                 rawResponse: "",
+                rawQuery: "",
             }
 
             if (chatBody.dataset.conversationId) {
@@ -1012,6 +1013,7 @@ To get started, just start typing below. You can also type / to see a list of co
                         // Append any references after all the data has been streamed
                         finalizeChatBodyResponse(websocketState.references, websocketState.newResponseTextEl);
 
+                        const liveQuery = websocketState.rawQuery;
                         // Reset variables
                         websocketState = {
                             newResponseTextEl: null,
@@ -1019,6 +1021,7 @@ To get started, just start typing below. You can also type / to see a list of co
                             loadingEllipsis: null,
                             references: {},
                             rawResponse: "",
+                            rawQuery: liveQuery,
                         }
                     } else {
                         try {
@@ -1040,9 +1043,9 @@ To get started, just start typing below. You can also type / to see a list of co
                                     websocketState.rawResponse = rawResponse;
                                     websocketState.references = references;
                                 } else if (chunk.type == "status") {
-                                    handleStreamResponse(websocketState.newResponseTextEl, chunk.message, null, false);
+                                    handleStreamResponse(websocketState.newResponseTextEl, chunk.message, websocketState.rawQuery, null, false);
                                 } else if (chunk.type == "rate_limit") {
-                                    handleStreamResponse(websocketState.newResponseTextEl, chunk.message, websocketState.loadingEllipsis, true);
+                                    handleStreamResponse(websocketState.newResponseTextEl, chunk.message, websocketState.rawQuery, websocketState.loadingEllipsis, true);
                                 } else {
                                     rawResponse = chunk.response;
                                 }
@@ -1065,7 +1068,7 @@ To get started, just start typing below. You can also type / to see a list of co
                                 // If the chunk is not a JSON object, just display it as is
                                 websocketState.rawResponse += chunk;
                                 if (websocketState.newResponseTextEl) {
-                                    handleStreamResponse(websocketState.newResponseTextEl, websocketState.rawResponse, websocketState.loadingEllipsis);
+                                    handleStreamResponse(websocketState.newResponseTextEl, websocketState.rawResponse, websocketState.rawQuery, websocketState.loadingEllipsis);
                                 }
                             }
 
@@ -1146,6 +1149,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 loadingEllipsis,
                 references,
                 rawResponse,
+                rawQuery: query,
             }
         }
 
