@@ -814,7 +814,7 @@
             notificationEl.style.display = "block";
             saveButtonEl.textContent = `⚠️ Failed to ${actOn.toLowerCase()}e automations`;
             setTimeout(function() {
-                saveButtonEl.textContent = actOn;
+                saveButtonEl.textContent = `${actOn}e`;
             }, 2000);
             return;
         });

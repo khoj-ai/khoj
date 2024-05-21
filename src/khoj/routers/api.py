@@ -454,10 +454,15 @@ async def post_automation(
     crontime = crontime.replace("?", "*")
     subject = await acreate_title_from_query(q)
 
+    # Create new Conversation Session associated with this new task
+    conversation = await ConversationAdapters.acreate_conversation_session(user, request.user.client_app)
+
+    calling_url = request.url.replace(query=f"{request.url.query}&conversation_id={conversation.id}")
+
     # Schedule automation with query_to_run, timezone, subject directly provided by user
     try:
         # Use the query to run as the scheduling request if the scheduling request is unset
-        automation = await schedule_automation(query_to_run, subject, crontime, timezone, q, user, request.url)
+        automation = await schedule_automation(query_to_run, subject, crontime, timezone, q, user, calling_url)
     except Exception as e:
         logger.error(f"Error creating automation {q} for {user.email}: {e}", exc_info=True)
         return Response(
