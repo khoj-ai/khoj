@@ -4,7 +4,7 @@ The Notion integration allows you to search/chat with your Notion workspaces. [N
 
 Go to https://app.khoj.dev/config to connect your Notion workspace(s) to Khoj.
 
-![notion_integration](/img/notion_integration.gif)
+![notion_integration](../../assets/img/notion_integration.gif)
 
 
 ## Self-Hosted Setup
@@ -16,4 +16,4 @@ Go to https://app.khoj.dev/config to connect your Notion workspace(s) to Khoj.
 4. In the first step, you generated an API key. Use the newly generated API Key in your Khoj settings, by default at http://localhost:42110/config/content-source/notion. Click `Save`.
 5. Click `Configure` in http://localhost:42110/config to index your Notion workspace(s).
 
-That's it! You should be ready to start searching and chatting. Make sure you've configured your [chat settings](/get-started/setup#2-configure).
+That's it! You should be ready to start searching and chatting. Make sure you've configured your [chat settings](../get-started/setup.mdx#2-configure).
