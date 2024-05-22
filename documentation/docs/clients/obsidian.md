@@ -19,7 +19,7 @@ sidebar_position: 3
 
 | Search | Chat |
 |:------:|:----:|
-| ![](/img/khoj_search_on_obsidian.png) | ![](/img/khoj_chat_on_obsidian.png) |
+| ![](../../aseets/img/khoj_search_on_obsidian.png) | ![](../../aseets/img/khoj_chat_on_obsidian.png) |
 
 
 ## Setup
@@ -36,7 +36,7 @@ See the official [Obsidian Plugin Docs](https://help.obsidian.md/Extending+Obsid
 Click the *Khoj chat* icon 💬 on the [Ribbon](https://help.obsidian.md/User+interface/Workspace/Ribbon) or run *Khoj: Chat* from the [Command Palette](https://help.obsidian.md/Plugins/Command+palette) and ask questions in a natural, conversational style.<br />
 E.g *"When did I file my taxes last year?"*
 
-See [Khoj Chat](/features/chat) for more details
+See [Khoj Chat](../features/chat.md) for more details
 
 ### Find Similar Notes
 To see other notes similar to the current one, run *Khoj: Find Similar Notes* from the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
@@ -44,7 +44,7 @@ To see other notes similar to the current one, run *Khoj: Find Similar Notes* fr
 ### Search
 Run *Khoj: Search* from the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
 
-See [Khoj Search](/features/search) for more details. Use [query filters](/miscellaneous/advanced#query-filters) to limit entries to search
+See [Khoj Search](../features/search.md) for more details. Use [query filters](../miscellaneous/advanced.md#query-filters) to limit entries to search
 
 [search_demo](https://user-images.githubusercontent.com/6413477/218801155-cd67e8b4-a770-404a-8179-d6b61caa0f93.mp4 ':include :type=mp4')
 
