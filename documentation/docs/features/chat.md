@@ -46,9 +46,9 @@ This will enable Khoj to send your chat queries and query relevant notes to Open
     - **On Web**: Open [/chat](https://app.khoj.dev/chat) in your web browser
     - **On Obsidian**: Search for *Khoj: Chat* in the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
     - **On Emacs**: Run `M-x khoj <user-query>`
-2. Enter your queries to chat with Khoj. Use [slash commands](#commands) and [query filters](/miscellaneous/advanced#query-filters) to change what Khoj uses to respond
+2. Enter your queries to chat with Khoj. Use [slash commands](#commands) and [query filters](../miscellaneous/advanced#query-filters) to change what Khoj uses to respond
 
-![](/img/khoj_chat_on_web.png ':size=400px')
+![](../../assets/img/khoj_chat_on_web.png ':size=400px')
 
 #### Details
 1. Your query is used to retrieve the most relevant notes, if any, using Khoj search
