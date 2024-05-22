@@ -36,10 +36,10 @@ You can optionally install Khoj as a [Progressive Web App (PWA)](https://web.dev
 **Process via Screenshots**
 | Step 1 | Step 2 | Step 3|
 |:---:|:---:|:---:|
-| ![](../../assets/img/pwa_install_1.png) | ![](../../img/pwa_install_2.png) | ![](../../img/pwa_install_3.png) |
+| ![](../../assets/img/pwa_install_1.png) | ![](../../assets/img/pwa_install_2.png) | ![](../../assets/img/pwa_install_3.png) |
 
 ## Interface
 
 | Search | Chat |
 |:------:|:----:|
-| ![](../../img/khoj_search_on_web.png) | ![](../../img/khoj_chat_on_web.png) |
+| ![](../../assets/img/khoj_search_on_web.png) | ![](../../assets/img/khoj_chat_on_web.png) |
