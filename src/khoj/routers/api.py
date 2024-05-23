@@ -3,6 +3,7 @@ import json
 import logging
 import math
 import os
+import threading
 import time
 import uuid
 from typing import Any, Callable, List, Optional, Union
@@ -494,18 +495,14 @@ def trigger_manual_job(
         logger.error(f"Error triggering automation {automation_id} for {user.email}: {e}", exc_info=True)
         return Response(content="Invalid automation", status_code=403)
 
+    # Trigger the job without waiting for the result.
     scheduled_chat_func = automation.func
-    scheduled_chat_func(*automation.args, **automation.kwargs)
-    automation_metadata = json.loads(automation.name)
 
-    # Manually trigger the automation immediately. TODO make this non-blocking. Trigger the job and return a 200 response indicating the user should take a look at their inbox.
-    scheduled_chat(
-        automation_metadata["query_to_run"],
-        automation_metadata["scheduling_request"],
-        automation_metadata["subject"],
-        user,
-        automation_metadata["calling_url"],
-    )
+    # Run the function in a separate thread
+    thread = threading.Thread(target=scheduled_chat_func, args=automation.args, kwargs=automation.kwargs)
+    thread.start()
+
+    return Response(content="Automation triggered", status_code=200)
 
 
 @api.put("/automation", response_class=Response)
