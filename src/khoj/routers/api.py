@@ -491,8 +491,11 @@ def trigger_manual_job(
     try:
         automation: Job = AutomationAdapters.get_automation(user, automation_id)
     except ValueError as e:
+        logger.error(f"Error triggering automation {automation_id} for {user.email}: {e}", exc_info=True)
         return Response(content="Invalid automation", status_code=403)
 
+    scheduled_chat_func = automation.func
+    scheduled_chat_func(*automation.args, **automation.kwargs)
     automation_metadata = json.loads(automation.name)
 
     # Manually trigger the automation immediately. TODO make this non-blocking. Trigger the job and return a 200 response indicating the user should take a look at their inbox.

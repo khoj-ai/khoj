@@ -11,7 +11,6 @@ from starlette.authentication import has_required_scope, requires
 from khoj.database import adapters
 from khoj.database.adapters import (
     AgentAdapters,
-    AutomationAdapters,
     ConversationAdapters,
     EntryAdapters,
     PublicConversationAdapters,

@@ -289,11 +289,17 @@
     function sendAPreviewAutomation(automationId) {
         const notificationEl = document.getElementById(`automation-success-${automationId}`);
 
-        fetch("/api/trigger/automation")
-            .then(response => response.json())
+        fetch(`/api/trigger/automation?automation_id=${automationId}`, { method: 'POST' })
+            .then(response =>
+                {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
             .then(automations => {
                 notificationEl.style.display = 'block';
-                notificationEl.textContent = "Automation triggered. Check your inbox!"
+                notificationEl.textContent = "Automation triggered. Check your inbox in a few minutes!";
             })
             .catch(error => {
                 notificationEl.style.display = 'block';
@@ -366,7 +372,7 @@
                             `
                             <button type="button"
                                     class="cancel-edit-automation-button negative-button"
-                                    onclick="sendAPreviewAutomation(event, '${automationId}')">Preview</button>
+                                    onclick="sendAPreviewAutomation('${automationId}')">Preview</button>
                             <button type="button"
                                     class="delete-automation-button negative-button"
                                     id="delete-automation-button-${automationId}">Delete</button>
