@@ -118,9 +118,14 @@
 
     button.save-automation-button,
     button.cancel-edit-automation-button,
+    button.send-preview-automation-button,
     button.delete-automation-button {
         padding: 8px;
         margin-bottom: 0;
+    }
+
+    button.send-preview-automation-button {
+        border-color: var(--summer-sun);
     }
 
     button.save-automation-button:hover {
@@ -371,11 +376,12 @@
                             <div id="empty-div"></div>`:
                             `
                             <button type="button"
-                                    class="cancel-edit-automation-button negative-button"
-                                    onclick="sendAPreviewAutomation('${automationId}')">Preview</button>
-                            <button type="button"
                                     class="delete-automation-button negative-button"
                                     id="delete-automation-button-${automationId}">Delete</button>
+                            <button type="button"
+                                    class="send-preview-automation-button positive-button"
+                                    title="Immediately get a preview of this automation"
+                                    onclick="sendAPreviewAutomation('${automationId}')">Preview</button>
                             `
                         }
                         <button type="button"
