@@ -201,6 +201,11 @@ To disable HTTPS, set the `KHOJ_NO_HTTPS` environment variable to `True`. This c
 1. Go to http://localhost:42110/server/admin and login with your admin credentials.
 #### Configure Chat Model
 ##### Configure OpenAI or a custom OpenAI-compatible proxy server
+
+:::info[Ollama Integration]
+Using Ollama? See the [Ollama Integration](/miscellaneous/ollama) section for more custom setup instructions.
+:::
+
 1. Go to the [OpenAI settings](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/) in the server admin settings to add an OpenAI processor conversation config. This is where you set your API key and server API base URL. The API base URL is optional - it's only relevant if you're using another OpenAI-compatible proxy server.
 2. Go over to configure your [chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/). Set the `chat-model` field to a supported chat model[^1] of your choice. For example, you can specify `gpt-4-turbo-preview` if you're using OpenAI.
     - Make sure to set the `model-type` field to `OpenAI`.
