@@ -158,6 +158,15 @@ class GithubRepoConfig(BaseModel):
     github_config = models.ForeignKey(GithubConfig, on_delete=models.CASCADE, related_name="githubrepoconfig")
 
 
+class ServerChatSettings(BaseModel):
+    default_model = models.ForeignKey(
+        ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="default_model"
+    )
+    summarizer_model = models.ForeignKey(
+        ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="summarizer_model"
+    )
+
+
 class LocalOrgConfig(BaseModel):
     input_files = models.JSONField(default=list, null=True)
     input_filter = models.JSONField(default=list, null=True)

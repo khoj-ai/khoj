@@ -392,9 +392,13 @@ async def extract_relevant_info(q: str, corpus: str) -> Union[str, None]:
         corpus=corpus.strip(),
     )
 
+    summarizer_model: ChatModelOptions = await ConversationAdapters.aget_summarizer_conversation_config()
+
     with timer("Chat actor: Extract relevant information from data", logger):
         response = await send_message_to_model_wrapper(
-            extract_relevant_information, prompts.system_prompt_extract_relevant_information
+            extract_relevant_information,
+            prompts.system_prompt_extract_relevant_information,
+            chat_model_option=summarizer_model,
         )
 
     return response.strip()
@@ -449,8 +453,11 @@ async def send_message_to_model_wrapper(
     message: str,
     system_message: str = "",
     response_type: str = "text",
+    chat_model_option: ChatModelOptions = None,
 ):
-    conversation_config: ChatModelOptions = await ConversationAdapters.aget_default_conversation_config()
+    conversation_config: ChatModelOptions = (
+        chat_model_option or await ConversationAdapters.aget_default_conversation_config()
+    )
 
     if conversation_config is None:
         raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")

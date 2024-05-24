@@ -39,6 +39,7 @@ from khoj.database.models import (
     PublicConversation,
     ReflectiveQuestion,
     SearchModelConfig,
+    ServerChatSettings,
     SpeechToTextModelOptions,
     Subscription,
     TextToImageModelConfig,
@@ -702,11 +703,36 @@ class ConversationAdapters:
 
     @staticmethod
     def get_default_conversation_config():
-        return ChatModelOptions.objects.filter().first()
+        server_chat_settings = ServerChatSettings.objects.first()
+        if server_chat_settings is None or server_chat_settings.default_model is None:
+            return ChatModelOptions.objects.filter().first()
+        return server_chat_settings.default_model
 
     @staticmethod
     async def aget_default_conversation_config():
-        return await ChatModelOptions.objects.filter().prefetch_related("openai_config").afirst()
+        server_chat_settings: ServerChatSettings = (
+            await ServerChatSettings.objects.filter()
+            .prefetch_related("default_model", "default_model__openai_config")
+            .afirst()
+        )
+        if server_chat_settings is None or server_chat_settings.default_model is None:
+            return await ChatModelOptions.objects.filter().prefetch_related("openai_config").afirst()
+        return server_chat_settings.default_model
+
+    @staticmethod
+    async def aget_summarizer_conversation_config():
+        server_chat_settings: ServerChatSettings = (
+            await ServerChatSettings.objects.filter()
+            .prefetch_related(
+                "summarizer_model", "default_model", "default_model__openai_config", "summarizer_model__openai_config"
+            )
+            .afirst()
+        )
+        if server_chat_settings is None or (
+            server_chat_settings.summarizer_model is None and server_chat_settings.default_model is None
+        ):
+            return await ChatModelOptions.objects.filter().afirst()
+        return server_chat_settings.summarizer_model or server_chat_settings.default_model
 
     @staticmethod
     def create_conversation_from_public_conversation(

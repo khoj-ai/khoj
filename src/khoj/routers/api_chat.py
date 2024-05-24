@@ -613,11 +613,17 @@ async def websocket_endpoint(
 
         if ConversationCommand.Webpage in conversation_commands:
             try:
-                online_results = await read_webpages(defiltered_query, meta_log, location, send_status_update)
+                direct_web_pages = await read_webpages(defiltered_query, meta_log, location, send_status_update)
                 webpages = []
-                for query in online_results:
-                    for webpage in online_results[query]["webpages"]:
+                for query in direct_web_pages:
+                    if online_results.get(query):
+                        online_results[query]["webpages"] = direct_web_pages[query]["webpages"]
+                    else:
+                        online_results[query] = {"webpages": direct_web_pages[query]["webpages"]}
+
+                    for webpage in direct_web_pages[query]["webpages"]:
                         webpages.append(webpage["link"])
+
                 await send_status_update(f"**📚 Read web pages**: {webpages}")
             except ValueError as e:
                 logger.warning(

@@ -22,6 +22,7 @@ from khoj.database.models import (
     ProcessLock,
     ReflectiveQuestion,
     SearchModelConfig,
+    ServerChatSettings,
     SpeechToTextModelOptions,
     Subscription,
     TextToImageModelConfig,
@@ -88,6 +89,7 @@ admin.site.register(TextToImageModelConfig)
 admin.site.register(ClientApplication)
 admin.site.register(GithubConfig)
 admin.site.register(NotionConfig)
+admin.site.register(ServerChatSettings)
 
 
 @admin.register(Agent)
