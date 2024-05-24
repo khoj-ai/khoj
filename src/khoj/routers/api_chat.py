@@ -68,6 +68,23 @@ conversation_command_rate_limiter = ConversationCommandRateLimiter(
 
 api_chat = APIRouter()
 
+from pydantic import BaseModel
+
+from khoj.routers.email import send_query_feedback
+
+
+class FeedbackData(BaseModel):
+    uquery: str
+    kquery: str
+    sentiment: str
+
+
+@api_chat.post("/feedback")
+@requires(["authenticated"])
+async def sendfeedback(request: Request, data: FeedbackData):
+    user: KhojUser = request.user.object
+    await send_query_feedback(data.uquery, data.kquery, data.sentiment, user.email)
+
 
 @api_chat.get("/starters", response_class=Response)
 @requires(["authenticated"])
