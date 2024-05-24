@@ -46,7 +46,7 @@ class KhojDjangoJobAdmin(DjangoJobAdmin):
         job: Job = self.job_store.lookup_job(obj.id)
         return f"{job.func_ref} {job.args} {job.kwargs}" if job else "None"
 
-    job_info.short_description = "Job Info"
+    job_info.short_description = "Job Info"  # type: ignore
 
     def get_search_results(self, request, queryset, search_term):
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
