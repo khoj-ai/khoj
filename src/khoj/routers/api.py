@@ -3,6 +3,7 @@ import json
 import logging
 import math
 import os
+import threading
 import time
 import uuid
 from typing import Any, Callable, List, Optional, Union
@@ -36,6 +37,7 @@ from khoj.routers.helpers import (
     ConversationCommandRateLimiter,
     acreate_title_from_query,
     schedule_automation,
+    scheduled_chat,
     update_telemetry_state,
 )
 from khoj.search_filter.date_filter import DateFilter
@@ -452,12 +454,19 @@ async def post_automation(
         crontime = " ".join(crontime.split(" ")[:5])
     # Convert crontime to standard unix crontime
     crontime = crontime.replace("?", "*")
+    if crontime == "* * * * *":
+        return Response(content="Invalid crontime. Please create a more specific schedule.", status_code=400)
     subject = await acreate_title_from_query(q)
+
+    # Create new Conversation Session associated with this new task
+    conversation = await ConversationAdapters.acreate_conversation_session(user, request.user.client_app)
+
+    calling_url = request.url.replace(query=f"{request.url.query}&conversation_id={conversation.id}")
 
     # Schedule automation with query_to_run, timezone, subject directly provided by user
     try:
         # Use the query to run as the scheduling request if the scheduling request is unset
-        automation = await schedule_automation(query_to_run, subject, crontime, timezone, q, user, request.url)
+        automation = await schedule_automation(query_to_run, subject, crontime, timezone, q, user, calling_url)
     except Exception as e:
         logger.error(f"Error creating automation {q} for {user.email}: {e}", exc_info=True)
         return Response(
@@ -471,6 +480,31 @@ async def post_automation(
 
     # Return information about the created automation as a JSON response
     return Response(content=json.dumps(automation_info), media_type="application/json", status_code=200)
+
+
+@api.post("/trigger/automation", response_class=Response)
+@requires(["authenticated"])
+def trigger_manual_job(
+    request: Request,
+    automation_id: str,
+):
+    user: KhojUser = request.user.object
+
+    # Check, get automation to edit
+    try:
+        automation: Job = AutomationAdapters.get_automation(user, automation_id)
+    except ValueError as e:
+        logger.error(f"Error triggering automation {automation_id} for {user.email}: {e}", exc_info=True)
+        return Response(content="Invalid automation", status_code=403)
+
+    # Trigger the job without waiting for the result.
+    scheduled_chat_func = automation.func
+
+    # Run the function in a separate thread
+    thread = threading.Thread(target=scheduled_chat_func, args=automation.args, kwargs=automation.kwargs)
+    thread.start()
+
+    return Response(content="Automation triggered", status_code=200)
 
 
 @api.put("/automation", response_class=Response)

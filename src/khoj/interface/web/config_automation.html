@@ -62,6 +62,15 @@
         color: var(--primary-color);
     }
 
+    img.automation-edit-cancel-icon,
+    img.automation-edit-icon {
+        width: 24px;
+        height: 24px;
+        object-fit: cover;
+        cursor: pointer;
+        margin: auto;
+    }
+
     textarea.fake-input,
     input.fake-input {
         height: auto;
@@ -108,9 +117,15 @@
     }
 
     button.save-automation-button,
+    button.cancel-edit-automation-button,
+    button.send-preview-automation-button,
     button.delete-automation-button {
         padding: 8px;
         margin-bottom: 0;
+    }
+
+    button.send-preview-automation-button {
+        border-color: var(--summer-sun);
     }
 
     button.save-automation-button:hover {
@@ -122,10 +137,16 @@
         box-shadow: 0 4px 6px 0 hsla(0, 0%, 0%, 0.2);
         margin-bottom: 20px;
         transition: box-shadow 0.3s ease, transform 0.3s ease;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: auto;
+        transform: translate(-50%, -50%);
+        z-index: 2;
+        height: auto;
     }
 
-    div.automation:hover,
-    div.new-automation:hover {
+    div.automation:not(.new-automation):hover {
         box-shadow: 0 10px 15px 0 hsla(0, 0%, 0%, 0.1);
         transform: translateY(-5px);
     }
@@ -181,6 +202,16 @@
         height: 24px;
     }
 
+    div.subject-wrapper {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        grid-gap: 8px;
+    }
+
+    div.subject-wrapper p {
+        margin: 0;
+    }
+
     @keyframes confirmation {
         0% { background-color: normal; transform: scale(1); }
         50% { background-color: var(--primary); transform: scale(1.1); }
@@ -198,6 +229,10 @@
         }
         div.automation-buttons {
             grid-template-columns: 1fr;
+        }
+        div.new-automation {
+            width: 100%;
+            height: auto;
         }
     }
 
@@ -235,13 +270,70 @@
         queryEl.value = automation.query_to_run;
     }
 
-    function onClickAutomationCard(automationId) {
+    function onClickEditAutomationCard(automationId) {
         const automationIDElements = document.querySelectorAll(`.${automationId}`);
         automationIDElements.forEach(el => {
-            // Only toggle the first time the button is clicked
-            el.classList.remove("hide-details");
-            el.classList.remove("fake-input");
+            if (el.classList.contains("automation-edit-icon")) {
+                el.classList.remove("automation-edit-icon");
+                el.classList.add("automation-edit-cancel-icon");
+                el.src = "/static/assets/icons/cancel.svg";
+                el.onclick = function(event) { clickCancelEdit(event, automationId); };
+            }
+
+            if (el.classList.contains("hide-details")) {
+                el.classList.add("hide-details-placeholder");
+                el.classList.remove("hide-details");
+            }
+            if (el.classList.contains("fake-input")) {
+                el.classList.add("fake-input-placeholder");
+                el.classList.remove("fake-input");
+            }
         });
+    }
+
+    function sendAPreviewAutomation(automationId) {
+        const notificationEl = document.getElementById(`automation-success-${automationId}`);
+
+        fetch(`/api/trigger/automation?automation_id=${automationId}`, { method: 'POST' })
+            .then(response =>
+                {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+            .then(automations => {
+                notificationEl.style.display = 'block';
+                notificationEl.textContent = "Automation triggered. Check your inbox in a few minutes!";
+            })
+            .catch(error => {
+                notificationEl.style.display = 'block';
+                notificationEl.textContent = "Sorry, something went wrong. Try again later."
+            })
+
+    }
+
+    function clickCancelEdit(event, automationId) {
+        event.preventDefault();
+        event.stopPropagation();
+        const automationIDElements = document.querySelectorAll(`.${automationId}`);
+        automationIDElements.forEach(el => {
+            if (el.classList.contains("automation-edit-cancel-icon")) {
+                el.classList.remove("automation-edit-cancel-icon");
+                el.classList.add("automation-edit-icon");
+                el.src = "/static/assets/icons/pencil-edit.svg";
+                el.onclick = function() { onClickEditAutomationCard(automationId); };
+            }
+
+            if (el.classList.contains("hide-details-placeholder")) {
+                el.classList.remove("hide-details-placeholder");
+                el.classList.add("hide-details");
+            }
+            if (el.classList.contains("fake-input-placeholder")) {
+                el.classList.remove("fake-input-placeholder");
+                el.classList.add("fake-input");
+            }
+        })
     }
 
     function generateAutomationRow(automation, isSuggested=false) {
@@ -250,13 +342,16 @@
         let automationEl = document.createElement("div");
         automationEl.innerHTML = `
             <div class="card automation" id="automation-card-${automationId}">
-                <div class="card-header" onclick="onClickAutomationCard('${automationId}')">
-                    <input type="text"
-                        id="automation-subject-${automationId}"
-                        class="${automationId} fake-input"
-                        name="subject"
-                        data-original="${automation.subject}"
-                        value="${automation.subject}">
+                <div class="card-header" onclick="onClickEditAutomationCard('${automationId}')">
+                    <div class="subject-wrapper">
+                        <input type="text"
+                            id="automation-subject-${automationId}"
+                            class="${automationId} fake-input"
+                            name="subject"
+                            data-original="${automation.subject}"
+                            value="${automation.subject}">
+                        <img class="automation-edit-icon ${automationId}" src="/static/assets/icons/pencil-edit.svg" onclick="onClickEditAutomationCard('${automationId}')" alt="Automations">
+                    </div>
                     <input type="text"
                        id="automation-schedule-${automationId}"
                        name="schedule"
@@ -276,13 +371,17 @@
                 </div>
                 <div id="automation-buttons-wrapper">
                     <div class="automation-buttons">
-                        <div id="empty-div"></div>
                         ${isSuggested ?
-                            `<div id="empty-div"></div>`:
+                            `<div id="empty-div"></div>
+                            <div id="empty-div"></div>`:
                             `
                             <button type="button"
                                     class="delete-automation-button negative-button"
                                     id="delete-automation-button-${automationId}">Delete</button>
+                            <button type="button"
+                                    class="send-preview-automation-button positive-button"
+                                    title="Immediately get a preview of this automation"
+                                    onclick="sendAPreviewAutomation('${automationId}')">Preview</button>
                             `
                         }
                         <button type="button"
@@ -308,6 +407,10 @@
         if (deleteAutomationButtonEl) {
             deleteAutomationButtonEl.addEventListener("click", () => { deleteAutomation(automation.id); });
         }
+        let cancelEditAutomationButtonEl = automationEl.querySelector(`#cancel-edit-automation-button-${automation.id}`);
+        if (cancelEditAutomationButtonEl) {
+            cancelEditAutomationButtonEl.addEventListener("click", (event) => { clickCancelEdit(event, automation.id); });
+        }
 
         return automationEl.firstElementChild;
     }
@@ -317,7 +420,7 @@
     let suggestedAutomationsMetadata = [
         {
             "subject": "Weekly Newsletter",
-            "query_to_run": "Share a Newsletter including: 1. Weather forecast for this week. 2. A recap of news from last week 3. A nice quote to start the week.",
+            "query_to_run": "Compile a message including: 1. A recap of news from last week 2. A reminder to work out and stay hydrated 3. A quote to inspire me for the week ahead",
             "schedule": "9AM every Monday",
             "next": "Next run at 9AM on Monday",
             "crontime": "0 9 * * 1",
@@ -326,7 +429,7 @@
         },
         {
             "subject": "Daily Weather Update",
-            "query_to_run": "Get the weather forecast for today and tomorrow",
+            "query_to_run": "Get the weather forecast for today",
             "schedule": "9AM every morning",
             "next": "Next run at 9AM today",
             "crontime": "0 9 * * *",
@@ -413,35 +516,250 @@
         });
     }
 
+    function createScheduleSelector(automationId) {
+        var scheduleContainer = document.createElement('div');
+        scheduleContainer.id = `schedule-container-${automationId}`;
+
+        var frequencyLabel = document.createElement('label');
+        frequencyLabel.for = `frequency-selector-${automationId}`;
+        frequencyLabel.textContent = 'Every';
+        var frequencySelector = document.createElement('select')
+        frequencySelector.id = `frequency-selector-${automationId}`;
+        var dayLabel = document.createElement('label');
+        dayLabel.id = `day-selector-label-${automationId}`;
+        dayLabel.for = `day-selector-${automationId}`;
+        dayLabel.textContent = 'on';
+        var daySelector = document.createElement('select');
+        daySelector.id = `day-selector-${automationId}`;
+        var dateLabel = document.createElement('label');
+        dateLabel.id = `date-label-${automationId}`;
+        dateLabel.for = `date-selector-${automationId}`;
+        dateLabel.textContent = 'on the';
+        var dateSelector = document.createElement('select');
+        dateSelector.id = `date-selector-${automationId}`;
+        var timeLabel = document.createElement('label');
+        timeLabel.for = `time-selector-${automationId}`;
+        timeLabel.textContent = 'at';
+        var timeSelector = document.createElement('select');
+        timeSelector.id = `time-selector-${automationId}`;
+
+
+        // Populate frequency selector with options for day, week, and month
+        var frequencies = ['day', 'week', 'month'];
+        for (var i = 0; i < frequencies.length; i++) {
+            var option = document.createElement('option');
+            option.value = frequencies[i];
+            option.text = frequencies[i];
+            frequencySelector.appendChild(option);
+        }
+
+        // Event listener for frequency selector change
+        frequencySelector.addEventListener('change', function() {
+            switch (this.value) {
+                case 'day':
+                    daySelector.style.display = 'none';
+                    dateSelector.style.display = 'none';
+                    break;
+                case 'week':
+                    daySelector.style.display = 'block';
+                    dateSelector.style.display = 'none';
+                    break;
+                case 'month':
+                    daySelector.style.display = 'none';
+                    dateSelector.style.display = 'block';
+                    break;
+            }
+        });
+
+        // Populate the date selector with options for each day of the month
+        for (var i = 1; i <= 31; i++) {
+            var option = document.createElement('option');
+            option.value = i;
+            option.text = i;
+            dateSelector.appendChild(option);
+        }
+
+        // Populate the day selector with options for each day of the week
+        var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        for (var i = 0; i < days.length; i++) {
+            var option = document.createElement('option');
+            option.value = i;
+            option.text = days[i];
+            daySelector.appendChild(option);
+        }
+
+        var timePeriods = ['AM', 'PM'];
+        // Populate the time selector with options for each hour of the day
+        for (var i = 0; i < timePeriods.length; i++) {
+            for (var hour = 0; hour < 12; hour++) {
+                for (var minute = 0; minute < 60; minute+=15) {
+                    // Ensure all minutes are two digits
+                    var paddedMinute = String(minute).padStart(2, '0');
+                    var option = document.createElement('option');
+                    var friendlyHour = hour === 0 ? 12 : hour;
+                    option.value = `${friendlyHour}:${paddedMinute} ${timePeriods[i]}`;
+                    option.text = `${friendlyHour}:${paddedMinute} ${timePeriods[i]}`;
+                    timeSelector.appendChild(option);
+                }
+            }
+        }
+
+        // Populate date selector with options 1 through 31
+        for (var i = 1; i <= 31; i++) {
+            var option = document.createElement('option');
+            option.value = i;
+            option.text = i;
+            dateSelector.appendChild(option);
+        }
+
+        var hoursMinutesSelectorContainer = document.createElement('div');
+        hoursMinutesSelectorContainer.classList.add('hours-minutes-selector-container');
+        hoursMinutesSelectorContainer.appendChild(timeLabel);
+        hoursMinutesSelectorContainer.appendChild(timeSelector);
+
+        scheduleContainer.appendChild(frequencyLabel);
+        scheduleContainer.appendChild(frequencySelector);
+        scheduleContainer.appendChild(dayLabel);
+        scheduleContainer.appendChild(daySelector);
+        scheduleContainer.appendChild(dateLabel);
+        scheduleContainer.appendChild(dateSelector);
+        scheduleContainer.appendChild(hoursMinutesSelectorContainer);
+
+        return scheduleContainer;
+    }
+
+    function setupScheduleViewListener(cronString, automationId) {
+        // Parse the cron string
+        var cronParts = cronString.split(' ');
+        var minutes = cronParts[0];
+        var hours = cronParts[1];
+        var dayOfMonth = cronParts[2];
+        var month = cronParts[3];
+        var dayOfWeek = cronParts[4];
+
+        var timeSelector = document.getElementById(`time-selector-${automationId}`);
+
+        // Set the initial value of the time selector based on the cron string. Convert 24-hour time to 12-hour time
+        if (hours === '*' && minutes === '*') {
+            var currentTime = new Date();
+            hours = currentTime.getHours();
+            minutes = currentTime.getMinutes();
+        }
+        var hours = parseInt(hours);
+        var minutes = parseInt(minutes);
+        var timePeriod = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12; // 0 should be 12
+        minutes = Math.round(minutes / 15) * 15;
+        minutes = String(minutes).padStart(2, '0');
+        // Resolve minutes to the nearest 15 minute interval
+
+        timeSelector.value = `${hours}:${minutes} ${timePeriod}`;
+
+        const frequencySelector = document.getElementById(`frequency-selector-${automationId}`);
+        const daySelector = document.getElementById(`day-selector-${automationId}`);
+        const daySelectorLabel = document.getElementById(`day-selector-label-${automationId}`);
+        const dateSelector = document.getElementById(`date-selector-${automationId}`);
+        const dateLabel = document.getElementById(`date-label-${automationId}`);
+
+        // Event listener for frequency selector change
+        frequencySelector.addEventListener('change', function() {
+            processFrequencySelector(frequencySelector, daySelector, daySelectorLabel, dateSelector, dateLabel);
+        });
+
+        // Set the initial value based on the frequency selector value
+        processFrequencySelector(frequencySelector, daySelector, daySelectorLabel, dateSelector, dateLabel);
+    }
+
+    function processFrequencySelector(frequencySelector, daySelector, daySelectorLabel, dateSelector, dateLabel) {
+        switch (frequencySelector.value) {
+            case 'day':
+                daySelector.style.display = 'none';
+                dateSelector.style.display = 'none';
+                daySelectorLabel.style.display = 'none';
+                dateLabel.style.display = 'none';
+                break;
+            case 'week':
+                daySelector.style.display = 'block';
+                dateSelector.style.display = 'none';
+                daySelectorLabel.style.display = 'block';
+                dateLabel.style.display = 'none';
+                break;
+            case 'month':
+                daySelector.style.display = 'none';
+                dateSelector.style.display = 'block';
+                daySelectorLabel.style.display = 'none';
+                dateLabel.style.display = 'block';
+                break;
+        }
+    }
+
+    function convertFrequencyToCron(automationId) {
+        var frequencySelector = document.getElementById(`frequency-selector-${automationId}`);
+        var daySelector = document.getElementById(`day-selector-${automationId}`);
+        var dateSelector = document.getElementById(`date-selector-${automationId}`);
+        var timeSelector = document.getElementById(`time-selector-${automationId}`);
+
+        var hours = timeSelector.value.split(':')[0];
+        var minutes = timeSelector.value.split(':')[1].split(' ')[0];
+
+        var cronString = '';
+        switch (frequencySelector.value) {
+            case 'day':
+                cronString = `${minutes} ${hours} * * *`;
+                break;
+            case 'week':
+                cronString = `${minutes} ${hours} * * ${daySelector.value}`;
+                break;
+            case 'month':
+                cronString = `${minutes} ${hours} ${dateSelector.value} * *`;
+                break;
+        }
+
+        return cronString;
+    }
+
     async function saveAutomation(automationId, create=false) {
         const scheduleEl = document.getElementById(`automation-schedule-${automationId}`);
         const notificationEl = document.getElementById(`automation-success-${automationId}`);
         const saveButtonEl = document.getElementById(`save-automation-button-${automationId}`);
         const queryToRunEl = document.getElementById(`automation-queryToRun-${automationId}`);
         const queryToRun = encodeURIComponent(queryToRunEl.value);
-        const actOn = create ? "Create" : "Save";
+        const actOn = create ? "Creat" : "Sav";
+        var cronTime = null;
 
-        if (queryToRun == "" || scheduleEl.value == "") {
-            notificationEl.textContent = `⚠️ Failed to automate. All input fields need to be filled.`;
-            notificationEl.style.display = "block";
-            let originalQueryToRunElBorder = queryToRunEl.style.border;
-            if (queryToRun === "") queryToRunEl.style.border = "2px solid red";
-            let originalScheduleElBorder = scheduleEl.style.border;
-            if (scheduleEl.value === "") scheduleEl.style.border = "2px solid red";
-            setTimeout(function() {
-                if (queryToRun == "") queryToRunEl.style.border = originalQueryToRunElBorder;
-                if (scheduleEl.value == "") scheduleEl.style.border = originalScheduleElBorder;
-            }, 2000);
+        if (queryToRun == "") {
+            if (!create && scheduleEl.value == "") {
+                notificationEl.textContent = `⚠️ Failed to automate. All input fields need to be filled.`;
+                notificationEl.style.display = "block";
+                let originalQueryToRunElBorder = queryToRunEl.style.border;
+                if (queryToRun === "") queryToRunEl.style.border = "2px solid red";
+                let originalScheduleElBorder = scheduleEl.style.border;
+                if (scheduleEl.value === "") scheduleEl.style.border = "2px solid red";
+                setTimeout(function() {
+                    if (queryToRun == "") queryToRunEl.style.border = originalQueryToRunElBorder;
+                    if (scheduleEl.value == "") scheduleEl.style.border = originalScheduleElBorder;
+                }, 2000);
 
-            return;
+                return;
+            }
+
         }
 
         // Get client location information from IP
-        const ip_response = await fetch("https://ipapi.co/json")
-        const ip_data = await ip_response.json();
+        const ip_response = await fetch("https://ipapi.co/json");
+        let ip_data = null;
+        if (ip_response.ok) {
+            ip_data = await ip_response.json();
+        }
 
         // Get cron string from natural language user schedule, if changed
-        const crontime = scheduleEl.getAttribute('data-original') !== scheduleEl.value ? getCronString(scheduleEl.value) : scheduleEl.getAttribute('data-cron');
+        if (create && !scheduleEl) {
+            crontime = convertFrequencyToCron(automationId);
+        } else {
+            crontime = scheduleEl.getAttribute('data-original') !== scheduleEl.value ? getCronString(scheduleEl.value) : scheduleEl.getAttribute('data-cron');
+        }
+
         if (crontime.startsWith("ERROR:")) {
             notificationEl.textContent = `⚠️ Failed to automate. Fix or simplify Schedule input field.`;
             notificationEl.style.display = "block";
@@ -456,7 +774,10 @@
         const encodedCrontime = encodeURIComponent(crontime);
 
         // Construct query string and select method for API call
-        let query_string = `q=${queryToRun}&crontime=${encodedCrontime}&city=${ip_data.city}&region=${ip_data.region}&country=${ip_data.country_name}&timezone=${ip_data.timezone}`;
+        let query_string = `q=${queryToRun}&crontime=${encodedCrontime}`;
+        if (ip_data) {
+            query_string += `&city=${ip_data.city}&region=${ip_data.region}&country=${ip_data.country_name}&timezone=${ip_data.timezone}`;
+        }
 
         let method = "POST";
         if (!create) {
@@ -465,6 +786,11 @@
             query_string += `&subject=${subject}`;
             method = "PUT"
         }
+
+        // Create a loading animation while waiting for the API response
+        // TODO add a more pleasant loading symbol here.
+        notificationEl.textContent = `⏳ ${actOn}ing automation...`;
+        notificationEl.style.display = "block";
 
         fetch(`/api/automation?${query_string}`, {
             method: method,
@@ -477,9 +803,8 @@
             if (create) {
                 const automationEl = document.getElementById(`automation-card-${automationId}`);
                 // Create a more interesting confirmation animation.
-                automationEl.classList.add("confirmation")
+                automationEl.classList.remove("new-automation");
                 setTimeout(function() {
-
                     // Check if automationEl is a child of #automations or #suggested-automations-list
                     // If #suggested-automations-list, remove the element from the list and add it to #automations
                     let parentEl = automationEl.parentElement;
@@ -495,7 +820,7 @@
             }
 
             notificationEl.style.display = "none";
-            saveButtonEl.textContent = `✅ Automation ${actOn}d`;
+            saveButtonEl.textContent = `✅ Automation ${actOn}ed`;
             setTimeout(function() {
                 const automationIDElements = document.querySelectorAll(`.${automationId}`);
                 automationIDElements.forEach(el => {
@@ -514,11 +839,11 @@
             }, 2000);
         })
         .catch(error => {
-            notificationEl.textContent = `⚠️ Failed to ${actOn.toLowerCase()} automations.`;
+            notificationEl.textContent = `⚠️ Failed to ${actOn.toLowerCase()}e automations.`;
             notificationEl.style.display = "block";
-            saveButtonEl.textContent = `⚠️ Failed to ${actOn.toLowerCase()} automations`;
+            saveButtonEl.textContent = `⚠️ Failed to ${actOn.toLowerCase()}e automations`;
             setTimeout(function() {
-                saveButtonEl.textContent = actOn;
+                saveButtonEl.textContent = `${actOn}e`;
             }, 2000);
             return;
         });
@@ -533,13 +858,11 @@
         automationEl.classList.add("new-automation")
         const placeholderId = Date.now();
         automationEl.id = "automation-card-" + placeholderId;
+        var scheduleSelector = createScheduleSelector(placeholderId);
         automationEl.innerHTML = `
-            <label for="schedule">Schedule</label>
-            <input type="text"
-                   id="automation-schedule-${placeholderId}"
-                   name="schedule"
-                   placeholder="9AM every morning">
-            <label for="query-to-run">Instructions</label>
+            <label for="schedule">New Automation</label>
+            ${scheduleSelector.outerHTML}
+            <label for="query-to-run">What would you like to receive in your automation?</label>
             <textarea id="automation-queryToRun-${placeholderId}" placeholder="Provide me with a mindful moment, reminding me to be centered."></textarea>
             <div class="automation-buttons">
                 <button type="button"
@@ -554,6 +877,7 @@
             <div id="automation-success-${placeholderId}" style="display: none;"></div>
         `;
         document.getElementById("automations").insertBefore(automationEl, document.getElementById("automations").firstChild);
+        setupScheduleViewListener("* * * * *", placeholderId);
     })
 </script>
 {% endblock %}
