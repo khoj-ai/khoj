@@ -454,6 +454,8 @@ async def post_automation(
         crontime = " ".join(crontime.split(" ")[:5])
     # Convert crontime to standard unix crontime
     crontime = crontime.replace("?", "*")
+    if crontime == "* * * * *":
+        return Response(content="Invalid crontime. Please create a more specific schedule.", status_code=400)
     subject = await acreate_title_from_query(q)
 
     # Create new Conversation Session associated with this new task

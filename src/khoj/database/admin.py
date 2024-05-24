@@ -1,9 +1,13 @@
 import csv
 import json
 
+from apscheduler.job import Job
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.http import HttpResponse
+from django_apscheduler.admin import DjangoJobAdmin
+from django_apscheduler.jobstores import DjangoJobStore
+from django_apscheduler.models import DjangoJob
 
 from khoj.database.models import (
     Agent,
@@ -24,6 +28,35 @@ from khoj.database.models import (
     UserSearchModelConfig,
 )
 from khoj.utils.helpers import ImageIntentType
+
+admin.site.unregister(DjangoJob)
+
+
+class KhojDjangoJobAdmin(DjangoJobAdmin):
+    list_display = (
+        "id",
+        "next_run_time",
+        "job_info",
+    )
+    search_fields = ("id", "next_run_time")
+    ordering = ("-next_run_time",)
+    job_store = DjangoJobStore()
+
+    def job_info(self, obj):
+        job: Job = self.job_store.lookup_job(obj.id)
+        return f"{job.func_ref} {job.args} {job.kwargs}" if job else "None"
+
+    job_info.short_description = "Job Info"
+
+    def get_search_results(self, request, queryset, search_term):
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+        if search_term:
+            jobs = [job.id for job in self.job_store.get_all_jobs() if search_term in str(job)]
+            queryset |= self.model.objects.filter(id__in=jobs)
+        return queryset, use_distinct
+
+
+admin.site.register(DjangoJob, KhojDjangoJobAdmin)
 
 
 class KhojUserAdmin(UserAdmin):
