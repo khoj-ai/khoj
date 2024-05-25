@@ -15,26 +15,21 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+
   server:
     depends_on:
       database:
         condition: service_healthy
-    # Use the following line to use the latest version of khoj. Otherwise, it will build from source.
     image: ghcr.io/khoj-ai/khoj:latest
-    # Uncomment the following line to build from source. This will take a few minutes. Comment the next two lines out if you want to use the offiicial image.
+    # Uncomment the following lines to build from source. Comment out the 'image' line if you use this.
     # build:
-      # context: .
+    #   context: .
     ports:
-      # If changing the local port (left hand side), no other changes required.
-      # If changing the remote port (right hand side),
-      #   change the port in the args in the build section,
-      #   as well as the port in the command section to match
       - "42110:42110"
     working_dir: /app
     volumes:
       - khoj_config:/root/.khoj/
       - khoj_models:/root/.cache/torch/sentence_transformers
-    # Use 0.0.0.0 to explicitly set the host ip for the service on the container. https://pythonspeed.com/articles/docker-connection-refused/
     environment:
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
@@ -46,7 +41,6 @@ services:
       - KHOJ_ADMIN_EMAIL=username@example.com
       - KHOJ_ADMIN_PASSWORD=password
     command: --host="0.0.0.0" --port=42110 -vv --anonymous-mode
-
 
 volumes:
   khoj_config:
