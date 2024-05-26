@@ -18,6 +18,9 @@ logger = logging.getLogger(__name__)
 anthropic_clients: Dict[str, anthropic.Anthropic] = {}
 
 
+DEFAULT_MAX_TOKENS_ANTHROPIC = 3000
+
+
 @retry(
     wait=wait_random_exponential(min=1, max=10),
     stop=stop_after_attempt(2),
@@ -36,15 +39,19 @@ def anthropic_completion_with_backoff(
     formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
 
     aggregated_response = ""
+    max_tokens = max_tokens or DEFAULT_MAX_TOKENS_ANTHROPIC
+
+    model_kwargs = model_kwargs or dict()
+    if system_prompt:
+        model_kwargs["system"] = system_prompt
 
     with client.messages.stream(
         messages=formatted_messages,
-        system=system_prompt,
         model=model_name,  # type: ignore
         temperature=temperature,
         timeout=20,
         max_tokens=max_tokens,
-        **(model_kwargs or dict()),
+        **(model_kwargs),
     ) as stream:
         for text in stream.text_stream:
             aggregated_response += text
@@ -89,6 +96,8 @@ def anthropic_llm_thread(
         client: anthropic.Anthropic = anthropic_clients[api_key]
 
     formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
+
+    max_prompt_size = max_prompt_size or DEFAULT_MAX_TOKENS_ANTHROPIC
 
     with client.messages.stream(
         messages=formatted_messages,

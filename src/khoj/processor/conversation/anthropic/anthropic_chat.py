@@ -93,7 +93,7 @@ def extract_questions_anthropic(
     return questions
 
 
-def anthropic_send_message_to_model(messages, api_key, model, response_type="text", api_base_url=None):
+def anthropic_send_message_to_model(messages, api_key, model):
     """
     Send message to model
     """
@@ -109,13 +109,12 @@ def anthropic_send_message_to_model(messages, api_key, model, response_type="tex
                 system_prompt += message.content
                 messages.remove(message)
 
-    # Get Response from GPT
+    # Get Response from GPT. Don't use response_type because Anthropic doesn't support it.
     return anthropic_completion_with_backoff(
         messages=messages,
         system_prompt=system_prompt,
-        model=model,
-        openai_api_key=api_key,
-        api_base_url=api_base_url,
+        model_name=model,
+        api_key=api_key,
     )
 
 
