@@ -780,6 +780,12 @@ async def chat(
 
     actual_response = aggregated_gpt_response.split("### compiled references:")[0]
 
-    response_obj = {"response": actual_response, "context": compiled_references}
+    response_obj = {
+        "response": actual_response,
+        "intentType": intent_type,
+        "inferredQueries": inferred_queries,
+        "context": compiled_references,
+        "online_results": online_results,
+    }
 
     return Response(content=json.dumps(response_obj), media_type="application/json", status_code=200)
