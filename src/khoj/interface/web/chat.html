@@ -103,7 +103,10 @@ To get started, just start typing below. You can also type / to see a list of co
             return `${time_string}, ${date_string}`;
         }
 
-        function generateReference(reference, index) {
+        function generateReference(referenceJson, index) {
+            let reference = referenceJson.hasOwnProperty("compiled") ? referenceJson.compiled : referenceJson;
+            let referenceFile = referenceJson.hasOwnProperty("file") ? referenceJson.file : null;
+
             // Escape reference for HTML rendering
             let escaped_ref = reference.replaceAll('"', '&quot;');
 

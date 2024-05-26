@@ -342,14 +342,14 @@ async def extract_references_and_questions(
 
     # Collate search results as context for GPT
     with timer("Searching knowledge base took", logger):
-        result_list = []
+        search_results = []
         logger.info(f"🔍 Searching knowledge base with queries: {inferred_queries}")
         if send_status_func:
             inferred_queries_str = "\n- " + "\n- ".join(inferred_queries)
             await send_status_func(f"**🔍 Searching Documents for:** {inferred_queries_str}")
         for query in inferred_queries:
             n_items = min(n, 3) if using_offline_chat else n
-            result_list.extend(
+            search_results.extend(
                 await execute_search(
                     user,
                     f"{query} {filters_in_query}",
@@ -360,8 +360,10 @@ async def extract_references_and_questions(
                     dedupe=False,
                 )
             )
-        result_list = text_search.deduplicated_search_responses(result_list)
-        compiled_references = [item.additional["compiled"] for item in result_list]
+        search_results = text_search.deduplicated_search_responses(search_results)
+        compiled_references = [
+            {"compiled": item.additional["compiled"], "file": item.additional["file"]} for item in search_results
+        ]
 
     return compiled_references, inferred_queries, defiltered_query
 

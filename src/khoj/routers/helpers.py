@@ -400,7 +400,7 @@ async def generate_better_image_prompt(
     q: str,
     conversation_history: str,
     location_data: LocationData,
-    note_references: List[str],
+    note_references: List[Dict[str, Any]],
     online_results: Optional[dict] = None,
 ) -> str:
     """
@@ -415,7 +415,7 @@ async def generate_better_image_prompt(
     else:
         location_prompt = "Unknown"
 
-    user_references = "\n\n".join([f"# {item}" for item in note_references])
+    user_references = "\n\n".join([f"# {item['compiled']}" for item in note_references])
 
     simplified_online_results = {}
 
@@ -550,7 +550,7 @@ def generate_chat_response(
     q: str,
     meta_log: dict,
     conversation: Conversation,
-    compiled_references: List[str] = [],
+    compiled_references: List[Dict] = [],
     online_results: Dict[str, Dict] = {},
     inferred_queries: List[str] = [],
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
@@ -634,7 +634,7 @@ async def text_to_image(
     user: KhojUser,
     conversation_log: dict,
     location_data: LocationData,
-    references: List[str],
+    references: List[Dict[str, Any]],
     online_results: Dict[str, Any],
     send_status_func: Optional[Callable] = None,
 ) -> Tuple[Optional[str], int, Optional[str], str]:

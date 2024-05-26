@@ -434,7 +434,7 @@ async def websocket_endpoint(
 
         if compiled_references:
             headings = "\n- " + "\n- ".join(
-                set([" ".join(c.split("Path: ")[1:]).split("\n ")[0] for c in compiled_references])
+                set([" ".join(c.get("compiled", c).split("Path: ")[1:]).split("\n ")[0] for c in compiled_references])
             )
             await send_status_update(f"**📜 Found Relevant Notes**: {headings}")
 

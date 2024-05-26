@@ -247,7 +247,8 @@ export class KhojChatView extends KhojPaneView {
         return referenceButton;
     }
 
-    generateReference(messageEl: Element, reference: string, index: number) {
+    generateReference(messageEl: Element, referenceJson: any, index: number) {
+        let reference: string = referenceJson.hasOwnProperty("compiled") ? referenceJson.compiled : referenceJson;
         // Escape reference for HTML rendering
         let escaped_ref = reference.replace(/"/g, "&quot;")
 
