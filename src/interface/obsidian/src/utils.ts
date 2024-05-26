@@ -347,3 +347,22 @@ export function pasteTextAtCursor(text: string | undefined) {
         editor.replaceRange(text, cursor);
     }
 }
+
+export function getLinkToEntry(sourceFiles: TFile[], chosenFile: string, chosenEntry: string): string | undefined {
+    // Find the vault file matching file of chosen file, entry
+    let fileMatch = sourceFiles
+        // Sort by descending length of path
+        // This finds longest path match when multiple files have same name
+        .sort((a, b) => b.path.length - a.path.length)
+        // The first match is the best file match across OS
+        // e.g Khoj server on Linux, Obsidian vault on Android
+        .find(file => chosenFile.replace(/\\/g, "/").endsWith(file.path))
+
+    // Return link to vault file at heading of chosen search result
+    if (fileMatch) {
+        let resultHeading = fileMatch.extension !== 'pdf' ? chosenEntry.split('\n', 1)[0] : '';
+        let linkToEntry = resultHeading.startsWith('#') ? `${fileMatch.path}${resultHeading}` : fileMatch.path;
+        console.log(`Link: ${linkToEntry}, File: ${fileMatch.path}, Heading: ${resultHeading}`);
+        return linkToEntry;
+    }
+}
