@@ -84,6 +84,7 @@ class ChatModelOptions(BaseModel):
     class ModelType(models.TextChoices):
         OPENAI = "openai"
         OFFLINE = "offline"
+        ANTHROPIC = "anthropic"
 
     max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
     tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)

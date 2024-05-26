@@ -53,6 +53,10 @@ from khoj.database.models import (
     UserRequests,
 )
 from khoj.processor.conversation import prompts
+from khoj.processor.conversation.anthropic.anthropic_chat import (
+    anthropic_send_message_to_model,
+    converse_anthropic,
+)
 from khoj.processor.conversation.offline.chat_model import (
     converse_offline,
     send_message_to_model_offline,
@@ -113,7 +117,7 @@ async def is_ready_to_chat(user: KhojUser):
 
     if (
         user_conversation_config
-        and user_conversation_config.model_type == "openai"
+        and (user_conversation_config.model_type == "openai" or user_conversation_config.model_type == "anthropic")
         and user_conversation_config.openai_config
     ):
         return True
@@ -508,6 +512,21 @@ async def send_message_to_model_wrapper(
         )
 
         return openai_response
+    elif conversation_config.model_type == "anthropic":
+        api_key = conversation_config.openai_config.api_key
+        truncated_messages = generate_chatml_messages_with_context(
+            user_message=message,
+            system_message=system_message,
+            model_name=chat_model,
+            max_prompt_size=max_tokens,
+            tokenizer_name=tokenizer,
+        )
+
+        return anthropic_send_message_to_model(
+            messages=truncated_messages,
+            api_key=api_key,
+            model=chat_model,
+        )
     else:
         raise HTTPException(status_code=500, detail="Invalid conversation config")
 
@@ -542,8 +561,7 @@ def send_message_to_model_wrapper_sync(
         )
 
     elif conversation_config.model_type == "openai":
-        openai_chat_config = ConversationAdapters.get_openai_conversation_config()
-        api_key = openai_chat_config.api_key
+        api_key = conversation_config.openai_config.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message, system_message=system_message, model_name=chat_model
         )
@@ -553,6 +571,21 @@ def send_message_to_model_wrapper_sync(
         )
 
         return openai_response
+
+    elif conversation_config.model_type == "anthropic":
+        api_key = conversation_config.openai_config.api_key
+        truncated_messages = generate_chatml_messages_with_context(
+            user_message=message,
+            system_message=system_message,
+            model_name=chat_model,
+            max_prompt_size=max_tokens,
+        )
+
+        return anthropic_send_message_to_model(
+            messages=truncated_messages,
+            api_key=api_key,
+            model=chat_model,
+        )
     else:
         raise HTTPException(status_code=500, detail="Invalid conversation config")
 
@@ -622,6 +655,24 @@ def generate_chat_response(
                 model=chat_model,
                 api_key=api_key,
                 api_base_url=openai_chat_config.api_base_url,
+                completion_func=partial_completion,
+                conversation_commands=conversation_commands,
+                max_prompt_size=conversation_config.max_prompt_size,
+                tokenizer_name=conversation_config.tokenizer,
+                location_data=location_data,
+                user_name=user_name,
+                agent=agent,
+            )
+
+        elif conversation_config.model_type == "anthropic":
+            api_key = conversation_config.openai_config.api_key
+            chat_response = converse_anthropic(
+                compiled_references,
+                q,
+                online_results,
+                meta_log,
+                model=conversation_config.chat_model,
+                api_key=api_key,
                 completion_func=partial_completion,
                 conversation_commands=conversation_commands,
                 max_prompt_size=conversation_config.max_prompt_size,
