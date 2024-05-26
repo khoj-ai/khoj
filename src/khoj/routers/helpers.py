@@ -585,7 +585,6 @@ def send_message_to_model_wrapper_sync(
             messages=truncated_messages,
             api_key=api_key,
             model=chat_model,
-            response_type=response_type,
         )
     else:
         raise HTTPException(status_code=500, detail="Invalid conversation config")
