@@ -42,6 +42,9 @@ services:
       - POSTGRES_HOST=database
       - POSTGRES_PORT=5432
       - KHOJ_DJANGO_SECRET_KEY=secret
+      # uncomment KHOJ_NO_HTTPS and KHOJ_DOMAIN with your local domain and comment out KHOJ_DEBUG if running on LAN without SSL (CSRF verification failed)
+      # - KHOJ_NO_HTTPS=True
+      # - KHOJ_DOMAIN=khoj.home.local # replace with your own domain     
       - KHOJ_DEBUG=False
       - KHOJ_ADMIN_EMAIL=username@example.com
       - KHOJ_ADMIN_PASSWORD=password
