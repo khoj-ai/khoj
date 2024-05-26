@@ -1,6 +1,6 @@
 import logging
 from threading import Thread
-from typing import Dict
+from typing import Dict, List
 
 import anthropic
 from tenacity import (
@@ -34,7 +34,7 @@ def anthropic_completion_with_backoff(
         client: anthropic.Anthropic = anthropic.Anthropic(api_key=api_key)
         anthropic_clients[api_key] = client
     else:
-        client: anthropic.Anthropic = anthropic_clients[api_key]
+        client = anthropic_clients[api_key]
 
     formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
 
@@ -95,7 +95,9 @@ def anthropic_llm_thread(
     else:
         client: anthropic.Anthropic = anthropic_clients[api_key]
 
-    formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
+    formatted_messages: List[anthropic.types.MessageParam] = [
+        anthropic.types.MessageParam(role=message.role, content=message.content) for message in messages
+    ]
 
     max_prompt_size = max_prompt_size or DEFAULT_MAX_TOKENS_ANTHROPIC
 

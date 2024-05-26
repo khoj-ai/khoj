@@ -85,6 +85,7 @@ dependencies = [
     "pytz ~= 2024.1",
     "cron-descriptor == 1.4.3",
     "django_apscheduler == 0.6.2",
+    "anthropic == 0.26.1",
 ]
 dynamic = ["version"]
 
