@@ -25,7 +25,6 @@ def extract_questions_anthropic(
     conversation_log={},
     api_key=None,
     temperature=0,
-    max_tokens=100,
     location_data: LocationData = None,
 ):
     """
@@ -71,7 +70,6 @@ def extract_questions_anthropic(
         model_name=model,
         temperature=temperature,
         api_key=api_key,
-        max_tokens=max_tokens,
     )
 
     # Extract, Clean Message from Claude's Response

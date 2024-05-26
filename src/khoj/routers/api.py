@@ -353,7 +353,6 @@ async def extract_references_and_questions(
                 api_key=api_key,
                 conversation_log=meta_log,
                 location_data=location_data,
-                max_tokens=conversation_config.max_prompt_size,
             )
 
     # Collate search results as context for GPT
