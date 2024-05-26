@@ -2047,9 +2047,10 @@ To get started, just start typing below. You can also type / to see a list of co
             content: "▶";
             margin-right: 5px;
             display: inline-block;
-            transition: transform 0.3s ease-in-out;
+            transition: transform 0.1s ease-in-out;
         }
 
+        button.reference-button.expanded::before,
         button.reference-button:active:before,
         button.reference-button[aria-expanded="true"]::before {
             transform: rotate(90deg);
