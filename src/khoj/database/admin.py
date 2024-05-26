@@ -78,10 +78,8 @@ class KhojUserAdmin(UserAdmin):
 
 admin.site.register(KhojUser, KhojUserAdmin)
 
-admin.site.register(ChatModelOptions)
 admin.site.register(ProcessLock)
 admin.site.register(SpeechToTextModelOptions)
-admin.site.register(OpenAIProcessorConversationConfig)
 admin.site.register(SearchModelConfig)
 admin.site.register(ReflectiveQuestion)
 admin.site.register(UserSearchModelConfig)
@@ -89,7 +87,6 @@ admin.site.register(TextToImageModelConfig)
 admin.site.register(ClientApplication)
 admin.site.register(GithubConfig)
 admin.site.register(NotionConfig)
-admin.site.register(ServerChatSettings)
 
 
 @admin.register(Agent)
@@ -129,6 +126,36 @@ class KhojUserSubscription(admin.ModelAdmin):
 
     search_fields = ("id", "user__email", "user__username", "type")
     list_filter = ("type",)
+
+
+@admin.register(ChatModelOptions)
+class ChatModelOptionsAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "chat_model",
+        "model_type",
+        "max_prompt_size",
+    )
+    search_fields = ("id", "chat_model", "model_type")
+
+
+@admin.register(OpenAIProcessorConversationConfig)
+class OpenAIProcessorConversationConfigAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "name",
+        "api_key",
+        "api_base_url",
+    )
+    search_fields = ("id", "name", "api_key", "api_base_url")
+
+
+@admin.register(ServerChatSettings)
+class ServerChatSettingsAdmin(admin.ModelAdmin):
+    list_display = (
+        "default_model",
+        "summarizer_model",
+    )
 
 
 @admin.register(Conversation)

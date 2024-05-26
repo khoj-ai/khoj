@@ -67,7 +67,6 @@ def extract_questions(
         messages=messages,
         model=model,
         temperature=temperature,
-        max_tokens=max_tokens,
         api_base_url=api_base_url,
         model_kwargs={"response_format": {"type": "json_object"}},
         openai_api_key=api_key,

@@ -993,7 +993,7 @@ def scheduled_chat(
 
     # Stop if the chat API call was not successful
     if raw_response.status_code != 200:
-        logger.error(f"Failed to run schedule chat: {raw_response.text}")
+        logger.error(f"Failed to run schedule chat: {raw_response.text}, user: {user}, query: {query_to_run}")
         return None
 
     # Extract the AI response from the chat API response
