@@ -181,6 +181,13 @@ button.reference-button.expanded {
     max-height: none;
     white-space: pre-wrap;
 }
+button.reference-button.expanded > :nth-child(2) {
+    display: block;
+}
+button.reference-button.collapsed > :nth-child(2) {
+    display: none;
+}
+
 button.reference-button::before {
     content: "▶";
     margin-right: 5px;
@@ -214,7 +221,7 @@ a.inline-chat-link {
     text-decoration: none;
     border-bottom: 1px dotted #475569;
 }
-a.reference-link {
+.reference-link {
     color: var(--khoj-storm-grey);
     border-bottom: 1px dotted var(--khoj-storm-grey);
 }

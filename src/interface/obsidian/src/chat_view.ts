@@ -1,7 +1,7 @@
 import { MarkdownRenderer, WorkspaceLeaf, request, requestUrl, setIcon } from 'obsidian';
 import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
-import { KhojView, createCopyParentText, pasteTextAtCursor } from 'src/utils';
+import { KhojView, createCopyParentText, getLinkToEntry, pasteTextAtCursor } from 'src/utils';
 
 export interface ChatJsonResult {
     image?: string;
@@ -249,14 +249,39 @@ export class KhojChatView extends KhojPaneView {
 
     generateReference(messageEl: Element, referenceJson: any, index: number) {
         let reference: string = referenceJson.hasOwnProperty("compiled") ? referenceJson.compiled : referenceJson;
+        let referenceFile = referenceJson.hasOwnProperty("file") ? referenceJson.file : null;
+
+        // Get all markdown and PDF files in vault
+        const mdFiles = this.app.vault.getMarkdownFiles();
+        const pdfFiles = this.app.vault.getFiles().filter(file => file.extension === 'pdf');
+
         // Escape reference for HTML rendering
+        reference = reference.split('\n').slice(1).join('\n');
         let escaped_ref = reference.replace(/"/g, "&quot;")
 
         // Generate HTML for Chat Reference
-        let short_ref = escaped_ref.slice(0, 100);
-        short_ref = short_ref.length < escaped_ref.length ? short_ref + "..." : short_ref;
         let referenceButton = messageEl.createEl('button');
-        referenceButton.textContent = short_ref;
+
+        if (referenceFile) {
+            // Find vault file associated with current reference
+            let linkToEntry = getLinkToEntry(mdFiles.concat(pdfFiles), referenceFile, reference);
+
+            let linkElement: Element;
+            linkElement = referenceButton.createEl('span');
+            linkElement.setAttribute('title', escaped_ref);
+            linkElement.textContent = referenceFile;
+            if (linkToEntry && linkToEntry) {
+                linkElement.classList.add("reference-link");
+                linkElement.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    this.app.workspace.openLinkText(linkToEntry, '');
+                });
+            }
+        }
+
+        let referenceText = referenceButton.createDiv();
+        referenceText.textContent = escaped_ref;
+
         referenceButton.id = `ref-${index}`;
         referenceButton.classList.add("reference-button");
         referenceButton.classList.add("collapsed");
@@ -264,15 +289,12 @@ export class KhojChatView extends KhojPaneView {
 
         // Add event listener to toggle full reference on click
         referenceButton.addEventListener('click', function() {
-            console.log(`Toggling ref-${index}`)
             if (this.classList.contains("collapsed")) {
                 this.classList.remove("collapsed");
                 this.classList.add("expanded");
-                this.textContent = escaped_ref;
             } else {
                 this.classList.add("collapsed");
                 this.classList.remove("expanded");
-                this.textContent = short_ref;
             }
         });
 
