@@ -84,6 +84,7 @@ async function populateHeaderPane() {
                     `}
                     <div id="khoj-nav-menu" class="khoj-nav-dropdown-content">
                         <div class="khoj-nav-username"> ${username} </div>
+                        <a id="github-nav" class="khoj-nav" href="https://github.com/khoj-ai/khoj">GitHub</a>
                         <a id="settings-nav" class="khoj-nav" href="./config.html">⚙️ Settings</a>
                     </div>
                 </div>
