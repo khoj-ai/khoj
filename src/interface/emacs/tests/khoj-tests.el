@@ -219,7 +219,7 @@ Rule everything\n")
         (progn
           (should
            (equal
-            (khoj--render-files-as-request-body (list upgrade-file act-file) '() "khoj")
+            (khoj--render-update-files-as-request-body (list upgrade-file act-file) "khoj")
             (format
             "\n--khoj\r\n\
 Content-Disposition: form-data; name=\"files\"; filename=\"%s\"\r\n\
@@ -244,7 +244,7 @@ Rule everything\n\n\r\n\
         (progn
           (should
            (equal
-            (khoj--render-files-as-request-body (list upgrade-file act-file) (list upgrade-file act-file "/tmp/deleted-file.org") "khoj")
+            (khoj--render-update-files-as-request-body (list upgrade-file act-file "/tmp/deleted-file.org") "khoj")
             (format
             "\n--khoj\r\n\
 Content-Disposition: form-data; name=\"files\"; filename=\"%s\"\r\n\
