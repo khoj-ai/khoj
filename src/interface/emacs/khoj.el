@@ -491,7 +491,7 @@ Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request.
             (file-name (encode-coding-string  file-to-index 'utf-8)))
           (insert (format "--%s\r\n" boundary))
           (insert (format "Content-Disposition: form-data; name=\"files\"; filename=\"%s\"\r\n" file-name))
-          (insert "Content-Type: %s\r\n\r\n" content-type)
+          (insert (format "Content-Type: %s\r\n\r\n" content-type))
           (insert "")
           (insert "\r\n")))
     (insert (format "--%s--\r\n" boundary))

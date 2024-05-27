@@ -244,19 +244,16 @@ Rule everything\n\n\r\n\
         (progn
           (should
            (equal
-            (khoj--render-update-files-as-request-body (list upgrade-file act-file "/tmp/deleted-file.org") "khoj")
+            (khoj--render-delete-files-as-request-body (list upgrade-file act-file "/tmp/deleted-file.org") "khoj")
             (format
             "\n--khoj\r\n\
 Content-Disposition: form-data; name=\"files\"; filename=\"%s\"\r\n\
 Content-Type: text/org\r\n\r\n\
-# Become God\n\
-## Upgrade\n\n\
-Penance to Immortality\n\n\r
+\r
 --khoj\r\n\
 Content-Disposition: form-data; name=\"files\"; filename=\"%s\"\r\n\
 Content-Type: text/org\r\n\r\n\
-## Act\n\n\
-Rule everything\n\n\r
+\r
 --khoj\r\n\
 Content-Disposition: form-data; name=\"files\"; filename=\"%s\"\r\n\
 Content-Type: text/org\r\n\r\n\
