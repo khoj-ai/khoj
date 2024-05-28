@@ -316,7 +316,7 @@ command_descriptions = {
     ConversationCommand.Webpage: "Get information from webpage links provided by you.",
     ConversationCommand.Image: "Generate images by describing your imagination in words.",
     ConversationCommand.Automation: "Automatically run your query at a specified time or interval.",
-    ConversationCommand.Help: "Display a help message with all available commands and other metadata.",
+    ConversationCommand.Help: "Search for Khoj related assistance on the Khoj Documentation.",
 }
 
 tool_descriptions_for_llm = {

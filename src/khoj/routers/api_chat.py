@@ -511,15 +511,6 @@ async def websocket_endpoint(
 
         await send_status_update(f"**👀 Understanding Query**: {q}")
 
-        if conversation_commands == [ConversationCommand.Help]:
-            conversation_config = await ConversationAdapters.aget_user_conversation_config(user)
-            if conversation_config == None:
-                conversation_config = await ConversationAdapters.aget_default_conversation_config()
-            model_type = conversation_config.model_type
-            formatted_help = help_message.format(model=model_type, version=state.khoj_version, device=get_device())
-            await send_complete_llm_response(formatted_help)
-            continue
-
         meta_log = conversation.conversation_log
         is_automated_task = conversation_commands == [ConversationCommand.AutomatedTask]
 
@@ -594,6 +585,15 @@ async def websocket_endpoint(
 
         if ConversationCommand.Notes in conversation_commands and is_none_or_empty(compiled_references):
             conversation_commands.remove(ConversationCommand.Notes)
+
+        if conversation_commands == [ConversationCommand.Help]:
+            conversation_config = await ConversationAdapters.aget_user_conversation_config(user)
+            if conversation_config == None:
+                conversation_config = await ConversationAdapters.aget_default_conversation_config()
+            model_type = conversation_config.model_type
+            formatted_help = help_message.format(model=model_type, version=state.khoj_version, device=get_device())
+            defiltered_query += "site:khoj.dev"
+            conversation_commands.append(ConversationCommand.Online)
 
         if ConversationCommand.Online in conversation_commands:
             if not online_search_enabled():
