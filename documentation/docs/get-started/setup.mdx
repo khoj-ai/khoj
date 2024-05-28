@@ -59,6 +59,7 @@ Khoj uses the `pgvector` package to store embeddings of your index in a Postgres
 Install [Postgres.app](https://postgresapp.com/). This comes pre-installed with `pgvector` and relevant dependencies.
     </TabItem>
     <TabItem value="win" label="Windows">
+    For detailed instructions and troubleshooting, see [this section](/contributing/development#2-postgres-installation--setup).
     1. Use the [recommended installer](https://www.postgresql.org/download/windows/).
     2. Follow instructions to [Install PgVector](https://github.com/pgvector/pgvector#windows) in case you need to manually install it. Windows support is experimental for pgvector currently, so we recommend using Docker.
     </TabItem>
@@ -117,13 +118,14 @@ python -m pip install khoj-assistant
     ```
     </TabItem>
     <TabItem value="win" label="Windows">
+      In PowerShell on Windows
       ```shell
  # 1. (Optional) To use NVIDIA (CUDA) GPU
  $env:CMAKE_ARGS = "-DLLAMA_OPENBLAS=on"
  # 1. (Optional) To use AMD (ROCm) GPU
- CMAKE_ARGS="-DLLAMA_HIPBLAS=on"
+ $env:CMAKE_ARGS = "-DLLAMA_HIPBLAS=on"
  # 1. (Optional) To use VULCAN GPU
- CMAKE_ARGS="-DLLAMA_VULKAN=on"
+ $env:CMAKE_ARGS = "-DLLAMA_VULKAN=on"
 
  # 2. Install Khoj
  py -m pip install khoj-assistant
