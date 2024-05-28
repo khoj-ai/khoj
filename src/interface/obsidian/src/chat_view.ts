@@ -106,14 +106,14 @@ export class KhojChatView extends KhojPaneView {
 
         // Add chat input field
         let inputRow = contentEl.createDiv("khoj-input-row");
-        let clearChat = inputRow.createEl("button", {
-            text: "Clear History",
+        let chatSessions = inputRow.createEl("button", {
+            text: "Chat Sessions",
             attr: {
                 class: "khoj-input-row-button clickable-icon",
             },
         })
-        clearChat.addEventListener('click', async (_) => { await this.clearConversationHistory() });
-        setIcon(clearChat, "trash");
+        chatSessions.addEventListener('click', async (_) => { await this.showChatSessions(chatBodyEl) });
+        setIcon(chatSessions, "history");
 
         let chatInput = inputRow.createEl("textarea", {
             attr: {
@@ -394,13 +394,13 @@ export class KhojChatView extends KhojPaneView {
         return imageMarkdown;
     }
 
-    renderMessage(chatEl: Element, message: string, sender: string, dt?: Date, raw: boolean=false, willReplace: boolean=true): Element {
+    renderMessage(chatBodyEl: Element, message: string, sender: string, dt?: Date, raw: boolean=false, willReplace: boolean=true): Element {
         let message_time = this.formatDate(dt ?? new Date());
         let emojified_sender = sender == "khoj" ? "🏮 Khoj" : "🤔 You";
 
         // Append message to conversation history HTML element.
         // The chat logs should display above the message input box to follow standard UI semantics
-        let chatMessageEl = chatEl.createDiv({
+        let chatMessageEl = chatBodyEl.createDiv({
             attr: {
                 "data-meta": `${emojified_sender} at ${message_time}`,
                 class: `khoj-chat-message ${sender}`
@@ -480,6 +480,169 @@ export class KhojChatView extends KhojPaneView {
         let time_string = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
         let date_string = date.toLocaleString('en-IN', { year: 'numeric', month: 'short', day: '2-digit' }).replace(/-/g, ' ');
         return `${time_string}, ${date_string}`;
+    }
+
+    createNewConversation(chatBodyEl: HTMLElement) {
+        chatBodyEl.innerHTML = "";
+        chatBodyEl.dataset.conversationId = "";
+        chatBodyEl.dataset.conversationTitle = "";
+        this.renderMessage(chatBodyEl, "Hey 👋🏾, what's up?", "khoj");
+    }
+
+    async showChatSessions(chatBodyEl: HTMLElement): Promise<boolean> {
+        chatBodyEl.innerHTML = "";
+        const sidePanelEl = this.contentEl.createDiv("side-panel");
+        const newConversationEl = sidePanelEl.createDiv("new-conversation");
+        const conversationHeaderTitleEl = newConversationEl.createDiv("conversation-header-title");
+        conversationHeaderTitleEl.textContent = "Conversations";
+
+        const newConversationButtonEl = newConversationEl.createEl("button");
+        newConversationButtonEl.classList.add("new-conversation-button");
+        newConversationButtonEl.classList.add("side-panel-button");
+        newConversationButtonEl.addEventListener('click', (_) => this.createNewConversation(chatBodyEl));
+        setIcon(newConversationButtonEl, "plus");
+        newConversationButtonEl.innerHTML += "New";
+
+        const existingConversationsEl = sidePanelEl.createDiv("existing-conversations");
+        const conversationListEl = existingConversationsEl.createDiv("conversation-list");
+        const conversationListBodyHeaderEl = conversationListEl.createDiv("conversation-list-header");
+        const conversationListBodyEl = conversationListEl.createDiv("conversation-list-body");
+
+        const chatSessionsUrl = `${this.setting.khojUrl}/api/chat/sessions?client=obsidian`;
+        const headers = { 'Authorization': `Bearer ${this.setting.khojApiKey}` };
+        try {
+            let response = await fetch(chatSessionsUrl, { method: "GET", headers: headers });
+            let responseJson: any = await response.json();
+            let conversationId = chatBodyEl.dataset.conversationId;
+
+            if (responseJson.length > 0) {
+                conversationListBodyHeaderEl.style.display = "block";
+                for (let key in responseJson) {
+                    let conversation = responseJson[key];
+                    let conversationSessionEl = this.contentEl.createEl('div');
+                    let incomingConversationId = conversation["conversation_id"];
+                    const conversationTitle = conversation["slug"] || `New conversation 🌱`;
+                    conversationSessionEl.textContent = conversationTitle;
+                    conversationSessionEl.classList.add("conversation-session");
+                    if (incomingConversationId == conversationId) {
+                        conversationSessionEl.classList.add("selected-conversation");
+                    }
+                    conversationSessionEl.addEventListener('click', () => {
+                        chatBodyEl.innerHTML = "";
+                        chatBodyEl.dataset.conversationId = incomingConversationId;
+                        chatBodyEl.dataset.conversationTitle = conversationTitle;
+                        this.getChatHistory(chatBodyEl);
+                    });
+                    let threeDotMenuEl = this.contentEl.createEl('div');
+                    threeDotMenuEl.classList.add("three-dot-menu");
+                    let threeDotMenuButton = this.contentEl.createEl('button');
+                    threeDotMenuButton.innerHTML = "⋮";
+                    threeDotMenuButton.classList.add("three-dot-menu-button");
+                    threeDotMenuButton.addEventListener('click', (event) => {
+                        event.stopPropagation();
+
+                        let existingChildren = threeDotMenuEl.children;
+                        if (existingChildren.length > 1) {
+                            // Skip deleting the first, since that's the menu button.
+                            for (let i = 1; i < existingChildren.length; i++) {
+                                existingChildren[i].remove();
+                            }
+                            return;
+                        }
+
+                        let conversationMenuEl = this.contentEl.createEl('div');
+                        conversationMenuEl.classList.add("conversation-menu");
+
+                        let editConversationTitleButtonEl = this.contentEl.createEl('button');
+                        editConversationTitleButtonEl.innerHTML = "Rename";
+                        editConversationTitleButtonEl.classList.add("edit-title-button");
+                        editConversationTitleButtonEl.classList.add("three-dot-menu-button-item");
+                        editConversationTitleButtonEl.addEventListener('click', (event) => {
+                            event.stopPropagation();
+
+                            let conversationMenuChildren = conversationMenuEl.children;
+                            let totalItems = conversationMenuChildren.length;
+
+                            for (let i = totalItems - 1; i >= 0; i--) {
+                                conversationMenuChildren[i].remove();
+                            }
+
+                            // Create a dialog box to get new title for conversation
+                            let editConversationTitleInputBoxEl = this.contentEl.createEl('div');
+                            editConversationTitleInputBoxEl.classList.add("conversation-title-input-box");
+                            let editConversationTitleInputEl = this.contentEl.createEl('input');
+                            editConversationTitleInputEl.classList.add("conversation-title-input");
+                            editConversationTitleInputEl.value = conversationTitle;
+                            editConversationTitleInputEl.addEventListener('click', function(event) {
+                                event.stopPropagation();
+                            });
+                            editConversationTitleInputEl.addEventListener('keydown', function(event) {
+                                if (event.key === "Enter") {
+                                    event.preventDefault();
+                                    editConversationTitleSaveButtonEl.click();
+                                }
+                            });
+                            let editConversationTitleSaveButtonEl = this.contentEl.createEl('button');
+                            editConversationTitleInputBoxEl.appendChild(editConversationTitleInputEl);
+                            editConversationTitleSaveButtonEl.innerHTML = "Save";
+                            editConversationTitleSaveButtonEl.classList.add("three-dot-menu-button-item");
+                            editConversationTitleSaveButtonEl.addEventListener('click', (event) => {
+                                event.stopPropagation();
+                                let newTitle = editConversationTitleInputEl.value;
+                                if (newTitle != null) {
+                                    let editURL = `/api/chat/title?client=web&conversation_id=${incomingConversationId}&title=${newTitle}`;
+                                    fetch(`${this.setting.khojUrl}${editURL}` , { method: "PATCH", headers })
+                                        .then(response => response.ok ? response.json() : Promise.reject(response))
+                                        .then(data => {
+                                            conversationSessionEl.textContent = newTitle;
+                                        })
+                                        .catch(err => {
+                                            return;
+                                        });
+                                editConversationTitleInputBoxEl.remove();
+                            }});
+                            editConversationTitleInputBoxEl.appendChild(editConversationTitleSaveButtonEl);
+                            conversationMenuEl.appendChild(editConversationTitleInputBoxEl);
+                        });
+
+                        conversationMenuEl.appendChild(editConversationTitleButtonEl);
+                        threeDotMenuEl.appendChild(conversationMenuEl);
+
+                        let deleteConversationButtonEl = this.contentEl.createEl('button');
+                        deleteConversationButtonEl.innerHTML = "Delete";
+                        deleteConversationButtonEl.classList.add("delete-conversation-button");
+                        deleteConversationButtonEl.classList.add("three-dot-menu-button-item");
+                        deleteConversationButtonEl.addEventListener('click', () => {
+                            // Ask for confirmation before deleting chat session
+                            let confirmation = confirm('Are you sure you want to delete this chat session?');
+                            if (!confirmation) return;
+                            let deleteURL = `/api/chat/history?client=obsidian&conversation_id=${incomingConversationId}`;
+                            fetch(`${this.setting.khojUrl}${deleteURL}` , { method: "DELETE", headers })
+                                .then(response => response.ok ? response.json() : Promise.reject(response))
+                                .then(data => {
+                                    chatBodyEl.innerHTML = "";
+                                    chatBodyEl.dataset.conversationId = "";
+                                    chatBodyEl.dataset.conversationTitle = "";
+                                    this.getChatHistory(chatBodyEl);
+                                })
+                                .catch(err => {
+                                    return;
+                                });
+                        });
+
+                        conversationMenuEl.appendChild(deleteConversationButtonEl);
+                        threeDotMenuEl.appendChild(conversationMenuEl);
+                    });
+                    threeDotMenuEl.appendChild(threeDotMenuButton);
+                    conversationSessionEl.appendChild(threeDotMenuEl);
+                    conversationListBodyEl.appendChild(conversationSessionEl);
+                    chatBodyEl.appendChild(sidePanelEl);
+                }
+            }
+        } catch (err) {
+            return false;
+        }
+        return true;
     }
 
     async getChatHistory(chatBodyEl: HTMLElement): Promise<boolean> {
