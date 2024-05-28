@@ -635,85 +635,6 @@
     // List user's API keys on page load
     listApiKeys();
 
-    function deleteAutomation(automationId) {
-        const AutomationList = document.getElementById("automations-list");
-        fetch(`/api/automation?automation_id=${automationId}`, {
-            method: 'DELETE',
-        })
-        .then(response => {
-            if (response.status == 200) {
-                const AutomationItem = document.getElementById(`automation-item-${automationId}`);
-                AutomationList.removeChild(AutomationItem);
-            }
-        });
-    }
-
-    function generateAutomationRow(automationObj) {
-        let automationId = automationObj.id;
-        let automationNextRun = `Next run at ${automationObj.next}`;
-        return `
-            <tr id="automation-item-${automationId}">
-                <td><b>${automationObj.subject}</b></td>
-                <td><b>${automationObj.scheduling_request}</b></td>
-                <td id="automation-query-to-run-${automationId}"><b>${automationObj.query_to_run}</b></td>
-                <td id="automation-${automationId}" title="${automationNextRun}">${automationObj.schedule}</td>
-                <td>
-                    <img onclick="deleteAutomation('${automationId}')" class="automation-row-icon api-key-action enabled" src="/static/assets/icons/delete.svg" alt="Delete Automation" title="Delete Automation">
-                    <img onclick="editAutomation('${automationId}')" class="automation-row-icon api-key-action enabled" src="/static/assets/icons/edit.svg" alt="Edit Automation" title="Edit Automation">
-                </td>
-            </tr>
-        `;
-    }
-
-    function listAutomations() {
-        const AutomationsList = document.getElementById("automations-list");
-        fetch('/api/automations')
-            .then(response => response.json())
-            .then(automations => {
-                if (!automations?.length > 0) return;
-                AutomationsList.innerHTML = automations.map(generateAutomationRow).join("");
-            });
-    }
-
-    async function createAutomation() {
-        const scheduling_request = window.prompt("Describe the automation you want to create");
-        if (!scheduling_request) return;
-
-        const ip_response = await fetch("https://ipapi.co/json");
-        const ip_data = await ip_response.json();
-
-        const query_string = `q=${scheduling_request}&city=${ip_data.city}&region=${ip_data.region}&country=${ip_data.country_name}&timezone=${ip_data.timezone}`;
-        const automation_response = await fetch(`/api/automation?${query_string}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
-        if (!automation_response.ok) {
-            throw new Error(`Failed to create automation: ${automation_response.status}`);
-        }
-
-        listAutomations();
-    }
-    document.getElementById("create-automation").addEventListener("click", async () => { await createAutomation(); });
-
-    function editAutomation(automationId) {
-        const query_to_run = window.prompt("What is the query you want to run on this automation's schedule?");
-        if (!query_to_run) return;
-
-        fetch(`/api/automation?automation_id=${automationId}&query_to_run=${query_to_run}`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        }).then(response => {
-            if (response.ok) {
-                const automationQueryToRunColumn = document.getElementById(`automation-query-to-run-${automationId}`);
-                automationQueryToRunColumn.innerHTML = `<b>${query_to_run}</b>`;
-            }
-        });
-    }
-
     function getIndexedDataSize() {
         document.getElementById("indexed-data-size").innerHTML = "Calculating...";
         fetch('/api/config/index/size')
@@ -722,9 +643,6 @@
                 document.getElementById("indexed-data-size").innerHTML = data.indexed_data_size_in_mb + " MB used";
             });
     }
-
-    // List user's automations on page load
-    listAutomations();
 
     function removeFile(path) {
         fetch('/api/config/data/file?filename=' + path, {
