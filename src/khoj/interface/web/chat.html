@@ -922,7 +922,7 @@ To get started, just start typing below. You can also type / to see a list of co
                         }
                         // Display indexing success message
                         flashStatusInChatInput("✅ File indexed successfully");
-
+                        renderAllFiles();
 
                     })
                     .catch((error) => {
@@ -1839,6 +1839,37 @@ To get started, just start typing below. You can also type / to see a list of co
             document.getElementById('existing-conversations').classList.toggle('collapsed');
             document.getElementById('side-panel-collapse').style.transform = document.getElementById('side-panel').classList.contains('collapsed') ? 'rotate(0deg)' : 'rotate(180deg)';
         }
+        var allFiles;
+        function renderAllFiles() {
+            fetch('/api/config/data/computer')
+            .then(response => response.json())
+            .then(data => {
+                var indexedFiles = document.getElementsByClassName("indexed-files")[0];
+                indexedFiles.innerHTML = "";
+
+                for (var filename of data) {
+                    indexedFiles.innerHTML += "<li class=\"fileName\">" + filename + "</li>";
+                    console.log("update");
+                }
+                allFiles = data;
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        }
+        function renderFilteredFiles(){
+            var indexedFiles = document.getElementsByClassName("indexed-files")[0];
+            indexedFiles.innerHTML = "";
+            var input = document.getElementsByClassName("file-input")[0];
+            var filter = input.value.toUpperCase();
+
+            for (var filename of allFiles) {
+                if (filename.toUpperCase().indexOf(filter) > -1) {
+                    indexedFiles.innerHTML += "<li class=\"fileName\">" + filename + "</li>";
+                }
+            }
+        }
+
     </script>
     <body>
         <div id="khoj-empty-container" class="khoj-empty-container">
@@ -1867,6 +1898,13 @@ To get started, just start typing below. You can also type / to see a list of co
                     <div id="connection-status" class="inline-chat-link" style="display: flex; align-items: center; border-top: 1px solid black;">
                         <div id="connection-status-icon" style="width: 10px; height: 10px; border-radius: 50%; margin-right: 5px;"></div>
                         <div id="connection-status-text" style="margin: 5px;"></div>
+                    </div>
+                    <!-- new feature -->
+                    <div style="border-top: 1px solid black; ">
+                        <h3 style="margin-bottom: 5px">Search Using Files</h3>
+                        <input class="file-input" style="width:240px" type="text" onkeyup="renderFilteredFiles()" placeholder="Enter Filename...">
+                        <script>renderAllFiles()</script>
+                        <ul class="indexed-files" style="margin: 0; padding: 0; height:100px; overflow:hidden; overflow-y:scroll; margin-bottom:5px"></ul>
                     </div>
                     <a id="agent-link" class="inline-chat-link" href="">
                         <div id="agent-metadata" style="display: none;">
@@ -1986,6 +2024,14 @@ To get started, just start typing below. You can also type / to see a list of co
             grid-column-gap: 10px;
             grid-row-gap: 10px;
             margin: 10px;
+        }
+
+        li.fileName {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 250px;
+            background-color:var(--primary);
         }
 
         div.expanded.reference-section {
