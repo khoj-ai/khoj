@@ -593,7 +593,7 @@ async def websocket_endpoint(
             model_type = conversation_config.model_type
             formatted_help = help_message.format(model=model_type, version=state.khoj_version, device=get_device())
             #Adding specification to search online specifically on khoj.dev pages.
-            defiltered_query += "site:khoj.dev"
+            defiltered_query += " site:khoj.dev"
             conversation_commands.append(ConversationCommand.Online)
 
         if ConversationCommand.Online in conversation_commands:
