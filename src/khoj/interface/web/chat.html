@@ -1848,7 +1848,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 indexedFiles.innerHTML = "";
 
                 for (var filename of data) {
-                    indexedFiles.innerHTML += "<li class=\"fileName\">" + filename + "</li>";
+                    indexedFiles.innerHTML += "<li class=\"fileName\" id=\"" + filename + "\" onclick=\"handleFileClick('" + filename + "')\">" + filename + "</li>";
                     console.log("update");
                 }
                 allFiles = data;
@@ -1865,11 +1865,40 @@ To get started, just start typing below. You can also type / to see a list of co
 
             for (var filename of allFiles) {
                 if (filename.toUpperCase().indexOf(filter) > -1) {
-                    indexedFiles.innerHTML += "<li class=\"fileName\">" + filename + "</li>";
+                    indexedFiles.innerHTML += "<li class=\"fileName\" id=\"" + filename + "\" onclick=\"handleFileClick('" + filename + "')\">" + filename + "</li>";
                 }
             }
         }
+        function handleFileClick(elementId) {
+            console.log("clicked");
+            // Get the element by its id
+            var element = document.getElementById(elementId);
 
+            if (element) {
+
+                var text = element.textContent.trim();
+                var checkmarkEmoji = '✅';
+                var newText;
+
+                if (text.startsWith(checkmarkEmoji)) {
+                    newText = text.slice(checkmarkEmoji.length).trim();
+                    var selectedFiles = document.getElementsByClassName("selected-files")[0];
+                    var selectedFile = document.getElementById(elementId);
+                    var selectedFileHTML = "<li class=\"fileName\" id=\"" + elementId + "\">" + text + "</li>";
+                    selectedFiles.innerHTML = selectedFiles.innerHTML.replace(selectedFileHTML, "");
+                    element = document.getElementById(elementId);
+                }
+                else {
+                    newText = checkmarkEmoji + ' ' + text;
+                    var selectedFiles = document.getElementsByClassName("selected-files")[0];
+                    selectedFiles.innerHTML += "<li class=\"fileName\" id=\"" + elementId + "\">" + newText + "</li>";
+                }
+
+                element.textContent = newText;
+            } else {
+                console.error('Element with id', elementId, 'not found.');
+            }
+        }
     </script>
     <body>
         <div id="khoj-empty-container" class="khoj-empty-container">
@@ -1901,10 +1930,41 @@ To get started, just start typing below. You can also type / to see a list of co
                     </div>
                     <!-- new feature -->
                     <div style="border-top: 1px solid black; ">
-                        <h3 style="margin-bottom: 5px">Search Using Files</h3>
-                        <input class="file-input" style="width:240px" type="text" onkeyup="renderFilteredFiles()" placeholder="Enter Filename...">
-                        <script>renderAllFiles()</script>
-                        <ul class="indexed-files" style="margin: 0; padding: 0; height:100px; overflow:hidden; overflow-y:scroll; margin-bottom:5px"></ul>
+                        <div style="margin-bottom: 15px">
+                        <h3 style="margin-bottom: 5px">Selected Files:</h3>
+                        <ul class="selected-files" style="margin: 0; padding: 0;"></ul>
+                        </div>
+                        <input class="file-input" style="width:240px; margin-bottom: 5px; color: black;" type="text" onkeyup="renderFilteredFiles()" placeholder="Add/Remove Files">
+                        <ul class="indexed-files" style="margin: 0; padding: 0; height:100px; overflow:hidden; overflow-y:scroll; margin-bottom:5px; display:none;"></ul>
+                        <script>
+                            renderAllFiles()
+                            // dynamically render files based on whether the user is in the search bar or not.
+                            document.addEventListener("DOMContentLoaded", function() {
+                            try {
+                                var fileInputs = document.getElementsByClassName('file-input');
+                                var fileLists = document.getElementsByClassName('indexed-files');
+                                var selectedFileLists = document.getElementsByClassName('selected-files');
+
+                                var fileInput = fileInputs[0];
+                                var fileList = fileLists[0];
+                                var selectedFileList = selectedFileLists[0];
+
+                                fileInput.addEventListener('click', function() {
+                                    fileList.style.display = 'block';
+                                    selectedFileList.style.display = 'none';
+                                });
+
+                                document.addEventListener('click', function(event) {
+                                    if (!fileInput.contains(event.target) && !fileList.contains(event.target)) {
+                                        fileList.style.display = 'none';
+                                        selectedFileList.style.display = 'block';
+                                    }
+                                });
+                            } catch (error) {
+                                console.error(error.message);
+                            }
+                        });
+                        </script>
                     </div>
                     <a id="agent-link" class="inline-chat-link" href="">
                         <div id="agent-metadata" style="display: none;">
