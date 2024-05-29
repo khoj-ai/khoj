@@ -43,8 +43,13 @@ MAX_WEBPAGES_TO_READ = 1
 
 
 async def search_online(
-    query: str, conversation_history: dict, location: LocationData, send_status_func: Optional[Callable] = None
+    query: str,
+    conversation_history: dict,
+    location: LocationData,
+    send_status_func: Optional[Callable] = None,
+    custom_filters: str = None,
 ):
+    query += custom_filters
     if not online_search_enabled():
         logger.warn("SERPER_DEV_API_KEY is not set")
         return {}
