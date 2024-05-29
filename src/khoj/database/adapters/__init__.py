@@ -447,7 +447,7 @@ class ProcessLockAdapters:
     def run_with_lock(func: Callable, operation: ProcessLock.Operation, max_duration_in_seconds: int = 600, **kwargs):
         # Exit early if process lock is already taken
         if ProcessLockAdapters.is_process_locked(operation):
-            logger.info(f"🔒 Skip executing {func} as {operation} lock is already taken")
+            logger.debug(f"🔒 Skip executing {func} as {operation} lock is already taken")
             return
 
         success = False
@@ -462,7 +462,7 @@ class ProcessLockAdapters:
                 func(**kwargs)
             success = True
         except IntegrityError as e:
-            logger.error(f"⚠️ Unable to create the process lock for {func} with {operation}: {e}")
+            logger.debug(f"⚠️ Unable to create the process lock for {func} with {operation}: {e}")
             success = False
         except Exception as e:
             logger.error(f"🚨 Error executing {func} with {operation} process lock: {e}", exc_info=True)
@@ -475,7 +475,7 @@ class ProcessLockAdapters:
                     f"🔓 Unlocked {operation} process after executing {func} {'Succeeded' if success else 'Failed'}"
                 )
             else:
-                logger.info(f"Skip removing {operation} process lock as it was not set")
+                logger.debug(f"Skip removing {operation} process lock as it was not set")
 
 
 def run_with_process_lock(*args, **kwargs):
