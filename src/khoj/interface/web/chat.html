@@ -27,6 +27,7 @@
         <!-- To automatically render math in text elements, include the auto-render extension: -->
         <script defer src="https://assets.khoj.dev/katex/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
     </head>
+    <script type="text/javascript" src="/static/assets/purify.min.js?v={{ khoj_version }}"></script>
     <script type="text/javascript" src="/static/assets/utils.js?v={{ khoj_version }}"></script>
     <script type="text/javascript" src="/static/assets/markdown-it.min.js?v={{ khoj_version }}"></script>
     <script>
@@ -373,6 +374,9 @@ To get started, just start typing below. You can also type / to see a list of co
             // Replace placeholders with LaTeX delimiters
             newHTML = newHTML.replace(/LEFTPAREN/g, '\\(').replace(/RIGHTPAREN/g, '\\)')
                              .replace(/LEFTBRACKET/g, '\\[').replace(/RIGHTBRACKET/g, '\\]');
+
+            // Sanitize the rendered markdown
+            newHTML = DOMPurify.sanitize(newHTML);
 
             // Set rendered markdown to HTML DOM element
             let element = document.createElement('div');
