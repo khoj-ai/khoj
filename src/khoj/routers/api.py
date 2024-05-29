@@ -495,6 +495,38 @@ async def post_automation(
     return Response(content=json.dumps(automation_info), media_type="application/json", status_code=200)
 
 
+from pydantic import BaseModel
+
+
+class FilterRequest(BaseModel):
+    filter: str
+
+
+@api.get("/conversation/file-filters", response_class=Response)
+def get_file_filtes(request: Request) -> Response:
+    conversation = ConversationAdapters.get_conversation_by_user(request.user.object)
+    file_filters = conversation.file_filters
+    return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
+
+
+@api.post("/conversation/file-filters", response_class=Response)
+def add_file_filter(request: Request, filter: FilterRequest) -> Response:
+    print("filter", filter)
+    conversation = ConversationAdapters.get_conversation_by_user(request.user.object)
+    conversation.file_filters.append(filter.filter)
+    conversation.save()
+    return Response(content=json.dumps(conversation.file_filters), media_type="application/json", status_code=200)
+
+
+@api.delete("/conversation/file-filters", response_class=Response)
+def remove_file_filter(request: Request, filter: FilterRequest) -> Response:
+    conversation = ConversationAdapters.get_conversation_by_user(request.user.object)
+    if filter.filter in conversation.file_filters:
+        conversation.file_filters.remove(filter.filter)
+    conversation.save()
+    return Response(content=json.dumps(conversation.file_filters), media_type="application/json", status_code=200)
+
+
 @api.post("/trigger/automation", response_class=Response)
 @requires(["authenticated"])
 def trigger_manual_job(

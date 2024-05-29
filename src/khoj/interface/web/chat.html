@@ -1887,17 +1887,77 @@ To get started, just start typing below. You can also type / to see a list of co
                     var selectedFileHTML = "<li class=\"fileName\" id=\"" + elementId + "\">" + text + "</li>";
                     selectedFiles.innerHTML = selectedFiles.innerHTML.replace(selectedFileHTML, "");
                     element = document.getElementById(elementId);
+                    removeFileFilterFromDB(newText);
                 }
                 else {
                     newText = checkmarkEmoji + ' ' + text;
                     var selectedFiles = document.getElementsByClassName("selected-files")[0];
                     selectedFiles.innerHTML += "<li class=\"fileName\" id=\"" + elementId + "\">" + newText + "</li>";
+                    addFileFilterToDB(text);
                 }
 
                 element.textContent = newText;
             } else {
                 console.error('Element with id', elementId, 'not found.');
             }
+        }
+        function addFileFilterToDB(filename){
+            fetch('/api/conversation/file-filters', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ filter: filename }) // Convert the string "hello" to JSON format
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Response from server:", data);
+            })
+            .catch(error => {
+                console.error("Error:", error);
+            });
+        }
+        function removeFileFilterFromDB(filename){
+            fetch('/api/conversation/file-filters', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ filter: filename }) // Convert the string "hello" to JSON format
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Response from server:", data);
+            })
+            .catch(error => {
+                console.error("Error:", error);
+            });
+        }
+        function getFileFiltersFromDB(){
+            fetch('/api/conversation/file-filters', {
+                method: 'GET', // Use the GET method
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Response from server:", data);
+                return data;
+            })
+            .catch(error => {
+                console.error("Error:", error);
+            })
+        }
+        function loadFileFiltersFromDB(){
+            var filters = getFileFiltersFromDB();
+            console.log("cached filters", filters);
+            var selectedFiles = document.getElementsByClassName("selected-files")[0];
+            for (var filter of filters) {
+                var text = '✅ ' + filter;
+                selectedFiles.innerHTML += "<li class=\"fileName\" id=\"" + filter + "\">" + text + "</li>";
+            }
+
         }
     </script>
     <body>
@@ -1938,6 +1998,7 @@ To get started, just start typing below. You can also type / to see a list of co
                         <ul class="indexed-files" style="margin: 0; padding: 0; height:100px; overflow:hidden; overflow-y:scroll; margin-bottom:5px; display:none;"></ul>
                         <script>
                             renderAllFiles()
+                            loadFileFiltersFromDB()
                             // dynamically render files based on whether the user is in the search bar or not.
                             document.addEventListener("DOMContentLoaded", function() {
                             try {
