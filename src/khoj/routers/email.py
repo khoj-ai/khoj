@@ -42,7 +42,7 @@ async def send_welcome_email(name, email):
 
     r = resend.Emails.send(
         {
-            "sender": "team@khoj.dev",
+            "from": "team@khoj.dev",
             "to": email,
             "subject": f"{name}, four ways to use Khoj" if name else "Four ways to use Khoj",
             "html": html_content,
@@ -68,7 +68,7 @@ async def send_query_feedback(uquery, kquery, sentiment, user_email):
     # send feedback from two fixed accounts
     r = resend.Emails.send(
         {
-            "sender": "saba@khoj.dev",
+            "from": "saba@khoj.dev",
             "to": "team@khoj.dev",
             "subject": f"User Feedback",
             "html": html_content,
@@ -91,7 +91,7 @@ def send_task_email(name, email, query, result, subject):
 
     r = resend.Emails.send(
         {
-            "sender": "Khoj <khoj@khoj.dev>",
+            "from": "Khoj <khoj@khoj.dev>",
             "to": email,
             "subject": f"✨ {subject}",
             "html": html_content,
