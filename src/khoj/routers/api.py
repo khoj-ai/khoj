@@ -442,6 +442,7 @@ async def post_automation(
     request: Request,
     q: str,
     crontime: str,
+    subject: Optional[str] = None,
     city: Optional[str] = None,
     region: Optional[str] = None,
     country: Optional[str] = None,
@@ -469,7 +470,9 @@ async def post_automation(
     crontime = crontime.replace("?", "*")
     if crontime == "* * * * *":
         return Response(content="Invalid crontime. Please create a more specific schedule.", status_code=400)
-    subject = await acreate_title_from_query(q)
+
+    if not subject:
+        subject = await acreate_title_from_query(q)
 
     # Create new Conversation Session associated with this new task
     conversation = await ConversationAdapters.acreate_conversation_session(user, request.user.client_app)

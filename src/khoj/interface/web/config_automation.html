@@ -62,6 +62,7 @@
         color: var(--primary-color);
     }
 
+    img.automation-share-icon,
     img.automation-edit-cancel-icon,
     img.automation-edit-icon {
         width: 24px;
@@ -204,7 +205,7 @@
 
     div.subject-wrapper {
         display: grid;
-        grid-template-columns: 1fr auto;
+        grid-template-columns: 1fr auto auto;
         grid-gap: 8px;
     }
 
@@ -336,6 +337,56 @@
         })
     }
 
+    function closeShareModal(automationId) {
+        const modal = document.getElementById(`share-modal-${automationId}`);
+        modal.remove();
+    }
+
+    function copyShareLink(event, automationId, subject, crontime, queryToRun) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const encodedSubject = encodeURIComponent(subject);
+        const encodedCrontime = encodeURIComponent(crontime);
+        const encodedQueryToRun = encodeURIComponent(queryToRun);
+
+        const shareLink = `${window.location.origin}?subject=${encodedSubject}&crontime=${encodedCrontime}&queryToRun=${encodedQueryToRun}`;
+        const button = document.getElementById(`share-link-${automationId}`);
+
+        navigator.clipboard.writeText(shareLink).then(() => {
+                button.src = "/static/assets/icons/copy-button-success.svg";
+                setTimeout(() => {
+                    button.src = "/static/assets/icons/share.svg";
+                }, 1000);
+            }).catch((error) => {
+                console.error("Error copying share link output to clipboard:", error);
+                setTimeout(() => {
+                    button.src = "/static/assets/icons/share.svg";
+                }, 1000);
+            });
+    }
+
+    function createShareModal(event, automationId, subject, crontime, queryToRun) {
+        event.preventDefault();
+        event.stopPropagation();
+        const modal = document.createElement('div');
+        const domain = window.location.origin;
+        const shareLink = `${domain}?subject=${subject}&crontime=${crontime}&queryToRun=${queryToRun}`;
+
+        modal.id = `share-modal-${automationId}`;
+        modal.classList.add('modal');
+        modal.innerHTML = `
+            <div class="modal-content">
+                <span class="close" onclick="closeShareModal('${automationId}')">&times;</span>
+                <h2>Share this automation</h2>
+                <p>Share this automation with a friend or colleague by sending them this link:</p>
+                <input type="text" id="share-link-${automationId}" value="${shareLink}" readonly>
+                <button onclick="copyShareLink('${automationId}')">Copy Link</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
     function generateAutomationRow(automation, isSuggested=false) {
         let automationId = automation.id;
         let automationNextRun = `Next run at ${automation.next}\nCron: ${automation.crontime}`;
@@ -350,6 +401,7 @@
                             name="subject"
                             data-original="${automation.subject}"
                             value="${automation.subject}">
+                        <img class=automation-share-icon id="share-link-${automationId}" src="/static/assets/icons/share.svg" alt="Share" onclick="copyShareLink(event, '${automationId}', '${automation.subject}', '${automation.crontime}', '${automation.query_to_run}')">
                         <img class="automation-edit-icon ${automationId}" src="/static/assets/icons/pencil-edit.svg" onclick="onClickEditAutomationCard('${automationId}')" alt="Automations">
                     </div>
                     <input type="text"
@@ -475,7 +527,10 @@
                 });
             });
     }
-    listAutomations();
+
+    if ("{{ username }}" !== "") {
+        listAutomations();
+    }
 
     if (suggestedAutomationsMetadata.length > 0) {
         suggestedAutomationsMetadata.forEach(automation => {
@@ -879,5 +934,44 @@
         document.getElementById("automations").insertBefore(automationEl, document.getElementById("automations").firstChild);
         setupScheduleViewListener("* * * * *", placeholderId);
     })
+
+    function createPreFilledAutomation(subject, crontime, query) {
+        var automationEl = document.createElement("div");
+        automationEl.classList.add("card");
+        automationEl.classList.add("automation");
+        automationEl.classList.add("new-automation")
+        const placeholderId = Date.now();
+        automationEl.id = "automation-card-" + placeholderId;
+        var scheduleSelector = createScheduleSelector(placeholderId);
+        automationEl.innerHTML = `
+            <label for="subject">New Automation</label>
+            <input type="text" id="automation-subject-${placeholderId}" value="${subject}">
+            ${scheduleSelector.outerHTML}
+            <label for="query-to-run">What would you like to receive in your automation?</label>
+            <textarea id="automation-queryToRun-${placeholderId}">${query}</textarea>
+            <div class="automation-buttons">
+                <button type="button"
+                        class="delete-automation-button negative-button"
+                        onclick="deleteAutomation(${placeholderId}, true)"
+                        id="delete-automation-button-${placeholderId}">Cancel</button>
+                <button type="button"
+                        class="save-automation-button"
+                        onclick="saveAutomation(${placeholderId}, true)"
+                        id="save-automation-button-${placeholderId}">Create</button>
+            </div>
+            <div id="automation-success-${placeholderId}" style="display: none;"></div>
+        `;
+        document.getElementById("automations").insertBefore(automationEl, document.getElementById("automations").firstChild);
+        setupScheduleViewListener(crontime, placeholderId);
+    }
+
+    // Check if subject, crontime, query_to_run are all filled out. If so, show it as a populated suggested automation.
+    const subject = "{{ subject }}";
+    const crontime = "{{ crontime }}";
+    const query = "{{ query }}";
+
+    if (subject && crontime && query) {
+        const preFilledAutomation = createPreFilledAutomation(subject, crontime, query);
+    }
 </script>
 {% endblock %}
