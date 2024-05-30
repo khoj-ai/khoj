@@ -302,20 +302,7 @@ export class KhojChatView extends KhojPaneView {
 
         // Add a copy button to each chat message, if it doesn't already exist
         if (willReplace === true) {
-            let copyButton = this.contentEl.createEl('button');
-            copyButton.classList.add("copy-button");
-            copyButton.title = "Copy Message to Clipboard";
-            setIcon(copyButton, "copy-plus");
-            copyButton.addEventListener('click', createCopyParentText(message));
-            chat_message_body_text_el.append(copyButton);
-
-            // Add button to paste into current buffer
-            let pasteToFile = this.contentEl.createEl('button');
-            pasteToFile.classList.add("copy-button");
-            pasteToFile.title = "Paste Message to File";
-            setIcon(pasteToFile, "clipboard-paste");
-            pasteToFile.addEventListener('click', (event) => { pasteTextAtCursor(createCopyParentText(message, 'clipboard-paste')(event)); });
-            chat_message_body_text_el.append(pasteToFile);
+            this.renderActionButtons(message, chat_message_body_text_el);
         }
 
         return chat_message_body_text_el;
@@ -395,22 +382,9 @@ export class KhojChatView extends KhojPaneView {
             MarkdownRenderer.renderMarkdown(message, chat_message_body_text_el, '', null);
         }
 
-        // Add a copy button to each chat message
+        // Add action buttons to each chat message element
         if (willReplace === true) {
-            let copyButton = chatMessageEl.createEl('button');
-            copyButton.classList.add("copy-button");
-            copyButton.title = "Copy Message to Clipboard";
-            setIcon(copyButton, "copy-plus");
-            copyButton.addEventListener('click', createCopyParentText(message));
-            chat_message_body_text_el.append(copyButton);
-
-            // Add button to paste into current buffer
-            let pasteToFile = chatMessageEl.createEl('button');
-            pasteToFile.classList.add("copy-button");
-            pasteToFile.title = "Paste Message to Current File";
-            setIcon(pasteToFile, "clipboard-paste");
-            pasteToFile.addEventListener('click', (event) => { pasteTextAtCursor(createCopyParentText(message, 'clipboard-paste')(event)); });
-            chat_message_body_text_el.append(pasteToFile);
+            this.renderActionButtons(message, chat_message_body_text_el);
         }
 
         // Remove user-select: none property to make text selectable
@@ -450,8 +424,27 @@ export class KhojChatView extends KhojPaneView {
         htmlElement.innerHTML = "";
         // @ts-ignore
         await MarkdownRenderer.renderMarkdown(this.result, htmlElement, '', null);
+        // Render action buttons for the message
+        this.renderActionButtons(this.result, htmlElement);
         // Scroll to bottom of modal, till the send message input box
         this.scrollChatToBottom();
+    }
+
+    renderActionButtons(message: string, chat_message_body_text_el: HTMLElement) {
+        let copyButton = this.contentEl.createEl('button');
+        copyButton.classList.add("copy-button");
+        copyButton.title = "Copy Message to Clipboard";
+        setIcon(copyButton, "copy-plus");
+        copyButton.addEventListener('click', createCopyParentText(message));
+        chat_message_body_text_el.append(copyButton);
+
+        // Add button to paste into current buffer
+        let pasteToFile = this.contentEl.createEl('button');
+        pasteToFile.classList.add("copy-button");
+        pasteToFile.title = "Paste Message to File";
+        setIcon(pasteToFile, "clipboard-paste");
+        pasteToFile.addEventListener('click', (event) => { pasteTextAtCursor(createCopyParentText(message, 'clipboard-paste')(event)); });
+        chat_message_body_text_el.append(pasteToFile);
     }
 
     formatDate(date: Date): string {
