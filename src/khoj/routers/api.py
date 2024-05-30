@@ -6,6 +6,7 @@ import os
 import threading
 import time
 import uuid
+from random import random
 from typing import Any, Callable, List, Optional, Union
 
 import cron_descriptor
@@ -467,8 +468,14 @@ async def post_automation(
         crontime = " ".join(crontime.split(" ")[:5])
     # Convert crontime to standard unix crontime
     crontime = crontime.replace("?", "*")
-    if crontime == "* * * * *":
-        return Response(content="Invalid crontime. Please create a more specific schedule.", status_code=400)
+
+    # Disallow minute level automation recurrence
+    if crontime.startswith("*"):
+        return Response(
+            content="Recurrence of every X minutes is unsupported. Please create a less frequent schedule.",
+            status_code=400,
+        )
+
     subject = await acreate_title_from_query(q)
 
     # Create new Conversation Session associated with this new task
@@ -559,6 +566,13 @@ def edit_job(
         crontime = " ".join(crontime.split(" ")[:5])
     # Convert crontime to standard unix crontime
     crontime = crontime.replace("?", "*")
+
+    # Disallow minute level automation recurrence
+    if crontime.startswith("*"):
+        return Response(
+            content="Recurrence of every X minutes is unsupported. Please create a less frequent schedule.",
+            status_code=400,
+        )
 
     # Construct updated automation metadata
     automation_metadata = json.loads(automation.name)

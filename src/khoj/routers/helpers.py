@@ -4,10 +4,12 @@ import hashlib
 import io
 import json
 import logging
+import math
 import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from functools import partial
+from random import random
 from typing import (
     Annotated,
     Any,
@@ -1014,8 +1016,6 @@ def scheduled_chat(
 
 async def create_automation(q: str, timezone: str, user: KhojUser, calling_url: URL, meta_log: dict = {}):
     crontime, query_to_run, subject = await schedule_query(q, meta_log)
-    if crontime == "* * * * *":
-        raise HTTPException(status_code=400, detail="Cannot run jobs constantly. Please provide a valid crontime.")
     job = await schedule_automation(query_to_run, subject, crontime, timezone, q, user, calling_url)
     return job, crontime, query_to_run, subject
 
@@ -1029,9 +1029,12 @@ async def schedule_automation(
     user: KhojUser,
     calling_url: URL,
 ):
+    # Disable minute level automation recurrence
+    if crontime.startswith("*"):
+        # Run automation at some random minute (to distribute request load) instead of running every X minutes
+        crontime = " ".join([str(math.floor(random() * 60))] + crontime.split(" ")[1:])
+
     user_timezone = pytz.timezone(timezone)
-    if crontime == "* * * * *":
-        raise HTTPException(status_code=400, detail="Cannot run jobs constantly. Please provide a valid crontime.")
     trigger = CronTrigger.from_crontab(crontime, user_timezone)
     trigger.jitter = 60
     # Generate id and metadata used by task scheduler and process locks for the task runs
