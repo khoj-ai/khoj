@@ -499,30 +499,44 @@ from pydantic import BaseModel
 
 
 class FilterRequest(BaseModel):
-    filter: str
+    filename: str
+    conversation_id: str
 
 
-@api.get("/conversation/file-filters", response_class=Response)
-def get_file_filtes(request: Request) -> Response:
-    conversation = ConversationAdapters.get_conversation_by_user(request.user.object)
+class ConversationRequest(BaseModel):
+    conversation_id: str
+
+
+@api.get("/conversation/file-filters/{conversation_id}", response_class=Response)
+def get_file_filter(request: Request, conversation_id: str) -> Response:
+    conversation = ConversationAdapters.get_conversation_by_user(
+        request.user.object, conversation_id=int(conversation_id)
+    )
     file_filters = conversation.file_filters
     return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
 
 
 @api.post("/conversation/file-filters", response_class=Response)
-def add_file_filter(request: Request, filter: FilterRequest) -> Response:
-    print("filter", filter)
-    conversation = ConversationAdapters.get_conversation_by_user(request.user.object)
-    conversation.file_filters.append(filter.filter)
-    conversation.save()
-    return Response(content=json.dumps(conversation.file_filters), media_type="application/json", status_code=200)
+def add_file_filter(request: Request, filter: FilterRequest):
+    try:
+        conversation = ConversationAdapters.get_conversation_by_user(
+            request.user.object, conversation_id=int(filter.conversation_id)
+        )
+        conversation.file_filters.append(filter.filename)
+        conversation.save()
+        return Response(content=json.dumps(conversation.file_filters), media_type="application/json", status_code=200)
+    except Exception as e:
+        logger.error(f"Error adding file filter {filter.filename}: {e}", exc_info=True)
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 @api.delete("/conversation/file-filters", response_class=Response)
 def remove_file_filter(request: Request, filter: FilterRequest) -> Response:
-    conversation = ConversationAdapters.get_conversation_by_user(request.user.object)
-    if filter.filter in conversation.file_filters:
-        conversation.file_filters.remove(filter.filter)
+    conversation = ConversationAdapters.get_conversation_by_user(
+        request.user.object, conversation_id=int(filter.conversation_id)
+    )
+    if filter.filename in conversation.file_filters:
+        conversation.file_filters.remove(filter.filename)
     conversation.save()
     return Response(content=json.dumps(conversation.file_filters), media_type="application/json", status_code=200)
 

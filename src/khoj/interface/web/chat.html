@@ -1161,6 +1161,7 @@ To get started, just start typing below. You can also type / to see a list of co
             if (chatBody.dataset.conversationId) {
                 chatHistoryUrl += `&conversation_id=${chatBody.dataset.conversationId}`;
                 setupWebSocket();
+                loadFileFiltersFromDB();
             }
 
             if (window.screen.width < 700) {
@@ -1198,6 +1199,7 @@ To get started, just start typing below. You can also type / to see a list of co
                     // Render conversation history, if any
                     let chatBody = document.getElementById("chat-body");
                     chatBody.dataset.conversationId = response.conversation_id;
+                    loadFileFiltersFromDB();
                     setupWebSocket();
                     chatBody.dataset.conversationTitle = response.slug || `New conversation 🌱`;
 
@@ -1346,7 +1348,6 @@ To get started, just start typing below. You can also type / to see a list of co
                 document.getElementById("chat-input").value = query_via_url;
                 chat();
             }
-
         }
 
         function fetchRemainingChatMessages(chatHistoryUrl) {
@@ -1516,7 +1517,6 @@ To get started, just start typing below. You can also type / to see a list of co
             modalContent.appendChild(modalBody);
             modal.appendChild(modalContent);
             document.body.appendChild(modal);
-            loadFileFiltersFromDB();
         }
 
         function refreshChatSessionsPanel() {
@@ -1902,59 +1902,107 @@ To get started, just start typing below. You can also type / to see a list of co
                 console.error('Element with id', elementId, 'not found.');
             }
         }
-        function addFileFilterToDB(filename){
-            fetch('/api/conversation/file-filters', {
+        function addFileFilterToDB(filename) {
+            var conversation_id = document.getElementById("chat-body").dataset.conversationId;
+            if (!conversation_id) {
+                console.error("Conversation ID not found on chat-body element.");
+                return;
+            }
+
+            return fetch(`/api/conversation/file-filters`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ filter: filename }) // Convert the string "hello" to JSON format
+                body: JSON.stringify({ filename, conversation_id }) // Pass the filename directly
             })
-            .then(response => response.json())
-            .then(data => {
-                console.log("Response from server:", data);
-            })
-            .catch(error => {
-                console.error("Error:", error);
-            });
-        }
-        function removeFileFilterFromDB(filename){
-            fetch('/api/conversation/file-filters', {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ filter: filename }) // Convert the string "hello" to JSON format
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log("Response from server:", data);
-            })
-            .catch(error => {
-                console.error("Error:", error);
-            });
-        }
-        function getFileFiltersFromDB(){
-            return fetch('/api/conversation/file-filters', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
+                return response.json();
             })
-            .then(response => response.json())
             .then(data => {
                 console.log("Response from server:", data);
                 return data;
             })
             .catch(error => {
                 console.error("Error:", error);
+                throw error;
+            });
+        }
+
+        function removeFileFilterFromDB(filename) {
+            var conversation_id = document.getElementById("chat-body").dataset.conversationId;
+            console.log(typeof conversation_id)
+            if (!conversation_id) {
+                console.error("Conversation ID not found on chat-body element.");
+                return;
+            }
+
+            return fetch(`/api/conversation/file-filters`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ filename, conversation_id })  // Pass the filename directly
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Response from server:", data);
+                return data;
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                throw error;
+            });
+        }
+
+        function getFileFiltersFromDB() {
+            // Get the conversation_id from the data attribute
+            var conversation_id = document.getElementById("chat-body").dataset.conversationId;
+
+            // Make sure conversation_id is not undefined or null
+            if (!conversation_id) {
+                console.error("No conversation ID found on chat-body element.");
+                return Promise.reject("No conversation ID found on chat-body element.");
+            }
+
+            // Perform the fetch request
+            return fetch(`/api/conversation/file-filters/${conversation_id}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(function(response) {
+                console.log("Response status:", response.status); // Log the response status
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                return response.json();
+            })
+            .then(function(data) {
+                console.log("Response from server:", data);
+                return data;
+            })
+            .catch(function(error) {
+                console.error("Error:", error);
                 throw error; // Rethrow the error to be handled elsewhere if needed
             });
         }
+
+
         function loadFileFiltersFromDB(){
             getFileFiltersFromDB()
             .then(filters => {
-                console.log("cached filters", filters);
                 var selectedFiles = document.getElementsByClassName("selected-files")[0];
                 selectedFiles.innerHTML = "";
                 for (var filter of filters) {
@@ -1966,7 +2014,6 @@ To get started, just start typing below. You can also type / to see a list of co
                 indexedFiles.innerHTML = "";
                 for (var filename of allFiles) {
                     var text = filename;
-                    console.log("filename: ", filename);
                     if (filters.includes(filename)) {
                         text = '✅ ' + filename;
                     }
@@ -2020,7 +2067,7 @@ To get started, just start typing below. You can also type / to see a list of co
                         <ul class="indexed-files" style="margin: 0; padding: 0; height:100px; overflow:hidden; overflow-y:scroll; margin-bottom:5px; display:none;"></ul>
                         <script>
                             renderAllFiles()
-                            loadFileFiltersFromDB()
+                            // loadFileFiltersFromDB()
                             // dynamically render files based on whether the user is in the search bar or not.
                             var fileInputs = document.getElementsByClassName('file-input');
                             var fileLists = document.getElementsByClassName('indexed-files');
