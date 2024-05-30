@@ -1909,7 +1909,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 return;
             }
 
-            return fetch(`/api/conversation/file-filters`, {
+            return fetch(`/api/chat/conversation/file-filters`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -1940,7 +1940,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 return;
             }
 
-            return fetch(`/api/conversation/file-filters`, {
+            return fetch(`/api/chat/conversation/file-filters`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json'
@@ -1974,7 +1974,7 @@ To get started, just start typing below. You can also type / to see a list of co
             }
 
             // Perform the fetch request
-            return fetch(`/api/conversation/file-filters/${conversation_id}`, {
+            return fetch(`/api/chat/conversation/file-filters/${conversation_id}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'

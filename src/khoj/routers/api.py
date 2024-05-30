@@ -282,6 +282,7 @@ async def extract_references_and_questions(
     q: str,
     n: int,
     d: float,
+    conversation_id: int,
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     location_data: LocationData = None,
     send_status_func: Optional[Callable] = None,
@@ -307,8 +308,11 @@ async def extract_references_and_questions(
     for filter in [DateFilter(), WordFilter(), FileFilter()]:
         defiltered_query = filter.defilter(defiltered_query)
     filters_in_query = q.replace(defiltered_query, "").strip()
-
+    conversation = await sync_to_async(ConversationAdapters.get_conversation_by_id)(conversation_id)
+    for filter in conversation.file_filters:
+        filters_in_query += f" file:{filter}"
     using_offline_chat = False
+    print(f"Filters in query: {filters_in_query}")
 
     # Infer search queries from user message
     with timer("Extracting search queries took", logger):
@@ -493,52 +497,6 @@ async def post_automation(
 
     # Return information about the created automation as a JSON response
     return Response(content=json.dumps(automation_info), media_type="application/json", status_code=200)
-
-
-from pydantic import BaseModel
-
-
-class FilterRequest(BaseModel):
-    filename: str
-    conversation_id: str
-
-
-class ConversationRequest(BaseModel):
-    conversation_id: str
-
-
-@api.get("/conversation/file-filters/{conversation_id}", response_class=Response)
-def get_file_filter(request: Request, conversation_id: str) -> Response:
-    conversation = ConversationAdapters.get_conversation_by_user(
-        request.user.object, conversation_id=int(conversation_id)
-    )
-    file_filters = conversation.file_filters
-    return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
-
-
-@api.post("/conversation/file-filters", response_class=Response)
-def add_file_filter(request: Request, filter: FilterRequest):
-    try:
-        conversation = ConversationAdapters.get_conversation_by_user(
-            request.user.object, conversation_id=int(filter.conversation_id)
-        )
-        conversation.file_filters.append(filter.filename)
-        conversation.save()
-        return Response(content=json.dumps(conversation.file_filters), media_type="application/json", status_code=200)
-    except Exception as e:
-        logger.error(f"Error adding file filter {filter.filename}: {e}", exc_info=True)
-        raise HTTPException(status_code=422, detail=str(e))
-
-
-@api.delete("/conversation/file-filters", response_class=Response)
-def remove_file_filter(request: Request, filter: FilterRequest) -> Response:
-    conversation = ConversationAdapters.get_conversation_by_user(
-        request.user.object, conversation_id=int(filter.conversation_id)
-    )
-    if filter.filename in conversation.file_filters:
-        conversation.file_filters.remove(filter.filename)
-    conversation.save()
-    return Response(content=json.dumps(conversation.file_filters), media_type="application/json", status_code=200)
 
 
 @api.post("/trigger/automation", response_class=Response)
