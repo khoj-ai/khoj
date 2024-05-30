@@ -1516,6 +1516,7 @@ To get started, just start typing below. You can also type / to see a list of co
             modalContent.appendChild(modalBody);
             modal.appendChild(modalContent);
             document.body.appendChild(modal);
+            loadFileFiltersFromDB();
         }
 
         function refreshChatSessionsPanel() {
@@ -1934,8 +1935,8 @@ To get started, just start typing below. You can also type / to see a list of co
             });
         }
         function getFileFiltersFromDB(){
-            fetch('/api/conversation/file-filters', {
-                method: 'GET', // Use the GET method
+            return fetch('/api/conversation/file-filters', {
+                method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
                 }
@@ -1947,17 +1948,35 @@ To get started, just start typing below. You can also type / to see a list of co
             })
             .catch(error => {
                 console.error("Error:", error);
-            })
+                throw error; // Rethrow the error to be handled elsewhere if needed
+            });
         }
         function loadFileFiltersFromDB(){
-            var filters = getFileFiltersFromDB();
-            console.log("cached filters", filters);
-            var selectedFiles = document.getElementsByClassName("selected-files")[0];
-            for (var filter of filters) {
-                var text = '✅ ' + filter;
-                selectedFiles.innerHTML += "<li class=\"fileName\" id=\"" + filter + "\">" + text + "</li>";
-            }
-
+            getFileFiltersFromDB()
+            .then(filters => {
+                console.log("cached filters", filters);
+                var selectedFiles = document.getElementsByClassName("selected-files")[0];
+                selectedFiles.innerHTML = "";
+                for (var filter of filters) {
+                    var text = '✅ ' + filter;
+                    selectedFiles.innerHTML += "<li class=\"fileName\" id=\"" + filter + "\">" + text + "</li>";
+                }
+                //update indexed files to have checkmark if they are in the filters
+                var indexedFiles = document.getElementsByClassName("indexed-files")[0];
+                indexedFiles.innerHTML = "";
+                for (var filename of allFiles) {
+                    var text = filename;
+                    console.log("filename: ", filename);
+                    if (filters.includes(filename)) {
+                        text = '✅ ' + filename;
+                    }
+                    indexedFiles.innerHTML += "<li class=\"fileName\" id=\"" + filename + "\" onclick=\"handleFileClick('" + filename + "')\">" + text + "</li>";
+                }
+            })
+            .catch(error => {
+                // Handle any errors that occur during the fetch operation
+                console.error("Error loading file filters:", error);
+            });
         }
     </script>
     <body>
