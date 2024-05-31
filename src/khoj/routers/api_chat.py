@@ -79,6 +79,7 @@ class FilterRequest(BaseModel):
 
 
 @api_chat.get("/conversation/file-filters/{conversation_id}", response_class=Response)
+@requires(["authenticated"])
 def get_file_filter(request: Request, conversation_id: str) -> Response:
     conversation = ConversationAdapters.get_conversation_by_user(
         request.user.object, conversation_id=int(conversation_id)
@@ -88,6 +89,7 @@ def get_file_filter(request: Request, conversation_id: str) -> Response:
 
 
 @api_chat.post("/conversation/file-filters", response_class=Response)
+@requires(["authenticated"])
 def add_file_filter(request: Request, filter: FilterRequest):
     try:
         conversation = ConversationAdapters.get_conversation_by_user(
@@ -102,6 +104,7 @@ def add_file_filter(request: Request, filter: FilterRequest):
 
 
 @api_chat.delete("/conversation/file-filters", response_class=Response)
+@requires(["authenticated"])
 def remove_file_filter(request: Request, filter: FilterRequest) -> Response:
     conversation = ConversationAdapters.get_conversation_by_user(
         request.user.object, conversation_id=int(filter.conversation_id)
