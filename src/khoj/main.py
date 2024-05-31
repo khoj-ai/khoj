@@ -134,17 +134,17 @@ def run(should_start_server=True):
     poll_task_scheduler()
 
     # Setup Background Scheduler
-    # from django_apscheduler.jobstores import DjangoJobStore
+    from django_apscheduler.jobstores import DjangoJobStore
 
-    # state.scheduler = BackgroundScheduler(
-    #     {
-    #         "apscheduler.timezone": "UTC",
-    #         "apscheduler.job_defaults.misfire_grace_time": "60",  # Useful to run scheduled jobs even when worker delayed because it was busy or down
-    #         "apscheduler.job_defaults.coalesce": "true",  # Combine multiple jobs into one if they are scheduled at the same time
-    #     }
-    # )
-    # state.scheduler.add_jobstore(DjangoJobStore(), "default")
-    # state.scheduler.start()
+    state.scheduler = BackgroundScheduler(
+        {
+            "apscheduler.timezone": "UTC",
+            "apscheduler.job_defaults.misfire_grace_time": "60",  # Useful to run scheduled jobs even when worker delayed because it was busy or down
+            "apscheduler.job_defaults.coalesce": "true",  # Combine multiple jobs into one if they are scheduled at the same time
+        }
+    )
+    state.scheduler.add_jobstore(DjangoJobStore(), "default")
+    state.scheduler.start()
 
     # Start Server
     configure_routes(app)
