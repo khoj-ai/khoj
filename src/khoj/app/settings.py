@@ -121,7 +121,7 @@ DATABASES = {
         "USER": os.getenv("POSTGRES_USER", "postgres"),
         "NAME": os.getenv("POSTGRES_DB", "khoj"),
         "PASSWORD": os.getenv("POSTGRES_PASSWORD", "postgres"),
-        "CONN_MAX_AGE": 240,
+        "CONN_MAX_AGE": 200,
     }
 }
 
