@@ -3,7 +3,7 @@ import json
 import logging
 import os
 from collections import defaultdict
-from typing import Callable, Dict, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import aiohttp
 import requests
@@ -47,9 +47,9 @@ async def search_online(
     conversation_history: dict,
     location: LocationData,
     send_status_func: Optional[Callable] = None,
-    custom_filters: str = None,
+    custom_filters: List[str] = [],
 ):
-    query += custom_filters
+    query += " ".join(custom_filters)
     if not online_search_enabled():
         logger.warn("SERPER_DEV_API_KEY is not set")
         return {}
