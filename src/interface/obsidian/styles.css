@@ -240,10 +240,22 @@ img {
     max-width: 60%;
 }
 
+div.new-conversation {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-columns: 1fr auto;
+    margin-bottom: 16px;
+}
+div.conversation-header-title {
+    text-align: left;
+    font-size: larger;
+    line-height: 1.5em;
+}
 div.conversation-session {
     color: var(--color-base-90);
     border: 1px solid var(--khoj-storm-grey);
     border-radius: 5px;
+    margin-top: 8px;
     padding: 5px;
     font-size: 14px;
     font-weight: 300;
@@ -264,9 +276,11 @@ div.conversation-session {
     /* position: relative; */
 }
 
-button.three-dot-menu-button-item {
+button.selected-conversation {
     background: var(--khoj-winter-sun);
-    color: var(--khoj-storm-grey);
+}
+button.three-dot-menu-button-item {
+    color: var(--color-base-90);
     border: none;
     box-shadow: none;
     font-size: 14px;
@@ -307,11 +321,8 @@ div.conversation-menu {
     top: 100%;
     right: 0;
     text-align: right;
-    background-color: var(--khoj-winter-sun);
-    border: 1px solid var(--khoj-storm-grey);
     border-radius: 5px;
     padding: 5px;
-    box-shadow: 0 0 11px #aaa;
 }
 div.conversation-session:hover {
     transform: scale(1.03);
