@@ -470,7 +470,8 @@ async def post_automation(
     crontime = crontime.replace("?", "*")
 
     # Disallow minute level automation recurrence
-    if crontime.startswith("*"):
+    minute_value = crontime.split(" ")[0]
+    if not minute_value.isdigit():
         return Response(
             content="Recurrence of every X minutes is unsupported. Please create a less frequent schedule.",
             status_code=400,
@@ -568,7 +569,8 @@ def edit_job(
     crontime = crontime.replace("?", "*")
 
     # Disallow minute level automation recurrence
-    if crontime.startswith("*"):
+    minute_value = crontime.split(" ")[0]
+    if not minute_value.isdigit():
         return Response(
             content="Recurrence of every X minutes is unsupported. Please create a less frequent schedule.",
             status_code=400,

@@ -1030,7 +1030,8 @@ async def schedule_automation(
     calling_url: URL,
 ):
     # Disable minute level automation recurrence
-    if crontime.startswith("*"):
+    minute_value = crontime.split(" ")[0]
+    if not minute_value.isdigit():
         # Run automation at some random minute (to distribute request load) instead of running every X minutes
         crontime = " ".join([str(math.floor(random() * 60))] + crontime.split(" ")[1:])
 
