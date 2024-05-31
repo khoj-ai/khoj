@@ -110,6 +110,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "app.wsgi.application"
 
+CONN_MAX_AGE = 240
+
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
