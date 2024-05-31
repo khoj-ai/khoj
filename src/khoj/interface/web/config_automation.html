@@ -62,6 +62,7 @@
         color: var(--primary-color);
     }
 
+<<<<<<< Updated upstream
     img.automation-share-icon,
     img.automation-edit-cancel-icon,
     img.automation-edit-icon {
@@ -72,6 +73,18 @@
         margin: auto;
     }
 
+||||||| Stash base
+=======
+    img.automation-edit-cancel-icon,
+    img.automation-edit-icon {
+        width: 24px;
+        height: 24px;
+        object-fit: cover;
+        cursor: pointer;
+        margin: auto;
+    }
+
+>>>>>>> Stashed changes
     textarea.fake-input,
     input.fake-input {
         height: auto;
@@ -118,8 +131,13 @@
     }
 
     button.save-automation-button,
+<<<<<<< Updated upstream
     button.cancel-edit-automation-button,
     button.send-preview-automation-button,
+||||||| Stash base
+=======
+    button.cancel-edit-automation-button,
+>>>>>>> Stashed changes
     button.delete-automation-button {
         padding: 8px;
         margin-bottom: 0;
@@ -203,6 +221,7 @@
         height: 24px;
     }
 
+<<<<<<< Updated upstream
     div.subject-wrapper {
         display: grid;
         grid-template-columns: 1fr auto auto;
@@ -213,6 +232,19 @@
         margin: 0;
     }
 
+||||||| Stash base
+=======
+    div.subject-wrapper {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        grid-gap: 8px;
+    }
+
+    div.subject-wrapper p {
+        margin: 0;
+    }
+
+>>>>>>> Stashed changes
     @keyframes confirmation {
         0% { background-color: normal; transform: scale(1); }
         50% { background-color: var(--primary); transform: scale(1.1); }
@@ -427,6 +459,9 @@
                             `<div id="empty-div"></div>
                             <div id="empty-div"></div>`:
                             `
+                            <button type="button"
+                                    class="cancel-edit-automation-button negative-button"
+                                    onclick="clickCancelEdit(event, '${automationId}')">Cancel</button>
                             <button type="button"
                                     class="delete-automation-button negative-button"
                                     id="delete-automation-button-${automationId}">Delete</button>
