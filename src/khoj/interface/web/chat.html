@@ -2054,7 +2054,6 @@ To get started, just start typing below. You can also type / to see a list of co
                         <div id="connection-status-icon" style="width: 10px; height: 10px; border-radius: 50%; margin-right: 5px;"></div>
                         <div id="connection-status-text" style="margin: 5px;"></div>
                     </div>
-                    <!-- new feature -->
                     <div style="border-top: 1px solid black; ">
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; margin-top: 5px;">
                             <p style="margin: 0;">Add/Remove Files:</p>
@@ -2067,8 +2066,6 @@ To get started, just start typing below. You can also type / to see a list of co
                         <ul class="indexed-files" style="margin: 0; padding: 0; height:100px; overflow:hidden; overflow-y:scroll; margin-bottom:5px; display:none;"></ul>
                         <script>
                             renderAllFiles()
-                            // loadFileFiltersFromDB()
-                            // dynamically render files based on whether the user is in the search bar or not.
                             var fileInputs = document.getElementsByClassName('file-input');
                             var fileLists = document.getElementsByClassName('indexed-files');
                             var selectedFileLists = document.getElementsByClassName('selected-files');
