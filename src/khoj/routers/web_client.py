@@ -421,20 +421,27 @@ def view_public_conversation(request: Request):
 
 
 @web_client.get("/automations", response_class=HTMLResponse)
-@requires(["authenticated"], redirect="login_page")
-def automations_config_page(request: Request):
-    user = request.user.object
+def automations_config_page(
+    request: Request,
+    subject: str,
+    crontime: str,
+    queryToRun: str,
+):
+    user = request.user.object if request.user.is_authenticated else None
     user_picture = request.session.get("user", {}).get("picture")
-    has_documents = EntryAdapters.user_has_entries(user=user)
+    has_documents = EntryAdapters.user_has_entries(user=user) if user else False
 
     return templates.TemplateResponse(
         "config_automation.html",
         context={
             "request": request,
-            "username": user.username,
+            "username": user.username if user else None,
             "user_photo": user_picture,
             "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
             "khoj_version": state.khoj_version,
+            "subject": subject,
+            "crontime": crontime,
+            "queryToRun": queryToRun,
         },
     )

@@ -2,6 +2,7 @@
 {% block content %}
 <div class="page">
     <div class="section">
+        <div id="overlay" style="display: none;"></div>
         <h2 class="section-title">
             <img class="card-icon" src="/static/assets/icons/automation.svg?v={{ khoj_version }}" alt="Automate">
             <span class="card-title-text">Automate (Preview)</span>
@@ -35,6 +36,16 @@
     td {
         padding: 10px 0;
     }
+    #overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: black;
+        opacity: 0.5;
+        z-index: 1;
+    }
     div.automation {
         width: 100%;
         height: 100%;
@@ -62,7 +73,6 @@
         color: var(--primary-color);
     }
 
-<<<<<<< Updated upstream
     img.automation-share-icon,
     img.automation-edit-cancel-icon,
     img.automation-edit-icon {
@@ -73,18 +83,6 @@
         margin: auto;
     }
 
-||||||| Stash base
-=======
-    img.automation-edit-cancel-icon,
-    img.automation-edit-icon {
-        width: 24px;
-        height: 24px;
-        object-fit: cover;
-        cursor: pointer;
-        margin: auto;
-    }
-
->>>>>>> Stashed changes
     textarea.fake-input,
     input.fake-input {
         height: auto;
@@ -131,13 +129,8 @@
     }
 
     button.save-automation-button,
-<<<<<<< Updated upstream
     button.cancel-edit-automation-button,
     button.send-preview-automation-button,
-||||||| Stash base
-=======
-    button.cancel-edit-automation-button,
->>>>>>> Stashed changes
     button.delete-automation-button {
         padding: 8px;
         margin-bottom: 0;
@@ -221,7 +214,6 @@
         height: 24px;
     }
 
-<<<<<<< Updated upstream
     div.subject-wrapper {
         display: grid;
         grid-template-columns: 1fr auto auto;
@@ -232,19 +224,6 @@
         margin: 0;
     }
 
-||||||| Stash base
-=======
-    div.subject-wrapper {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        grid-gap: 8px;
-    }
-
-    div.subject-wrapper p {
-        margin: 0;
-    }
-
->>>>>>> Stashed changes
     @keyframes confirmation {
         0% { background-color: normal; transform: scale(1); }
         50% { background-color: var(--primary); transform: scale(1.1); }
@@ -273,6 +252,14 @@
 <script>
     function deleteAutomation(automationId) {
         const AutomationList = document.getElementById("automations");
+        if ("{{ username }}" === "None") {
+            const AutomationItem = document.getElementById(`automation-card-${automationId}`);
+            AutomationList.removeChild(AutomationItem);
+            // Remove the Automation from the DOM and return
+            AutomationItem.remove();
+            document.getElementById('overlay').style.display = 'none';
+            return;
+        }
         fetch(`/api/automation?automation_id=${automationId}`, {
             method: 'DELETE',
         })
@@ -280,6 +267,7 @@
             if (response.status == 200 || response.status == 204) {
                 const AutomationItem = document.getElementById(`automation-card-${automationId}`);
                 AutomationList.removeChild(AutomationItem);
+                document.getElementById('overlay').style.display = 'none';
             }
         });
     }
@@ -382,7 +370,7 @@
         const encodedCrontime = encodeURIComponent(crontime);
         const encodedQueryToRun = encodeURIComponent(queryToRun);
 
-        const shareLink = `${window.location.origin}?subject=${encodedSubject}&crontime=${encodedCrontime}&queryToRun=${encodedQueryToRun}`;
+        const shareLink = `${window.location.origin}/automations?subject=${encodedSubject}&crontime=${encodedCrontime}&queryToRun=${encodedQueryToRun}`;
         const button = document.getElementById(`share-link-${automationId}`);
 
         navigator.clipboard.writeText(shareLink).then(() => {
@@ -396,27 +384,6 @@
                     button.src = "/static/assets/icons/share.svg";
                 }, 1000);
             });
-    }
-
-    function createShareModal(event, automationId, subject, crontime, queryToRun) {
-        event.preventDefault();
-        event.stopPropagation();
-        const modal = document.createElement('div');
-        const domain = window.location.origin;
-        const shareLink = `${domain}?subject=${subject}&crontime=${crontime}&queryToRun=${queryToRun}`;
-
-        modal.id = `share-modal-${automationId}`;
-        modal.classList.add('modal');
-        modal.innerHTML = `
-            <div class="modal-content">
-                <span class="close" onclick="closeShareModal('${automationId}')">&times;</span>
-                <h2>Share this automation</h2>
-                <p>Share this automation with a friend or colleague by sending them this link:</p>
-                <input type="text" id="share-link-${automationId}" value="${shareLink}" readonly>
-                <button onclick="copyShareLink('${automationId}')">Copy Link</button>
-            </div>
-        `;
-        document.body.appendChild(modal);
     }
 
     function generateAutomationRow(automation, isSuggested=false) {
@@ -492,11 +459,17 @@
         saveAutomationButtonEl.addEventListener("click", async () => { await saveAutomation(automation.id, isSuggested); });
         let deleteAutomationButtonEl = automationEl.querySelector(`#delete-automation-button-${automation.id}`);
         if (deleteAutomationButtonEl) {
-            deleteAutomationButtonEl.addEventListener("click", () => { deleteAutomation(automation.id); });
+            deleteAutomationButtonEl.addEventListener("click", () => {
+                deleteAutomation(automation.id);
+                document.getElementById('overlay').style.display = 'none';
+            });
         }
         let cancelEditAutomationButtonEl = automationEl.querySelector(`#cancel-edit-automation-button-${automation.id}`);
         if (cancelEditAutomationButtonEl) {
-            cancelEditAutomationButtonEl.addEventListener("click", (event) => { clickCancelEdit(event, automation.id); });
+            cancelEditAutomationButtonEl.addEventListener("click", (event) => {
+                clickCancelEdit(event, automation.id);
+                document.getElementById('overlay').style.display = 'none';
+            });
         }
 
         return automationEl.firstElementChild;
@@ -560,11 +533,28 @@
                         }
                     });
                 });
+                // Check if subject, crontime, query_to_run are all filled out. If so, show it as a populated suggested automation.
+                const subject = "{{ subject }}";
+                const crontime = "{{ crontime }}";
+                const query = "{{ queryToRun }}";
+
+                if (subject && crontime && query) {
+                    const preFilledAutomation = createPreFilledAutomation(subject, crontime, query);
+                }
             });
     }
 
-    if ("{{ username }}" !== "") {
+    if ("{{ username }}" !== "None") {
         listAutomations();
+    } else {
+        // Check if subject, crontime, query_to_run are all filled out. If so, show it as a populated suggested automation.
+        const subject = "{{ subject }}";
+        const crontime = "{{ crontime }}";
+        const query = "{{ queryToRun }}";
+
+        if (subject && crontime && query) {
+            const preFilledAutomation = createPreFilledAutomation(subject, crontime, query);
+        }
     }
 
     if (suggestedAutomationsMetadata.length > 0) {
@@ -971,11 +961,13 @@
     })
 
     function createPreFilledAutomation(subject, crontime, query) {
+        document.getElementById('overlay').style.display = 'block';
         var automationEl = document.createElement("div");
         automationEl.classList.add("card");
         automationEl.classList.add("automation");
         automationEl.classList.add("new-automation")
         const placeholderId = Date.now();
+        automationEl.classList.add(`${placeholderId}`);
         automationEl.id = "automation-card-" + placeholderId;
         var scheduleSelector = createScheduleSelector(placeholderId);
         automationEl.innerHTML = `
@@ -1000,13 +992,5 @@
         setupScheduleViewListener(crontime, placeholderId);
     }
 
-    // Check if subject, crontime, query_to_run are all filled out. If so, show it as a populated suggested automation.
-    const subject = "{{ subject }}";
-    const crontime = "{{ crontime }}";
-    const query = "{{ query }}";
-
-    if (subject && crontime && query) {
-        const preFilledAutomation = createPreFilledAutomation(subject, crontime, query);
-    }
 </script>
 {% endblock %}
