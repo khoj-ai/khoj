@@ -487,6 +487,10 @@ async def websocket_endpoint(
             if conversation:
                 await sync_to_async(conversation.refresh_from_db)(fields=["conversation_log"])
             q = await websocket.receive_text()
+
+            # Refresh these because the connection to the database might have been closed
+            await conversation.arefresh_from_db()
+
         except WebSocketDisconnect:
             logger.debug(f"User {user} disconnected web socket")
             break

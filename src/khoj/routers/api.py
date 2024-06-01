@@ -6,6 +6,7 @@ import os
 import threading
 import time
 import uuid
+from random import random
 from typing import Any, Callable, List, Optional, Union
 
 import cron_descriptor
@@ -461,15 +462,23 @@ async def post_automation(
     q = q.strip()
     if not q.startswith("/automated_task"):
         query_to_run = f"/automated_task {q}"
+
     # Normalize crontime for AP Scheduler CronTrigger
     crontime = crontime.strip()
     if len(crontime.split(" ")) > 5:
         # Truncate crontime to 5 fields
         crontime = " ".join(crontime.split(" ")[:5])
+
     # Convert crontime to standard unix crontime
     crontime = crontime.replace("?", "*")
-    if crontime == "* * * * *":
-        return Response(content="Invalid crontime. Please create a more specific schedule.", status_code=400)
+
+    # Disallow minute level automation recurrence
+    minute_value = crontime.split(" ")[0]
+    if not minute_value.isdigit():
+        return Response(
+            content="Recurrence of every X minutes is unsupported. Please create a less frequent schedule.",
+            status_code=400,
+        )
 
     if not subject:
         subject = await acreate_title_from_query(q)
@@ -562,6 +571,14 @@ def edit_job(
         crontime = " ".join(crontime.split(" ")[:5])
     # Convert crontime to standard unix crontime
     crontime = crontime.replace("?", "*")
+
+    # Disallow minute level automation recurrence
+    minute_value = crontime.split(" ")[0]
+    if not minute_value.isdigit():
+        return Response(
+            content="Recurrence of every X minutes is unsupported. Please create a less frequent schedule.",
+            status_code=400,
+        )
 
     # Construct updated automation metadata
     automation_metadata = json.loads(automation.name)

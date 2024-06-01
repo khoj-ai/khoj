@@ -321,7 +321,7 @@
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
                     }
-                    return response.json();
+                    return response;
                 })
             .then(automations => {
                 notificationEl.style.display = 'block';
@@ -922,9 +922,9 @@
             }, 2000);
         })
         .catch(error => {
-            notificationEl.textContent = `⚠️ Failed to ${actOn.toLowerCase()}e automations.`;
+            notificationEl.textContent = `⚠️ Failed to ${actOn.toLowerCase()}e automation.`;
             notificationEl.style.display = "block";
-            saveButtonEl.textContent = `⚠️ Failed to ${actOn.toLowerCase()}e automations`;
+            saveButtonEl.textContent = `⚠️ Failed to ${actOn.toLowerCase()}e automation`;
             setTimeout(function() {
                 saveButtonEl.textContent = `${actOn}e`;
             }, 2000);
