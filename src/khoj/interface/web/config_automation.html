@@ -798,7 +798,8 @@
 
     async function saveAutomation(automationId, create=false) {
         if ("{{ username }}" == "None") {
-            window.location.href = `/login?next=${window.location.href}`;
+            url_encoded_href = encodeURIComponent(window.location.href);
+            window.location.href = `/login?next=${url_encoded_href}`;
             return;
         }
 
