@@ -1,6 +1,6 @@
 import { App, SuggestModal, request, MarkdownRenderer, Instruction, Platform } from 'obsidian';
 import { KhojSetting } from 'src/settings';
-import { createNoteAndCloseModal } from 'src/utils';
+import { createNoteAndCloseModal, getLinkToEntry } from 'src/utils';
 
 export interface SearchResult {
     entry: string;
@@ -132,21 +132,8 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
         const mdFiles = this.app.vault.getMarkdownFiles();
         const pdfFiles = this.app.vault.getFiles().filter(file => file.extension === 'pdf');
 
-        // Find the vault file matching file of chosen search result
-        let file_match = mdFiles.concat(pdfFiles)
-            // Sort by descending length of path
-            // This finds longest path match when multiple files have same name
-            .sort((a, b) => b.path.length - a.path.length)
-            // The first match is the best file match across OS
-            // e.g Khoj server on Linux, Obsidian vault on Android
-            .find(file => result.file.replace(/\\/g, "/").endsWith(file.path))
-
-        // Open vault file at heading of chosen search result
-        if (file_match) {
-            let resultHeading = file_match.extension !== 'pdf' ? result.entry.split('\n', 1)[0] : '';
-            let linkToEntry = resultHeading.startsWith('#') ? `${file_match.path}${resultHeading}` : file_match.path;
-            this.app.workspace.openLinkText(linkToEntry, '');
-            console.log(`Link: ${linkToEntry}, File: ${file_match.path}, Heading: ${resultHeading}`);
-        }
+        // Find, Open vault file at heading of chosen search result
+        let linkToEntry = getLinkToEntry(mdFiles.concat(pdfFiles), result.file, result.entry);
+        if (linkToEntry) this.app.workspace.openLinkText(linkToEntry, '');
     }
 }

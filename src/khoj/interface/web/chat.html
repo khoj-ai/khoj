@@ -102,7 +102,10 @@ To get started, just start typing below. You can also type / to see a list of co
             return `${time_string}, ${date_string}`;
         }
 
-        function generateReference(reference, index) {
+        function generateReference(referenceJson, index) {
+            let reference = referenceJson.hasOwnProperty("compiled") ? referenceJson.compiled : referenceJson;
+            let referenceFile = referenceJson.hasOwnProperty("file") ? referenceJson.file : null;
+
             // Escape reference for HTML rendering
             let escaped_ref = reference.replaceAll('"', '&quot;');
 
@@ -277,95 +280,47 @@ To get started, just start typing below. You can also type / to see a list of co
             return numOnlineReferences;
         }
 
-        function renderMessageWithReference(message, by, context=null, dt=null, onlineContext=null, intentType=null, inferredQueries=null, userQuery) {
-            // If no document or online context is provided, render the message as is
-            if ((context == null || context.length == 0) && (onlineContext == null || (onlineContext && Object.keys(onlineContext).length == 0))) {
-                if (intentType?.includes("text-to-image")) {
-                    let imageMarkdown;
-                    if (intentType === "text-to-image") {
-                        imageMarkdown = `![](data:image/png;base64,${message})`;
-                    } else if (intentType === "text-to-image2") {
-                        imageMarkdown = `![](${message})`;
-                    } else if (intentType === "text-to-image-v3") {
-                        imageMarkdown = `![](data:image/webp;base64,${message})`;
-                    }
-                    const inferredQuery = inferredQueries?.[0];
-                    if (inferredQuery) {
-                        imageMarkdown += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
-                    }
-                    return renderMessage(imageMarkdown, by, dt, null, false, "return", userQuery);
-                }
-
-                return renderMessage(message, by, dt, null, false, "return", userQuery);
+        function renderMessageWithReference(message, by, context=null, dt=null, onlineContext=null, intentType=null, inferredQueries=null) {
+            let chatEl;
+            if (intentType?.includes("text-to-image")) {
+                let imageMarkdown = generateImageMarkdown(message, intentType, inferredQueries);
+                chatEl = renderMessage(imageMarkdown, by, dt, null, false, "return");
+            } else {
+                chatEl = renderMessage(message, by, dt, null, false, "return");
             }
 
-            if ((context && context.length == 0) && (onlineContext == null || (onlineContext && Object.keys(onlineContext).length == 0))) {
-                return renderMessage(message, by, dt, null, false, "return", userQuery);
+            // If no document or online context is provided, render the message as is
+            if ((context == null || context?.length == 0)
+                && (onlineContext == null || (onlineContext && Object.keys(onlineContext).length == 0))) {
+                return chatEl;
             }
 
             // If document or online context is provided, render the message with its references
-            let references = document.createElement('div');
+            let references = {};
+            if (!!context) references["notes"] = context;
+            if (!!onlineContext) references["online"] = onlineContext;
+            let chatMessageEl = chatEl.getElementsByClassName("chat-message-text")[0];
+            chatMessageEl.appendChild(createReferenceSection(references));
 
-            let referenceExpandButton = document.createElement('button');
-            referenceExpandButton.classList.add("reference-expand-button");
-            let numReferences = 0;
-
-            if (context) {
-                numReferences += context.length;
-            }
-
-            references.appendChild(referenceExpandButton);
-
-            let referenceSection = document.createElement('div');
-            referenceSection.classList.add("reference-section");
-            referenceSection.classList.add("collapsed");
-
-            referenceExpandButton.addEventListener('click', function() {
-                if (referenceSection.classList.contains("collapsed")) {
-                    referenceSection.classList.remove("collapsed");
-                    referenceSection.classList.add("expanded");
-                } else {
-                    referenceSection.classList.add("collapsed");
-                    referenceSection.classList.remove("expanded");
-                }
-            });
-
-            references.classList.add("references");
-            if (context) {
-                for (let index in context) {
-                    let reference = context[index];
-                    let polishedReference = generateReference(reference, index);
-                    referenceSection.appendChild(polishedReference);
-                }
-            }
-
-            if (onlineContext) {
-                numReferences += processOnlineReferences(referenceSection, onlineContext);
-            }
-
-            let expandButtonText = numReferences == 1 ? "1 reference" : `${numReferences} references`;
-            referenceExpandButton.innerHTML = expandButtonText;
-
-            references.appendChild(referenceSection);
-
-            if (intentType?.includes("text-to-image")) {
-                let imageMarkdown;
-                if (intentType === "text-to-image") {
-                    imageMarkdown = `![](data:image/png;base64,${message})`;
-                } else if (intentType === "text-to-image2") {
-                    imageMarkdown = `![](${message})`;
-                } else if (intentType === "text-to-image-v3") {
-                    imageMarkdown = `![](data:image/webp;base64,${message})`;
-                }
-                const inferredQuery = inferredQueries?.[0];
-                if (inferredQuery) {
-                    imageMarkdown += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
-                }
-                return renderMessage(imageMarkdown, by, dt, references, false, "return", userQuery);
-            }
-
-            return renderMessage(message, by, dt, references, false, "return", userQuery);
+            return chatEl;
         }
+
+        function generateImageMarkdown(message, intentType, inferredQueries=null) {
+            let imageMarkdown;
+            if (intentType === "text-to-image") {
+                imageMarkdown = `![](data:image/png;base64,${message})`;
+            } else if (intentType === "text-to-image2") {
+                imageMarkdown = `![](${message})`;
+            } else if (intentType === "text-to-image-v3") {
+                imageMarkdown = `![](data:image/webp;base64,${message})`;
+            }
+            const inferredQuery = inferredQueries?.[0];
+            if (inferredQuery) {
+                imageMarkdown += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
+            }
+            return imageMarkdown;
+        }
+
         //handler function for posting feedback data to endpoint
         function sendFeedback(_uquery="", _kquery="", _sentiment="") {
             const uquery = _uquery;
@@ -387,7 +342,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
             // Replace LaTeX delimiters with placeholders
             newHTML = newHTML.replace(/\\\(/g, 'LEFTPAREN').replace(/\\\)/g, 'RIGHTPAREN')
-                                .replace(/\\\[/g, 'LEFTBRACKET').replace(/\\\]/g, 'RIGHTBRACKET');
+                             .replace(/\\\[/g, 'LEFTBRACKET').replace(/\\\]/g, 'RIGHTBRACKET');
 
             // Remove any text between <s>[INST] and </s> tags. These are spurious instructions for the AI chat model.
             newHTML = newHTML.replace(/<s>\[INST\].+(<\/s>)?/g, '');
@@ -408,7 +363,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
             // Replace placeholders with LaTeX delimiters
             newHTML = newHTML.replace(/LEFTPAREN/g, '\\(').replace(/RIGHTPAREN/g, '\\)')
-                            .replace(/LEFTBRACKET/g, '\\[').replace(/RIGHTBRACKET/g, '\\]');
+                             .replace(/LEFTBRACKET/g, '\\[').replace(/RIGHTBRACKET/g, '\\]');
 
             // Set rendered markdown to HTML DOM element
             let element = document.createElement('div');
@@ -1101,11 +1056,7 @@ To get started, just start typing below. You can also type / to see a list of co
             }
         }
 
-        function sendMessageViaWebSocket(event) {
-            if (event) {
-                event.preventDefault();
-            }
-
+        function sendMessageViaWebSocket() {
             let chatBody = document.getElementById("chat-body");
 
             var query = document.getElementById("chat-input").value.trim();
@@ -2645,7 +2596,7 @@ To get started, just start typing below. You can also type / to see a list of co
             text-align: left;
             display: flex;
             position: relative;
-            margin: 0 8px;
+            margin-right: 8px;
         }
 
         .three-dot-menu {
@@ -3030,7 +2981,5 @@ To get started, just start typing below. You can also type / to see a list of co
                 transform: translate(24px, 0);
             }
         }
-
-
     </style>
 </html>

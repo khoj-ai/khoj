@@ -126,7 +126,7 @@ def converse(
     """
     # Initialize Variables
     current_date = datetime.now().strftime("%Y-%m-%d")
-    compiled_references = "\n\n".join({f"# {item}" for item in references})
+    compiled_references = "\n\n".join({f"# {item['compiled']}" for item in references})
 
     conversation_primer = prompts.query_prompt.format(query=user_query)
 

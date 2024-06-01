@@ -96,7 +96,7 @@ def save_to_conversation_log(
     user: KhojUser,
     meta_log: Dict,
     user_message_time: str = None,
-    compiled_references: List[str] = [],
+    compiled_references: List[Dict[str, Any]] = [],
     online_results: Dict[str, Any] = {},
     inferred_queries: List[str] = [],
     intent_type: str = "remember",

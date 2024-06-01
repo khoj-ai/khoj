@@ -62,7 +62,10 @@
             return `${time_string}, ${date_string}`;
         }
 
-        function generateReference(reference, index) {
+        function generateReference(referenceJson, index) {
+            let reference = referenceJson.hasOwnProperty("compiled") ? referenceJson.compiled : referenceJson;
+            let referenceFile = referenceJson.hasOwnProperty("file") ? referenceJson.file : null;
+
             // Escape reference for HTML rendering
             let escaped_ref = reference.replaceAll('"', '&quot;');
 
@@ -219,98 +222,44 @@
         }
 
         function renderMessageWithReference(message, by, context=null, dt=null, onlineContext=null, intentType=null, inferredQueries=null) {
+            let chatEl;
+            if (intentType?.includes("text-to-image")) {
+                let imageMarkdown = generateImageMarkdown(message, intentType, inferredQueries);
+                chatEl = renderMessage(imageMarkdown, by, dt, null, false, "return");
+            } else {
+                chatEl = renderMessage(message, by, dt, null, false, "return");
+            }
+
             // If no document or online context is provided, render the message as is
-            if ((context == null || context.length == 0) && (onlineContext == null || (onlineContext && Object.keys(onlineContext).length == 0))) {
-                if (intentType?.includes("text-to-image")) {
-                    let imageMarkdown;
-                    if (intentType === "text-to-image") {
-                        imageMarkdown = `![](data:image/png;base64,${message})`;
-                    } else if (intentType === "text-to-image2") {
-                        imageMarkdown = `![](${message})`;
-                    } else if (intentType === "text-to-image-v3") {
-                        imageMarkdown = `![](data:image/webp;base64,${message})`;
-                    }
-
-                    const inferredQuery = inferredQueries?.[0];
-                    if (inferredQuery) {
-                        imageMarkdown += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
-                    }
-                    return renderMessage(imageMarkdown, by, dt, null, false, "return");
-                }
-
-                return renderMessage(message, by, dt, null, false, "return");
-            }
-
-            if (context == null && onlineContext == null) {
-                return renderMessage(message, by, dt, null, false, "return");
-            }
-
-            if ((context && context.length == 0) && (onlineContext == null || (onlineContext && Object.keys(onlineContext).length == 0))) {
-                return renderMessage(message, by, dt, null, false, "return");
+            if ((context == null || context?.length == 0)
+                && (onlineContext == null || (onlineContext && Object.keys(onlineContext).length == 0))) {
+                return chatEl;
             }
 
             // If document or online context is provided, render the message with its references
-            let references = document.createElement('div');
+            let references = {};
+            if (!!context) references["notes"] = context;
+            if (!!onlineContext) references["online"] = onlineContext;
+            let chatMessageEl = chatEl.getElementsByClassName("chat-message-text")[0];
+            chatMessageEl.appendChild(createReferenceSection(references));
 
-            let referenceExpandButton = document.createElement('button');
-            referenceExpandButton.classList.add("reference-expand-button");
-            let numReferences = 0;
+            return chatEl;
+        }
 
-            if (context) {
-                numReferences += context.length;
+        function generateImageMarkdown(message, intentType, inferredQueries=null) {
+            let imageMarkdown;
+            if (intentType === "text-to-image") {
+                imageMarkdown = `![](data:image/png;base64,${message})`;
+            } else if (intentType === "text-to-image2") {
+                imageMarkdown = `![](${message})`;
+            } else if (intentType === "text-to-image-v3") {
+                imageMarkdown = `![](data:image/webp;base64,${message})`;
             }
-
-            references.appendChild(referenceExpandButton);
-
-            let referenceSection = document.createElement('div');
-            referenceSection.classList.add("reference-section");
-            referenceSection.classList.add("collapsed");
-
-            referenceExpandButton.addEventListener('click', function() {
-                if (referenceSection.classList.contains("collapsed")) {
-                    referenceSection.classList.remove("collapsed");
-                    referenceSection.classList.add("expanded");
-                } else {
-                    referenceSection.classList.add("collapsed");
-                    referenceSection.classList.remove("expanded");
-                }
-            });
-
-            references.classList.add("references");
-            if (context) {
-                for (let index in context) {
-                    let reference = context[index];
-                    let polishedReference = generateReference(reference, index);
-                    referenceSection.appendChild(polishedReference);
-                }
+            const inferredQuery = inferredQueries?.[0];
+            if (inferredQuery) {
+                imageMarkdown += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
             }
-
-            if (onlineContext) {
-                numReferences += processOnlineReferences(referenceSection, onlineContext);
-            }
-
-            let expandButtonText = numReferences == 1 ? "1 reference" : `${numReferences} references`;
-            referenceExpandButton.innerHTML = expandButtonText;
-
-            references.appendChild(referenceSection);
-
-            if (intentType?.includes("text-to-image")) {
-                let imageMarkdown;
-                if (intentType === "text-to-image") {
-                    imageMarkdown = `![](data:image/png;base64,${message})`;
-                } else if (intentType === "text-to-image2") {
-                    imageMarkdown = `![](${message})`;
-                } else if (intentType === "text-to-image-v3") {
-                    imageMarkdown = `![](data:image/webp;base64,${message})`;
-                }
-                const inferredQuery = inferredQueries?.[0];
-                if (inferredQuery) {
-                    imageMarkdown += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
-                }
-                return renderMessage(imageMarkdown, by, dt, references, false, "return");
-            }
-
-            return renderMessage(message, by, dt, references, false, "return");
+            return imageMarkdown;
         }
 
         function formatHTMLMessage(message, raw=false, willReplace=true) {

@@ -142,7 +142,7 @@ def converse_offline(
     # Initialize Variables
     assert loaded_model is None or isinstance(loaded_model, Llama), "loaded_model must be of type Llama, if configured"
     offline_chat_model = loaded_model or download_model(model, max_tokens=max_prompt_size)
-    compiled_references_message = "\n\n".join({f"{item}" for item in references})
+    compiled_references_message = "\n\n".join({f"{item['compiled']}" for item in references})
 
     current_date = datetime.now().strftime("%Y-%m-%d")
 
