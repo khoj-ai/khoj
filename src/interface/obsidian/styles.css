@@ -76,6 +76,7 @@ If your plugin does not need CSS, delete this file.
     display: inline-block;
     max-width: 80%;
     text-align: left;
+    user-select: text;
 }
 /* color chat bubble by khoj blue */
 .khoj-chat-message-text.khoj {

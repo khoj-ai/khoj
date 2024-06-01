@@ -411,7 +411,7 @@ export class KhojChatView extends KhojPaneView {
             attr: {
                 class: `khoj-chat-message-text khoj`
             },
-        })
+        }).createDiv();
 
         // Scroll to bottom after inserting chat messages
         this.scrollChatToBottom();
