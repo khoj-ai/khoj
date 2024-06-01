@@ -11,9 +11,9 @@ from starlette.authentication import has_required_scope, requires
 from khoj.database import adapters
 from khoj.database.adapters import (
     AgentAdapters,
-    AutomationAdapters,
     ConversationAdapters,
     EntryAdapters,
+    PublicConversationAdapters,
     get_user_github_config,
     get_user_name,
     get_user_notion_config,
@@ -350,9 +350,9 @@ def notion_config_page(request: Request):
 @web_client.get("/config/content-source/computer", response_class=HTMLResponse)
 @requires(["authenticated"], redirect="login_page")
 def computer_config_page(request: Request):
-    user = request.user.object
-    user_picture = request.session.get("user", {}).get("picture")
-    has_documents = EntryAdapters.user_has_entries(user=user)
+    user = request.user.object if request.user.is_authenticated else None
+    user_picture = request.session.get("user", {}).get("picture") if user else None
+    has_documents = EntryAdapters.user_has_entries(user=user) if user else False
 
     return templates.TemplateResponse(
         "content_source_computer_input.html",
@@ -363,6 +363,59 @@ def computer_config_page(request: Request):
             "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
             "khoj_version": state.khoj_version,
+        },
+    )
+
+
+@web_client.get("/share/chat/{public_conversation_slug}", response_class=HTMLResponse)
+def view_public_conversation(request: Request):
+    public_conversation_slug = request.path_params.get("public_conversation_slug")
+    public_conversation = PublicConversationAdapters.get_public_conversation_by_slug(public_conversation_slug)
+    if not public_conversation:
+        return templates.TemplateResponse(
+            "404.html",
+            context={
+                "request": request,
+                "khoj_version": state.khoj_version,
+            },
+        )
+    user = request.user.object if request.user.is_authenticated else None
+    user_picture = request.session.get("user", {}).get("picture") if user else None
+    has_documents = EntryAdapters.user_has_entries(user=user) if user else False
+
+    all_agents = AgentAdapters.get_all_accessible_agents(request.user.object if request.user.is_authenticated else None)
+
+    # Filter out the current agent
+    all_agents = [agent for agent in all_agents if agent != public_conversation.agent]
+    agents_packet = []
+    for agent in all_agents:
+        agents_packet.append(
+            {
+                "slug": agent.slug,
+                "avatar": agent.avatar,
+                "name": agent.name,
+            }
+        )
+
+    google_client_id = os.environ.get("GOOGLE_CLIENT_ID")
+    redirect_uri = str(request.app.url_path_for("auth"))
+    next_url = str(
+        request.app.url_path_for("view_public_conversation", public_conversation_slug=public_conversation_slug)
+    )
+
+    return templates.TemplateResponse(
+        "public_conversation.html",
+        context={
+            "request": request,
+            "username": user.username if user else None,
+            "user_photo": user_picture,
+            "is_active": has_required_scope(request, ["premium"]),
+            "has_documents": has_documents,
+            "khoj_version": state.khoj_version,
+            "public_conversation_slug": public_conversation_slug,
+            "agents": agents_packet,
+            "google_client_id": google_client_id,
+            "redirect_uri": f"{redirect_uri}?next={next_url}",
         },
     )
 

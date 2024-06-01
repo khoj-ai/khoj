@@ -13,7 +13,12 @@ from starlette.authentication import requires
 from starlette.websockets import WebSocketDisconnect
 from websockets import ConnectionClosedOK
 
-from khoj.database.adapters import ConversationAdapters, EntryAdapters, aget_user_name
+from khoj.database.adapters import (
+    ConversationAdapters,
+    EntryAdapters,
+    PublicConversationAdapters,
+    aget_user_name,
+)
 from khoj.database.models import KhojUser
 from khoj.processor.conversation.prompts import (
     help_message,
@@ -38,6 +43,7 @@ from khoj.routers.helpers import (
     construct_automation_created_message,
     create_automation,
     get_conversation_command,
+    is_query_empty,
     is_ready_to_chat,
     text_to_image,
     update_telemetry_state,
@@ -61,6 +67,23 @@ conversation_command_rate_limiter = ConversationCommandRateLimiter(
 
 
 api_chat = APIRouter()
+
+from pydantic import BaseModel
+
+from khoj.routers.email import send_query_feedback
+
+
+class FeedbackData(BaseModel):
+    uquery: str
+    kquery: str
+    sentiment: str
+
+
+@api_chat.post("/feedback")
+@requires(["authenticated"])
+async def sendfeedback(request: Request, data: FeedbackData):
+    user: KhojUser = request.user.object
+    await send_query_feedback(data.uquery, data.kquery, data.sentiment, user.email)
 
 
 @api_chat.get("/starters", response_class=Response)
@@ -132,6 +155,60 @@ def chat_history(
     return {"status": "ok", "response": meta_log}
 
 
+@api_chat.get("/share/history")
+def get_shared_chat(
+    request: Request,
+    common: CommonQueryParams,
+    public_conversation_slug: str,
+    n: Optional[int] = None,
+):
+    user = request.user.object if request.user.is_authenticated else None
+
+    # Load Conversation History
+    conversation = PublicConversationAdapters.get_public_conversation_by_slug(public_conversation_slug)
+
+    if conversation is None:
+        return Response(
+            content=json.dumps({"status": "error", "message": f"Conversation: {public_conversation_slug} not found"}),
+            status_code=404,
+        )
+
+    agent_metadata = None
+    if conversation.agent:
+        agent_metadata = {
+            "slug": conversation.agent.slug,
+            "name": conversation.agent.name,
+            "avatar": conversation.agent.avatar,
+            "isCreator": conversation.agent.creator == user,
+        }
+
+    meta_log = conversation.conversation_log
+    meta_log.update(
+        {
+            "conversation_id": conversation.id,
+            "slug": conversation.title if conversation.title else conversation.slug,
+            "agent": agent_metadata,
+        }
+    )
+
+    if n:
+        # Get latest N messages if N > 0
+        if n > 0 and meta_log.get("chat"):
+            meta_log["chat"] = meta_log["chat"][-n:]
+        # Else return all messages except latest N
+        elif n < 0 and meta_log.get("chat"):
+            meta_log["chat"] = meta_log["chat"][:n]
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="public_conversation_history",
+        **common.__dict__,
+    )
+
+    return {"status": "ok", "response": meta_log}
+
+
 @api_chat.delete("/history")
 @requires(["authenticated"])
 async def clear_chat_history(
@@ -152,6 +229,69 @@ async def clear_chat_history(
     )
 
     return {"status": "ok", "message": "Conversation history cleared"}
+
+
+@api_chat.post("/share/fork")
+@requires(["authenticated"])
+def fork_public_conversation(
+    request: Request,
+    common: CommonQueryParams,
+    public_conversation_slug: str,
+):
+    user = request.user.object
+
+    # Load Conversation History
+    public_conversation = PublicConversationAdapters.get_public_conversation_by_slug(public_conversation_slug)
+
+    # Duplicate Public Conversation to User's Private Conversation
+    ConversationAdapters.create_conversation_from_public_conversation(
+        user, public_conversation, request.user.client_app
+    )
+
+    chat_metadata = {"forked_conversation": public_conversation.slug}
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="fork_public_conversation",
+        **common.__dict__,
+        metadata=chat_metadata,
+    )
+
+    redirect_uri = str(request.app.url_path_for("chat_page"))
+
+    return Response(status_code=200, content=json.dumps({"status": "ok", "next_url": redirect_uri}))
+
+
+@api_chat.post("/share")
+@requires(["authenticated"])
+def duplicate_chat_history_public_conversation(
+    request: Request,
+    common: CommonQueryParams,
+    conversation_id: int,
+):
+    user = request.user.object
+
+    # Duplicate Conversation History to Public Conversation
+    conversation = ConversationAdapters.get_conversation_by_user(user, request.user.client_app, conversation_id)
+
+    public_conversation = ConversationAdapters.make_public_conversation_copy(conversation)
+
+    public_conversation_url = PublicConversationAdapters.get_public_conversation_url(public_conversation)
+
+    domain = request.headers.get("host")
+    scheme = request.url.scheme
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="post_chat_share",
+        **common.__dict__,
+    )
+
+    return Response(
+        status_code=200, content=json.dumps({"status": "ok", "url": f"{scheme}://{domain}{public_conversation_url}"})
+    )
 
 
 @api_chat.get("/sessions")
@@ -347,6 +487,10 @@ async def websocket_endpoint(
             if conversation:
                 await sync_to_async(conversation.refresh_from_db)(fields=["conversation_log"])
             q = await websocket.receive_text()
+
+            # Refresh these because the connection to the database might have been closed
+            await conversation.arefresh_from_db()
+
         except WebSocketDisconnect:
             logger.debug(f"User {user} disconnected web socket")
             break
@@ -357,6 +501,14 @@ async def websocket_endpoint(
         except HTTPException as e:
             await send_rate_limit_message(e.detail)
             break
+
+        if is_query_empty(q):
+            await send_message("start_llm_response")
+            await send_message(
+                "It seems like your query is incomplete. Could you please provide more details or specify what you need help with?"
+            )
+            await send_message("end_llm_response")
+            continue
 
         user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         conversation_commands = [get_conversation_command(query=q, any_references=True)]
@@ -465,11 +617,17 @@ async def websocket_endpoint(
 
         if ConversationCommand.Webpage in conversation_commands:
             try:
-                online_results = await read_webpages(defiltered_query, meta_log, location, send_status_update)
+                direct_web_pages = await read_webpages(defiltered_query, meta_log, location, send_status_update)
                 webpages = []
-                for query in online_results:
-                    for webpage in online_results[query]["webpages"]:
+                for query in direct_web_pages:
+                    if online_results.get(query):
+                        online_results[query]["webpages"] = direct_web_pages[query]["webpages"]
+                    else:
+                        online_results[query] = {"webpages": direct_web_pages[query]["webpages"]}
+
+                    for webpage in direct_web_pages[query]["webpages"]:
                         webpages.append(webpage["link"])
+
                 await send_status_update(f"**📚 Read web pages**: {webpages}")
             except ValueError as e:
                 logger.warning(
@@ -585,6 +743,12 @@ async def chat(
 ) -> Response:
     user: KhojUser = request.user.object
     q = unquote(q)
+    if is_query_empty(q):
+        return Response(
+            content="It seems like your query is incomplete. Could you please provide more details or specify what you need help with?",
+            media_type="text/plain",
+            status_code=400,
+        )
     user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"Chat request by {user.username}: {q}")
 
@@ -634,7 +798,7 @@ async def chat(
                 q, timezone, user, request.url, meta_log
             )
         except Exception as e:
-            logger.error(f"Error creating automation {q} for {user.email}: {e}")
+            logger.error(f"Error creating automation {q} for {user.email}: {e}", exc_info=True)
             return Response(
                 content=f"Unable to create automation. Ensure the automation doesn't already exist.",
                 media_type="text/plain",

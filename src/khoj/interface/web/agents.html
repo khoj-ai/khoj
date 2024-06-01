@@ -193,9 +193,55 @@
             }
 
         }
+        .loader {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: inline-block;
+            border-top: 4px solid var(--primary-color);
+            border-right: 4px solid transparent;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+        .loader::after {
+            content: '';
+            box-sizing: border-box;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border-left: 4px solid var(--summer-sun);
+            border-bottom: 4px solid transparent;
+            animation: rotation 0.5s linear infinite reverse;
+        }
+        @keyframes rotation {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
     </style>
     <script>
         async function openChat(agentSlug) {
+            // Create a loading animation
+            let loading = document.createElement("div");
+            loading.innerHTML = '<div>Booting your agent...</div><span class="loader"></span>';
+            loading.style.position = "fixed";
+            loading.style.top = "0";
+            loading.style.right = "0";
+            loading.style.bottom = "0";
+            loading.style.left = "0";
+            loading.style.display = "flex";
+            loading.style.justifyContent = "center";
+            loading.style.alignItems = "center";
+            loading.style.backgroundColor = "rgba(0, 0, 0, 0.5)"; // Semi-transparent black
+            document.body.appendChild(loading);
+
             let response = await fetch(`/api/chat/sessions?agent_slug=${agentSlug}`, { method: "POST" });
             let data = await response.json();
             if (response.status == 200) {

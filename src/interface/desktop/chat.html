@@ -334,6 +334,16 @@
 
             let anchorElements = element.querySelectorAll('a');
             anchorElements.forEach((anchorElement) => {
+                // Tag external links to open in separate window
+                if (
+                    !anchorElement.href.startsWith("./") &&
+                    !anchorElement.href.startsWith("#") &&
+                    !anchorElement.href.startsWith("/")
+                ) {
+                    anchorElement.setAttribute('target', '_blank');
+                    anchorElement.setAttribute('rel', 'noopener noreferrer');
+                }
+
                 // Add the class "inline-chat-link" to each element
                 anchorElement.classList.add("inline-chat-link");
             });
@@ -1024,11 +1034,12 @@
                                 threeDotMenu.appendChild(conversationMenu);
 
                                 let deleteButton = document.createElement('button');
+                                deleteButton.type = "button";
                                 deleteButton.innerHTML = "Delete";
                                 deleteButton.classList.add("delete-conversation-button");
                                 deleteButton.classList.add("three-dot-menu-button-item");
-                                deleteButton.addEventListener('click', function() {
-                                    // Ask for confirmation before deleting chat session
+                                deleteButton.addEventListener('click', function(event) {
+                                    event.preventDefault();
                                     let confirmation = confirm('Are you sure you want to delete this chat session?');
                                     if (!confirmation) return;
                                     let deleteURL = `/api/chat/history?client=web&conversation_id=${incomingConversationId}`;
@@ -1643,9 +1654,10 @@
             content: "▶";
             margin-right: 5px;
             display: inline-block;
-            transition: transform 0.3s ease-in-out;
+            transition: transform 0.1s ease-in-out;
         }
 
+        button.reference-button.expanded::before,
         button.reference-button:active:before,
         button.reference-button[aria-expanded="true"]::before {
             transform: rotate(90deg);
@@ -1876,6 +1888,7 @@
             text-align: left;
             display: flex;
             position: relative;
+            margin: 0 8px;
         }
 
         .three-dot-menu {

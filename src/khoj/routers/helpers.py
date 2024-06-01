@@ -4,10 +4,12 @@ import hashlib
 import io
 import json
 import logging
+import math
 import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from functools import partial
+from random import random
 from typing import (
     Annotated,
     Any,
@@ -53,6 +55,10 @@ from khoj.database.models import (
     UserRequests,
 )
 from khoj.processor.conversation import prompts
+from khoj.processor.conversation.anthropic.anthropic_chat import (
+    anthropic_send_message_to_model,
+    converse_anthropic,
+)
 from khoj.processor.conversation.offline.chat_model import (
     converse_offline,
     send_message_to_model_offline,
@@ -84,6 +90,10 @@ logger = logging.getLogger(__name__)
 executor = ThreadPoolExecutor(max_workers=1)
 
 
+def is_query_empty(query: str) -> bool:
+    return is_none_or_empty(query.strip())
+
+
 def validate_conversation_config():
     default_config = ConversationAdapters.get_default_conversation_config()
 
@@ -109,7 +119,7 @@ async def is_ready_to_chat(user: KhojUser):
 
     if (
         user_conversation_config
-        and user_conversation_config.model_type == "openai"
+        and (user_conversation_config.model_type == "openai" or user_conversation_config.model_type == "anthropic")
         and user_conversation_config.openai_config
     ):
         return True
@@ -388,9 +398,13 @@ async def extract_relevant_info(q: str, corpus: str) -> Union[str, None]:
         corpus=corpus.strip(),
     )
 
+    summarizer_model: ChatModelOptions = await ConversationAdapters.aget_summarizer_conversation_config()
+
     with timer("Chat actor: Extract relevant information from data", logger):
         response = await send_message_to_model_wrapper(
-            extract_relevant_information, prompts.system_prompt_extract_relevant_information
+            extract_relevant_information,
+            prompts.system_prompt_extract_relevant_information,
+            chat_model_option=summarizer_model,
         )
 
     return response.strip()
@@ -445,8 +459,11 @@ async def send_message_to_model_wrapper(
     message: str,
     system_message: str = "",
     response_type: str = "text",
+    chat_model_option: ChatModelOptions = None,
 ):
-    conversation_config: ChatModelOptions = await ConversationAdapters.aget_default_conversation_config()
+    conversation_config: ChatModelOptions = (
+        chat_model_option or await ConversationAdapters.aget_default_conversation_config()
+    )
 
     if conversation_config is None:
         raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
@@ -497,6 +514,21 @@ async def send_message_to_model_wrapper(
         )
 
         return openai_response
+    elif conversation_config.model_type == "anthropic":
+        api_key = conversation_config.openai_config.api_key
+        truncated_messages = generate_chatml_messages_with_context(
+            user_message=message,
+            system_message=system_message,
+            model_name=chat_model,
+            max_prompt_size=max_tokens,
+            tokenizer_name=tokenizer,
+        )
+
+        return anthropic_send_message_to_model(
+            messages=truncated_messages,
+            api_key=api_key,
+            model=chat_model,
+        )
     else:
         raise HTTPException(status_code=500, detail="Invalid conversation config")
 
@@ -531,8 +563,7 @@ def send_message_to_model_wrapper_sync(
         )
 
     elif conversation_config.model_type == "openai":
-        openai_chat_config = ConversationAdapters.get_openai_conversation_config()
-        api_key = openai_chat_config.api_key
+        api_key = conversation_config.openai_config.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message, system_message=system_message, model_name=chat_model
         )
@@ -542,6 +573,21 @@ def send_message_to_model_wrapper_sync(
         )
 
         return openai_response
+
+    elif conversation_config.model_type == "anthropic":
+        api_key = conversation_config.openai_config.api_key
+        truncated_messages = generate_chatml_messages_with_context(
+            user_message=message,
+            system_message=system_message,
+            model_name=chat_model,
+            max_prompt_size=max_tokens,
+        )
+
+        return anthropic_send_message_to_model(
+            messages=truncated_messages,
+            api_key=api_key,
+            model=chat_model,
+        )
     else:
         raise HTTPException(status_code=500, detail="Invalid conversation config")
 
@@ -611,6 +657,24 @@ def generate_chat_response(
                 model=chat_model,
                 api_key=api_key,
                 api_base_url=openai_chat_config.api_base_url,
+                completion_func=partial_completion,
+                conversation_commands=conversation_commands,
+                max_prompt_size=conversation_config.max_prompt_size,
+                tokenizer_name=conversation_config.tokenizer,
+                location_data=location_data,
+                user_name=user_name,
+                agent=agent,
+            )
+
+        elif conversation_config.model_type == "anthropic":
+            api_key = conversation_config.openai_config.api_key
+            chat_response = converse_anthropic(
+                compiled_references,
+                q,
+                online_results,
+                meta_log,
+                model=conversation_config.chat_model,
+                api_key=api_key,
                 completion_func=partial_completion,
                 conversation_commands=conversation_commands,
                 max_prompt_size=conversation_config.max_prompt_size,
@@ -931,7 +995,7 @@ def scheduled_chat(
 
     # Stop if the chat API call was not successful
     if raw_response.status_code != 200:
-        logger.error(f"Failed to run schedule chat: {raw_response.text}")
+        logger.error(f"Failed to run schedule chat: {raw_response.text}, user: {user}, query: {query_to_run}")
         return None
 
     # Extract the AI response from the chat API response
@@ -965,6 +1029,12 @@ async def schedule_automation(
     user: KhojUser,
     calling_url: URL,
 ):
+    # Disable minute level automation recurrence
+    minute_value = crontime.split(" ")[0]
+    if not minute_value.isdigit():
+        # Run automation at some random minute (to distribute request load) instead of running every X minutes
+        crontime = " ".join([str(math.floor(random() * 60))] + crontime.split(" ")[1:])
+
     user_timezone = pytz.timezone(timezone)
     trigger = CronTrigger.from_crontab(crontime, user_timezone)
     trigger.jitter = 60

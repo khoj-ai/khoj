@@ -3,8 +3,10 @@ import json
 import logging
 import math
 import os
+import threading
 import time
 import uuid
+from random import random
 from typing import Any, Callable, List, Optional, Union
 
 import cron_descriptor
@@ -26,6 +28,9 @@ from khoj.database.adapters import (
     get_user_search_model_or_default,
 )
 from khoj.database.models import ChatModelOptions, KhojUser, SpeechToTextModelOptions
+from khoj.processor.conversation.anthropic.anthropic_chat import (
+    extract_questions_anthropic,
+)
 from khoj.processor.conversation.offline.chat_model import extract_questions_offline
 from khoj.processor.conversation.offline.whisper import transcribe_audio_offline
 from khoj.processor.conversation.openai.gpt import extract_questions
@@ -338,6 +343,17 @@ async def extract_references_and_questions(
                 api_key=api_key,
                 conversation_log=meta_log,
                 location_data=location_data,
+                max_tokens=conversation_config.max_prompt_size,
+            )
+        elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
+            api_key = conversation_config.openai_config.api_key
+            chat_model = conversation_config.chat_model
+            inferred_queries = extract_questions_anthropic(
+                defiltered_query,
+                model=chat_model,
+                api_key=api_key,
+                conversation_log=meta_log,
+                location_data=location_data,
             )
 
     # Collate search results as context for GPT
@@ -454,14 +470,28 @@ async def post_automation(
         crontime = " ".join(crontime.split(" ")[:5])
     # Convert crontime to standard unix crontime
     crontime = crontime.replace("?", "*")
+
+    # Disallow minute level automation recurrence
+    minute_value = crontime.split(" ")[0]
+    if not minute_value.isdigit():
+        return Response(
+            content="Recurrence of every X minutes is unsupported. Please create a less frequent schedule.",
+            status_code=400,
+        )
+
     subject = await acreate_title_from_query(q)
+
+    # Create new Conversation Session associated with this new task
+    conversation = await ConversationAdapters.acreate_conversation_session(user, request.user.client_app)
+
+    calling_url = request.url.replace(query=f"{request.url.query}&conversation_id={conversation.id}")
 
     # Schedule automation with query_to_run, timezone, subject directly provided by user
     try:
         # Use the query to run as the scheduling request if the scheduling request is unset
-        automation = await schedule_automation(query_to_run, subject, crontime, timezone, q, user, request.url)
+        automation = await schedule_automation(query_to_run, subject, crontime, timezone, q, user, calling_url)
     except Exception as e:
-        logger.error(f"Error creating automation {q} for {user.email}: {e}")
+        logger.error(f"Error creating automation {q} for {user.email}: {e}", exc_info=True)
         return Response(
             content=f"Unable to create automation. Ensure the automation doesn't already exist.",
             media_type="text/plain",
@@ -473,6 +503,31 @@ async def post_automation(
 
     # Return information about the created automation as a JSON response
     return Response(content=json.dumps(automation_info), media_type="application/json", status_code=200)
+
+
+@api.post("/trigger/automation", response_class=Response)
+@requires(["authenticated"])
+def trigger_manual_job(
+    request: Request,
+    automation_id: str,
+):
+    user: KhojUser = request.user.object
+
+    # Check, get automation to edit
+    try:
+        automation: Job = AutomationAdapters.get_automation(user, automation_id)
+    except ValueError as e:
+        logger.error(f"Error triggering automation {automation_id} for {user.email}: {e}", exc_info=True)
+        return Response(content="Invalid automation", status_code=403)
+
+    # Trigger the job without waiting for the result.
+    scheduled_chat_func = automation.func
+
+    # Run the function in a separate thread
+    thread = threading.Thread(target=scheduled_chat_func, args=automation.args, kwargs=automation.kwargs)
+    thread.start()
+
+    return Response(content="Automation triggered", status_code=200)
 
 
 @api.put("/automation", response_class=Response)
@@ -514,6 +569,14 @@ def edit_job(
         crontime = " ".join(crontime.split(" ")[:5])
     # Convert crontime to standard unix crontime
     crontime = crontime.replace("?", "*")
+
+    # Disallow minute level automation recurrence
+    minute_value = crontime.split(" ")[0]
+    if not minute_value.isdigit():
+        return Response(
+            content="Recurrence of every X minutes is unsupported. Please create a less frequent schedule.",
+            status_code=400,
+        )
 
     # Construct updated automation metadata
     automation_metadata = json.loads(automation.name)

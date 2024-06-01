@@ -36,8 +36,10 @@ from khoj.database.models import (
     NotionConfig,
     OpenAIProcessorConversationConfig,
     ProcessLock,
+    PublicConversation,
     ReflectiveQuestion,
     SearchModelConfig,
+    ServerChatSettings,
     SpeechToTextModelOptions,
     Subscription,
     TextToImageModelConfig,
@@ -438,20 +440,21 @@ class ProcessLockAdapters:
         return True
 
     @staticmethod
-    def remove_process_lock(process_name: str):
-        return ProcessLock.objects.filter(name=process_name).delete()
+    def remove_process_lock(process_lock: ProcessLock):
+        return process_lock.delete()
 
     @staticmethod
     def run_with_lock(func: Callable, operation: ProcessLock.Operation, max_duration_in_seconds: int = 600, **kwargs):
         # Exit early if process lock is already taken
         if ProcessLockAdapters.is_process_locked(operation):
-            logger.info(f"🔒 Skip executing {func} as {operation} lock is already taken")
+            logger.debug(f"🔒 Skip executing {func} as {operation} lock is already taken")
             return
 
         success = False
+        process_lock = None
         try:
             # Set process lock
-            ProcessLockAdapters.set_process_lock(operation, max_duration_in_seconds)
+            process_lock = ProcessLockAdapters.set_process_lock(operation, max_duration_in_seconds)
             logger.info(f"🔐 Locked {operation} to execute {func}")
 
             # Execute Function
@@ -459,15 +462,20 @@ class ProcessLockAdapters:
                 func(**kwargs)
             success = True
         except IntegrityError as e:
-            logger.error(f"⚠️ Unable to create the process lock for {func} with {operation}: {e}", exc_info=True)
+            logger.debug(f"⚠️ Unable to create the process lock for {func} with {operation}: {e}")
             success = False
         except Exception as e:
             logger.error(f"🚨 Error executing {func} with {operation} process lock: {e}", exc_info=True)
             success = False
         finally:
             # Remove Process Lock
-            ProcessLockAdapters.remove_process_lock(operation)
-            logger.info(f"🔓 Unlocked {operation} process after executing {func} {'Succeeded' if success else 'Failed'}")
+            if process_lock:
+                ProcessLockAdapters.remove_process_lock(process_lock)
+                logger.info(
+                    f"🔓 Unlocked {operation} process after executing {func} {'Succeeded' if success else 'Failed'}"
+                )
+            else:
+                logger.debug(f"Skip removing {operation} process lock as it was not set")
 
 
 def run_with_process_lock(*args, **kwargs):
@@ -560,7 +568,28 @@ class AgentAdapters:
         return await Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).afirst()
 
 
+class PublicConversationAdapters:
+    @staticmethod
+    def get_public_conversation_by_slug(slug: str):
+        return PublicConversation.objects.filter(slug=slug).first()
+
+    @staticmethod
+    def get_public_conversation_url(public_conversation: PublicConversation):
+        # Public conversations are viewable by anyone, but not editable.
+        return f"/share/chat/{public_conversation.slug}/"
+
+
 class ConversationAdapters:
+    @staticmethod
+    def make_public_conversation_copy(conversation: Conversation):
+        return PublicConversation.objects.create(
+            source_owner=conversation.user,
+            agent=conversation.agent,
+            conversation_log=conversation.conversation_log,
+            slug=conversation.slug,
+            title=conversation.title,
+        )
+
     @staticmethod
     def get_conversation_by_user(
         user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None
@@ -674,11 +703,49 @@ class ConversationAdapters:
 
     @staticmethod
     def get_default_conversation_config():
-        return ChatModelOptions.objects.filter().first()
+        server_chat_settings = ServerChatSettings.objects.first()
+        if server_chat_settings is None or server_chat_settings.default_model is None:
+            return ChatModelOptions.objects.filter().first()
+        return server_chat_settings.default_model
 
     @staticmethod
     async def aget_default_conversation_config():
-        return await ChatModelOptions.objects.filter().prefetch_related("openai_config").afirst()
+        server_chat_settings: ServerChatSettings = (
+            await ServerChatSettings.objects.filter()
+            .prefetch_related("default_model", "default_model__openai_config")
+            .afirst()
+        )
+        if server_chat_settings is None or server_chat_settings.default_model is None:
+            return await ChatModelOptions.objects.filter().prefetch_related("openai_config").afirst()
+        return server_chat_settings.default_model
+
+    @staticmethod
+    async def aget_summarizer_conversation_config():
+        server_chat_settings: ServerChatSettings = (
+            await ServerChatSettings.objects.filter()
+            .prefetch_related(
+                "summarizer_model", "default_model", "default_model__openai_config", "summarizer_model__openai_config"
+            )
+            .afirst()
+        )
+        if server_chat_settings is None or (
+            server_chat_settings.summarizer_model is None and server_chat_settings.default_model is None
+        ):
+            return await ChatModelOptions.objects.filter().afirst()
+        return server_chat_settings.summarizer_model or server_chat_settings.default_model
+
+    @staticmethod
+    def create_conversation_from_public_conversation(
+        user: KhojUser, public_conversation: PublicConversation, client_app: ClientApplication
+    ):
+        return Conversation.objects.create(
+            user=user,
+            conversation_log=public_conversation.conversation_log,
+            client=client_app,
+            slug=public_conversation.slug,
+            title=public_conversation.title,
+            agent=public_conversation.agent,
+        )
 
     @staticmethod
     def save_conversation(
@@ -766,7 +833,9 @@ class ConversationAdapters:
 
             return conversation_config
 
-        if conversation_config.model_type == "openai" and conversation_config.openai_config:
+        if (
+            conversation_config.model_type == "openai" or conversation_config.model_type == "anthropic"
+        ) and conversation_config.openai_config:
             return conversation_config
 
         else:

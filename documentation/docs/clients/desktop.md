@@ -8,7 +8,7 @@ sidebar_position: 1
 
 Use the Desktop app to chat and search with Khoj.
 You can also sync any relevant files with Khoj using the app.
-Khoj will use these files to provide contextual reponses when you search or chat.
+Khoj will use these files to provide contextual responses when you search or chat.
 
 ## Features
 - **Chat**

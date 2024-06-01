@@ -6,7 +6,7 @@ sidebar_position: 4
 
 You can use agents to setup custom system prompts with Khoj. The server host can setup their own agents, which are accessible to all users. You can see ours at https://app.khoj.dev/agents.
 
-![Demo](/img/agents_demo.gif)
+![Demo](https://assets.khoj.dev/agents_demo.gif)
 
 ## Creating an Agent (Self-Hosted)
 

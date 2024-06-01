@@ -34,7 +34,7 @@ openai_clients: Dict[str, openai.OpenAI] = {}
     reraise=True,
 )
 def completion_with_backoff(
-    messages, model, temperature=0, openai_api_key=None, api_base_url=None, model_kwargs=None, max_tokens=None
+    messages, model, temperature=0, openai_api_key=None, api_base_url=None, model_kwargs=None
 ) -> str:
     client_key = f"{openai_api_key}--{api_base_url}"
     client: openai.OpenAI = openai_clients.get(client_key)
@@ -53,7 +53,6 @@ def completion_with_backoff(
         model=model,  # type: ignore
         temperature=temperature,
         timeout=20,
-        max_tokens=max_tokens,
         **(model_kwargs or dict()),
     )
     aggregated_response = ""

@@ -1,9 +1,13 @@
 import csv
 import json
 
+from apscheduler.job import Job
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.http import HttpResponse
+from django_apscheduler.admin import DjangoJobAdmin
+from django_apscheduler.jobstores import DjangoJobStore
+from django_apscheduler.models import DjangoJob
 
 from khoj.database.models import (
     Agent,
@@ -18,12 +22,42 @@ from khoj.database.models import (
     ProcessLock,
     ReflectiveQuestion,
     SearchModelConfig,
+    ServerChatSettings,
     SpeechToTextModelOptions,
     Subscription,
     TextToImageModelConfig,
     UserSearchModelConfig,
 )
 from khoj.utils.helpers import ImageIntentType
+
+admin.site.unregister(DjangoJob)
+
+
+class KhojDjangoJobAdmin(DjangoJobAdmin):
+    list_display = (
+        "id",
+        "next_run_time",
+        "job_info",
+    )
+    search_fields = ("id", "next_run_time")
+    ordering = ("-next_run_time",)
+    job_store = DjangoJobStore()
+
+    def job_info(self, obj):
+        job: Job = self.job_store.lookup_job(obj.id)
+        return f"{job.func_ref} {job.args} {job.kwargs}" if job else "None"
+
+    job_info.short_description = "Job Info"  # type: ignore
+
+    def get_search_results(self, request, queryset, search_term):
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+        if search_term:
+            jobs = [job.id for job in self.job_store.get_all_jobs() if search_term in str(job)]
+            queryset |= self.model.objects.filter(id__in=jobs)
+        return queryset, use_distinct
+
+
+admin.site.register(DjangoJob, KhojDjangoJobAdmin)
 
 
 class KhojUserAdmin(UserAdmin):
@@ -44,12 +78,9 @@ class KhojUserAdmin(UserAdmin):
 
 admin.site.register(KhojUser, KhojUserAdmin)
 
-admin.site.register(ChatModelOptions)
 admin.site.register(ProcessLock)
 admin.site.register(SpeechToTextModelOptions)
-admin.site.register(OpenAIProcessorConversationConfig)
 admin.site.register(SearchModelConfig)
-admin.site.register(Subscription)
 admin.site.register(ReflectiveQuestion)
 admin.site.register(UserSearchModelConfig)
 admin.site.register(TextToImageModelConfig)
@@ -83,6 +114,48 @@ class EntryAdmin(admin.ModelAdmin):
     search_fields = ("id", "user__email", "user__username", "file_path")
     list_filter = ("file_type",)
     ordering = ("-created_at",)
+
+
+@admin.register(Subscription)
+class KhojUserSubscription(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "user",
+        "type",
+    )
+
+    search_fields = ("id", "user__email", "user__username", "type")
+    list_filter = ("type",)
+
+
+@admin.register(ChatModelOptions)
+class ChatModelOptionsAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "chat_model",
+        "model_type",
+        "max_prompt_size",
+    )
+    search_fields = ("id", "chat_model", "model_type")
+
+
+@admin.register(OpenAIProcessorConversationConfig)
+class OpenAIProcessorConversationConfigAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "name",
+        "api_key",
+        "api_base_url",
+    )
+    search_fields = ("id", "name", "api_key", "api_base_url")
+
+
+@admin.register(ServerChatSettings)
+class ServerChatSettingsAdmin(admin.ModelAdmin):
+    list_display = (
+        "default_model",
+        "summarizer_model",
+    )
 
 
 @admin.register(Conversation)
