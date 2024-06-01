@@ -723,6 +723,11 @@ To get started, just start typing below. You can also type / to see a list of co
             }
         }
 
+        function fillCommandInPrompt(command) {
+            let chatInput = document.getElementById("chat-input");
+            chatInput.value = "/" + command;
+        }
+
         function onChatInput() {
             let chatInput = document.getElementById("chat-input");
             chatInput.value = chatInput.value.trimStart();
@@ -738,7 +743,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 const command = chatInput.value.split(" ")[0].substring(1);
                 for (let key in chatOptions) {
                     if (!!!command || key.startsWith(command)) {
-                        helpText += "<b>/" + key + "</b>: " + chatOptions[key] + "<br>";
+                        helpText += `<div class="helpoption" onclick="fillCommandInPrompt('${key}')"><b>/${key}</b>: ${chatOptions[key]}</div>`;
                     }
                 }
                 chatTooltip.innerHTML = helpText;
@@ -2277,6 +2282,11 @@ To get started, just start typing below. You can also type / to see a list of co
         .option:hover {
             box-shadow: 0 0 11px #aaa;
         }
+
+        .helpoption:hover {
+            background-color: #d9d9d9;
+        }
+
         #chat-input {
             font-family: var(--font-family);
             font-size: medium;

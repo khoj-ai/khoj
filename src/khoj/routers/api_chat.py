@@ -515,15 +515,6 @@ async def websocket_endpoint(
 
         await send_status_update(f"**👀 Understanding Query**: {q}")
 
-        if conversation_commands == [ConversationCommand.Help]:
-            conversation_config = await ConversationAdapters.aget_user_conversation_config(user)
-            if conversation_config == None:
-                conversation_config = await ConversationAdapters.aget_default_conversation_config()
-            model_type = conversation_config.model_type
-            formatted_help = help_message.format(model=model_type, version=state.khoj_version, device=get_device())
-            await send_complete_llm_response(formatted_help)
-            continue
-
         meta_log = conversation.conversation_log
         is_automated_task = conversation_commands == [ConversationCommand.AutomatedTask]
 
@@ -540,6 +531,20 @@ async def websocket_endpoint(
         for cmd in conversation_commands:
             await conversation_command_rate_limiter.update_and_check_if_valid(websocket, cmd)
             q = q.replace(f"/{cmd.value}", "").strip()
+
+        custom_filters = []
+        if conversation_commands == [ConversationCommand.Help]:
+            if not q:
+                conversation_config = await ConversationAdapters.aget_user_conversation_config(user)
+                if conversation_config == None:
+                    conversation_config = await ConversationAdapters.aget_default_conversation_config()
+                model_type = conversation_config.model_type
+                formatted_help = help_message.format(model=model_type, version=state.khoj_version, device=get_device())
+                await send_complete_llm_response(formatted_help)
+                continue
+            # Adding specification to search online specifically on khoj.dev pages.
+            custom_filters.append("site:khoj.dev")
+            conversation_commands.append(ConversationCommand.Online)
 
         if ConversationCommand.Automation in conversation_commands:
             try:
@@ -607,7 +612,9 @@ async def websocket_endpoint(
                     conversation_commands.append(ConversationCommand.Webpage)
             else:
                 try:
-                    online_results = await search_online(defiltered_query, meta_log, location, send_status_update)
+                    online_results = await search_online(
+                        defiltered_query, meta_log, location, send_status_update, custom_filters
+                    )
                 except ValueError as e:
                     logger.warning(f"Error searching online: {e}. Attempting to respond without online results")
                     await send_complete_llm_response(
@@ -755,13 +762,19 @@ async def chat(
     await is_ready_to_chat(user)
     conversation_commands = [get_conversation_command(query=q, any_references=True)]
 
+    _custom_filters = []
     if conversation_commands == [ConversationCommand.Help]:
-        conversation_config = await ConversationAdapters.aget_user_conversation_config(user)
-        if conversation_config == None:
-            conversation_config = await ConversationAdapters.aget_default_conversation_config()
-        model_type = conversation_config.model_type
-        formatted_help = help_message.format(model=model_type, version=state.khoj_version, device=get_device())
-        return StreamingResponse(iter([formatted_help]), media_type="text/event-stream", status_code=200)
+        help_str = "/" + ConversationCommand.Help
+        if q.strip() == help_str:
+            conversation_config = await ConversationAdapters.aget_user_conversation_config(user)
+            if conversation_config == None:
+                conversation_config = await ConversationAdapters.aget_default_conversation_config()
+            model_type = conversation_config.model_type
+            formatted_help = help_message.format(model=model_type, version=state.khoj_version, device=get_device())
+            return StreamingResponse(iter([formatted_help]), media_type="text/event-stream", status_code=200)
+        # Adding specification to search online specifically on khoj.dev pages.
+        _custom_filters.append("site:khoj.dev")
+        conversation_commands.append(ConversationCommand.Online)
 
     conversation = await ConversationAdapters.aget_conversation_by_user(
         user, request.user.client_app, conversation_id, title
@@ -856,7 +869,9 @@ async def chat(
                 conversation_commands.append(ConversationCommand.Webpage)
         else:
             try:
-                online_results = await search_online(defiltered_query, meta_log, location)
+                online_results = await search_online(
+                    defiltered_query, meta_log, location, custom_filters=_custom_filters
+                )
             except ValueError as e:
                 logger.warning(f"Error searching online: {e}. Attempting to respond without online results")
 
