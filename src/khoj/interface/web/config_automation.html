@@ -357,11 +357,6 @@
         })
     }
 
-    function closeShareModal(automationId) {
-        const modal = document.getElementById(`share-modal-${automationId}`);
-        modal.remove();
-    }
-
     function copyShareLink(event, automationId, subject, crontime, queryToRun) {
         event.preventDefault();
         event.stopPropagation();
