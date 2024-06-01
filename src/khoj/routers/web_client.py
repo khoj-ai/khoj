@@ -2,6 +2,7 @@
 import json
 import os
 from datetime import timedelta
+from typing import Optional
 
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
@@ -423,9 +424,9 @@ def view_public_conversation(request: Request):
 @web_client.get("/automations", response_class=HTMLResponse)
 def automations_config_page(
     request: Request,
-    subject: str,
-    crontime: str,
-    queryToRun: str,
+    subject: Optional[str] = None,
+    crontime: Optional[str] = None,
+    queryToRun: Optional[str] = None,
 ):
     user = request.user.object if request.user.is_authenticated else None
     user_picture = request.session.get("user", {}).get("picture")
@@ -440,8 +441,8 @@ def automations_config_page(
             "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
             "khoj_version": state.khoj_version,
-            "subject": subject,
-            "crontime": crontime,
-            "queryToRun": queryToRun,
+            "subject": subject if subject else "",
+            "crontime": crontime if crontime else "",
+            "queryToRun": queryToRun if queryToRun else "",
         },
     )
