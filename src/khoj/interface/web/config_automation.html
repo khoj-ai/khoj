@@ -797,6 +797,11 @@
     }
 
     async function saveAutomation(automationId, create=false) {
+        if ("{{ username }}" == "None") {
+            window.location.href = `/login?next=${window.location.href}`;
+            return;
+        }
+
         const scheduleEl = document.getElementById(`automation-schedule-${automationId}`);
         const notificationEl = document.getElementById(`automation-success-${automationId}`);
         const saveButtonEl = document.getElementById(`save-automation-button-${automationId}`);
