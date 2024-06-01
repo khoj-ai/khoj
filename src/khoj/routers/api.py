@@ -443,6 +443,7 @@ async def post_automation(
     request: Request,
     q: str,
     crontime: str,
+    subject: Optional[str] = None,
     city: Optional[str] = None,
     region: Optional[str] = None,
     country: Optional[str] = None,
@@ -461,11 +462,13 @@ async def post_automation(
     q = q.strip()
     if not q.startswith("/automated_task"):
         query_to_run = f"/automated_task {q}"
+
     # Normalize crontime for AP Scheduler CronTrigger
     crontime = crontime.strip()
     if len(crontime.split(" ")) > 5:
         # Truncate crontime to 5 fields
         crontime = " ".join(crontime.split(" ")[:5])
+
     # Convert crontime to standard unix crontime
     crontime = crontime.replace("?", "*")
 
@@ -477,7 +480,8 @@ async def post_automation(
             status_code=400,
         )
 
-    subject = await acreate_title_from_query(q)
+    if not subject:
+        subject = await acreate_title_from_query(q)
 
     # Create new Conversation Session associated with this new task
     conversation = await ConversationAdapters.acreate_conversation_session(user, request.user.client_app)

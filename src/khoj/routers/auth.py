@@ -95,6 +95,10 @@ async def delete_token(request: Request, token: str):
 async def auth(request: Request):
     form = await request.form()
     next_url = request.query_params.get("next", "/")
+    for q in request.query_params:
+        if not q == "next":
+            next_url += f"&{q}={request.query_params[q]}"
+
     credential = form.get("credential")
 
     csrf_token_cookie = request.cookies.get("g_csrf_token")
