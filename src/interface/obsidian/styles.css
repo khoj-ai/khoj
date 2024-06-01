@@ -116,7 +116,7 @@ If your plugin does not need CSS, delete this file.
 
 .khoj-chat-message-text ul,
 .khoj-chat-message-text ol {
-    margin: -20px 0 0;
+    margin: 0px 0 0;
 }
 .khoj-chat-message-text ol li {
     white-space: normal;
