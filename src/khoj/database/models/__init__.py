@@ -325,6 +325,12 @@ class Entry(BaseModel):
     corpus_id = models.UUIDField(default=uuid.uuid4, editable=False)
 
 
+class FileObject(BaseModel):
+    # Same as Entry but raw will be a much larger string
+    file_name = models.CharField(max_length=400, default=None, null=True, blank=True)
+    raw_text = models.TextField()
+
+
 class EntryDates(BaseModel):
     date = models.DateField()
     entry = models.ForeignKey(Entry, on_delete=models.CASCADE, related_name="embeddings_dates")

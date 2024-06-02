@@ -6,6 +6,8 @@ from typing import List, Tuple
 
 from langchain_community.document_loaders import PyMuPDFLoader
 
+# importing FileObjectAdapter so that we can add new files and debug file object db.
+from khoj.database.adapters import FileObjectAdapters
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import KhojUser
 from khoj.processor.content.text_to_entries import TextToEntries
@@ -55,7 +57,7 @@ class PdfToEntries(TextToEntries):
         return num_new_embeddings, num_deleted_embeddings
 
     @staticmethod
-    def extract_pdf_entries(pdf_files) -> List[Entry]:
+    def extract_pdf_entries(pdf_files) -> List[Entry]:  # important function
         """Extract entries by page from specified PDF files"""
 
         entries: List[str] = []
@@ -73,8 +75,20 @@ class PdfToEntries(TextToEntries):
                     pdf_entries_per_file = [page.page_content for page in loader.load()]
                 except ImportError:
                     loader = PyMuPDFLoader(f"{tmp_file}")
-                    pdf_entries_per_file = [page.page_content for page in loader.load()]
-                entry_to_location_map += zip(pdf_entries_per_file, [pdf_file] * len(pdf_entries_per_file))
+                    pdf_entries_per_file = [
+                        page.page_content for page in loader.load()
+                    ]  # page_content items list for a given pdf.
+                # make a string with all the page contents
+                pdf_entries_per_file = "\n".join(pdf_entries_per_file)
+                # Add the file to FileObjects DB using FileObjectAdapter
+                FileObjectAdapters.create_file_object(pdf_file, pdf_entries_per_file)
+                # Get current file objects and print them
+                file_objects = FileObjectAdapters.get_all_file_objects()
+                for file_object in file_objects:
+                    print(f"####FILEOBJECT####: {file_object.file_name}")
+                entry_to_location_map += zip(
+                    pdf_entries_per_file, [pdf_file] * len(pdf_entries_per_file)
+                )  # this is an indexed map of pdf_entries for the pdf.
                 entries.extend(pdf_entries_per_file)
             except Exception as e:
                 logger.warning(f"Unable to process file: {pdf_file}. This file will not be indexed.")

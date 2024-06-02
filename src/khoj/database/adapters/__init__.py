@@ -28,6 +28,7 @@ from khoj.database.models import (
     ClientApplication,
     Conversation,
     Entry,
+    FileObject,
     GithubConfig,
     GithubRepoConfig,
     GoogleUser,
@@ -846,8 +847,39 @@ class ConversationAdapters:
         return await TextToImageModelConfig.objects.filter().afirst()
 
 
+# Model Included Here as a Commen:
+# class FileObject(BaseModel):
+#     #Same as Entry but raw will be a much larger string
+#     file_name = models.CharField(max_length=400, default=None, null=True, blank=True)
+#     raw_text = models.TextField()
+class FileObjectAdapters:
+    @staticmethod
+    def create_file_object(file_name: str, raw_text: str):
+        # check if file name already exists
+        file_object = FileObject.objects.filter(file_name=file_name).first()
+        if file_object:
+            return file_object
+        return FileObject.objects.create(file_name=file_name, raw_text=raw_text)
+
+    @staticmethod
+    def get_file_objects_by_name(file_name: str):
+        return FileObject.objects.filter(file_name=file_name).first()
+
+    @staticmethod
+    def get_all_file_objects():
+        return FileObject.objects.all()
+
+    @staticmethod
+    def delete_file_object_by_name(file_name: str):
+        return FileObject.objects.filter(file_name=file_name).delete()
+
+    @staticmethod
+    def delete_all_file_objects():
+        return FileObject.objects.all().delete()
+
+
 class EntryAdapters:
-    word_filer = WordFilter()
+    word_filer = WordFilter()  # typo here should be word_filter
     file_filter = FileFilter()
     date_filter = DateFilter()
 
