@@ -724,8 +724,13 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
         function fillCommandInPrompt(command) {
+            let chatTooltip = document.getElementById("chat-tooltip");
+            chatTooltip.style.display = "none";
+
             let chatInput = document.getElementById("chat-input");
-            chatInput.value = "/" + command;
+            chatInput.value = "/" + command + " ";
+            chatInput.classList.add("option-enabled");
+            chatInput.focus();
         }
 
         function onChatInput() {
@@ -2568,6 +2573,9 @@ To get started, just start typing below. You can also type / to see a list of co
         div#chat-tooltip {
             text-align: left;
             font-size: medium;
+        }
+        div#chat-tooltip:hover {
+            cursor: pointer;
         }
 
         svg.new-convo-button {
