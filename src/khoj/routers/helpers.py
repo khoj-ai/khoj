@@ -972,6 +972,9 @@ def scheduled_chat(
     scheme = "http" if not calling_url.is_secure else "https"
     query_dict = parse_qs(calling_url.query)
 
+    # Pop the stream value from query_dict if it exists
+    query_dict.pop("stream", None)
+
     # Replace the original scheduling query with the scheduled query
     query_dict["q"] = [query_to_run]
 
