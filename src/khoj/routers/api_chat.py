@@ -961,7 +961,6 @@ async def chat(
 
     response_obj = {
         "response": actual_response,
-        "intentType": intent_type,
         "inferredQueries": inferred_queries,
         "context": compiled_references,
         "online_results": online_results,
