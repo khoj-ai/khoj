@@ -576,6 +576,16 @@
             }
         }
 
+        function fillCommandInPrompt(command) {
+            let chatTooltip = document.getElementById("chat-tooltip");
+            chatTooltip.style.display = "none";
+
+            let chatInput = document.getElementById("chat-input");
+            chatInput.value = "/" + command + " ";
+            chatInput.classList.add("option-enabled");
+            chatInput.focus();
+        }
+
         function onChatInput() {
             let chatInput = document.getElementById("chat-input");
             chatInput.value = chatInput.value.trimStart();
@@ -591,7 +601,7 @@
                 const command = chatInput.value.split(" ")[0].substring(1);
                 for (let key in chatOptions) {
                     if (!!!command || key.startsWith(command)) {
-                        helpText += "<b>/" + key + "</b>: " + chatOptions[key] + "<br>";
+                        helpText += `<div class="helpoption" onclick="fillCommandInPrompt('${key}')"><b>/${key}</b>: ${chatOptions[key]}</div>`;
                     }
                 }
                 chatTooltip.innerHTML = helpText;
@@ -1852,6 +1862,9 @@
         div#chat-tooltip {
             text-align: left;
             font-size: medium;
+        }
+        div#chat-tooltip:hover {
+            cursor: pointer;
         }
 
         svg.new-convo-button {
