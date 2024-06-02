@@ -79,9 +79,9 @@ class PdfToEntries(TextToEntries):
                         page.page_content for page in loader.load()
                     ]  # page_content items list for a given pdf.
                 # make a string with all the page contents
-                pdf_entries_per_file = "\n".join(pdf_entries_per_file)
+                rawtext = "\n".join(pdf_entries_per_file)
                 # Add the file to FileObjects DB using FileObjectAdapter
-                FileObjectAdapters.create_file_object(pdf_file, pdf_entries_per_file)
+                FileObjectAdapters.create_file_object(pdf_file, rawtext)
                 # Get current file objects and print them
                 file_objects = FileObjectAdapters.get_all_file_objects()
                 for file_object in file_objects:
