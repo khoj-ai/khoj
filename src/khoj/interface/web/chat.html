@@ -1161,7 +1161,7 @@ To get started, just start typing below. You can also type / to see a list of co
             if (chatBody.dataset.conversationId) {
                 chatHistoryUrl += `&conversation_id=${chatBody.dataset.conversationId}`;
                 setupWebSocket();
-                loadFileFiltersFromDB();
+                loadFileFiltersFromConversation();
             }
 
             if (window.screen.width < 700) {
@@ -1199,7 +1199,7 @@ To get started, just start typing below. You can also type / to see a list of co
                     // Render conversation history, if any
                     let chatBody = document.getElementById("chat-body");
                     chatBody.dataset.conversationId = response.conversation_id;
-                    loadFileFiltersFromDB();
+                    loadFileFiltersFromConversation();
                     setupWebSocket();
                     chatBody.dataset.conversationTitle = response.slug || `New conversation 🌱`;
 
@@ -1849,10 +1849,17 @@ To get started, just start typing below. You can also type / to see a list of co
                 indexedFiles.innerHTML = "";
 
                 for (var filename of data) {
-                    indexedFiles.innerHTML += "<li class=\"fileName\" id=\"" + filename + "\" onclick=\"handleFileClick('" + filename + "')\">" + filename + "</li>";
-                    console.log("update");
+                    indexedFiles.innerHTML += `<li class="fileName" id="${filename}" onclick="handleFileClick('${filename}')">${filename}</li>`;
                 }
                 allFiles = data;
+                var nofilesmessage = document.getElementsByClassName("no-files-message")[0];
+                if(allFiles.length === 0){
+                    nofilesmessage.innerHTML = "No files found. Visit ";
+                    nofilesmessage.innerHTML += "<a href=\"https://docs.khoj.dev/category/clients/\">Documentation</a>"
+                }
+                else{
+                    nofilesmessage.innerHTML = "";
+                }
             })
             .catch((error) => {
                 console.error('Error:', error);
@@ -1871,38 +1878,43 @@ To get started, just start typing below. You can also type / to see a list of co
             }
         }
         function handleFileClick(elementId) {
-            console.log("clicked");
-            // Get the element by its id
-            var element = document.getElementById(elementId);
+    var element = document.getElementById(elementId);
+    if (element) {
+        var selectedFiles = document.getElementsByClassName("selected-files")[0];
+        var selectedFile = document.getElementById(elementId);
 
-            if (element) {
-
-                var text = element.textContent.trim();
-                var checkmarkEmoji = '✅';
-                var newText;
-
-                if (text.startsWith(checkmarkEmoji)) {
-                    newText = text.slice(checkmarkEmoji.length).trim();
-                    var selectedFiles = document.getElementsByClassName("selected-files")[0];
-                    var selectedFile = document.getElementById(elementId);
-                    var selectedFileHTML = "<li class=\"fileName\" id=\"" + elementId + "\">" + text + "</li>";
-                    selectedFiles.innerHTML = selectedFiles.innerHTML.replace(selectedFileHTML, "");
-                    element = document.getElementById(elementId);
-                    removeFileFilterFromDB(newText);
-                }
-                else {
-                    newText = checkmarkEmoji + ' ' + text;
-                    var selectedFiles = document.getElementsByClassName("selected-files")[0];
-                    selectedFiles.innerHTML += "<li class=\"fileName\" id=\"" + elementId + "\">" + newText + "</li>";
-                    addFileFilterToDB(text);
-                }
-
-                element.textContent = newText;
-            } else {
-                console.error('Element with id', elementId, 'not found.');
+        // Check if the element has a background color indicating selection
+        if (element.style.backgroundColor === "var(--primary-hover)") {
+            // Remove the file filter from the conversation
+            removeFileFilterFromConversation(elementId);
+            // Remove the selected file from the list of selected files
+            if (selectedFile) {
+                selectedFiles.removeChild(selectedFile);
             }
+            var selectedFile = document.getElementById(elementId);
+            selectedFile.style.backgroundColor = "var(--primary)";
+            selectedFile.style.border = "1px solid var(--primary-hover)";
+        } else {
+            // If the element is not selected, select it
+            element.style.backgroundColor = "var(--primary-hover)"; // Set background color
+            element.style.border = "3px solid orange"; // Set border
+            // Add the file filter to the conversation
+            addFileFilterToConversation(elementId);
+            // Add the selected file to the list of selected files
+            var li = document.createElement("li");
+            li.className = "fileName";
+            li.id = elementId;
+            li.style.backgroundColor = "var(--primary-hover)"; // match the style
+            li.style.border = "3px solid orange"; // match the style
+            li.innerText = elementId;
+            selectedFiles.appendChild(li);
         }
-        function addFileFilterToDB(filename) {
+    } else {
+        console.error('Element with id', elementId, 'not found.');
+    }
+}
+
+        function addFileFilterToConversation(filename) {
             var conversation_id = document.getElementById("chat-body").dataset.conversationId;
             if (!conversation_id) {
                 console.error("Conversation ID not found on chat-body element.");
@@ -1932,7 +1944,7 @@ To get started, just start typing below. You can also type / to see a list of co
             });
         }
 
-        function removeFileFilterFromDB(filename) {
+        function removeFileFilterFromConversation(filename) {
             var conversation_id = document.getElementById("chat-body").dataset.conversationId;
             console.log(typeof conversation_id)
             if (!conversation_id) {
@@ -1963,7 +1975,7 @@ To get started, just start typing below. You can also type / to see a list of co
             });
         }
 
-        function getFileFiltersFromDB() {
+        function getFileFiltersFromConversation() {
             // Get the conversation_id from the data attribute
             var conversation_id = document.getElementById("chat-body").dataset.conversationId;
 
@@ -2000,24 +2012,34 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
 
-        function loadFileFiltersFromDB(){
-            getFileFiltersFromDB()
+        function loadFileFiltersFromConversation(){
+            getFileFiltersFromConversation()
             .then(filters => {
                 var selectedFiles = document.getElementsByClassName("selected-files")[0];
                 selectedFiles.innerHTML = "";
                 for (var filter of filters) {
-                    var text = '✅ ' + filter;
-                    selectedFiles.innerHTML += "<li class=\"fileName\" id=\"" + filter + "\">" + text + "</li>";
+                    var li = document.createElement("li");
+                    li.className = "fileName";
+                    li.id = filter;
+                    li.style.backgroundColor = "var(--primary-hover)"; // set background to orange
+                    li.style.border = "2px solid orange"; // set border to orange
+                    li.innerText = filter;
+                    selectedFiles.appendChild(li);
                 }
                 //update indexed files to have checkmark if they are in the filters
                 var indexedFiles = document.getElementsByClassName("indexed-files")[0];
                 indexedFiles.innerHTML = "";
                 for (var filename of allFiles) {
-                    var text = filename;
+                    var li = document.createElement("li");
+                    li.className = "fileName";
+                    li.id = filename;
+                    li.innerText = filename;
                     if (filters.includes(filename)) {
-                        text = '✅ ' + filename;
+                        li.style.backgroundColor = "var(--primary-hover)"; // set background to orange
+                        li.style.border = "2px solid orange"; // set border to orange
                     }
-                    indexedFiles.innerHTML += "<li class=\"fileName\" id=\"" + filename + "\" onclick=\"handleFileClick('" + filename + "')\">" + text + "</li>";
+                    li.setAttribute("onclick", "handleFileClick('" + filename + "')");
+                    indexedFiles.appendChild(li);
                 }
             })
             .catch(error => {
@@ -2056,16 +2078,17 @@ To get started, just start typing below. You can also type / to see a list of co
                     </div>
                     <div style="border-top: 1px solid black; ">
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; margin-top: 5px;">
-                            <p style="margin: 0;">Add/Remove Files:</p>
+                            <p style="margin: 0;">Files</p>
                             <svg class="file-toggle-button" style="width:20px; height:20px; position: relative; top: 2px" viewBox="0 0 40 40" fill="#000000" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M16 0c-8.836 0-16 7.163-16 16s7.163 16 16 16c8.837 0 16-7.163 16-16s-7.163-16-16-16zM16 30.032c-7.72 0-14-6.312-14-14.032s6.28-14 14-14 14 6.28 14 14-6.28 14.032-14 14.032zM23 15h-6v-6c0-0.552-0.448-1-1-1s-1 0.448-1 1v6h-6c-0.552 0-1 0.448-1 1s0.448 1 1 1h6v6c0 0.552 0.448 1 1 1s1-0.448 1-1v-6h6c0.552 0 1-0.448 1-1s-0.448-1-1-1z"></path>
                             </svg>
                         </div>
+                        <div class="no-files-message"></div>
                         <ul class="selected-files" style="margin: 0; padding: 0; margin-bottom: 10px"></ul>
-                        <input class="file-input" style="width:240px; margin-bottom: 5px; color: black; display: none;" type="text" onkeyup="renderFilteredFiles()" placeholder="Search by Name...">
+                        <input class="file-input" style="width:240px; margin-bottom: 5px; color: black; display: none; border-radius: 4px; border: 1px solid black; padding: 4px;" type="text" onkeyup="renderFilteredFiles()" placeholder="Filter">
                         <ul class="indexed-files" style="margin: 0; padding: 0; height:100px; overflow:hidden; overflow-y:scroll; margin-bottom:5px; display:none;"></ul>
                         <script>
-                            renderAllFiles()
+                            renderAllFiles();
                             var fileInputs = document.getElementsByClassName('file-input');
                             var fileLists = document.getElementsByClassName('indexed-files');
                             var selectedFileLists = document.getElementsByClassName('selected-files');
@@ -2236,6 +2259,13 @@ To get started, just start typing below. You can also type / to see a list of co
             text-overflow: ellipsis;
             max-width: 250px;
             background-color:var(--primary);
+            border-radius: 10px;
+            border: 1px solid var(--primary-hover);
+            margin-bottom: 4px;
+            margin-top: 4px;
+            padding-left: 10px;
+            padding-top: 4px;
+            padding-bottom: 4px;
         }
 
         div.expanded.reference-section {
@@ -2862,6 +2892,10 @@ To get started, just start typing below. You can also type / to see a list of co
         svg.new-convo-button {
             width: 20px;
             margin-left: 5px;
+        }
+
+        svg.file-toggle-button:hover {
+            background: var(--primary-hover);
         }
 
         div#new-conversation {

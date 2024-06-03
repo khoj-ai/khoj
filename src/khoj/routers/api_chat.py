@@ -84,7 +84,12 @@ def get_file_filter(request: Request, conversation_id: str) -> Response:
     conversation = ConversationAdapters.get_conversation_by_user(
         request.user.object, conversation_id=int(conversation_id)
     )
-    file_filters = conversation.file_filters
+    # get all files from "computer"
+    file_list = EntryAdapters.get_all_filenames_by_source(request.user.object, "computer")
+    file_filters = []
+    for file in conversation.file_filters:
+        if file in file_list:
+            file_filters.append(file)
     return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
 
 
@@ -95,8 +100,10 @@ def add_file_filter(request: Request, filter: FilterRequest):
         conversation = ConversationAdapters.get_conversation_by_user(
             request.user.object, conversation_id=int(filter.conversation_id)
         )
-        conversation.file_filters.append(filter.filename)
-        conversation.save()
+        file_list = EntryAdapters.get_all_filenames_by_source(request.user.object, "computer")
+        if filter.filename in file_list:
+            conversation.file_filters.append(filter.filename)
+            conversation.save()
         return Response(content=json.dumps(conversation.file_filters), media_type="application/json", status_code=200)
     except Exception as e:
         logger.error(f"Error adding file filter {filter.filename}: {e}", exc_info=True)
