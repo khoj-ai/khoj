@@ -1946,7 +1946,6 @@ To get started, just start typing below. You can also type / to see a list of co
 
         function removeFileFilterFromConversation(filename) {
             var conversation_id = document.getElementById("chat-body").dataset.conversationId;
-            console.log(typeof conversation_id)
             if (!conversation_id) {
                 console.error("Conversation ID not found on chat-body element.");
                 return;
@@ -2131,6 +2130,7 @@ To get started, just start typing below. You can also type / to see a list of co
                             fileList.addEventListener('click', function(event) {
                                 event.stopPropagation();  // Prevent the document click handler from hiding the file list
                             });
+
                         </script>
                     </div>
                     <a id="agent-link" class="inline-chat-link" href="">
@@ -2258,12 +2258,11 @@ To get started, just start typing below. You can also type / to see a list of co
             overflow: hidden;
             text-overflow: ellipsis;
             max-width: 250px;
-            background-color:var(--primary);
+            background-color: var(--primary);
             border-radius: 10px;
             border: 1px solid var(--primary-hover);
             margin-bottom: 4px;
             margin-top: 4px;
-            padding-left: 10px;
             padding-top: 4px;
             padding-bottom: 4px;
         }
