@@ -2,6 +2,7 @@
 import json
 import os
 from datetime import timedelta
+from typing import Optional
 
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
@@ -421,20 +422,27 @@ def view_public_conversation(request: Request):
 
 
 @web_client.get("/automations", response_class=HTMLResponse)
-@requires(["authenticated"], redirect="login_page")
-def automations_config_page(request: Request):
-    user = request.user.object
+def automations_config_page(
+    request: Request,
+    subject: Optional[str] = None,
+    crontime: Optional[str] = None,
+    queryToRun: Optional[str] = None,
+):
+    user = request.user.object if request.user.is_authenticated else None
     user_picture = request.session.get("user", {}).get("picture")
-    has_documents = EntryAdapters.user_has_entries(user=user)
+    has_documents = EntryAdapters.user_has_entries(user=user) if user else False
 
     return templates.TemplateResponse(
         "config_automation.html",
         context={
             "request": request,
-            "username": user.username,
+            "username": user.username if user else None,
             "user_photo": user_picture,
             "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
             "khoj_version": state.khoj_version,
+            "subject": subject if subject else "",
+            "crontime": crontime if crontime else "",
+            "queryToRun": queryToRun if queryToRun else "",
         },
     )

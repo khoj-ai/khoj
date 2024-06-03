@@ -1,8 +1,8 @@
-import { Plugin } from 'obsidian';
+import { Plugin, WorkspaceLeaf } from 'obsidian';
 import { KhojSetting, KhojSettingTab, DEFAULT_SETTINGS } from 'src/settings'
 import { KhojSearchModal } from 'src/search_modal'
-import { KhojChatModal } from 'src/chat_modal'
-import { updateContentIndex, canConnectToBackend } from './utils';
+import { KhojChatView } from 'src/chat_view'
+import { updateContentIndex, canConnectToBackend, KhojView } from './utils';
 
 
 export default class Khoj extends Plugin {
@@ -30,12 +30,14 @@ export default class Khoj extends Plugin {
         this.addCommand({
             id: 'chat',
             name: 'Chat',
-            callback: () => { new KhojChatModal(this.app, this.settings).open(); }
+            callback: () => { this.activateView(KhojView.CHAT); }
         });
+
+        this.registerView(KhojView.CHAT, (leaf) => new KhojChatView(leaf, this.settings));
 
         // Create an icon in the left ribbon.
         this.addRibbonIcon('message-circle', 'Khoj', (_: MouseEvent) => {
-            new KhojChatModal(this.app, this.settings).open()
+            this.activateView(KhojView.CHAT);
         });
 
         // Add a settings tab so the user can configure khoj
@@ -69,4 +71,24 @@ export default class Khoj extends Plugin {
 
         this.unload();
     }
+
+    async activateView(viewType: KhojView) {
+        const { workspace } = this.app;
+
+        let leaf: WorkspaceLeaf | null = null;
+        const leaves = workspace.getLeavesOfType(viewType);
+
+        if (leaves.length > 0) {
+          // A leaf with our view already exists, use that
+          leaf = leaves[0];
+        } else {
+          // Our view could not be found in the workspace, create a new leaf
+          // in the right sidebar for it
+          leaf = workspace.getRightLeaf(false);
+          await leaf?.setViewState({ type: viewType, active: true });
+        }
+
+        // "Reveal" the leaf in case it is in a collapsed sidebar
+        if (leaf) workspace.revealLeaf(leaf);
+      }
 }

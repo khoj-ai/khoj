@@ -1,5 +1,5 @@
-import { FileSystemAdapter, Notice, Vault, Modal, TFile, request } from 'obsidian';
-import { KhojSetting } from 'src/settings'
+import { FileSystemAdapter, Notice, Vault, Modal, TFile, request, setIcon, Editor } from 'obsidian';
+import { KhojSetting, UserInfo } from 'src/settings'
 
 export function getVaultAbsolutePath(vault: Vault): string {
     let adaptor = vault.adapter;
@@ -139,10 +139,9 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
 export async function createNote(name: string, newLeaf = false): Promise<void> {
     try {
       let pathPrefix: string
-      // @ts-ignore
-      switch (app.vault.getConfig('newFileLocation')) {
+      switch (this.app.vault.getConfig('newFileLocation')) {
         case 'current':
-          pathPrefix = (app.workspace.getActiveFile()?.parent.path ?? '') + '/'
+          pathPrefix = (this.app.workspace.getActiveFile()?.parent.path ?? '') + '/'
           break
         case 'folder':
           pathPrefix = this.app.vault.getConfig('newFileFolderPath') + '/'
@@ -151,7 +150,7 @@ export async function createNote(name: string, newLeaf = false): Promise<void> {
           pathPrefix = ''
           break
       }
-      await app.workspace.openLinkText(`${pathPrefix}${name}.md`, '', newLeaf)
+      await this.app.workspace.openLinkText(`${pathPrefix}${name}.md`, '', newLeaf)
     } catch (e) {
       console.error('Khoj: Could not create note.\n' + (e as any).message);
       throw e
@@ -173,31 +172,30 @@ export async function canConnectToBackend(
     khojUrl: string,
     khojApiKey: string,
     showNotice: boolean = false
-): Promise<{ connectedToBackend: boolean; statusMessage: string, userEmail: string }> {
+): Promise<{ connectedToBackend: boolean; statusMessage: string, userInfo: UserInfo | null }> {
     let connectedToBackend = false;
-    let userEmail: string = '';
+    let userInfo: UserInfo | null = null;
 
     if (!!khojUrl) {
         let headers  = !!khojApiKey ? { "Authorization": `Bearer ${khojApiKey}` } : undefined;
-        await request({ url: `${khojUrl}/api/health`, method: "GET", headers: headers })
-        .then(response => {
+        try {
+            let response = await request({ url: `${khojUrl}/api/v1/user`, method: "GET", headers: headers })
             connectedToBackend = true;
-            userEmail = JSON.parse(response)?.email;
-        })
-        .catch(error => {
+            userInfo = JSON.parse(response);
+        } catch (error) {
             connectedToBackend = false;
             console.log(`Khoj connection error:\n\n${error}`);
-        });
+        };
     }
 
-    let statusMessage: string = getBackendStatusMessage(connectedToBackend, userEmail, khojUrl, khojApiKey);
+    let statusMessage: string = getBackendStatusMessage(connectedToBackend, userInfo?.email, khojUrl, khojApiKey);
     if (showNotice) new Notice(statusMessage);
-    return { connectedToBackend, statusMessage, userEmail };
+    return { connectedToBackend, statusMessage, userInfo };
 }
 
 export function getBackendStatusMessage(
     connectedToServer: boolean,
-    userEmail: string,
+    userEmail: string | undefined,
     khojUrl: string,
     khojApiKey: string
 ): string {
@@ -214,4 +212,156 @@ export function getBackendStatusMessage(
         return `✅ Signed in to Khoj`;
     else
         return `✅ Signed in to Khoj as ${userEmail}`;
+}
+
+export async function populateHeaderPane(headerEl: Element, setting: KhojSetting): Promise<void> {
+    let userInfo: UserInfo | null = null;
+    try {
+        const { userInfo: extractedUserInfo } = await canConnectToBackend(setting.khojUrl, setting.khojApiKey, false);
+        userInfo = extractedUserInfo;
+    } catch (error) {
+        console.error("❗️Could not connect to Khoj");
+    }
+
+    // Add Khoj title to header element
+    const titleEl = headerEl.createDiv();
+    titleEl.className = 'khoj-logo';
+    titleEl.textContent = "KHOJ"
+
+    // Populate the header element with the navigation pane
+    // Create the nav element
+    const nav = headerEl.createEl('nav');
+    nav.className = 'khoj-nav';
+
+    // Create the chat link
+    const chatLink = nav.createEl('a');
+    chatLink.id = 'chat-nav';
+    chatLink.className = 'khoj-nav chat-nav';
+
+    // Create the chat icon
+    const chatIcon = chatLink.createEl('span');
+    chatIcon.className = 'khoj-nav-icon khoj-nav-icon-chat';
+    setIcon(chatIcon, 'khoj-chat');
+
+    // Create the chat text
+    const chatText = chatLink.createEl('span');
+    chatText.className = 'khoj-nav-item-text';
+    chatText.textContent = 'Chat';
+
+    // Append the chat icon and text to the chat link
+    chatLink.appendChild(chatIcon);
+    chatLink.appendChild(chatText);
+
+    // Create the search link
+    const searchLink = nav.createEl('a');
+    searchLink.id = 'search-nav';
+    searchLink.className = 'khoj-nav search-nav';
+
+    // Create the search icon
+    const searchIcon = searchLink.createEl('span');
+    searchIcon.className = 'khoj-nav-icon khoj-nav-icon-search';
+
+    // Create the search text
+    const searchText = searchLink.createEl('span');
+    searchText.className = 'khoj-nav-item-text';
+    searchText.textContent = 'Search';
+
+    // Append the search icon and text to the search link
+    searchLink.appendChild(searchIcon);
+    searchLink.appendChild(searchText);
+
+    // Create the search link
+    const similarLink = nav.createEl('a');
+    similarLink.id = 'similar-nav';
+    similarLink.className = 'khoj-nav similar-nav';
+
+    // Create the search icon
+    const similarIcon = searchLink.createEl('span');
+    similarIcon.id = 'similar-nav-icon';
+    similarIcon.className = 'khoj-nav-icon khoj-nav-icon-similar';
+    setIcon(similarIcon, 'webhook');
+
+    // Create the search text
+    const similarText = searchLink.createEl('span');
+    similarText.className = 'khoj-nav-item-text';
+    similarText.textContent = 'Similar';
+
+    // Append the search icon and text to the search link
+    similarLink.appendChild(similarIcon);
+    similarLink.appendChild(similarText);
+
+    // Append the nav items to the nav element
+    nav.appendChild(chatLink);
+    nav.appendChild(searchLink);
+    nav.appendChild(similarLink);
+
+    // Append the title, nav items to the header element
+    headerEl.appendChild(titleEl);
+    headerEl.appendChild(nav);
+}
+
+export enum KhojView {
+    CHAT = "khoj-chat-view",
+}
+
+function copyParentText(event: MouseEvent, message: string, originalButton: string) {
+    const button = event.currentTarget as HTMLElement;
+    if (!button || !button?.parentNode?.textContent) return;
+    if (!!button.firstChild) button.removeChild(button.firstChild as HTMLImageElement);
+    const textContent = message ?? button.parentNode.textContent.trim();
+    navigator.clipboard.writeText(textContent).then(() => {
+        setIcon((button as HTMLElement), 'copy-check');
+        setTimeout(() => {
+            setIcon((button as HTMLElement), originalButton);
+        }, 1000);
+    }).catch((error) => {
+        console.error("Error copying text to clipboard:", error);
+        const originalButtonText = button.innerHTML;
+        button.innerHTML = "⛔️";
+        setTimeout(() => {
+            button.innerHTML = originalButtonText;
+            setIcon((button as HTMLElement), originalButton);
+        }, 2000);
+    });
+
+    return textContent;
+}
+
+export function createCopyParentText(message: string, originalButton: string = 'copy-plus') {
+    return function(event: MouseEvent) {
+        return copyParentText(event, message, originalButton);
+    }
+}
+
+export function pasteTextAtCursor(text: string | undefined) {
+    // Get the current active file's editor
+    const editor: Editor = this.app.workspace.getActiveFileView()?.editor
+    if (!editor || !text) return;
+    const cursor = editor.getCursor();
+    // If there is a selection, replace it with the text
+    if (editor?.getSelection()) {
+        editor.replaceSelection(text);
+    // If there is no selection, insert the text at the cursor position
+    } else if (cursor) {
+        editor.replaceRange(text, cursor);
+    }
+}
+
+export function getLinkToEntry(sourceFiles: TFile[], chosenFile: string, chosenEntry: string): string | undefined {
+    // Find the vault file matching file of chosen file, entry
+    let fileMatch = sourceFiles
+        // Sort by descending length of path
+        // This finds longest path match when multiple files have same name
+        .sort((a, b) => b.path.length - a.path.length)
+        // The first match is the best file match across OS
+        // e.g Khoj server on Linux, Obsidian vault on Android
+        .find(file => chosenFile.replace(/\\/g, "/").endsWith(file.path))
+
+    // Return link to vault file at heading of chosen search result
+    if (fileMatch) {
+        let resultHeading = fileMatch.extension !== 'pdf' ? chosenEntry.split('\n', 1)[0] : '';
+        let linkToEntry = resultHeading.startsWith('#') ? `${fileMatch.path}${resultHeading}` : fileMatch.path;
+        console.log(`Link: ${linkToEntry}, File: ${fileMatch.path}, Heading: ${resultHeading}`);
+        return linkToEntry;
+    }
 }

@@ -6,6 +6,7 @@ import os
 import threading
 import time
 import uuid
+from random import random
 from typing import Any, Callable, List, Optional, Union
 
 import cron_descriptor
@@ -360,14 +361,14 @@ async def extract_references_and_questions(
 
     # Collate search results as context for GPT
     with timer("Searching knowledge base took", logger):
-        result_list = []
+        search_results = []
         logger.info(f"🔍 Searching knowledge base with queries: {inferred_queries}")
         if send_status_func:
             inferred_queries_str = "\n- " + "\n- ".join(inferred_queries)
             await send_status_func(f"**🔍 Searching Documents for:** {inferred_queries_str}")
         for query in inferred_queries:
             n_items = min(n, 3) if using_offline_chat else n
-            result_list.extend(
+            search_results.extend(
                 await execute_search(
                     user,
                     f"{query} {filters_in_query}",
@@ -378,8 +379,10 @@ async def extract_references_and_questions(
                     dedupe=False,
                 )
             )
-        result_list = text_search.deduplicated_search_responses(result_list)
-        compiled_references = [item.additional["compiled"] for item in result_list]
+        search_results = text_search.deduplicated_search_responses(search_results)
+        compiled_references = [
+            {"compiled": item.additional["compiled"], "file": item.additional["file"]} for item in search_results
+        ]
 
     return compiled_references, inferred_queries, defiltered_query
 
@@ -445,6 +448,7 @@ async def post_automation(
     request: Request,
     q: str,
     crontime: str,
+    subject: Optional[str] = None,
     city: Optional[str] = None,
     region: Optional[str] = None,
     country: Optional[str] = None,
@@ -463,16 +467,26 @@ async def post_automation(
     q = q.strip()
     if not q.startswith("/automated_task"):
         query_to_run = f"/automated_task {q}"
+
     # Normalize crontime for AP Scheduler CronTrigger
     crontime = crontime.strip()
     if len(crontime.split(" ")) > 5:
         # Truncate crontime to 5 fields
         crontime = " ".join(crontime.split(" ")[:5])
+
     # Convert crontime to standard unix crontime
     crontime = crontime.replace("?", "*")
-    if crontime == "* * * * *":
-        return Response(content="Invalid crontime. Please create a more specific schedule.", status_code=400)
-    subject = await acreate_title_from_query(q)
+
+    # Disallow minute level automation recurrence
+    minute_value = crontime.split(" ")[0]
+    if not minute_value.isdigit():
+        return Response(
+            content="Recurrence of every X minutes is unsupported. Please create a less frequent schedule.",
+            status_code=400,
+        )
+
+    if not subject:
+        subject = await acreate_title_from_query(q)
 
     # Create new Conversation Session associated with this new task
     conversation = await ConversationAdapters.acreate_conversation_session(user, request.user.client_app)
@@ -562,6 +576,14 @@ def edit_job(
         crontime = " ".join(crontime.split(" ")[:5])
     # Convert crontime to standard unix crontime
     crontime = crontime.replace("?", "*")
+
+    # Disallow minute level automation recurrence
+    minute_value = crontime.split(" ")[0]
+    if not minute_value.isdigit():
+        return Response(
+            content="Recurrence of every X minutes is unsupported. Please create a less frequent schedule.",
+            status_code=400,
+        )
 
     # Construct updated automation metadata
     automation_metadata = json.loads(automation.name)

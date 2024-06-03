@@ -4,10 +4,12 @@ import hashlib
 import io
 import json
 import logging
+import math
 import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from functools import partial
+from random import random
 from typing import (
     Annotated,
     Any,
@@ -412,7 +414,7 @@ async def generate_better_image_prompt(
     q: str,
     conversation_history: str,
     location_data: LocationData,
-    note_references: List[str],
+    note_references: List[Dict[str, Any]],
     online_results: Optional[dict] = None,
 ) -> str:
     """
@@ -427,7 +429,7 @@ async def generate_better_image_prompt(
     else:
         location_prompt = "Unknown"
 
-    user_references = "\n\n".join([f"# {item}" for item in note_references])
+    user_references = "\n\n".join([f"# {item['compiled']}" for item in note_references])
 
     simplified_online_results = {}
 
@@ -594,7 +596,7 @@ def generate_chat_response(
     q: str,
     meta_log: dict,
     conversation: Conversation,
-    compiled_references: List[str] = [],
+    compiled_references: List[Dict] = [],
     online_results: Dict[str, Dict] = {},
     inferred_queries: List[str] = [],
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
@@ -696,7 +698,7 @@ async def text_to_image(
     user: KhojUser,
     conversation_log: dict,
     location_data: LocationData,
-    references: List[str],
+    references: List[Dict[str, Any]],
     online_results: Dict[str, Any],
     send_status_func: Optional[Callable] = None,
 ) -> Tuple[Optional[str], int, Optional[str], str]:
@@ -970,6 +972,9 @@ def scheduled_chat(
     scheme = "http" if not calling_url.is_secure else "https"
     query_dict = parse_qs(calling_url.query)
 
+    # Pop the stream value from query_dict if it exists
+    query_dict.pop("stream", None)
+
     # Replace the original scheduling query with the scheduled query
     query_dict["q"] = [query_to_run]
 
@@ -1014,8 +1019,6 @@ def scheduled_chat(
 
 async def create_automation(q: str, timezone: str, user: KhojUser, calling_url: URL, meta_log: dict = {}):
     crontime, query_to_run, subject = await schedule_query(q, meta_log)
-    if crontime == "* * * * *":
-        raise HTTPException(status_code=400, detail="Cannot run jobs constantly. Please provide a valid crontime.")
     job = await schedule_automation(query_to_run, subject, crontime, timezone, q, user, calling_url)
     return job, crontime, query_to_run, subject
 
@@ -1029,9 +1032,13 @@ async def schedule_automation(
     user: KhojUser,
     calling_url: URL,
 ):
+    # Disable minute level automation recurrence
+    minute_value = crontime.split(" ")[0]
+    if not minute_value.isdigit():
+        # Run automation at some random minute (to distribute request load) instead of running every X minutes
+        crontime = " ".join([str(math.floor(random() * 60))] + crontime.split(" ")[1:])
+
     user_timezone = pytz.timezone(timezone)
-    if crontime == "* * * * *":
-        raise HTTPException(status_code=400, detail="Cannot run jobs constantly. Please provide a valid crontime.")
     trigger = CronTrigger.from_crontab(crontime, user_timezone)
     trigger.jitter = 60
     # Generate id and metadata used by task scheduler and process locks for the task runs
