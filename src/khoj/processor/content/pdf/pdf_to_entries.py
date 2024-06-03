@@ -2,12 +2,12 @@ import base64
 import logging
 import os
 from datetime import datetime
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 from langchain_community.document_loaders import PyMuPDFLoader
 
 # importing FileObjectAdapter so that we can add new files and debug file object db.
-from khoj.database.adapters import FileObjectAdapters
+# from khoj.database.adapters import FileObjectAdapters
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import KhojUser
 from khoj.processor.content.text_to_entries import TextToEntries
@@ -35,11 +35,11 @@ class PdfToEntries(TextToEntries):
 
         # Extract Entries from specified Pdf files
         with timer("Extract entries from specified PDF files", logger):
-            current_entries = PdfToEntries.extract_pdf_entries(files)
+            file_to_text_map, current_entries = PdfToEntries.extract_pdf_entries(files)
 
         # Split entries by max tokens supported by model
         with timer("Split entries by max token size supported by model", logger):
-            current_entries = self.split_entries_by_max_tokens(current_entries, max_tokens=256)
+            current_entries = list(self.split_entries_by_max_tokens(current_entries, max_tokens=256))
 
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
@@ -52,14 +52,15 @@ class PdfToEntries(TextToEntries):
                 deletion_file_names,
                 user,
                 regenerate=regenerate,
+                file_to_text_map=file_to_text_map,
             )
 
         return num_new_embeddings, num_deleted_embeddings
 
     @staticmethod
-    def extract_pdf_entries(pdf_files) -> List[Entry]:  # important function
+    def extract_pdf_entries(pdf_files) -> Tuple[Dict, List[Entry]]:  # important function
         """Extract entries by page from specified PDF files"""
-
+        file_to_text_map = dict()
         entries: List[str] = []
         entry_to_location_map: List[Tuple[str, str]] = []
         for pdf_file in pdf_files:
@@ -78,18 +79,11 @@ class PdfToEntries(TextToEntries):
                     pdf_entries_per_file = [
                         page.page_content for page in loader.load()
                     ]  # page_content items list for a given pdf.
-                # make a string with all the page contents
-                rawtext = "\n".join(pdf_entries_per_file)
-                # Add the file to FileObjects DB using FileObjectAdapter
-                FileObjectAdapters.create_file_object(pdf_file, rawtext)
-                # Get current file objects and print them
-                file_objects = FileObjectAdapters.get_all_file_objects()
-                for file_object in file_objects:
-                    print(f"####FILEOBJECT####: {file_object.file_name}")
                 entry_to_location_map += zip(
                     pdf_entries_per_file, [pdf_file] * len(pdf_entries_per_file)
                 )  # this is an indexed map of pdf_entries for the pdf.
                 entries.extend(pdf_entries_per_file)
+                file_to_text_map[pdf_file] = pdf_entries_per_file
             except Exception as e:
                 logger.warning(f"Unable to process file: {pdf_file}. This file will not be indexed.")
                 logger.warning(e, exc_info=True)
@@ -97,7 +91,7 @@ class PdfToEntries(TextToEntries):
                 if os.path.exists(f"{tmp_file}"):
                     os.remove(f"{tmp_file}")
 
-        return PdfToEntries.convert_pdf_entries_to_maps(entries, dict(entry_to_location_map))
+        return file_to_text_map, PdfToEntries.convert_pdf_entries_to_maps(entries, dict(entry_to_location_map))
 
     @staticmethod
     def convert_pdf_entries_to_maps(parsed_entries: List[str], entry_to_file_map) -> List[Entry]:

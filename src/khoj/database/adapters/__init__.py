@@ -847,13 +847,11 @@ class ConversationAdapters:
         return await TextToImageModelConfig.objects.filter().afirst()
 
 
-# Model Included Here as a Commen:
-# class FileObject(BaseModel):
-#     #Same as Entry but raw will be a much larger string
-#     file_name = models.CharField(max_length=400, default=None, null=True, blank=True)
-#     raw_text = models.TextField()
 class FileObjectAdapters:
-    # overwtie raw text
+    @staticmethod
+    def overwrite_raw_text(file_object: FileObject, new_raw_text: str):
+        file_object.raw_text = new_raw_text
+        file_object.save()
 
     @staticmethod
     def create_file_object(file_name: str, raw_text: str):
