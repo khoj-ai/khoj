@@ -80,7 +80,7 @@ const config = {
         {name: 'og:type', content: 'website'},
         {name: 'og:site_name', content: 'Khoj Documentation'},
         {name: 'og:description', content: 'Quickly get started with using or self-hosting Khoj'},
-        {name: 'og:image', content: 'https://khoj-web-bucket.s3.amazonaws.com/link_preview_docs.png'},
+        {name: 'og:image', content: 'https://assets.khoj.dev/link_preview_docs.png'},
         {name: 'og:url', content: 'https://docs.khoj.dev'},
         {name: 'keywords', content: 'khoj, khoj ai, chatgpt, open ai, open source, productivity'}
       ],

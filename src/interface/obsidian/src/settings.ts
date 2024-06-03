@@ -2,6 +2,15 @@ import { App, Notice, PluginSettingTab, Setting, TFile } from 'obsidian';
 import Khoj from 'src/main';
 import { canConnectToBackend, getBackendStatusMessage, updateContentIndex } from './utils';
 
+export interface UserInfo {
+    username?: string;
+    photo?: string;
+    is_active?: boolean;
+    has_documents?: boolean;
+    email?: string;
+}
+
+
 export interface KhojSetting {
     resultsCount: number;
     khojUrl: string;
@@ -9,7 +18,7 @@ export interface KhojSetting {
     connectedToBackend: boolean;
     autoConfigure: boolean;
     lastSync: Map<TFile, number>;
-    userEmail: string;
+    userInfo: UserInfo | null;
 }
 
 export const DEFAULT_SETTINGS: KhojSetting = {
@@ -19,7 +28,7 @@ export const DEFAULT_SETTINGS: KhojSetting = {
     connectedToBackend: false,
     autoConfigure: true,
     lastSync: new Map(),
-    userEmail: '',
+    userInfo: null,
 }
 
 export class KhojSettingTab extends PluginSettingTab {
@@ -38,7 +47,7 @@ export class KhojSettingTab extends PluginSettingTab {
         let backendStatusEl = containerEl.createEl('small', {
             text: getBackendStatusMessage(
                 this.plugin.settings.connectedToBackend,
-                this.plugin.settings.userEmail,
+                this.plugin.settings.userInfo?.email,
                 this.plugin.settings.khojUrl,
                 this.plugin.settings.khojApiKey
             )}
@@ -55,7 +64,7 @@ export class KhojSettingTab extends PluginSettingTab {
                     this.plugin.settings.khojUrl = value.trim().replace(/\/$/, '');
                     ({
                         connectedToBackend: this.plugin.settings.connectedToBackend,
-                        userEmail: this.plugin.settings.userEmail,
+                        userInfo: this.plugin.settings.userInfo,
                         statusMessage: backendStatusMessage,
                     } = await canConnectToBackend(this.plugin.settings.khojUrl, this.plugin.settings.khojApiKey));
 
@@ -71,7 +80,7 @@ export class KhojSettingTab extends PluginSettingTab {
                     this.plugin.settings.khojApiKey = value.trim();
                     ({
                         connectedToBackend: this.plugin.settings.connectedToBackend,
-                        userEmail: this.plugin.settings.userEmail,
+                        userInfo: this.plugin.settings.userInfo,
                         statusMessage: backendStatusMessage,
                     } = await canConnectToBackend(this.plugin.settings.khojUrl, this.plugin.settings.khojApiKey));
                     await this.plugin.saveSettings();

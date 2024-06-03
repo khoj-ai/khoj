@@ -32,7 +32,10 @@
         </div>
     </body>
     <script>
-        document.getElementById("settings-nav").classList.add("khoj-nav-selected");
+        const settingsNav = document.getElementById("settings-nav");
+        if (settingsNav) {
+            settingsNav.classList.add("khoj-nav-selected");
+        }
     </script>
     <style>
         html, body {
