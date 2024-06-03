@@ -243,13 +243,12 @@ export class KhojChatView extends KhojPaneView {
 
         if (referenceFile) {
             // Find vault file associated with current reference
-            let linkToEntry = getLinkToEntry(mdFiles.concat(pdfFiles), referenceFile, reference);
+            const linkToEntry = getLinkToEntry(mdFiles.concat(pdfFiles), referenceFile, reference);
 
-            let linkElement: Element;
-            linkElement = referenceButton.createEl('span');
+            const linkElement: Element = referenceButton.createEl('span');
             linkElement.setAttribute('title', escaped_ref);
             linkElement.textContent = referenceFile;
-            if (linkToEntry && linkToEntry) {
+            if (linkElement && linkToEntry) {
                 linkElement.classList.add("reference-link");
                 linkElement.addEventListener('click', (event) => {
                     event.stopPropagation();
@@ -293,6 +292,7 @@ export class KhojChatView extends KhojPaneView {
         // Render markdow to HTML DOM element
         let chat_message_body_text_el = this.contentEl.createDiv();
         chat_message_body_text_el.className = "chat-message-text-response";
+        // @ts-ignore
         MarkdownRenderer.renderMarkdown(message, chat_message_body_text_el, '', null);
 
         // Replace placeholders with LaTeX delimiters

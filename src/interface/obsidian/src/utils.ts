@@ -139,10 +139,9 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
 export async function createNote(name: string, newLeaf = false): Promise<void> {
     try {
       let pathPrefix: string
-      // @ts-ignore
-      switch (app.vault.getConfig('newFileLocation')) {
+      switch (this.app.vault.getConfig('newFileLocation')) {
         case 'current':
-          pathPrefix = (app.workspace.getActiveFile()?.parent.path ?? '') + '/'
+          pathPrefix = (this.app.workspace.getActiveFile()?.parent.path ?? '') + '/'
           break
         case 'folder':
           pathPrefix = this.app.vault.getConfig('newFileFolderPath') + '/'
@@ -151,7 +150,7 @@ export async function createNote(name: string, newLeaf = false): Promise<void> {
           pathPrefix = ''
           break
       }
-      await app.workspace.openLinkText(`${pathPrefix}${name}.md`, '', newLeaf)
+      await this.app.workspace.openLinkText(`${pathPrefix}${name}.md`, '', newLeaf)
     } catch (e) {
       console.error('Khoj: Could not create note.\n' + (e as any).message);
       throw e

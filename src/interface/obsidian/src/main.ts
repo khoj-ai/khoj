@@ -85,10 +85,10 @@ export default class Khoj extends Plugin {
           // Our view could not be found in the workspace, create a new leaf
           // in the right sidebar for it
           leaf = workspace.getRightLeaf(false);
-          await leaf.setViewState({ type: viewType, active: true });
+          await leaf?.setViewState({ type: viewType, active: true });
         }
 
         // "Reveal" the leaf in case it is in a collapsed sidebar
-        workspace.revealLeaf(leaf);
+        if (leaf) workspace.revealLeaf(leaf);
       }
 }
