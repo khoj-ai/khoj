@@ -309,8 +309,7 @@ async def extract_references_and_questions(
         defiltered_query = filter.defilter(defiltered_query)
     filters_in_query = q.replace(defiltered_query, "").strip()
     conversation = await sync_to_async(ConversationAdapters.get_conversation_by_id)(conversation_id)
-    for filter in conversation.file_filters:
-        filters_in_query += f" file:{filter}"
+    filters_in_query += " ".join([f'file:"{filter}"' for filter in conversation.file_filters])
     using_offline_chat = False
     print(f"Filters in query: {filters_in_query}")
 
