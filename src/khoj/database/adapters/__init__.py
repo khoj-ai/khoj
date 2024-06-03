@@ -853,12 +853,10 @@ class ConversationAdapters:
 #     file_name = models.CharField(max_length=400, default=None, null=True, blank=True)
 #     raw_text = models.TextField()
 class FileObjectAdapters:
+    # overwtie raw text
+
     @staticmethod
     def create_file_object(file_name: str, raw_text: str):
-        # check if file name already exists
-        file_object = FileObject.objects.filter(file_name=file_name).first()
-        if file_object:
-            return file_object
         return FileObject.objects.create(file_name=file_name, raw_text=raw_text)
 
     @staticmethod
