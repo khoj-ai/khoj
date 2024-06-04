@@ -873,6 +873,31 @@ class FileObjectAdapters:
     def delete_all_file_objects():
         return FileObject.objects.all().delete()
 
+    @staticmethod
+    async def async_overwrite_raw_text(file_object: FileObject, new_raw_text: str):
+        await sync_to_async(lambda: setattr(file_object, "raw_text", new_raw_text))()
+        await sync_to_async(file_object.save)()
+
+    @staticmethod
+    async def async_create_file_object(file_name: str, raw_text: str):
+        return await sync_to_async(FileObject.objects.create)(file_name=file_name, raw_text=raw_text)
+
+    @staticmethod
+    async def async_get_file_objects_by_name(file_name: str):
+        return await sync_to_async(FileObject.objects.filter)(file_name=file_name).first()
+
+    @staticmethod
+    async def async_get_all_file_objects():
+        return await sync_to_async(FileObject.objects.all)()
+
+    @staticmethod
+    async def async_delete_file_object_by_name(file_name: str):
+        return await sync_to_async(FileObject.objects.filter)(file_name=file_name).delete()
+
+    @staticmethod
+    async def async_delete_all_file_objects():
+        return await sync_to_async(FileObject.objects.all)().delete()
+
 
 class EntryAdapters:
     word_filer = WordFilter()  # typo here should be word_filter

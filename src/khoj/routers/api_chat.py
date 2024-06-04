@@ -16,6 +16,7 @@ from websockets import ConnectionClosedOK
 from khoj.database.adapters import (
     ConversationAdapters,
     EntryAdapters,
+    FileObjectAdapters,
     PublicConversationAdapters,
     aget_user_name,
 )
@@ -42,6 +43,7 @@ from khoj.routers.helpers import (
     aget_relevant_output_modes,
     construct_automation_created_message,
     create_automation,
+    extract_relevant_info,
     get_conversation_command,
     is_query_empty,
     is_ready_to_chat,
@@ -532,6 +534,26 @@ async def websocket_endpoint(
             await conversation_command_rate_limiter.update_and_check_if_valid(websocket, cmd)
             q = q.replace(f"/{cmd.value}", "").strip()
 
+        if conversation_commands == [ConversationCommand.Summarize]:
+            selected_files = await FileObjectAdapters.async_get_all_file_objects()
+            num_files = await selected_files.acount()
+
+            contextual_data = " ".join([file.raw_text async for file in selected_files])
+            await send_status_update("**🗃️ Reading Files to Generate Summary...**")
+            q = f"Using the following query: {q}, create a summary. If the query is vague just summarize the given text."
+
+            await send_status_update("**🧑🏾‍💻 Constructing Summary...**")
+            response = await extract_relevant_info(q, contextual_data)
+            print(f"Response: {response}")
+
+            if not response:
+                response = "Unable to Create Summary"
+            else:
+                print(f"Successful Response :)")
+
+            await send_complete_llm_response(str(response))
+            continue
+
         custom_filters = []
         if conversation_commands == [ConversationCommand.Help]:
             if not q:
@@ -761,8 +783,7 @@ async def chat(
 
     await is_ready_to_chat(user)
     conversation_commands = [get_conversation_command(query=q, any_references=True)]
-    if conversation_commands == [ConversationCommand.Summarize]:
-        return StreamingResponse("Summarize command is not supported", media_type="text/event-stream", status_code=200)
+
     _custom_filters = []
     if conversation_commands == [ConversationCommand.Help]:
         help_str = "/" + ConversationCommand.Help

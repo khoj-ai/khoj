@@ -408,7 +408,6 @@ async def extract_relevant_info(q: str, corpus: str) -> Union[str, None]:
             prompts.system_prompt_extract_relevant_information,
             chat_model_option=summarizer_model,
         )
-
     return response.strip()
 
 
@@ -496,9 +495,9 @@ async def send_message_to_model_wrapper(
         )
 
     elif conversation_config.model_type == "openai":
-        openai_chat_config = conversation_config.openai_config
-        api_key = openai_chat_config.api_key
-        api_base_url = openai_chat_config.api_base_url
+        openai_chat_config = await sync_to_async(lambda: conversation_config.openai_config)()
+        api_key = await sync_to_async(lambda: openai_chat_config.api_key)()
+        api_base_url = await sync_to_async(lambda: openai_chat_config.api_base_url)()
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
             system_message=system_message,
