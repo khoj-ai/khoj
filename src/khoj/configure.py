@@ -328,6 +328,14 @@ def update_content_index_regularly():
     )
 
 
+@schedule.repeat(schedule.every(1).to(2).hours)
+def close_all_db_connections():
+    from django import db
+
+    db.close_old_connections()
+    logger.info("🔌 Closed all database connections for explicit recycling.")
+
+
 def configure_search_types():
     # Extract core search types
     core_search_types = {e.name: e.value for e in SearchType}
