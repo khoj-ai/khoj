@@ -188,6 +188,8 @@ def get_conversation_command(query: str, any_references: bool = False) -> Conver
         return ConversationCommand.Image
     elif query.startswith("/automated_task"):
         return ConversationCommand.AutomatedTask
+    elif query.startswith("/summarize"):
+        return ConversationCommand.Summarize
     # If no relevant notes found for the given query
     elif not any_references:
         return ConversationCommand.General

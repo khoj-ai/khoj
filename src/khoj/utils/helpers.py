@@ -306,6 +306,7 @@ class ConversationCommand(str, Enum):
     Image = "image"
     Automation = "automation"
     AutomatedTask = "automated_task"
+    Summarize = "summarize"
 
 
 command_descriptions = {
@@ -317,6 +318,7 @@ command_descriptions = {
     ConversationCommand.Image: "Generate images by describing your imagination in words.",
     ConversationCommand.Automation: "Automatically run your query at a specified time or interval.",
     ConversationCommand.Help: "Get help with how to use or setup Khoj from the documentation",
+    ConversationCommand.Summarize: "Create an appropriate summary using provided documents.",
 }
 
 tool_descriptions_for_llm = {

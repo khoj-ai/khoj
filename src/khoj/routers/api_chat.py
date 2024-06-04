@@ -761,7 +761,8 @@ async def chat(
 
     await is_ready_to_chat(user)
     conversation_commands = [get_conversation_command(query=q, any_references=True)]
-
+    if conversation_commands == [ConversationCommand.Summarize]:
+        return StreamingResponse("Summarize command is not supported", media_type="text/event-stream", status_code=200)
     _custom_filters = []
     if conversation_commands == [ConversationCommand.Help]:
         help_str = "/" + ConversationCommand.Help
