@@ -404,9 +404,9 @@ def is_valid_url(url: str) -> bool:
         return False
 
 
-def is_internet_connected():
+def is_internet_connected(timeout=None):
     try:
-        response = requests.head("https://www.google.com")
+        response = requests.head("https://www.google.com", timeout=timeout)
         return response.status_code == 200
     except:
         return False
