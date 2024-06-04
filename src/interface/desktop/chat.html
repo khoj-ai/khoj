@@ -8,6 +8,7 @@
         <link rel="icon" type="image/png" sizes="128x128" href="./assets/icons/favicon-128x128.png">
         <link rel="manifest" href="/static/khoj.webmanifest">
     </head>
+    <script type="text/javascript" src="./assets/purify.min.js?v={{ khoj_version }}"></script>
     <script type="text/javascript" src="./assets/markdown-it.min.js"></script>
     <script src="./utils.js"></script>
 
@@ -282,6 +283,8 @@
 
             // Render markdown
             newHTML = raw ? newHTML : md.render(newHTML);
+            // Sanitize the rendered markdown
+            newHTML = DOMPurify.sanitize(newHTML);
             // Set rendered markdown to HTML DOM element
             let element = document.createElement('div');
             element.innerHTML = newHTML;

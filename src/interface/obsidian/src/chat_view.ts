@@ -1,4 +1,5 @@
 import { MarkdownRenderer, WorkspaceLeaf, request, requestUrl, setIcon } from 'obsidian';
+import * as DOMPurify from 'dompurify';
 import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
 import { KhojView, createCopyParentText, getLinkToEntry, pasteTextAtCursor } from 'src/utils';
@@ -79,6 +80,20 @@ export class KhojChatView extends KhojPaneView {
         contentEl.addClass("khoj-chat");
 
         super.onOpen();
+
+        // Construct Content Security Policy
+        let defaultDomains = `'self' ${this.setting.khojUrl} https://app.khoj.dev https://assets.khoj.dev`;
+        const defaultSrc = `default-src ${defaultDomains};`;
+        const scriptSrc = `script-src ${defaultDomains} 'unsafe-inline';`;
+        const connectSrc = `connect-src ${this.setting.khojUrl} https://ipapi.co/json;`;
+        const styleSrc = `style-src ${defaultDomains} 'unsafe-inline';`;
+        const imgSrc = `img-src ${defaultDomains} data: https://*.khoj.dev https://*.googleusercontent.com;`;
+        const childSrc = `child-src 'none';`;
+        const objectSrc = `object-src 'none';`;
+        const csp = `${defaultSrc} ${scriptSrc} ${connectSrc} ${styleSrc} ${imgSrc} ${childSrc} ${objectSrc}`;
+
+        // Add CSP meta tag to the Khoj Chat modal
+        document.head.createEl("meta", { attr: { "http-equiv": "Content-Security-Policy", "content": `${csp}` } });
 
         // Create area for chat logs
         let chatBodyEl = contentEl.createDiv({ attr: { id: "khoj-chat-body", class: "khoj-chat-body" } });
@@ -289,6 +304,9 @@ export class KhojChatView extends KhojPaneView {
         // Remove any text between <s>[INST] and </s> tags. These are spurious instructions for the AI chat model.
         rendered_msg = rendered_msg.replace(/<s>\[INST\].+(<\/s>)?/g, '');
 
+        // Sanitize the markdown to render
+        message = DOMPurify.sanitize(message);
+
         // Render markdow to HTML DOM element
         let chat_message_body_text_el = this.contentEl.createDiv();
         chat_message_body_text_el.className = "chat-message-text-response";
@@ -375,6 +393,10 @@ export class KhojChatView extends KhojPaneView {
         let chat_message_body_el = chatMessageEl.createDiv();
         chat_message_body_el.addClasses(["khoj-chat-message-text", sender]);
         let chat_message_body_text_el = chat_message_body_el.createDiv();
+
+        // Sanitize the markdown to render
+        message = DOMPurify.sanitize(message);
+
         if (raw) {
             chat_message_body_text_el.innerHTML = message;
         } else {
@@ -422,6 +444,8 @@ export class KhojChatView extends KhojPaneView {
     async renderIncrementalMessage(htmlElement: HTMLDivElement, additionalMessage: string) {
         this.result += additionalMessage;
         htmlElement.innerHTML = "";
+        // Sanitize the markdown to render
+        this.result = DOMPurify.sanitize(this.result);
         // @ts-ignore
         await MarkdownRenderer.renderMarkdown(this.result, htmlElement, '', null);
         // Render action buttons for the message
