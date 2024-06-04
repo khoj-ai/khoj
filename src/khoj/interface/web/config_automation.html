@@ -2,6 +2,7 @@
 {% block content %}
 <div class="page">
     <div class="section">
+        <div id="overlay" style="display: none;"></div>
         <h2 class="section-title">
             <img class="card-icon" src="/static/assets/icons/automation.svg?v={{ khoj_version }}" alt="Automate">
             <span class="card-title-text">Automate (Preview)</span>
@@ -30,10 +31,24 @@
         <a href="/">Back to Chat</a>
     </div>
 </div>
+<script>
+    document.getElementById("automations-nav").classList.add("khoj-nav-selected");
+</script>
+
 <script src="/static/assets/natural-cron.min.js"></script>
 <style>
     td {
         padding: 10px 0;
+    }
+    #overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: black;
+        opacity: 0.5;
+        z-index: 1;
     }
     div.automation {
         width: 100%;
@@ -62,6 +77,7 @@
         color: var(--primary-color);
     }
 
+    img.automation-share-icon,
     img.automation-edit-cancel-icon,
     img.automation-edit-icon {
         width: 24px;
@@ -204,7 +220,7 @@
 
     div.subject-wrapper {
         display: grid;
-        grid-template-columns: 1fr auto;
+        grid-template-columns: 1fr auto auto;
         grid-gap: 8px;
     }
 
@@ -240,6 +256,14 @@
 <script>
     function deleteAutomation(automationId) {
         const AutomationList = document.getElementById("automations");
+        if ("{{ username }}" === "None") {
+            const AutomationItem = document.getElementById(`automation-card-${automationId}`);
+            AutomationList.removeChild(AutomationItem);
+            // Remove the Automation from the DOM and return
+            AutomationItem.remove();
+            document.getElementById('overlay').style.display = 'none';
+            return;
+        }
         fetch(`/api/automation?automation_id=${automationId}`, {
             method: 'DELETE',
         })
@@ -247,6 +271,7 @@
             if (response.status == 200 || response.status == 204) {
                 const AutomationItem = document.getElementById(`automation-card-${automationId}`);
                 AutomationList.removeChild(AutomationItem);
+                document.getElementById('overlay').style.display = 'none';
             }
         });
     }
@@ -336,6 +361,30 @@
         })
     }
 
+    function copyShareLink(event, automationId, subject, crontime, queryToRun) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const encodedSubject = encodeURIComponent(subject);
+        const encodedCrontime = encodeURIComponent(crontime);
+        const encodedQueryToRun = encodeURIComponent(queryToRun);
+
+        const shareLink = `${window.location.origin}/automations?subject=${encodedSubject}&crontime=${encodedCrontime}&queryToRun=${encodedQueryToRun}`;
+        const button = document.getElementById(`share-link-${automationId}`);
+
+        navigator.clipboard.writeText(shareLink).then(() => {
+                button.src = "/static/assets/icons/copy-button-success.svg";
+                setTimeout(() => {
+                    button.src = "/static/assets/icons/share.svg";
+                }, 1000);
+            }).catch((error) => {
+                console.error("Error copying share link output to clipboard:", error);
+                setTimeout(() => {
+                    button.src = "/static/assets/icons/share.svg";
+                }, 1000);
+            });
+    }
+
     function generateAutomationRow(automation, isSuggested=false) {
         let automationId = automation.id;
         let automationNextRun = `Next run at ${automation.next}\nCron: ${automation.crontime}`;
@@ -350,6 +399,7 @@
                             name="subject"
                             data-original="${automation.subject}"
                             value="${automation.subject}">
+                        <img class=automation-share-icon id="share-link-${automationId}" src="/static/assets/icons/share.svg" alt="Share" onclick="copyShareLink(event, '${automationId}', '${automation.subject}', '${automation.crontime}', '${automation.query_to_run}')">
                         <img class="automation-edit-icon ${automationId}" src="/static/assets/icons/pencil-edit.svg" onclick="onClickEditAutomationCard('${automationId}')" alt="Automations">
                     </div>
                     <input type="text"
@@ -405,11 +455,17 @@
         saveAutomationButtonEl.addEventListener("click", async () => { await saveAutomation(automation.id, isSuggested); });
         let deleteAutomationButtonEl = automationEl.querySelector(`#delete-automation-button-${automation.id}`);
         if (deleteAutomationButtonEl) {
-            deleteAutomationButtonEl.addEventListener("click", () => { deleteAutomation(automation.id); });
+            deleteAutomationButtonEl.addEventListener("click", () => {
+                deleteAutomation(automation.id);
+                document.getElementById('overlay').style.display = 'none';
+            });
         }
         let cancelEditAutomationButtonEl = automationEl.querySelector(`#cancel-edit-automation-button-${automation.id}`);
         if (cancelEditAutomationButtonEl) {
-            cancelEditAutomationButtonEl.addEventListener("click", (event) => { clickCancelEdit(event, automation.id); });
+            cancelEditAutomationButtonEl.addEventListener("click", (event) => {
+                clickCancelEdit(event, automation.id);
+                document.getElementById('overlay').style.display = 'none';
+            });
         }
 
         return automationEl.firstElementChild;
@@ -473,9 +529,29 @@
                         }
                     });
                 });
+                // Check if subject, crontime, query_to_run are all filled out. If so, show it as a populated suggested automation.
+                const subject = "{{ subject }}";
+                const crontime = "{{ crontime }}";
+                const query = "{{ queryToRun }}";
+
+                if (subject && crontime && query) {
+                    const preFilledAutomation = createPreFilledAutomation(subject, crontime, query);
+                }
             });
     }
-    listAutomations();
+
+    if ("{{ username }}" !== "None") {
+        listAutomations();
+    } else {
+        // Check if subject, crontime, query_to_run are all filled out. If so, show it as a populated suggested automation.
+        const subject = "{{ subject }}";
+        const crontime = "{{ crontime }}";
+        const query = "{{ queryToRun }}";
+
+        if (subject && crontime && query) {
+            const preFilledAutomation = createPreFilledAutomation(subject, crontime, query);
+        }
+    }
 
     if (suggestedAutomationsMetadata.length > 0) {
         suggestedAutomationsMetadata.forEach(automation => {
@@ -720,6 +796,12 @@
     }
 
     async function saveAutomation(automationId, create=false) {
+        if ("{{ username }}" == "None") {
+            url_encoded_href = encodeURIComponent(window.location.href);
+            window.location.href = `/login?next=${url_encoded_href}`;
+            return;
+        }
+
         const scheduleEl = document.getElementById(`automation-schedule-${automationId}`);
         const notificationEl = document.getElementById(`automation-success-${automationId}`);
         const saveButtonEl = document.getElementById(`save-automation-button-${automationId}`);
@@ -879,5 +961,38 @@
         document.getElementById("automations").insertBefore(automationEl, document.getElementById("automations").firstChild);
         setupScheduleViewListener("* * * * *", placeholderId);
     })
+
+    function createPreFilledAutomation(subject, crontime, query) {
+        document.getElementById('overlay').style.display = 'block';
+        var automationEl = document.createElement("div");
+        automationEl.classList.add("card");
+        automationEl.classList.add("automation");
+        automationEl.classList.add("new-automation")
+        const placeholderId = Date.now();
+        automationEl.classList.add(`${placeholderId}`);
+        automationEl.id = "automation-card-" + placeholderId;
+        var scheduleSelector = createScheduleSelector(placeholderId);
+        automationEl.innerHTML = `
+            <label for="subject">New Automation</label>
+            <input type="text" id="automation-subject-${placeholderId}" value="${subject}">
+            ${scheduleSelector.outerHTML}
+            <label for="query-to-run">What would you like to receive in your automation?</label>
+            <textarea id="automation-queryToRun-${placeholderId}">${query}</textarea>
+            <div class="automation-buttons">
+                <button type="button"
+                        class="delete-automation-button negative-button"
+                        onclick="deleteAutomation(${placeholderId}, true)"
+                        id="delete-automation-button-${placeholderId}">Cancel</button>
+                <button type="button"
+                        class="save-automation-button"
+                        onclick="saveAutomation(${placeholderId}, true)"
+                        id="save-automation-button-${placeholderId}">Create</button>
+            </div>
+            <div id="automation-success-${placeholderId}" style="display: none;"></div>
+        `;
+        document.getElementById("automations").insertBefore(automationEl, document.getElementById("automations").firstChild);
+        setupScheduleViewListener(crontime, placeholderId);
+    }
+
 </script>
 {% endblock %}
