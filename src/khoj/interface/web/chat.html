@@ -901,8 +901,14 @@ To get started, just start typing below. You can also type / to see a list of co
                         // Display indexing success message
                         flashStatusInChatInput("✅ File indexed successfully");
                         renderAllFiles();
-                        addFileFilterToConversation(fileName);
-                        loadFileFiltersFromConversation();
+                        //get the selected-files ul first
+                        var selectedFiles = document.getElementsByClassName("selected-files")[0];
+                        const escapedFileName = fileName.replace(/\./g, '\\.');
+                        const newFile = selectedFiles.querySelector(`#${escapedFileName}`);
+                        if(!newFile){
+                            addFileFilterToConversation(fileName);
+                            loadFileFiltersFromConversation();
+                        }
                     })
                     .catch((error) => {
                         console.log(error);
