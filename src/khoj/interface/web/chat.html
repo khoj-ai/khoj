@@ -1834,46 +1834,57 @@ To get started, just start typing below. You can also type / to see a list of co
 
             for (var filename of allFiles) {
                 if (filename.toUpperCase().indexOf(filter) > -1) {
-                    indexedFiles.innerHTML += "<li class=\"fileName\" id=\"" + filename + "\" onclick=\"handleFileClick('" + filename + "')\">" + filename + "</li>";
+                    var listItem = document.createElement("li");
+                    listItem.className = "fileName";
+                    listItem.id = filename;
+                    listItem.textContent = filename;
+
+                    // Add an event listener for the click event
+                    listItem.addEventListener('click', function() {
+                        handleFileClick(this.id);
+                    });
+
+                    // Append the list item to the indexed files container
+                    indexedFiles.appendChild(listItem);
                 }
             }
         }
         function handleFileClick(elementId) {
-    var element = document.getElementById(elementId);
-    if (element) {
-        var selectedFiles = document.getElementsByClassName("selected-files")[0];
-        var selectedFile = document.getElementById(elementId);
+            var element = document.getElementById(elementId);
+            if (element) {
+                var selectedFiles = document.getElementsByClassName("selected-files")[0];
+                var selectedFile = document.getElementById(elementId);
 
-        // Check if the element has a background color indicating selection
-        if (element.style.backgroundColor === "var(--primary-hover)") {
-            // Remove the file filter from the conversation
-            removeFileFilterFromConversation(elementId);
-            // Remove the selected file from the list of selected files
-            if (selectedFile) {
-                selectedFiles.removeChild(selectedFile);
+                // Check if the element has a background color indicating selection
+                if (element.style.backgroundColor === "var(--primary-hover)") {
+                    // Remove the file filter from the conversation
+                    removeFileFilterFromConversation(elementId);
+                    // Remove the selected file from the list of selected files
+                    if (selectedFile) {
+                        selectedFiles.removeChild(selectedFile);
+                    }
+                    var selectedFile = document.getElementById(elementId);
+                    selectedFile.style.backgroundColor = "var(--primary)";
+                    selectedFile.style.border = "1px solid var(--primary-hover)";
+                } else {
+                    // If the element is not selected, select it
+                    element.style.backgroundColor = "var(--primary-hover)"; // Set background color
+                    element.style.border = "3px solid orange"; // Set border
+                    // Add the file filter to the conversation
+                    addFileFilterToConversation(elementId);
+                    // Add the selected file to the list of selected files
+                    var li = document.createElement("li");
+                    li.className = "fileName";
+                    li.id = elementId;
+                    li.style.backgroundColor = "var(--primary-hover)"; // match the style
+                    li.style.border = "3px solid orange"; // match the style
+                    li.innerText = elementId;
+                    selectedFiles.appendChild(li);
+                }
+            } else {
+                console.error('Element with id', elementId, 'not found.');
             }
-            var selectedFile = document.getElementById(elementId);
-            selectedFile.style.backgroundColor = "var(--primary)";
-            selectedFile.style.border = "1px solid var(--primary-hover)";
-        } else {
-            // If the element is not selected, select it
-            element.style.backgroundColor = "var(--primary-hover)"; // Set background color
-            element.style.border = "3px solid orange"; // Set border
-            // Add the file filter to the conversation
-            addFileFilterToConversation(elementId);
-            // Add the selected file to the list of selected files
-            var li = document.createElement("li");
-            li.className = "fileName";
-            li.id = elementId;
-            li.style.backgroundColor = "var(--primary-hover)"; // match the style
-            li.style.border = "3px solid orange"; // match the style
-            li.innerText = elementId;
-            selectedFiles.appendChild(li);
         }
-    } else {
-        console.error('Element with id', elementId, 'not found.');
-    }
-}
 
         function addFileFilterToConversation(filename) {
             var conversation_id = document.getElementById("chat-body").dataset.conversationId;
