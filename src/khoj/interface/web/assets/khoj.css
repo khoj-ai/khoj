@@ -102,7 +102,7 @@ a.khoj-logo {
 .khoj-nav a {
     color: var(--main-text-color);
     text-decoration: none;
-    font-size: 20px;
+    font-size: medium;
     font-weight: normal;
     padding: 0 4px;
     border-radius: 4px;
@@ -124,7 +124,6 @@ a.khoj-logo {
     height: 30px;
 }
 span.khoj-nav-item-text {
-    padding-top: 6px;
     padding-left: 8px;
 }
 img.khoj-logo {
@@ -191,11 +190,10 @@ img.khoj-logo {
     display: grid;
     justify-content: center;
     align-items: center;
-    font-size: 20px;
+    font-size: large;
     box-sizing: unset;
     width: 40px;
-    height: 35px;
-    padding-top: 8px
+    height: 40px;
 }
 .subscribed {
     border: 3px solid var(--primary-hover);

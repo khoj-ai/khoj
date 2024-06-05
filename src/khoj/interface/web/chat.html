@@ -787,7 +787,7 @@ To get started, just start typing below. You can also type / to see a list of co
             const textarea = document.getElementById('chat-input');
             const scrollTop = textarea.scrollTop;
             textarea.style.height = '0';
-            const scrollHeight = textarea.scrollHeight + 8;  // +8 accounts for padding
+            const scrollHeight = textarea.scrollHeight + 16;  // +8 accounts for padding
             textarea.style.height = Math.min(scrollHeight, 200) + 'px';
             textarea.scrollTop = scrollTop;
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
@@ -1074,7 +1074,6 @@ To get started, just start typing below. You can also type / to see a list of co
                 let statusDotIcon = document.getElementById("connection-status-icon");
                 statusDotIcon.style.backgroundColor = "green";
                 let statusDotText = document.getElementById("connection-status-text");
-                statusDotText.style.marginTop = "10px";
                 statusDotText.textContent = "Connected to Server";
             }
         }
@@ -1320,7 +1319,6 @@ To get started, just start typing below. You can also type / to see a list of co
                 document.getElementById("chat-input").value = query_via_url;
                 chat();
             }
-
         }
 
         function fetchRemainingChatMessages(chatHistoryUrl) {
@@ -1838,9 +1836,9 @@ To get started, just start typing below. You can also type / to see a list of co
                             <div id="conversation-list-body"></div>
                         </div>
                     </div>
-                    <div id="connection-status" class="inline-chat-link" style="display: flex; align-items: center; border-top: 1px solid black;">
-                        <div id="connection-status-icon" style="width: 10px; height: 10px; border-radius: 50%; margin-right: 5px;"></div>
-                        <div id="connection-status-text" style="margin: 5px;"></div>
+                    <div id="connection-status" class="inline-chat-link">
+                        <div id="connection-status-icon"></div>
+                        <div id="connection-status-text"></div>
                     </div>
                     <a id="agent-link" class="inline-chat-link" href="">
                         <div id="agent-metadata" style="display: none;">
@@ -1931,9 +1929,9 @@ To get started, just start typing below. You can also type / to see a list of co
             color: var(--main-text-color);
             text-align: center;
             font-family: var(--font-family);
-            font-size: medium;
+            font-size: small;
             font-weight: 300;
-            line-height: 1.5em;
+            line-height: 2em;
             height: 100vh;
             margin: 0;
         }
@@ -2135,7 +2133,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
         #chat-body {
             height: 100%;
-            font-size: medium;
+            font-size: 1.1em;
             margin: 0px;
             line-height: 20px;
             overflow-y: scroll;
@@ -2314,7 +2312,7 @@ To get started, just start typing below. You can also type / to see a list of co
             overflow-y: hidden;
             max-height: 200px;
             box-sizing: border-box;
-            padding: 4px 0 0 12px;
+            padding: 8px 0 0 12px;
             line-height: 1.5em;
             margin: 0;
         }
@@ -2326,7 +2324,7 @@ To get started, just start typing below. You can also type / to see a list of co
             border: none;
             box-shadow: none;
             border-radius: 50%;
-            font-size: 14px;
+            font-size: small;
             font-weight: 300;
             line-height: 1.5em;
             cursor: pointer;
@@ -2341,7 +2339,7 @@ To get started, just start typing below. You can also type / to see a list of co
             background: none;
             border: none;
             box-shadow: none;
-            font-size: 14px;
+            font-size: small;
             font-weight: 300;
             line-height: 1.5em;
             cursor: pointer;
@@ -2430,7 +2428,7 @@ To get started, just start typing below. You can also type / to see a list of co
             background-color: var(--background-color);
             border: 1px solid var(--main-text-color);
             text-align: center;
-            font-size: 16px;
+            font-size: medium;
             transition: all 0.5s;
             cursor: pointer;
             padding: 4px;
@@ -2442,7 +2440,7 @@ To get started, just start typing below. You can also type / to see a list of co
             background-color: var(--background-color);
             border: 1px solid var(--main-text-color);
             text-align: center;
-            font-size: 16px;
+            font-size: medium;
             transition: all 0.5s;
             cursor: pointer;
             padding: 4px;
@@ -2455,7 +2453,7 @@ To get started, just start typing below. You can also type / to see a list of co
             background-color: var(--background-color);
             border: 1px solid var(--main-text-color);
             text-align: center;
-            font-size: 16px;
+            font-size: medium;
             transition: all 0.5s;
             cursor: pointer;
             padding: 4px;
@@ -2523,7 +2521,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 color: #f8fafc;
                 border-radius: 2px;
                 box-shadow: 1px 1px 4px 0 rgba(0, 0, 0, 0.4);
-                font-size: 14px;
+                font-size: small;
                 padding: 2px 4px;
             }
         }
@@ -2594,12 +2592,14 @@ To get started, just start typing below. You can also type / to see a list of co
         svg.new-convo-button {
             width: 20px;
             margin-left: 5px;
+            margin-top: 2px;
         }
 
         div#new-conversation {
             display: grid;
             grid-auto-flow: column;
-            font-size: large;
+            grid-template-columns: 1fr auto;
+            font-size: medium;
             text-align: left;
             border-bottom: 1px solid var(--main-text-color);
             margin-top: 8px;
@@ -2608,9 +2608,9 @@ To get started, just start typing below. You can also type / to see a list of co
 
         button#copy-share-url-button,
         button#new-conversation-button {
-            display: inline-flex;
-            align-items: center;
-            justify-self: end;
+            display: grid;
+            grid-auto-flow: column;
+            margin-top: 2px;
         }
 
         div.conversation-button {
@@ -2619,9 +2619,9 @@ To get started, just start typing below. You can also type / to see a list of co
             border: 1px solid var(--main-text-color);
             border-radius: 5px;
             padding: 5px;
-            font-size: 14px;
+            font-size: small;
             font-weight: 300;
-            line-height: 1.5em;
+            line-height: 2em;
             cursor: pointer;
             transition: background 0.2s ease-in-out;
             text-align: left;
@@ -2709,6 +2709,23 @@ To get started, just start typing below. You can also type / to see a list of co
             100% {
                 background-position: 0% 50%;
             }
+        }
+
+        #connection-status {
+            display: grid;
+            grid-auto-flow: column;
+            grid-template-columns: auto 1fr;
+            align-items: center;
+            border-top: 1px solid black;
+        }
+        #connection-status-icon {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        #connection-status-text {
+            margin: 5px;
         }
 
         a.khoj-logo {
