@@ -328,7 +328,7 @@ def update_content_index_regularly():
     )
 
 
-@schedule.repeat(schedule.every(1).to(2).hours)
+@schedule.repeat(schedule.every(30).to(59).minutes)
 def close_all_db_connections():
     from django import db
 
