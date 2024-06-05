@@ -888,7 +888,8 @@ To get started, just start typing below. You can also type / to see a list of co
                         // Display indexing success message
                         flashStatusInChatInput("✅ File indexed successfully");
                         renderAllFiles();
-
+                        addFileFilterToConversation(fileName);
+                        loadFileFiltersFromConversation();
                     })
                     .catch((error) => {
                         console.log(error);
@@ -1810,7 +1811,14 @@ To get started, just start typing below. You can also type / to see a list of co
                 indexedFiles.innerHTML = "";
 
                 for (var filename of data) {
-                    indexedFiles.innerHTML += `<li class="fileName" id="${filename}" onclick="handleFileClick('${filename}')">${filename}</li>`;
+                    var listItem = document.createElement("li");
+                    listItem.className = "fileName";
+                    listItem.id = filename;
+                    listItem.textContent = filename;
+                    listItem.addEventListener('click', function() {
+                        handleFileClick(this.id);
+                    });
+                    indexedFiles.appendChild(listItem);
                 }
                 allFiles = data;
                 var nofilesmessage = document.getElementsByClassName("no-files-message")[0];
