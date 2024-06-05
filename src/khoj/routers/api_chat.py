@@ -584,23 +584,28 @@ async def websocket_endpoint(
             q = q.replace(f"/{cmd.value}", "").strip()
 
         if conversation_commands == [ConversationCommand.Summarize]:
-            selected_files = await FileObjectAdapters.async_get_all_file_objects()
-            num_files = await selected_files.acount()
-
-            contextual_data = " ".join([file.raw_text async for file in selected_files])
-            await send_status_update("**🗃️ Reading Files to Generate Summary...**")
-            q = f"Using the following query: {q}, create a summary. If the query is vague just summarize the given text."
-
-            await send_status_update("**🧑🏾‍💻 Constructing Summary...**")
-            response = await extract_relevant_info(q, contextual_data)
-            print(f"Response: {response}")
-
-            if not response:
-                response = "Unable to Create Summary"
+            file_filters = conversation.file_filters
+            if q:
+                await send_complete_llm_response("Ignoring Arguments... Summarization is not yet implemented.")
+            elif len(file_filters) == 0:
+                await send_complete_llm_response(
+                    "No files selected for summarization. Please select files to summarize."
+                )
+            elif len(file_filters) > 1:
+                await send_complete_llm_response("Only one file can be selected for summarization.")
             else:
-                print(f"Successful Response :)")
-
-            await send_complete_llm_response(str(response))
+                try:
+                    file_object = await FileObjectAdapters.async_get_file_objects_by_name(file_filters[0])
+                except Exception as e:
+                    await send_complete_llm_response(f"Error reading file")
+                    continue
+                contextual_data = " ".join([file.raw_text for file in file_object])
+                q = "Create a summary of the given text."
+                await send_status_update("**🧑🏾‍💻 Constructing Summary...**")
+                response = await extract_relevant_info(q, contextual_data)
+                if not response:
+                    response = "Unable to Create Summary. Please try reuploading the file."
+                await send_complete_llm_response(str(response))
             continue
 
         custom_filters = []

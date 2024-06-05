@@ -851,7 +851,6 @@ class FileObjectAdapters:
     @staticmethod
     def overwrite_raw_text(file_object: FileObject, new_raw_text: str):
         file_object.raw_text = new_raw_text
-        file_object.save()
 
     @staticmethod
     def create_file_object(file_name: str, raw_text: str):
@@ -859,7 +858,7 @@ class FileObjectAdapters:
 
     @staticmethod
     def get_file_objects_by_name(file_name: str):
-        return FileObject.objects.filter(file_name=file_name).first()
+        return FileObject.objects.filter(file_name=file_name)
 
     @staticmethod
     def get_all_file_objects():
@@ -884,7 +883,7 @@ class FileObjectAdapters:
 
     @staticmethod
     async def async_get_file_objects_by_name(file_name: str):
-        return await sync_to_async(FileObject.objects.filter)(file_name=file_name).first()
+        return await sync_to_async(list)(FileObject.objects.filter(file_name=file_name))
 
     @staticmethod
     async def async_get_all_file_objects():
