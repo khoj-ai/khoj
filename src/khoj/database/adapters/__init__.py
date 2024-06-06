@@ -944,7 +944,10 @@ class EntryAdapters:
 
         if len(file_filters) > 0:
             for term in file_filters:
-                q_file_filter_terms |= Q(file_path__regex=term)
+                if term.startswith("-"):
+                    q_file_filter_terms |= ~Q(file_path__regex=term[1:])
+                else:
+                    q_file_filter_terms |= Q(file_path__regex=term)
 
             q_filter_terms &= q_file_filter_terms
 
