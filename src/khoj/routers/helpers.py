@@ -287,16 +287,16 @@ async def aget_relevant_output_modes(query: str, conversation_history: dict, is_
         response = response.strip()
 
         if is_none_or_empty(response):
-            return ConversationCommand.Default
+            return ConversationCommand.Text
 
         if response in mode_options.keys():
             # Check whether the tool exists as a valid ConversationCommand
             return ConversationCommand(response)
 
-        return ConversationCommand.Default
-    except Exception as e:
+        return ConversationCommand.Text
+    except Exception:
         logger.error(f"Invalid response for determining relevant mode: {response}")
-        return ConversationCommand.Default
+        return ConversationCommand.Text
 
 
 async def infer_webpage_urls(q: str, conversation_history: dict, location_data: LocationData) -> List[str]:

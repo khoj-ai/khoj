@@ -304,6 +304,7 @@ class ConversationCommand(str, Enum):
     Online = "online"
     Webpage = "webpage"
     Image = "image"
+    Text = "text"
     Automation = "automation"
     AutomatedTask = "automated_task"
 
@@ -330,7 +331,7 @@ tool_descriptions_for_llm = {
 mode_descriptions_for_llm = {
     ConversationCommand.Image: "Use this if the user is requesting an image or visual response to their query.",
     ConversationCommand.Automation: "Use this if the user is requesting a response at a scheduled date or time.",
-    ConversationCommand.Default: "Use this if the other response modes don't seem to fit the query.",
+    ConversationCommand.Text: "Use this if the other response modes don't seem to fit the query.",
 }
 
 
