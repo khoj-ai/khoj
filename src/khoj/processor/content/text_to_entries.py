@@ -190,16 +190,18 @@ class TextToEntries(ABC):
                     )
                     logger.error(f"Error adding entries to database:\n{batch_indexing_error}\n---\n{e}", exc_info=True)
             logger.debug(f"Added {len(added_entries)} {file_type} entries to database")
-        # get the list of file_names using added_entries
-        filenames_to_update = [entry.file_path for entry in added_entries]
-        # for each file_name in filenames_to_update, try getting the file object and updating raw_text and if it fails create a new file object
-        for file_name in filenames_to_update:
-            raw_text = " ".join(file_to_text_map[file_name])
-            file_object = FileObjectAdapters.get_file_objects_by_name(file_name)
-            if file_object:
-                FileObjectAdapters.overwrite_raw_text(file_object, raw_text)
-            else:
-                FileObjectAdapters.create_file_object(file_name, raw_text)
+
+        if file_to_text_map:
+            # get the list of file_names using added_entries
+            filenames_to_update = [entry.file_path for entry in added_entries]
+            # for each file_name in filenames_to_update, try getting the file object and updating raw_text and if it fails create a new file object
+            for file_name in filenames_to_update:
+                raw_text = " ".join(file_to_text_map[file_name])
+                file_object = FileObjectAdapters.get_file_objects_by_name(file_name)
+                if file_object:
+                    FileObjectAdapters.overwrite_raw_text(file_object, raw_text)
+                else:
+                    FileObjectAdapters.create_file_object(file_name, raw_text)
 
         new_dates = []
         with timer("Indexed dates from added entries in", logger):
