@@ -43,7 +43,7 @@ from khoj.routers.helpers import (
     aget_relevant_output_modes,
     construct_automation_created_message,
     create_automation,
-    extract_relevant_info,
+    extract_relevant_summary,
     get_conversation_command,
     is_query_empty,
     is_ready_to_chat,
@@ -593,27 +593,23 @@ async def websocket_endpoint(
 
         if conversation_commands == [ConversationCommand.Summarize]:
             file_filters = conversation.file_filters
-            if q:
-                await send_complete_llm_response("Ignoring Arguments... Summarization is not yet implemented.")
-            elif len(file_filters) == 0:
+            if len(file_filters) == 0:
                 await send_complete_llm_response(
-                    "No files selected for summarization. Please select files to summarize."
+                    "No files selected for summarization. Please add files using the section on the left."
                 )
             elif len(file_filters) > 1:
                 await send_complete_llm_response("Only one file can be selected for summarization.")
             else:
                 try:
                     file_object = await FileObjectAdapters.async_get_file_objects_by_name(file_filters[0])
+                    contextual_data = " ".join([file.raw_text for file in file_object])
+                    if not q:
+                        q = "Create a general summary of the file"
+                    await send_status_update(f"**🧑🏾‍💻 Constructing Summary Using:** {file_object[0].file_name}")
+                    response = await extract_relevant_summary(q, contextual_data)
+                    await send_complete_llm_response(str(response))
                 except Exception as e:
-                    await send_complete_llm_response(f"Error reading file")
-                    continue
-                contextual_data = " ".join([file.raw_text for file in file_object])
-                q = "Create a summary of the given text."
-                await send_status_update("**🧑🏾‍💻 Constructing Summary...**")
-                response = await extract_relevant_info(q, contextual_data)
-                if not response:
-                    response = "Unable to Create Summary. Please try reuploading the file."
-                await send_complete_llm_response(str(response))
+                    await send_complete_llm_response(f"Error summarizing file.")
             continue
 
         custom_filters = []
