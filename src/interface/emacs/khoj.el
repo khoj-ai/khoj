@@ -108,6 +108,11 @@
   :group 'khoj
   :type 'number)
 
+(defcustom khoj-index-files-batch 30
+  "Number of files to send for indexing in each request."
+  :group 'khoj
+  :type 'number)
+
 (defcustom khoj-default-content-type "org"
   "The default content type to perform search on."
   :group 'khoj
@@ -416,10 +421,22 @@ Auto invokes setup steps on calling main entrypoint."
          (files-to-index (or file-paths
                              (append (mapcan (lambda (dir) (directory-files-recursively dir "\\.\\(org\\|md\\|markdown\\|pdf\\|txt\\|rst\\|xml\\|htm\\|html\\)$")) content-directories) content-files)))
          (type-query (if (or (equal content-type "all") (not content-type)) "" (format "t=%s" content-type)))
+         (delete-files (-difference khoj--indexed-files files-to-index))
          (inhibit-message t)
-         (message-log-max nil))
-    (let ((url-request-method "POST")
-          (url-request-data (khoj--render-files-as-request-body files-to-index khoj--indexed-files boundary))
+         (message-log-max nil)
+         (batch-size khoj-index-files-batch))
+    (dolist (files (-partition-all batch-size files-to-index))
+      (khoj--send-index-update-request (khoj--render-update-files-as-request-body files boundary) boundary content-type type-query force))
+    (when delete-files
+        (khoj--send-index-update-request (khoj--render-delete-files-as-request-body delete-files boundary) boundary content-type type-query force))
+    (setq khoj--indexed-files files-to-index)))
+
+(defun khoj--send-index-update-request (body boundary &optional content-type type-query force)
+  "Send multi-part form `BODY' of `CONTENT-TYPE' in request to khoj server.
+Append 'TYPE-QUERY' as query parameter in request url.
+Specify `BOUNDARY' used to separate files in request header."
+  (let ((url-request-method "POST")
+        (url-request-data body)
           (url-request-extra-headers `(("content-type" . ,(format "multipart/form-data; boundary=%s" boundary))
                                        ("Authorization" . ,(format "Bearer %s" khoj-api-key)))))
       (with-current-buffer
@@ -437,10 +454,9 @@ Auto invokes setup steps on calling main entrypoint."
                                          (if content-type (format "%s " content-type) "all")
                                          (string-trim (format "%s %s" (nth 1 (nth 1 status)) (nth 2 (nth 1 status))))
                                          (if (> (- (point-max) (point)) 0) (format ". Response: %s" (string-trim (buffer-substring-no-properties (point) (point-max)))) ""))))))
-                        nil t t)))
-    (setq khoj--indexed-files files-to-index)))
+                        nil t t))))
 
-(defun khoj--render-files-as-request-body (files-to-index previously-indexed-files boundary)
+(defun khoj--render-update-files-as-request-body (files-to-index boundary)
   "Render `FILES-TO-INDEX', `PREVIOUSLY-INDEXED-FILES' as multi-part form body.
 Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request."
   (with-temp-buffer
@@ -448,31 +464,41 @@ Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request.
     (insert "\n")
     (dolist (file-to-index files-to-index)
       ;; find file content-type. Choose from org, markdown, pdf, plaintext
-      (let ((content-type (cond ((string-match "\\.org$" file-to-index) "text/org")
-                                ((string-match "\\.\\(md\\|markdown\\)$" file-to-index) "text/markdown")
-                                ((string-match "\\.pdf$" file-to-index) "application/pdf")
-                                (t "text/plain"))))
+      (let ((content-type (khoj--filename-to-mime-type file-to-index))
+            (file-name (encode-coding-string  file-to-index 'utf-8)))
       (insert (format "--%s\r\n" boundary))
-      (insert (format "Content-Disposition: form-data; name=\"files\"; filename=\"%s\"\r\n" file-to-index))
+      (insert (format "Content-Disposition: form-data; name=\"files\"; filename=\"%s\"\r\n" file-name))
       (insert (format "Content-Type: %s\r\n\r\n" content-type))
       (insert (with-temp-buffer
                 (insert-file-contents-literally file-to-index)
                 (buffer-string)))
       (insert "\r\n")))
-    (dolist (file-to-index previously-indexed-files)
-      (when (not (member file-to-index files-to-index))
-        ;; find file content-type. Choose from org, markdown, pdf, plaintext
-        (let ((content-type (cond ((string-match "\\.org$" file-to-index) "text/org")
-                                  ((string-match "\\.\\(md\\|markdown\\)$" file-to-index) "text/markdown")
-                                  ((string-match "\\.pdf$" file-to-index) "application/pdf")
-                                  (t "text/plain"))))
-          (insert (format "--%s\r\n" boundary))
-          (insert (format "Content-Disposition: form-data; name=\"files\"; filename=\"%s\"\r\n" file-to-index))
-          (insert "Content-Type: text/org\r\n\r\n")
-          (insert "")
-          (insert "\r\n"))))
     (insert (format "--%s--\r\n" boundary))
     (buffer-string)))
+
+(defun khoj--render-delete-files-as-request-body (delete-files boundary)
+  "Render `DELETE-FILES' as multi-part form body.
+Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request."
+  (with-temp-buffer
+    (set-buffer-multibyte nil)
+    (insert "\n")
+    (dolist (file-to-index delete-files)
+      (let ((content-type (khoj--filename-to-mime-type file-to-index))
+            (file-name (encode-coding-string  file-to-index 'utf-8)))
+          (insert (format "--%s\r\n" boundary))
+          (insert (format "Content-Disposition: form-data; name=\"files\"; filename=\"%s\"\r\n" file-name))
+          (insert (format "Content-Type: %s\r\n\r\n" content-type))
+          (insert "")
+          (insert "\r\n")))
+    (insert (format "--%s--\r\n" boundary))
+    (buffer-string)))
+
+(defun khoj--filename-to-mime-type (file-name)
+  "`FILE-NAME' to mimeType."
+  (cond ((string-match "\\.org$" file-name) "text/org")
+        ((string-match "\\.\\(md\\|markdown\\)$" file-name) "text/markdown")
+        ((string-match "\\.pdf$" file-name) "application/pdf")
+        (t "text/plain")))
 
 ;; Cancel any running indexing timer, first
 (when khoj--index-timer
@@ -1057,8 +1083,8 @@ Paragraph only starts at first text after blank line."
 (defun khoj ()
   "Search and chat with your knowledge base using your personal AI copilot.
 
-Collaborate with Khoj to search, understand, create, review and update your knowledge base.
-Khoj can research across your org-mode, markdown notes, plaintext documents and the internet."
+Collaborate with Khoj to search, create, review and update your knowledge base.
+Research across the internet & your documents from the comfort of Emacs."
   (interactive)
   (when khoj-auto-setup
     (khoj-setup t))

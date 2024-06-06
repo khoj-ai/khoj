@@ -119,7 +119,7 @@ async def update(
     except Exception as e:
         logger.error(f"Failed to process batch indexing request: {e}", exc_info=True)
         logger.error(
-            f"🚨 Failed to {force} update {t} content index triggered via API call by {client} client: {e}",
+            f'🚨 Failed to {"force " if force else ""}update {t} content index triggered via API call by {client} client: {e}',
             exc_info=True,
         )
         return Response(content="Failed", status_code=500)
