@@ -46,8 +46,8 @@ Get the Khoj [Desktop](https://khoj.dev/downloads), [Obsidian](https://docs.khoj
 
 To get started, just start typing below. You can also type / to see a list of commands.
 `.trim()
-        const allowedExtensions = ['text/org', 'text/markdown', 'text/plain', 'text/html', 'application/pdf'];
-        const allowedFileEndings = ['org', 'md', 'txt', 'html', 'pdf'];
+        const allowedExtensions = ['text/org', 'text/markdown', 'text/plain', 'text/html', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+        const allowedFileEndings = ['org', 'md', 'txt', 'html', 'pdf', 'docx', 'doc'];
         let chatOptions = [];
         function createCopyParentText(message) {
             return function(event) {
@@ -880,7 +880,12 @@ To get started, just start typing below. You can also type / to see a list of co
                         fileType = "text/html";
                     } else if (fileName.split('.').pop() === "pdf") {
                         fileType = "application/pdf";
+                    } else if (fileName.split('.').pop() === "docx") {
+                        fileType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+                    } else if (fileName.split('.').pop() === "doc") {
+                        fileType = "application/msword";
                     }
+
                 }
 
                 let fileObj = new Blob([fileContents], { type: fileType });

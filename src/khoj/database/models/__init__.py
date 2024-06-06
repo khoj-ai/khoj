@@ -305,6 +305,7 @@ class Entry(BaseModel):
         NOTION = "notion"
         GITHUB = "github"
         CONVERSATION = "conversation"
+        DOCX = "docx"
 
     class EntrySource(models.TextChoices):
         COMPUTER = "computer"
