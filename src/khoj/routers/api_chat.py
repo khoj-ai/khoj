@@ -101,7 +101,6 @@ def add_file_filter(request: Request, filter: FilterRequest):
             request.user.object, conversation_id=int(filter.conversation_id)
         )
         file_list = EntryAdapters.get_all_filenames_by_source(request.user.object, "computer")
-        print(file_list)
         if filter.filename in file_list and filter.filename not in conversation.file_filters:
             conversation.file_filters.append(filter.filename)
             conversation.save()
