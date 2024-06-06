@@ -76,6 +76,7 @@ async def update(
             else:
                 logger.warning(f"Skipped indexing unsupported file type sent by {client} client: {file.filename}")
 
+        print("ifiles: ", index_files)
         indexer_input = IndexerInput(
             org=index_files["org"],
             markdown=index_files["markdown"],
