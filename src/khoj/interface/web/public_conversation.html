@@ -16,6 +16,9 @@
 
         <!-- To automatically render math in text elements, include the auto-render extension: -->
         <script defer src="https://assets.khoj.dev/katex/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
+
+        <link rel="stylesheet" href="https://assets.khoj.dev/higlightjs/solarized-dark.min.css">
+        <script src="https://assets.khoj.dev/higlightjs/highlight.min.js"></script>
     </head>
     <script type="text/javascript" src="/static/assets/utils.js?v={{ khoj_version }}"></script>
     <script type="text/javascript" src="/static/assets/markdown-it.min.js?v={{ khoj_version }}"></script>
@@ -69,12 +72,15 @@ To get started, just start typing below. You can also type / to see a list of co
             return `${time_string}, ${date_string}`;
         }
 
-        function generateReference(reference, index) {
+        function generateReference(referenceJson, index) {
+            let reference = referenceJson.hasOwnProperty("compiled") ? referenceJson.compiled : referenceJson;
+            let referenceFile = referenceJson.hasOwnProperty("file") ? referenceJson.file : null;
+
             // Escape reference for HTML rendering
             let escaped_ref = reference.replaceAll('"', '&quot;');
 
             // Generate HTML for Chat Reference
-            let short_ref = escaped_ref.slice(0, 140);
+            let short_ref = escaped_ref.slice(0, 100);
             short_ref = short_ref.length < escaped_ref.length ? short_ref + "..." : short_ref;
             let referenceButton = document.createElement('button');
             referenceButton.textContent = short_ref;
@@ -383,6 +389,13 @@ To get started, just start typing below. You can also type / to see a list of co
                 codeElement.parentNode.insertBefore(parentDiv, codeElement);
                 // Move the code element into the parent div
                 parentDiv.appendChild(codeElement);
+
+                // Check if hijs has been loaded
+                if (typeof hljs !== 'undefined') {
+                    // Highlight the code block
+                    hljs.highlightBlock(codeElement);
+                }
+
                 // Add a copy button to each code block, if it doesn't already exist
                 if (willReplace === true) {
                     let copyButton = document.createElement('button');
