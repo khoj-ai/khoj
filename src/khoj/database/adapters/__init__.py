@@ -849,7 +849,7 @@ class ConversationAdapters:
 
 class FileObjectAdapters:
     @staticmethod
-    def overwrite_raw_text(file_object: FileObject, new_raw_text: str):
+    def update_raw_text(file_object: FileObject, new_raw_text: str):
         file_object.raw_text = new_raw_text
 
     @staticmethod
@@ -873,7 +873,7 @@ class FileObjectAdapters:
         return FileObject.objects.all().delete()
 
     @staticmethod
-    async def async_overwrite_raw_text(file_object: FileObject, new_raw_text: str):
+    async def async_update_raw_text(file_object: FileObject, new_raw_text: str):
         await sync_to_async(lambda: setattr(file_object, "raw_text", new_raw_text))()
         await sync_to_async(file_object.save)()
 
@@ -899,7 +899,7 @@ class FileObjectAdapters:
 
 
 class EntryAdapters:
-    word_filer = WordFilter()  # typo here should be word_filter
+    word_filer = WordFilter()
     file_filter = FileFilter()
     date_filter = DateFilter()
 

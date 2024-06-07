@@ -199,7 +199,7 @@ class TextToEntries(ABC):
                 raw_text = " ".join(file_to_text_map[file_name])
                 file_object = FileObjectAdapters.get_file_objects_by_name(file_name)
                 if file_object:
-                    FileObjectAdapters.overwrite_raw_text(file_object, raw_text)
+                    FileObjectAdapters.update_raw_text(file_object, raw_text)
                 else:
                     FileObjectAdapters.create_file_object(file_name, raw_text)
 
