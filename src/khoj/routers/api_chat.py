@@ -57,7 +57,7 @@ from khoj.utils.helpers import (
     get_device,
     is_none_or_empty,
 )
-from khoj.utils.rawconfig import LocationData
+from khoj.utils.rawconfig import FilterRequest, LocationData
 
 # Initialize Router
 logger = logging.getLogger(__name__)
@@ -71,11 +71,6 @@ api_chat = APIRouter()
 from pydantic import BaseModel
 
 from khoj.routers.email import send_query_feedback
-
-
-class FilterRequest(BaseModel):
-    filename: str
-    conversation_id: str
 
 
 @api_chat.get("/conversation/file-filters/{conversation_id}", response_class=Response)
