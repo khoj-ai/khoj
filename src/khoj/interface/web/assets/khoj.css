@@ -1,6 +1,6 @@
 /* Amber Light scheme (Default) */
 /* Can be forced with data-theme="light" */
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@100..900&family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap');
 
 [data-theme="light"],
 :root:not([data-theme="dark"]) {
@@ -15,7 +15,7 @@
     --water: #44b9da;
     --leaf: #7b990a;
     --flower: #ffaeae;
-    --font-family: 'Tajawal', sans-serif !important;
+    --font-family: "Noto Sans", "Noto Sans Arabic", sans-serif !important;
 }
 
 /* Amber Dark scheme (Auto) */
@@ -33,7 +33,7 @@
         --water: #44b9da;
         --leaf: #7b990a;
         --flower: #ffaeae;
-        --font-family: 'Tajawal', sans-serif !important;
+        --font-family: "Noto Sans", "Noto Sans Arabic", sans-serif !important;
     }
 }
 /* Amber Dark scheme (Forced) */
@@ -50,7 +50,7 @@
     --water: #44b9da;
     --leaf: #7b990a;
     --flower: #ffaeae;
-    --font-family: 'Tajawal', sans-serif !important;
+    --font-family: "Noto Sans", "Noto Sans Arabic", sans-serif !important;
 }
 /* Amber (Common styles) */
 :root {
@@ -58,7 +58,7 @@
     --form-element-focus-color: var(--primary-focus);
     --switch-color: var(--primary-inverse);
     --switch-checked-background-color: var(--primary);
-    --font-family: 'Tajawal', sans-serif !important;
+    --font-family: "Noto Sans", "Noto Sans Arabic", sans-serif !important;
 }
 
 .khoj-configure {
@@ -102,7 +102,7 @@ a.khoj-logo {
 .khoj-nav a {
     color: var(--main-text-color);
     text-decoration: none;
-    font-size: 20px;
+    font-size: medium;
     font-weight: normal;
     padding: 0 4px;
     border-radius: 4px;
@@ -124,7 +124,6 @@ a.khoj-logo {
     height: 30px;
 }
 span.khoj-nav-item-text {
-    padding-top: 6px;
     padding-left: 8px;
 }
 img.khoj-logo {
@@ -191,11 +190,10 @@ img.khoj-logo {
     display: grid;
     justify-content: center;
     align-items: center;
-    font-size: 20px;
+    font-size: large;
     box-sizing: unset;
     width: 40px;
-    height: 35px;
-    padding-top: 8px
+    height: 40px;
 }
 .subscribed {
     border: 3px solid var(--primary-hover);
