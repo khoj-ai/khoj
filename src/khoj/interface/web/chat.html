@@ -30,6 +30,8 @@
     <script type="text/javascript" src="/static/assets/purify.min.js?v={{ khoj_version }}"></script>
     <script type="text/javascript" src="/static/assets/utils.js?v={{ khoj_version }}"></script>
     <script type="text/javascript" src="/static/assets/markdown-it.min.js?v={{ khoj_version }}"></script>
+    <link rel="stylesheet" href="https://assets.khoj.dev/higlightjs/solarized-dark.min.css">
+    <script src="https://assets.khoj.dev/higlightjs/highlight.min.js"></script>
     <script>
         let welcome_message = `
 Hi, I am Khoj, your open, personal AI 👋🏽. I can:
@@ -447,6 +449,13 @@ To get started, just start typing below. You can also type / to see a list of co
                 codeElement.parentNode.insertBefore(parentDiv, codeElement);
                 // Move the code element into the parent div
                 parentDiv.appendChild(codeElement);
+
+                // Check if hijs has been loaded
+                if (typeof hljs !== 'undefined') {
+                    // Highlight the code block
+                    hljs.highlightBlock(codeElement);
+                }
+
                 // Add a copy button to each code block, if it doesn't already exist
                 if (willReplace === true) {
                     let copyButton = document.createElement('button');
