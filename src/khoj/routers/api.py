@@ -283,6 +283,7 @@ async def extract_references_and_questions(
     q: str,
     n: int,
     d: float,
+    conversation_id: int,
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     location_data: LocationData = None,
     send_status_func: Optional[Callable] = None,
@@ -308,8 +309,10 @@ async def extract_references_and_questions(
     for filter in [DateFilter(), WordFilter(), FileFilter()]:
         defiltered_query = filter.defilter(defiltered_query)
     filters_in_query = q.replace(defiltered_query, "").strip()
-
+    conversation = await sync_to_async(ConversationAdapters.get_conversation_by_id)(conversation_id)
+    filters_in_query += " ".join([f'file:"{filter}"' for filter in conversation.file_filters])
     using_offline_chat = False
+    print(f"Filters in query: {filters_in_query}")
 
     # Infer search queries from user message
     with timer("Extracting search queries took", logger):
