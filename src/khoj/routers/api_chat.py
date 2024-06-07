@@ -57,7 +57,7 @@ from khoj.utils.helpers import (
     get_device,
     is_none_or_empty,
 )
-from khoj.utils.rawconfig import LocationData
+from khoj.utils.rawconfig import FilterRequest, LocationData
 
 # Initialize Router
 logger = logging.getLogger(__name__)
@@ -71,6 +71,57 @@ api_chat = APIRouter()
 from pydantic import BaseModel
 
 from khoj.routers.email import send_query_feedback
+
+
+@api_chat.get("/conversation/file-filters/{conversation_id}", response_class=Response)
+@requires(["authenticated"])
+def get_file_filter(request: Request, conversation_id: str) -> Response:
+    conversation = ConversationAdapters.get_conversation_by_user(
+        request.user.object, conversation_id=int(conversation_id)
+    )
+    # get all files from "computer"
+    file_list = EntryAdapters.get_all_filenames_by_source(request.user.object, "computer")
+    file_filters = []
+    for file in conversation.file_filters:
+        if file in file_list:
+            file_filters.append(file)
+    return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
+
+
+@api_chat.post("/conversation/file-filters", response_class=Response)
+@requires(["authenticated"])
+def add_file_filter(request: Request, filter: FilterRequest):
+    try:
+        conversation = ConversationAdapters.get_conversation_by_user(
+            request.user.object, conversation_id=int(filter.conversation_id)
+        )
+        file_list = EntryAdapters.get_all_filenames_by_source(request.user.object, "computer")
+        if filter.filename in file_list and filter.filename not in conversation.file_filters:
+            conversation.file_filters.append(filter.filename)
+            conversation.save()
+        # remove files from conversation.file_filters that are not in file_list
+        conversation.file_filters = [file for file in conversation.file_filters if file in file_list]
+        conversation.save()
+        return Response(content=json.dumps(conversation.file_filters), media_type="application/json", status_code=200)
+    except Exception as e:
+        logger.error(f"Error adding file filter {filter.filename}: {e}", exc_info=True)
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@api_chat.delete("/conversation/file-filters", response_class=Response)
+@requires(["authenticated"])
+def remove_file_filter(request: Request, filter: FilterRequest) -> Response:
+    conversation = ConversationAdapters.get_conversation_by_user(
+        request.user.object, conversation_id=int(filter.conversation_id)
+    )
+    if filter.filename in conversation.file_filters:
+        conversation.file_filters.remove(filter.filename)
+    conversation.save()
+    # remove files from conversation.file_filters that are not in file_list
+    file_list = EntryAdapters.get_all_filenames_by_source(request.user.object, "computer")
+    conversation.file_filters = [file for file in conversation.file_filters if file in file_list]
+    conversation.save()
+    return Response(content=json.dumps(conversation.file_filters), media_type="application/json", status_code=200)
 
 
 class FeedbackData(BaseModel):
@@ -586,7 +637,7 @@ async def websocket_endpoint(
             continue
 
         compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
-            websocket, meta_log, q, 7, 0.18, conversation_commands, location, send_status_update
+            websocket, meta_log, q, 7, 0.18, conversation_id, conversation_commands, location, send_status_update
         )
 
         if compiled_references:
@@ -838,7 +889,7 @@ async def chat(
             return Response(content=llm_response, media_type="text/plain", status_code=200)
 
     compiled_references, inferred_queries, defiltered_query = await extract_references_and_questions(
-        request, meta_log, q, (n or 5), (d or math.inf), conversation_commands, location
+        request, meta_log, q, (n or 5), (d or math.inf), conversation_id, conversation_commands, location
     )
     online_results: Dict[str, Dict] = {}
 
