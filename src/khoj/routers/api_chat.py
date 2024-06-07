@@ -601,7 +601,7 @@ async def websocket_endpoint(
                 await send_complete_llm_response("Only one file can be selected for summarization.")
             else:
                 try:
-                    file_object = await FileObjectAdapters.async_get_file_objects_by_name(file_filters[0])
+                    file_object = await FileObjectAdapters.async_get_file_objects_by_name(user, file_filters[0])
                     contextual_data = " ".join([file.raw_text for file in file_object])
                     if not q:
                         q = "Create a general summary of the file"
@@ -609,6 +609,7 @@ async def websocket_endpoint(
                     response = await extract_relevant_summary(q, contextual_data)
                     await send_complete_llm_response(str(response))
                 except Exception as e:
+                    logger.error(f"Error summarizing file for {user.email}: {e}")
                     await send_complete_llm_response(f"Error summarizing file.")
             continue
 
@@ -855,6 +856,30 @@ async def chat(
         # Adding specification to search online specifically on khoj.dev pages.
         _custom_filters.append("site:khoj.dev")
         conversation_commands.append(ConversationCommand.Online)
+
+    conversation = await ConversationAdapters.aget_conversation_by_user(user, conversation_id=conversation_id)
+    if conversation_commands == [ConversationCommand.Summarize]:
+        file_filters = conversation.file_filters
+        if len(file_filters) == 0:
+            llm_response = "No files selected for summarization. Please add files using the section on the left."
+            return StreamingResponse(content=llm_response, media_type="text/event-stream", status_code=200)
+        elif len(file_filters) > 1:
+            llm_response = "Only one file can be selected for summarization."
+            return StreamingResponse(content=llm_response, media_type="text/event-stream", status_code=200)
+        else:
+            try:
+                file_object = await FileObjectAdapters.async_get_file_objects_by_name(user, file_filters[0])
+                contextual_data = " ".join([file.raw_text for file in file_object])
+                summarizeStr = "/" + ConversationCommand.Summarize
+                if q.strip() == summarizeStr:
+                    q = "Create a general summary of the file"
+                response = await extract_relevant_summary(q, contextual_data)
+                llm_response = str(response)
+            except Exception as e:
+                logger.error(f"Error summarizing file for {user.email}: {e}")
+                llm_response = "Error summarizing file."
+
+            return StreamingResponse(content=llm_response, media_type="text/event-stream", status_code=200)
 
     conversation = await ConversationAdapters.aget_conversation_by_user(
         user, request.user.client_app, conversation_id, title

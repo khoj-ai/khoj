@@ -851,51 +851,52 @@ class FileObjectAdapters:
     @staticmethod
     def update_raw_text(file_object: FileObject, new_raw_text: str):
         file_object.raw_text = new_raw_text
+        file_object.save()
 
     @staticmethod
-    def create_file_object(file_name: str, raw_text: str):
-        return FileObject.objects.create(file_name=file_name, raw_text=raw_text)
+    def create_file_object(user: KhojUser, file_name: str, raw_text: str):
+        return FileObject.objects.create(user=user, file_name=file_name, raw_text=raw_text)
 
     @staticmethod
-    def get_file_objects_by_name(file_name: str):
-        return FileObject.objects.filter(file_name=file_name)
+    def get_file_objects_by_name(user: KhojUser, file_name: str):
+        return FileObject.objects.filter(user=user, file_name=file_name)
 
     @staticmethod
-    def get_all_file_objects():
-        return FileObject.objects.all()
+    def get_all_file_objects(user: KhojUser):
+        return FileObject.objects.filter(user=user).all()
 
     @staticmethod
-    def delete_file_object_by_name(file_name: str):
-        return FileObject.objects.filter(file_name=file_name).delete()
+    def delete_file_object_by_name(user: KhojUser, file_name: str):
+        return FileObject.objects.filter(user=user, file_name=file_name).delete()
 
     @staticmethod
-    def delete_all_file_objects():
-        return FileObject.objects.all().delete()
+    def delete_all_file_objects(user: KhojUser):
+        return FileObject.objects.filter(user=user).delete()
 
     @staticmethod
     async def async_update_raw_text(file_object: FileObject, new_raw_text: str):
-        await sync_to_async(lambda: setattr(file_object, "raw_text", new_raw_text))()
-        await sync_to_async(file_object.save)()
+        file_object.raw_text = new_raw_text
+        await file_object.asave()
 
     @staticmethod
-    async def async_create_file_object(file_name: str, raw_text: str):
-        return await sync_to_async(FileObject.objects.create)(file_name=file_name, raw_text=raw_text)
+    async def async_create_file_object(user: KhojUser, file_name: str, raw_text: str):
+        return await FileObject.objects.acreate(user=user, file_name=file_name, raw_text=raw_text)
 
     @staticmethod
-    async def async_get_file_objects_by_name(file_name: str):
-        return await sync_to_async(list)(FileObject.objects.filter(file_name=file_name))
+    async def async_get_file_objects_by_name(user: KhojUser, file_name: str):
+        return await sync_to_async(list)(FileObject.objects.filter(user=user, file_name=file_name))
 
     @staticmethod
-    async def async_get_all_file_objects():
-        return await sync_to_async(FileObject.objects.all)()
+    async def async_get_all_file_objects(user: KhojUser):
+        return await sync_to_async(list)(FileObject.objects.filter(user=user))
 
     @staticmethod
-    async def async_delete_file_object_by_name(file_name: str):
-        return await sync_to_async(FileObject.objects.filter)(file_name=file_name).delete()
+    async def async_delete_file_object_by_name(user: KhojUser, file_name: str):
+        return await FileObject.objects.filter(user=user, file_name=file_name).adelete()
 
     @staticmethod
-    async def async_delete_all_file_objects():
-        return await sync_to_async(FileObject.objects.all)().delete()
+    async def async_delete_all_file_objects(user: KhojUser):
+        return await FileObject.objects.filter(user=user).adelete()
 
 
 class EntryAdapters:

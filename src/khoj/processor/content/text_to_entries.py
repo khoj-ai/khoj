@@ -197,11 +197,11 @@ class TextToEntries(ABC):
             # for each file_name in filenames_to_update, try getting the file object and updating raw_text and if it fails create a new file object
             for file_name in filenames_to_update:
                 raw_text = " ".join(file_to_text_map[file_name])
-                file_object = FileObjectAdapters.get_file_objects_by_name(file_name)
+                file_object = FileObjectAdapters.get_file_objects_by_name(user, file_name)
                 if file_object:
                     FileObjectAdapters.update_raw_text(file_object, raw_text)
                 else:
-                    FileObjectAdapters.create_file_object(file_name, raw_text)
+                    FileObjectAdapters.create_file_object(user, file_name, raw_text)
 
         new_dates = []
         with timer("Indexed dates from added entries in", logger):
@@ -227,7 +227,7 @@ class TextToEntries(ABC):
                 for file_path in deletion_filenames:
                     deleted_count = EntryAdapters.delete_entry_by_file(user, file_path)
                     num_deleted_entries += deleted_count
-                    FileObjectAdapters.delete_file_object_by_name(file_path)
+                    FileObjectAdapters.delete_file_object_by_name(user, file_path)
 
         return len(added_entries), num_deleted_entries
 
