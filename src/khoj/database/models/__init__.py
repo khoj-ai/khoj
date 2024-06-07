@@ -258,6 +258,7 @@ class Conversation(BaseModel):
     slug = models.CharField(max_length=200, default=None, null=True, blank=True)
     title = models.CharField(max_length=200, default=None, null=True, blank=True)
     agent = models.ForeignKey(Agent, on_delete=models.SET_NULL, default=None, null=True, blank=True)
+    file_filters = models.JSONField(default=list)
 
 
 class PublicConversation(BaseModel):
