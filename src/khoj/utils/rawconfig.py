@@ -27,6 +27,11 @@ class LocationData(BaseModel):
     country: Optional[str]
 
 
+class FilterRequest(BaseModel):
+    filename: str
+    conversation_id: str
+
+
 class TextConfigBase(ConfigBase):
     compressed_jsonl: Path
     embeddings_file: Path
