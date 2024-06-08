@@ -28,6 +28,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.routing import Mount
 import schedule
 
 from django.core.asgi import get_asgi_application
@@ -155,6 +156,14 @@ def run(should_start_server=True):
     if not os.path.exists(static_dir):
         os.mkdir(static_dir)
     app.mount(f"/static", StaticFiles(directory=static_dir), name=static_dir)
+
+    # def custom_handling_next_js(scope, receive, send):
+    #     path = scope["path"]
+    #     if path.startswith("/_next"):
+    #         scope["path"] = path.replace("/_next", "/static/_next")
+    #     return StaticFiles(directory=static_dir)(scope, receive, send)
+
+    # app.routes.append(Mount("/_next", app=custom_handling_next_js, name="next_static"))
 
     # Configure Middleware
     configure_middleware(app)

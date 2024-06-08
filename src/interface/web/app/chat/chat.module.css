@@ -1,0 +1,11 @@
+.main {
+    padding: 6rem;
+    height: 100vh;
+}
+
+.suggestions {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+    justify-content: center;
+}

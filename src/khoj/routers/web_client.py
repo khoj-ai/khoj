@@ -44,6 +44,13 @@ def index(request: Request):
     has_documents = EntryAdapters.user_has_entries(user=user)
 
     return templates.TemplateResponse(
+        "index.html",
+        context={
+            "request": request,
+        },
+    )
+
+    return templates.TemplateResponse(
         "chat.html",
         context={
             "request": request,
