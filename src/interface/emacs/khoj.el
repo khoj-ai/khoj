@@ -702,7 +702,8 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
 
 (defun khoj--load-chat-history (buffer-name)
   "Load Khoj Chat conversation history into BUFFER-NAME."
-  (let ((json-response (cdr (assoc 'response (khoj--get-chat-history-api)))))
+  (setq khoj--reference-count 0)
+  (let ((json-response (cdr (elt (cdr (assoc 'response (khoj--get-chat-history-api))) 0))))
     (with-current-buffer (get-buffer-create buffer-name)
       (erase-buffer)
       (insert "* Khoj Chat\n")
@@ -829,16 +830,17 @@ RECEIVE-DATE is the message receive date."
 (defun khoj--generate-reference (reference)
   "Create `org-mode' footnotes with REFERENCE."
   (setq khoj--reference-count (1+ khoj--reference-count))
+  (let ((compiled-reference (cdr (assoc 'compiled reference))))
   (cons
-   (propertize (format "^{ [fn:%x]}" khoj--reference-count) 'help-echo reference)
+   (propertize (format "^{ [fn:%x]}" khoj--reference-count) 'help-echo compiled-reference)
    (thread-last
-     reference
+     compiled-reference
      ;; remove filename top heading line from reference
      ;; prevents actual reference heading in next line jumping out of references footnote section
      (replace-regexp-in-string "^\* .*\n" "")
      ;; remove multiple, consecutive empty lines from reference
      (replace-regexp-in-string "\n\n" "\n")
-     (format "\n[fn:%x] %s" khoj--reference-count))))
+     (format "\n[fn:%x] %s" khoj--reference-count)))))
 
 (defun khoj--render-chat-response (json-response)
   "Render chat message using JSON-RESPONSE from Khoj Chat API."
