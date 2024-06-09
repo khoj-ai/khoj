@@ -301,7 +301,7 @@ def chat_client_builder(search_config, user, index_content=True, require_auth=Fa
     # Initialize Processor from Config
     if os.getenv("OPENAI_API_KEY"):
         chat_model = ChatModelOptionsFactory(chat_model="gpt-3.5-turbo", model_type="openai")
-        OpenAIProcessorConversationConfigFactory()
+        chat_model.openai_config = OpenAIProcessorConversationConfigFactory()
         UserConversationProcessorConfigFactory(user=user, setting=chat_model)
 
     state.anonymous_mode = not require_auth

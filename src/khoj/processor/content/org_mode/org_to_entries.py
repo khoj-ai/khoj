@@ -182,7 +182,7 @@ class OrgToEntries(TextToEntries):
                 # Children nodes do not need ancestors trail as root parent node will have it
                 if not entry_heading:
                     ancestors_trail = " / ".join(parsed_entry.ancestors) or Path(entry_to_file_map[parsed_entry])
-                    heading = f"* Path: {ancestors_trail}\n{heading}" if heading else f"* Path: {ancestors_trail}."
+                    heading = f"* {ancestors_trail}\n{heading}" if heading else f"* {ancestors_trail}."
 
                 compiled = heading
 
