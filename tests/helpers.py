@@ -36,6 +36,13 @@ class ApiUserFactory(factory.django.DjangoModelFactory):
     token = factory.Faker("password")
 
 
+class OpenAIProcessorConversationConfigFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = OpenAIProcessorConversationConfig
+
+    api_key = os.getenv("OPENAI_API_KEY")
+
+
 class ChatModelOptionsFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = ChatModelOptions
@@ -44,6 +51,7 @@ class ChatModelOptionsFactory(factory.django.DjangoModelFactory):
     tokenizer = None
     chat_model = "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF"
     model_type = "offline"
+    openai_config = factory.SubFactory(OpenAIProcessorConversationConfigFactory)
 
 
 class UserConversationProcessorConfigFactory(factory.django.DjangoModelFactory):
@@ -52,13 +60,6 @@ class UserConversationProcessorConfigFactory(factory.django.DjangoModelFactory):
 
     user = factory.SubFactory(UserFactory)
     setting = factory.SubFactory(ChatModelOptionsFactory)
-
-
-class OpenAIProcessorConversationConfigFactory(factory.django.DjangoModelFactory):
-    class Meta:
-        model = OpenAIProcessorConversationConfig
-
-    api_key = os.getenv("OPENAI_API_KEY")
 
 
 class ConversationFactory(factory.django.DjangoModelFactory):
