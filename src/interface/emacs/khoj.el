@@ -683,6 +683,10 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
             ((equal content-type "image") (progn (shr-render-region (point-min) (point-max))
                                                 (goto-char (point-min))))
             (t (fundamental-mode))))
+    ;; keep cursor at top of khoj buffer by default
+    (goto-char (point-min))
+    ;; enable minor modes for khoj chat
+    (visual-line-mode)
     (read-only-mode t)))
 
 
@@ -695,10 +699,28 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
   (interactive)
   (when (not (get-buffer khoj--chat-buffer-name))
       (khoj--load-chat-history khoj--chat-buffer-name))
-  (switch-to-buffer khoj--chat-buffer-name)
+  (khoj--open-side-pane khoj--chat-buffer-name)
   (let ((query (read-string "Query: ")))
     (when (not (string-empty-p query))
       (khoj--query-chat-api-and-render-messages query khoj--chat-buffer-name))))
+
+(defun khoj--open-side-pane (buffer-name)
+  "Open Khoj BUFFER-NAME in right side pane."
+  (if (get-buffer-window-list buffer-name)
+      ; if window is already open, switch to it
+      (progn
+        (select-window (get-buffer-window buffer-name))
+        (switch-to-buffer buffer-name))
+    ;; else if window is not open, open it as a right-side window pane
+    (progn
+      ;; Select the right-most window
+      (select-window (some-window (lambda (window) (window-at-side-p window 'right))))
+      ;; Split the window to the right and resize it to take up 1/3 of the frame width
+      (let ((new-window (split-window-right)))
+        (set-window-buffer new-window buffer-name)
+        (window-resize new-window
+                       (- (truncate (* 0.33 (frame-width))) (window-width))
+                       t)))))
 
 (defun khoj--load-chat-history (buffer-name)
   "Load Khoj Chat conversation history into BUFFER-NAME."
@@ -925,8 +947,8 @@ RECEIVE-DATE is the message receive date."
   "Natural, Incremental Search for your personal notes and documents."
   (interactive)
   (let* ((khoj-buffer-name (get-buffer-create khoj--search-buffer-name)))
-    ;; switch to khoj results buffer
-    (switch-to-buffer khoj-buffer-name)
+    ;; switch to khoj search buffer
+    (khoj--open-side-pane khoj-buffer-name)
     ;; open and setup minibuffer for incremental search
     (minibuffer-with-setup-hook
         (lambda ()
@@ -1003,7 +1025,7 @@ Paragraph only starts at first text after blank line."
        content-type
        query-title
        buffer-name)
-      (switch-to-buffer buffer-name)
+      (khoj--open-side-pane buffer-name)
       (goto-char (point-min)))))
 
 
