@@ -53,6 +53,9 @@
   --leaf: #7b990a;
   --flower: #ffaeae;
   --font-family: "Noto Sans", "Noto Sans Arabic", sans-serif !important;
+  --calm-blue: #dbdefd;
+  --calm-green: #d0f5d6;
+  --intense-green: #a5f3b2;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -103,19 +106,26 @@
 
 * {
   box-sizing: border-box;
-  padding: 0;
-  margin: 0;
 }
 
 html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
+  font-family: var(--font-family);
+}
+
+input,
+div,
+button,
+p,
+textarea {
+  font-family: var(--font-family);
 }
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(#e66465, #9198e5);
+  background-color: var(--background-color);
 }
 
 a {

@@ -1,0 +1,63 @@
+div.session {
+    padding: 0.5rem;
+    margin-bottom: 0.25rem;
+    border: 1px solid black;
+    border-radius: 0.5rem;
+    color: var(--main-text-color);
+    cursor: pointer;
+    max-width: 14rem;
+}
+
+button.button {
+    border: none;
+    outline: none;
+    background-color: transparent;
+    cursor: pointer;
+    color: var(--main-text-color);
+    width: 24px;
+}
+
+div.panel {
+    display: grid;
+    grid-auto-flow: row;
+    padding: 1rem;
+    border-radius: 1rem;
+    background-color: var(--calm-blue);
+    margin-top: 1rem;
+    color: var(--main-text-color);
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    max-width: auto;
+}
+
+div.expanded {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem;
+}
+
+div.collapsed {
+    display: grid;
+    grid-template-columns: 1fr;
+}
+
+div.session:hover {
+    background-color: var(--primary-hover);
+}
+
+p.session {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+div.header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+}
+
+img.profile {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+}

@@ -111,6 +111,13 @@ def chat_page(request: Request):
     has_documents = EntryAdapters.user_has_entries(user=user)
 
     return templates.TemplateResponse(
+        "chat/index.html",
+        context={
+            "request": request,
+        },
+    )
+
+    return templates.TemplateResponse(
         "chat.html",
         context={
             "request": request,
@@ -119,6 +126,17 @@ def chat_page(request: Request):
             "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
             "khoj_version": state.khoj_version,
+        },
+    )
+
+
+@web_client.get("/experimental", response_class=FileResponse)
+@requires(["authenticated"], redirect="login_page")
+def chat_page(request: Request):
+    return templates.TemplateResponse(
+        "chat/index.html",
+        context={
+            "request": request,
         },
     )
 
