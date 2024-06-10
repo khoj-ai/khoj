@@ -157,14 +157,6 @@ def run(should_start_server=True):
         os.mkdir(static_dir)
     app.mount(f"/static", StaticFiles(directory=static_dir), name=static_dir)
 
-    # def custom_handling_next_js(scope, receive, send):
-    #     path = scope["path"]
-    #     if path.startswith("/_next"):
-    #         scope["path"] = path.replace("/_next", "/static/_next")
-    #     return StaticFiles(directory=static_dir)(scope, receive, send)
-
-    # app.routes.append(Mount("/_next", app=custom_handling_next_js, name="next_static"))
-
     # Configure Middleware
     configure_middleware(app)
 
