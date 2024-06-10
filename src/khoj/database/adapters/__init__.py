@@ -732,7 +732,7 @@ class ConversationAdapters:
         if server_chat_settings is None or (
             server_chat_settings.summarizer_model is None and server_chat_settings.default_model is None
         ):
-            return await ChatModelOptions.objects.filter().afirst()
+            return await ChatModelOptions.objects.filter().prefetch_related("openai_config").afirst()
         return server_chat_settings.summarizer_model or server_chat_settings.default_model
 
     @staticmethod
