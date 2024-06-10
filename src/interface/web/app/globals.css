@@ -53,9 +53,10 @@
   --leaf: #7b990a;
   --flower: #ffaeae;
   --font-family: "Noto Sans", "Noto Sans Arabic", sans-serif !important;
-  --calm-blue: #dbdefd;
+  --calm-blue: #E4D9D9;
+  --calmer-blue: #e4cdcd;
   --calm-green: #d0f5d6;
-  --intense-green: #a5f3b2;
+  --intense-green: #1C2841;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -135,6 +136,18 @@ a {
 
 p {
   margin: 0;
+}
+
+pre code.hljs {
+  white-space: preserve;
+}
+
+body {
+  margin: 0;
+}
+
+button:hover {
+  cursor: pointer;
 }
 
 @media (prefers-color-scheme: dark) {

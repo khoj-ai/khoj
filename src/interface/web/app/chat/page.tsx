@@ -1,12 +1,15 @@
 'use client'
 
 import styles from './chat.module.css';
-import { Suspense, useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 
 import SuggestionCard from '../components/suggestions/suggestionCard';
 import SidePanel from '../components/sidePanel/chatHistorySidePanel';
 import ChatHistory from '../components/chatHistory/chatHistory';
+import { SingleChatMessage } from '../components/chatMessage/chatMessage';
+import NavMenu from '../components/navMenu/navMenu';
 import { useSearchParams } from 'next/navigation'
+import ReferencePanel, { hasValidReferences } from '../components/referencePanel/referencePanel';
 
 import 'katex/dist/katex.min.css';
 
@@ -16,11 +19,10 @@ interface ChatOptions {
 const styleClassOptions = ['pink', 'blue', 'green', 'yellow', 'purple'];
 
 
-function SearchParams({ chatOptionsData }: { chatOptionsData: ChatOptions | null }) {
+function ChatBodyData({ chatOptionsData }: { chatOptionsData: ChatOptions | null }) {
 	const searchParams = useSearchParams();
-    console.log('searchparam',searchParams);
-
-	const conversationId = searchParams.get('conversationId')
+	const conversationId = searchParams.get('conversationId');
+    const [showReferencePanel, setShowReferencePanel] = useState(true);
     if (!conversationId) {
         return (
             <div className={styles.suggestions}>
@@ -36,14 +38,26 @@ function SearchParams({ chatOptionsData }: { chatOptionsData: ChatOptions | null
             </div>
         );
     }
+    const [referencePanelData, setReferencePanelData] = useState<SingleChatMessage | null>(null);
 
 	return(
-        <ChatHistory conversationId={conversationId} />
+        <div className={(hasValidReferences(referencePanelData) && showReferencePanel) ? styles.chatBody : styles.chatBodyFull}>
+            <ChatHistory conversationId={conversationId} setReferencePanelData={setReferencePanelData} setShowReferencePanel={setShowReferencePanel} />
+            {
+                (hasValidReferences(referencePanelData) && showReferencePanel) &&
+                    <ReferencePanel referencePanelData={referencePanelData} setShowReferencePanel={setShowReferencePanel} />
+            }
+        </div>
 	);
 }
 
 function Loading() {
     return <h2>🌀 Loading...</h2>;
+}
+
+function handleChatInput(e: React.FormEvent<HTMLInputElement>) {
+    const target = e.target as HTMLInputElement;
+    console.log(target.value);
 }
 
 export default function Chat() {
@@ -73,17 +87,25 @@ export default function Chat() {
             <div className={styles.sidePanel}>
                 <SidePanel />
             </div>
-            <div>
+            <div className={styles.chatBox}>
+                <div className={styles.titleBar}>
+                    <title>
+                        Khoj AI - Chat
+                    </title>
+                    <div className={styles.title}>
+                        Khoj AI
+                    </div>
+                    <NavMenu selected="Chat" />
+                </div>
                 <div>
-                    Khoj AI
+                    <Suspense fallback={<Loading />}>
+                        <ChatBodyData chatOptionsData={chatOptionsData} />
+                    </Suspense>
                 </div>
                 <div className={styles.inputBox}>
-                    <input className={styles.inputBox} type="text" placeholder="Type here..." />
+                    <input className={styles.inputBox} type="text" placeholder="Type here..." onInput={(e) => handleChatInput(e)} />
                     <button className={styles.inputBox}>Send</button>
                 </div>
-                <Suspense fallback={<Loading />}>
-                    <SearchParams chatOptionsData={chatOptionsData} />
-                </Suspense>
             </div>
         </div>
     )

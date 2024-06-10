@@ -1,0 +1,47 @@
+menu.menu button {
+    /* border: none; */
+    outline: none;
+    background-color: transparent;
+    border: 1px solid var(--main-text-color);
+    cursor: pointer;
+    color: var(--main-text-color);
+    font-size: 1em;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    border-radius: 4px;
+}
+
+menu.menu button.selected {
+    background-color: var(--primary-hover);
+    color: #fff;
+}
+
+menu.menu button:hover {
+    background-color: var(--primary-hover);
+    color: #fff;
+}
+
+menu.menu {
+    display: flex;
+    justify-content: space-around;
+    padding: 0;
+    margin: 0;
+}
+
+div.titleBar menu {
+    padding: 0;
+    margin: 0;
+    border-radius: 0.5rem;
+    display: flex;
+    flex-direction: row;
+    gap: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+    .logo {
+      filter: invert(1);
+    }
+
+    .logo {
+      filter: invert(1) drop-shadow(0 0 0.3rem #ffffff70);
+    }
+}

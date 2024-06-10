@@ -1,5 +1,4 @@
-.main {
-    padding: 1rem;
+div.main {
     height: 100vh;
     color: black;
 }
@@ -17,7 +16,6 @@ div.inputBox {
     padding: 1rem;
     border-radius: 1rem;
     background-color: #f5f5f5;
-    margin-top: 1rem;
     box-shadow: 0 0 1rem 0 rgba(0, 0, 0, 0.1);
 }
 
@@ -33,6 +31,12 @@ input.inputBox:focus {
     background-color: transparent;
 }
 
+div.chatBodyFull {
+    display: grid;
+    grid-template-columns: 1fr;
+    height: 100%;
+}
+
 button.inputBox {
     border: none;
     outline: none;
@@ -43,6 +47,12 @@ button.inputBox {
     background: linear-gradient(var(--calm-green), var(--calm-blue));
 }
 
+div.chatBody {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 100%;
+}
+
 .inputBox {
     color: black;
 }
@@ -51,4 +61,26 @@ div.chatLayout {
     display: grid;
     grid-template-columns: auto 1fr;
     gap: 1rem;
+}
+
+div.chatBox {
+    display: grid;
+    gap: 1rem;
+    height: 100%;
+    padding: 1rem;
+}
+
+div.titleBar {
+    display: grid;
+    grid-template-columns: 1fr auto;
+}
+
+@media (max-width: 768px) {
+    div.chatBody {
+        grid-template-columns: 0fr 1fr;
+    }
+
+    div.chatBox {
+        padding: 0;
+    }
 }

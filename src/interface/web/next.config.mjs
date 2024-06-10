@@ -14,6 +14,7 @@ const nextConfig = {
     },
     trailingSlash: true,
     skipTrailingSlashRedirect: true,
+    // reactStrictMode: false,
     distDir: 'out',
     images: {
         remotePatterns: [

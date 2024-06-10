@@ -4,34 +4,9 @@ div.chatHistory {
     height: 100%;
 }
 
-div.chatMessageContainer {
-    display: flex;
-    flex-direction: column;
-    margin: 0.5rem;
-    padding: 0.5rem;
-    border-radius: 0.5rem;
-    box-shadow: 4px 4px 4px 4px rgba(0, 0, 0, 0.1);
-    max-width: 60%;
-}
-
-div.you {
-    color: #000000;
-    background-color: var(--calm-green);
-    align-self: flex-end;
-}
-
-div.khoj {
-    background-color: var(--intense-green);
-    color: #000000;
-    align-self: flex-start;
-}
-
-div.chatHistory img {
-    width: 50%;
-}
-
-div.chatFooter {
-    font-size: 0.75rem;
-    color: #808080;
-    text-align: right;
+div.chatLayout {
+    height: 80vh;
+    overflow-y: auto;
+    /* width: 80%; */
+    margin: 0 auto;
 }

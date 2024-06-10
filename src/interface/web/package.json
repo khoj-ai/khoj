@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "collectstatic": "pushd ../../../ && source .venv/bin/activate && python3 src/khoj/manage.py collectstatic --noinput && deactivate && popd",
-    "export": "yarn build && cp -r out/ ../../khoj/interface/web && yarn collectstatic",
+    "export": "yarn build && cp -r out/ ../../khoj/interface/built && yarn collectstatic",
     "watch": "nodemon --watch . --ext js,jsx,ts,tsx,css --ignore 'out/**/*' --exec 'yarn export'"
   },
   "dependencies": {
