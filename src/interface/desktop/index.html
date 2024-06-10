@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khoj Mini</title>
+    <style>
+        /* CSS for the container */
+        .logo-container {
+            /* display: flex; Use flexbox to align items */
+            align-items: center; /* Align items vertically */
+            justify-content: flex;
+        }
+        /* CSS for the image */
+        img {
+            width: 100px; /* Set the desired width */
+            height: auto; /* Allows the image to scale proportionally */
+        }
+        #label {
+            font-size: 25px;
+            float: right;
+            font-family: sans-serif;
+            position: relative;
+            top: -10px;
+            font-weight: bold;
+        }
+        #message {
+            font-size: 15px;
+            font-family: sans-serif;
+            background-color: #475569;
+            color: #dcdfe4;
+            padding: 10px;
+            border-radius: 5px;
+            width: 70%;
+            float: right;
+            word-wrap: break-word;
+        }
+        b {
+            font-size: 20px;
+            font-family: sans-serif;
+        }
+        h1 {
+            font-size: 30px;
+            font-family: sans-serif;
+            text-align: center;
+        }
+        body {
+            background-color: #f9f5de;
+            padding-left: 20px;
+            padding-right: 20px;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Container for the logo and the phrase -->
+    <div class="logo-container">
+        <!-- Logo -->
+        <img src="assets\icons\khoj-logo-sideways.svg"></img>
+    </div>
+
+    <div id="clipboardText"></div>
+    <script src="main.js"></script>
+    <script>
+        let region = null;
+        let city = null;
+        let countryName = null;
+        let timezone = null;
+
+        fetch("https://ipapi.co/json")
+            .then(response => response.json())
+            .then(data => {
+                region = data.region;
+                city = data.city;
+                countryName = data.country_name;
+                timezone = data.timezone;
+            })
+            .catch(err => {
+                console.log(err);
+                return;
+            });
+
+        async function chat() {
+            try {
+                // Ensure location data is loaded before proceeding
+                while (!region || !city || !countryName || !timezone) {
+                    await new Promise(resolve => setTimeout(resolve, 100)); // Wait 100ms before checking again
+                }
+
+                var query = "Can pigs fly?";
+                console.log(`Query: ${query}`);
+
+                if (query.length === 0) return;
+
+                // Get host URL and token
+                let hostURL = await window.hostURLAPI.getURL();
+                const khojToken = await window.tokenAPI.getToken();
+                const headers = { 'Authorization': `Bearer ${khojToken}` };
+
+                // Start a new chat session
+                let response = await fetch(`${hostURL}/api/chat/sessions`, { method: "POST", headers });
+                let data = await response.json();
+                let conversationID = data.conversation_id;
+
+                // Define resultsCount if it's not already defined
+                let resultsCount = 10; // Example value, adjust as needed
+
+                // Build chat API URL
+                let chatApi = `${hostURL}/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}&region=${region}&city=${city}&country=${countryName}&timezone=${timezone}`;
+
+                // Fetch chat response
+                response = await fetch(chatApi, { headers });
+                data = await response.json();
+                console.log("Chat Response:", data);
+
+            } catch (err) {
+                console.log("Error in chat function:", err);
+            }
+        }
+        chat();
+    </script>
+</body>
+</html>

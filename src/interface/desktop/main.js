@@ -428,162 +428,193 @@ function addCSPHeaderToSession () {
     })
  }
 
-let firstRun = true;
-let win = null;
-let titleBarStyle = process.platform === 'win32' ? 'default' : 'hidden';
-const createWindow = (tab = 'chat.html') => {
-    win = new BrowserWindow({
-      width: 800,
-      height: 800,
-      show: false,
-      titleBarStyle: titleBarStyle,
-      autoHideMenuBar: true,
-      webPreferences: {
-        preload: path.join(__dirname, 'preload.js'),
-        nodeIntegration: true,
-      }
-    })
+ const {globalShortcut, clipboard} = require('electron');
+ let firstRun = true;
+ let win = null;
+ let titleBarStyle = process.platform === 'win32' ? 'default' : 'hidden';
 
-    const job = new cron('0 */10 * * * *', function() {
-        try {
-            pushDataToKhoj();
-            const date = new Date();
-            console.log('Pushing data to Khoj at: ', date);
-            win.webContents.send('update-state', state);
-        } catch (err) {
-            console.error(err);
-        }
-    });
+ function addCSPHeaderToSession() {
+     const hostURL = store.get('hostURL') || KHOJ_URL;
+     const defaultDomains = `'self' ${hostURL} https://app.khoj.dev https://assets.khoj.dev`;
+     const default_src = `default-src ${defaultDomains};`;
+     const script_src = `script-src ${defaultDomains} 'unsafe-inline';`;
+     const connect_src = `connect-src ${hostURL} https://ipapi.co/json;`;
+     const style_src = `style-src ${defaultDomains} 'unsafe-inline' https://fonts.googleapis.com;`;
+     const img_src = `img-src ${defaultDomains} data: https://*.khoj.dev https://*.googleusercontent.com;`;
+     const font_src = `font-src https://fonts.gstatic.com;`;
+     const child_src = `child-src 'none';`;
+     const objectSrc = `object-src 'none';`;
+     const csp = `${default_src} ${script_src} ${connect_src} ${style_src} ${img_src} ${font_src} ${child_src} ${objectSrc}`;
 
-    win.setResizable(true);
-    win.setOpacity(0.95);
-    win.setBackgroundColor('#f5f4f3');
-    win.setHasShadow(true);
+     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+         callback({
+             responseHeaders: {
+                 ...details.responseHeaders,
+                 'Content-Security-Policy': [csp]
+             }
+         });
+     });
+ }
 
-    // Open external links in link handler registered on OS (e.g. browser)
-    win.webContents.setWindowOpenHandler(async ({ url }) => {
-        let shouldOpen = { response: 0 };
+ const createWindow = (tab = 'chat.html') => {
+     win = new BrowserWindow({
+         width: 800,
+         height: 800,
+         show: false,
+         titleBarStyle: titleBarStyle,
+         autoHideMenuBar: true,
+         webPreferences: {
+             preload: path.join(__dirname, 'preload.js'),
+             nodeIntegration: true,
+         }
+     });
 
-        if (!url.startsWith(store.get('hostURL'))) {
-            // Confirm before opening external links
-            const confirmNotice = `Do you want to open this link? It will be handled by an external application.\n\n${url}`;
-            shouldOpen = await dialog.showMessageBox({
-                type: 'question',
-                buttons: ['Yes', 'No'],
-                defaultId: 1,
-                title: 'Confirm',
-                message: confirmNotice,
-            });
-        }
+     const job = new cron('0 */10 * * * *', function() {
+         try {
+             pushDataToKhoj();
+             const date = new Date();
+             console.log('Pushing data to Khoj at: ', date);
+             win.webContents.send('update-state', state);
+         } catch (err) {
+             console.error(err);
+         }
+     });
 
-        // If user confirms, let OS link handler open the link in appropriate app
-        if (shouldOpen.response === 0) shell.openExternal(url);
+     win.setResizable(true);
+     win.setOpacity(0.95);
+     win.setBackgroundColor('#f5f4f3');
+     win.setHasShadow(true);
 
-        // Do not open external links within the app
-        return { action: 'deny' };
-    });
+     win.webContents.setWindowOpenHandler(async ({ url }) => {
+         let shouldOpen = { response: 0 };
 
-    job.start();
+         if (!url.startsWith(store.get('hostURL'))) {
+             const confirmNotice = `Do you want to open this link? It will be handled by an external application.\n\n${url}`;
+             shouldOpen = await dialog.showMessageBox({
+                 type: 'question',
+                 buttons: ['Yes', 'No'],
+                 defaultId: 1,
+                 title: 'Confirm',
+                 message: confirmNotice,
+             });
+         }
 
-    win.loadFile(tab)
+         if (shouldOpen.response === 0) shell.openExternal(url);
+         return { action: 'deny' };
+     });
 
-    if (firstRun === true) {
-        firstRun = false;
+     job.start();
+     win.loadFile(tab);
 
-        // Create splash screen
-        let splash = new BrowserWindow({width: 400, height: 400, transparent: true, frame: false, alwaysOnTop: true});
-        splash.setOpacity(1.0);
-        splash.setBackgroundColor('#d16b4e');
-        splash.loadFile('splash.html');
+     if (firstRun === true) {
+         firstRun = false;
 
-        // Show splash screen on app load
-        win.once('ready-to-show', () => {
-            setTimeout(function(){ splash.close(); win.show(); }, 4500);
-        });
-    } else {
-        // Show main window directly if not first run
-        win.once('ready-to-show', () => { win.show(); });
-    }
-}
+         let splash = new BrowserWindow({ width: 400, height: 400, transparent: true, frame: false, alwaysOnTop: true });
+         splash.setOpacity(1.0);
+         splash.setBackgroundColor('#d16b4e');
+         splash.loadFile('splash.html');
 
-app.whenReady().then(() => {
-    addCSPHeaderToSession();
+         win.once('ready-to-show', () => {
+             setTimeout(() => { splash.close(); win.show(); }, 4500);
+         });
+     } else {
+         win.once('ready-to-show', () => { win.show(); });
+     }
+ };
 
-    ipcMain.on('set-title', handleSetTitle);
+ const createShortcutWindow = (tab = 'index.html') => {
+     const shortcutWin = new BrowserWindow({
+         width: 400,
+         height: 600,
+         show: false,
+         titleBarStyle: titleBarStyle,
+         autoHideMenuBar: true,
+         webPreferences: {
+             preload: path.join(__dirname, 'preload.js'),
+             nodeIntegration: true,
+         }
+     });
 
-    ipcMain.handle('handleFileOpen', (event, type) => {
-        return handleFileOpen(type);
-    });
+     shortcutWin.setResizable(true);
+     shortcutWin.setOpacity(0.95);
+     shortcutWin.setBackgroundColor('#f5f4f3');
+     shortcutWin.setHasShadow(true);
 
-    ipcMain.on('update-state', (event, arg) => {
-        console.log(arg);
-        event.reply('update-state', arg);
-    });
+     shortcutWin.loadFile(tab);
+     shortcutWin.once('ready-to-show', () => {
+         shortcutWin.show();
+     });
 
-    ipcMain.on('needsSubscription', (event, arg) => {
-        console.log(arg);
-        event.reply('needsSubscription', arg);
-    });
+     return shortcutWin;
+ };
 
-    ipcMain.on('navigate', (event, page) => {
-        win.loadFile(page);
-    });
+ app.whenReady().then(() => {
+     addCSPHeaderToSession();
 
-    ipcMain.on('navigateToWebApp', (event, page) => {
-        shell.openExternal(`${store.get('hostURL')}/${page}`);
-    });
+     ipcMain.on('set-title', handleSetTitle);
+     ipcMain.handle('handleFileOpen', (event, type) => handleFileOpen(type));
+     ipcMain.on('update-state', (event, arg) => { console.log(arg); event.reply('update-state', arg); });
+     ipcMain.on('needsSubscription', (event, arg) => { console.log(arg); event.reply('needsSubscription', arg); });
+     ipcMain.on('navigate', (event, page) => { win.loadFile(page); });
+     ipcMain.on('navigateToWebApp', (event, page) => { shell.openExternal(`${store.get('hostURL')}/${page}`); });
 
-    ipcMain.handle('getFiles', getFiles);
-    ipcMain.handle('getFolders', getFolders);
+     ipcMain.handle('getFiles', getFiles);
+     ipcMain.handle('getFolders', getFolders);
+     ipcMain.handle('removeFile', removeFile);
+     ipcMain.handle('removeFolder', removeFolder);
+     ipcMain.handle('setURL', setURL);
+     ipcMain.handle('getURL', getURL);
+     ipcMain.handle('setToken', setToken);
+     ipcMain.handle('getToken', getToken);
+     ipcMain.handle('getUserInfo', getUserInfo);
+     ipcMain.handle('syncData', (event, regenerate) => syncData(regenerate));
+     ipcMain.handle('deleteAllFiles', deleteAllFiles);
 
-    ipcMain.handle('removeFile', removeFile);
-    ipcMain.handle('removeFolder', removeFolder);
+     createWindow();
 
-    ipcMain.handle('setURL', setURL);
-    ipcMain.handle('getURL', getURL);
+     app.setAboutPanelOptions({
+         applicationName: "Khoj",
+         applicationVersion: khojPackage.version,
+         version: khojPackage.version,
+         authors: "Saba Imran, Debanjum Singh Solanky and contributors",
+         website: "https://khoj.dev",
+         copyright: "GPL v3",
+         iconPath: path.join(__dirname, 'assets', 'icons', 'favicon-128x128.png')
+     });
 
-    ipcMain.handle('setToken', setToken);
-    ipcMain.handle('getToken', getToken);
-    ipcMain.handle('getUserInfo', getUserInfo);
+     app.on('ready', async() => {
+         try {
+             const result = await todesktop.autoUpdater.checkForUpdates();
+             if (result.updateInfo) {
+                 console.log("Desktop app update found:", result.updateInfo.version);
+                 todesktop.autoUpdater.restartAndInstall();
+             }
+         } catch (e) {
+             console.warn("Desktop app update check failed:", e);
+         }
+     });
 
-    ipcMain.handle('syncData', (event, regenerate) => {
-        syncData(regenerate);
-    });
-    ipcMain.handle('deleteAllFiles', deleteAllFiles);
+     globalShortcut.register('CommandOrControl+Shift+K', () => {
+         const shortcutWin = createShortcutWindow();
+         console.log('Ctrl+K pressed');
+         const clipboardText = clipboard.readText();
+         console.log('Clipboard Text:', clipboardText);
+         shortcutWin.webContents.executeJavaScript(`var text = clipboardText; document.getElementById('clipboardText').innerHTML = '<p id="message">${clipboardText}</p>';`);
+     });
+ });
 
-    createWindow();
+ app.on('activate', () => {
+     if (BrowserWindow.getAllWindows().length === 0) createWindow();
+ });
 
+ app.on('window-all-closed', () => {
+     if (process.platform !== 'darwin') app.quit();
+ });
 
-    app.setAboutPanelOptions({
-        applicationName: "Khoj",
-        applicationVersion: khojPackage.version,
-        version: khojPackage.version,
-        authors: "Saba Imran, Debanjum Singh Solanky and contributors",
-        website: "https://khoj.dev",
-        copyright: "GPL v3",
-        iconPath: path.join(__dirname, 'assets', 'icons', 'favicon-128x128.png')
-    });
+ app.on('will-quit', () => {
+     globalShortcut.unregisterAll();
+ });
 
-    app.on('ready', async() => {
-        try {
-            const result = await todesktop.autoUpdater.checkForUpdates();
-            if (result.updateInfo) {
-              console.log("Desktop app update found:", result.updateInfo.version);
-              todesktop.autoUpdater.restartAndInstall();
-            }
-          } catch (e) {
-            console.warn("Desktop app update check failed:", e);
-        }
-    })
-
-    app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) createWindow()
-    })
-})
-
-app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit()
-})
 
 /*
 ** About Page
