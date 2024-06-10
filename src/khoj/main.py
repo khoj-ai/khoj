@@ -28,7 +28,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.routing import Mount
 import schedule
 
 from django.core.asgi import get_asgi_application
