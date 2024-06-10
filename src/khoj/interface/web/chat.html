@@ -812,9 +812,7 @@ To get started, just start typing below. You can also type / to see a list of co
             fileInput.multiple = true;
             fileInput.addEventListener('change', function() {
                 const selectedFiles = fileInput.files;
-                for (let i = 0; i < selectedFiles.length; i++) {
-                    uploadDataForIndexing(selectedFiles[i]);
-                }
+                uploadDataForIndexing(selectedFiles);
             });
 
             // Remove overlay text after file input is closed
@@ -838,28 +836,24 @@ To get started, just start typing below. You can also type / to see a list of co
             fileInput.click();
         }
 
-        function uploadDataForIndexing(file) {
+        function uploadDataForIndexing(files) {
             var dropzone = document.getElementById('chat-body');
 
-            if (!file || (!allowedExtensions.includes(file.type) && !allowedFileEndings.includes(file.name.split('.').pop()))) {
-                dropzone.classList.remove('dragover');
-                if (file) {
-                    alert("Sorry, that file type is not yet supported");
+            for (let file of files) {
+                if (!file || (!allowedExtensions.includes(file.type) && !allowedFileEndings.includes(file.name.split('.').pop()))) {
+                    dropzone.classList.remove('dragover');
+                    if (file) {
+                        alert("Sorry, that file type is not yet supported");
+                    }
+                    var overlayText = document.getElementById("dropzone-overlay");
+                    if (overlayText != null) {
+                        overlayText.remove();
+                    }
+                    return;
                 }
-                var overlayText = document.getElementById("dropzone-overlay");
-                if (overlayText != null) {
-                    overlayText.remove();
-                }
-                return;
             }
 
-            const fileName = file.name;
-            var fileContents = null;
-
-            var reader = new FileReader();
             const formData = new FormData();
-
-
             var overlayText = document.getElementById("dropzone-overlay");
             if (overlayText != null) {
                 // Display loading spinner
@@ -869,58 +863,77 @@ To get started, just start typing below. You can also type / to see a list of co
                 overlayText.appendChild(loadingSpinner);
             }
 
-            reader.onload = function (event) {
-                fileContents = event.target.result;
-                let fileType = file.type;
-                if (fileType === "") {
-                    if (fileName.split('.').pop() === "org") {
-                        fileType = "text/org";
-                    } else if (fileName.split('.').pop() === "md") {
-                        fileType = "text/markdown";
-                    } else if (fileName.split('.').pop() === "txt") {
-                        fileType = "text/plain";
-                    } else if (fileName.split('.').pop() === "html") {
-                        fileType = "text/html";
-                    } else if (fileName.split('.').pop() === "pdf") {
-                        fileType = "application/pdf";
-                    }
-                }
-
-                let fileObj = new Blob([fileContents], { type: fileType });
-                formData.append("files", fileObj, file.name);
-                console.log(formData);
-
-                fetch("/api/v1/index/update?force=false&client=web", {
-                    method: "POST",
-                    body: formData,
-                })
-                    .then((data) => {
-                        console.log(data);
-                        dropzone.classList.remove('dragover');
-                        var overlayText = document.getElementById("dropzone-overlay");
-                        if (overlayText != null) {
-                            overlayText.remove();
+            // Create an array of Promises for file reading
+            const fileReadPromises = Array.from(files).map(file => {
+                return new Promise((resolve, reject) => {
+                    let reader = new FileReader();
+                    reader.onload = function (event) {
+                        let fileContents = event.target.result;
+                        let fileType = file.type;
+                        let fileName = file.name;
+                        if (fileType === "") {
+                            let fileExtension = fileName.split('.').pop();
+                            if (fileExtension === "org") {
+                                fileType = "text/org";
+                            } else if (fileExtension === "md") {
+                                fileType = "text/markdown";
+                            } else if (fileExtension === "txt") {
+                                fileType = "text/plain";
+                            } else if (fileExtension === "html") {
+                                fileType = "text/html";
+                            } else if (fileExtension === "pdf") {
+                                fileType = "application/pdf";
+                            } else {
+                                // Skip this file if its type is not supported
+                                resolve();
+                                return;
+                            }
                         }
-                        // Display indexing success message
-                        flashStatusInChatInput("✅ File indexed successfully");
-                        renderAllFiles();
-                        addFileFilterToConversation(fileName);
-                        loadFileFiltersFromConversation();
-                    })
-                    .catch((error) => {
-                        console.log(error);
-                        dropzone.classList.remove('dragover');
-                        var overlayText = document.getElementById("dropzone-overlay");
-                        if (overlayText != null) {
-                            overlayText.remove();
-                        }
-                        // Display indexing failure message
-                        flashStatusInChatInput("⛔️ Failed to upload file for indexing");
+
+                        let fileObj = new Blob([fileContents], { type: fileType });
+                        formData.append("files", fileObj, file.name);
+                        resolve();
+                    };
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(file);
+                });
+            });
+
+            // Wait for all files to be read before making the fetch request
+            Promise.all(fileReadPromises)
+                .then(() => {
+                    return fetch("/api/v1/index/update?force=false&client=web", {
+                        method: "POST",
+                        body: formData,
                     });
-            };
-
-            reader.readAsArrayBuffer(file);
+                })
+                .then((data) => {
+                    console.log(data);
+                    dropzone.classList.remove('dragover');
+                    var overlayText = document.getElementById("dropzone-overlay");
+                    if (overlayText != null) {
+                        overlayText.remove();
+                    }
+                    // Display indexing success message
+                    flashStatusInChatInput("✅ File indexed successfully");
+                    renderAllFiles();
+                    for (let file of files) {
+                        addFileFilterToConversation(file.name);
+                    }
+                    loadFileFiltersFromConversation();
+                })
+                .catch((error) => {
+                    console.log(error);
+                    dropzone.classList.remove('dragover');
+                    var overlayText = document.getElementById("dropzone-overlay");
+                    if (overlayText != null) {
+                        overlayText.remove();
+                    }
+                    // Display indexing failure message
+                    flashStatusInChatInput("⛔️ Failed to upload file for indexing");
+                });
         }
+
 
         function setupDropZone() {
             var dropzone = document.getElementById('chat-body');
