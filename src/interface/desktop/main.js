@@ -599,7 +599,7 @@ function addCSPHeaderToSession () {
          console.log('Ctrl+K pressed');
          const clipboardText = clipboard.readText();
          console.log('Clipboard Text:', clipboardText);
-         shortcutWin.webContents.executeJavaScript(`var text = clipboardText; document.getElementById('clipboardText').innerHTML = '<p id="message">${clipboardText}</p>';`);
+        shortcutWin.webContents.executeJavaScript(`var text = clipboardText; document.getElementById('clipboardText').innerHTML = '<p id="message">${clipboardText}</p>'; chat();`);
      });
  });
 
