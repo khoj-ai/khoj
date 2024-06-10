@@ -597,9 +597,11 @@ function addCSPHeaderToSession () {
      globalShortcut.register('CommandOrControl+Shift+K', () => {
          const shortcutWin = createShortcutWindow();
          console.log('Ctrl+K pressed');
-         const clipboardText = clipboard.readText();
-         console.log('Clipboard Text:', clipboardText);
-        shortcutWin.webContents.executeJavaScript(`var text = clipboardText; document.getElementById('clipboardText').innerHTML = '<p id="message">${clipboardText}</p>'; chat();`);
+         var clipboardText = clipboard.readText();
+         //remove any char that's not a letter or number
+         clipboardText = clipboardText.replace(/[^a-zA-Z0-9]/g, ' ');
+         console.log('Clipboard Text: ', clipboardText);
+         shortcutWin.webContents.executeJavaScript(`var text = clipboardText; document.getElementById('clipboardText').innerHTML = '<p id="message">${clipboardText}</p>'; chat();`);
      });
  });
 
