@@ -23,6 +23,8 @@ function ChatBodyData({ chatOptionsData }: { chatOptionsData: ChatOptions | null
 	const searchParams = useSearchParams();
 	const conversationId = searchParams.get('conversationId');
     const [showReferencePanel, setShowReferencePanel] = useState(true);
+    const [referencePanelData, setReferencePanelData] = useState<SingleChatMessage | null>(null);
+
     if (!conversationId) {
         return (
             <div className={styles.suggestions}>
@@ -38,7 +40,6 @@ function ChatBodyData({ chatOptionsData }: { chatOptionsData: ChatOptions | null
             </div>
         );
     }
-    const [referencePanelData, setReferencePanelData] = useState<SingleChatMessage | null>(null);
 
 	return(
         <div className={(hasValidReferences(referencePanelData) && showReferencePanel) ? styles.chatBody : styles.chatBodyFull}>

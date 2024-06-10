@@ -315,6 +315,7 @@ def configure_middleware(app):
             await self.app(scope, receive, send)
 
         def __init__(self, app: ASGIApp) -> None:
+            super().__init__(app)  # Call the superclass's __init__ method
             self.app = app
 
     app.add_middleware(AuthenticationMiddleware, backend=UserAuthenticationBackend())

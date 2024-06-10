@@ -2,20 +2,21 @@
 
 const nextConfig = {
     // Use output: 'export' to enable building for static export. This cannot be used with rewrites
-    // output: 'export',
+    output: 'export',
     // Use rewrites when doing local development. This cannot be used with output: 'export'
-    rewrites: async () => {
-        return [
-            {
-                source: '/api/:path*',
-                destination: 'http://localhost:42110/api/:path*',
-            },
-        ];
-    },
+    // rewrites: async () => {
+    //     return [
+    //         {
+    //             source: '/api/:path*',
+    //             destination: 'http://localhost:42110/api/:path*',
+    //         },
+    //     ];
+    // },
     trailingSlash: true,
     skipTrailingSlashRedirect: true,
     // reactStrictMode: false,
     distDir: 'out',
+    assetPrefix: '/static/',
     images: {
         remotePatterns: [
             {
