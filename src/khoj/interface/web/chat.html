@@ -838,20 +838,24 @@ To get started, just start typing below. You can also type / to see a list of co
 
         function uploadDataForIndexing(files) {
             var dropzone = document.getElementById('chat-body');
+            var badfiles = [];
+            var goodfiles = [];
+            var overlayText = document.getElementById("dropzone-overlay");
 
             for (let file of files) {
                 if (!file || (!allowedExtensions.includes(file.type) && !allowedFileEndings.includes(file.name.split('.').pop()))) {
-                    dropzone.classList.remove('dragover');
                     if (file) {
-                        alert("Sorry, that file type is not yet supported");
+                        badfiles.push(file.name);
                     }
-                    var overlayText = document.getElementById("dropzone-overlay");
-                    if (overlayText != null) {
-                        overlayText.remove();
-                    }
-                    return;
+                } else {
+                    goodfiles.push(file);
                 }
             }
+
+            if (badfiles.length > 0) {
+                alert("The following files are not supported yet:\n" + badfiles.join('\n'));
+            }
+
 
             const formData = new FormData();
             var overlayText = document.getElementById("dropzone-overlay");
@@ -864,7 +868,7 @@ To get started, just start typing below. You can also type / to see a list of co
             }
 
             // Create an array of Promises for file reading
-            const fileReadPromises = Array.from(files).map(file => {
+            const fileReadPromises = Array.from(goodfiles).map(file => {
                 return new Promise((resolve, reject) => {
                     let reader = new FileReader();
                     reader.onload = function (event) {
@@ -917,10 +921,10 @@ To get started, just start typing below. You can also type / to see a list of co
                     // Display indexing success message
                     flashStatusInChatInput("✅ File indexed successfully");
                     renderAllFiles();
-                    for (let file of files) {
+                    for (let file of goodfiles) {
                         addFileFilterToConversation(file.name);
+                        loadFileFiltersFromConversation();
                     }
-                    loadFileFiltersFromConversation();
                 })
                 .catch((error) => {
                     console.log(error);
