@@ -849,16 +849,55 @@ RECEIVE-DATE is the message receive date."
   "Create `org-mode' footnotes with REFERENCE."
   (setq khoj--reference-count (1+ khoj--reference-count))
   (let ((compiled-reference (cdr (assoc 'compiled reference))))
-  (cons
-   (propertize (format "^{ [fn:%x]}" khoj--reference-count) 'help-echo compiled-reference)
-   (thread-last
-     compiled-reference
-     ;; remove filename top heading line from reference
-     ;; prevents actual reference heading in next line jumping out of references footnote section
-     (replace-regexp-in-string "^\* .*\n" "")
-     ;; remove multiple, consecutive empty lines from reference
-     (replace-regexp-in-string "\n\n" "\n")
-     (format "\n[fn:%x] %s" khoj--reference-count)))))
+    (cons
+     (propertize (format "^{ [fn:%x]}" khoj--reference-count) 'help-echo compiled-reference)
+     (thread-last
+       compiled-reference
+       ;; remove filename top heading line from reference
+       ;; prevents actual reference heading in next line jumping out of references footnote section
+       (replace-regexp-in-string "^\* .*\n" "")
+       ;; remove multiple, consecutive empty lines from reference
+       (replace-regexp-in-string "\n\n" "\n")
+       (format "\n[fn:%x] %s" khoj--reference-count)))))
+
+(defun khoj--generate-online-reference (reference)
+  (setq khoj--reference-count (1+ khoj--reference-count))
+  (let ((link (cdr (assoc 'link reference)))
+        (title (cdr (assoc 'title reference)))
+        (description (cdr (assoc 'description reference))))
+    (cons
+     (propertize (format "^{ [fn:%x]}" khoj--reference-count) 'help-echo (format "%s\n%s" link description))
+     (thread-last
+       description
+       ;; remove multiple, consecutive empty lines from reference
+       (replace-regexp-in-string "\n\n" "\n")
+       (format "\n[fn:%x] [[%s][%s]]\n%s\n" khoj--reference-count link title)))))
+
+(defun khoj--extract-online-references (result-types searches)
+  "Extract link, title, and description of specified RESULT-TYPES from SEARCHES."
+  (let ((result '()))
+    (-map
+     (lambda (search)
+      (let ((search-q (car search))
+            (search-results (cdr search)))
+        (-map-when
+         ;; filter search results by specified result types
+         (lambda (search-result) (member (car search-result) result-types))
+         ;; extract link, title, and description from search results
+         (lambda (search-result)
+           (-map
+            (lambda (entry)
+              (let ((link (cdr (or (assoc 'link entry) (assoc 'descriptionLink entry))))
+                    (title (cdr (or (assoc 'title entry) '(title . ,link))))
+                    (description (cdr (or (assoc 'snippet entry) (assoc 'description entry)))))
+                (setq result (append result `(((title . ,title) (link . ,link) (description . ,description) (search . ,search-q)))))))
+            ;; wrap search results in a list if it is not already a list
+            (if (or (equal 'knowledgeGraph (car search-result)) (equal 'webpages (car search-result)))
+                (list (cdr search-result))
+              (cdr search-result))))
+         search-results)))
+     searches)
+    result))
 
 (defun khoj--render-chat-response (response buffer-name)
   (with-current-buffer (get-buffer buffer-name)
@@ -878,10 +917,14 @@ RECEIVE-DATE is the message receive date."
   (let* ((message (cdr (or (assoc 'response json-response) (assoc 'message json-response))))
          (sender (cdr (assoc 'by json-response)))
          (receive-date (cdr (assoc 'created json-response)))
-         (references (or (cdr (assoc 'context json-response)) '()))
-         (footnotes (mapcar #'khoj--generate-reference references))
-         (footnote-links (mapcar #'car footnotes))
-         (footnote-defs (mapcar #'cdr footnotes))
+         (online-references  (or (cdr (assoc 'onlineContext json-response)) '()))
+         (online-footnotes (-map #'khoj--generate-online-reference
+                                 (khoj--extract-online-references '(organic knowledgeGraph peopleAlsoAsk webpages)
+                                                                  online-references)))
+         (doc-references (or (cdr (assoc 'context json-response)) '()))
+         (doc-footnotes (mapcar #'khoj--generate-reference doc-references))
+         (footnote-links (mapcar #'car (append doc-footnotes online-footnotes)))
+         (footnote-defs (mapcar #'cdr (append doc-footnotes online-footnotes)))
          (formatted-response
           (thread-first
             ;; concatenate khoj message and references from API
