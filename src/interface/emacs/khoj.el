@@ -698,7 +698,7 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
   "Chat with Khoj."
   (interactive)
   (when (not (get-buffer khoj--chat-buffer-name))
-      (khoj--load-chat-history khoj--chat-buffer-name))
+      (khoj--load-chat-session khoj--chat-buffer-name))
   (khoj--open-side-pane khoj--chat-buffer-name)
   (let ((query (read-string "Query: ")))
     (when (not (string-empty-p query))
@@ -722,10 +722,11 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
                        (- (truncate (* 0.33 (frame-width))) (window-width))
                        t)))))
 
-(defun khoj--load-chat-history (buffer-name)
+(defun khoj--load-chat-session (buffer-name &optional session-id)
   "Load Khoj Chat conversation history into BUFFER-NAME."
   (setq khoj--reference-count 0)
-  (let ((json-response (cdr (elt (cdr (assoc 'response (khoj--get-chat-history-api))) 0))))
+  (let ((inhibit-read-only t)
+        (json-response (cdr (elt (cdr (assoc 'response (khoj--get-chat-session session-id))) 0))))
     (with-current-buffer (get-buffer-create buffer-name)
       (erase-buffer)
       (insert "* Khoj Chat\n")
@@ -794,6 +795,19 @@ Render results in BUFFER-NAME using QUERY, CONTENT-TYPE."
                             #'khoj--format-chat-response
                             #'khoj--render-chat-response buffer-name))))
 
+(defun khoj--get-chat-sessions ()
+  "Get all chat sessions from Khoj server."
+  (let* ((url-request-method "GET")
+         (url-request-extra-headers `(("Authorization" . ,(format "Bearer %s" khoj-api-key))))
+         (query-url (format "%s/api/chat/sessions?client=emacs" khoj-server-url)))
+    (with-temp-buffer
+      (condition-case ex
+          (progn
+            (url-insert-file-contents query-url)
+            (json-parse-buffer :object-type 'alist))
+        ('file-error (message "Chat exception: [%s]" ex))))))
+
+
 (defun khoj--query-chat-api (query callback &rest cbargs)
   "Send QUERY to Khoj Chat API and call CALLBACK with the response.
 CBARGS are optional additional arguments to pass to CALLBACK."
@@ -811,11 +825,12 @@ CBARGS are optional additional arguments to pass to CALLBACK."
                       (apply callback (json-parse-buffer :object-type 'alist) cbargs))))))
 
 
-(defun khoj--get-chat-history-api ()
-  "Send QUERY to Khoj Chat History API."
+(defun khoj--get-chat-session (&optional session-id)
+  "Get chat messages from default or SESSION-ID chat session."
   (let* ((url-request-method "GET")
          (url-request-extra-headers `(("Authorization" . ,(format "Bearer %s" khoj-api-key))))
-         (query-url (format "%s/api/chat/history?client=emacs" khoj-server-url)))
+         (session-id-query-param (if session-id (format "&conversation_id=%s" session-id) ""))
+         (query-url (format "%s/api/chat/history?client=emacs%s" khoj-server-url session-id-query-param)))
     (with-temp-buffer
       (condition-case ex
           (progn
@@ -825,6 +840,17 @@ CBARGS are optional additional arguments to pass to CALLBACK."
                       (message "Chat processor not configured. Configure OpenAI API key and restart it. Exception: [%s]" ex))
                      (t (message "Chat exception: [%s]" ex))))))))
 
+(defun khoj--open-conversation-session ()
+  "Menu to select Khoj conversation session to open."
+  (let* ((sessions (khoj--get-chat-sessions))
+         (session-alist (-map (lambda (session)
+                                (cons (cdr (assoc 'slug session))
+                                      (cdr (assoc 'conversation_id session))))
+                              sessions))
+         (selected-session-slug (completing-read "Open Conversation: " session-alist nil t))
+         (selected-session-id (cdr (assoc selected-session-slug session-alist))))
+    (khoj--load-chat-session khoj--chat-buffer-name selected-session-id)
+    (khoj--open-side-pane khoj--chat-buffer-name)))
 
 (defun khoj--render-chat-message (message sender &optional receive-date)
   "Render chat messages as `org-mode' list item.
@@ -1090,7 +1116,7 @@ Paragraph only starts at first text after blank line."
 ;; ---------
 
 (defun khoj--setup-and-show-menu ()
-  "Create Transient menu for khoj and show it."
+  "Create main Transient menu for Khoj and show it."
   ;; Create the Khoj Transient menu
   (transient-define-argument khoj--content-type-switch ()
     :class 'transient-switches
@@ -1137,15 +1163,26 @@ Paragraph only starts at first text after blank line."
     (interactive (list (transient-args transient-current-command)))
     (khoj--chat))
 
+  (transient-define-suffix khoj--open-conversation-session-command (&optional _)
+    "Command to select Khoj conversation sessions to open."
+    (interactive (list (transient-args transient-current-command)))
+    (khoj--open-conversation-session))
+
+  (transient-define-prefix khoj--chat-menu ()
+    "Open the Khoj chat menu."
+    ["Act"
+     ("c" "Chat" khoj--chat-command)
+     ("o" "Open Session" khoj--open-conversation-session-command)])
+
   (transient-define-prefix khoj--menu ()
     "Create Khoj Menu to Configure and Execute Commands."
     [["Configure Search"
-      ("n" "Results Count" "--results-count=" :init-value (lambda (obj) (oset obj value (format "%s" khoj-results-count))))
+      ("-n" "Results Count" "--results-count=" :init-value (lambda (obj) (oset obj value (format "%s" khoj-results-count))))
       ("t" "Content Type" khoj--content-type-switch)]
      ["Configure Update"
       ("-f" "Force Update" "--force-update")]]
     [["Act"
-      ("c" "Chat" khoj--chat-command)
+      ("c" "Chat" khoj--chat-menu)
       ("s" "Search" khoj--search-command)
       ("f" "Find Similar" khoj--find-similar-command)
       ("u" "Update" khoj--update-command)
