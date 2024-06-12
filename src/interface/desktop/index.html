@@ -4,29 +4,99 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Khoj Mini</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
+        #styled-input {
+            width: 100%;
+            font-size: 14px;
+            height: 100px;
+            min-height: 50px;
+            background-color: #475569; /* Blue background */
+            color: #dcdfe4;              /* White text */
+            font-family: 'Inter', sans-serif;
+            border: none;
+            resize: vertical;
+        }
+        .chat-input {
+            margin-top: 10px;
+            position: fixed;
+            bottom: 0;
+            left: 5;
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            padding-top: 10px;
+            box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+        }
+        #input-container {
+            background-color: #475569;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        #send-button {
+            border: none;
+            border-radius: 5px 5px 5px 5px;
+            margin-top: 5px;
+            background-color: #5a6b84;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            font-family: 'Inter', sans-serif;
+            font-weight: bold;
+            position: relative;
+        }
+        #send-button:hover {
+            text-decoration: underline;
+            background: #7489a9;
+        }
+
+        ::-webkit-scrollbar {
+        width: 5px; /* Width of the scrollbar */
+        height: 5px;
+        }
+        /* * {
+        outline: 1px solid rgb(255, 255, 255);
+        } */
+
+        /* Track */
+        ::-webkit-scrollbar-track {
+        background: #f1f1f1; /* Background of the scrollbar track */
+        border-radius: 10px;
+        }
+
+        /* Handle */
+        ::-webkit-scrollbar-thumb {
+        background: #2d2d2d; /* Color of the scrollbar thumb */
+        border-radius: 10px;
+        }
+
+        /* Handle on hover */
+        ::-webkit-scrollbar-thumb:hover {
+        background: #000000; /* Color of the scrollbar thumb on hover */
+        }
+
+        #copy-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+        }
         /* CSS for the container */
         .logo-container {
             /* display: flex; Use flexbox to align items */
             align-items: center; /* Align items vertically */
             justify-content: flex;
         }
+
         /* CSS for the image */
         img {
             width: 100px; /* Set the desired width */
             height: auto; /* Allows the image to scale proportionally */
         }
-        #label {
-            font-size: 25px;
-            float: right;
-            font-family: sans-serif;
-            position: relative;
-            top: -10px;
-            font-weight: bold;
-        }
-        #message {
-            font-size: 15px;
-            font-family: sans-serif;
+        .clipboardText {
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
             background-color: #475569;
             color: #dcdfe4;
             padding: 10px;
@@ -36,25 +106,32 @@
         }
         #chat-body {
             width: 100%;
-            height: 300px;
-            font-family: sans-serif;
+            font-family: 'Inter', sans-serif;
             word-wrap: break-word;
-            line-height: 30px;
+            line-height: 20px;
         }
         b {
-            font-size: 20px;
-            font-family: sans-serif;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
         }
         h1 {
-            font-size: 30px;
-            font-family: sans-serif;
+            font-size: 20px;
+            font-family: 'Inter', sans-serif;
             text-align: center;
         }
         body {
             background-color: #f9f5de;
-            padding-left: 20px;
-            padding-right: 20px;
             padding-top: 10px;
+            font-family:'Inter', sans-serif;
+            font-weight: 400;
+            scrollbar-width: 5px; /* "auto" or "thin" */
+            scrollbar-color: #000000 #f1f1f1; /* thumb color and track color */
+            height: 300px;
+            overflow: scroll;
+        }
+        #chat-body-wrapper {
+            padding-left: 10px;
+            padding-right: 10px;
         }
 
     </style>
@@ -65,14 +142,31 @@
         <!-- Logo -->
         <img src="assets\icons\khoj-logo-sideways.svg"></img>
     </div>
-
-    <div id="clipboardText"></div>
-    <div id="chat-body"></div>
+    <div id="chat-body-wrapper">
+        <!-- <div id="clipboardText"></div> -->
+        <div id="input-container">
+            <textarea id="styled-input" name="styled-input">Hello World!</textarea>
+            <script>
+                window.clipboardAPI.sendClipboardText((clipboardText) => {
+                  document.getElementById('styled-input').value = clipboardText;
+                  console.log("success: ", clipboardText);
+                });
+            </script>
+            <button id="send-button">
+                Send
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-send">
+                    <path d="M5 12l10 0-5-5m5 5-5 5" />
+                </svg>
+            </button>
+        </div>
+        <div id="chat-body"></div>
+    </div>
     <script src="main.js"></script>
     <script type="text/javascript" src="./assets/purify.min.js?v={{ khoj_version }}"></script>
     <script type="text/javascript" src="./assets/markdown-it.min.js"></script>
     <script src="./utils.js"></script>
     <script>
+
         let region = null;
         let city = null;
         let countryName = null;
@@ -92,6 +186,22 @@
             });
 
         function copyParentText(event, message=null) {
+            const button = event.currentTarget;
+            const textContent = message ?? button.parentNode.textContent.trim();
+            navigator.clipboard.writeText(textContent).then(() => {
+                button.firstChild.src = "./assets/icons/copy-button-success.svg";
+                setTimeout(() => {
+                    button.firstChild.src = "./assets/icons/copy-button.svg";
+                }, 1000);
+            }).catch((error) => {
+                console.error("Error copying text to clipboard:", error);
+                const originalButtonText = button.innerHTML;
+                button.innerHTML = "⛔️";
+                setTimeout(() => {
+                    button.innerHTML = originalButtonText;
+                    button.firstChild.src = "./assets/icons/copy-button.svg";
+                }, 2000);
+            });
         }
 
         function createCopyParentText(message) {
@@ -219,6 +329,7 @@
 
             let chatBodyWrapper = document.getElementById("chat-body");
             chatBodyWrapperHeight = chatBodyWrapper.clientHeight;
+            autoResize();
         }
 
         function processOnlineReferences(referenceSection, onlineContext) {
@@ -332,6 +443,20 @@
             let element = document.createElement('div');
             element.innerHTML = newHTML;
             element.className = "chat-message-text-response";
+
+            // Add a copy button to each chat message
+            if (willReplace === true) {
+                let copyButton = document.createElement('button');
+                copyButton.classList.add("copy-button");
+                copyButton.title = "Copy Message";
+                let copyIcon = document.createElement("img");
+                copyIcon.id = "copy-icon";
+                copyIcon.src = "./assets/icons/copy-button.svg";
+                copyIcon.classList.add("copy-icon");
+                copyButton.appendChild(copyIcon);
+                copyButton.addEventListener('click', createCopyParentText(message));
+                element.append(copyButton);
+            }
 
             // Get any elements with a class that starts with "language"
             let codeBlockElements = element.querySelectorAll('[class^="language-"]');
@@ -632,8 +757,19 @@
         }
 
         function autoResize() {
-            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+            //move scroll of body to bottom of chat-body div
+            var chatBody = document.getElementById("chat-body");
+            var body = document.body;
+
+            // Calculate the difference between the scroll height and client height of the chat-body
+            var scrollDifference = chatBody.scrollHeight - chatBody.clientHeight;
+
+            // Set the scrollTop of the body to the scroll difference
+            body.scrollTop = scrollDifference;
+
+            console.log("resize");
         }
+
 
         async function getChatHistoryUrl() {
             const hostURL = await window.hostURLAPI.getURL();

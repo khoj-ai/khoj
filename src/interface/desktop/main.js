@@ -535,7 +535,7 @@ function addCSPHeaderToSession () {
          }
      });
 
-     shortcutWin.setResizable(true);
+     shortcutWin.setResizable(false);
      shortcutWin.setOpacity(0.95);
      shortcutWin.setBackgroundColor('#f5f4f3');
      shortcutWin.setHasShadow(true);
@@ -547,7 +547,6 @@ function addCSPHeaderToSession () {
 
      return shortcutWin;
  };
-
  app.whenReady().then(() => {
      addCSPHeaderToSession();
 
@@ -593,15 +592,10 @@ function addCSPHeaderToSession () {
              console.warn("Desktop app update check failed:", e);
          }
      });
-
      globalShortcut.register('CommandOrControl+Shift+K', () => {
          const shortcutWin = createShortcutWindow();
-         console.log('Ctrl+K pressed');
          var clipboardText = clipboard.readText();
-         //remove any char that's not a letter or number
-         clipboardText = clipboardText.replace(/[^a-zA-Z0-9]/g, ' ');
-         console.log('Clipboard Text: ', clipboardText);
-         shortcutWin.webContents.executeJavaScript(`var text = clipboardText; document.getElementById('clipboardText').innerHTML = '<p id="message">${clipboardText}</p>'; chat();`);
+         shortcutWin.webContents.send('clip', clipboardText);
      });
  });
 
