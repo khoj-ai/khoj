@@ -529,16 +529,18 @@ function addCSPHeaderToSession () {
          show: false,
          titleBarStyle: titleBarStyle,
          autoHideMenuBar: true,
+         frame: false,
          webPreferences: {
              preload: path.join(__dirname, 'preload.js'),
              nodeIntegration: true,
          }
      });
-
+     shortcutWin.setMenuBarVisibility(false);
      shortcutWin.setResizable(false);
      shortcutWin.setOpacity(0.95);
      shortcutWin.setBackgroundColor('#f5f4f3');
      shortcutWin.setHasShadow(true);
+     shortcutWin.setVibrancy('popover');
 
      shortcutWin.loadFile(tab);
      shortcutWin.once('ready-to-show', () => {
@@ -596,13 +598,25 @@ function addCSPHeaderToSession () {
              console.warn("Desktop app update check failed:", e);
          }
      });
+     openShortcut = false;
      globalShortcut.register('CommandOrControl+Shift+K', () => {
+        if(openShortcut) return;
         const shortcutWin = createShortcutWindow(); // Create a new shortcut window each time the shortcut is triggered
         const clipboardText = clipboard.readText();
         console.log('Sending clipboard text:', clipboardText); // Debug log
         shortcutWin.webContents.once('dom-ready', () => {
           shortcutWin.webContents.send('clip', clipboardText);
           console.log('Message sent to window'); // Debug log
+        });
+        openShortcut = true;
+        // Register a global shortcut for the Escape key for the shortcutWin
+        globalShortcut.register('Escape', () => {
+          if (shortcutWin) {
+            shortcutWin.close();
+          }
+          // Unregister the Escape key shortcut
+          globalShortcut.unregister('Escape');
+          openShortcut = false;
         });
     });
  });

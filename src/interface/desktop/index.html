@@ -6,13 +6,34 @@
     <title>Khoj Mini</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
+        #title-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 20px;
+            background-color: #f9f5de;
+            color: black;
+            -webkit-app-region: drag;
+            z-index: 9999;
+            margin: 0;
+            padding-left: 7px;
+            padding-right: 7px;
+            padding-top: 5px;
+            padding-bottom: 5px;
+            font-family: 'Inter', sans-serif;
+        }
         #loading-dots {
             padding-top: 10px;
             text-align: center;
-            font-size: 25px;
+            font-size: 16px;
             font-family: 'Inter', sans-serif;
-            font: bold;
-            align-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         #styled-input {
             width: 100%;
@@ -24,6 +45,7 @@
             font-family: 'Inter', sans-serif;
             border: none;
             resize: vertical;
+            overflow: hidden;
         }
         .chat-input {
             margin-top: 10px;
@@ -40,7 +62,7 @@
             background-color: #475569;
             border-radius: 5px;
             padding: 10px;
-            margin-top: 10px;
+            margin-top: 50px;
         }
         #send-button {
             border: none;
@@ -53,11 +75,29 @@
             display: flex;
             align-items: center;
             font-family: 'Inter', sans-serif;
-            font-weight: bold;
+            /* font-weight: bold; */
             position: relative;
+            margin-right: 10px;
         }
         #send-button:hover {
-            text-decoration: underline;
+            background: #7489a9;
+        }
+
+        #edit-button {
+            border: none;
+            border-radius: 5px 5px 5px 5px;
+            margin-top: 5px;
+            background-color: #5a6b84;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            font-family: 'Inter', sans-serif;
+            /* font-weight: bold; */
+            position: relative;
+        }
+        #edit-button:hover {
             background: #7489a9;
         }
 
@@ -159,12 +199,11 @@
             text-align: center;
         }
         body {
-            background-color: #f9f5de;
-            padding-top: 10px;
+            background-color: #ffffff;
             font-family:'Inter', sans-serif;
             font-weight: 400;
             scrollbar-width: 5px; /* "auto" or "thin" */
-            scrollbar-color: #000000 #f1f1f1; /* thumb color and track color */
+            scrollbar-color: white white;/* thumb color and track color */
             height: 300px;
             overflow: scroll;
         }
@@ -172,6 +211,7 @@
             padding-left: 10px;
             padding-right: 10px;
         }
+
         @keyframes bounce {
             0%, 100% {
                 transform: translateY(0);
@@ -183,35 +223,34 @@
 
         #loading-dots span {
             display: inline-block;
-            animation: bounce 0.5s infinite alternate;
+            animation: bounce 0.9s infinite alternate;
         }
 
         .dot1 {
-            animation-delay: 0.3s;
+            animation-delay: 0.1s;
         }
 
         .dot2 {
-            animation-delay: 0.6s;
+            animation-delay: 0.2s;
         }
 
         .dot3 {
-            animation-delay: 0.9s;
+            animation-delay: 0.3s;
         }
 
     </style>
 </head>
 <body>
     <!-- Container for the logo and the phrase -->
-    <div class="logo-container">
-        <!-- Logo -->
+    <!-- <div class="logo-container">
         <img src="assets\icons\khoj-logo-sideways.svg"></img>
-    </div>
+    </div> -->
+    <div id="title-bar">Khoj Shortcut</div>
     <div id="chat-body-wrapper">
         <!-- <div id="clipboardText"></div> -->
         <div id="input-container">
             <textarea id="styled-input" name="styled-input">Hello World!</textarea>
             <script>
-                console.log("attempting clipboard extraction...")
                 try {
                     if (!window.clipboardAPI) {
                         throw new Error('clipboardAPI is not available');
@@ -233,13 +272,24 @@
                     console.error('Error setting up clipboard listener:', error);
                     }
             </script>
+            <div style="display: flex;">
             <button id="send-button" onclick="chat()">
                 Send
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-send">
+                <svg style="margin-left: 3px" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-send">
                     <path d="M5 12l10 0-5-5m5 5-5 5" />
                 </svg>
-
             </button>
+            <button id="edit-button" onclick="edit()">
+                Edit
+                <svg style="margin-left: 6px; margin-right: 6px;" fill="#fff" height="11px" width="11px" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" xmlns:xlink="http://www.w3.org/1999/xlink" enable-background="new 0 0 512 512">
+                    <g>
+                      <g>
+                        <path d="m455.1,137.9l-32.4,32.4-81-81.1 32.4-32.4c6.6-6.6 18.1-6.6 24.7,0l56.3,56.4c6.8,6.8 6.8,17.9 0,24.7zm-270.7,271l-81-81.1 209.4-209.7 81,81.1-209.4,209.7zm-99.7-42l60.6,60.7-84.4,23.8 23.8-84.5zm399.3-282.6l-56.3-56.4c-11-11-50.7-31.8-82.4,0l-285.3,285.5c-2.5,2.5-4.3,5.5-5.2,8.9l-43,153.1c-2,7.1 0.1,14.7 5.2,20 5.2,5.3 15.6,6.2 20,5.2l153-43.1c3.4-0.9 6.4-2.7 8.9-5.2l285.1-285.5c22.7-22.7 22.7-59.7 0-82.5z"/>
+                      </g>
+                    </g>
+                </svg>
+            </button>
+            </div>
         </div>
         <div id="loading-dots" style="display: none;"></div>
         <div id="chat-body"></div>
@@ -271,7 +321,7 @@
             function toggleLoading() {
                 var dots = document.getElementById('loading-dots');
                 if (dots.style.display === 'none') {
-                    dots.innerHTML = 'Magic in progress<span class="dot1">.</span><span class="dot2">.</span><span class="dot3">.</span>';
+                    dots.innerHTML = 'Loading<span class="dot1">.</span><span class="dot2">.</span><span class="dot3">.</span>';
                     dots.style.display = 'inline-block';
                 } else {
                     dots.innerHTML = '';
@@ -279,7 +329,13 @@
                 }
             }
 
-
+        function edit() {
+            //enable input for text area
+            let inp = document.getElementById("styled-input");
+            inp.removeAttribute('readonly');
+            //put focus on text area
+            inp.focus();
+        }
 
         function copyParentText(event, message=null) {
             const button = event.currentTarget;
@@ -639,7 +695,9 @@
         }
 
         async function chat() {
-            // Extract required fields for search from form
+            //set chat body to empty
+            let chatBody = document.getElementById("chat-body");
+            chatBody.innerHTML = "";
             toggleLoading();
             let inp = document.getElementById("styled-input");
             query = inp.value;

@@ -17,9 +17,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 contextBridge.exposeInMainWorld('clipboardAPI', {
     sendClipboardText: (callback) => {
-      console.log('Setting up IPC listener in preload'); // Debug log
       ipcRenderer.on('clip', (event, message) => {
-        console.log('Received IPC message in preload:', message); // Debug log
         callback(message);
       });
     }
