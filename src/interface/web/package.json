@@ -8,9 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "collectstatic": "bash -c 'pushd ../../../ && source .venv/bin/activate && python3 src/khoj/manage.py collectstatic --noinput && deactivate && popd'",
-    "dockercollectstatic": "bash -c 'pushd ../../../ && python3 src/khoj/manage.py collectstatic --noinput && popd'",
+    "cicollectstatic": "bash -c 'pushd ../../../ && python3 src/khoj/manage.py collectstatic --noinput && popd'",
     "export": "yarn build && cp -r out/ ../../khoj/interface/built && yarn collectstatic",
-    "dockerexport": "yarn build && cp -r out/ ../../khoj/interface/built && yarn dockercollectstatic",
+    "ciexport": "yarn build && cp -r out/ ../../khoj/interface/built && yarn cicollectstatic",
     "watch": "nodemon --watch . --ext js,jsx,ts,tsx,css --ignore 'out/**/*' --exec 'yarn export'"
   },
   "dependencies": {

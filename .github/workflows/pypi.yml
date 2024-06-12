@@ -46,7 +46,7 @@ jobs:
 
       - name: Build & export static Next.js app to Django static assets
         run: |
-          yarn export
+          yarn ciexport
         working-directory: src/interface/web
 
       - name: ⚙️ Build Python Package
