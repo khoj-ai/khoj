@@ -523,7 +523,7 @@ function addCSPHeaderToSession () {
  };
 
  const createShortcutWindow = (tab = 'index.html') => {
-     const shortcutWin = new BrowserWindow({
+     var shortcutWin = new BrowserWindow({
          width: 400,
          height: 600,
          show: false,
@@ -544,6 +544,10 @@ function addCSPHeaderToSession () {
      shortcutWin.once('ready-to-show', () => {
          shortcutWin.show();
      });
+
+    shortcutWin.on('closed', () => {
+        shortcutWin = null;
+    });
 
      return shortcutWin;
  };
@@ -593,10 +597,14 @@ function addCSPHeaderToSession () {
          }
      });
      globalShortcut.register('CommandOrControl+Shift+K', () => {
-         const shortcutWin = createShortcutWindow();
-         var clipboardText = clipboard.readText();
-         shortcutWin.webContents.send('clip', clipboardText);
-     });
+        const shortcutWin = createShortcutWindow(); // Create a new shortcut window each time the shortcut is triggered
+        const clipboardText = clipboard.readText();
+        console.log('Sending clipboard text:', clipboardText); // Debug log
+        shortcutWin.webContents.once('dom-ready', () => {
+          shortcutWin.webContents.send('clip', clipboardText);
+          console.log('Message sent to window'); // Debug log
+        });
+    });
  });
 
  app.on('activate', () => {

@@ -16,7 +16,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
 })
 
 contextBridge.exposeInMainWorld('clipboardAPI', {
-    sendClipboardText: (callback) => ipcRenderer.on('clip', (event, message) => callback(message))
+    sendClipboardText: (callback) => {
+      console.log('Setting up IPC listener in preload'); // Debug log
+      ipcRenderer.on('clip', (event, message) => {
+        console.log('Received IPC message in preload:', message); // Debug log
+        callback(message);
+      });
+    }
   });
 
 contextBridge.exposeInMainWorld('storeValueAPI', {

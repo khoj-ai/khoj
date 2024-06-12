@@ -147,10 +147,27 @@
         <div id="input-container">
             <textarea id="styled-input" name="styled-input">Hello World!</textarea>
             <script>
-                window.clipboardAPI.sendClipboardText((clipboardText) => {
-                  document.getElementById('styled-input').value = clipboardText;
-                  console.log("success: ", clipboardText);
-                });
+                console.log("attempting clipboard extraction...")
+                try {
+                    if (!window.clipboardAPI) {
+                        throw new Error('clipboardAPI is not available');
+                    }
+
+                    window.clipboardAPI.sendClipboardText((clipboardText) => {
+                        try {
+                        const styledInput = document.getElementById('styled-input');
+                        if (!styledInput) {
+                            throw new Error('styled-input element not found');
+                        }
+                        styledInput.value = clipboardText;
+                        console.log("success: ", clipboardText);
+                        } catch (error) {
+                        console.error('Error handling clipboard text:', error);
+                        }
+                    });
+                    } catch (error) {
+                    console.error('Error setting up clipboard listener:', error);
+                    }
             </script>
             <button id="send-button">
                 Send
@@ -541,8 +558,9 @@
 
         async function chat() {
             // Extract required fields for search from form
-            let query = document.getElementById("message");
-            query = query.innerText;
+            let query = document.getElementById("styled-input");
+            query = query.value;
+            query.setAttribute('readonly', true);
             let resultsCount = localStorage.getItem("khojResultsCount") || 5;
             console.log(`Query: ${query}`);
 
