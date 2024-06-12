@@ -118,9 +118,9 @@ def chat_page(request: Request):
 
 @web_client.get("/experimental", response_class=FileResponse)
 @requires(["authenticated"], redirect="login_page")
-def chat_page(request: Request):
+def experimental_page(request: Request):
     return templates.TemplateResponse(
-        "chat/index.html",
+        "index.html",
         context={
             "request": request,
         },

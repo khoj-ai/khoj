@@ -42,12 +42,12 @@ jobs:
       - name: Install the Next.js application
         run: |
           yarn install
-        working-directory: ./src/khoj/interface/web
+        working-directory: src/khoj/interface/web
 
       - name: Build & export static Next.js app to Django static assets
         run: |
           yarn export
-        working-directory: ./src/khoj/interface/web
+        working-directory: src/khoj/interface/web
 
       - name: ⚙️ Build Python Package
         run: |
