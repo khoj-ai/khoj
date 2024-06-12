@@ -14,6 +14,17 @@ on:
       - prod.Dockerfile
       - docker-compose.yml
       - .github/workflows/dockerize.yml
+  pull_request:
+    branches:
+      - master
+    paths:
+      - src/khoj/**
+      - src/interface/web/**
+      - pyproject.toml
+      - Dockerfile
+      - prod.Dockerfile
+      - docker-compose.yml
+      - .github/workflows/dockerize.yml
   workflow_dispatch:
     inputs:
       tag:
@@ -31,8 +42,9 @@ on:
 env:
   # Tag Image with tag name on release
   # else with user specified tag (default 'dev') if triggered via workflow
+  # else with run_id if triggered via a pull request
   # else with 'pre' (if push to master)
-  DOCKER_IMAGE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || github.event_name == 'workflow_dispatch' && github.event.inputs.tag || 'pre' }}
+  DOCKER_IMAGE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.event_name == 'pull_request' && github.run_id || 'pre' }}
 
 jobs:
   build:
