@@ -50,14 +50,14 @@ def test_entry_split_when_exceeds_max_tokens():
     data = {
         f"{tmp_path}": entry,
     }
-    expected_heading = f"* Path: {tmp_path}\n** Heading"
+    expected_heading = f"* {tmp_path}\n** Heading"
 
     # Act
     # Extract Entries from specified Org files
     entries = OrgToEntries.extract_org_entries(org_files=data)
 
     # Split each entry from specified Org files by max tokens
-    entries = TextToEntries.split_entries_by_max_tokens(entries, max_tokens=6)
+    entries = TextToEntries.split_entries_by_max_tokens(entries, max_tokens=5)
 
     # Assert
     assert len(entries) == 2
@@ -139,7 +139,7 @@ longer body line 2.1
         f"{tmp_path}": entry,
     }
     first_expected_entry = f"""
-* Path: {tmp_path}
+* {tmp_path}
 ** Heading 1.
  body line 1
 
@@ -148,13 +148,13 @@ longer body line 2.1
 
 """.lstrip()
     second_expected_entry = f"""
-* Path: {tmp_path}
+* {tmp_path}
 ** Heading 2.
  body line 2
 
 """.lstrip()
     third_expected_entry = f"""
-* Path: {tmp_path} / Heading 2
+* {tmp_path} / Heading 2
 ** Subheading 2.1.
  longer body line 2.1
 
@@ -192,7 +192,7 @@ body line 3.1
         f"{tmp_path}": entry,
     }
     first_expected_entry = f"""
-* Path: {tmp_path}
+* {tmp_path}
 ** Heading 1.
  body line 1
 
@@ -201,7 +201,7 @@ body line 3.1
 
 """.lstrip()
     second_expected_entry = f"""
-* Path: {tmp_path}
+* {tmp_path}
 ** Heading 2.
  body line 2
 
@@ -210,7 +210,7 @@ body line 3.1
 
 """.lstrip()
     third_expected_entry = f"""
-* Path: {tmp_path}
+* {tmp_path}
 ** Heading 3.
  body line 3
 

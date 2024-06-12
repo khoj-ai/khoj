@@ -310,6 +310,11 @@ async def extract_references_and_questions(
         defiltered_query = filter.defilter(defiltered_query)
     filters_in_query = q.replace(defiltered_query, "").strip()
     conversation = await sync_to_async(ConversationAdapters.get_conversation_by_id)(conversation_id)
+
+    if not conversation:
+        logger.error(f"Conversation with id {conversation_id} not found.")
+        return compiled_references, inferred_queries, defiltered_query
+
     filters_in_query += " ".join([f'file:"{filter}"' for filter in conversation.file_filters])
     using_offline_chat = False
     print(f"Filters in query: {filters_in_query}")
