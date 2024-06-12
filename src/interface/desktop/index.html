@@ -6,6 +6,14 @@
     <title>Khoj Mini</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
+        #loading-dots {
+            padding-top: 10px;
+            text-align: center;
+            font-size: 25px;
+            font-family: 'Inter', sans-serif;
+            font: bold;
+            align-content: center;
+        }
         #styled-input {
             width: 100%;
             font-size: 14px;
@@ -32,6 +40,7 @@
             background-color: #475569;
             border-radius: 5px;
             padding: 10px;
+            margin-top: 10px;
         }
         #send-button {
             border: none;
@@ -82,11 +91,31 @@
             height: 20px;
             margin-right: 5px;
         }
+        #reference-expand-button{
+            background-color: #000000;
+            color: #dcdfe4;              /* White text */
+            font-family: 'Inter', sans-serif;
+            border-radius: 5px;
+            font-size: 16px;
+            border: none;
+            padding: 5px;
+            margin: 5px;
+        }
+
+
+        div.collapsed {
+            display: none;
+        }
+
+        div.expanded {
+            display: block;
+        }
         /* CSS for the container */
         .logo-container {
             /* display: flex; Use flexbox to align items */
             align-items: center; /* Align items vertically */
             justify-content: flex;
+            padding: 10px; /* Add padding to the container */
         }
 
         /* CSS for the image */
@@ -103,6 +132,16 @@
             border-radius: 5px;
             width: 100%;
             word-wrap: break-word;
+        }
+        .reference-button {
+            background-color: #475569;
+            color: #dcdfe4;
+            font-family: 'Inter', sans-serif;
+            border-radius: 5px;
+            font-size: 16px;
+            border: none;
+            padding: 5px;
+            margin: 5px;
         }
         #chat-body {
             width: 100%;
@@ -132,6 +171,31 @@
         #chat-body-wrapper {
             padding-left: 10px;
             padding-right: 10px;
+        }
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        #loading-dots span {
+            display: inline-block;
+            animation: bounce 0.5s infinite alternate;
+        }
+
+        .dot1 {
+            animation-delay: 0.3s;
+        }
+
+        .dot2 {
+            animation-delay: 0.6s;
+        }
+
+        .dot3 {
+            animation-delay: 0.9s;
         }
 
     </style>
@@ -169,13 +233,15 @@
                     console.error('Error setting up clipboard listener:', error);
                     }
             </script>
-            <button id="send-button">
+            <button id="send-button" onclick="chat()">
                 Send
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-send">
                     <path d="M5 12l10 0-5-5m5 5-5 5" />
                 </svg>
+
             </button>
         </div>
+        <div id="loading-dots" style="display: none;"></div>
         <div id="chat-body"></div>
     </div>
     <script src="main.js"></script>
@@ -201,6 +267,19 @@
                 console.log(err);
                 return;
             });
+
+            function toggleLoading() {
+                var dots = document.getElementById('loading-dots');
+                if (dots.style.display === 'none') {
+                    dots.innerHTML = 'Magic in progress<span class="dot1">.</span><span class="dot2">.</span><span class="dot3">.</span>';
+                    dots.style.display = 'inline-block';
+                } else {
+                    dots.innerHTML = '';
+                    dots.style.display = 'none';
+                }
+            }
+
+
 
         function copyParentText(event, message=null) {
             const button = event.currentTarget;
@@ -283,6 +362,7 @@
             linkElement.setAttribute('href', link);
             linkElement.setAttribute('target', '_blank');
             linkElement.setAttribute('rel', 'noopener noreferrer');
+            linkElement.style.color = "white";
             linkElement.classList.add("inline-chat-link");
             linkElement.classList.add("reference-link");
             linkElement.setAttribute('title', title);
@@ -334,10 +414,11 @@
 
             // Append chat message div to chat body
             let chatBody = document.getElementById("chat-body");
+            let body = document.body;
             if (renderType === "append") {
                 chatBody.appendChild(chatMessage);
                 // Scroll to bottom of chat-body element
-                chatBody.scrollTop = chatBody.scrollHeight;
+                body.scrollTop = chatBody.scrollHeight;
             } else if (renderType === "prepend") {
                 chatBody.insertBefore(chatMessage, chatBody.firstChild);
             } else if (renderType === "return") {
@@ -535,6 +616,7 @@
             }
 
             let referenceExpandButton = document.createElement('button');
+            referenceExpandButton.id = "reference-expand-button";
             referenceExpandButton.classList.add("reference-expand-button");
             referenceExpandButton.innerHTML = numReferences == 1 ? "1 reference" : `${numReferences} references`;
 
@@ -558,9 +640,10 @@
 
         async function chat() {
             // Extract required fields for search from form
-            let query = document.getElementById("styled-input");
-            query = query.value;
-            query.setAttribute('readonly', true);
+            toggleLoading();
+            let inp = document.getElementById("styled-input");
+            query = inp.value;
+            inp.setAttribute('readonly', true);
             let resultsCount = localStorage.getItem("khojResultsCount") || 5;
             console.log(`Query: ${query}`);
 
@@ -616,14 +699,14 @@
             loadingEllipsis.appendChild(fourthEllipsis);
 
             newResponseTextEl.appendChild(loadingEllipsis);
-            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+            document.body.scrollTop = document.getElementById("chat-body").scrollHeight;
 
             // Call Khoj chat API
             let response = await fetch(chatApi, { headers });
             let rawResponse = "";
             let references = null;
             const contentType = response.headers.get("content-type");
-
+            toggleLoading();
             if (contentType === "application/json") {
                 // Handle JSON response
                 try {
@@ -661,7 +744,7 @@
                         newResponseTextEl.appendChild(references);
                     }
 
-                    document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+                    document.body.scrollTop = document.getElementById("chat-body").scrollHeight;
                 }
             } else {
                 // Handle streamed response of type text/event-stream or text/plain
@@ -678,7 +761,7 @@
                             if (references != {}) {
                                 newResponseTextEl.appendChild(createReferenceSection(references));
                             }
-                            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+                            document.body.scrollTop = document.getElementById("chat-body").scrollHeight;
                             return;
                         }
 
@@ -714,10 +797,11 @@
                         }
 
                         // Scroll to bottom of chat window as chat response is streamed
-                        document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+                        document.body.scrollTop = document.getElementById("chat-body").scrollHeight;
                     });
                 }
             }
+            document.body.scrollTop = document.getElementById("chat-body").scrollHeight;
         }
 
         function incrementalChat(event) {
