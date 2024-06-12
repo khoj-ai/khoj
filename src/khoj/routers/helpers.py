@@ -449,8 +449,10 @@ async def generate_better_image_prompt(
         online_results=simplified_online_results,
     )
 
+    summarizer_model: ChatModelOptions = await ConversationAdapters.aget_summarizer_conversation_config()
+
     with timer("Chat actor: Generate contextual image prompt", logger):
-        response = await send_message_to_model_wrapper(image_prompt)
+        response = await send_message_to_model_wrapper(image_prompt, chat_model_option=summarizer_model)
 
     return response.strip()
 
