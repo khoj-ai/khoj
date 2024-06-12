@@ -146,33 +146,10 @@ def login_page(request: Request):
 
 @web_client.get("/agents", response_class=HTMLResponse)
 def agents_page(request: Request):
-    user: KhojUser = request.user.object if request.user.is_authenticated else None
-    user_picture = request.session.get("user", {}).get("picture") if user else None
-    has_documents = EntryAdapters.user_has_entries(user=user)
-    agents = AgentAdapters.get_all_accessible_agents(user)
-    agents_packet = list()
-    for agent in agents:
-        agents_packet.append(
-            {
-                "slug": agent.slug,
-                "avatar": agent.avatar,
-                "name": agent.name,
-                "personality": agent.personality,
-                "public": agent.public,
-                "creator": agent.creator.username if agent.creator else None,
-                "managed_by_admin": agent.managed_by_admin,
-            }
-        )
     return templates.TemplateResponse(
-        "agents.html",
+        "agents/index.html",
         context={
             "request": request,
-            "agents": agents_packet,
-            "khoj_version": state.khoj_version,
-            "username": user.username if user else None,
-            "has_documents": has_documents,
-            "is_active": has_required_scope(request, ["premium"]),
-            "user_photo": user_picture,
         },
     )
 

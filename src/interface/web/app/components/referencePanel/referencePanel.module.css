@@ -1,0 +1,32 @@
+div.panel {
+    padding: 1rem;
+    border-radius: 1rem;
+    background-color: var(--calm-blue);
+    color: var(--main-text-color);
+    max-height: 80vh;
+    overflow-y: auto;
+    max-width: auto;
+}
+
+div.panel a {
+    color: var(--intense-green);
+    text-decoration: underline;
+}
+
+div.onlineReference,
+div.contextReference {
+    margin: 4px;
+    border-radius: 8px;
+    padding: 4px;
+}
+
+div.contextReference:hover {
+    cursor: pointer;
+}
+
+div.singleReference {
+    padding: 8px;
+    border-radius: 8px;
+    background-color: var(--frosted-background-color);
+    margin-top: 8px;
+}

@@ -1,0 +1,12 @@
+div.chatHistory {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+div.chatLayout {
+    height: 80vh;
+    overflow-y: auto;
+    /* width: 80%; */
+    margin: 0 auto;
+}
