@@ -29,7 +29,7 @@ You can start editing the page by modifying any of the `.tsx` pages. The page au
 
 ## Testing built files
 
-We've setup a utility command for building and serving the built files. This is useful for testing the production build locally.
+We've setup a utility command for building and serving the built files. This is useful for testing the production build locally. You'll have to uncomment and comment out the appropriate lines in the `next.config.js` file to enable the export feature. See the comments in the file for more information.
 
 To keep building the files and serving them, run:
 ```bash
@@ -41,11 +41,27 @@ To build the files once and serve them, run:
 yarn export
 ```
 
+Now you should be able to load your custom pages from the Khoj app at http://localhost:42110/. To server any of the built files, you should update the routes in the `web_client.py` like so, where `new_file` is the new page you've added in this repo:
+
+```python
+@web_client.post("/new_route", response_class=FileResponse)
+@requires(["authenticated"], redirect="login_page")
+def index_post(request: Request):
+
+    return templates.TemplateResponse(
+        "new_file/index.html",
+        context={
+            "request": request,
+        },
+    )
+```
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
 
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Next.js App Router](https://nextjs.org/docs/app) - learn about the Next.js router.
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
