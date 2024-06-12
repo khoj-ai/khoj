@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+RESEND_AUDIENCE_ID = os.getenv("RESEND_AUDIENCE_ID")
 
 static_files = os.path.join(settings.BASE_DIR, "static")
 
@@ -40,7 +41,7 @@ async def send_welcome_email(name, email):
 
     html_content = template.render(name=name if not is_none_or_empty(name) else "you")
 
-    r = resend.Emails.send(
+    resend.Emails.send(
         {
             "sender": "team@khoj.dev",
             "to": email,
@@ -48,6 +49,19 @@ async def send_welcome_email(name, email):
             "html": html_content,
         }
     )
+
+    if not RESEND_AUDIENCE_ID:
+        return
+
+    contact_params = {
+        "email": email,
+        "audience_id": RESEND_AUDIENCE_ID,
+    }
+
+    if name:
+        contact_params["first_name"] = name
+
+    resend.Contacts.create(contact_params)
 
 
 async def send_query_feedback(uquery, kquery, sentiment, user_email):
