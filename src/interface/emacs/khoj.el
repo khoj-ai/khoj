@@ -755,16 +755,17 @@ Render results in BUFFER-NAME using search results, CONTENT-TYPE and (optional) 
   "Load Khoj Chat conversation history into BUFFER-NAME."
   (setq khoj--reference-count 0)
   (let ((inhibit-read-only t)
-        (json-response (cdr (elt (cdr (assoc 'response (khoj--get-chat-session session-id))) 0))))
+        (json-response (cdr (assoc 'chat (cdr (assoc 'response (khoj--get-chat-session session-id)))))))
     (with-current-buffer (get-buffer-create buffer-name)
       (erase-buffer)
       (insert "* Khoj Chat\n")
-      (thread-last
-        json-response
-        ;; generate chat messages from Khoj Chat API response
-        (mapcar #'khoj--format-chat-response)
-        ;; insert chat messages into Khoj Chat Buffer
-        (mapc #'insert))
+      (when json-response
+        (thread-last
+          json-response
+          ;; generate chat messages from Khoj Chat API response
+          (mapcar #'khoj--format-chat-response)
+          ;; insert chat messages into Khoj Chat Buffer
+          (mapc #'insert)))
       (progn
         (org-mode)
         (khoj--add-hover-text-to-footnote-refs (point-min))
@@ -846,7 +847,9 @@ CBARGS are optional additional arguments to pass to CALLBACK."
   "Menu to select Khoj conversation session to open."
   (let* ((sessions (khoj--get-chat-sessions))
          (session-alist (-map (lambda (session)
-                                (cons (cdr (assoc 'slug session))
+                                (cons (if (not (equal :null (cdr (assoc 'slug session))))
+                                          (cdr (assoc 'slug session))
+                                        (format "New Conversation (%s)" (cdr (assoc 'conversation_id session))))
                                       (cdr (assoc 'conversation_id session))))
                               sessions))
          (selected-session-slug (completing-read "Open Conversation: " session-alist nil t))
