@@ -788,6 +788,10 @@ class ApiUserRateLimiter:
         self.slug = slug
 
     def __call__(self, request: Request):
+        # Rate limiting disabled if billing is disabled
+        if state.billing_enabled is False:
+            return
+
         # Rate limiting is disabled if user unauthenticated.
         # Other systems handle authentication
         if not request.user.is_authenticated:
