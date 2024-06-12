@@ -86,7 +86,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
         <div className={styles.main + " " + styles.chatLayout}>
             <div ref={ref}>
                 <div className={styles.chatHistory} ref={chatHistoryRef}>
-                    {data && data.chat.map((chatMessage, index) => (
+                    {(data && data.chat) && data.chat.map((chatMessage, index) => (
                         <ChatMessage
                             key={index}
                             chatMessage={chatMessage}

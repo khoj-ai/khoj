@@ -8,6 +8,7 @@ on:
       - 'master'
     paths:
       - src/khoj/**
+      - src/interface/web/**
       - pyproject.toml
       - .github/workflows/pypi.yml
   pull_request:
@@ -15,6 +16,7 @@ on:
       - 'master'
     paths:
       - src/khoj/**
+      - src/interface/web/**
       - pyproject.toml
       - .github/workflows/pypi.yml
 
@@ -36,6 +38,16 @@ jobs:
 
       - name: ⬇️ Install Application
         run: python -m pip install --upgrade pip && pip install --upgrade .
+
+      - name: Install the Next.js application
+        run: |
+          yarn install
+        working-directory: ./src/khoj/interface/web
+
+      - name: Build & export static Next.js app to Django static assets
+        run: |
+          yarn export
+        working-directory: ./src/khoj/interface/web
 
       - name: ⚙️ Build Python Package
         run: |

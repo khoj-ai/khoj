@@ -4,25 +4,20 @@ import styles from "./sidePanel.module.css";
 
 import { useEffect, useState } from "react";
 
+import { UserProfile } from "@/app/common/auth";
+import Link from "next/link";
+
 interface ChatHistory {
     conversation_id: string;
     slug: string;
 }
 
-interface UserProfile {
-    email: string;
-    username: string;
-    photo: string;
-    is_active: boolean;
-    has_documents: boolean;
-}
-
 function ChatSession(prop: ChatHistory) {
     return (
         <div key={prop.conversation_id} className={styles.session}>
-            <a href={`/chat?conversationId=${prop.conversation_id}`}>
-                <p className={styles.session}>{prop.slug}</p>
-            </a>
+            <Link href={`/chat?conversationId=${prop.conversation_id}`}>
+                <p className={styles.session}>{prop.slug || "New Conversation 🌱"}</p>
+            </Link>
         </div>
     );
 }

@@ -17,7 +17,7 @@ button.button {
 }
 
 button.showMoreButton {
-    /* background: linear-gradient(var(--water), var(--intense-green)); */
+    background: var(--intense-green);
     border: none;
     color: var(--frosted-background-color);
     border-radius: 0.5rem;

@@ -8,6 +8,7 @@ on:
       - master
     paths:
       - src/khoj/**
+      - src/interface/web/**
       - pyproject.toml
       - Dockerfile
       - prod.Dockerfile

@@ -89,15 +89,10 @@ export default function Chat() {
                 <SidePanel />
             </div>
             <div className={styles.chatBox}>
-                <div className={styles.titleBar}>
-                    <title>
-                        Khoj AI - Chat
-                    </title>
-                    <div className={styles.title}>
-                        Khoj AI
-                    </div>
-                    <NavMenu selected="Chat" />
-                </div>
+                <title>
+                    Khoj AI - Chat
+                </title>
+                <NavMenu selected="Chat" />
                 <div>
                     <Suspense fallback={<Loading />}>
                         <ChatBodyData chatOptionsData={chatOptionsData} />

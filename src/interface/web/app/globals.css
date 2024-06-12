@@ -125,7 +125,7 @@ textarea {
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
+  color: var(--main-text-color);
   background-color: var(--background-color);
 }
 
@@ -150,8 +150,9 @@ button:hover {
   cursor: pointer;
 }
 
-@media (prefers-color-scheme: dark) {
+/* Uncomment when ready for dark-mode */
+/* @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;
   }
-}
+} */

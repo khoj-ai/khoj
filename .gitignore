@@ -16,6 +16,7 @@ todesktop.json
 
 # Build artifacts
 /src/khoj/interface/web/images
+/src/khoj/interface/built/
 /build/
 /dist/
 khoj_assistant.egg-info
