@@ -857,6 +857,17 @@ CBARGS are optional additional arguments to pass to CALLBACK."
     (khoj--load-chat-session khoj--chat-buffer-name selected-session-id)
     (khoj--open-side-pane khoj--chat-buffer-name)))
 
+(defun khoj--create-chat-session ()
+  "Create new chat session."
+  (khoj--call-api "/api/chat/sessions" "POST"))
+
+(defun khoj--new-conversation-session ()
+  "Create new Khoj conversation session."
+  (let* ((session (khoj--create-chat-session))
+         (new-session-id (cdr (assoc 'conversation_id session))))
+    (khoj--load-chat-session khoj--chat-buffer-name new-session-id)
+    (khoj--open-side-pane khoj--chat-buffer-name)))
+
 (defun khoj--render-chat-message (message sender &optional receive-date)
   "Render chat messages as `org-mode' list item.
 MESSAGE is the text of the chat message.
@@ -1172,11 +1183,18 @@ Paragraph only starts at first text after blank line."
     (interactive (list (transient-args transient-current-command)))
     (khoj--open-conversation-session))
 
+  (transient-define-suffix khoj--new-conversation-session-command (&optional _)
+    "Command to select Khoj conversation sessions to open."
+    (interactive (list (transient-args transient-current-command)))
+    (khoj--new-conversation-session))
+
   (transient-define-prefix khoj--chat-menu ()
     "Open the Khoj chat menu."
     ["Act"
      ("c" "Chat" khoj--chat-command)
-     ("o" "Open Session" khoj--open-conversation-session-command)])
+     ("o" "Open Conversation" khoj--open-conversation-session-command)
+     ("n" "New Conversation" khoj--new-conversation-session-command)
+     ])
 
   (transient-define-prefix khoj--menu ()
     "Create Khoj Menu to Configure and Execute Commands."
