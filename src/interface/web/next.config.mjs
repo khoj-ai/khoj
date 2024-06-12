@@ -2,16 +2,16 @@
 
 const nextConfig = {
     // Use output: 'export' to enable building for static export. This cannot be used with rewrites. Use in Production
-    // output: 'export',
+    output: 'export',
     // Use rewrites when doing local development. This cannot be used with output: 'export'. Use in Development.
-    rewrites: async () => {
-        return [
-            {
-                source: '/api/:path*',
-                destination: 'http://localhost:42110/api/:path*',
-            },
-        ];
-    },
+    // rewrites: async () => {
+    //     return [
+    //         {
+    //             source: '/api/:path*',
+    //             destination: 'http://localhost:42110/api/:path*',
+    //         },
+    //     ];
+    // },
     trailingSlash: true,
     skipTrailingSlashRedirect: true,
     // React Strict Mode can be disabled to test the functionality of the application in development.
@@ -19,9 +19,9 @@ const nextConfig = {
     distDir: 'out',
     images: {
         // Production
-        // loader: 'custom',
+        loader: 'custom',
         // Production
-        // loaderFile: './image-loader.ts',
+        loaderFile: './image-loader.ts',
         remotePatterns: [
             {
                 protocol: "https",
@@ -30,6 +30,10 @@ const nextConfig = {
             {
                 protocol: "https",
                 hostname: "generated.khoj.dev",
+            },
+            {
+                protocol: "https",
+                hostname: "assets.khoj.dev",
             },
             {
                 protocol: "https",
