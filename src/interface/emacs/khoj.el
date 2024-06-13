@@ -736,20 +736,27 @@ Render results in BUFFER-NAME using search results, CONTENT-TYPE and (optional) 
 (defun khoj--open-side-pane (buffer-name)
   "Open Khoj BUFFER-NAME in right side pane."
   (if (get-buffer-window-list buffer-name)
-      ; if window is already open, switch to it
+      ;; if window is already open, switch to it
       (progn
         (select-window (get-buffer-window buffer-name))
         (switch-to-buffer buffer-name))
     ;; else if window is not open, open it as a right-side window pane
-    (progn
-      ;; Select the right-most window
-      (select-window (some-window (lambda (window) (window-at-side-p window 'right))))
-      ;; Split the window to the right and resize it to take up 1/3 of the frame width
-      (let ((new-window (split-window-right)))
-        (set-window-buffer new-window buffer-name)
-        (window-resize new-window
-                       (- (truncate (* 0.33 (frame-width))) (window-width))
-                       t)))))
+    (let ((bottomright-window (some-window (lambda (window) (and (window-at-side-p window 'right) (window-at-side-p window 'bottom))))))
+      (progn
+        ;; Select the right-most window
+        (select-window bottomright-window)
+        ;; if bottom-right window is not a vertical pane, split it vertically, else use the existing bottom-right vertical window
+        (let ((khoj-window (if (window-at-side-p bottomright-window 'left)
+                               (split-window-right)
+                             bottomright-window)))
+          ;; Set the buffer in the khoj window
+          (set-window-buffer khoj-window buffer-name)
+          ;; Switch to the khoj window
+          (select-window khoj-window)
+          ;; Resize the window to 1/3 of the frame width
+          (window-resize khoj-window
+                         (- (truncate (* 0.33 (frame-width))) (window-width))
+                         t))))))
 
 (defun khoj--load-chat-session (buffer-name &optional session-id)
   "Load Khoj Chat conversation history into BUFFER-NAME."
@@ -781,12 +788,20 @@ Render results in BUFFER-NAME using search results, CONTENT-TYPE and (optional) 
 
         ;; create khoj chat shortcut keybindings
         (use-local-map (copy-keymap org-mode-map))
+        (local-set-key (kbd "q") #'khoj--close)
         (local-set-key (kbd "m") #'khoj--chat)
         (local-set-key (kbd "C-x m") #'khoj--chat)
 
         ;; enable minor modes for khoj chat
         (visual-line-mode)
         (read-only-mode t)))))
+
+(defun khoj--close ()
+  "Kill Khoj buffer and window"
+  (interactive)
+  (progn
+    (kill-buffer (current-buffer))
+    (delete-window)))
 
 (defun khoj--add-hover-text-to-footnote-refs (start-pos)
   "Show footnote defs on mouse hover on footnote refs from START-POS."
