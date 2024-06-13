@@ -888,6 +888,17 @@ CBARGS are optional additional arguments to pass to CALLBACK."
     (khoj--load-chat-session khoj--chat-buffer-name new-session-id)
     (khoj--open-side-pane khoj--chat-buffer-name)))
 
+(defun khoj--delete-chat-session (session-id)
+  "Delete new chat session."
+  (khoj--call-api "/api/chat/history" "DELETE" `(("conversation_id" ,session-id))))
+
+(defun khoj--delete-conversation-session ()
+  "Delete new Khoj conversation session."
+  (let* ((selected-session-id (khoj--select-conversation-session "Delete"))
+         (session (khoj--delete-chat-session selected-session-id)))
+    (khoj--load-chat-session khoj--chat-buffer-name)
+    (khoj--open-side-pane khoj--chat-buffer-name)))
+
 (defun khoj--render-chat-message (message sender &optional receive-date)
   "Render chat messages as `org-mode' list item.
 MESSAGE is the text of the chat message.
@@ -1208,12 +1219,19 @@ Paragraph only starts at first text after blank line."
     (interactive (list (transient-args transient-current-command)))
     (khoj--new-conversation-session))
 
+  (transient-define-suffix khoj--delete-conversation-session-command (&optional _)
+    "Command to select Khoj conversation sessions to delete."
+    (interactive (list (transient-args transient-current-command)))
+    (khoj--delete-conversation-session))
+
   (transient-define-prefix khoj--chat-menu ()
     "Open the Khoj chat menu."
     ["Act"
      ("c" "Chat" khoj--chat-command)
      ("o" "Open Conversation" khoj--open-conversation-session-command)
      ("n" "New Conversation" khoj--new-conversation-session-command)
+     ("d" "Delete Conversation" khoj--delete-conversation-session-command)
+     ("q" "Quit" transient-quit-one)
      ])
 
   (transient-define-prefix khoj--menu ()
