@@ -858,17 +858,22 @@ CBARGS are optional additional arguments to pass to CALLBACK."
                   "GET"
                   (when session-id `(("conversation_id" ,session-id)))))
 
-(defun khoj--open-conversation-session ()
-  "Menu to select Khoj conversation session to open."
-  (let* ((sessions (khoj--get-chat-sessions))
+(defun khoj--select-conversation-session (&optional completion-action)
+  "Select Khoj conversation session to perform COMPLETION-ACTION on."
+  (let* ((completion-text (format "%s Conversation:" (or completion-action "Open")))
+         (sessions (khoj--get-chat-sessions))
          (session-alist (-map (lambda (session)
                                 (cons (if (not (equal :null (cdr (assoc 'slug session))))
                                           (cdr (assoc 'slug session))
                                         (format "New Conversation (%s)" (cdr (assoc 'conversation_id session))))
                                       (cdr (assoc 'conversation_id session))))
                               sessions))
-         (selected-session-slug (completing-read "Open Conversation: " session-alist nil t))
-         (selected-session-id (cdr (assoc selected-session-slug session-alist))))
+         (selected-session-slug (completing-read completion-text session-alist nil t)))
+    (cdr (assoc selected-session-slug session-alist))))
+
+(defun khoj--open-conversation-session ()
+  "Menu to select Khoj conversation session to open."
+  (let ((selected-session-id (khoj--select-conversation-session "Open")))
     (khoj--load-chat-session khoj--chat-buffer-name selected-session-id)
     (khoj--open-side-pane khoj--chat-buffer-name)))
 
