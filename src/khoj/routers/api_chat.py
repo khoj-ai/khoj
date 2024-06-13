@@ -75,11 +75,6 @@ from pydantic import BaseModel
 from khoj.routers.email import send_query_feedback
 
 
-class FilterRequest(BaseModel):
-    filename: str
-    conversation_id: str
-
-
 @api_chat.get("/conversation/file-filters/{conversation_id}", response_class=Response)
 @requires(["authenticated"])
 def get_file_filter(request: Request, conversation_id: str) -> Response:
