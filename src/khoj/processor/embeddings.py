@@ -86,7 +86,7 @@ class EmbeddingsModel:
                     embeddings += generated_embeddings
                     pbar.update(1000)
             return embeddings
-        return self.embeddings_model.encode(docs, **self.docs_encode_kwargs).tolist()
+        return self.embeddings_model.encode(docs, **self.docs_encode_kwargs).tolist() if docs else []
 
 
 class CrossEncoderModel:

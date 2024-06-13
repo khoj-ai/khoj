@@ -59,7 +59,7 @@ from khoj.utils.helpers import (
     get_device,
     is_none_or_empty,
 )
-from khoj.utils.rawconfig import LocationData
+from khoj.utils.rawconfig import FilterRequest, LocationData
 
 # Initialize Router
 logger = logging.getLogger(__name__)
