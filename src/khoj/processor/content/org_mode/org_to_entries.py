@@ -57,7 +57,7 @@ class OrgToEntries(TextToEntries):
     @staticmethod
     def extract_org_entries(
         org_files: dict[str, str], index_heading_entries: bool = False, max_tokens=256
-    ) -> List[Entry]:
+    ) -> Tuple[Dict, List[Entry]]:
         "Extract entries from specified Org files"
         file_to_text_map, entries, entry_to_file_map = OrgToEntries.extract_org_nodes(org_files, max_tokens)
         return file_to_text_map, OrgToEntries.convert_org_nodes_to_entries(
@@ -65,7 +65,9 @@ class OrgToEntries(TextToEntries):
         )
 
     @staticmethod
-    def extract_org_nodes(org_files: dict[str, str], max_tokens) -> Tuple[List[List[Orgnode]], Dict[Orgnode, str]]:
+    def extract_org_nodes(
+        org_files: dict[str, str], max_tokens
+    ) -> Tuple[Dict, List[List[Orgnode]], Dict[Orgnode, str]]:
         "Extract org nodes from specified org files"
         entries: List[List[Orgnode]] = []
         entry_to_file_map: List[Tuple[Orgnode, str]] = []
