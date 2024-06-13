@@ -59,7 +59,7 @@ def test_entry_split_when_exceeds_max_tokens():
     entries = OrgToEntries.extract_org_entries(org_files=data)
     assert len(entries) == 2
     # Split each entry from specified Org files by max tokens
-    entries = TextToEntries.split_entries_by_max_tokens(entries[1], max_tokens=6)
+    entries = TextToEntries.split_entries_by_max_tokens(entries[1], max_tokens=5)
 
     # Assert
     assert len(entries) == 2
