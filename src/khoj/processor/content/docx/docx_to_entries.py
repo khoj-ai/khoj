@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 from langchain_community.document_loaders import Docx2txtLoader
 
@@ -32,7 +32,7 @@ class DocxToEntries(TextToEntries):
 
         # Extract Entries from specified Docx files
         with timer("Extract entries from specified DOCX files", logger):
-            current_entries = DocxToEntries.extract_docx_entries(files)
+            file_to_text_map, current_entries = DocxToEntries.extract_docx_entries(files)
 
         # Split entries by max tokens supported by model
         with timer("Split entries by max token size supported by model", logger):
@@ -49,16 +49,18 @@ class DocxToEntries(TextToEntries):
                 deletion_file_names,
                 user,
                 regenerate=regenerate,
+                file_to_text_map=file_to_text_map,
             )
 
         return num_new_embeddings, num_deleted_embeddings
 
     @staticmethod
-    def extract_docx_entries(docx_files) -> List[Entry]:
+    def extract_docx_entries(docx_files) -> Tuple[Dict, List[Entry]]:
         """Extract entries from specified DOCX files"""
 
         entries: List[str] = []
         entry_to_location_map: List[Tuple[str, str]] = []
+        file_to_text_map = dict()
         for docx_file in docx_files:
             try:
                 timestamp_now = datetime.utcnow().timestamp()
@@ -76,13 +78,14 @@ class DocxToEntries(TextToEntries):
 
                 entry_to_location_map += zip(docx_texts, [docx_file] * len(docx_texts))
                 entries.extend(docx_texts)
+                file_to_text_map[docx_file] = docx_texts
             except Exception as e:
                 logger.warning(f"Unable to process file: {docx_file}. This file will not be indexed.")
                 logger.warning(e, exc_info=True)
             finally:
                 if os.path.exists(f"{tmp_file}"):
                     os.remove(f"{tmp_file}")
-        return DocxToEntries.convert_docx_entries_to_maps(entries, dict(entry_to_location_map))
+        return file_to_text_map, DocxToEntries.convert_docx_entries_to_maps(entries, dict(entry_to_location_map))
 
     @staticmethod
     def convert_docx_entries_to_maps(parsed_entries: List[str], entry_to_file_map) -> List[Entry]:
