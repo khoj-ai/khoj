@@ -868,7 +868,7 @@ async def chat(
         conversation_commands.append(ConversationCommand.Online)
 
     conversation = await ConversationAdapters.aget_conversation_by_user(user, conversation_id=conversation_id)
-    if conversation_commands == [ConversationCommand.Summarize]:
+    if ConversationCommand.Summarize in conversation_commands:
         file_filters = conversation.file_filters
         llm_response = ""
         if len(file_filters) == 0:
@@ -878,6 +878,9 @@ async def chat(
         else:
             try:
                 file_object = await FileObjectAdapters.async_get_file_objects_by_name(user, file_filters[0])
+                if len(file_object) == 0:
+                    llm_response = "Sorry, we couldn't find the full text of this file. Please re-upload the document and try again."
+                    return StreamingResponse(content=llm_response, media_type="text/event-stream", status_code=200)
                 contextual_data = " ".join([file.raw_text for file in file_object])
                 summarizeStr = "/" + ConversationCommand.Summarize
                 if q.strip() == summarizeStr:
