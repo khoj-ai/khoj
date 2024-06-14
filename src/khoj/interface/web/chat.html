@@ -30,6 +30,8 @@
     <script type="text/javascript" src="/static/assets/purify.min.js?v={{ khoj_version }}"></script>
     <script type="text/javascript" src="/static/assets/utils.js?v={{ khoj_version }}"></script>
     <script type="text/javascript" src="/static/assets/markdown-it.min.js?v={{ khoj_version }}"></script>
+    <link rel="stylesheet" href="https://assets.khoj.dev/higlightjs/solarized-dark.min.css">
+    <script src="https://assets.khoj.dev/higlightjs/highlight.min.js"></script>
     <script>
         let welcome_message = `
 Hi, I am Khoj, your open, personal AI 👋🏽. I can:
@@ -447,6 +449,13 @@ To get started, just start typing below. You can also type / to see a list of co
                 codeElement.parentNode.insertBefore(parentDiv, codeElement);
                 // Move the code element into the parent div
                 parentDiv.appendChild(codeElement);
+
+                // Check if hijs has been loaded
+                if (typeof hljs !== 'undefined') {
+                    // Highlight the code block
+                    hljs.highlightBlock(codeElement);
+                }
+
                 // Add a copy button to each code block, if it doesn't already exist
                 if (willReplace === true) {
                     let copyButton = document.createElement('button');
@@ -801,7 +810,7 @@ To get started, just start typing below. You can also type / to see a list of co
             if (overlayText == null) {
                 dropzone.classList.add('dragover');
                 var overlayText = document.createElement("div");
-                overlayText.innerHTML = "Select a file or drag + drop it here to share it with Khoj";
+                overlayText.innerHTML = "Select file(s) or drag + drop it here to share it with Khoj";
                 overlayText.className = "dropzone-overlay";
                 overlayText.id = "dropzone-overlay";
                 dropzone.appendChild(overlayText);
@@ -809,9 +818,10 @@ To get started, just start typing below. You can also type / to see a list of co
 
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
+            fileInput.multiple = true;
             fileInput.addEventListener('change', function() {
-                const selectedFile = fileInput.files[0];
-                uploadDataForIndexing(selectedFile);
+                const selectedFiles = fileInput.files;
+                uploadDataForIndexing(selectedFiles);
             });
 
             // Remove overlay text after file input is closed
@@ -835,89 +845,108 @@ To get started, just start typing below. You can also type / to see a list of co
             fileInput.click();
         }
 
-        function uploadDataForIndexing(file) {
+        function uploadDataForIndexing(files) {
             var dropzone = document.getElementById('chat-body');
+            var badfiles = [];
+            var goodfiles = [];
+            var overlayText = document.getElementById("dropzone-overlay");
 
-            if (!file || (!allowedExtensions.includes(file.type) && !allowedFileEndings.includes(file.name.split('.').pop()))) {
-                dropzone.classList.remove('dragover');
-                if (file) {
-                    alert("Sorry, that file type is not yet supported");
+            for (let file of files) {
+                if (!file || (!allowedExtensions.includes(file.type) && !allowedFileEndings.includes(file.name.split('.').pop()))) {
+                    if (file) {
+                        badfiles.push(file.name);
+                    }
+                } else {
+                    goodfiles.push(file);
                 }
-                var overlayText = document.getElementById("dropzone-overlay");
-                if (overlayText != null) {
-                    overlayText.remove();
-                }
-                return;
             }
 
-            const fileName = file.name;
-            var fileContents = null;
+            if (badfiles.length > 0) {
+                alert("The following files are not supported yet:\n" + badfiles.join('\n'));
+            }
 
-            var reader = new FileReader();
+
             const formData = new FormData();
-
-
             var overlayText = document.getElementById("dropzone-overlay");
             if (overlayText != null) {
                 // Display loading spinner
                 var loadingSpinner = document.createElement("div");
-                overlayText.innerHTML = "Uploading file for indexing";
+                overlayText.innerHTML = "Uploading file(s) for indexing";
                 loadingSpinner.className = "spinner";
                 overlayText.appendChild(loadingSpinner);
             }
 
-            reader.onload = function (event) {
-                fileContents = event.target.result;
-                let fileType = file.type;
-                if (fileType === "") {
-                    if (fileName.split('.').pop() === "org") {
-                        fileType = "text/org";
-                    } else if (fileName.split('.').pop() === "md") {
-                        fileType = "text/markdown";
-                    } else if (fileName.split('.').pop() === "txt") {
-                        fileType = "text/plain";
-                    } else if (fileName.split('.').pop() === "html") {
-                        fileType = "text/html";
-                    } else if (fileName.split('.').pop() === "pdf") {
-                        fileType = "application/pdf";
-                    }
-                }
-
-                let fileObj = new Blob([fileContents], { type: fileType });
-                formData.append("files", fileObj, file.name);
-                console.log(formData);
-
-                fetch("/api/v1/index/update?force=false&client=web", {
-                    method: "POST",
-                    body: formData,
-                })
-                    .then((data) => {
-                        console.log(data);
-                        dropzone.classList.remove('dragover');
-                        var overlayText = document.getElementById("dropzone-overlay");
-                        if (overlayText != null) {
-                            overlayText.remove();
+            // Create an array of Promises for file reading
+            const fileReadPromises = Array.from(goodfiles).map(file => {
+                return new Promise((resolve, reject) => {
+                    let reader = new FileReader();
+                    reader.onload = function (event) {
+                        let fileContents = event.target.result;
+                        let fileType = file.type;
+                        let fileName = file.name;
+                        if (fileType === "") {
+                            let fileExtension = fileName.split('.').pop();
+                            if (fileExtension === "org") {
+                                fileType = "text/org";
+                            } else if (fileExtension === "md") {
+                                fileType = "text/markdown";
+                            } else if (fileExtension === "txt") {
+                                fileType = "text/plain";
+                            } else if (fileExtension === "html") {
+                                fileType = "text/html";
+                            } else if (fileExtension === "pdf") {
+                                fileType = "application/pdf";
+                            } else {
+                                // Skip this file if its type is not supported
+                                resolve();
+                                return;
+                            }
                         }
-                        // Display indexing success message
-                        flashStatusInChatInput("✅ File indexed successfully");
-                        renderAllFiles();
-                        addFileFilterToConversation(fileName);
-                        loadFileFiltersFromConversation();
-                    })
-                    .catch((error) => {
-                        console.log(error);
-                        dropzone.classList.remove('dragover');
-                        var overlayText = document.getElementById("dropzone-overlay");
-                        if (overlayText != null) {
-                            overlayText.remove();
-                        }
-                        // Display indexing failure message
-                        flashStatusInChatInput("⛔️ Failed to upload file for indexing");
+
+                        let fileObj = new Blob([fileContents], { type: fileType });
+                        formData.append("files", fileObj, file.name);
+                        resolve();
+                    };
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(file);
+                });
+            });
+
+            // Wait for all files to be read before making the fetch request
+            Promise.all(fileReadPromises)
+                .then(() => {
+                    return fetch("/api/v1/index/update?force=false&client=web", {
+                        method: "POST",
+                        body: formData,
                     });
-            };
-
-            reader.readAsArrayBuffer(file);
+                })
+                .then((data) => {
+                    console.log(data);
+                    dropzone.classList.remove('dragover');
+                    var overlayText = document.getElementById("dropzone-overlay");
+                    if (overlayText != null) {
+                        overlayText.remove();
+                    }
+                    // Display indexing success message
+                    flashStatusInChatInput("✅ File indexed successfully");
+                    renderAllFiles();
+                    for (let file of goodfiles) {
+                        addFileFilterToConversation(file.name);
+                        loadFileFiltersFromConversation();
+                    }
+                })
+                .catch((error) => {
+                    console.log(error);
+                    dropzone.classList.remove('dragover');
+                    var overlayText = document.getElementById("dropzone-overlay");
+                    if (overlayText != null) {
+                        overlayText.remove();
+                    }
+                    // Display indexing failure message
+                    flashStatusInChatInput("⛔️ Failed to upload file for indexing");
+                });
         }
+
 
         function setupDropZone() {
             var dropzone = document.getElementById('chat-body');

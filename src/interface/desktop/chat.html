@@ -10,6 +10,8 @@
     </head>
     <script type="text/javascript" src="./assets/purify.min.js?v={{ khoj_version }}"></script>
     <script type="text/javascript" src="./assets/markdown-it.min.js"></script>
+    <link rel="stylesheet" href="https://assets.khoj.dev/higlightjs/solarized-dark.min.css">
+    <script src="https://assets.khoj.dev/higlightjs/highlight.min.js"></script>
     <script src="./utils.js"></script>
 
     <script>
@@ -314,6 +316,13 @@
                 codeElement.parentNode.insertBefore(parentDiv, codeElement);
                 // Move the code element into the parent div
                 parentDiv.appendChild(codeElement);
+
+                // Check if hijs has been loaded
+                if (typeof hljs !== 'undefined') {
+                    // Highlight the code block
+                    hljs.highlightBlock(codeElement);
+                }
+
                 // Add a copy button to each element
                 if (willReplace === true) {
                     let copyButton = document.createElement('button');
@@ -1353,7 +1362,8 @@
         }
 
         div#side-panel-wrapper {
-            display: flex
+            display: flex;
+            min-height: 0;
         }
 
 

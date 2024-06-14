@@ -289,16 +289,16 @@ async def aget_relevant_output_modes(query: str, conversation_history: dict, is_
         response = response.strip()
 
         if is_none_or_empty(response):
-            return ConversationCommand.Default
+            return ConversationCommand.Text
 
         if response in mode_options.keys():
             # Check whether the tool exists as a valid ConversationCommand
             return ConversationCommand(response)
 
-        return ConversationCommand.Default
-    except Exception as e:
+        return ConversationCommand.Text
+    except Exception:
         logger.error(f"Invalid response for determining relevant mode: {response}")
-        return ConversationCommand.Default
+        return ConversationCommand.Text
 
 
 async def infer_webpage_urls(q: str, conversation_history: dict, location_data: LocationData) -> List[str]:
@@ -474,8 +474,10 @@ async def generate_better_image_prompt(
         online_results=simplified_online_results,
     )
 
+    summarizer_model: ChatModelOptions = await ConversationAdapters.aget_summarizer_conversation_config()
+
     with timer("Chat actor: Generate contextual image prompt", logger):
-        response = await send_message_to_model_wrapper(image_prompt)
+        response = await send_message_to_model_wrapper(image_prompt, chat_model_option=summarizer_model)
 
     return response.strip()
 
@@ -811,6 +813,10 @@ class ApiUserRateLimiter:
         self.slug = slug
 
     def __call__(self, request: Request):
+        # Rate limiting disabled if billing is disabled
+        if state.billing_enabled is False:
+            return
+
         # Rate limiting is disabled if user unauthenticated.
         # Other systems handle authentication
         if not request.user.is_authenticated:
