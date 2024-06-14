@@ -541,6 +541,13 @@ To get started, just start typing below. You can also type / to see a list of co
             if (query.length === 0)
                 return;
 
+            // if the query is not empty then update userMessages array. keep the size of the array to 10
+            if (userMessages.length >= 10) {
+                userMessages.shift();
+            }
+            userMessages.push(query);
+            resetUserMessageIndex();
+
             // Add message by user to chat body
             renderMessage(query, "you");
             document.getElementById("chat-input").value = "";
@@ -1114,6 +1121,12 @@ To get started, just start typing below. You can also type / to see a list of co
             var query = document.getElementById("chat-input").value.trim();
             console.log(`Query: ${query}`);
 
+            if (userMessages.length >= 10) {
+                userMessages.shift();
+            }
+            userMessages.push(query);
+            resetUserMessageIndex();
+
             // Add message by user to chat body
             renderMessage(query, "you");
             document.getElementById("chat-input").value = "";
@@ -1155,7 +1168,8 @@ To get started, just start typing below. You can also type / to see a list of co
                 rawQuery: query,
             }
         }
-
+        var userMessages = [];
+        var userMessageIndex = -1;
         function loadChat() {
             let chatBody = document.getElementById("chat-body");
             chatBody.innerHTML = "";
@@ -1262,9 +1276,15 @@ To get started, just start typing below. You can also type / to see a list of co
                     }, {rootMargin: '0px 0px 0px 0px'});
 
                     const fullChatLog = response.chat || [];
+                    userMessages = [];
+                    userMessageIndex = 0;
                     fullChatLog.forEach((chat_log, index) => {
                         // Render the last 10 messages immediately
+                        // also cache user messages into array for shortcut access
                         if (chat_log.message != null) {
+                            if(chat_log.by !== "khoj") {
+                                userMessages.push(chat_log.message);
+                            }
                             let messageElement = renderMessageWithReference(
                                 chat_log.message,
                                 chat_log.by,
@@ -1284,6 +1304,7 @@ To get started, just start typing below. You can also type / to see a list of co
                         }
                         loadingScreen.style.height = chatBody.scrollHeight + 'px';
                     });
+                    userMessageIndex = userMessages.length;
 
                     // Scroll to bottom of chat-body element
                     chatBody.scrollTop = chatBody.scrollHeight;
@@ -2068,11 +2089,35 @@ To get started, just start typing below. You can also type / to see a list of co
                 console.error("Error loading file filters:", error);
             });
         }
+
+        function inputAutoFiller(key){
+            var chatInput = document.getElementById("chat-input");
+            console.log(key, userMessageIndex)
+            if (key === "up") {
+                if (userMessageIndex > 0) {
+                    userMessageIndex -= 1;
+                    chatInput.value = userMessages[userMessageIndex];
+                } else {
+                    userMessageIndex = -1;
+                    chatInput.value = "";
+                }
+            } else if (key === "down") {
+                if (userMessageIndex < userMessages.length - 1) {
+                    userMessageIndex += 1;
+                    chatInput.value = userMessages[userMessageIndex];
+                } else if (userMessageIndex === userMessages.length - 1) {
+                    userMessageIndex += 1;
+                    chatInput.value = "";
+                }
+            }
+        }
+        function resetUserMessageIndex(){
+            userMessageIndex = userMessages.length;
+        }
     </script>
     <body>
         <div id="khoj-empty-container" class="khoj-empty-container">
         </div>
-
         <!--Add Header Logo and Nav Pane-->
         {% import 'utils.html' as utils %}
         {{ utils.heading_pane(user_photo, username, is_active, has_documents) }}
@@ -2143,6 +2188,7 @@ To get started, just start typing below. You can also type / to see a list of co
                                     fileList.style.display = 'none';
                                     selectedFileList.style.display = 'block';
                                 }
+
                             });
 
                             fileInput.addEventListener('click', function(event) {
@@ -2199,6 +2245,22 @@ To get started, just start typing below. You can also type / to see a list of co
                             </svg>
                         </button>
                         <textarea id="chat-input" class="option" oninput="onChatInput()" onkeydown=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands"></textarea>
+                        <!-- Shortcut Handler for Accessing Old Messages -->
+                        <script>
+                            let chatInput = document.getElementById('chat-input');
+                            chatInput.addEventListener('keydown', function(event) {
+                                    if (event.key === 'ArrowUp') {
+                                        inputAutoFiller('up');
+                                    } else if (event.key === 'ArrowDown') {
+                                        inputAutoFiller('down');
+                                    }
+                                });
+                            document.addEventListener('click', function(event) {
+                                if (document.activeElement !== document.getElementById('chat-input')) {
+                                    resetUserMessageIndex();
+                                }
+                            });
+                        </script>
                         <button id="speak-button" class="input-row-button"
                             ontouchstart="speechToText(event)" ontouchend="speechToText(event)" ontouchcancel="speechToText(event)" onmousedown="speechToText(event)">
                             <svg id="speak-button-img" class="input-row-button-img" alt="Transcribe" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
