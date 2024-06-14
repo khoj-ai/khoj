@@ -588,12 +588,13 @@ async def websocket_endpoint(
 
         if conversation_commands == [ConversationCommand.Summarize]:
             file_filters = conversation.file_filters
+            response_log = ""
             if len(file_filters) == 0:
-                await send_complete_llm_response(
-                    "No files selected for summarization. Please add files using the section on the left."
-                )
+                response_log = "No files selected for summarization. Please add files using the section on the left."
+                await send_complete_llm_response(response_log)
             elif len(file_filters) > 1:
-                await send_complete_llm_response("Only one file can be selected for summarization.")
+                response_log = "Only one file can be selected for summarization."
+                await send_complete_llm_response(response_log)
             else:
                 try:
                     file_object = await FileObjectAdapters.async_get_file_objects_by_name(user, file_filters[0])
@@ -602,10 +603,22 @@ async def websocket_endpoint(
                         q = "Create a general summary of the file"
                     await send_status_update(f"**🧑🏾‍💻 Constructing Summary Using:** {file_object[0].file_name}")
                     response = await extract_relevant_summary(q, contextual_data)
-                    await send_complete_llm_response(str(response))
+                    response_log = str(response)
+                    await send_complete_llm_response(response_log)
                 except Exception as e:
+                    response_log = "Error summarizing file."
                     logger.error(f"Error summarizing file for {user.email}: {e}")
-                    await send_complete_llm_response(f"Error summarizing file.")
+                    await send_complete_llm_response(response_log)
+            await sync_to_async(save_to_conversation_log)(
+                q,
+                response_log,
+                user,
+                meta_log,
+                user_message_time,
+                intent_type="summarize",
+                client_application=websocket.user.client_app,
+                conversation_id=conversation_id,
+            )
             continue
 
         custom_filters = []
@@ -855,12 +868,11 @@ async def chat(
     conversation = await ConversationAdapters.aget_conversation_by_user(user, conversation_id=conversation_id)
     if conversation_commands == [ConversationCommand.Summarize]:
         file_filters = conversation.file_filters
+        llm_response = ""
         if len(file_filters) == 0:
             llm_response = "No files selected for summarization. Please add files using the section on the left."
-            return StreamingResponse(content=llm_response, media_type="text/event-stream", status_code=200)
         elif len(file_filters) > 1:
             llm_response = "Only one file can be selected for summarization."
-            return StreamingResponse(content=llm_response, media_type="text/event-stream", status_code=200)
         else:
             try:
                 file_object = await FileObjectAdapters.async_get_file_objects_by_name(user, file_filters[0])
@@ -873,8 +885,17 @@ async def chat(
             except Exception as e:
                 logger.error(f"Error summarizing file for {user.email}: {e}")
                 llm_response = "Error summarizing file."
-
-            return StreamingResponse(content=llm_response, media_type="text/event-stream", status_code=200)
+        await sync_to_async(save_to_conversation_log)(
+            q,
+            llm_response,
+            user,
+            conversation.conversation_log,
+            user_message_time,
+            intent_type="summarize",
+            client_application=request.user.client_app,
+            conversation_id=conversation_id,
+        )
+        return StreamingResponse(content=llm_response, media_type="text/event-stream", status_code=200)
 
     conversation = await ConversationAdapters.aget_conversation_by_user(
         user, request.user.client_app, conversation_id, title
