@@ -2063,11 +2063,13 @@ To get started, just start typing below. You can also type / to see a list of co
 
         function inputAutoFiller(key){
             var chatInput = document.getElementById("chat-input");
+            console.log(key, userMessageIndex)
             if (key === "up") {
                 if (userMessageIndex > 0) {
                     userMessageIndex -= 1;
                     chatInput.value = userMessages[userMessageIndex];
                 } else {
+                    userMessageIndex = -1;
                     chatInput.value = "";
                 }
             } else if (key === "down") {
@@ -2216,16 +2218,14 @@ To get started, just start typing below. You can also type / to see a list of co
                         <textarea id="chat-input" class="option" oninput="onChatInput()" onkeydown=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands"></textarea>
                         <!-- Shortcut Handler for Accessing Old Messages -->
                         <script>
-                            document.addEventListener('keydown', function(event) {
-                                const chatInput = document.getElementById('chat-input');
-                                if (document.activeElement === chatInput) {
+                            let chatInput = document.getElementById('chat-input');
+                            chatInput.addEventListener('keydown', function(event) {
                                     if (event.key === 'ArrowUp') {
                                         inputAutoFiller('up');
                                     } else if (event.key === 'ArrowDown') {
                                         inputAutoFiller('down');
                                     }
-                                }
-                            });
+                                });
                             document.addEventListener('click', function(event) {
                                 if (document.activeElement !== document.getElementById('chat-input')) {
                                     resetUserMessageIndex();
