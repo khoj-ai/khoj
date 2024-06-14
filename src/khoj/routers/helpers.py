@@ -21,7 +21,7 @@ from typing import (
     Tuple,
     Union,
 )
-from urllib.parse import parse_qs, urlencode
+from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 import cron_descriptor
 import openai
@@ -159,6 +159,18 @@ def update_telemetry_state(
             telemetry_type=telemetry_type, api=api, client=client, app_config=state.config.app, properties=user_state
         )
     ]
+
+
+def get_next_url(request: Request) -> str:
+    "Construct next url relative to current domain from request"
+    next_url_param = urlparse(request.query_params.get("next", "/"))
+    next_path = "/"  # default next path
+    # If relative path or absolute path to current domain
+    if is_none_or_empty(next_url_param.scheme) or next_url_param.netloc == request.base_url.netloc:
+        # Use path in next query param
+        next_path = next_url_param.path
+    # Construct absolute url using current domain and next path from request
+    return urljoin(str(request.base_url).rstrip("/"), next_path)
 
 
 def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="AI") -> str:

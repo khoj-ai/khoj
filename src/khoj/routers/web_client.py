@@ -21,6 +21,7 @@ from khoj.database.adapters import (
     get_user_subscription_state,
 )
 from khoj.database.models import KhojUser
+from khoj.routers.helpers import get_next_url
 from khoj.routers.notion import get_notion_auth_url
 from khoj.routers.twilio import is_twilio_enabled
 from khoj.utils import constants, state
@@ -118,7 +119,7 @@ def chat_page(request: Request):
 
 @web_client.get("/login", response_class=FileResponse)
 def login_page(request: Request):
-    next_url = request.query_params.get("next", "/")
+    next_url = get_next_url(request)
     if request.user.is_authenticated:
         return RedirectResponse(url=next_url)
     google_client_id = os.environ.get("GOOGLE_CLIENT_ID")
