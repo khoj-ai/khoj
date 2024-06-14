@@ -328,6 +328,7 @@ tool_descriptions_for_llm = {
     ConversationCommand.Notes: "To search the user's personal knowledge base. Especially helpful if the question expects context from the user's notes or documents.",
     ConversationCommand.Online: "To search for the latest, up-to-date information from the internet. Note: **Questions about Khoj should always use this data source**",
     ConversationCommand.Webpage: "To use if the user has directly provided the webpage urls or you are certain of the webpage urls to read.",
+    ConversationCommand.Summarize: "To create a summary of the document provided by the user.",
 }
 
 mode_descriptions_for_llm = {

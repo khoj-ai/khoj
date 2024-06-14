@@ -586,7 +586,7 @@ async def websocket_endpoint(
             await conversation_command_rate_limiter.update_and_check_if_valid(websocket, cmd)
             q = q.replace(f"/{cmd.value}", "").strip()
 
-        if conversation_commands == [ConversationCommand.Summarize]:
+        if ConversationCommand.Summarize in conversation_commands:
             file_filters = conversation.file_filters
             response_log = ""
             if len(file_filters) == 0:
@@ -598,6 +598,10 @@ async def websocket_endpoint(
             else:
                 try:
                     file_object = await FileObjectAdapters.async_get_file_objects_by_name(user, file_filters[0])
+                    if len(file_object) == 0:
+                        response_log = "Sorry, we couldn't find the full text of this file. Please re-upload the document and try again."
+                        await send_complete_llm_response(response_log)
+                        continue
                     contextual_data = " ".join([file.raw_text for file in file_object])
                     if not q:
                         q = "Create a general summary of the file"
@@ -607,7 +611,7 @@ async def websocket_endpoint(
                     await send_complete_llm_response(response_log)
                 except Exception as e:
                     response_log = "Error summarizing file."
-                    logger.error(f"Error summarizing file for {user.email}: {e}")
+                    logger.error(f"Error summarizing file for {user.email}: {e}", exc_info=True)
                     await send_complete_llm_response(response_log)
             await sync_to_async(save_to_conversation_log)(
                 q,
