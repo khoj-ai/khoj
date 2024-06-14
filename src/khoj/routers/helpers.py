@@ -1009,16 +1009,18 @@ def scheduled_chat(
 
     # Extract the AI response from the chat API response
     cleaned_query = re.sub(r"^/automated_task\s*", "", query_to_run).strip()
+    is_image = False
     if raw_response.headers.get("Content-Type") == "application/json":
         response_map = raw_response.json()
         ai_response = response_map.get("response") or response_map.get("image")
+        is_image = response_map.get("image") is not None
     else:
         ai_response = raw_response.text
 
     # Notify user if the AI response is satisfactory
     if should_notify(original_query=scheduling_request, executed_query=cleaned_query, ai_response=ai_response):
         if is_resend_enabled():
-            send_task_email(user.get_short_name(), user.email, cleaned_query, ai_response, subject)
+            send_task_email(user.get_short_name(), user.email, cleaned_query, ai_response, subject, is_image)
         else:
             return raw_response
 
