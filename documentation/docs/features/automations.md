@@ -4,6 +4,6 @@
 
 Khoj will use your local time zone to determine the scheduling localization. You can go back and configure the prompt any time you want from the automations page. You can also delete the automation if you no longer need it.
 
-:::warn[Note]
-Automations will not deliver emails to self-hosted users out of the box. You'll have to have Resend and [Google Auth](/miscellaneous/google-auth) setup to send emails.
+:::danger[Note]
+Automations will not deliver emails to self-hosted users out of the box. You'll have to have Resend and [Google Auth](/miscellaneous/google_auth) setup to send emails.
 :::
