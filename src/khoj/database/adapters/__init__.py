@@ -859,7 +859,7 @@ class FileObjectAdapters:
 
     @staticmethod
     def get_file_objects_by_name(user: KhojUser, file_name: str):
-        return FileObject.objects.filter(user=user, file_name=file_name)
+        return FileObject.objects.filter(user=user, file_name=file_name).first()
 
     @staticmethod
     def get_all_file_objects(user: KhojUser):
