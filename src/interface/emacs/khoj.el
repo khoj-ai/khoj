@@ -680,7 +680,7 @@ Render results in BUFFER-NAME using search results, CONTENT-TYPE and (optional) 
         (rerank (or rerank "false"))
         (params `((q ,query) (t ,content-type) (r ,rerank) (n ,khoj-results-count)))
         (path "/api/search"))
-    (khoj--call-api path
+    (khoj--call-api-async path
                     "GET"
                     params
                     'khoj--render-search-results
