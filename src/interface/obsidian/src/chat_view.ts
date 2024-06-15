@@ -322,6 +322,12 @@ export class KhojChatView extends KhojPaneView {
         // @ts-ignore
         MarkdownRenderer.renderMarkdown(markdownText, virtualChatMessageBodyTextEl, '', null);
 
+        // Remove image HTML elements with any non whitelisted src prefix
+        virtualChatMessageBodyTextEl.innerHTML = virtualChatMessageBodyTextEl.innerHTML.replace(
+            /<img(?:(?!src=["'](app:|data:|https:\/\/generated\.khoj\.dev)).)*?>/gis,
+            ''
+        );
+
         // Sanitize the markdown text rendered as HTML
         return DOMPurify.sanitize(virtualChatMessageBodyTextEl.innerHTML);
     }
