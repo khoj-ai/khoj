@@ -403,6 +403,23 @@ def test_summarize_different_conversation(chat_client, default_user2: KhojUser):
     assert response_message != "Only one file can be selected for summarization."
 
 
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.chatquality
+def test_summarize_nonexistant_file(chat_client, default_user2: KhojUser):
+    message_list = []
+    conversation = create_conversation(message_list, default_user2)
+    # post "imaginary.markdown" file to the file filters
+    response = chat_client.post(
+        "api/chat/conversation/file-filters",
+        json={"filename": "imaginary.markdown", "conversation_id": str(conversation.id)},
+    )
+    query = urllib.parse.quote("/summarize")
+    response = chat_client.get(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
+    response_message = response.content.decode("utf-8")
+    # Assert
+    assert response_message == "No files selected for summarization. Please add files using the section on the left."
+
+
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering time aware questions yet")
 @pytest.mark.django_db(transaction=True)
