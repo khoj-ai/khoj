@@ -113,7 +113,7 @@
   :group 'khoj
   :type 'number)
 
-(defcustom khoj-default-content-type "org"
+(defcustom khoj-default-content-type "all"
   "The default content type to perform search on."
   :group 'khoj
   :type '(choice (const "org")
@@ -163,6 +163,7 @@ NO-PAGING FILTER))
      "
      Set Content Type
 -------------------------\n"
+     ("C-c RET | improve sort \n")
      (when (member 'markdown enabled-content-types)
        "C-x m  | markdown\n")
      (when (member 'org enabled-content-types)
@@ -174,24 +175,12 @@ NO-PAGING FILTER))
 
 (defvar khoj--rerank nil "Track when re-rank of results triggered.")
 (defvar khoj--reference-count 0 "Track number of references currently in chat bufffer.")
-(defun khoj--search-markdown () "Set content-type to `markdown'." (interactive) (setq khoj--content-type "markdown"))
-(defun khoj--search-org () "Set content-type to `org-mode'." (interactive) (setq khoj--content-type "org"))
-(defun khoj--search-images () "Set content-type to image." (interactive) (setq khoj--content-type "image"))
-(defun khoj--search-pdf () "Set content-type to pdf." (interactive) (setq khoj--content-type "pdf"))
-(defun khoj--improve-rank () "Use cross-encoder to rerank search results." (interactive) (khoj--incremental-search t))
+(defun khoj--improve-sort () "Use cross-encoder to improve sorting of search results." (interactive) (khoj--incremental-search t))
 (defun khoj--make-search-keymap (&optional existing-keymap)
   "Setup keymap to configure Khoj search. Build of EXISTING-KEYMAP when passed."
   (let ((enabled-content-types (khoj--get-enabled-content-types))
         (kmap (or existing-keymap (make-sparse-keymap))))
-    (define-key kmap (kbd "C-c RET") #'khoj--improve-rank)
-    (when (member 'markdown enabled-content-types)
-      (define-key kmap (kbd "C-x m") #'khoj--search-markdown))
-    (when (member 'org enabled-content-types)
-      (define-key kmap (kbd "C-x o") #'khoj--search-org))
-    (when (member 'image enabled-content-types)
-      (define-key kmap (kbd "C-x i") #'khoj--search-images))
-    (when (member 'pdf enabled-content-types)
-      (define-key kmap (kbd "C-x p") #'khoj--search-pdf))
+    (define-key kmap (kbd "C-c RET") #'khoj--improve-sort)
     kmap))
 
 (defvar khoj--keymap nil "Track Khoj keymap in this variable.")
