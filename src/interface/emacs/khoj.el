@@ -921,7 +921,7 @@ RECEIVE-DATE is the message receive date."
 (defun khoj--generate-reference (reference)
   "Create `org-mode' footnotes with REFERENCE."
   (setq khoj--reference-count (1+ khoj--reference-count))
-  (let ((compiled-reference (cdr (assoc 'compiled reference))))
+  (let ((compiled-reference (if (stringp reference) reference (cdr (assoc 'compiled reference)))))
     (cons
      (propertize (format "^{ [fn:%x]}" khoj--reference-count) 'help-echo compiled-reference)
      (thread-last
