@@ -91,7 +91,7 @@ async def send_query_feedback(uquery, kquery, sentiment, user_email):
     return {"message": "Sent Email"}
 
 
-def send_task_email(name, email, query, result, subject):
+def send_task_email(name, email, query, result, subject, is_image=False):
     if not is_resend_enabled():
         logger.debug("Email sending disabled")
         return
@@ -99,6 +99,9 @@ def send_task_email(name, email, query, result, subject):
     logger.info(f"Sending email to {email} for task {subject}")
 
     template = env.get_template("task.html")
+
+    if is_image:
+        result = f"![{subject}]({result})"
 
     html_result = markdown_it.MarkdownIt().render(result)
     html_content = template.render(name=name, subject=subject, query=query, result=html_result)

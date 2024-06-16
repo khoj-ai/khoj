@@ -79,6 +79,9 @@ def get_file_filter(request: Request, conversation_id: str) -> Response:
     conversation = ConversationAdapters.get_conversation_by_user(
         request.user.object, conversation_id=int(conversation_id)
     )
+    if not conversation:
+        return Response(content=json.dumps({"status": "error", "message": "Conversation not found"}), status_code=404)
+
     # get all files from "computer"
     file_list = EntryAdapters.get_all_filenames_by_source(request.user.object, "computer")
     file_filters = []
