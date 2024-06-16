@@ -163,15 +163,7 @@ NO-PAGING FILTER))
      "
      Set Content Type
 -------------------------\n"
-     ("C-c RET | improve sort \n")
-     (when (member 'markdown enabled-content-types)
-       "C-x m  | markdown\n")
-     (when (member 'org enabled-content-types)
-       "C-x o  | org-mode\n")
-     (when (member 'image enabled-content-types)
-       "C-x i  | image\n")
-     (when (member 'pdf enabled-content-types)
-       "C-x p  | pdf\n"))))
+     ("C-c RET | improve sort \n"))))
 
 (defvar khoj--rerank nil "Track when re-rank of results triggered.")
 (defvar khoj--reference-count 0 "Track number of references currently in chat bufffer.")
