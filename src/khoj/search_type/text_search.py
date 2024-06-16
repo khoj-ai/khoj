@@ -177,13 +177,11 @@ def deduplicated_search_responses(hits: List[SearchResponse]):
 
 
 def rerank_and_sort_results(hits, query, rank_results, search_model_name):
-    # Rerank results if explicitly requested, if can use inference server or if device has GPU
+    # Rerank results if explicitly requested, if can use inference server
     # AND if we have more than one result
-    rank_results = (
-        rank_results
-        or state.cross_encoder_model[search_model_name].inference_server_enabled()
-        or state.device.type != "cpu"
-    ) and len(list(hits)) > 1
+    rank_results = (rank_results or state.cross_encoder_model[search_model_name].inference_server_enabled()) and len(
+        list(hits)
+    ) > 1
 
     # Score all retrieved entries using the cross-encoder
     if rank_results:
