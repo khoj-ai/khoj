@@ -399,8 +399,10 @@ Auto invokes setup steps on calling main entrypoint."
          ;; This is a temporary change. `khoj-org-directories', `khoj-org-files' are deprecated. They will be removed in a future release
          (content-directories (or khoj-index-directories khoj-org-directories))
          (content-files (or khoj-index-files khoj-org-files))
-         (files-to-index (or file-paths
-                             (append (mapcan (lambda (dir) (directory-files-recursively dir "\\.\\(org\\|md\\|markdown\\|pdf\\|txt\\|rst\\|xml\\|htm\\|html\\)$")) content-directories) content-files)))
+         (files-to-index (mapcar
+                          #'expand-file-name
+                          (or file-paths
+                              (append (mapcan (lambda (dir) (directory-files-recursively dir "\\.\\(org\\|md\\|markdown\\|pdf\\|txt\\|rst\\|xml\\|htm\\|html\\)$")) content-directories) content-files))))
          (type-query (if (or (equal content-type "all") (not content-type)) "" (format "t=%s" content-type)))
          (delete-files (-difference khoj--indexed-files files-to-index))
          (inhibit-message t)
