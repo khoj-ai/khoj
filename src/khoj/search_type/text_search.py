@@ -132,11 +132,13 @@ async def query(
 
 def collate_results(hits, dedupe=True):
     hit_ids = set()
+    hit_hashes = set()
     for hit in hits:
-        if dedupe and hit.corpus_id in hit_ids:
+        if dedupe and (hit.hashed_value in hit_hashes or hit.corpus_id in hit_ids):
             continue
 
         else:
+            hit_hashes.add(hit.hashed_value)
             hit_ids.add(hit.corpus_id)
             yield SearchResponse.model_validate(
                 {
