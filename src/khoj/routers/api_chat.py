@@ -831,6 +831,7 @@ async def chat(
     conversation = await ConversationAdapters.aget_conversation_by_user(
         user, request.user.client_app, conversation_id, title
     )
+    conversation_id = conversation.id if conversation else None
     if not conversation:
         return Response(
             content=f"No conversation found with requested id, title", media_type="text/plain", status_code=400
