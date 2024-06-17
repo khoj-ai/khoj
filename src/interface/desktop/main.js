@@ -433,7 +433,7 @@ let win = null;
 let titleBarStyle = process.platform === 'win32' ? 'default' : 'hidden';
 const {globalShortcut, clipboard} = require('electron'); // global shortcut and clipboard dependencies for shortcut window
 
- const createWindow = (tab = 'chat.html') => {
+const createWindow = (tab = 'chat.html') => {
     win = new BrowserWindow({
       width: 800,
       height: 800,
