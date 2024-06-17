@@ -12,7 +12,7 @@ from khoj.processor.conversation.utils import message_to_log
 from khoj.routers.helpers import aget_relevant_information_sources
 from tests.helpers import ConversationFactory
 
-SKIP_TESTS = False
+SKIP_TESTS = True
 pytestmark = pytest.mark.skipif(
     SKIP_TESTS,
     reason="Disable in CI to avoid long test runs.",
