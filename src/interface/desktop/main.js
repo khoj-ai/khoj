@@ -432,6 +432,7 @@ let firstRun = true;
 let win = null;
 let titleBarStyle = process.platform === 'win32' ? 'default' : 'hidden';
 const {globalShortcut, clipboard} = require('electron'); // global shortcut and clipboard dependencies for shortcut window
+const openShortcutWindowKeyBind = 'CommandOrControl+Shift+K'
 
 const createWindow = (tab = 'chat.html') => {
     win = new BrowserWindow({
@@ -609,7 +610,7 @@ const createWindow = (tab = 'chat.html') => {
         }
     })
     openShortcut = false;
-    globalShortcut.register('CommandOrControl+Shift+K', () => {
+    globalShortcut.register(openShortcutWindowKeyBind, () => {
         if(openShortcut) return;
         const shortcutWin = createShortcutWindow(); // Create a new shortcut window each time the shortcut is triggered
         const clipboardText = clipboard.readText();
