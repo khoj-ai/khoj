@@ -159,9 +159,15 @@ async def acreate_user_by_phone_number(phone_number: str) -> KhojUser:
     return user
 
 
-async def get_or_create_user_by_email(email: str) -> KhojUser:
-    user, _ = await KhojUser.objects.filter(email=email).aupdate_or_create(defaults={"username": email, "email": email})
+async def aget_or_create_user_by_email(email: str) -> KhojUser:
+    user, created = await KhojUser.objects.filter(email=email).aupdate_or_create(
+        defaults={"username": email, "email": email}
+    )
     await user.asave()
+
+    if created:
+        user.email_verification_code = secrets.token_urlsafe(18)
+        await user.asave()
 
     user_subscription = await Subscription.objects.filter(user=user).afirst()
     if not user_subscription:
@@ -170,10 +176,23 @@ async def get_or_create_user_by_email(email: str) -> KhojUser:
     return user
 
 
+async def aget_or_create_user_by_email_verification_code(code: str) -> KhojUser:
+    user = await KhojUser.objects.filter(email_verification_code=code).afirst()
+    if not user:
+        return None
+
+    user.email_verification_code = None
+    user.verified_email = True
+    await user.asave()
+
+    return user
+
+
 async def create_user_by_google_token(token: dict) -> KhojUser:
     user, _ = await KhojUser.objects.filter(email=token.get("email")).aupdate_or_create(
         defaults={"username": token.get("email"), "email": token.get("email")}
     )
+    user.verified_email = True
     await user.asave()
 
     await GoogleUser.objects.acreate(
@@ -227,7 +246,7 @@ async def set_user_subscription(
     email: str, is_recurring=None, renewal_date=None, type="standard"
 ) -> Optional[Subscription]:
     # Get or create the user object and their subscription
-    user = await get_or_create_user_by_email(email)
+    user = await aget_or_create_user_by_email(email)
     user_subscription = await Subscription.objects.filter(user=user).afirst()
 
     # Update the user subscription state

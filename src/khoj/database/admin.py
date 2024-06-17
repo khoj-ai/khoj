@@ -73,7 +73,7 @@ class KhojUserAdmin(UserAdmin):
     search_fields = ("email", "username", "phone_number", "uuid")
     filter_horizontal = ("groups", "user_permissions")
 
-    fieldsets = (("Personal info", {"fields": ("phone_number",)}),) + UserAdmin.fieldsets
+    fieldsets = (("Personal info", {"fields": ("phone_number", "email_verification_code")}),) + UserAdmin.fieldsets
 
 
 admin.site.register(KhojUser, KhojUserAdmin)

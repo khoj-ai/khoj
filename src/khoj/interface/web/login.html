@@ -61,7 +61,8 @@
                 return;
             }
 
-            alert('sending magic link to ' + email);
+            magicLinkButton.disabled = true;
+            magicLinkButton.innerText = 'Check your email for a sign-in link!';
             return;
 
             const response = await fetch('/api/v1/auth/login', {
@@ -70,7 +71,7 @@
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ email }),
-            });
+            })
 
             if (response.status === 200) {
                 alert('Magic link sent to your email');
