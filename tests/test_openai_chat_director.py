@@ -5,7 +5,7 @@ from urllib.parse import quote
 import pytest
 from freezegun import freeze_time
 
-from khoj.database.models import Agent, Entry, KhojUser
+from khoj.database.models import Agent, Entry, KhojUser, LocalPdfConfig
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import message_to_log
 from khoj.routers.helpers import aget_relevant_information_sources
@@ -324,6 +324,38 @@ def test_summarize_one_file(chat_client, default_user2: KhojUser):
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
+def test_summarize_extra_text(chat_client, default_user2: KhojUser):
+    message_list = []
+    conversation = create_conversation(message_list, default_user2)
+    # post "Xi Li.markdown" file to the file filters
+    file_list = (
+        Entry.objects.filter(user=default_user2, file_source="computer")
+        .distinct("file_path")
+        .values_list("file_path", flat=True)
+    )
+    # pick the file that has "Xi Li.markdown" in the name
+    summarization_file = ""
+    for file in file_list:
+        if "Birthday Gift for Xiu turning 4.markdown" in file:
+            summarization_file = file
+            break
+    assert summarization_file != ""
+
+    response = chat_client.post(
+        "api/chat/conversation/file-filters",
+        json={"filename": summarization_file, "conversation_id": str(conversation.id)},
+    )
+    query = urllib.parse.quote("/summarize tell me about Xiu")
+    response = chat_client.get(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
+    response_message = response.content.decode("utf-8")
+    # Assert
+    assert response_message != ""
+    assert response_message != "No files selected for summarization. Please add files using the section on the left."
+    assert response_message != "Only one file can be selected for summarization."
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.chatquality
 def test_summarize_multiple_files(chat_client, default_user2: KhojUser):
     message_list = []
     conversation = create_conversation(message_list, default_user2)
@@ -412,6 +444,35 @@ def test_summarize_nonexistant_file(chat_client, default_user2: KhojUser):
     response = chat_client.post(
         "api/chat/conversation/file-filters",
         json={"filename": "imaginary.markdown", "conversation_id": str(conversation.id)},
+    )
+    query = urllib.parse.quote("/summarize")
+    response = chat_client.get(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
+    response_message = response.content.decode("utf-8")
+    # Assert
+    assert response_message == "No files selected for summarization. Please add files using the section on the left."
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.chatquality
+def test_summarize_diff_user_file(chat_client, default_user: KhojUser, pdf_configured_user1, default_user2: KhojUser):
+    message_list = []
+    conversation = create_conversation(message_list, default_user2)
+    # Get the pdf file called singlepage.pdf
+    file_list = (
+        Entry.objects.filter(user=default_user, file_source="computer")
+        .distinct("file_path")
+        .values_list("file_path", flat=True)
+    )
+    summarization_file = ""
+    for file in file_list:
+        if "singlepage.pdf" in file:
+            summarization_file = file
+            break
+    assert summarization_file != ""
+    # add singlepage.pdf to the file filters
+    response = chat_client.post(
+        "api/chat/conversation/file-filters",
+        json={"filename": summarization_file, "conversation_id": str(conversation.id)},
     )
     query = urllib.parse.quote("/summarize")
     response = chat_client.get(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
