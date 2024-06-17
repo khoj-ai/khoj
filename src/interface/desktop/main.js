@@ -540,52 +540,76 @@ const createWindow = (tab = 'chat.html') => {
      return shortcutWin;
  };
  app.whenReady().then(() => {
-     addCSPHeaderToSession();
+    addCSPHeaderToSession();
 
-     ipcMain.on('set-title', handleSetTitle);
-     ipcMain.handle('handleFileOpen', (event, type) => handleFileOpen(type));
-     ipcMain.on('update-state', (event, arg) => { console.log(arg); event.reply('update-state', arg); });
-     ipcMain.on('needsSubscription', (event, arg) => { console.log(arg); event.reply('needsSubscription', arg); });
-     ipcMain.on('navigate', (event, page) => { win.loadFile(page); });
-     ipcMain.on('navigateToWebApp', (event, page) => { shell.openExternal(`${store.get('hostURL')}/${page}`); });
+    ipcMain.on('set-title', handleSetTitle);
 
-     ipcMain.handle('getFiles', getFiles);
-     ipcMain.handle('getFolders', getFolders);
-     ipcMain.handle('removeFile', removeFile);
-     ipcMain.handle('removeFolder', removeFolder);
-     ipcMain.handle('setURL', setURL);
-     ipcMain.handle('getURL', getURL);
-     ipcMain.handle('setToken', setToken);
-     ipcMain.handle('getToken', getToken);
-     ipcMain.handle('getUserInfo', getUserInfo);
-     ipcMain.handle('syncData', (event, regenerate) => syncData(regenerate));
-     ipcMain.handle('deleteAllFiles', deleteAllFiles);
+    ipcMain.handle('handleFileOpen', (event, type) => {
+        return handleFileOpen(type);
+    });
 
-     createWindow();
+    ipcMain.on('update-state', (event, arg) => {
+        console.log(arg);
+        event.reply('update-state', arg);
+    });
 
-     app.setAboutPanelOptions({
-         applicationName: "Khoj",
-         applicationVersion: khojPackage.version,
-         version: khojPackage.version,
-         authors: "Saba Imran, Debanjum Singh Solanky and contributors",
-         website: "https://khoj.dev",
-         copyright: "GPL v3",
-         iconPath: path.join(__dirname, 'assets', 'icons', 'favicon-128x128.png')
-     });
+    ipcMain.on('needsSubscription', (event, arg) => {
+        console.log(arg);
+        event.reply('needsSubscription', arg);
+    });
 
-     app.on('ready', async() => {
-         try {
-             const result = await todesktop.autoUpdater.checkForUpdates();
-             if (result.updateInfo) {
-                 console.log("Desktop app update found:", result.updateInfo.version);
-                 todesktop.autoUpdater.restartAndInstall();
-             }
-         } catch (e) {
-             console.warn("Desktop app update check failed:", e);
-         }
-     });
-     openShortcut = false;
-     globalShortcut.register('CommandOrControl+Shift+K', () => {
+    ipcMain.on('navigate', (event, page) => {
+        win.loadFile(page);
+    });
+
+    ipcMain.on('navigateToWebApp', (event, page) => {
+        shell.openExternal(`${store.get('hostURL')}/${page}`);
+    });
+
+    ipcMain.handle('getFiles', getFiles);
+    ipcMain.handle('getFolders', getFolders);
+
+    ipcMain.handle('removeFile', removeFile);
+    ipcMain.handle('removeFolder', removeFolder);
+
+    ipcMain.handle('setURL', setURL);
+    ipcMain.handle('getURL', getURL);
+
+    ipcMain.handle('setToken', setToken);
+    ipcMain.handle('getToken', getToken);
+    ipcMain.handle('getUserInfo', getUserInfo);
+
+    ipcMain.handle('syncData', (event, regenerate) => {
+        syncData(regenerate);
+    });
+    ipcMain.handle('deleteAllFiles', deleteAllFiles);
+
+    createWindow();
+
+
+    app.setAboutPanelOptions({
+        applicationName: "Khoj",
+        applicationVersion: khojPackage.version,
+        version: khojPackage.version,
+        authors: "Khoj AI",
+        website: "https://khoj.dev",
+        copyright: "GPL v3",
+        iconPath: path.join(__dirname, 'assets', 'icons', 'favicon-128x128.png')
+    });
+
+    app.on('ready', async() => {
+        try {
+            const result = await todesktop.autoUpdater.checkForUpdates();
+            if (result.updateInfo) {
+              console.log("Desktop app update found:", result.updateInfo.version);
+              todesktop.autoUpdater.restartAndInstall();
+            }
+          } catch (e) {
+            console.warn("Desktop app update check failed:", e);
+        }
+    })
+    openShortcut = false;
+    globalShortcut.register('CommandOrControl+Shift+K', () => {
         if(openShortcut) return;
         const shortcutWin = createShortcutWindow(); // Create a new shortcut window each time the shortcut is triggered
         const clipboardText = clipboard.readText();
@@ -605,20 +629,15 @@ const createWindow = (tab = 'chat.html') => {
           openShortcut = false;
         });
     });
- });
 
- app.on('activate', () => {
-     if (BrowserWindow.getAllWindows().length === 0) createWindow();
- });
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    })
+})
 
- app.on('window-all-closed', () => {
-     if (process.platform !== 'darwin') app.quit();
- });
-
- app.on('will-quit', () => {
-     globalShortcut.unregisterAll();
- });
-
+app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') app.quit()
+})
 
 /*
 ** About Page
