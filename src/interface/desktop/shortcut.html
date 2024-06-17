@@ -141,6 +141,20 @@
             margin: 5px;
         }
 
+        #linker-button{
+            background-color: #fee285;
+            color: black;              /* White text */
+            font-family: 'Noto Sans', sans-serif;
+            border-radius: 5px;
+            font-size: 16px;
+            border: none;
+            padding: 5px;
+            margin: 5px;
+        }
+        #linker-button:hover {
+            background-color: #f9f5de;
+        }
+
 
         div.collapsed {
             display: none;
@@ -688,6 +702,14 @@
             referencesDiv.classList.add("references");
             referencesDiv.appendChild(referenceExpandButton);
             referencesDiv.appendChild(referenceSection);
+
+            //add a linker button back to the desktop application
+            let linkerButton = document.createElement('button');
+            linkerButton.innerHTML = "Continue Conversation";
+            linkerButton.id = "linker-button";
+            linkerButton.addEventListener('click', function() {
+            });
+            referencesDiv.appendChild(linkerButton);
 
             return referencesDiv;
         }
