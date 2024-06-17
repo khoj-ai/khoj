@@ -428,101 +428,87 @@ function addCSPHeaderToSession () {
     })
  }
 
- const {globalShortcut, clipboard} = require('electron');
  let firstRun = true;
  let win = null;
  let titleBarStyle = process.platform === 'win32' ? 'default' : 'hidden';
-
- function addCSPHeaderToSession() {
-     const hostURL = store.get('hostURL') || KHOJ_URL;
-     const defaultDomains = `'self' ${hostURL} https://app.khoj.dev https://assets.khoj.dev`;
-     const default_src = `default-src ${defaultDomains};`;
-     const script_src = `script-src ${defaultDomains} 'unsafe-inline';`;
-     const connect_src = `connect-src ${hostURL} https://ipapi.co/json;`;
-     const style_src = `style-src ${defaultDomains} 'unsafe-inline' https://fonts.googleapis.com;`;
-     const img_src = `img-src ${defaultDomains} data: https://*.khoj.dev https://*.googleusercontent.com;`;
-     const font_src = `font-src https://fonts.gstatic.com;`;
-     const child_src = `child-src 'none';`;
-     const objectSrc = `object-src 'none';`;
-     const csp = `${default_src} ${script_src} ${connect_src} ${style_src} ${img_src} ${font_src} ${child_src} ${objectSrc}`;
-
-     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-         callback({
-             responseHeaders: {
-                 ...details.responseHeaders,
-                 'Content-Security-Policy': [csp]
-             }
-         });
-     });
- }
+ const {globalShortcut, clipboard} = require('electron'); // global shortcut and clipboard dependencies for shortcut window
 
  const createWindow = (tab = 'chat.html') => {
-     win = new BrowserWindow({
-         width: 800,
-         height: 800,
-         show: false,
-         titleBarStyle: titleBarStyle,
-         autoHideMenuBar: true,
-         webPreferences: {
-             preload: path.join(__dirname, 'preload.js'),
-             nodeIntegration: true,
-         }
-     });
+    win = new BrowserWindow({
+      width: 800,
+      height: 800,
+      show: false,
+      titleBarStyle: titleBarStyle,
+      autoHideMenuBar: true,
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.js'),
+        nodeIntegration: true,
+      }
+    })
 
-     const job = new cron('0 */10 * * * *', function() {
-         try {
-             pushDataToKhoj();
-             const date = new Date();
-             console.log('Pushing data to Khoj at: ', date);
-             win.webContents.send('update-state', state);
-         } catch (err) {
-             console.error(err);
-         }
-     });
+    const job = new cron('0 */10 * * * *', function() {
+        try {
+            pushDataToKhoj();
+            const date = new Date();
+            console.log('Pushing data to Khoj at: ', date);
+            win.webContents.send('update-state', state);
+        } catch (err) {
+            console.error(err);
+        }
+    });
 
-     win.setResizable(true);
-     win.setOpacity(0.95);
-     win.setBackgroundColor('#f5f4f3');
-     win.setHasShadow(true);
+    win.setResizable(true);
+    win.setOpacity(0.95);
+    win.setBackgroundColor('#f5f4f3');
+    win.setHasShadow(true);
 
-     win.webContents.setWindowOpenHandler(async ({ url }) => {
-         let shouldOpen = { response: 0 };
+    // Open external links in link handler registered on OS (e.g. browser)
+    win.webContents.setWindowOpenHandler(async ({ url }) => {
+        let shouldOpen = { response: 0 };
 
-         if (!url.startsWith(store.get('hostURL'))) {
-             const confirmNotice = `Do you want to open this link? It will be handled by an external application.\n\n${url}`;
-             shouldOpen = await dialog.showMessageBox({
-                 type: 'question',
-                 buttons: ['Yes', 'No'],
-                 defaultId: 1,
-                 title: 'Confirm',
-                 message: confirmNotice,
-             });
-         }
+        if (!url.startsWith(store.get('hostURL'))) {
+            // Confirm before opening external links
+            const confirmNotice = `Do you want to open this link? It will be handled by an external application.\n\n${url}`;
+            shouldOpen = await dialog.showMessageBox({
+                type: 'question',
+                buttons: ['Yes', 'No'],
+                defaultId: 1,
+                title: 'Confirm',
+                message: confirmNotice,
+            });
+        }
 
-         if (shouldOpen.response === 0) shell.openExternal(url);
-         return { action: 'deny' };
-     });
+        // If user confirms, let OS link handler open the link in appropriate app
+        if (shouldOpen.response === 0) shell.openExternal(url);
 
-     job.start();
-     win.loadFile(tab);
+        // Do not open external links within the app
+        return { action: 'deny' };
+    });
 
-     if (firstRun === true) {
-         firstRun = false;
+    job.start();
 
-         let splash = new BrowserWindow({ width: 400, height: 400, transparent: true, frame: false, alwaysOnTop: true });
-         splash.setOpacity(1.0);
-         splash.setBackgroundColor('#d16b4e');
-         splash.loadFile('splash.html');
+    win.loadFile(tab)
 
-         win.once('ready-to-show', () => {
-             setTimeout(() => { splash.close(); win.show(); }, 4500);
-         });
-     } else {
-         win.once('ready-to-show', () => { win.show(); });
-     }
- };
+    if (firstRun === true) {
+        firstRun = false;
 
- const createShortcutWindow = (tab = 'index.html') => {
+        // Create splash screen
+        let splash = new BrowserWindow({width: 400, height: 400, transparent: true, frame: false, alwaysOnTop: true});
+        splash.setOpacity(1.0);
+        splash.setBackgroundColor('#d16b4e');
+        splash.loadFile('splash.html');
+
+        // Show splash screen on app load
+        win.once('ready-to-show', () => {
+            setTimeout(function(){ splash.close(); win.show(); }, 4500);
+        });
+    } else {
+        // Show main window directly if not first run
+        win.once('ready-to-show', () => { win.show(); });
+    }
+}
+
+ const createShortcutWindow = (tab = 'shortcut.html') => {
      var shortcutWin = new BrowserWindow({
          width: 400,
          height: 600,
