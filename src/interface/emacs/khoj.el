@@ -93,6 +93,11 @@
   :group 'khoj
   :type 'number)
 
+(defcustom khoj-auto-find-similar t
+  "Should try find similar notes automatically."
+  :group 'khoj
+  :type 'boolean)
+
 (defcustom khoj-api-key nil
   "API Key to your Khoj. Default at https://app.khoj.dev/config#clients."
   :group 'khoj
@@ -185,6 +190,9 @@ Use `which-key` if available, else display simple message in echo area"
                                 (symbol-value 'khoj--keymap)
                                 nil t t))
     (message "%s" (khoj--keybindings-info-message))))
+
+(defvar khoj--last-heading-pos nil
+  "The last heading position point was in.")
 
 
 ;; ----------------
@@ -495,11 +503,17 @@ Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request.
 ;; -------------------------------------------
 ;; Render Response from Khoj server for Emacs
 ;; -------------------------------------------
+(defun construct-find-similar-title (query)
+  "Construct title for find-similar query."
+  (format "Similar to: %s"
+          (replace-regexp-in-string "^[#\\*]* " "" (car (split-string query "\n")))))
 
-(defun khoj--extract-entries-as-markdown (json-response query)
+(defun khoj--extract-entries-as-markdown (json-response query is-find-similar)
   "Convert JSON-RESPONSE, QUERY from API to markdown entries."
   (thread-last
     json-response
+    ;; filter our first result if is find similar as it'll be the current entry at point
+    ((lambda (response) (if is-find-similar (seq-drop response 1) response)))
     ;; Extract and render each markdown entry from response
     (mapcar (lambda (json-response-item)
               (thread-last
@@ -510,14 +524,17 @@ Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request.
                 ;; Standardize results to 2nd level heading for consistent rendering
                 (replace-regexp-in-string "^\#+" "##"))))
     ;; Render entries into markdown formatted string with query set as as top level heading
-    (format "# %s\n%s" query)
+    (format "# %s\n%s" (if is-find-similar (construct-find-similar-title query) query))
     ;; remove leading (, ) or SPC from extracted entries string
     (replace-regexp-in-string "^[\(\) ]" "")))
 
-(defun khoj--extract-entries-as-org (json-response query)
-  "Convert JSON-RESPONSE, QUERY from API to `org-mode' entries."
+(defun khoj--extract-entries-as-org (json-response query is-find-similar)
+  "Convert JSON-RESPONSE, QUERY from API to `org-mode' entries.
+Use IS-FIND-SIMILAR to determine if results should be ."
   (thread-last
     json-response
+    ;; filter our first result if is find similar as it'll be the current entry at point
+    ((lambda (response) (if is-find-similar (seq-drop response 1) response)))
     ;; Extract and render each org-mode entry from response
     (mapcar (lambda (json-response-item)
               (thread-last
@@ -528,14 +545,16 @@ Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request.
                 ;; Standardize results to 2nd level heading for consistent rendering
                 (replace-regexp-in-string "^\*+" "**"))))
     ;; Render entries into org formatted string with query set as as top level heading
-    (format "* %s\n%s\n" query)
+    (format "* %s\n%s\n" (if is-find-similar (construct-find-similar-title query) query))
     ;; remove leading (, ) or SPC from extracted entries string
     (replace-regexp-in-string "^[\(\) ]" "")))
 
-(defun khoj--extract-entries-as-pdf (json-response query)
+(defun khoj--extract-entries-as-pdf (json-response query is-find-similar)
   "Convert QUERY, JSON-RESPONSE from API with PDF results to `org-mode' entries."
   (thread-last
     json-response
+    ;; filter our first result if is find similar as it'll be the current entry at point
+    ((lambda (response) (if is-find-similar (seq-drop response 1) response)))
     ;; Extract and render each pdf entry from response
     (mapcar (lambda (json-response-item)
               (thread-last
@@ -544,7 +563,7 @@ Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request.
                 ;; Format pdf entry as a org entry string
                 (format "** %s\n\n"))))
     ;; Render entries into org formatted string with query set as as top level heading
-    (format "* %s\n%s\n" query)
+    (format "* %s\n%s\n" (if is-find-similar (construct-find-similar-title query) query))
     ;; remove leading (, ) or SPC from extracted entries string
     (replace-regexp-in-string "^[\(\) ]" "")))
 
@@ -576,9 +595,11 @@ Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request.
       ;; remove trailing (, ) or SPC from extracted entries string
       (replace-regexp-in-string "[\(\) ]$" ""))))
 
-(defun khoj--extract-entries (json-response query)
+(defun khoj--extract-entries (json-response query is-find-similar)
   "Convert JSON-RESPONSE, QUERY from API to text entries."
   (thread-last json-response
+               ;; filter our first result if is find similar as it'll be the current entry at point
+               ((lambda (response) (if is-find-similar (seq-drop response 1) response)))
                ;; extract and render entries from API response
                (mapcar (lambda (json-response-item)
                          (thread-last
@@ -592,7 +613,7 @@ Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request.
                            ;; Format entries as org entry string
                            (format "** %s"))))
                ;; Set query as heading in rendered results buffer
-               (format "* %s\n%s\n" query)
+               (format "* %s\n%s\n" (if is-find-similar (construct-find-similar-title query) query))
                ;; remove leading (, ) or SPC from extracted entries string
                (replace-regexp-in-string "^[\(\) ]" "")
                ;; remove trailing (, ) or SPC from extracted entries string
@@ -656,30 +677,30 @@ Return json parsed response as alist."
   "Get content types enabled for search from API."
   (khoj--call-api "/api/config/types" "GET" nil `(lambda (item) (mapcar #'intern item))))
 
-(defun khoj--query-search-api-and-render-results (query content-type buffer-name &optional rerank title)
+(defun khoj--query-search-api-and-render-results (query content-type buffer-name &optional rerank is-find-similar)
   "Query Khoj Search API with QUERY, CONTENT-TYPE and (optional) RERANK as query params
 Render results in BUFFER-NAME using search results, CONTENT-TYPE and (optional) TITLE."
-  (let ((title (or title query))
-        (rerank (or rerank "false"))
+  (let ((rerank (or rerank "false"))
         (params `((q ,query) (t ,content-type) (r ,rerank) (n ,khoj-results-count)))
         (path "/api/search"))
     (khoj--call-api-async path
                     "GET"
                     params
                     'khoj--render-search-results
-                    content-type title buffer-name)))
+                    content-type query buffer-name is-find-similar)))
 
-(defun khoj--render-search-results (json-response content-type query buffer-name)
+(defun khoj--render-search-results (json-response content-type query buffer-name &optional is-find-similar)
   ;; render json response into formatted entries
   (with-current-buffer buffer-name
-    (let ((inhibit-read-only t))
+    (let ((is-find-similar (or is-find-similar nil))
+          (inhibit-read-only t))
       (erase-buffer)
       (insert
-       (cond ((equal content-type "org") (khoj--extract-entries-as-org json-response query))
-             ((equal content-type "markdown") (khoj--extract-entries-as-markdown json-response query))
-             ((equal content-type "pdf") (khoj--extract-entries-as-pdf json-response query))
-             ((equal content-type "image") (khoj--extract-entries-as-images json-response query))
-             (t (khoj--extract-entries json-response query))))
+       (cond ((equal content-type "org") (khoj--extract-entries-as-org json-response query is-find-similar))
+             ((equal content-type "markdown") (khoj--extract-entries-as-markdown json-response query is-find-similar))
+             ((equal content-type "pdf") (khoj--extract-entries-as-pdf json-response query is-find-similar))
+             ((equal content-type "image") (khoj--extract-entries-as-images json-response))
+             (t (khoj--extract-entries json-response query is-find-similar))))
       (cond ((or (equal content-type "all")
                  (equal content-type "pdf")
                  (equal content-type "org"))
@@ -1081,6 +1102,16 @@ RECEIVE-DATE is the message receive date."
 ;; Similar Search
 ;; --------------
 
+(defun khoj--get-current-outline-entry-pos ()
+  "Get heading position of current outline section."
+  ;; get heading position of current outline entry
+  (cond
+   ;; when at heading of entry
+   ((looking-at outline-regexp)
+    (point))
+   ;; when within entry
+   (t (save-excursion (outline-previous-heading) (point)))))
+
 (defun khoj--get-current-outline-entry-text ()
   "Get text under current outline section."
   (string-trim
@@ -1124,10 +1155,6 @@ Paragraph only starts at first text after blank line."
                  ;; get paragraph, if in text mode
                  (t
                   (khoj--get-current-paragraph-text))))
-         ;; extract heading to show in result buffer from query
-         (query-title
-          (format "Similar to: %s"
-                  (replace-regexp-in-string "^[#\\*]* " "" (car (split-string query "\n")))))
          (buffer-name (get-buffer-create khoj--search-buffer-name)))
     (progn
       (khoj--query-search-api-and-render-results
@@ -1135,9 +1162,38 @@ Paragraph only starts at first text after blank line."
        content-type
        buffer-name
        rerank
-       query-title)
+       t)
       (khoj--open-side-pane buffer-name)
       (goto-char (point-min)))))
+
+(defun khoj--auto-find-similar ()
+  "Call find similar on current element, if point has moved to a new element."
+  ;; Call find similar
+  (when (and (derived-mode-p 'org-mode)
+             (not (null (org-element-at-point)))
+             (not (string= (buffer-name (current-buffer)) khoj--search-buffer-name))
+             (not (null (get-buffer-window khoj--search-buffer-name))))
+    (let ((current-heading-pos (khoj--get-current-outline-entry-pos)))
+      (unless (eq current-heading-pos khoj--last-heading-pos)
+        (progn
+          (setq khoj--last-heading-pos current-heading-pos)
+          (save-excursion
+            (khoj--find-similar)))))))
+
+(defun khoj--setup-auto-find-similar ()
+  "Setup automatic call to find similar to current element."
+  (if khoj-auto-find-similar
+      (add-hook 'post-command-hook 'khoj--auto-find-similar)
+    (remove-hook 'post-command-hook 'khoj--auto-find-similar)))
+
+(defun khoj-toggle-auto-find-similar ()
+    "Toggle automatic call to find similar to current element."
+    (interactive)
+    (setq khoj-auto-find-similar (not khoj-auto-find-similar))
+    (khoj--setup-auto-find-similar)
+    (if khoj-auto-find-similar
+        (message "Auto find similar enabled")
+      (message "Auto find similar disabled")))
 
 
 ;; ---------
