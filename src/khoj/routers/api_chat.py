@@ -873,6 +873,7 @@ async def chat(
         conversation_commands.append(ConversationCommand.Online)
 
     conversation = await ConversationAdapters.aget_conversation_by_user(user, conversation_id=conversation_id)
+    conversation_id = conversation.id if conversation else None
     if ConversationCommand.Summarize in conversation_commands:
         file_filters = conversation.file_filters
         llm_response = ""

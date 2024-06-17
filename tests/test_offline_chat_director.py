@@ -12,7 +12,7 @@ from khoj.processor.conversation.utils import message_to_log
 from khoj.routers.helpers import aget_relevant_information_sources
 from tests.helpers import ConversationFactory
 
-SKIP_TESTS = True
+SKIP_TESTS = False
 pytestmark = pytest.mark.skipif(
     SKIP_TESTS,
     reason="Disable in CI to avoid long test runs.",
@@ -308,7 +308,7 @@ def test_answer_not_known_using_notes_command(client_offline_chat, default_user2
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_summarize_one_file(client_offline_client, default_user2: KhojUser):
+def test_summarize_one_file(client_offline_chat, default_user2: KhojUser):
     message_list = []
     conversation = create_conversation(message_list, default_user2)
     # post "Xi Li.markdown" file to the file filters
@@ -325,12 +325,12 @@ def test_summarize_one_file(client_offline_client, default_user2: KhojUser):
             break
     assert summarization_file != ""
 
-    response = client_offline_client.post(
+    response = client_offline_chat.post(
         "api/chat/conversation/file-filters",
         json={"filename": summarization_file, "conversation_id": str(conversation.id)},
     )
     query = urllib.parse.quote("/summarize")
-    response = client_offline_client.get(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
+    response = client_offline_chat.get(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
     response_message = response.content.decode("utf-8")
     # Assert
     assert response_message != ""
@@ -340,7 +340,7 @@ def test_summarize_one_file(client_offline_client, default_user2: KhojUser):
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_summarize_extra_text(client_offline_client, default_user2: KhojUser):
+def test_summarize_extra_text(client_offline_chat, default_user2: KhojUser):
     message_list = []
     conversation = create_conversation(message_list, default_user2)
     # post "Xi Li.markdown" file to the file filters
@@ -357,12 +357,12 @@ def test_summarize_extra_text(client_offline_client, default_user2: KhojUser):
             break
     assert summarization_file != ""
 
-    response = client_offline_client.post(
+    response = client_offline_chat.post(
         "api/chat/conversation/file-filters",
         json={"filename": summarization_file, "conversation_id": str(conversation.id)},
     )
     query = urllib.parse.quote("/summarize tell me about Xiu")
-    response = client_offline_client.get(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
+    response = client_offline_chat.get(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
     response_message = response.content.decode("utf-8")
     # Assert
     assert response_message != ""
@@ -372,7 +372,7 @@ def test_summarize_extra_text(client_offline_client, default_user2: KhojUser):
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_summarize_multiple_files(client_offline_client, default_user2: KhojUser):
+def test_summarize_multiple_files(client_offline_chat, default_user2: KhojUser):
     message_list = []
     conversation = create_conversation(message_list, default_user2)
     # post "Xi Li.markdown" file to the file filters
@@ -382,15 +382,15 @@ def test_summarize_multiple_files(client_offline_client, default_user2: KhojUser
         .values_list("file_path", flat=True)
     )
 
-    response = client_offline_client.post(
+    response = client_offline_chat.post(
         "api/chat/conversation/file-filters", json={"filename": file_list[0], "conversation_id": str(conversation.id)}
     )
-    response = client_offline_client.post(
+    response = client_offline_chat.post(
         "api/chat/conversation/file-filters", json={"filename": file_list[1], "conversation_id": str(conversation.id)}
     )
 
     query = urllib.parse.quote("/summarize")
-    response = client_offline_client.get(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
+    response = client_offline_chat.get(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -399,11 +399,11 @@ def test_summarize_multiple_files(client_offline_client, default_user2: KhojUser
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_summarize_no_files(client_offline_client, default_user2: KhojUser):
+def test_summarize_no_files(client_offline_chat, default_user2: KhojUser):
     message_list = []
     conversation = create_conversation(message_list, default_user2)
     query = urllib.parse.quote("/summarize")
-    response = client_offline_client.get(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
+    response = client_offline_chat.get(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
     response_message = response.content.decode("utf-8")
     # Assert
     assert response_message == "No files selected for summarization. Please add files using the section on the left."
@@ -411,7 +411,7 @@ def test_summarize_no_files(client_offline_client, default_user2: KhojUser):
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_summarize_different_conversation(client_offline_client, default_user2: KhojUser):
+def test_summarize_different_conversation(client_offline_chat, default_user2: KhojUser):
     message_list = []
     conversation1 = create_conversation(message_list, default_user2)
     conversation2 = create_conversation(message_list, default_user2)
@@ -429,20 +429,20 @@ def test_summarize_different_conversation(client_offline_client, default_user2: 
     assert summarization_file != ""
 
     # add file filter to conversation 1.
-    response = client_offline_client.post(
+    response = client_offline_chat.post(
         "api/chat/conversation/file-filters",
         json={"filename": summarization_file, "conversation_id": str(conversation1.id)},
     )
 
     query = urllib.parse.quote("/summarize")
-    response = client_offline_client.get(f"/api/chat?q={query}&conversation_id={conversation2.id}&stream=true")
+    response = client_offline_chat.get(f"/api/chat?q={query}&conversation_id={conversation2.id}&stream=true")
     response_message = response.content.decode("utf-8")
 
     # Assert
     assert response_message == "No files selected for summarization. Please add files using the section on the left."
 
     # now make sure that the file filter is still in conversation 1
-    response = client_offline_client.get(f"/api/chat?q={query}&conversation_id={conversation1.id}&stream=true")
+    response = client_offline_chat.get(f"/api/chat?q={query}&conversation_id={conversation1.id}&stream=true")
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -453,16 +453,16 @@ def test_summarize_different_conversation(client_offline_client, default_user2: 
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_summarize_nonexistant_file(client_offline_client, default_user2: KhojUser):
+def test_summarize_nonexistant_file(client_offline_chat, default_user2: KhojUser):
     message_list = []
     conversation = create_conversation(message_list, default_user2)
     # post "imaginary.markdown" file to the file filters
-    response = client_offline_client.post(
+    response = client_offline_chat.post(
         "api/chat/conversation/file-filters",
         json={"filename": "imaginary.markdown", "conversation_id": str(conversation.id)},
     )
     query = urllib.parse.quote("/summarize")
-    response = client_offline_client.get(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
+    response = client_offline_chat.get(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
     response_message = response.content.decode("utf-8")
     # Assert
     assert response_message == "No files selected for summarization. Please add files using the section on the left."
@@ -471,7 +471,7 @@ def test_summarize_nonexistant_file(client_offline_client, default_user2: KhojUs
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
 def test_summarize_diff_user_file(
-    client_offline_client, default_user: KhojUser, pdf_configured_user1, default_user2: KhojUser
+    client_offline_chat, default_user: KhojUser, pdf_configured_user1, default_user2: KhojUser
 ):
     message_list = []
     conversation = create_conversation(message_list, default_user2)
@@ -488,12 +488,12 @@ def test_summarize_diff_user_file(
             break
     assert summarization_file != ""
     # add singlepage.pdf to the file filters
-    response = client_offline_client.post(
+    response = client_offline_chat.post(
         "api/chat/conversation/file-filters",
         json={"filename": summarization_file, "conversation_id": str(conversation.id)},
     )
     query = urllib.parse.quote("/summarize")
-    response = client_offline_client.get(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
+    response = client_offline_chat.get(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
     response_message = response.content.decode("utf-8")
     # Assert
     assert response_message == "No files selected for summarization. Please add files using the section on the left."
@@ -716,7 +716,7 @@ async def test_get_correct_tools_online(client_offline_chat):
     user_query = "What's the weather in Patagonia this week?"
 
     # Act
-    tools = await aget_relevant_information_sources(user_query, {})
+    tools = await aget_relevant_information_sources(user_query, {}, is_task=False)
 
     # Assert
     tools = [tool.value for tool in tools]
@@ -731,7 +731,7 @@ async def test_get_correct_tools_notes(client_offline_chat):
     user_query = "Where did I go for my first battleship training?"
 
     # Act
-    tools = await aget_relevant_information_sources(user_query, {})
+    tools = await aget_relevant_information_sources(user_query, {}, is_task=False)
 
     # Assert
     tools = [tool.value for tool in tools]
@@ -746,7 +746,7 @@ async def test_get_correct_tools_online_or_general_and_notes(client_offline_chat
     user_query = "What's the highest point in Patagonia and have I been there?"
 
     # Act
-    tools = await aget_relevant_information_sources(user_query, {})
+    tools = await aget_relevant_information_sources(user_query, {}, is_task=False)
 
     # Assert
     tools = [tool.value for tool in tools]
@@ -763,7 +763,7 @@ async def test_get_correct_tools_general(client_offline_chat):
     user_query = "How many noble gases are there?"
 
     # Act
-    tools = await aget_relevant_information_sources(user_query, {})
+    tools = await aget_relevant_information_sources(user_query, {}, is_task=False)
 
     # Assert
     tools = [tool.value for tool in tools]
@@ -787,7 +787,7 @@ async def test_get_correct_tools_with_chat_history(client_offline_chat, default_
     chat_history = create_conversation(chat_log, default_user2)
 
     # Act
-    tools = await aget_relevant_information_sources(user_query, chat_history)
+    tools = await aget_relevant_information_sources(user_query, chat_history, is_task=False)
 
     # Assert
     tools = [tool.value for tool in tools]
