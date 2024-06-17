@@ -160,12 +160,10 @@ async def acreate_user_by_phone_number(phone_number: str) -> KhojUser:
 
 
 async def aget_or_create_user_by_email(email: str) -> KhojUser:
-    user, created = await KhojUser.objects.filter(email=email).aupdate_or_create(
-        defaults={"username": email, "email": email}
-    )
+    user, _ = await KhojUser.objects.filter(email=email).aupdate_or_create(defaults={"username": email, "email": email})
     await user.asave()
 
-    if created:
+    if user:
         user.email_verification_code = secrets.token_urlsafe(18)
         await user.asave()
 

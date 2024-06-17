@@ -63,18 +63,17 @@
 
             magicLinkButton.disabled = true;
             magicLinkButton.innerText = 'Check your email for a sign-in link!';
-            return;
 
-            const response = await fetch('/api/v1/auth/login', {
+            const response = await fetch('/auth/magic', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({ "email": email }),
             })
 
             if (response.status === 200) {
-                alert('Magic link sent to your email');
+                console.log('Magic link sent to your email');
             } else {
                 alert('Failed to send magic link');
             }

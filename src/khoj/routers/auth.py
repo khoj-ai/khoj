@@ -75,12 +75,12 @@ async def login_magic_link(request: Request, form: MagicLinkForm):
         # Clear the session if user is already authenticated
         request.session.pop("user", None)
 
-    email = form.get("email")
+    email = form.email
     user = await aget_or_create_user_by_email(email)
     unique_id = user.email_verification_code
 
     if user:
-        asyncio.create_task(send_magic_link_email(email, unique_id))
+        await send_magic_link_email(email, unique_id, request.base_url)
 
     return Response(status_code=200)
 

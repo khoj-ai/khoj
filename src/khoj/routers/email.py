@@ -32,14 +32,14 @@ def is_resend_enabled():
     return bool(RESEND_API_KEY)
 
 
-async def send_magic_link_email(email, unique_id):
+async def send_magic_link_email(email, unique_id, host):
     if not is_resend_enabled():
         logger.debug("Email sending disabled. Check admin page for sign-in link.")
         return
 
     template = env.get_template("magic_link.html")
 
-    html_content = template.render(email=email, link=f"{settings.BASE_URL}/auth/magic?code={unique_id}")
+    html_content = template.render(link=f"{host}auth/magic?code={unique_id}")
 
     resend.Emails.send(
         {"sender": "noreply@khoj.dev", "to": email, "subject": "Your Sign-In Link for Khoj 🚀", "html": html_content}
