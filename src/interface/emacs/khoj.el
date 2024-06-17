@@ -83,7 +83,7 @@
   :group 'khoj
   :type 'integer)
 
-(defcustom khoj-results-count 5
+(defcustom khoj-results-count 8
   "Number of results to show in search and use for chat responses."
   :group 'khoj
   :type 'integer)
@@ -707,10 +707,9 @@ Render results in BUFFER-NAME using search results, CONTENT-TYPE and (optional) 
              (progn (visual-line-mode)
                     (org-mode)
                     (setq-local
-                     org-startup-folded "showall"
                      org-hide-leading-stars t
                      org-startup-with-inline-images t)
-                    (org-set-startup-visibility)))
+                    (org-cycle-content 2)))
             ((equal content-type "markdown") (progn (markdown-mode)
                                                     (visual-line-mode)))
             ((equal content-type "image") (progn (shr-render-region (point-min) (point-max))
