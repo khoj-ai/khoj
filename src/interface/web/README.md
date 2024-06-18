@@ -31,14 +31,28 @@ You can start editing the page by modifying any of the `.tsx` pages. The page au
 
 We've setup a utility command for building and serving the built files. This is useful for testing the production build locally. You'll have to uncomment and comment out the appropriate lines in the `next.config.js` file to enable the export feature. See the comments in the file for more information.
 
+1. Exporting code
+To build the files once and serve them, run:
+```bash
+yarn export
+```
+
+If you're using Windows:
+```bash
+yarn windowsexport
+```
+
+
+2. Continuously building code
+
 To keep building the files and serving them, run:
 ```bash
 yarn watch
 ```
 
-To build the files once and serve them, run:
+If you're using Windows:
 ```bash
-yarn export
+yarn windowswatch
 ```
 
 Now you should be able to load your custom pages from the Khoj app at http://localhost:42110/. To server any of the built files, you should update the routes in the `web_client.py` like so, where `new_file` is the new page you've added in this repo:
