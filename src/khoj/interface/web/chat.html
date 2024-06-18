@@ -48,8 +48,8 @@ Get the Khoj [Desktop](https://khoj.dev/downloads), [Obsidian](https://docs.khoj
 
 To get started, just start typing below. You can also type / to see a list of commands.
 `.trim()
-        const allowedExtensions = ['text/org', 'text/markdown', 'text/plain', 'text/html', 'application/pdf'];
-        const allowedFileEndings = ['org', 'md', 'txt', 'html', 'pdf'];
+        const allowedExtensions = ['text/org', 'text/markdown', 'text/plain', 'text/html', 'application/pdf', 'image/jpeg', 'image/png'];
+        const allowedFileEndings = ['org', 'md', 'txt', 'html', 'pdf', 'jpg', 'jpeg', 'png'];
         let chatOptions = [];
         function createCopyParentText(message) {
             return function(event) {
@@ -903,7 +903,12 @@ To get started, just start typing below. You can also type / to see a list of co
                                 fileType = "text/html";
                             } else if (fileExtension === "pdf") {
                                 fileType = "application/pdf";
-                            } else {
+                            } else if (fileExtension === "jpg" || fileExtension === "jpeg"){
+                                fileType = "image/jpeg";
+                            } else if (fileExtension === "png") {
+                                fileType = "image/png";
+                            }
+                            else {
                                 // Skip this file if its type is not supported
                                 resolve();
                                 return;

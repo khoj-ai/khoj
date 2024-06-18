@@ -8,6 +8,7 @@ from starlette.authentication import requires
 
 from khoj.database.models import GithubConfig, KhojUser, NotionConfig
 from khoj.processor.content.github.github_to_entries import GithubToEntries
+from khoj.processor.content.images.image_to_entries import ImageToEntries
 from khoj.processor.content.markdown.markdown_to_entries import MarkdownToEntries
 from khoj.processor.content.notion.notion_to_entries import NotionToEntries
 from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
@@ -40,6 +41,7 @@ class IndexerInput(BaseModel):
     markdown: Optional[dict[str, str]] = None
     pdf: Optional[dict[str, bytes]] = None
     plaintext: Optional[dict[str, str]] = None
+    image: Optional[dict[str, bytes]] = None
 
 
 @indexer.post("/update")
@@ -63,7 +65,7 @@ async def update(
     ),
 ):
     user = request.user.object
-    index_files: Dict[str, Dict[str, str]] = {"org": {}, "markdown": {}, "pdf": {}, "plaintext": {}}
+    index_files: Dict[str, Dict[str, str]] = {"org": {}, "markdown": {}, "pdf": {}, "plaintext": {}, "image": {}}
     try:
         logger.info(f"📬 Updating content index via API call by {client} client")
         for file in files:
@@ -79,6 +81,7 @@ async def update(
             markdown=index_files["markdown"],
             pdf=index_files["pdf"],
             plaintext=index_files["plaintext"],
+            image=index_files["image"],
         )
 
         if state.config == None:
@@ -129,6 +132,7 @@ async def update(
         "num_markdown": len(index_files["markdown"]),
         "num_pdf": len(index_files["pdf"]),
         "num_plaintext": len(index_files["plaintext"]),
+        "num_image": len(index_files["image"]),
     }
 
     update_telemetry_state(
@@ -295,6 +299,23 @@ def configure_content(
         logger.error(f"🚨 Failed to setup Notion: {e}", exc_info=True)
         success = False
 
+    try:
+        # Initialize Image Search
+        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Image.value) and files[
+            "image"
+        ]:
+            logger.info("🖼️ Setting up search for images")
+            # Extract Entries, Generate Image Embeddings
+            text_search.setup(
+                ImageToEntries,
+                files.get("image"),
+                regenerate=regenerate,
+                full_corpus=full_corpus,
+                user=user,
+            )
+    except Exception as e:
+        logger.error(f"🚨 Failed to setup images: {e}", exc_info=True)
+        success = False
     # Invalidate Query Cache
     if user:
         state.query_cache[user.uuid] = LRU()
