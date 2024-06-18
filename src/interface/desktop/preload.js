@@ -23,6 +23,12 @@ contextBridge.exposeInMainWorld('clipboardAPI', {
     }
   });
 
+contextBridge.exposeInMainWorld('routeBackToMainWindowAPI', {
+    sendSignal: () => {
+      ipcRenderer.send('button-clicked'); // Custom event name
+    }
+  });
+
 contextBridge.exposeInMainWorld('storeValueAPI', {
     handleFileOpen: (key) => ipcRenderer.invoke('handleFileOpen', key)
 })

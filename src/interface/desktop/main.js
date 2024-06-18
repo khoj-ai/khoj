@@ -585,8 +585,7 @@ const createWindow = (tab = 'chat.html') => {
     });
     ipcMain.handle('deleteAllFiles', deleteAllFiles);
 
-    createWindow();
-
+    const mainWindow = createWindow();
 
     app.setAboutPanelOptions({
         applicationName: "Khoj",
@@ -613,6 +612,7 @@ const createWindow = (tab = 'chat.html') => {
     globalShortcut.register(openShortcutWindowKeyBind, () => {
         if(openShortcut) return;
         const shortcutWin = createShortcutWindow(); // Create a new shortcut window each time the shortcut is triggered
+        shortcutWin.setAlwaysOnTop(true, 'screen-saver', 1);
         const clipboardText = clipboard.readText();
         console.log('Sending clipboard text:', clipboardText); // Debug log
         shortcutWin.webContents.once('dom-ready', () => {
@@ -629,10 +629,18 @@ const createWindow = (tab = 'chat.html') => {
           globalShortcut.unregister('Escape');
           openShortcut = false;
         });
+        ipcMain.on('button-clicked', () => {
+            openWindow('chat.html');
+            if (shortcutWin && !shortcutWin.isDestroyed()) {
+                shortcutWin.close();
+            }
+            // Unregister the Escape key shortcut
+            globalShortcut.unregister('Escape');
+            openShortcut = false;
+        });
     });
-
     app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+        if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
 })
 

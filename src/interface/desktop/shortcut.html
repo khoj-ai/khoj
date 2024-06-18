@@ -708,6 +708,7 @@
             linkerButton.innerHTML = "Continue Conversation";
             linkerButton.id = "linker-button";
             linkerButton.addEventListener('click', function() {
+                window.routeBackToMainWindowAPI.sendSignal();
             });
             referencesDiv.appendChild(linkerButton);
 
