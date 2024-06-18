@@ -68,3 +68,4 @@ Slash commands allows you to change what Khoj uses to respond to your query
 - **/online**: Use online information and incorporate it in the prompt to the LLM to send you a response.
 - **/image**: Generate an image in response to your query.
 - **/help**: Use /help to get all available commands and general information about Khoj
+- **/summarize**: Can be used to summarize 1 selected file filter for that conversation. Refer to [File Summarization](summarization) for details.
