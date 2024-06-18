@@ -434,8 +434,33 @@ To get started, just start typing below. You can also type / to see a list of co
                     speechIcon.src = "/static/assets/icons/speaker.svg";
                     speechIcon.classList.add("speech-icon");
                     speechButton.appendChild(speechIcon);
+
+                    // Create an AudioContext and a ScriptProcessorNode
+                    let audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    let scriptNode = audioContext.createScriptProcessor(4096, 1, 1);
+
+                    scriptNode.onaudioprocess = function(audioProcessingEvent) {
+                        // This will be called for each block of audio
+                        let inputBuffer = audioProcessingEvent.inputBuffer;
+                        let outputBuffer = audioProcessingEvent.outputBuffer;
+
+                        // Loop through the output channels (in this case there is only one)
+                        for (let channel = 0; channel < outputBuffer.numberOfChannels; channel++) {
+                            let inputData = inputBuffer.getChannelData(channel);
+                            let outputData = outputBuffer.getChannelData(channel);
+
+                            // Loop through the samples
+                            for (let sample = 0; sample < inputBuffer.length; sample++) {
+                                // make output equal to the same as the input
+                                outputData[sample] = inputData[sample];
+                            }
+                        }
+                    }
+
+                    // Connect the ScriptProcessorNode to the destination so we can hear the sound
+                    scriptNode.connect(audioContext.destination);
+
                     speechButton.addEventListener('click', function() {
-                        const context = new (window.AudioContext || window.webkitAudioContext)();
                         fetch(`/api/chat/speech?text=${encodeURIComponent(message)}`, {
                             method: 'POST',
                             headers: {
@@ -443,19 +468,29 @@ To get started, just start typing below. You can also type / to see a list of co
                             },
                         })
                         .then(response => response.arrayBuffer())
-                        .then(arrayBuffer => {
-                            return context.decodeAudioData(arrayBuffer);
-                        })
-                        .then(audioBuffer => {
-                            const source = context.createBufferSource();
-                            source.buffer = audioBuffer;
-                            source.connect(context.destination);
-                            source.start(0);
+                        .then(buffer => {
+                            audioContext.decodeAudioData(buffer, function(decodedData) {
+                                // Create a buffer source for the decoded data
+                                let source = audioContext.createBufferSource();
+                                source.buffer = decodedData;
+
+                                // Connect the source to the script node
+                                source.connect(scriptNode);
+
+                                // Start the source
+                                source.start();
+                            });
                         })
                         .catch(err => console.error(err));
                     });
                 }
 
+                // Append buttons to parent element
+                element.append(copyButton, thumbsDownButton, thumbsUpButton);
+
+                if (speechButton) {
+                    element.append(speechButton);
+                }
 
                 // Append buttons to parent element
                 element.append(copyButton, thumbsDownButton, thumbsUpButton);
