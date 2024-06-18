@@ -422,8 +422,47 @@ To get started, just start typing below. You can also type / to see a list of co
                     sendFeedback(userQuery, khojQuery, "Bad Response");
                 };
 
+                // Only enable the speech feature if the user is subscribed
+                let speechButton = null;
+
+                if ("{{ is_active }}" == "True") {
+                    // Create a speech button icon to play the message out loud
+                    speechButton = document.createElement('button');
+                    speechButton.classList.add("speech-button");
+                    speechButton.title = "Listen to Message";
+                    let speechIcon = document.createElement("img");
+                    speechIcon.src = "/static/assets/icons/speaker.svg";
+                    speechIcon.classList.add("speech-icon");
+                    speechButton.appendChild(speechIcon);
+                    speechButton.addEventListener('click', function() {
+                        const context = new (window.AudioContext || window.webkitAudioContext)();
+                        fetch(`/api/chat/speech?text=${encodeURIComponent(message)}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                        })
+                        .then(response => response.arrayBuffer())
+                        .then(arrayBuffer => {
+                            return context.decodeAudioData(arrayBuffer);
+                        })
+                        .then(audioBuffer => {
+                            const source = context.createBufferSource();
+                            source.buffer = audioBuffer;
+                            source.connect(context.destination);
+                            source.start(0);
+                        })
+                        .catch(err => console.error(err));
+                    });
+                }
+
+
                 // Append buttons to parent element
                 element.append(copyButton, thumbsDownButton, thumbsUpButton);
+
+                if (speechButton) {
+                    element.append(speechButton);
+                }
             }
 
             renderMathInElement(element, {
@@ -2830,7 +2869,13 @@ To get started, just start typing below. You can also type / to see a list of co
             float: right;
         }
 
-        button.thumbs-up-button {
+        img.speech-icon {
+            width: 18px;
+        }
+
+        button.thumbs-up-button,
+        button.thumbs-down-button,
+        button.speech-button {
             border-radius: 4px;
             background-color: var(--background-color);
             border: 1px solid var(--main-text-color);
@@ -2841,19 +2886,6 @@ To get started, just start typing below. You can also type / to see a list of co
             padding: 4px;
             float: right;
             margin-right: 4px;
-        }
-
-        button.thumbs-down-button {
-            border-radius: 4px;
-            background-color: var(--background-color);
-            border: 1px solid var(--main-text-color);
-            text-align: center;
-            font-size: medium;
-            transition: all 0.5s;
-            cursor: pointer;
-            padding: 4px;
-            float: right;
-            margin-right:4px;
         }
 
         button.copy-button span {
@@ -2878,20 +2910,14 @@ To get started, just start typing below. You can also type / to see a list of co
             height: 18px;
         }
 
-        button.copy-button:hover {
+        button.copy-button:hover,
+        button.thumbs-up-button:hover,
+        button.thumbs-down-button:hover,
+        button.speech-button:hover {
             background-color: var(--primary-hover);
             color: #f5f5f5;
         }
 
-        button.thumbs-up-button:hover {
-            background-color: var(--primary-hover);
-            color: #f5f5f5;
-        }
-
-        button.thumbs-down-button:hover {
-            background-color: var(--primary-hover);
-            color: #f5f5f5;
-        }
 
         pre {
             text-wrap: unset;
