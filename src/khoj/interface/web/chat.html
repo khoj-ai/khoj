@@ -435,6 +435,13 @@ To get started, just start typing below. You can also type / to see a list of co
                     speechIcon.classList.add("speech-icon");
                     speechButton.appendChild(speechIcon);
                     speechButton.addEventListener('click', function() {
+                        // Replace the speaker with a loading icon.
+                        let loader = document.createElement("span");
+                        loader.classList.add("loader");
+
+                        speechButton.innerHTML = "";
+                        speechButton.appendChild(loader);
+
                         const context = new (window.AudioContext || window.webkitAudioContext)();
                         fetch(`/api/chat/speech?text=${encodeURIComponent(message)}`, {
                             method: 'POST',
@@ -451,8 +458,17 @@ To get started, just start typing below. You can also type / to see a list of co
                             source.buffer = audioBuffer;
                             source.connect(context.destination);
                             source.start(0);
+                            source.onended = function() {
+                                speechButton.innerHTML = "";
+                                speechButton.appendChild(speechIcon);
+                            };
                         })
-                        .catch(err => console.error(err));
+                        .catch(err => {
+                            console.error("Error playing speech:", err);
+                            speechButton.innerHTML = "";
+                            speechButton.appendChild(speechIcon);
+                            speechButton.disabled = true;
+                        });
                     });
                 }
 
@@ -3181,6 +3197,40 @@ To get started, just start typing below. You can also type / to see a list of co
             padding: 10px;
             white-space: pre-wrap;
         }
+
+        .loader {
+            width: 18px;
+            height: 18px;
+            border: 3px solid #FFF;
+            border-radius: 50%;
+            display: inline-block;
+            position: relative;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+        .loader::after {
+            content: '';
+            box-sizing: border-box;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            border-bottom-color: var(--flower);
+        }
+
+        @keyframes rotation {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
 
         .loading-spinner {
             display: inline-block;

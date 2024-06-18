@@ -48,4 +48,4 @@ def generate_text_to_speech(
     if response.ok:
         return response
     else:
-        return response.text
+        raise Exception(f"Failed to generate text-to-speech: {response.text}")
