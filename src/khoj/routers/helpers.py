@@ -200,6 +200,8 @@ def get_conversation_command(query: str, any_references: bool = False) -> Conver
         return ConversationCommand.Image
     elif query.startswith("/automated_task"):
         return ConversationCommand.AutomatedTask
+    elif query.startswith("/summarize"):
+        return ConversationCommand.Summarize
     # If no relevant notes found for the given query
     elif not any_references:
         return ConversationCommand.General
@@ -418,7 +420,30 @@ async def extract_relevant_info(q: str, corpus: str) -> Union[str, None]:
             prompts.system_prompt_extract_relevant_information,
             chat_model_option=summarizer_model,
         )
+    return response.strip()
 
+
+async def extract_relevant_summary(q: str, corpus: str) -> Union[str, None]:
+    """
+    Extract relevant information for a given query from the target corpus
+    """
+
+    if is_none_or_empty(corpus) or is_none_or_empty(q):
+        return None
+
+    extract_relevant_information = prompts.extract_relevant_summary.format(
+        query=q,
+        corpus=corpus.strip(),
+    )
+
+    summarizer_model: ChatModelOptions = await ConversationAdapters.aget_summarizer_conversation_config()
+
+    with timer("Chat actor: Extract relevant information from data", logger):
+        response = await send_message_to_model_wrapper(
+            extract_relevant_information,
+            prompts.system_prompt_extract_relevant_summary,
+            chat_model_option=summarizer_model,
+        )
     return response.strip()
 
 

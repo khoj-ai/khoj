@@ -51,7 +51,9 @@ class ChatModelOptionsFactory(factory.django.DjangoModelFactory):
     tokenizer = None
     chat_model = "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF"
     model_type = "offline"
-    openai_config = factory.SubFactory(OpenAIProcessorConversationConfigFactory)
+    openai_config = factory.LazyAttribute(
+        lambda obj: OpenAIProcessorConversationConfigFactory() if os.getenv("OPENAI_API_KEY") else None
+    )
 
 
 class UserConversationProcessorConfigFactory(factory.django.DjangoModelFactory):
