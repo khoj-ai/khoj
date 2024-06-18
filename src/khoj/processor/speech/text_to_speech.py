@@ -1,14 +1,17 @@
-# Import necessary libraries
 import json  # Used for working with JSON data
 import os
 
 import requests  # Used for making HTTP requests
+from bs4 import BeautifulSoup
+from markdown_it import MarkdownIt
 
 # Define constants for the script
 CHUNK_SIZE = 1024  # Size of chunks to read/write at a time
 XI_API_KEY = os.getenv("ELEVEN_LABS_API_KEY", None)  # Your API key for authentication
-VOICE_ID = "29vD33N1CtxCmqQRPOHJ"  # ID of the voice model to use
+VOICE_ID = "29vD33N1CtxCmqQRPOHJ"  # ID of the voice model to use. MALE.
 ELEVEN_API_URL = "https://api.elevenlabs.io/v1/text-to-speech"  # Base URL for the Text-to-Speech API
+
+markdown_renderer = MarkdownIt()
 
 
 def is_eleven_labs_enabled():
@@ -22,6 +25,10 @@ def generate_text_to_speech(
     if not is_eleven_labs_enabled():
         return "Eleven Labs API key is not set"
 
+    # Convert the incoming text from markdown format to plain text
+    html = markdown_renderer.render(text_to_speak)
+    text = "".join(BeautifulSoup(html, features="lxml").findAll(text=True))
+
     # Construct the URL for the Text-to-Speech API request
     tts_url = f"{ELEVEN_API_URL}/{voice_id}/stream"
 
@@ -30,7 +37,7 @@ def generate_text_to_speech(
 
     # Set up the data payload for the API request, including the text and voice settings
     data = {
-        "text": text_to_speak,
+        "text": text,
         # "model_id": "eleven_multilingual_v2",
         "voice_settings": {"stability": 0.5, "similarity_boost": 0.8, "style": 0.0, "use_speaker_boost": True},
     }
