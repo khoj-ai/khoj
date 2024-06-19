@@ -31,8 +31,8 @@ class ImageToEntries(TextToEntries):
         else:
             deletion_file_names = None
 
-        # Extract Entries from specified Pdf files
-        with timer("Extract entries from specified PDF files", logger):
+        # Extract Entries from specified image files
+        with timer("Extract entries from specified Image files", logger):
             file_to_text_map, current_entries = ImageToEntries.extract_image_entries(files)
 
         # Split entries by max tokens supported by model
