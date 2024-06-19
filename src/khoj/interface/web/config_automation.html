@@ -723,6 +723,11 @@
         }
         var hours = parseInt(hours);
         var minutes = parseInt(minutes);
+        minutes = Math.round(minutes / 15) * 15;
+        if (minutes === 60) {
+            hours = (hours % 12) + 1;
+            minutes = 0;
+        }
         var timePeriod = hours >= 12 ? 'PM' : 'AM';
         hours = hours % 12;
         hours = hours ? hours : 12; // 0 should be 12
