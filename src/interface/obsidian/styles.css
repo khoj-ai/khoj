@@ -84,7 +84,6 @@ If your plugin does not need CSS, delete this file.
     margin-left: auto;
     white-space: pre-line;
     background-color: var(--code-background);
-    /* background-color: var(--background-modifier-active-hover); */
 }
 /* add left protrusion to khoj chat bubble */
 .khoj-chat-message-text.khoj:after {
@@ -158,8 +157,6 @@ div.expanded.reference-section {
     margin: 10px 0;
 }
 button.reference-button {
-    background: var(--khoj-winter-sun);
-    color: var(--khoj-storm-grey);
     border: 1px solid var(--khoj-storm-grey);
     border-radius: 5px;
     padding: 4px;
@@ -200,8 +197,6 @@ button.reference-button[aria-expanded="true"]::before {
     transform: rotate(90deg);
 }
 button.reference-expand-button {
-    background: var(--khoj-winter-sun);
-    color: var(--khoj-storm-grey);
     border: 1px solid var(--khoj-storm-grey);
     border-radius: 5px;
     padding: 8px;
