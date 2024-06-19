@@ -68,13 +68,12 @@ class ImageToEntries(TextToEntries):
                     bytes = image_files[image_file]
                     # write the image to a temporary file
                     timestamp_now = datetime.utcnow().timestamp()
-                    timestamp_now = datetime.utcnow().timestamp()
                     # use either png or jpg
                     if image_file.endswith(".png"):
                         tmp_file = f"tmp_image_file_{timestamp_now}.png"
                     elif image_file.endswith(".jpg") or image_file.endswith(".jpeg"):
                         tmp_file = f"tmp_image_file_{timestamp_now}.jpg"
-                    with open(f"{tmp_file}", "wb") as f:
+                    with open(tmp_file, "wb") as f:
                         bytes = image_files[image_file]
                         f.write(bytes)
                     try:
