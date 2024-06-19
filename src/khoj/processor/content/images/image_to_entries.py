@@ -90,7 +90,7 @@ class ImageToEntries(TextToEntries):
                     continue
                 entry_to_location_map += zip(
                     image_entries_per_file, [image_file] * len(image_entries_per_file)
-                )  # this is an indexed map of image_entries for the pdf.
+                )  # this is an indexed map of image_entries for the image.
                 entries.extend(image_entries_per_file)
                 file_to_text_map[image_file] = image_entries_per_file
             except Exception as e:
