@@ -63,27 +63,23 @@ class ImageToEntries(TextToEntries):
         entry_to_location_map: List[Tuple[str, str]] = []
         for image_file in image_files:
             try:
-                try:
-                    loader = RapidOCR()
+                loader = RapidOCR()
+                bytes = image_files[image_file]
+                # write the image to a temporary file
+                timestamp_now = datetime.utcnow().timestamp()
+                # use either png or jpg
+                if image_file.endswith(".png"):
+                    tmp_file = f"tmp_image_file_{timestamp_now}.png"
+                elif image_file.endswith(".jpg") or image_file.endswith(".jpeg"):
+                    tmp_file = f"tmp_image_file_{timestamp_now}.jpg"
+                with open(tmp_file, "wb") as f:
                     bytes = image_files[image_file]
-                    # write the image to a temporary file
-                    timestamp_now = datetime.utcnow().timestamp()
-                    # use either png or jpg
-                    if image_file.endswith(".png"):
-                        tmp_file = f"tmp_image_file_{timestamp_now}.png"
-                    elif image_file.endswith(".jpg") or image_file.endswith(".jpeg"):
-                        tmp_file = f"tmp_image_file_{timestamp_now}.jpg"
-                    with open(tmp_file, "wb") as f:
-                        bytes = image_files[image_file]
-                        f.write(bytes)
-                    try:
-                        image_entries_per_file = []
-                        result, _ = loader(tmp_file)
-                        if result:
-                            image_entries_per_file = [text[1] for text in result]
-                    except ImportError:
-                        logger.warning(f"Unable to process file: {image_file}. This file will not be indexed.")
-                        continue
+                    f.write(bytes)
+                try:
+                    image_entries_per_file = []
+                    result, _ = loader(tmp_file)
+                    if result:
+                        image_entries_per_file = [text[1] for text in result]
                 except ImportError:
                     logger.warning(f"Unable to process file: {image_file}. This file will not be indexed.")
                     continue
