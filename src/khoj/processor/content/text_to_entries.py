@@ -9,7 +9,11 @@ from typing import Any, Callable, List, Set, Tuple
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from tqdm import tqdm
 
-from khoj.database.adapters import EntryAdapters, get_user_search_model_or_default
+from khoj.database.adapters import (
+    EntryAdapters,
+    FileObjectAdapters,
+    get_user_search_model_or_default,
+)
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import EntryDates, KhojUser
 from khoj.search_filter.date_filter import DateFilter
@@ -120,6 +124,7 @@ class TextToEntries(ABC):
         deletion_filenames: Set[str] = None,
         user: KhojUser = None,
         regenerate: bool = False,
+        file_to_text_map: dict[str, List[str]] = None,
     ):
         with timer("Constructed current entry hashes in", logger):
             hashes_by_file = dict[str, set[str]]()
@@ -186,6 +191,18 @@ class TextToEntries(ABC):
                     logger.error(f"Error adding entries to database:\n{batch_indexing_error}\n---\n{e}", exc_info=True)
             logger.debug(f"Added {len(added_entries)} {file_type} entries to database")
 
+        if file_to_text_map:
+            # get the list of file_names using added_entries
+            filenames_to_update = [entry.file_path for entry in added_entries]
+            # for each file_name in filenames_to_update, try getting the file object and updating raw_text and if it fails create a new file object
+            for file_name in filenames_to_update:
+                raw_text = " ".join(file_to_text_map[file_name])
+                file_object = FileObjectAdapters.get_file_objects_by_name(user, file_name)
+                if file_object:
+                    FileObjectAdapters.update_raw_text(file_object, raw_text)
+                else:
+                    FileObjectAdapters.create_file_object(user, file_name, raw_text)
+
         new_dates = []
         with timer("Indexed dates from added entries in", logger):
             for added_entry in added_entries:
@@ -210,6 +227,7 @@ class TextToEntries(ABC):
                 for file_path in deletion_filenames:
                     deleted_count = EntryAdapters.delete_entry_by_file(user, file_path)
                     num_deleted_entries += deleted_count
+                    FileObjectAdapters.delete_file_object_by_name(user, file_path)
 
         return len(added_entries), num_deleted_entries
 

@@ -17,7 +17,8 @@ def test_single_page_pdf_to_jsonl():
     entries = PdfToEntries.extract_pdf_entries(pdf_files=data)
 
     # Assert
-    assert len(entries) == 1
+    assert len(entries) == 2
+    assert len(entries[1]) == 1
 
 
 def test_multi_page_pdf_to_jsonl():
@@ -31,7 +32,8 @@ def test_multi_page_pdf_to_jsonl():
     entries = PdfToEntries.extract_pdf_entries(pdf_files=data)
 
     # Assert
-    assert len(entries) == 6
+    assert len(entries) == 2
+    assert len(entries[1]) == 6
 
 
 def test_ocr_page_pdf_to_jsonl():
@@ -43,9 +45,9 @@ def test_ocr_page_pdf_to_jsonl():
 
     data = {"tests/data/pdf/ocr_samples.pdf": pdf_bytes}
     entries = PdfToEntries.extract_pdf_entries(pdf_files=data)
-
-    assert len(entries) == 1
-    assert "playing on a strip of marsh" in entries[0].raw
+    assert len(entries) == 2
+    assert len(entries[1]) == 1
+    assert "playing on a strip of marsh" in entries[1][0].raw
 
 
 def test_get_pdf_files(tmp_path):

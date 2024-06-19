@@ -19,6 +19,7 @@ from khoj.database.models import (
     KhojUser,
     LocalMarkdownConfig,
     LocalOrgConfig,
+    LocalPdfConfig,
     LocalPlaintextConfig,
 )
 from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
@@ -413,6 +414,18 @@ def new_org_file(default_user: KhojUser, content_config: ContentConfig):
 def org_config_with_only_new_file(new_org_file: Path, default_user: KhojUser):
     LocalOrgConfig.objects.update(input_files=[str(new_org_file)], input_filter=None)
     return LocalOrgConfig.objects.filter(user=default_user).first()
+
+
+@pytest.fixture(scope="function")
+def pdf_configured_user1(default_user: KhojUser):
+    LocalPdfConfig.objects.create(
+        input_files=None,
+        input_filter=["tests/data/pdf/singlepage.pdf"],
+        user=default_user,
+    )
+    # Index Markdown Content for Search
+    all_files = fs_syncer.collect_files(user=default_user)
+    success = configure_content(all_files, user=default_user)
 
 
 @pytest.fixture(scope="function")

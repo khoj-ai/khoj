@@ -33,7 +33,7 @@ class MarkdownToEntries(TextToEntries):
         max_tokens = 256
         # Extract Entries from specified Markdown files
         with timer("Extract entries from specified Markdown files", logger):
-            current_entries = MarkdownToEntries.extract_markdown_entries(files, max_tokens)
+            file_to_text_map, current_entries = MarkdownToEntries.extract_markdown_entries(files, max_tokens)
 
         # Split entries by max tokens supported by model
         with timer("Split entries by max token size supported by model", logger):
@@ -50,27 +50,30 @@ class MarkdownToEntries(TextToEntries):
                 deletion_file_names,
                 user,
                 regenerate=regenerate,
+                file_to_text_map=file_to_text_map,
             )
 
         return num_new_embeddings, num_deleted_embeddings
 
     @staticmethod
-    def extract_markdown_entries(markdown_files, max_tokens=256) -> List[Entry]:
+    def extract_markdown_entries(markdown_files, max_tokens=256) -> Tuple[Dict, List[Entry]]:
         "Extract entries by heading from specified Markdown files"
         entries: List[str] = []
         entry_to_file_map: List[Tuple[str, str]] = []
+        file_to_text_map = dict()
         for markdown_file in markdown_files:
             try:
                 markdown_content = markdown_files[markdown_file]
                 entries, entry_to_file_map = MarkdownToEntries.process_single_markdown_file(
                     markdown_content, markdown_file, entries, entry_to_file_map, max_tokens
                 )
+                file_to_text_map[markdown_file] = markdown_content
             except Exception as e:
                 logger.error(
                     f"Unable to process file: {markdown_file}. This file will not be indexed.\n{e}", exc_info=True
                 )
 
-        return MarkdownToEntries.convert_markdown_entries_to_maps(entries, dict(entry_to_file_map))
+        return file_to_text_map, MarkdownToEntries.convert_markdown_entries_to_maps(entries, dict(entry_to_file_map))
 
     @staticmethod
     def process_single_markdown_file(
