@@ -83,7 +83,7 @@ If your plugin does not need CSS, delete this file.
     color: var(--text-normal);
     margin-left: auto;
     white-space: pre-line;
-    background-color: var(--code-background);
+    background-color: var(--active-bg);
 }
 /* add left protrusion to khoj chat bubble */
 .khoj-chat-message-text.khoj:after {
