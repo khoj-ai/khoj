@@ -226,7 +226,7 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     // Add Khoj title to header element
     const titleEl = headerEl.createDiv();
     titleEl.className = 'khoj-logo';
-    titleEl.textContent = "KHOJ"
+    titleEl.textContent = "Khoj"
 
     // Populate the header element with the navigation pane
     // Create the nav element

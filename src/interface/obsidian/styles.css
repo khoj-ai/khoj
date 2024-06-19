@@ -74,16 +74,17 @@ If your plugin does not need CSS, delete this file.
     padding: 10px;
     position: relative;
     display: inline-block;
-    max-width: 80%;
     text-align: left;
     user-select: text;
+    color: var(--text-normal);
 }
 /* color chat bubble by khoj blue */
 .khoj-chat-message-text.khoj {
-    color: var(--khoj-storm-grey);
-    background: var(--khoj-winter-sun);
+    color: var(--text-normal);
     margin-left: auto;
     white-space: pre-line;
+    background-color: var(--code-background);
+    /* background-color: var(--background-modifier-active-hover); */
 }
 /* add left protrusion to khoj chat bubble */
 .khoj-chat-message-text.khoj:after {
@@ -92,14 +93,12 @@ If your plugin does not need CSS, delete this file.
     bottom: -2px;
     left: -7px;
     border: 10px solid transparent;
-    border-top-color: var(--khoj-winter-sun);
     border-bottom: 0;
     transform: rotate(-60deg);
 }
 /* color chat bubble by you dark grey */
 .khoj-chat-message-text.you {
-    color: var(--text-on-accent);
-    background: var(--khoj-storm-grey);
+    color: var(--text-normal);
     margin-right: auto;
 }
 /* add right protrusion to you chat bubble */
@@ -109,7 +108,6 @@ If your plugin does not need CSS, delete this file.
     top: 91%;
     right: -2px;
     border: 10px solid transparent;
-    border-left-color: var(--khoj-storm-grey);
     border-right: 0;
     margin-top: -10px;
     transform: rotate(-60deg)
@@ -488,7 +486,7 @@ div.khoj-logo {
 }
 
 .khoj-nav a {
-    color: var(--main-text-color);
+    color: var(--text-normal);
     text-decoration: none;
     font-size: small;
     font-weight: normal;
@@ -498,11 +496,11 @@ div.khoj-logo {
     margin: 0;
 }
 .khoj-nav a:hover {
-    background-color: var(--khoj-sun);
+    background-color: var(--background-modifier-active-hover);
     color: var(--main-text-color);
 }
 a.khoj-nav-selected {
-    background-color: var(--khoj-winter-sun);
+    background-color: var(--background-modifier-active-hover);
 }
 #similar-nav-icon-svg,
 .khoj-nav-icon {
@@ -542,12 +540,7 @@ img.copy-icon {
     width: 16px;
     height: 16px;
 }
-.you button.copy-button {
-    color: var(--text-on-accent);
-}
-.khoj button.copy-button {
-    color: var(--khoj-storm-grey);
-}
+
 .you button.copy-button:hover {
     color: var(--khoj-storm-grey);
     background: var(--text-on-accent);
