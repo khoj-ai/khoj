@@ -272,7 +272,7 @@ div.conversation-session {
 }
 
 button.selected-conversation {
-    background: var(--khoj-winter-sun);
+    background: var(--interactive-accent-hover);
 }
 button.three-dot-menu-button-item {
     color: var(--color-base-90);
@@ -318,13 +318,15 @@ div.conversation-menu {
     text-align: right;
     border-radius: 5px;
     padding: 5px;
+    display: grid;
+    grid-gap: 4px;
+    grid-auto-flow: column;
 }
 div.conversation-session:hover {
     transform: scale(1.03);
 }
 div.selected-conversation {
-    background: var(--khoj-winter-sun) !important;
-    color: var(--khoj-storm-grey) !important;
+    background: var(--background-modifier-active-hover) !important;
 }
 
 #khoj-chat-footer {
@@ -366,9 +368,8 @@ div.selected-conversation {
     position: relative;
 }
 #khoj-chat-send .lucide-arrow-up-circle {
-    background: var(--khoj-sun);
+    background: var(--background-modifier-active-hover);
     border-radius: 50%;
-    color: #222;
 }
 #khoj-chat-send .lucide-stop-circle {
     transform: rotateY(-180deg) rotateZ(-90deg);
