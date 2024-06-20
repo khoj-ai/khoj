@@ -265,6 +265,11 @@ class UserSearchModelConfig(BaseModel):
     setting = models.ForeignKey(SearchModelConfig, on_delete=models.CASCADE)
 
 
+class UserPaintModelConfig(BaseModel):
+    user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
+    setting = models.ForeignKey(TextToImageModelConfig, on_delete=models.CASCADE)
+
+
 class Conversation(BaseModel):
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
     conversation_log = models.JSONField(default=dict)

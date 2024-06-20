@@ -762,7 +762,7 @@ async def text_to_image(
     image_url = None
     intent_type = ImageIntentType.TEXT_TO_IMAGE_V3
 
-    text_to_image_config = await ConversationAdapters.aget_text_to_image_model_config()
+    text_to_image_config = await ConversationAdapters.aget_user_paint_model(user)
     if not text_to_image_config:
         # If the user has not configured a text to image model, return an unsupported on server error
         status_code = 501

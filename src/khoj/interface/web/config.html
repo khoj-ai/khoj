@@ -192,11 +192,37 @@
                 </div>
                 <div class="card-action-row">
                     {% if (not billing_enabled) or (subscription_state != 'unsubscribed' and subscription_state != 'expired') %}
-                    <button id="save-model" class="card-button happy" onclick="updateChatModel()">
+                    <button id="save-chat-model" class="card-button happy" onclick="updateChatModel()">
                         Save
                     </button>
                     {% else %}
-                    <button id="save-model" class="card-button" disabled>
+                    <button id="save-chat-model" class="card-button" disabled>
+                        Subscribe to use different models
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/chat.svg" alt="Chat">
+                    <h3 class="card-title">
+                        <span>Paint</span>
+                    </h3>
+                </div>
+                <div class="card-description-row">
+                    <select id="paint-models">
+                        {% for option in paint_model_options %}
+                            <option value="{{ option.id }}" {% if option.id == selected_paint_model_config %}selected{% endif %}>{{ option.model_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="card-action-row">
+                    {% if (not billing_enabled) or (subscription_state != 'unsubscribed' and subscription_state != 'expired') %}
+                    <button id="save-paint-model" class="card-button happy" onclick="updatePaintModel()">
+                        Save
+                    </button>
+                    {% else %}
+                    <button id="save-paint-model" class="card-button" disabled>
                         Subscribe to use different models
                     </button>
                     {% endif %}
@@ -425,7 +451,7 @@
 
     function updateChatModel() {
         const chatModel = document.getElementById("chat-models").value;
-        const saveModelButton = document.getElementById("save-model");
+        const saveModelButton = document.getElementById("save-chat-model");
         saveModelButton.disabled = true;
         saveModelButton.innerHTML = "Saving...";
 
@@ -488,6 +514,38 @@
             setTimeout(function() {
                 notificationBanner.style.display = "none";
             }, 5000);
+        })
+    };
+
+    function updatePaintModel() {
+        const paintModel = document.getElementById("paint-models").value;
+        const saveModelButton = document.getElementById("save-paint-model");
+        saveModelButton.disabled = true;
+        saveModelButton.innerHTML = "Saving...";
+
+        fetch('/api/config/data/paint/model?id=' + paintModel, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status == "ok") {
+                saveModelButton.innerHTML = "Save";
+                saveModelButton.disabled = false;
+
+                let notificationBanner = document.getElementById("notification-banner");
+                notificationBanner.innerHTML = "Paint model has been updated!";
+                notificationBanner.style.display = "block";
+                setTimeout(function() {
+                    notificationBanner.style.display = "none";
+                }, 5000);
+
+            } else {
+                saveModelButton.innerHTML = "Error";
+                saveModelButton.disabled = false;
+            }
         })
     };
 
