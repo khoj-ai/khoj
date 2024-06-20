@@ -751,14 +751,14 @@ Filter out first similar result if IS-FIND-SIMILAR set."
 ;; Khoj Chat
 ;; ----------------
 
-(defun khoj--chat ()
-  "Chat with Khoj."
+(defun khoj--chat (&optional session-id)
+  "Chat with Khoj in session with SESSION-ID."
   (interactive)
-  (when (not (get-buffer khoj--chat-buffer-name))
-    (khoj--load-chat-session khoj--chat-buffer-name))
+  (when (or session-id (not (get-buffer khoj--chat-buffer-name)))
+    (khoj--load-chat-session khoj--chat-buffer-name session-id))
   (let ((query (read-string "Query: ")))
     (when (not (string-empty-p query))
-      (khoj--query-chat-api-and-render-messages query khoj--chat-buffer-name))))
+      (khoj--query-chat-api-and-render-messages query khoj--chat-buffer-name session-id))))
 
 (defun khoj--open-side-pane (buffer-name)
   "Open Khoj BUFFER-NAME in right side pane."
@@ -857,8 +857,8 @@ Filter out first similar result if IS-FIND-SIMILAR set."
           ;; show definition on hover on footnote reference
           (overlay-put overlay 'help-echo it)))))))
 
-(defun khoj--query-chat-api-and-render-messages (query buffer-name)
-  "Send QUERY to Khoj Chat. Render the chat messages from exchange in BUFFER-NAME."
+(defun khoj--query-chat-api-and-render-messages (query buffer-name &optional session-id)
+  "Send QUERY to Chat SESSION-ID. Render the chat messages in BUFFER-NAME."
   ;; render json response into formatted chat messages
   (with-current-buffer (get-buffer buffer-name)
     (let ((inhibit-read-only t)
@@ -867,15 +867,19 @@ Filter out first similar result if IS-FIND-SIMILAR set."
       (insert
        (khoj--render-chat-message query "you" query-time))
       (khoj--query-chat-api query
+                            session-id
                             #'khoj--format-chat-response
                             #'khoj--render-chat-response buffer-name))))
 
-(defun khoj--query-chat-api (query callback &rest cbargs)
-  "Send QUERY to Khoj Chat API and call CALLBACK with the response and CBARGS."
-  (khoj--call-api-async "/api/chat"
-                        "GET"
-                        `(("q" ,query) ("n" ,khoj-results-count))
-                        callback cbargs))
+(defun khoj--query-chat-api (query session-id callback &rest cbargs)
+  "Send QUERY for SESSION-ID to Khoj Chat API.
+Call CALLBACK func with response and CBARGS."
+  (let ((params `(("q" ,query) ("n" ,khoj-results-count))))
+    (when session-id (push `("conversation_id" ,session-id) params))
+    (khoj--call-api-async "/api/chat"
+                          "GET"
+                          params
+                          callback cbargs)))
 
 (defun khoj--get-chat-sessions ()
   "Get all chat sessions from Khoj server."
@@ -911,9 +915,11 @@ Filter out first similar result if IS-FIND-SIMILAR set."
 
 (defun khoj--new-conversation-session ()
   "Create new Khoj conversation session."
-  (let* ((session (khoj--create-chat-session))
-         (new-session-id (cdr (assoc 'conversation_id session))))
-    (khoj--load-chat-session khoj--chat-buffer-name new-session-id)))
+  (thread-last
+    (khoj--create-chat-session)
+    (assoc 'conversation_id)
+    (cdr)
+    (khoj--chat)))
 
 (defun khoj--delete-chat-session (session-id)
   "Delete chat session with SESSION-ID."
@@ -921,9 +927,9 @@ Filter out first similar result if IS-FIND-SIMILAR set."
 
 (defun khoj--delete-conversation-session ()
   "Delete new Khoj conversation session."
-  (let* ((selected-session-id (khoj--select-conversation-session "Delete"))
-         (session (khoj--delete-chat-session selected-session-id)))
-    (khoj--load-chat-session khoj--chat-buffer-name)))
+  (thread-last
+    (khoj--select-conversation-session "Delete")
+    (khoj--delete-chat-session)))
 
 (defun khoj--render-chat-message (message sender &optional receive-date)
   "Render chat messages as `org-mode' list item.
