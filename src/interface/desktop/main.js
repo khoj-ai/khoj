@@ -509,7 +509,7 @@ const createWindow = (tab = 'chat.html') => {
     }
 }
 
- const createShortcutWindow = (tab = 'shortcut.html') => {
+const createShortcutWindow = (tab = 'shortcut.html') => {
      var shortcutWin = new BrowserWindow({
          width: 400,
          height: 600,
@@ -539,8 +539,19 @@ const createWindow = (tab = 'chat.html') => {
     });
 
      return shortcutWin;
- };
- app.whenReady().then(() => {
+};
+
+function isShortcutWindowOpen() {
+     const windows = BrowserWindow.getAllWindows();
+     for (let i = 0; i < windows.length; i++) {
+         if (windows[i].webContents.getURL().endsWith('shortcut.html')) {
+             return true;
+         }
+     }
+     return false;
+}
+
+app.whenReady().then(() => {
     addCSPHeaderToSession();
 
     ipcMain.on('set-title', handleSetTitle);
@@ -608,9 +619,10 @@ const createWindow = (tab = 'chat.html') => {
             console.warn("Desktop app update check failed:", e);
         }
     })
-    openShortcut = false;
     globalShortcut.register(openShortcutWindowKeyBind, () => {
-        if(openShortcut) return;
+        console.log("Shortcut key pressed")
+        if(isShortcutWindowOpen()) return;
+
         const shortcutWin = createShortcutWindow(); // Create a new shortcut window each time the shortcut is triggered
         shortcutWin.setAlwaysOnTop(true, 'screen-saver', 1);
         const clipboardText = clipboard.readText();
@@ -619,7 +631,7 @@ const createWindow = (tab = 'chat.html') => {
           shortcutWin.webContents.send('clip', clipboardText);
           console.log('Message sent to window'); // Debug log
         });
-        openShortcut = true;
+
         // Register a global shortcut for the Escape key for the shortcutWin
         globalShortcut.register('Escape', () => {
           if (shortcutWin) {
@@ -627,7 +639,11 @@ const createWindow = (tab = 'chat.html') => {
           }
           // Unregister the Escape key shortcut
           globalShortcut.unregister('Escape');
-          openShortcut = false;
+        });
+
+        shortcutWin.on('closed', () => {
+            // Unregister the Escape key shortcut
+            globalShortcut.unregister('Escape');
         });
         ipcMain.on('continue-conversation-button-clicked', () => {
             openWindow('chat.html');
@@ -636,7 +652,6 @@ const createWindow = (tab = 'chat.html') => {
             }
             // Unregister the Escape key shortcut
             globalShortcut.unregister('Escape');
-            openShortcut = false;
         });
     });
     app.on('activate', () => {
