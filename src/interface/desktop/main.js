@@ -629,7 +629,7 @@ const createWindow = (tab = 'chat.html') => {
           globalShortcut.unregister('Escape');
           openShortcut = false;
         });
-        ipcMain.on('button-clicked', () => {
+        ipcMain.on('continue-conversation-button-clicked', () => {
             openWindow('chat.html');
             if (shortcutWin && !shortcutWin.isDestroyed()) {
                 shortcutWin.close();

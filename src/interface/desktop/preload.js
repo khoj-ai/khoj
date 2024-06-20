@@ -25,7 +25,7 @@ contextBridge.exposeInMainWorld('clipboardAPI', {
 
 contextBridge.exposeInMainWorld('routeBackToMainWindowAPI', {
     sendSignal: () => {
-      ipcRenderer.send('button-clicked'); // Custom event name
+      ipcRenderer.send('continue-conversation-button-clicked'); // Custom event name
     }
   });
 
