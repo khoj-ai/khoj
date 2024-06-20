@@ -10,6 +10,8 @@ The most secure way to do this is to integrate with [Resend](https://resend.com)
 
 It's still possible to use the magic links feature without Resend, but you'll need to manually send the magic links to users who want to log in.
 
+## Manually sending magic links
+
 1. The user will have to enter their email address in the login form.
 They'll click `Send Magic Link`. Without the Resend API key, this will just create an unverified account for them in the backend
 <img src="/img/magic_link.png" alt="Magic link login form" width="400"/>
