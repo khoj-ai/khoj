@@ -3,7 +3,7 @@
 By default, most of the instructions for self-hosting Khoj assume a single user, and so the default configuration is to run in anonymous mode. However, if you want to enable authentication, you can do so either with [Google Auth](/miscellaneous/google_auth) or with magic links, as shown below. This can be helpful if you want to make sure your Khoj instance is only accessible to you and your team.
 
 :::tip[Note]
-Removed the `--anonymous-mode` flag in your start up command to enable authentication.
+Remove the `--anonymous-mode` flag in your start up command to enable authentication.
 :::
 
 The most secure way to do this is to integrate with [Resend](https://resend.com) by setting up an account and adding an environment variable for `RESEND_API_KEY`. You can get your API key [here](https://resend.com/api-keys). This will allow you to automatically send sign-in links to users who want to log in.
