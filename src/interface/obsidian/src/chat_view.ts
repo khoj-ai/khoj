@@ -82,12 +82,12 @@ export class KhojChatView extends KhojPaneView {
         super.onOpen();
 
         // Construct Content Security Policy
-        let defaultDomains = `'self' ${this.setting.khojUrl} https://app.khoj.dev https://assets.khoj.dev`;
+        let defaultDomains = `'self' ${this.setting.khojUrl} https://*.obsidian.md https://app.khoj.dev https://assets.khoj.dev`;
         const defaultSrc = `default-src ${defaultDomains};`;
         const scriptSrc = `script-src ${defaultDomains} 'unsafe-inline';`;
-        const connectSrc = `connect-src ${this.setting.khojUrl} https://ipapi.co/json;`;
+        const connectSrc = `connect-src ${this.setting.khojUrl} wss://*.obsidian.md/ https://ipapi.co/json;`;
         const styleSrc = `style-src ${defaultDomains} 'unsafe-inline';`;
-        const imgSrc = `img-src ${defaultDomains} data: https://*.khoj.dev https://*.googleusercontent.com;`;
+        const imgSrc = `img-src * app: data:;`;
         const childSrc = `child-src 'none';`;
         const objectSrc = `object-src 'none';`;
         const csp = `${defaultSrc} ${scriptSrc} ${connectSrc} ${styleSrc} ${imgSrc} ${childSrc} ${objectSrc}`;
@@ -295,28 +295,16 @@ export class KhojChatView extends KhojPaneView {
     }
 
     formatHTMLMessage(message: string, raw = false, willReplace = true) {
-        let rendered_msg = message;
+        // Remove any text between <s>[INST] and </s> tags. These are spurious instructions for some AI chat model.
+        message = message.replace(/<s>\[INST\].+(<\/s>)?/g, '');
 
-        // Replace LaTeX delimiters with placeholders
-        rendered_msg = rendered_msg.replace(/\\\(/g, 'LEFTPAREN').replace(/\\\)/g, 'RIGHTPAREN')
-                                    .replace(/\\\[/g, 'LEFTBRACKET').replace(/\\\]/g, 'RIGHTBRACKET');
-
-        // Remove any text between <s>[INST] and </s> tags. These are spurious instructions for the AI chat model.
-        rendered_msg = rendered_msg.replace(/<s>\[INST\].+(<\/s>)?/g, '');
-
-        // Sanitize the markdown to render
+        // Sanitize the markdown message
         message = DOMPurify.sanitize(message);
 
-        // Render markdow to HTML DOM element
+        // Convert the message to html, sanitize the message html and render it to the real DOM
         let chat_message_body_text_el = this.contentEl.createDiv();
         chat_message_body_text_el.className = "chat-message-text-response";
-        // @ts-ignore
-        MarkdownRenderer.renderMarkdown(message, chat_message_body_text_el, '', null);
-
-        // Replace placeholders with LaTeX delimiters
-        rendered_msg = chat_message_body_text_el.innerHTML;
-        chat_message_body_text_el.innerHTML = rendered_msg.replace(/LEFTPAREN/g, '\\(').replace(/RIGHTPAREN/g, '\\)')
-                                                          .replace(/LEFTBRACKET/g, '\\[').replace(/RIGHTBRACKET/g, '\\]');
+        chat_message_body_text_el.innerHTML = this.markdownTextToSanitizedHtml(message);
 
         // Add a copy button to each chat message, if it doesn't already exist
         if (willReplace === true) {
@@ -324,6 +312,24 @@ export class KhojChatView extends KhojPaneView {
         }
 
         return chat_message_body_text_el;
+    }
+
+    markdownTextToSanitizedHtml(markdownText: string): string {
+        // Render markdown to an unlinked DOM element
+        let virtualChatMessageBodyTextEl = document.createElement("div");
+
+        // Convert the message to html
+        // @ts-ignore
+        MarkdownRenderer.renderMarkdown(markdownText, virtualChatMessageBodyTextEl, '', null);
+
+        // Remove image HTML elements with any non whitelisted src prefix
+        virtualChatMessageBodyTextEl.innerHTML = virtualChatMessageBodyTextEl.innerHTML.replace(
+            /<img(?:(?!src=["'](app:|data:|https:\/\/generated\.khoj\.dev)).)*?>/gis,
+            ''
+        );
+
+        // Sanitize the markdown text rendered as HTML
+        return DOMPurify.sanitize(virtualChatMessageBodyTextEl.innerHTML);
     }
 
     renderMessageWithReferences(
@@ -401,7 +407,7 @@ export class KhojChatView extends KhojPaneView {
             chat_message_body_text_el.innerHTML = message;
         } else {
             // @ts-ignore
-            MarkdownRenderer.renderMarkdown(message, chat_message_body_text_el, '', null);
+            chat_message_body_text_el.innerHTML = this.markdownTextToSanitizedHtml(message);
         }
 
         // Add action buttons to each chat message element
@@ -447,7 +453,7 @@ export class KhojChatView extends KhojPaneView {
         // Sanitize the markdown to render
         this.result = DOMPurify.sanitize(this.result);
         // @ts-ignore
-        await MarkdownRenderer.renderMarkdown(this.result, htmlElement, '', null);
+        htmlElement.innerHTML = this.markdownTextToSanitizedHtml(this.result);
         // Render action buttons for the message
         this.renderActionButtons(this.result, htmlElement);
         // Scroll to bottom of modal, till the send message input box

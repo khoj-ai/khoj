@@ -308,6 +308,7 @@ class Entry(BaseModel):
         NOTION = "notion"
         GITHUB = "github"
         CONVERSATION = "conversation"
+        DOCX = "docx"
 
     class EntrySource(models.TextChoices):
         COMPUTER = "computer"
@@ -326,6 +327,13 @@ class Entry(BaseModel):
     url = models.URLField(max_length=400, default=None, null=True, blank=True)
     hashed_value = models.CharField(max_length=100)
     corpus_id = models.UUIDField(default=uuid.uuid4, editable=False)
+
+
+class FileObject(BaseModel):
+    # Same as Entry but raw will be a much larger string
+    file_name = models.CharField(max_length=400, default=None, null=True, blank=True)
+    raw_text = models.TextField()
+    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
 
 class EntryDates(BaseModel):

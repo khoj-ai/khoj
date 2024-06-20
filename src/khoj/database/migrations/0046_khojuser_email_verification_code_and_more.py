@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("database", "0044_conversation_file_filters"),
+        ("database", "0045_fileobject"),
     ]
 
     operations = [

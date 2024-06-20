@@ -28,6 +28,7 @@ from khoj.database.models import (
     ClientApplication,
     Conversation,
     Entry,
+    FileObject,
     GithubConfig,
     GithubRepoConfig,
     GoogleUser,
@@ -174,7 +175,7 @@ async def aget_or_create_user_by_email(email: str) -> KhojUser:
     return user
 
 
-async def aget_or_create_user_by_email_verification_code(code: str) -> KhojUser:
+async def aget_user_validated_by_email_verification_code(code: str) -> KhojUser:
     user = await KhojUser.objects.filter(email_verification_code=code).afirst()
     if not user:
         return None
@@ -748,7 +749,7 @@ class ConversationAdapters:
         if server_chat_settings is None or (
             server_chat_settings.summarizer_model is None and server_chat_settings.default_model is None
         ):
-            return await ChatModelOptions.objects.filter().afirst()
+            return await ChatModelOptions.objects.filter().prefetch_related("openai_config").afirst()
         return server_chat_settings.summarizer_model or server_chat_settings.default_model
 
     @staticmethod
@@ -861,6 +862,58 @@ class ConversationAdapters:
     @staticmethod
     async def aget_text_to_image_model_config():
         return await TextToImageModelConfig.objects.filter().afirst()
+
+
+class FileObjectAdapters:
+    @staticmethod
+    def update_raw_text(file_object: FileObject, new_raw_text: str):
+        file_object.raw_text = new_raw_text
+        file_object.save()
+
+    @staticmethod
+    def create_file_object(user: KhojUser, file_name: str, raw_text: str):
+        return FileObject.objects.create(user=user, file_name=file_name, raw_text=raw_text)
+
+    @staticmethod
+    def get_file_objects_by_name(user: KhojUser, file_name: str):
+        return FileObject.objects.filter(user=user, file_name=file_name).first()
+
+    @staticmethod
+    def get_all_file_objects(user: KhojUser):
+        return FileObject.objects.filter(user=user).all()
+
+    @staticmethod
+    def delete_file_object_by_name(user: KhojUser, file_name: str):
+        return FileObject.objects.filter(user=user, file_name=file_name).delete()
+
+    @staticmethod
+    def delete_all_file_objects(user: KhojUser):
+        return FileObject.objects.filter(user=user).delete()
+
+    @staticmethod
+    async def async_update_raw_text(file_object: FileObject, new_raw_text: str):
+        file_object.raw_text = new_raw_text
+        await file_object.asave()
+
+    @staticmethod
+    async def async_create_file_object(user: KhojUser, file_name: str, raw_text: str):
+        return await FileObject.objects.acreate(user=user, file_name=file_name, raw_text=raw_text)
+
+    @staticmethod
+    async def async_get_file_objects_by_name(user: KhojUser, file_name: str):
+        return await sync_to_async(list)(FileObject.objects.filter(user=user, file_name=file_name))
+
+    @staticmethod
+    async def async_get_all_file_objects(user: KhojUser):
+        return await sync_to_async(list)(FileObject.objects.filter(user=user))
+
+    @staticmethod
+    async def async_delete_file_object_by_name(user: KhojUser, file_name: str):
+        return await FileObject.objects.filter(user=user, file_name=file_name).adelete()
+
+    @staticmethod
+    async def async_delete_all_file_objects(user: KhojUser):
+        return await FileObject.objects.filter(user=user).adelete()
 
 
 class EntryAdapters:

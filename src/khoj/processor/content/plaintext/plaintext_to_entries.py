@@ -32,7 +32,7 @@ class PlaintextToEntries(TextToEntries):
 
         # Extract Entries from specified plaintext files
         with timer("Extract entries from specified Plaintext files", logger):
-            current_entries = PlaintextToEntries.extract_plaintext_entries(files)
+            file_to_text_map, current_entries = PlaintextToEntries.extract_plaintext_entries(files)
 
         # Split entries by max tokens supported by model
         with timer("Split entries by max token size supported by model", logger):
@@ -49,6 +49,7 @@ class PlaintextToEntries(TextToEntries):
                 deletion_filenames=deletion_file_names,
                 user=user,
                 regenerate=regenerate,
+                file_to_text_map=file_to_text_map,
             )
 
         return num_new_embeddings, num_deleted_embeddings
@@ -63,21 +64,23 @@ class PlaintextToEntries(TextToEntries):
         return soup.get_text(strip=True, separator="\n")
 
     @staticmethod
-    def extract_plaintext_entries(text_files: Dict[str, str]) -> List[Entry]:
+    def extract_plaintext_entries(text_files: Dict[str, str]) -> Tuple[Dict, List[Entry]]:
         entries: List[str] = []
         entry_to_file_map: List[Tuple[str, str]] = []
+        file_to_text_map = dict()
         for text_file in text_files:
             try:
                 text_content = text_files[text_file]
                 entries, entry_to_file_map = PlaintextToEntries.process_single_plaintext_file(
                     text_content, text_file, entries, entry_to_file_map
                 )
+                file_to_text_map[text_file] = text_content
             except Exception as e:
                 logger.warning(f"Unable to read file: {text_file} as plaintext. Skipping file.")
                 logger.warning(e, exc_info=True)
 
         # Extract Entries from specified plaintext files
-        return PlaintextToEntries.convert_text_files_to_entries(entries, dict(entry_to_file_map))
+        return file_to_text_map, PlaintextToEntries.convert_text_files_to_entries(entries, dict(entry_to_file_map))
 
     @staticmethod
     def process_single_plaintext_file(

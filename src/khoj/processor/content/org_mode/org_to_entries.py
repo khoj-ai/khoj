@@ -33,7 +33,7 @@ class OrgToEntries(TextToEntries):
         # Extract Entries from specified Org files
         max_tokens = 256
         with timer("Extract entries from specified Org files", logger):
-            current_entries = self.extract_org_entries(files, max_tokens=max_tokens)
+            file_to_text_map, current_entries = self.extract_org_entries(files, max_tokens=max_tokens)
 
         with timer("Split entries by max token size supported by model", logger):
             current_entries = self.split_entries_by_max_tokens(current_entries, max_tokens=max_tokens)
@@ -49,6 +49,7 @@ class OrgToEntries(TextToEntries):
                 deletion_file_names,
                 user,
                 regenerate=regenerate,
+                file_to_text_map=file_to_text_map,
             )
 
         return num_new_embeddings, num_deleted_embeddings
@@ -56,26 +57,32 @@ class OrgToEntries(TextToEntries):
     @staticmethod
     def extract_org_entries(
         org_files: dict[str, str], index_heading_entries: bool = False, max_tokens=256
-    ) -> List[Entry]:
+    ) -> Tuple[Dict, List[Entry]]:
         "Extract entries from specified Org files"
-        entries, entry_to_file_map = OrgToEntries.extract_org_nodes(org_files, max_tokens)
-        return OrgToEntries.convert_org_nodes_to_entries(entries, entry_to_file_map, index_heading_entries)
+        file_to_text_map, entries, entry_to_file_map = OrgToEntries.extract_org_nodes(org_files, max_tokens)
+        return file_to_text_map, OrgToEntries.convert_org_nodes_to_entries(
+            entries, entry_to_file_map, index_heading_entries
+        )
 
     @staticmethod
-    def extract_org_nodes(org_files: dict[str, str], max_tokens) -> Tuple[List[List[Orgnode]], Dict[Orgnode, str]]:
+    def extract_org_nodes(
+        org_files: dict[str, str], max_tokens
+    ) -> Tuple[Dict, List[List[Orgnode]], Dict[Orgnode, str]]:
         "Extract org nodes from specified org files"
         entries: List[List[Orgnode]] = []
         entry_to_file_map: List[Tuple[Orgnode, str]] = []
+        file_to_text_map = {}
         for org_file in org_files:
             try:
                 org_content = org_files[org_file]
                 entries, entry_to_file_map = OrgToEntries.process_single_org_file(
                     org_content, org_file, entries, entry_to_file_map, max_tokens
                 )
+                file_to_text_map[org_file] = org_content
             except Exception as e:
                 logger.error(f"Unable to process file: {org_file}. Skipped indexing it.\nError; {e}", exc_info=True)
 
-        return entries, dict(entry_to_file_map)
+        return file_to_text_map, entries, dict(entry_to_file_map)
 
     @staticmethod
     def process_single_org_file(

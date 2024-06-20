@@ -2,7 +2,7 @@ import csv
 import json
 
 from apscheduler.job import Job
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
 from django.http import HttpResponse
 from django_apscheduler.admin import DjangoJobAdmin
@@ -74,6 +74,18 @@ class KhojUserAdmin(UserAdmin):
     filter_horizontal = ("groups", "user_permissions")
 
     fieldsets = (("Personal info", {"fields": ("phone_number", "email_verification_code")}),) + UserAdmin.fieldsets
+
+    actions = ["get_email_login_url"]
+
+    def get_email_login_url(self, request, queryset):
+        for user in queryset:
+            if user.email:
+                host = request.get_host()
+                unique_id = user.email_verification_code
+                login_url = f"{host}/auth/magic?code={unique_id}"
+                messages.info(request, f"Email login URL for {user.email}: {login_url}")
+
+    get_email_login_url.short_description = "Get email login URL"  # type: ignore
 
 
 admin.site.register(KhojUser, KhojUserAdmin)
