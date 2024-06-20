@@ -25,15 +25,16 @@ def test_plaintext_file(tmp_path):
     entries = PlaintextToEntries.extract_plaintext_entries(data)
 
     # Convert each entry.file to absolute path to make them JSON serializable
-    for entry in entries:
+    for entry in entries[1]:
         entry.file = str(Path(entry.file).absolute())
 
     # Assert
-    assert len(entries) == 1
+    assert len(entries) == 2
+    assert len(entries[1]) == 1
     # Ensure raw entry with no headings do not get heading prefix prepended
-    assert not entries[0].raw.startswith("#")
+    assert not entries[1][0].raw.startswith("#")
     # Ensure compiled entry has filename prepended as top level heading
-    assert entries[0].compiled == f"{plaintextfile}\n{raw_entry}"
+    assert entries[1][0].compiled == f"{plaintextfile}\n{raw_entry}"
 
 
 def test_get_plaintext_files(tmp_path):
@@ -94,8 +95,9 @@ def test_parse_html_plaintext_file(content_config, default_user: KhojUser):
     entries = PlaintextToEntries.extract_plaintext_entries(extracted_plaintext_files)
 
     # Assert
-    assert len(entries) == 1
-    assert "<div>" not in entries[0].raw
+    assert len(entries) == 2
+    assert len(entries[1]) == 1
+    assert "<div>" not in entries[1][0].raw
 
 
 def test_large_plaintext_file_split_into_multiple_entries(tmp_path):
@@ -113,13 +115,20 @@ def test_large_plaintext_file_split_into_multiple_entries(tmp_path):
 
     # Act
     # Extract Entries from specified plaintext files
+    normal_entries = PlaintextToEntries.extract_plaintext_entries(normal_data)
+    large_entries = PlaintextToEntries.extract_plaintext_entries(large_data)
+
+    # assert
+    assert len(normal_entries) == 2
+    assert len(large_entries) == 2
+
     normal_entries = PlaintextToEntries.split_entries_by_max_tokens(
-        PlaintextToEntries.extract_plaintext_entries(normal_data),
+        normal_entries[1],
         max_tokens=max_tokens,
         raw_is_compiled=True,
     )
     large_entries = PlaintextToEntries.split_entries_by_max_tokens(
-        PlaintextToEntries.extract_plaintext_entries(large_data), max_tokens=max_tokens, raw_is_compiled=True
+        large_entries[1], max_tokens=max_tokens, raw_is_compiled=True
     )
 
     # Assert

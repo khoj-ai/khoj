@@ -115,6 +115,8 @@ def get_file_type(file_type: str, file_content: bytes) -> tuple[str, str]:
         return "org", encoding
     elif file_type in ["application/pdf"]:
         return "pdf", encoding
+    elif file_type in ["application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]:
+        return "docx", encoding
     elif file_type in ["image/jpeg"]:
         return "jpeg", encoding
     elif file_type in ["image/png"]:
@@ -307,6 +309,7 @@ class ConversationCommand(str, Enum):
     Text = "text"
     Automation = "automation"
     AutomatedTask = "automated_task"
+    Summarize = "summarize"
 
 
 command_descriptions = {
@@ -318,6 +321,7 @@ command_descriptions = {
     ConversationCommand.Image: "Generate images by describing your imagination in words.",
     ConversationCommand.Automation: "Automatically run your query at a specified time or interval.",
     ConversationCommand.Help: "Get help with how to use or setup Khoj from the documentation",
+    ConversationCommand.Summarize: "Create an appropriate summary using provided documents.",
 }
 
 tool_descriptions_for_llm = {
@@ -326,6 +330,7 @@ tool_descriptions_for_llm = {
     ConversationCommand.Notes: "To search the user's personal knowledge base. Especially helpful if the question expects context from the user's notes or documents.",
     ConversationCommand.Online: "To search for the latest, up-to-date information from the internet. Note: **Questions about Khoj should always use this data source**",
     ConversationCommand.Webpage: "To use if the user has directly provided the webpage urls or you are certain of the webpage urls to read.",
+    ConversationCommand.Summarize: "To create a summary of the document provided by the user.",
 }
 
 mode_descriptions_for_llm = {
