@@ -32,6 +32,8 @@ class KhojUser(AbstractUser):
     uuid = models.UUIDField(models.UUIDField(default=uuid.uuid4, editable=False))
     phone_number = PhoneNumberField(null=True, default=None, blank=True)
     verified_phone_number = models.BooleanField(default=False)
+    verified_email = models.BooleanField(default=False)
+    email_verification_code = models.CharField(max_length=200, null=True, default=None, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.uuid:
