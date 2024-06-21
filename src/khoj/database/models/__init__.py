@@ -32,6 +32,8 @@ class KhojUser(AbstractUser):
     uuid = models.UUIDField(models.UUIDField(default=uuid.uuid4, editable=False))
     phone_number = PhoneNumberField(null=True, default=None, blank=True)
     verified_phone_number = models.BooleanField(default=False)
+    verified_email = models.BooleanField(default=False)
+    email_verification_code = models.CharField(max_length=200, null=True, default=None, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.uuid:
@@ -93,6 +95,11 @@ class ChatModelOptions(BaseModel):
     openai_config = models.ForeignKey(
         OpenAIProcessorConversationConfig, on_delete=models.CASCADE, default=None, null=True, blank=True
     )
+
+
+class VoiceModelOption(BaseModel):
+    model_id = models.CharField(max_length=200)
+    name = models.CharField(max_length=200)
 
 
 class Agent(BaseModel):
@@ -246,6 +253,11 @@ class UserConversationConfig(BaseModel):
     setting = models.ForeignKey(ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
 
+class UserVoiceModelConfig(BaseModel):
+    user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
+    setting = models.ForeignKey(VoiceModelOption, on_delete=models.CASCADE, default=None, null=True, blank=True)
+
+
 class UserSearchModelConfig(BaseModel):
     user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
     setting = models.ForeignKey(SearchModelConfig, on_delete=models.CASCADE)
@@ -306,6 +318,7 @@ class Entry(BaseModel):
         NOTION = "notion"
         GITHUB = "github"
         CONVERSATION = "conversation"
+        DOCX = "docx"
 
     class EntrySource(models.TextChoices):
         COMPUTER = "computer"
@@ -324,6 +337,13 @@ class Entry(BaseModel):
     url = models.URLField(max_length=400, default=None, null=True, blank=True)
     hashed_value = models.CharField(max_length=100)
     corpus_id = models.UUIDField(default=uuid.uuid4, editable=False)
+
+
+class FileObject(BaseModel):
+    # Same as Entry but raw will be a much larger string
+    file_name = models.CharField(max_length=400, default=None, null=True, blank=True)
+    raw_text = models.TextField()
+    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
 
 class EntryDates(BaseModel):

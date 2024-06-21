@@ -32,6 +32,22 @@ def is_resend_enabled():
     return bool(RESEND_API_KEY)
 
 
+async def send_magic_link_email(email, unique_id, host):
+    sign_in_link = f"{host}auth/magic?code={unique_id}"
+
+    if not is_resend_enabled():
+        logger.debug(f"Email sending disabled. Share this sign-in link with the user: {sign_in_link}")
+        return
+
+    template = env.get_template("magic_link.html")
+
+    html_content = template.render(link=f"{host}auth/magic?code={unique_id}")
+
+    resend.Emails.send(
+        {"sender": "noreply@khoj.dev", "to": email, "subject": "Your Sign-In Link for Khoj 🚀", "html": html_content}
+    )
+
+
 async def send_welcome_email(name, email):
     if not is_resend_enabled():
         logger.debug("Email sending disabled")
@@ -91,7 +107,7 @@ async def send_query_feedback(uquery, kquery, sentiment, user_email):
     return {"message": "Sent Email"}
 
 
-def send_task_email(name, email, query, result, subject):
+def send_task_email(name, email, query, result, subject, is_image=False):
     if not is_resend_enabled():
         logger.debug("Email sending disabled")
         return
@@ -99,6 +115,9 @@ def send_task_email(name, email, query, result, subject):
     logger.info(f"Sending email to {email} for task {subject}")
 
     template = env.get_template("task.html")
+
+    if is_image:
+        result = f"![{subject}]({result})"
 
     html_result = markdown_it.MarkdownIt().render(result)
     html_content = template.render(name=name, subject=subject, query=query, result=html_result)

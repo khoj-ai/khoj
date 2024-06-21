@@ -57,10 +57,11 @@ dependencies = [
     "torch == 2.2.2",
     "uvicorn == 0.17.6",
     "aiohttp ~= 3.9.0",
-    "langchain <= 0.2.0",
-    "langchain-openai >= 0.0.5",
-    "langchain-community == 0.0.27",
+    "langchain == 0.2.5",
+    "langchain-openai == 0.1.7",
+    "langchain-community == 0.2.5",
     "requests >= 2.26.0",
+    "tenacity == 8.3.0",
     "anyio == 3.7.1",
     "pymupdf >= 1.23.5",
     "django == 4.2.11",
@@ -86,6 +87,7 @@ dependencies = [
     "cron-descriptor == 1.4.3",
     "django_apscheduler == 0.6.2",
     "anthropic == 0.26.1",
+    "docx2txt == 0.8"
 ]
 dynamic = ["version"]
 

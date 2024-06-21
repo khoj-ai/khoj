@@ -16,6 +16,7 @@ from websockets import ConnectionClosedOK
 from khoj.database.adapters import (
     ConversationAdapters,
     EntryAdapters,
+    FileObjectAdapters,
     PublicConversationAdapters,
     aget_user_name,
 )
@@ -26,6 +27,7 @@ from khoj.processor.conversation.prompts import (
     no_notes_found,
 )
 from khoj.processor.conversation.utils import save_to_conversation_log
+from khoj.processor.speech.text_to_speech import generate_text_to_speech
 from khoj.processor.tools.online_search import (
     online_search_enabled,
     read_webpages,
@@ -42,6 +44,7 @@ from khoj.routers.helpers import (
     aget_relevant_output_modes,
     construct_automation_created_message,
     create_automation,
+    extract_relevant_summary,
     get_conversation_command,
     is_query_empty,
     is_ready_to_chat,
@@ -79,6 +82,9 @@ def get_file_filter(request: Request, conversation_id: str) -> Response:
     conversation = ConversationAdapters.get_conversation_by_user(
         request.user.object, conversation_id=int(conversation_id)
     )
+    if not conversation:
+        return Response(content=json.dumps({"status": "error", "message": "Conversation not found"}), status_code=404)
+
     # get all files from "computer"
     file_list = EntryAdapters.get_all_filenames_by_source(request.user.object, "computer")
     file_filters = []
@@ -135,6 +141,20 @@ class FeedbackData(BaseModel):
 async def sendfeedback(request: Request, data: FeedbackData):
     user: KhojUser = request.user.object
     await send_query_feedback(data.uquery, data.kquery, data.sentiment, user.email)
+
+
+@api_chat.post("/speech")
+@requires(["authenticated", "premium"])
+async def text_to_speech(request: Request, common: CommonQueryParams, text: str):
+    voice_model = await ConversationAdapters.aget_voice_model_config(request.user.object)
+
+    params = {"text_to_speak": text}
+
+    if voice_model:
+        params["voice_id"] = voice_model.model_id
+
+    speech_stream = generate_text_to_speech(**params)
+    return StreamingResponse(speech_stream.iter_content(chunk_size=1024), media_type="audio/mpeg")
 
 
 @api_chat.get("/starters", response_class=Response)
@@ -583,6 +603,51 @@ async def websocket_endpoint(
             await conversation_command_rate_limiter.update_and_check_if_valid(websocket, cmd)
             q = q.replace(f"/{cmd.value}", "").strip()
 
+        if ConversationCommand.Summarize in conversation_commands:
+            file_filters = conversation.file_filters
+            response_log = ""
+            if len(file_filters) == 0:
+                response_log = "No files selected for summarization. Please add files using the section on the left."
+                await send_complete_llm_response(response_log)
+            elif len(file_filters) > 1:
+                response_log = "Only one file can be selected for summarization."
+                await send_complete_llm_response(response_log)
+            else:
+                try:
+                    file_object = await FileObjectAdapters.async_get_file_objects_by_name(user, file_filters[0])
+                    if len(file_object) == 0:
+                        response_log = "Sorry, we couldn't find the full text of this file. Please re-upload the document and try again."
+                        await send_complete_llm_response(response_log)
+                        continue
+                    contextual_data = " ".join([file.raw_text for file in file_object])
+                    if not q:
+                        q = "Create a general summary of the file"
+                    await send_status_update(f"**🧑🏾‍💻 Constructing Summary Using:** {file_object[0].file_name}")
+                    response = await extract_relevant_summary(q, contextual_data)
+                    response_log = str(response)
+                    await send_complete_llm_response(response_log)
+                except Exception as e:
+                    response_log = "Error summarizing file."
+                    logger.error(f"Error summarizing file for {user.email}: {e}", exc_info=True)
+                    await send_complete_llm_response(response_log)
+            await sync_to_async(save_to_conversation_log)(
+                q,
+                response_log,
+                user,
+                meta_log,
+                user_message_time,
+                intent_type="summarize",
+                client_application=websocket.user.client_app,
+                conversation_id=conversation_id,
+            )
+            update_telemetry_state(
+                request=websocket,
+                telemetry_type="api",
+                api="chat",
+                metadata={"conversation_command": conversation_commands[0].value},
+            )
+            continue
+
         custom_filters = []
         if conversation_commands == [ConversationCommand.Help]:
             if not q:
@@ -641,9 +706,7 @@ async def websocket_endpoint(
         )
 
         if compiled_references:
-            headings = "\n- " + "\n- ".join(
-                set([" ".join(c.get("compiled", c).split("Path: ")[1:]).split("\n ")[0] for c in compiled_references])
-            )
+            headings = "\n- " + "\n- ".join(set([c.get("compiled", c).split("\n")[0] for c in compiled_references]))
             await send_status_update(f"**📜 Found Relevant Notes**: {headings}")
 
         online_results: Dict = dict()
@@ -827,9 +890,53 @@ async def chat(
         _custom_filters.append("site:khoj.dev")
         conversation_commands.append(ConversationCommand.Online)
 
+    conversation = await ConversationAdapters.aget_conversation_by_user(user, conversation_id=conversation_id)
+    conversation_id = conversation.id if conversation else None
+    if ConversationCommand.Summarize in conversation_commands:
+        file_filters = conversation.file_filters
+        llm_response = ""
+        if len(file_filters) == 0:
+            llm_response = "No files selected for summarization. Please add files using the section on the left."
+        elif len(file_filters) > 1:
+            llm_response = "Only one file can be selected for summarization."
+        else:
+            try:
+                file_object = await FileObjectAdapters.async_get_file_objects_by_name(user, file_filters[0])
+                if len(file_object) == 0:
+                    llm_response = "Sorry, we couldn't find the full text of this file. Please re-upload the document and try again."
+                    return StreamingResponse(content=llm_response, media_type="text/event-stream", status_code=200)
+                contextual_data = " ".join([file.raw_text for file in file_object])
+                summarizeStr = "/" + ConversationCommand.Summarize
+                if q.strip() == summarizeStr:
+                    q = "Create a general summary of the file"
+                response = await extract_relevant_summary(q, contextual_data)
+                llm_response = str(response)
+            except Exception as e:
+                logger.error(f"Error summarizing file for {user.email}: {e}")
+                llm_response = "Error summarizing file."
+        await sync_to_async(save_to_conversation_log)(
+            q,
+            llm_response,
+            user,
+            conversation.conversation_log,
+            user_message_time,
+            intent_type="summarize",
+            client_application=request.user.client_app,
+            conversation_id=conversation_id,
+        )
+        update_telemetry_state(
+            request=request,
+            telemetry_type="api",
+            api="chat",
+            metadata={"conversation_command": conversation_commands[0].value},
+            **common.__dict__,
+        )
+        return StreamingResponse(content=llm_response, media_type="text/event-stream", status_code=200)
+
     conversation = await ConversationAdapters.aget_conversation_by_user(
         user, request.user.client_app, conversation_id, title
     )
+    conversation_id = conversation.id if conversation else None
     if not conversation:
         return Response(
             content=f"No conversation found with requested id, title", media_type="text/plain", status_code=400

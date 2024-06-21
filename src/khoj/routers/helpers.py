@@ -21,7 +21,7 @@ from typing import (
     Tuple,
     Union,
 )
-from urllib.parse import parse_qs, urlencode
+from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 import cron_descriptor
 import openai
@@ -161,6 +161,18 @@ def update_telemetry_state(
     ]
 
 
+def get_next_url(request: Request) -> str:
+    "Construct next url relative to current domain from request"
+    next_url_param = urlparse(request.query_params.get("next", "/"))
+    next_path = "/"  # default next path
+    # If relative path or absolute path to current domain
+    if is_none_or_empty(next_url_param.scheme) or next_url_param.netloc == request.base_url.netloc:
+        # Use path in next query param
+        next_path = next_url_param.path
+    # Construct absolute url using current domain and next path from request
+    return urljoin(str(request.base_url).rstrip("/"), next_path)
+
+
 def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="AI") -> str:
     chat_history = ""
     for chat in conversation_history.get("chat", [])[-n:]:
@@ -188,6 +200,8 @@ def get_conversation_command(query: str, any_references: bool = False) -> Conver
         return ConversationCommand.Image
     elif query.startswith("/automated_task"):
         return ConversationCommand.AutomatedTask
+    elif query.startswith("/summarize"):
+        return ConversationCommand.Summarize
     # If no relevant notes found for the given query
     elif not any_references:
         return ConversationCommand.General
@@ -287,16 +301,16 @@ async def aget_relevant_output_modes(query: str, conversation_history: dict, is_
         response = response.strip()
 
         if is_none_or_empty(response):
-            return ConversationCommand.Default
+            return ConversationCommand.Text
 
         if response in mode_options.keys():
             # Check whether the tool exists as a valid ConversationCommand
             return ConversationCommand(response)
 
-        return ConversationCommand.Default
-    except Exception as e:
+        return ConversationCommand.Text
+    except Exception:
         logger.error(f"Invalid response for determining relevant mode: {response}")
-        return ConversationCommand.Default
+        return ConversationCommand.Text
 
 
 async def infer_webpage_urls(q: str, conversation_history: dict, location_data: LocationData) -> List[str]:
@@ -406,7 +420,30 @@ async def extract_relevant_info(q: str, corpus: str) -> Union[str, None]:
             prompts.system_prompt_extract_relevant_information,
             chat_model_option=summarizer_model,
         )
+    return response.strip()
 
+
+async def extract_relevant_summary(q: str, corpus: str) -> Union[str, None]:
+    """
+    Extract relevant information for a given query from the target corpus
+    """
+
+    if is_none_or_empty(corpus) or is_none_or_empty(q):
+        return None
+
+    extract_relevant_information = prompts.extract_relevant_summary.format(
+        query=q,
+        corpus=corpus.strip(),
+    )
+
+    summarizer_model: ChatModelOptions = await ConversationAdapters.aget_summarizer_conversation_config()
+
+    with timer("Chat actor: Extract relevant information from data", logger):
+        response = await send_message_to_model_wrapper(
+            extract_relevant_information,
+            prompts.system_prompt_extract_relevant_summary,
+            chat_model_option=summarizer_model,
+        )
     return response.strip()
 
 
@@ -449,8 +486,10 @@ async def generate_better_image_prompt(
         online_results=simplified_online_results,
     )
 
+    summarizer_model: ChatModelOptions = await ConversationAdapters.aget_summarizer_conversation_config()
+
     with timer("Chat actor: Generate contextual image prompt", logger):
-        response = await send_message_to_model_wrapper(image_prompt)
+        response = await send_message_to_model_wrapper(image_prompt, chat_model_option=summarizer_model)
 
     return response.strip()
 
@@ -786,6 +825,10 @@ class ApiUserRateLimiter:
         self.slug = slug
 
     def __call__(self, request: Request):
+        # Rate limiting disabled if billing is disabled
+        if state.billing_enabled is False:
+            return
+
         # Rate limiting is disabled if user unauthenticated.
         # Other systems handle authentication
         if not request.user.is_authenticated:
@@ -1003,16 +1046,18 @@ def scheduled_chat(
 
     # Extract the AI response from the chat API response
     cleaned_query = re.sub(r"^/automated_task\s*", "", query_to_run).strip()
+    is_image = False
     if raw_response.headers.get("Content-Type") == "application/json":
         response_map = raw_response.json()
         ai_response = response_map.get("response") or response_map.get("image")
+        is_image = response_map.get("image") is not None
     else:
         ai_response = raw_response.text
 
     # Notify user if the AI response is satisfactory
     if should_notify(original_query=scheduling_request, executed_query=cleaned_query, ai_response=ai_response):
         if is_resend_enabled():
-            send_task_email(user.get_short_name(), user.email, cleaned_query, ai_response, subject)
+            send_task_email(user.get_short_name(), user.email, cleaned_query, ai_response, subject, is_image)
         else:
             return raw_response
 

@@ -30,7 +30,7 @@
     <script type="text/javascript" src="/static/assets/purify.min.js?v={{ khoj_version }}"></script>
     <script type="text/javascript" src="/static/assets/utils.js?v={{ khoj_version }}"></script>
     <script type="text/javascript" src="/static/assets/markdown-it.min.js?v={{ khoj_version }}"></script>
-    <link rel="stylesheet" href="https://assets.khoj.dev/higlightjs/solarized-dark.min.css">
+    <link rel="stylesheet" href="https://assets.khoj.dev/higlightjs/solarized-light.css">
     <script src="https://assets.khoj.dev/higlightjs/highlight.min.js"></script>
     <script>
         let welcome_message = `
@@ -48,8 +48,8 @@ Get the Khoj [Desktop](https://khoj.dev/downloads), [Obsidian](https://docs.khoj
 
 To get started, just start typing below. You can also type / to see a list of commands.
 `.trim()
-        const allowedExtensions = ['text/org', 'text/markdown', 'text/plain', 'text/html', 'application/pdf'];
-        const allowedFileEndings = ['org', 'md', 'txt', 'html', 'pdf'];
+        const allowedExtensions = ['text/org', 'text/markdown', 'text/plain', 'text/html', 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+        const allowedFileEndings = ['org', 'md', 'txt', 'html', 'pdf', 'docx'];
         let chatOptions = [];
         function createCopyParentText(message) {
             return function(event) {
@@ -422,8 +422,65 @@ To get started, just start typing below. You can also type / to see a list of co
                     sendFeedback(userQuery, khojQuery, "Bad Response");
                 };
 
+                // Only enable the speech feature if the user is subscribed
+                let speechButton = null;
+
+                if ("{{ is_active }}" == "True") {
+                    // Create a speech button icon to play the message out loud
+                    speechButton = document.createElement('button');
+                    speechButton.classList.add("speech-button");
+                    speechButton.title = "Listen to Message";
+                    let speechIcon = document.createElement("img");
+                    speechIcon.src = "/static/assets/icons/speaker.svg";
+                    speechIcon.classList.add("speech-icon");
+                    speechButton.appendChild(speechIcon);
+                    speechButton.addEventListener('click', function() {
+                        // Replace the speaker with a loading icon.
+                        let loader = document.createElement("span");
+                        loader.classList.add("loader");
+
+                        speechButton.innerHTML = "";
+                        speechButton.appendChild(loader);
+                        speechButton.disabled = true;
+
+                        const context = new (window.AudioContext || window.webkitAudioContext)();
+                        fetch(`/api/chat/speech?text=${encodeURIComponent(message)}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                        })
+                        .then(response => response.arrayBuffer())
+                        .then(arrayBuffer => {
+                            return context.decodeAudioData(arrayBuffer);
+                        })
+                        .then(audioBuffer => {
+                            const source = context.createBufferSource();
+                            source.buffer = audioBuffer;
+                            source.connect(context.destination);
+                            source.start(0);
+                            source.onended = function() {
+                                speechButton.innerHTML = "";
+                                speechButton.appendChild(speechIcon);
+                                speechButton.disabled = false;
+                            };
+                        })
+                        .catch(err => {
+                            console.error("Error playing speech:", err);
+                            speechButton.innerHTML = "";
+                            speechButton.appendChild(speechIcon);
+                            speechButton.disabled = true;
+                        });
+                    });
+                }
+
+
                 // Append buttons to parent element
                 element.append(copyButton, thumbsDownButton, thumbsUpButton);
+
+                if (speechButton) {
+                    element.append(speechButton);
+                }
             }
 
             renderMathInElement(element, {
@@ -540,6 +597,13 @@ To get started, just start typing below. You can also type / to see a list of co
             // Short circuit on empty query
             if (query.length === 0)
                 return;
+
+            // if the query is not empty then update userMessages array. keep the size of the array to 10
+            if (userMessages.length >= 10) {
+                userMessages.shift();
+            }
+            userMessages.push(query);
+            resetUserMessageIndex();
 
             // Add message by user to chat body
             renderMessage(query, "you");
@@ -810,7 +874,7 @@ To get started, just start typing below. You can also type / to see a list of co
             if (overlayText == null) {
                 dropzone.classList.add('dragover');
                 var overlayText = document.createElement("div");
-                overlayText.innerHTML = "Select a file or drag + drop it here to share it with Khoj";
+                overlayText.innerHTML = "Select file(s) or drag + drop it here to share it with Khoj";
                 overlayText.className = "dropzone-overlay";
                 overlayText.id = "dropzone-overlay";
                 dropzone.appendChild(overlayText);
@@ -818,9 +882,10 @@ To get started, just start typing below. You can also type / to see a list of co
 
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
+            fileInput.multiple = true;
             fileInput.addEventListener('change', function() {
-                const selectedFile = fileInput.files[0];
-                uploadDataForIndexing(selectedFile);
+                const selectedFiles = fileInput.files;
+                uploadDataForIndexing(selectedFiles);
             });
 
             // Remove overlay text after file input is closed
@@ -844,89 +909,108 @@ To get started, just start typing below. You can also type / to see a list of co
             fileInput.click();
         }
 
-        function uploadDataForIndexing(file) {
+        function uploadDataForIndexing(files) {
             var dropzone = document.getElementById('chat-body');
+            var badfiles = [];
+            var goodfiles = [];
+            var overlayText = document.getElementById("dropzone-overlay");
 
-            if (!file || (!allowedExtensions.includes(file.type) && !allowedFileEndings.includes(file.name.split('.').pop()))) {
-                dropzone.classList.remove('dragover');
-                if (file) {
-                    alert("Sorry, that file type is not yet supported");
+            for (let file of files) {
+                if (!file || (!allowedExtensions.includes(file.type) && !allowedFileEndings.includes(file.name.split('.').pop()))) {
+                    if (file) {
+                        badfiles.push(file.name);
+                    }
+                } else {
+                    goodfiles.push(file);
                 }
-                var overlayText = document.getElementById("dropzone-overlay");
-                if (overlayText != null) {
-                    overlayText.remove();
-                }
-                return;
             }
 
-            const fileName = file.name;
-            var fileContents = null;
+            if (badfiles.length > 0) {
+                alert("The following files are not supported yet:\n" + badfiles.join('\n'));
+            }
 
-            var reader = new FileReader();
+
             const formData = new FormData();
-
-
             var overlayText = document.getElementById("dropzone-overlay");
             if (overlayText != null) {
                 // Display loading spinner
                 var loadingSpinner = document.createElement("div");
-                overlayText.innerHTML = "Uploading file for indexing";
+                overlayText.innerHTML = "Uploading file(s) for indexing";
                 loadingSpinner.className = "spinner";
                 overlayText.appendChild(loadingSpinner);
             }
 
-            reader.onload = function (event) {
-                fileContents = event.target.result;
-                let fileType = file.type;
-                if (fileType === "") {
-                    if (fileName.split('.').pop() === "org") {
-                        fileType = "text/org";
-                    } else if (fileName.split('.').pop() === "md") {
-                        fileType = "text/markdown";
-                    } else if (fileName.split('.').pop() === "txt") {
-                        fileType = "text/plain";
-                    } else if (fileName.split('.').pop() === "html") {
-                        fileType = "text/html";
-                    } else if (fileName.split('.').pop() === "pdf") {
-                        fileType = "application/pdf";
-                    }
-                }
-
-                let fileObj = new Blob([fileContents], { type: fileType });
-                formData.append("files", fileObj, file.name);
-                console.log(formData);
-
-                fetch("/api/v1/index/update?force=false&client=web", {
-                    method: "POST",
-                    body: formData,
-                })
-                    .then((data) => {
-                        console.log(data);
-                        dropzone.classList.remove('dragover');
-                        var overlayText = document.getElementById("dropzone-overlay");
-                        if (overlayText != null) {
-                            overlayText.remove();
+            // Create an array of Promises for file reading
+            const fileReadPromises = Array.from(goodfiles).map(file => {
+                return new Promise((resolve, reject) => {
+                    let reader = new FileReader();
+                    reader.onload = function (event) {
+                        let fileContents = event.target.result;
+                        let fileType = file.type;
+                        let fileName = file.name;
+                        if (fileType === "") {
+                            let fileExtension = fileName.split('.').pop();
+                            if (fileExtension === "org") {
+                                fileType = "text/org";
+                            } else if (fileExtension === "md") {
+                                fileType = "text/markdown";
+                            } else if (fileExtension === "txt") {
+                                fileType = "text/plain";
+                            } else if (fileExtension === "html") {
+                                fileType = "text/html";
+                            } else if (fileExtension === "pdf") {
+                                fileType = "application/pdf";
+                            } else {
+                                // Skip this file if its type is not supported
+                                resolve();
+                                return;
+                            }
                         }
-                        // Display indexing success message
-                        flashStatusInChatInput("✅ File indexed successfully");
-                        renderAllFiles();
-                        addFileFilterToConversation(fileName);
-                        loadFileFiltersFromConversation();
-                    })
-                    .catch((error) => {
-                        console.log(error);
-                        dropzone.classList.remove('dragover');
-                        var overlayText = document.getElementById("dropzone-overlay");
-                        if (overlayText != null) {
-                            overlayText.remove();
-                        }
-                        // Display indexing failure message
-                        flashStatusInChatInput("⛔️ Failed to upload file for indexing");
+
+                        let fileObj = new Blob([fileContents], { type: fileType });
+                        formData.append("files", fileObj, file.name);
+                        resolve();
+                    };
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(file);
+                });
+            });
+
+            // Wait for all files to be read before making the fetch request
+            Promise.all(fileReadPromises)
+                .then(() => {
+                    return fetch("/api/v1/index/update?force=false&client=web", {
+                        method: "POST",
+                        body: formData,
                     });
-            };
-
-            reader.readAsArrayBuffer(file);
+                })
+                .then((data) => {
+                    console.log(data);
+                    dropzone.classList.remove('dragover');
+                    var overlayText = document.getElementById("dropzone-overlay");
+                    if (overlayText != null) {
+                        overlayText.remove();
+                    }
+                    // Display indexing success message
+                    flashStatusInChatInput("✅ File indexed successfully");
+                    renderAllFiles();
+                    for (let file of goodfiles) {
+                        addFileFilterToConversation(file.name);
+                        loadFileFiltersFromConversation();
+                    }
+                })
+                .catch((error) => {
+                    console.log(error);
+                    dropzone.classList.remove('dragover');
+                    var overlayText = document.getElementById("dropzone-overlay");
+                    if (overlayText != null) {
+                        overlayText.remove();
+                    }
+                    // Display indexing failure message
+                    flashStatusInChatInput("⛔️ Failed to upload file for indexing");
+                });
         }
+
 
         function setupDropZone() {
             var dropzone = document.getElementById('chat-body');
@@ -960,7 +1044,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 event.preventDefault();
 
                 var file = event.dataTransfer.files[0];
-                uploadDataForIndexing(file);
+                uploadDataForIndexing([file]);
             };
         }
 
@@ -1094,6 +1178,12 @@ To get started, just start typing below. You can also type / to see a list of co
             var query = document.getElementById("chat-input").value.trim();
             console.log(`Query: ${query}`);
 
+            if (userMessages.length >= 10) {
+                userMessages.shift();
+            }
+            userMessages.push(query);
+            resetUserMessageIndex();
+
             // Add message by user to chat body
             renderMessage(query, "you");
             document.getElementById("chat-input").value = "";
@@ -1135,7 +1225,8 @@ To get started, just start typing below. You can also type / to see a list of co
                 rawQuery: query,
             }
         }
-
+        var userMessages = [];
+        var userMessageIndex = -1;
         function loadChat() {
             let chatBody = document.getElementById("chat-body");
             chatBody.innerHTML = "";
@@ -1242,9 +1333,15 @@ To get started, just start typing below. You can also type / to see a list of co
                     }, {rootMargin: '0px 0px 0px 0px'});
 
                     const fullChatLog = response.chat || [];
+                    userMessages = [];
+                    userMessageIndex = 0;
                     fullChatLog.forEach((chat_log, index) => {
                         // Render the last 10 messages immediately
+                        // also cache user messages into array for shortcut access
                         if (chat_log.message != null) {
+                            if(chat_log.by !== "khoj") {
+                                userMessages.push(chat_log.message);
+                            }
                             let messageElement = renderMessageWithReference(
                                 chat_log.message,
                                 chat_log.by,
@@ -1264,6 +1361,7 @@ To get started, just start typing below. You can also type / to see a list of co
                         }
                         loadingScreen.style.height = chatBody.scrollHeight + 'px';
                     });
+                    userMessageIndex = userMessages.length;
 
                     // Scroll to bottom of chat-body element
                     chatBody.scrollTop = chatBody.scrollHeight;
@@ -2048,11 +2146,35 @@ To get started, just start typing below. You can also type / to see a list of co
                 console.error("Error loading file filters:", error);
             });
         }
+
+        function inputAutoFiller(key){
+            var chatInput = document.getElementById("chat-input");
+            console.log(key, userMessageIndex)
+            if (key === "up") {
+                if (userMessageIndex > 0) {
+                    userMessageIndex -= 1;
+                    chatInput.value = userMessages[userMessageIndex];
+                } else {
+                    userMessageIndex = -1;
+                    chatInput.value = "";
+                }
+            } else if (key === "down") {
+                if (userMessageIndex < userMessages.length - 1) {
+                    userMessageIndex += 1;
+                    chatInput.value = userMessages[userMessageIndex];
+                } else if (userMessageIndex === userMessages.length - 1) {
+                    userMessageIndex += 1;
+                    chatInput.value = "";
+                }
+            }
+        }
+        function resetUserMessageIndex(){
+            userMessageIndex = userMessages.length;
+        }
     </script>
     <body>
         <div id="khoj-empty-container" class="khoj-empty-container">
         </div>
-
         <!--Add Header Logo and Nav Pane-->
         {% import 'utils.html' as utils %}
         {{ utils.heading_pane(user_photo, username, is_active, has_documents) }}
@@ -2080,7 +2202,7 @@ To get started, just start typing below. You can also type / to see a list of co
                     <div style="border-top: 1px solid black; ">
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; margin-top: 5px;">
                             <p style="margin: 0;">Files</p>
-                            <svg id="file-toggle-button" class="file-toggle-button" style="width:20px; height:20px; position: relative; top: 2px" viewBox="0 0 40 40" fill="#000000" xmlns="http://www.w3.org/2000/svg">
+                            <svg class="file-toggle-button" style="width:20px; height:20px; position: relative; top: 2px" viewBox="0 0 40 40" fill="#000000" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M16 0c-8.836 0-16 7.163-16 16s7.163 16 16 16c8.837 0 16-7.163 16-16s-7.163-16-16-16zM16 30.032c-7.72 0-14-6.312-14-14.032s6.28-14 14-14 14 6.28 14 14-6.28 14.032-14 14.032zM23 15h-6v-6c0-0.552-0.448-1-1-1s-1 0.448-1 1v6h-6c-0.552 0-1 0.448-1 1s0.448 1 1 1h6v6c0 0.552 0.448 1 1 1s1-0.448 1-1v-6h6c0.552 0 1-0.448 1-1s-0.448-1-1-1z"></path>
                             </svg>
                         </div>
@@ -2123,6 +2245,7 @@ To get started, just start typing below. You can also type / to see a list of co
                                     fileList.style.display = 'none';
                                     selectedFileList.style.display = 'block';
                                 }
+
                             });
 
                             fileInput.addEventListener('click', function(event) {
@@ -2179,6 +2302,22 @@ To get started, just start typing below. You can also type / to see a list of co
                             </svg>
                         </button>
                         <textarea id="chat-input" class="option" oninput="onChatInput()" onkeydown=incrementalChat(event) autofocus="autofocus" placeholder="Type / to see a list of commands"></textarea>
+                        <!-- Shortcut Handler for Accessing Old Messages -->
+                        <script>
+                            let chatInput = document.getElementById('chat-input');
+                            chatInput.addEventListener('keydown', function(event) {
+                                    if (event.key === 'ArrowUp') {
+                                        inputAutoFiller('up');
+                                    } else if (event.key === 'ArrowDown') {
+                                        inputAutoFiller('down');
+                                    }
+                                });
+                            document.addEventListener('click', function(event) {
+                                if (document.activeElement !== document.getElementById('chat-input')) {
+                                    resetUserMessageIndex();
+                                }
+                            });
+                        </script>
                         <button id="speak-button" class="input-row-button"
                             ontouchstart="speechToText(event)" ontouchend="speechToText(event)" ontouchcancel="speechToText(event)" onmousedown="speechToText(event)">
                             <svg id="speak-button-img" class="input-row-button-img" alt="Transcribe" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -2748,7 +2887,13 @@ To get started, just start typing below. You can also type / to see a list of co
             float: right;
         }
 
-        button.thumbs-up-button {
+        img.speech-icon {
+            width: 18px;
+        }
+
+        button.thumbs-up-button,
+        button.thumbs-down-button,
+        button.speech-button {
             border-radius: 4px;
             background-color: var(--background-color);
             border: 1px solid var(--main-text-color);
@@ -2759,19 +2904,6 @@ To get started, just start typing below. You can also type / to see a list of co
             padding: 4px;
             float: right;
             margin-right: 4px;
-        }
-
-        button.thumbs-down-button {
-            border-radius: 4px;
-            background-color: var(--background-color);
-            border: 1px solid var(--main-text-color);
-            text-align: center;
-            font-size: medium;
-            transition: all 0.5s;
-            cursor: pointer;
-            padding: 4px;
-            float: right;
-            margin-right:4px;
         }
 
         button.copy-button span {
@@ -2796,20 +2928,14 @@ To get started, just start typing below. You can also type / to see a list of co
             height: 18px;
         }
 
-        button.copy-button:hover {
+        button.copy-button:hover,
+        button.thumbs-up-button:hover,
+        button.thumbs-down-button:hover,
+        button.speech-button:hover {
             background-color: var(--primary-hover);
             color: #f5f5f5;
         }
 
-        button.thumbs-up-button:hover {
-            background-color: var(--primary-hover);
-            color: #f5f5f5;
-        }
-
-        button.thumbs-down-button:hover {
-            background-color: var(--primary-hover);
-            color: #f5f5f5;
-        }
 
         pre {
             text-wrap: unset;
@@ -3073,6 +3199,40 @@ To get started, just start typing below. You can also type / to see a list of co
             padding: 10px;
             white-space: pre-wrap;
         }
+
+        .loader {
+            width: 18px;
+            height: 18px;
+            border: 3px solid #FFF;
+            border-radius: 50%;
+            display: inline-block;
+            position: relative;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+        .loader::after {
+            content: '';
+            box-sizing: border-box;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            border-bottom-color: var(--flower);
+        }
+
+        @keyframes rotation {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
 
         .loading-spinner {
             display: inline-block;
