@@ -258,7 +258,7 @@ async def update_chat_model(
     return {"status": "ok"}
 
 
-@api_config.post("/data/conversation/voice/model", status_code=200)
+@api_config.post("/data/voice/model", status_code=200)
 @requires(["authenticated", "premium"])
 async def update_chat_model(
     request: Request,

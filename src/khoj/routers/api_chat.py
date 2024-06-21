@@ -146,14 +146,14 @@ async def sendfeedback(request: Request, data: FeedbackData):
 @api_chat.post("/speech")
 @requires(["authenticated", "premium"])
 async def text_to_speech(request: Request, common: CommonQueryParams, text: str):
-    voice_id = await ConversationAdapters.aget_voice_model_config(request.user.object)
+    voice_model = await ConversationAdapters.aget_voice_model_config(request.user.object)
 
-    params = {"text": text}
+    params = {"text_to_speak": text}
 
-    if voice_id:
-        params["voice_id"] = voice_id
+    if voice_model:
+        params["voice_id"] = voice_model.model_id
 
-    speech_stream = generate_text_to_speech(params)
+    speech_stream = generate_text_to_speech(**params)
     return StreamingResponse(speech_stream.iter_content(chunk_size=1024), media_type="audio/mpeg")
 
 
