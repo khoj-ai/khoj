@@ -708,7 +708,7 @@ class ConversationAdapters:
         return new_config
 
     @staticmethod
-    async def aset_user_voice_model(user: KhojUser, model_id: int):
+    async def aset_user_voice_model(user: KhojUser, model_id: str):
         config = await VoiceModelOption.objects.filter(model_id=model_id).afirst()
         if not config:
             return None

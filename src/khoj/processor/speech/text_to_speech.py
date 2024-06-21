@@ -8,7 +8,7 @@ from markdown_it import MarkdownIt
 # Define constants for the script
 CHUNK_SIZE = 1024  # Size of chunks to read/write at a time
 ELEVEN_LABS_API_KEY = os.getenv("ELEVEN_LABS_API_KEY", None)  # Your API key for authentication
-VOICE_ID = "29vD33N1CtxCmqQRPOHJ"  # ID of the voice model to use. MALE - Drew.
+VOICE_ID = "wP7XBmkAmRwrjtfK2KeY"  # ID of the voice model to use. MALE - Ben.
 ELEVEN_API_URL = "https://api.elevenlabs.io/v1/text-to-speech"  # Base URL for the Text-to-Speech API
 
 markdown_renderer = MarkdownIt()
