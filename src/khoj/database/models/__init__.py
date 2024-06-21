@@ -97,6 +97,11 @@ class ChatModelOptions(BaseModel):
     )
 
 
+class VoiceModelOption(BaseModel):
+    model_id = models.CharField(max_length=200)
+    name = models.CharField(max_length=200)
+
+
 class Agent(BaseModel):
     creator = models.ForeignKey(
         KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True
@@ -246,6 +251,11 @@ class SpeechToTextModelOptions(BaseModel):
 class UserConversationConfig(BaseModel):
     user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
     setting = models.ForeignKey(ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True)
+
+
+class UserVoiceModelConfig(BaseModel):
+    user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
+    setting = models.ForeignKey(VoiceModelOption, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
 
 class UserSearchModelConfig(BaseModel):

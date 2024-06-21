@@ -441,6 +441,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
                         speechButton.innerHTML = "";
                         speechButton.appendChild(loader);
+                        speechButton.disabled = true;
 
                         const context = new (window.AudioContext || window.webkitAudioContext)();
                         fetch(`/api/chat/speech?text=${encodeURIComponent(message)}`, {
@@ -461,6 +462,7 @@ To get started, just start typing below. You can also type / to see a list of co
                             source.onended = function() {
                                 speechButton.innerHTML = "";
                                 speechButton.appendChild(speechIcon);
+                                speechButton.disabled = false;
                             };
                         })
                         .catch(err => {

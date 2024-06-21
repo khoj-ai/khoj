@@ -47,6 +47,8 @@ from khoj.database.models import (
     UserConversationConfig,
     UserRequests,
     UserSearchModelConfig,
+    UserVoiceModelConfig,
+    VoiceModelOption,
 )
 from khoj.processor.conversation import prompts
 from khoj.search_filter.date_filter import DateFilter
@@ -706,6 +708,14 @@ class ConversationAdapters:
         return new_config
 
     @staticmethod
+    async def aset_user_voice_model(user: KhojUser, model_id: int):
+        config = await VoiceModelOption.objects.filter(model_id=model_id).afirst()
+        if not config:
+            return None
+        new_config = await UserVoiceModelConfig.objects.aupdate_or_create(user=user, defaults={"setting": config})
+        return new_config
+
+    @staticmethod
     def get_conversation_config(user: KhojUser):
         config = UserConversationConfig.objects.filter(user=user).first()
         if not config:
@@ -718,6 +728,18 @@ class ConversationAdapters:
         if not config:
             return None
         return config.setting
+
+    @staticmethod
+    async def aget_voice_model_config(user: KhojUser) -> Optional[VoiceModelOption]:
+        return await UserVoiceModelConfig.objects.filter(user=user).prefetch_related("setting").afirst()
+
+    @staticmethod
+    def get_voice_model_options():
+        return VoiceModelOption.objects.all()
+
+    @staticmethod
+    def get_voice_model_config(user: KhojUser) -> Optional[VoiceModelOption]:
+        return UserVoiceModelConfig.objects.filter(user=user).prefetch_related("setting").first()
 
     @staticmethod
     def get_default_conversation_config():
