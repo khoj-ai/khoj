@@ -27,6 +27,7 @@ from khoj.database.models import (
     Subscription,
     TextToImageModelConfig,
     UserSearchModelConfig,
+    VoiceModelOption,
 )
 from khoj.utils.helpers import ImageIntentType
 
@@ -99,6 +100,7 @@ admin.site.register(TextToImageModelConfig)
 admin.site.register(ClientApplication)
 admin.site.register(GithubConfig)
 admin.site.register(NotionConfig)
+admin.site.register(VoiceModelOption)
 
 
 @admin.register(Agent)

@@ -258,6 +258,30 @@ async def update_chat_model(
     return {"status": "ok"}
 
 
+@api_config.post("/data/voice/model", status_code=200)
+@requires(["authenticated", "premium"])
+async def update_voice_model(
+    request: Request,
+    id: str,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+
+    new_config = await ConversationAdapters.aset_user_voice_model(user, id)
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="set_voice_model",
+        client=client,
+    )
+
+    if new_config is None:
+        return Response(status_code=404, content=json.dumps({"status": "error", "message": "Model not found"}))
+
+    return Response(status_code=202, content=json.dumps({"status": "ok"}))
+
+
 @api_config.post("/data/search/model", status_code=200)
 @requires(["authenticated"])
 async def update_search_model(
