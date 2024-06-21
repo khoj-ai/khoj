@@ -1965,11 +1965,11 @@ To get started, just start typing below. You can also type / to see a list of co
                 var nofilesmessage = document.getElementsByClassName("no-files-message")[0];
                 if(allFiles.length === 0){
                     nofilesmessage.innerHTML = `<a class="inline-chat-link" href="https://docs.khoj.dev/category/clients/">How to upload files</a>`;
-                    document.getElementById("file-toggle-button").style.display = "none";
+                    document.getElementsByClassName("file-toggle-button")[0].style.display = "none";
                 }
                 else{
                     nofilesmessage.innerHTML = "";
-                    document.getElementById("file-toggle-button").style.display = "block";
+                    document.getElementsByClassName("file-toggle-button")[0].style.display = "block";
                 }
             })
             .catch((error) => {
