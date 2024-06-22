@@ -76,17 +76,16 @@ class ImageToEntries(TextToEntries):
                     bytes = image_files[image_file]
                     f.write(bytes)
                 try:
-                    image_entries_per_file = []
+                    image_entries_per_file = ""
                     result, _ = loader(tmp_file)
                     if result:
-                        image_entries_per_file = [text[1] for text in result]
+                        expanded_entries = [text[1] for text in result]
+                        image_entries_per_file = " ".join(expanded_entries)
                 except ImportError:
                     logger.warning(f"Unable to process file: {image_file}. This file will not be indexed.")
                     continue
-                entry_to_location_map += zip(
-                    image_entries_per_file, [image_file] * len(image_entries_per_file)
-                )  # this is an indexed map of image_entries for the image.
-                entries.extend(image_entries_per_file)
+                entry_to_location_map.append((image_entries_per_file, image_file))
+                entries.extend([image_entries_per_file])
                 file_to_text_map[image_file] = image_entries_per_file
             except Exception as e:
                 logger.warning(f"Unable to process file: {image_file}. This file will not be indexed.")
