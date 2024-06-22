@@ -73,7 +73,7 @@ dependencies = [
     "psycopg2-binary == 2.9.9",
     "lxml == 4.9.3",
     "tzdata == 2023.3",
-    "rapidocr-onnxruntime == 1.3.11; python_version<'3.12'",
+    "rapidocr-onnxruntime == 1.3.22",
     "openai-whisper >= 20231117",
     "django-phonenumber-field == 7.3.0",
     "phonenumbers == 8.13.27",
