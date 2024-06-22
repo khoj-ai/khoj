@@ -1,5 +1,3 @@
-import os
-
 from khoj.processor.content.docx.docx_to_entries import DocxToEntries
 
 
