@@ -34,7 +34,7 @@ from khoj.utils.rawconfig import (
 
 # Initialize Router
 web_client = APIRouter()
-templates = Jinja2Templates(directory=constants.web_directory)
+templates = Jinja2Templates([constants.web_directory, constants.next_js_directory])
 
 
 # Create Routes
@@ -114,6 +114,17 @@ def chat_page(request: Request):
             "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
             "khoj_version": state.khoj_version,
+        },
+    )
+
+
+@web_client.get("/experimental", response_class=FileResponse)
+@requires(["authenticated"], redirect="login_page")
+def experimental_page(request: Request):
+    return templates.TemplateResponse(
+        "index.html",
+        context={
+            "request": request,
         },
     )
 
