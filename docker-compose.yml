@@ -42,8 +42,8 @@ services:
       - POSTGRES_HOST=database
       - POSTGRES_PORT=5432
       - KHOJ_DJANGO_SECRET_KEY=secret
-      - KHOJ_DEBUG=False
-      - KHOJ_ADMIN_EMAIL=username@example.com
+      - KHOJ_DEBUG=True
+      - KHOJ_ADMIN_EMAIL=srikar.y.12@gmail.com
       - KHOJ_ADMIN_PASSWORD=password
       # Uncomment the following lines to make your instance publicly accessible. Replace the domain with your domain. Proceed with caution, especially if you are using anonymous mode.
       # - KHOJ_NO_HTTPS=True
