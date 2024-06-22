@@ -61,7 +61,7 @@ def test_search_with_invalid_content_type(client):
 @pytest.mark.django_db(transaction=True)
 def test_search_with_valid_content_type(client):
     headers = {"Authorization": "Bearer kk-secret"}
-    for content_type in ["all", "org", "markdown", "image", "pdf", "github", "notion", "plaintext"]:
+    for content_type in ["all", "org", "markdown", "image", "pdf", "github", "notion", "plaintext", "docx"]:
         # Act
         response = client.get(f"/api/search?q=random&t={content_type}", headers=headers)
         # Assert
@@ -480,6 +480,14 @@ def get_sample_files_data():
         ("files", ("path/to/filename1.txt", "<html>my first web page</html>", "text/plain")),
         ("files", ("path/to/filename2.txt", "2021-02-02 Journal Entry", "text/plain")),
         ("files", ("path/to/filename.md", "# Notes from client call", "text/markdown")),
+        (
+            "files",
+            (
+                "path/to/filename.docx",
+                "## Studying anthropological records from the Fatimid caliphate",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ),
+        ),
         (
             "files",
             ("path/to/filename1.md", "## Studying anthropological records from the Fatimid caliphate", "text/markdown"),

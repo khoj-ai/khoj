@@ -48,8 +48,8 @@ Get the Khoj [Desktop](https://khoj.dev/downloads), [Obsidian](https://docs.khoj
 
 To get started, just start typing below. You can also type / to see a list of commands.
 `.trim()
-        const allowedExtensions = ['text/org', 'text/markdown', 'text/plain', 'text/html', 'application/pdf', 'image/jpeg', 'image/png'];
-        const allowedFileEndings = ['org', 'md', 'txt', 'html', 'pdf', 'jpg', 'jpeg', 'png'];
+        const allowedExtensions = ['text/org', 'text/markdown', 'text/plain', 'text/html', 'application/pdf', 'image/jpeg', 'image/png', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+        const allowedFileEndings = ['org', 'md', 'txt', 'html', 'pdf', 'jpg', 'jpeg', 'png', 'docx'];
         let chatOptions = [];
         function createCopyParentText(message) {
             return function(event) {
@@ -87,6 +87,7 @@ To get started, just start typing below. You can also type / to see a list of co
             loadingEllipsis: null,
             references: {},
             rawResponse: "",
+            isVoice: false,
         }
 
         fetch("https://ipapi.co/json")
@@ -348,6 +349,57 @@ To get started, just start typing below. You can also type / to see a list of co
             .then(response => response.json())
         }
 
+        function textToSpeech(message, event=null) {
+            // Replace the speaker with a loading icon.
+            let loader = document.createElement("span");
+            loader.classList.add("loader");
+
+            let speechButton;
+            let speechIcon;
+            if (event === null) {
+                // Pick the last speech button if none is provided
+                let speechButtons = document.getElementsByClassName("speech-button");
+                speechButton = speechButtons[speechButtons.length - 1];
+
+                let speechIcons = document.getElementsByClassName("speech-icon");
+                speechIcon = speechIcons[speechIcons.length - 1];
+            } else {
+                speechButton = event.currentTarget;
+                speechIcon = event.target;
+            }
+
+            speechButton.innerHTML = "";
+            speechButton.appendChild(loader);
+            speechButton.disabled = true;
+
+            const context = new (window.AudioContext || window.webkitAudioContext)();
+            fetch(`/api/chat/speech?text=${encodeURIComponent(message)}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            })
+            .then(response => response.arrayBuffer())
+            .then(arrayBuffer => context.decodeAudioData(arrayBuffer))
+            .then(audioBuffer => {
+                const source = context.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(context.destination);
+                source.start(0);
+                source.onended = function() {
+                    speechButton.innerHTML = "";
+                    speechButton.appendChild(speechIcon);
+                    speechButton.disabled = false;
+                };
+            })
+            .catch(err => {
+                console.error("Error playing speech:", err);
+                speechButton.innerHTML = "";
+                speechButton.appendChild(speechIcon);
+                speechButton.disabled = true;
+            });
+        }
+
         function formatHTMLMessage(message, raw=false, willReplace=true, userQuery) {
             var md = window.markdownit();
             let newHTML = message;
@@ -422,8 +474,27 @@ To get started, just start typing below. You can also type / to see a list of co
                     sendFeedback(userQuery, khojQuery, "Bad Response");
                 };
 
+                // Only enable the speech feature if the user is subscribed
+                let speechButton = null;
+
+                if ("{{ is_active }}" == "True") {
+                    // Create a speech button icon to play the message out loud
+                    speechButton = document.createElement('button');
+                    speechButton.classList.add("speech-button");
+                    speechButton.title = "Listen to Message";
+                    let speechIcon = document.createElement("img");
+                    speechIcon.src = "/static/assets/icons/speaker.svg";
+                    speechIcon.classList.add("speech-icon");
+                    speechButton.appendChild(speechIcon);
+                    speechButton.addEventListener('click', (event) => textToSpeech(message, event));
+                }
+
                 // Append buttons to parent element
                 element.append(copyButton, thumbsDownButton, thumbsUpButton);
+
+                if (speechButton) {
+                    element.append(speechButton);
+                }
             }
 
             renderMathInElement(element, {
@@ -527,9 +598,9 @@ To get started, just start typing below. You can also type / to see a list of co
             return referencesDiv;
         }
 
-        async function chat() {
+        async function chat(isVoice=false) {
             if (websocket) {
-                sendMessageViaWebSocket();
+                sendMessageViaWebSocket(isVoice);
                 return;
             }
 
@@ -998,7 +1069,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
         window.onload = loadChat;
 
-        function setupWebSocket() {
+        function setupWebSocket(isVoice=false) {
             let chatBody = document.getElementById("chat-body");
             let wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             let webSocketUrl = `${wsProtocol}//${window.location.host}/api/chat/ws`;
@@ -1015,6 +1086,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 references: {},
                 rawResponse: "",
                 rawQuery: "",
+                isVoice: isVoice,
             }
 
             if (chatBody.dataset.conversationId) {
@@ -1028,8 +1100,13 @@ To get started, just start typing below. You can also type / to see a list of co
                     let chunk = event.data;
                     if (chunk == "start_llm_response") {
                         console.log("Started streaming", new Date());
-                    } else if(chunk == "end_llm_response") {
+                    } else if (chunk == "end_llm_response") {
                         console.log("Stopped streaming", new Date());
+
+                        // Automatically respond with voice if the subscribed user has sent voice message
+                        if (websocketState.isVoice && "{{ is_active }}" == "True")
+                            textToSpeech(websocketState.rawResponse);
+
                         // Append any references after all the data has been streamed
                         finalizeChatBodyResponse(websocketState.references, websocketState.newResponseTextEl);
 
@@ -1042,6 +1119,7 @@ To get started, just start typing below. You can also type / to see a list of co
                             references: {},
                             rawResponse: "",
                             rawQuery: liveQuery,
+                            isVoice: false,
                         }
                     } else {
                         try {
@@ -1120,7 +1198,7 @@ To get started, just start typing below. You can also type / to see a list of co
             }
         }
 
-        function sendMessageViaWebSocket() {
+        function sendMessageViaWebSocket(isVoice=false) {
             let chatBody = document.getElementById("chat-body");
 
             var query = document.getElementById("chat-input").value.trim();
@@ -1171,6 +1249,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 references,
                 rawResponse,
                 rawQuery: query,
+                isVoice: isVoice,
             }
         }
         var userMessages = [];
@@ -1799,7 +1878,7 @@ To get started, just start typing below. You can also type / to see a list of co
                             document.getElementById('countdown-circle').style.animation = "none";
 
                             // Send message
-                            chat();
+                            chat(true);
                         }, 3000);
                     })
                     .catch(err => {
@@ -1891,11 +1970,11 @@ To get started, just start typing below. You can also type / to see a list of co
                 var nofilesmessage = document.getElementsByClassName("no-files-message")[0];
                 if(allFiles.length === 0){
                     nofilesmessage.innerHTML = `<a class="inline-chat-link" href="https://docs.khoj.dev/category/clients/">How to upload files</a>`;
-                    document.getElementById("file-toggle-button").style.display = "none";
+                    document.getElementsByClassName("file-toggle-button")[0].style.display = "none";
                 }
                 else{
                     nofilesmessage.innerHTML = "";
-                    document.getElementById("file-toggle-button").style.display = "block";
+                    document.getElementsByClassName("file-toggle-button")[0].style.display = "block";
                 }
             })
             .catch((error) => {
@@ -2835,7 +2914,13 @@ To get started, just start typing below. You can also type / to see a list of co
             float: right;
         }
 
-        button.thumbs-up-button {
+        img.speech-icon {
+            width: 18px;
+        }
+
+        button.thumbs-up-button,
+        button.thumbs-down-button,
+        button.speech-button {
             border-radius: 4px;
             background-color: var(--background-color);
             border: 1px solid var(--main-text-color);
@@ -2846,19 +2931,6 @@ To get started, just start typing below. You can also type / to see a list of co
             padding: 4px;
             float: right;
             margin-right: 4px;
-        }
-
-        button.thumbs-down-button {
-            border-radius: 4px;
-            background-color: var(--background-color);
-            border: 1px solid var(--main-text-color);
-            text-align: center;
-            font-size: medium;
-            transition: all 0.5s;
-            cursor: pointer;
-            padding: 4px;
-            float: right;
-            margin-right:4px;
         }
 
         button.copy-button span {
@@ -2883,20 +2955,14 @@ To get started, just start typing below. You can also type / to see a list of co
             height: 18px;
         }
 
-        button.copy-button:hover {
+        button.copy-button:hover,
+        button.thumbs-up-button:hover,
+        button.thumbs-down-button:hover,
+        button.speech-button:hover {
             background-color: var(--primary-hover);
             color: #f5f5f5;
         }
 
-        button.thumbs-up-button:hover {
-            background-color: var(--primary-hover);
-            color: #f5f5f5;
-        }
-
-        button.thumbs-down-button:hover {
-            background-color: var(--primary-hover);
-            color: #f5f5f5;
-        }
 
         pre {
             text-wrap: unset;
@@ -3160,6 +3226,40 @@ To get started, just start typing below. You can also type / to see a list of co
             padding: 10px;
             white-space: pre-wrap;
         }
+
+        .loader {
+            width: 18px;
+            height: 18px;
+            border: 3px solid #FFF;
+            border-radius: 50%;
+            display: inline-block;
+            position: relative;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+        .loader::after {
+            content: '';
+            box-sizing: border-box;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            border-bottom-color: var(--flower);
+        }
+
+        @keyframes rotation {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
 
         .loading-spinner {
             display: inline-block;

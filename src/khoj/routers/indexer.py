@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from starlette.authentication import requires
 
 from khoj.database.models import GithubConfig, KhojUser, NotionConfig
+from khoj.processor.content.docx.docx_to_entries import DocxToEntries
 from khoj.processor.content.github.github_to_entries import GithubToEntries
 from khoj.processor.content.images.image_to_entries import ImageToEntries
 from khoj.processor.content.markdown.markdown_to_entries import MarkdownToEntries
@@ -42,6 +43,7 @@ class IndexerInput(BaseModel):
     pdf: Optional[dict[str, bytes]] = None
     plaintext: Optional[dict[str, str]] = None
     image: Optional[dict[str, bytes]] = None
+    docx: Optional[dict[str, bytes]] = None
 
 
 @indexer.post("/update")
@@ -65,7 +67,14 @@ async def update(
     ),
 ):
     user = request.user.object
-    index_files: Dict[str, Dict[str, str]] = {"org": {}, "markdown": {}, "pdf": {}, "plaintext": {}, "image": {}}
+    index_files: Dict[str, Dict[str, str]] = {
+        "org": {},
+        "markdown": {},
+        "pdf": {},
+        "plaintext": {},
+        "image": {},
+        "docx": {},
+    }
     try:
         logger.info(f"📬 Updating content index via API call by {client} client")
         for file in files:
@@ -82,6 +91,7 @@ async def update(
             pdf=index_files["pdf"],
             plaintext=index_files["plaintext"],
             image=index_files["image"],
+            docx=index_files["docx"],
         )
 
         if state.config == None:
@@ -96,6 +106,7 @@ async def update(
                 org=None,
                 markdown=None,
                 pdf=None,
+                docx=None,
                 image=None,
                 github=None,
                 notion=None,
@@ -133,6 +144,7 @@ async def update(
         "num_pdf": len(index_files["pdf"]),
         "num_plaintext": len(index_files["plaintext"]),
         "num_image": len(index_files["image"]),
+        "num_docx": len(index_files["docx"]),
     }
 
     update_telemetry_state(
@@ -316,6 +328,20 @@ def configure_content(
     except Exception as e:
         logger.error(f"🚨 Failed to setup images: {e}", exc_info=True)
         success = False
+    try:
+        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Docx.value) and files["docx"]:
+            logger.info("📄 Setting up search for docx")
+            text_search.setup(
+                DocxToEntries,
+                files.get("docx"),
+                regenerate=regenerate,
+                full_corpus=full_corpus,
+                user=user,
+            )
+    except Exception as e:
+        logger.error(f"🚨 Failed to setup docx: {e}", exc_info=True)
+        success = False
+
     # Invalidate Query Cache
     if user:
         state.query_cache[user.uuid] = LRU()

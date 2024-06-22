@@ -202,6 +202,34 @@
                     {% endif %}
                 </div>
             </div>
+            {% if is_eleven_labs_enabled %}
+                <div class="card">
+                    <div class="card-title-row">
+                        <img class="card-icon" src="/static/assets/icons/voice.svg" alt="Voice configuration">
+                        <h3 class="card-title">
+                            <span>Voice</span>
+                        </h3>
+                    </div>
+                    <div class="card-description-row">
+                        <select id="voice-models">
+                            {% for option in voice_model_options %}
+                                <option value="{{ option.id }}" {% if option.id == selected_voice_config %}selected{% endif %}>{{ option.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="card-action-row">
+                        {% if (not billing_enabled) or (subscription_state != 'unsubscribed' and subscription_state != 'expired') %}
+                        <button id="save-voice-model" class="card-button happy" onclick="updateVoiceModel()">
+                            Save
+                        </button>
+                        {% else %}
+                        <button id="save-voice-model" class="card-button" disabled>
+                            You must be subscribed to use this feature
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </div>
     {% if not anonymous_mode or is_twilio_enabled %}
@@ -359,6 +387,38 @@
                 setTimeout(function() {
                     notificationBanner.style.display = "none";
                 }, 5000);
+            }
+        })
+    }
+
+    function updateVoiceModel() {
+        const voiceModel = document.getElementById("voice-models").value;
+        const saveVoiceModelButton = document.getElementById("save-voice-model");
+        saveVoiceModelButton.disabled = true;
+        saveVoiceModelButton.innerHTML = "Saving...";
+
+        fetch('/api/config/data/voice/model?id=' + voiceModel, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status == "ok") {
+                saveVoiceModelButton.innerHTML = "Save";
+                saveVoiceModelButton.disabled = false;
+
+                let notificationBanner = document.getElementById("notification-banner");
+                notificationBanner.innerHTML = "Voice model has been updated!";
+                notificationBanner.style.display = "block";
+                setTimeout(function() {
+                    notificationBanner.style.display = "none";
+                }, 5000);
+
+            } else {
+                saveVoiceModelButton.innerHTML = "Error";
+                saveVoiceModelButton.disabled = false;
             }
         })
     }

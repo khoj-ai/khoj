@@ -2,7 +2,7 @@ import csv
 import json
 
 from apscheduler.job import Job
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
 from django.http import HttpResponse
 from django_apscheduler.admin import DjangoJobAdmin
@@ -27,6 +27,7 @@ from khoj.database.models import (
     Subscription,
     TextToImageModelConfig,
     UserSearchModelConfig,
+    VoiceModelOption,
 )
 from khoj.utils.helpers import ImageIntentType
 
@@ -73,7 +74,19 @@ class KhojUserAdmin(UserAdmin):
     search_fields = ("email", "username", "phone_number", "uuid")
     filter_horizontal = ("groups", "user_permissions")
 
-    fieldsets = (("Personal info", {"fields": ("phone_number",)}),) + UserAdmin.fieldsets
+    fieldsets = (("Personal info", {"fields": ("phone_number", "email_verification_code")}),) + UserAdmin.fieldsets
+
+    actions = ["get_email_login_url"]
+
+    def get_email_login_url(self, request, queryset):
+        for user in queryset:
+            if user.email:
+                host = request.get_host()
+                unique_id = user.email_verification_code
+                login_url = f"{host}/auth/magic?code={unique_id}"
+                messages.info(request, f"Email login URL for {user.email}: {login_url}")
+
+    get_email_login_url.short_description = "Get email login URL"  # type: ignore
 
 
 admin.site.register(KhojUser, KhojUserAdmin)
@@ -87,6 +100,7 @@ admin.site.register(TextToImageModelConfig)
 admin.site.register(ClientApplication)
 admin.site.register(GithubConfig)
 admin.site.register(NotionConfig)
+admin.site.register(VoiceModelOption)
 
 
 @admin.register(Agent)

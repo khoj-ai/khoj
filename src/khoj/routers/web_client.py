@@ -21,6 +21,7 @@ from khoj.database.adapters import (
     get_user_subscription_state,
 )
 from khoj.database.models import KhojUser
+from khoj.processor.speech.text_to_speech import is_eleven_labs_enabled
 from khoj.routers.helpers import get_next_url
 from khoj.routers.notion import get_notion_auth_url
 from khoj.routers.twilio import is_twilio_enabled
@@ -33,7 +34,7 @@ from khoj.utils.rawconfig import (
 
 # Initialize Router
 web_client = APIRouter()
-templates = Jinja2Templates(directory=constants.web_directory)
+templates = Jinja2Templates([constants.web_directory, constants.next_js_directory])
 
 
 # Create Routes
@@ -113,6 +114,17 @@ def chat_page(request: Request):
             "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
             "khoj_version": state.khoj_version,
+        },
+    )
+
+
+@web_client.get("/experimental", response_class=FileResponse)
+@requires(["authenticated"], redirect="login_page")
+def experimental_page(request: Request):
+    return templates.TemplateResponse(
+        "index.html",
+        context={
+            "request": request,
         },
     )
 
@@ -252,6 +264,18 @@ def config_page(request: Request):
 
     notion_oauth_url = get_notion_auth_url(user)
 
+    eleven_labs_enabled = is_eleven_labs_enabled()
+
+    voice_models = ConversationAdapters.get_voice_model_options()
+    voice_model_options = list()
+    for voice_model in voice_models:
+        voice_model_options.append({"name": voice_model.name, "id": voice_model.model_id})
+
+    if len(voice_model_options) == 0:
+        eleven_labs_enabled = False
+
+    selected_voice_config = ConversationAdapters.get_voice_model_config(user)
+
     return templates.TemplateResponse(
         "config.html",
         context={
@@ -272,6 +296,9 @@ def config_page(request: Request):
             "is_active": has_required_scope(request, ["premium"]),
             "has_documents": has_documents,
             "is_twilio_enabled": is_twilio_enabled(),
+            "is_eleven_labs_enabled": eleven_labs_enabled,
+            "voice_model_options": voice_model_options,
+            "selected_voice_config": selected_voice_config.model_id if selected_voice_config else None,
             "phone_number": user.phone_number,
             "is_phone_number_verified": user.verified_phone_number,
             "khoj_version": state.khoj_version,

@@ -66,6 +66,7 @@ class ContentConfig(ConfigBase):
     github: Optional[GithubContentConfig] = None
     notion: Optional[NotionContentConfig] = None
     image: Optional[TextContentConfig] = None
+    docx: Optional[TextContentConfig] = None
 
 
 class ImageSearchConfig(ConfigBase):
