@@ -2,26 +2,64 @@
 
 project_root=$PWD
 
-while getopts 'nc:' opt;
+while getopts 'nc:t:' opt;
 do
     case "${opt}" in
+        t)
+            # Get version type to bump. Options: major, minor, patch
+            version_type=$OPTARG
+
+            # Bump Desktop app to current version
+            cd $project_root/src/interface/desktop
+            npm version $version_type
+
+            # Get bumped project version
+            current_version=$(grep '"version":' package.json | awk -F '"' '{print $4}')
+
+            # Bump Obsidian plugin to current version
+            cd $project_root/src/interface/obsidian
+            cp $project_root/versions.json .
+            npm version $version_type
+
+            # Bump Emacs package to current version
+            cd ../emacs
+            sed -E -i.bak "s/^;; Version: (.*)/;; Version: $current_version/" khoj.el
+            git add khoj.el
+            rm *.bak
+
+            # Copy current obsidian versioned files to project root
+            cd $project_root
+            cp src/interface/obsidian/versions.json .
+            cp src/interface/obsidian/manifest.json .
+
+            # Run pre-commit validation to fix jsons
+            pre-commit run --hook-stage manual --all
+
+            # Commit changes and tag commit for release
+            git add \
+                $project_root/src/interface/desktop/package.json \
+                $project_root/src/interface/obsidian/package.json \
+                $project_root/src/interface/obsidian/package-lock.json \
+                $project_root/src/interface/obsidian/manifest.json \
+                $project_root/src/interface/obsidian/versions.json \
+                $project_root/src/interface/emacs/khoj.el \
+                $project_root/manifest.json \
+                $project_root/versions.json
+            git commit -m "Release Khoj version $current_version"
+            git tag $current_version master
+            ;;
         c)
             # Get current project version
             current_version=$OPTARG
 
             # Bump Desktop app to current version
             cd $project_root/src/interface/desktop
-            sed -E -i.bak "s/version\": \"(.*)\",/version\": \"$current_version\",/" package.json
-            rm *.bak
+            npm version $current_version
 
             # Bump Obsidian plugin to current version
             cd $project_root/src/interface/obsidian
-            sed -E -i.bak "s/version\": \"(.*)\",/version\": \"$current_version\",/" package.json
-            sed -E -i.bak "s/version\": \"(.*)\",/version\": \"$current_version\",/" package-lock.json
-            sed -E -i.bak "s/version\": \"(.*)\"/version\": \"$current_version\"/" manifest.json
             cp $project_root/versions.json .
-            npm run version # append current version
-            rm *.bak
+            npm version $current_version
 
             # Bump Emacs package to current version
             cd ../emacs
@@ -58,16 +96,11 @@ do
 
             # Bump Desktop app to next version
             cd $project_root/src/interface/desktop
-            sed -E -i.bak "s/version\": \"(.*)\",/version\": \"$current_version\",/" package.json
-            rm *.bak
+            npm version $next_version
 
             # Bump Obsidian plugins to next version
             cd $project_root/src/interface/obsidian
-            sed -E -i.bak "s/version\": \"(.*)\",/version\": \"$next_version\",/" package.json
-            sed -E -i.bak "s/version\": \"(.*)\",/version\": \"$next_version\",/" package-lock.json
-            sed -E -i.bak "s/version\": \"(.*)\"/version\": \"$next_version\"/" manifest.json
-            npm run version  # updates versions.json
-            rm *.bak
+            npm version $next_version
 
             # Bump Emacs package to next version
             cd $project_root/src/interface/emacs
@@ -88,7 +121,7 @@ do
             git commit -m "Bump Khoj to pre-release version $next_version"
             ;;
         ?)
-           echo -e "Invalid command option.\nUsage: $(basename $0) [-c] [-n]"
+           echo -e "Invalid command option.\nUsage: $(basename $0) [-t] [-c] [-n]"
            exit 1
            ;;
     esac
