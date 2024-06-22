@@ -17,6 +17,7 @@ do
             # Bump Obsidian plugin to current version
             cd $project_root/src/interface/obsidian
             sed -E -i.bak "s/version\": \"(.*)\",/version\": \"$current_version\",/" package.json
+            sed -E -i.bak "s/version\": \"(.*)\",/version\": \"$current_version\",/" package-lock.json
             sed -E -i.bak "s/version\": \"(.*)\"/version\": \"$current_version\"/" manifest.json
             cp $project_root/versions.json .
             npm run version # append current version
@@ -40,6 +41,7 @@ do
             git add \
                 $project_root/src/interface/desktop/package.json \
                 $project_root/src/interface/obsidian/package.json \
+                $project_root/src/interface/obsidian/package-lock.json \
                 $project_root/src/interface/obsidian/manifest.json \
                 $project_root/src/interface/obsidian/versions.json \
                 $project_root/src/interface/emacs/khoj.el \
@@ -62,6 +64,7 @@ do
             # Bump Obsidian plugins to next version
             cd $project_root/src/interface/obsidian
             sed -E -i.bak "s/version\": \"(.*)\",/version\": \"$next_version\",/" package.json
+            sed -E -i.bak "s/version\": \"(.*)\",/version\": \"$next_version\",/" package-lock.json
             sed -E -i.bak "s/version\": \"(.*)\"/version\": \"$next_version\"/" manifest.json
             npm run version  # updates versions.json
             rm *.bak
@@ -78,6 +81,7 @@ do
             git add \
                 $project_root/src/interface/desktop/package.json \
                 $project_root/src/interface/obsidian/package.json \
+                $project_root/src/interface/obsidian/package-lock.json \
                 $project_root/src/interface/obsidian/manifest.json \
                 $project_root/src/interface/obsidian/versions.json \
                 $project_root/src/interface/emacs/khoj.el
