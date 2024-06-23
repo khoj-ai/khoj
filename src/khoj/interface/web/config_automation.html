@@ -278,21 +278,25 @@
 
     function updateAutomationRow(automation) {
         let automationId = automation.id;
-        let automationNextRun = `Next run at ${automation.next}\nCron: ${automation.crontime}`;
+        let automationSubject = DOMPurify.sanitize(automation.subject);
+        let automationSchedule = DOMPurify.sanitize(automation.schedule);
+        let automationQueryToRun = DOMPurify.sanitize(automation.query_to_run);
+        let automationCrontime = DOMPurify.sanitize(automation.crontime);
+        let automationNextRun = `Next run at ${automation.next}\nCron: ${automationCrontime}`;
 
         let scheduleEl = document.getElementById(`automation-schedule-${automationId}`);
-        scheduleEl.setAttribute('data-original', automation.schedule);
-        scheduleEl.setAttribute('data-cron', automation.crontime);
+        scheduleEl.setAttribute('data-original', automationSchedule);
+        scheduleEl.setAttribute('data-cron', automationCrontime);
         scheduleEl.setAttribute('title', automationNextRun);
-        scheduleEl.value = automation.schedule;
+        scheduleEl.value = automationSchedule;
 
         let subjectEl = document.getElementById(`automation-subject-${automationId}`);
-        subjectEl.setAttribute('data-original', automation.subject);
-        subjectEl.value = automation.subject;
+        subjectEl.setAttribute('data-original', automationSubject);
+        subjectEl.value = automationSubject;
 
         let queryEl = document.getElementById(`automation-queryToRun-${automationId}`);
-        queryEl.setAttribute('data-original', automation.query_to_run);
-        queryEl.value = automation.query_to_run;
+        queryEl.setAttribute('data-original', automationQueryToRun);
+        queryEl.value = automationQueryToRun;
     }
 
     function onClickEditAutomationCard(automationId) {
@@ -387,7 +391,11 @@
 
     function generateAutomationRow(automation, isSuggested=false) {
         let automationId = automation.id;
-        let automationNextRun = `Next run at ${automation.next}\nCron: ${automation.crontime}`;
+        let automationSubject = DOMPurify.sanitize(automation.subject);
+        let automationSchedule = DOMPurify.sanitize(automation.schedule);
+        let automationQueryToRun = DOMPurify.sanitize(automation.query_to_run);
+        let automationCrontime = DOMPurify.sanitize(automation.crontime);
+        let automationNextRun = `Next run at ${automation.next}\nCron: ${automationCrontime}`;
 
         // Create card top elements
         let automationEl = document.createElement("div");
@@ -417,8 +425,8 @@
         subjectEl.id = `automation-subject-${automationId}`;
         subjectEl.classList.add(automationId, "fake-input");
         subjectEl.name = "subject";
-        subjectEl.setAttribute("data-original", automation.subject);
-        subjectEl.value = automation.subject;
+        subjectEl.setAttribute("data-original", automationSubject);
+        subjectEl.value = automationSubject;
 
         // automation share link
         let shareLinkEl = document.createElement("img");
@@ -426,7 +434,7 @@
         shareLinkEl.className = "automation-share-icon";
         shareLinkEl.src = "/static/assets/icons/share.svg";
         shareLinkEl.alt = "Share";
-        shareLinkEl.onclick = function(event) { copyShareLink(event, automationId, automation.subject, automation.crontime, automation.query_to_run); };
+        shareLinkEl.onclick = function(event) { copyShareLink(event, automationId, automationSubject, automationCrontime, automationQueryToRun); };
 
         // automation edit action
         let editIconEl = document.createElement("img");
@@ -441,18 +449,18 @@
         scheduleEl.id = `automation-schedule-${automationId}`;
         scheduleEl.name = "schedule";
         scheduleEl.classList.add("schedule", automationId, "fake-input");
-        scheduleEl.setAttribute("data-cron", automation.crontime);
-        scheduleEl.setAttribute("data-original", automation.schedule);
+        scheduleEl.setAttribute("data-cron", automationCrontime);
+        scheduleEl.setAttribute("data-original", automationSchedule);
         scheduleEl.title = automationNextRun;
-        scheduleEl.value = automation.schedule;
+        scheduleEl.value = automationSchedule;
 
         // automation query to run input
         let queryToRunEl = document.createElement("textarea");
         queryToRunEl.id = `automation-queryToRun-${automationId}`;
         queryToRunEl.classList.add("automation-instructions", automationId, "fake-input");
-        queryToRunEl.setAttribute("data-original", automation.query_to_run);
+        queryToRunEl.setAttribute("data-original", automationQueryToRun);
         queryToRunEl.name = "query-to-run";
-        queryToRunEl.textContent = automation.query_to_run;
+        queryToRunEl.textContent = automationQueryToRun;
 
         // Create automation actions section
         let automationButtonsEl = document.createElement("div");
@@ -576,9 +584,9 @@
                     });
                 });
                 // Check if subject, crontime, query_to_run are all filled out. If so, show it as a populated suggested automation.
-                const subject = "{{ subject }}";
-                const crontime = "{{ crontime }}";
-                const query = "{{ queryToRun }}";
+                const subject = DOMPurify.sanitize("{{ subject }}");
+                const crontime = DOMPurify.sanitize("{{ crontime }}");
+                const query = DOMPurify.sanitize("{{ queryToRun }}");
 
                 if (subject && crontime && query) {
                     const preFilledAutomation = createPreFilledAutomation(subject, crontime, query);
@@ -590,9 +598,9 @@
         listAutomations();
     } else {
         // Check if subject, crontime, query_to_run are all filled out. If so, show it as a populated suggested automation.
-        const subject = "{{ subject }}";
-        const crontime = "{{ crontime }}";
-        const query = "{{ queryToRun }}";
+        const subject = DOMPurify.sanitize("{{ subject }}");
+        const crontime = DOMPurify.sanitize("{{ crontime }}");
+        const query = DOMPurify.sanitize("{{ queryToRun }}");
 
         if (subject && crontime && query) {
             const preFilledAutomation = createPreFilledAutomation(subject, crontime, query);
@@ -910,7 +918,8 @@
 
         let method = "POST";
         if (!create) {
-            const subject = encodeURIComponent(document.getElementById(`automation-subject-${automationId}`).value);
+            const subjectEl = document.getElementById(`automation-subject-${automationId}`);
+            const subject = encodeURIComponent(subjectEl.value);
             query_string += `&automation_id=${automationId}`;
             query_string += `&subject=${subject}`;
             method = "PUT"
