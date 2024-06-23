@@ -127,7 +127,7 @@ To get started, just start typing below. You can also type / to see a list of co
             linkElement.textContent = title;
 
             let referenceButton = document.createElement('button');
-            referenceButton.innerHTML = linkElement.outerHTML;
+            referenceButton.appendChild(linkElement);
             referenceButton.id = `ref-${index}`;
             referenceButton.classList.add("reference-button");
             referenceButton.classList.add("collapsed");
@@ -138,11 +138,12 @@ To get started, just start typing below. You can also type / to see a list of co
                 if (this.classList.contains("collapsed")) {
                     this.classList.remove("collapsed");
                     this.classList.add("expanded");
-                    this.innerHTML = linkElement.outerHTML + `<br><br>${question + snippet}`;
+                    this.innerHTML = `${linkElement.outerHTML}<br><br>${question + snippet}`;
                 } else {
                     this.classList.add("collapsed");
                     this.classList.remove("expanded");
-                    this.innerHTML = linkElement.outerHTML;
+                    this.innerHTML = "";
+                    this.appendChild(linkElement);
                 }
             });
 
@@ -296,7 +297,7 @@ To get started, just start typing below. You can also type / to see a list of co
             }
 
             let expandButtonText = numReferences == 1 ? "1 reference" : `${numReferences} references`;
-            referenceExpandButton.innerHTML = expandButtonText;
+            referenceExpandButton.textContent = expandButtonText;
 
             references.appendChild(referenceSection);
 
@@ -447,7 +448,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
             let referenceExpandButton = document.createElement('button');
             referenceExpandButton.classList.add("reference-expand-button");
-            referenceExpandButton.innerHTML = numReferences == 1 ? "1 reference" : `${numReferences} references`;
+            referenceExpandButton.textContent = numReferences == 1 ? "1 reference" : `${numReferences} references`;
 
             referenceExpandButton.addEventListener('click', function() {
                 if (referenceSection.classList.contains("collapsed")) {
@@ -815,7 +816,7 @@ Learn more [here](https://khoj.dev).
 
             let closeButton = document.createElement('button');
             closeButton.id = "close-button";
-            closeButton.innerHTML = "Close";
+            closeButton.textContent = "Close";
             closeButton.classList.add("close-button");
             closeButton.addEventListener('click', function() {
                 modal.remove();
