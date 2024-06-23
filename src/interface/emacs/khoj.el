@@ -83,7 +83,7 @@
   :group 'khoj
   :type 'integer)
 
-(defcustom khoj-results-count 5
+(defcustom khoj-results-count 8
   "Number of results to show in search and use for chat responses."
   :group 'khoj
   :type 'integer)
@@ -92,6 +92,11 @@
   "Idle time (in seconds) to wait before triggering search."
   :group 'khoj
   :type 'number)
+
+(defcustom khoj-auto-find-similar t
+  "Should try find similar notes automatically."
+  :group 'khoj
+  :type 'boolean)
 
 (defcustom khoj-api-key nil
   "API Key to your Khoj. Default at https://app.khoj.dev/config#clients."
@@ -158,28 +163,18 @@ NO-PAGING FILTER))
 
 (defun khoj--keybindings-info-message ()
   "Show available khoj keybindings in-context, when khoj invoked."
-  (let ((enabled-content-types (khoj--get-enabled-content-types)))
-    (concat
-     "
+  (concat
+   "
      Set Content Type
 -------------------------\n"
-     ("C-c RET | improve sort \n")
-     (when (member 'markdown enabled-content-types)
-       "C-x m  | markdown\n")
-     (when (member 'org enabled-content-types)
-       "C-x o  | org-mode\n")
-     (when (member 'image enabled-content-types)
-       "C-x i  | image\n")
-     (when (member 'pdf enabled-content-types)
-       "C-x p  | pdf\n"))))
+   "C-c RET | improve sort \n"))
 
 (defvar khoj--rerank nil "Track when re-rank of results triggered.")
 (defvar khoj--reference-count 0 "Track number of references currently in chat bufffer.")
 (defun khoj--improve-sort () "Use cross-encoder to improve sorting of search results." (interactive) (khoj--incremental-search t))
 (defun khoj--make-search-keymap (&optional existing-keymap)
   "Setup keymap to configure Khoj search. Build of EXISTING-KEYMAP when passed."
-  (let ((enabled-content-types (khoj--get-enabled-content-types))
-        (kmap (or existing-keymap (make-sparse-keymap))))
+  (let ((kmap (or existing-keymap (make-sparse-keymap))))
     (define-key kmap (kbd "C-c RET") #'khoj--improve-sort)
     kmap))
 
@@ -193,6 +188,9 @@ Use `which-key` if available, else display simple message in echo area"
                                 (symbol-value 'khoj--keymap)
                                 nil t t))
     (message "%s" (khoj--keybindings-info-message))))
+
+(defvar khoj--last-heading-pos nil
+  "The last heading position point was in.")
 
 
 ;; ----------------
@@ -249,12 +247,12 @@ for example), set this to the full interpreter path."
 (make-obsolete-variable 'khoj-org-files 'khoj-index-files "1.2.0" 'set)
 
 (defcustom khoj-index-files (org-agenda-files t t)
-  "List of org, markdown, pdf and other plaintext to index on khoj server."
+  "List of org, md, text, pdf to index on khoj server."
   :type '(repeat string)
   :group 'khoj)
 
 (defcustom khoj-index-directories nil
-  "List of directories with org, markdown, pdf and other plaintext files to index on khoj server."
+  "List of directories with org, md, text, pdf to index on khoj server."
   :type '(repeat string)
   :group 'khoj)
 
@@ -407,8 +405,10 @@ Auto invokes setup steps on calling main entrypoint."
          ;; This is a temporary change. `khoj-org-directories', `khoj-org-files' are deprecated. They will be removed in a future release
          (content-directories (or khoj-index-directories khoj-org-directories))
          (content-files (or khoj-index-files khoj-org-files))
-         (files-to-index (or file-paths
-                             (append (mapcan (lambda (dir) (directory-files-recursively dir "\\.\\(org\\|md\\|markdown\\|pdf\\|txt\\|rst\\|xml\\|htm\\|html\\)$")) content-directories) content-files)))
+         (files-to-index (mapcar
+                          #'expand-file-name
+                          (or file-paths
+                              (append (mapcan (lambda (dir) (directory-files-recursively dir "\\.\\(org\\|md\\|markdown\\|pdf\\|txt\\|rst\\|xml\\|htm\\|html\\)$")) content-directories) content-files))))
          (type-query (if (or (equal content-type "all") (not content-type)) "" (format "t=%s" content-type)))
          (delete-files (-difference khoj--indexed-files files-to-index))
          (inhibit-message t)
@@ -501,11 +501,19 @@ Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request.
 ;; -------------------------------------------
 ;; Render Response from Khoj server for Emacs
 ;; -------------------------------------------
+(defun khoj--construct-find-similar-title (query)
+  "Construct title for find-similar QUERY."
+  (format "Similar to: %s"
+          (replace-regexp-in-string "^[#\\*]* " "" (car (split-string query "\n")))))
 
-(defun khoj--extract-entries-as-markdown (json-response query)
-  "Convert JSON-RESPONSE, QUERY from API to markdown entries."
+(defun khoj--extract-entries-as-markdown (json-response query is-find-similar)
+  "Convert JSON-RESPONSE, QUERY from API to markdown entries.
+Use IS-FIND-SIMILAR bool to filter out first result.
+As first result is the current entry at point."
   (thread-last
     json-response
+    ;; filter our first result if is find similar as it'll be the current entry at point
+    ((lambda (response) (if is-find-similar (seq-drop response 1) response)))
     ;; Extract and render each markdown entry from response
     (mapcar (lambda (json-response-item)
               (thread-last
@@ -516,14 +524,18 @@ Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request.
                 ;; Standardize results to 2nd level heading for consistent rendering
                 (replace-regexp-in-string "^\#+" "##"))))
     ;; Render entries into markdown formatted string with query set as as top level heading
-    (format "# %s\n%s" query)
+    (format "# %s\n%s" (if is-find-similar (khoj--construct-find-similar-title query) query))
     ;; remove leading (, ) or SPC from extracted entries string
     (replace-regexp-in-string "^[\(\) ]" "")))
 
-(defun khoj--extract-entries-as-org (json-response query)
-  "Convert JSON-RESPONSE, QUERY from API to `org-mode' entries."
+(defun khoj--extract-entries-as-org (json-response query is-find-similar)
+  "Convert JSON-RESPONSE, QUERY from API to `org-mode' entries.
+Use IS-FIND-SIMILAR bool to filter out first result.
+As first result is the current entry at point."
   (thread-last
     json-response
+    ;; filter our first result if is find similar as it'll be the current entry at point
+    ((lambda (response) (if is-find-similar (seq-drop response 1) response)))
     ;; Extract and render each org-mode entry from response
     (mapcar (lambda (json-response-item)
               (thread-last
@@ -534,14 +546,18 @@ Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request.
                 ;; Standardize results to 2nd level heading for consistent rendering
                 (replace-regexp-in-string "^\*+" "**"))))
     ;; Render entries into org formatted string with query set as as top level heading
-    (format "* %s\n%s\n" query)
+    (format "* %s\n%s\n" (if is-find-similar (khoj--construct-find-similar-title query) query))
     ;; remove leading (, ) or SPC from extracted entries string
     (replace-regexp-in-string "^[\(\) ]" "")))
 
-(defun khoj--extract-entries-as-pdf (json-response query)
-  "Convert QUERY, JSON-RESPONSE from API with PDF results to `org-mode' entries."
+(defun khoj--extract-entries-as-pdf (json-response query is-find-similar)
+  "Convert JSON-RESPONSE, QUERY from API to PDF entries.
+Use IS-FIND-SIMILAR bool to filter out first result.
+As first result is the current entry at point."
   (thread-last
     json-response
+    ;; filter our first result if is find similar as it'll be the current entry at point
+    ((lambda (response) (if is-find-similar (seq-drop response 1) response)))
     ;; Extract and render each pdf entry from response
     (mapcar (lambda (json-response-item)
               (thread-last
@@ -550,7 +566,7 @@ Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request.
                 ;; Format pdf entry as a org entry string
                 (format "** %s\n\n"))))
     ;; Render entries into org formatted string with query set as as top level heading
-    (format "* %s\n%s\n" query)
+    (format "* %s\n%s\n" (if is-find-similar (khoj--construct-find-similar-title query) query))
     ;; remove leading (, ) or SPC from extracted entries string
     (replace-regexp-in-string "^[\(\) ]" "")))
 
@@ -582,9 +598,13 @@ Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request.
       ;; remove trailing (, ) or SPC from extracted entries string
       (replace-regexp-in-string "[\(\) ]$" ""))))
 
-(defun khoj--extract-entries (json-response query)
-  "Convert JSON-RESPONSE, QUERY from API to text entries."
+(defun khoj--extract-entries (json-response query is-find-similar)
+  "Convert JSON-RESPONSE, QUERY from API to text entries.
+Use IS-FIND-SIMILAR bool to filter out first result.
+As first result is the current entry at point."
   (thread-last json-response
+               ;; filter our first result if is find similar as it'll be the current entry at point
+               ((lambda (response) (if is-find-similar (seq-drop response 1) response)))
                ;; extract and render entries from API response
                (mapcar (lambda (json-response-item)
                          (thread-last
@@ -598,7 +618,7 @@ Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request.
                            ;; Format entries as org entry string
                            (format "** %s"))))
                ;; Set query as heading in rendered results buffer
-               (format "* %s\n%s\n" query)
+               (format "* %s\n%s\n" (if is-find-similar (khoj--construct-find-similar-title query) query))
                ;; remove leading (, ) or SPC from extracted entries string
                (replace-regexp-in-string "^[\(\) ]" "")
                ;; remove trailing (, ) or SPC from extracted entries string
@@ -614,13 +634,30 @@ Use `BOUNDARY' to separate files. This is sent to Khoj server as a POST request.
      ((and (member 'markdown enabled-content-types) (or (equal file-extension "markdown") (equal file-extension "md"))) "markdown")
      (t khoj-default-content-type))))
 
+
+(defun khoj--org-cycle-content (&optional arg)
+  "Show all headlines in the buffer, like a table of contents.
+With numerical argument ARG, show content up to level ARG.
+
+Simplified fork of `org-cycle-content' from Emacs 29.1 to work with >=27.1."
+  (interactive "p")
+  (save-excursion
+    (goto-char (point-max))
+    (let ((regexp (if (and (wholenump arg) (> arg 0))
+                      (format "^\\*\\{1,%d\\} " arg)
+                    "^\\*+ "))
+          (last (point)))
+      (while (re-search-backward regexp nil t)
+        (org-fold-region (line-end-position) last t 'outline)
+        (setq last (line-end-position 0))))))
+
 
 ;; --------------
 ;; Query Khoj API
 ;; --------------
 (defun khoj--call-api (path &optional method params callback &rest cbargs)
   "Sync call API at PATH with METHOD and query PARAMS as kv assoc list.
-Return json parsed response as alist."
+Optionally apply CALLBACK with JSON parsed response and CBARGS."
   (let* ((url-request-method (or method "GET"))
          (url-request-extra-headers `(("Authorization" . ,(format "Bearer %s" khoj-api-key))))
          (param-string (if params (url-build-query-string params) ""))
@@ -639,7 +676,7 @@ Return json parsed response as alist."
 
 (defun khoj--call-api-async (path &optional method params callback &rest cbargs)
   "Async call to API at PATH with METHOD and query PARAMS as kv assoc list.
-Return json parsed response as alist."
+Optionally apply CALLBACK with JSON parsed response and CBARGS."
   (let* ((url-request-method (or method "GET"))
          (url-request-extra-headers `(("Authorization" . ,(format "Bearer %s" khoj-api-key))))
          (param-string (if params (url-build-query-string params) ""))
@@ -662,40 +699,42 @@ Return json parsed response as alist."
   "Get content types enabled for search from API."
   (khoj--call-api "/api/config/types" "GET" nil `(lambda (item) (mapcar #'intern item))))
 
-(defun khoj--query-search-api-and-render-results (query content-type buffer-name &optional rerank title)
-  "Query Khoj Search API with QUERY, CONTENT-TYPE and (optional) RERANK as query params
-Render results in BUFFER-NAME using search results, CONTENT-TYPE and (optional) TITLE."
-  (let ((title (or title query))
-        (rerank (or rerank "false"))
-        (params `((q ,query) (t ,content-type) (r ,rerank) (n ,khoj-results-count)))
-        (path "/api/search"))
+(defun khoj--query-search-api-and-render-results (query content-type buffer-name &optional rerank is-find-similar)
+  "Query Khoj Search API with QUERY, CONTENT-TYPE and RERANK as query params.
+Render search results in BUFFER-NAME using CONTENT-TYPE and QUERY.
+Filter out first similar result if IS-FIND-SIMILAR set."
+  (let* ((rerank (or rerank "false"))
+         (params `((q ,query) (t ,content-type) (r ,rerank) (n ,khoj-results-count)))
+         (path "/api/search"))
     (khoj--call-api-async path
                     "GET"
                     params
                     'khoj--render-search-results
-                    content-type title buffer-name)))
+                    content-type query buffer-name is-find-similar)))
 
-(defun khoj--render-search-results (json-response content-type query buffer-name)
+(defun khoj--render-search-results (json-response content-type query buffer-name &optional is-find-similar)
+  "Render search results in BUFFER-NAME using JSON-RESPONSE, CONTENT-TYPE, QUERY.
+Filter out first similar result if IS-FIND-SIMILAR set."
   ;; render json response into formatted entries
   (with-current-buffer buffer-name
-    (let ((inhibit-read-only t))
+    (let ((is-find-similar (or is-find-similar nil))
+          (inhibit-read-only t))
       (erase-buffer)
       (insert
-       (cond ((equal content-type "org") (khoj--extract-entries-as-org json-response query))
-             ((equal content-type "markdown") (khoj--extract-entries-as-markdown json-response query))
-             ((equal content-type "pdf") (khoj--extract-entries-as-pdf json-response query))
+       (cond ((equal content-type "org") (khoj--extract-entries-as-org json-response query is-find-similar))
+             ((equal content-type "markdown") (khoj--extract-entries-as-markdown json-response query is-find-similar))
+             ((equal content-type "pdf") (khoj--extract-entries-as-pdf json-response query is-find-similar))
              ((equal content-type "image") (khoj--extract-entries-as-images json-response query))
-             (t (khoj--extract-entries json-response query))))
+             (t (khoj--extract-entries json-response query is-find-similar))))
       (cond ((or (equal content-type "all")
                  (equal content-type "pdf")
                  (equal content-type "org"))
              (progn (visual-line-mode)
                     (org-mode)
                     (setq-local
-                     org-startup-folded "showall"
                      org-hide-leading-stars t
                      org-startup-with-inline-images t)
-                    (org-set-startup-visibility)))
+                    (khoj--org-cycle-content 2)))
             ((equal content-type "markdown") (progn (markdown-mode)
                                                     (visual-line-mode)))
             ((equal content-type "image") (progn (shr-render-region (point-min) (point-max))
@@ -712,60 +751,61 @@ Render results in BUFFER-NAME using search results, CONTENT-TYPE and (optional) 
 ;; Khoj Chat
 ;; ----------------
 
-(defun khoj--chat ()
-  "Chat with Khoj."
+(defun khoj--chat (&optional session-id)
+  "Chat with Khoj in session with SESSION-ID."
   (interactive)
-  (when (not (get-buffer khoj--chat-buffer-name))
-      (khoj--load-chat-session khoj--chat-buffer-name))
-  (khoj--open-side-pane khoj--chat-buffer-name)
+  (when (or session-id (not (get-buffer khoj--chat-buffer-name)))
+    (khoj--load-chat-session khoj--chat-buffer-name session-id))
   (let ((query (read-string "Query: ")))
     (when (not (string-empty-p query))
-      (khoj--query-chat-api-and-render-messages query khoj--chat-buffer-name))))
+      (khoj--query-chat-api-and-render-messages query khoj--chat-buffer-name session-id))))
 
 (defun khoj--open-side-pane (buffer-name)
   "Open Khoj BUFFER-NAME in right side pane."
-  (if (get-buffer-window-list buffer-name)
-      ;; if window is already open, switch to it
-      (progn
-        (select-window (get-buffer-window buffer-name))
-        (switch-to-buffer buffer-name))
-    ;; else if window is not open, open it as a right-side window pane
-    (let ((bottomright-window (some-window (lambda (window) (and (window-at-side-p window 'right) (window-at-side-p window 'bottom))))))
-      (progn
-        ;; Select the right-most window
-        (select-window bottomright-window)
-        ;; if bottom-right window is not a vertical pane, split it vertically, else use the existing bottom-right vertical window
-        (let ((khoj-window (if (window-at-side-p bottomright-window 'left)
-                               (split-window-right)
-                             bottomright-window)))
-          ;; Set the buffer in the khoj window
-          (set-window-buffer khoj-window buffer-name)
-          ;; Switch to the khoj window
-          (select-window khoj-window)
-          ;; Resize the window to 1/3 of the frame width
-          (window-resize khoj-window
-                         (- (truncate (* 0.33 (frame-width))) (window-width))
-                         t))))))
+  (save-selected-window
+    (if (get-buffer-window-list buffer-name)
+        ;; if window is already open, switch to it
+        (progn
+          (select-window (get-buffer-window buffer-name))
+          (switch-to-buffer buffer-name))
+      ;; else if window is not open, open it as a right-side window pane
+      (let ((bottomright-window (some-window (lambda (window) (and (window-at-side-p window 'right) (window-at-side-p window 'bottom))))))
+        (progn
+          ;; Select the right-most window
+          (select-window bottomright-window)
+          ;; if bottom-right window is not a vertical pane, split it vertically, else use the existing bottom-right vertical window
+          (let ((khoj-window (if (window-at-side-p bottomright-window 'left)
+                                 (split-window-right)
+                               bottomright-window)))
+            ;; Set the buffer in the khoj window
+            (set-window-buffer khoj-window buffer-name)
+            ;; Switch to the khoj window
+            (select-window khoj-window)
+            ;; Resize the window to 1/3 of the frame width
+            (window-resize khoj-window
+                           (- (truncate (* 0.33 (frame-width))) (window-width))
+                           t)))))
+    (goto-char (point-max))))
 
 (defun khoj--load-chat-session (buffer-name &optional session-id)
-  "Load Khoj Chat conversation history into BUFFER-NAME."
+  "Load Khoj Chat conversation history from SESSION-ID into BUFFER-NAME."
   (setq khoj--reference-count 0)
   (let ((inhibit-read-only t)
         (json-response (cdr (assoc 'chat (cdr (assoc 'response (khoj--get-chat-session session-id)))))))
     (with-current-buffer (get-buffer-create buffer-name)
-      (erase-buffer)
-      (insert "* Khoj Chat\n")
-      (when json-response
-        (thread-last
-          json-response
-          ;; generate chat messages from Khoj Chat API response
-          (mapcar #'khoj--format-chat-response)
-          ;; insert chat messages into Khoj Chat Buffer
-          (mapc #'insert)))
       (progn
+        (erase-buffer)
+        (insert "* Khoj Chat\n")
+        (when json-response
+          (thread-last
+            json-response
+            ;; generate chat messages from Khoj Chat API response
+            (mapcar #'khoj--format-chat-response)
+            ;; insert chat messages into Khoj Chat Buffer
+            (mapc #'insert)))
         (org-mode)
-        (khoj--add-hover-text-to-footnote-refs (point-min))
-
+        ;; commented add-hover-text func due to perf issues with the implementation
+        ;;(khoj--add-hover-text-to-footnote-refs (point-min))
         ;; render reference footnotes as superscript
         (setq-local
          org-startup-folded "showall"
@@ -783,10 +823,11 @@ Render results in BUFFER-NAME using search results, CONTENT-TYPE and (optional) 
 
         ;; enable minor modes for khoj chat
         (visual-line-mode)
-        (read-only-mode t)))))
+        (read-only-mode t)))
+    (khoj--open-side-pane buffer-name)))
 
 (defun khoj--close ()
-  "Kill Khoj buffer and window"
+  "Kill Khoj buffer and window."
   (interactive)
   (progn
     (kill-buffer (current-buffer))
@@ -816,8 +857,8 @@ Render results in BUFFER-NAME using search results, CONTENT-TYPE and (optional) 
           ;; show definition on hover on footnote reference
           (overlay-put overlay 'help-echo it)))))))
 
-(defun khoj--query-chat-api-and-render-messages (query buffer-name)
-  "Send QUERY to Khoj Chat. Render the chat messages from exchange in BUFFER-NAME."
+(defun khoj--query-chat-api-and-render-messages (query buffer-name &optional session-id)
+  "Send QUERY to Chat SESSION-ID. Render the chat messages in BUFFER-NAME."
   ;; render json response into formatted chat messages
   (with-current-buffer (get-buffer buffer-name)
     (let ((inhibit-read-only t)
@@ -826,16 +867,19 @@ Render results in BUFFER-NAME using search results, CONTENT-TYPE and (optional) 
       (insert
        (khoj--render-chat-message query "you" query-time))
       (khoj--query-chat-api query
+                            session-id
                             #'khoj--format-chat-response
                             #'khoj--render-chat-response buffer-name))))
 
-(defun khoj--query-chat-api (query callback &rest cbargs)
-  "Send QUERY to Khoj Chat API and call CALLBACK with the response.
-CBARGS are optional additional arguments to pass to CALLBACK."
-  (khoj--call-api-async "/api/chat"
-                        "GET"
-                        `(("q" ,query) ("n" ,khoj-results-count))
-                        callback cbargs))
+(defun khoj--query-chat-api (query session-id callback &rest cbargs)
+  "Send QUERY for SESSION-ID to Khoj Chat API.
+Call CALLBACK func with response and CBARGS."
+  (let ((params `(("q" ,query) ("n" ,khoj-results-count))))
+    (when session-id (push `("conversation_id" ,session-id) params))
+    (khoj--call-api-async "/api/chat"
+                          "GET"
+                          params
+                          callback cbargs)))
 
 (defun khoj--get-chat-sessions ()
   "Get all chat sessions from Khoj server."
@@ -863,8 +907,7 @@ CBARGS are optional additional arguments to pass to CALLBACK."
 (defun khoj--open-conversation-session ()
   "Menu to select Khoj conversation session to open."
   (let ((selected-session-id (khoj--select-conversation-session "Open")))
-    (khoj--load-chat-session khoj--chat-buffer-name selected-session-id)
-    (khoj--open-side-pane khoj--chat-buffer-name)))
+    (khoj--load-chat-session khoj--chat-buffer-name selected-session-id)))
 
 (defun khoj--create-chat-session ()
   "Create new chat session."
@@ -872,21 +915,21 @@ CBARGS are optional additional arguments to pass to CALLBACK."
 
 (defun khoj--new-conversation-session ()
   "Create new Khoj conversation session."
-  (let* ((session (khoj--create-chat-session))
-         (new-session-id (cdr (assoc 'conversation_id session))))
-    (khoj--load-chat-session khoj--chat-buffer-name new-session-id)
-    (khoj--open-side-pane khoj--chat-buffer-name)))
+  (thread-last
+    (khoj--create-chat-session)
+    (assoc 'conversation_id)
+    (cdr)
+    (khoj--chat)))
 
 (defun khoj--delete-chat-session (session-id)
-  "Delete new chat session."
+  "Delete chat session with SESSION-ID."
   (khoj--call-api "/api/chat/history" "DELETE" `(("conversation_id" ,session-id))))
 
 (defun khoj--delete-conversation-session ()
   "Delete new Khoj conversation session."
-  (let* ((selected-session-id (khoj--select-conversation-session "Delete"))
-         (session (khoj--delete-chat-session selected-session-id)))
-    (khoj--load-chat-session khoj--chat-buffer-name)
-    (khoj--open-side-pane khoj--chat-buffer-name)))
+  (thread-last
+    (khoj--select-conversation-session "Delete")
+    (khoj--delete-chat-session)))
 
 (defun khoj--render-chat-message (message sender &optional receive-date)
   "Render chat messages as `org-mode' list item.
@@ -923,10 +966,11 @@ RECEIVE-DATE is the message receive date."
        (format "\n[fn:%x] %s" khoj--reference-count)))))
 
 (defun khoj--generate-online-reference (reference)
+  "Create `org-mode' footnotes for online REFERENCE."
   (setq khoj--reference-count (1+ khoj--reference-count))
-  (let ((link (cdr (assoc 'link reference)))
-        (title (cdr (assoc 'title reference)))
-        (description (cdr (assoc 'description reference))))
+  (let* ((link (cdr (assoc 'link reference)))
+        (title (or (cdr (assoc 'title reference)) link))
+        (description (or (cdr (assoc 'description reference)) title)))
     (cons
      (propertize (format "^{ [fn:%x]}" khoj--reference-count) 'help-echo (format "%s\n%s" link description))
      (thread-last
@@ -935,8 +979,8 @@ RECEIVE-DATE is the message receive date."
        (replace-regexp-in-string "\n\n" "\n")
        (format "\n[fn:%x] [[%s][%s]]\n%s\n" khoj--reference-count link title)))))
 
-(defun khoj--extract-online-references (result-types searches)
-  "Extract link, title, and description of specified RESULT-TYPES from SEARCHES."
+(defun khoj--extract-online-references (result-types query-result-pairs)
+  "Extract link, title and description from RESULT-TYPES in QUERY-RESULT-PAIRS."
   (let ((result '()))
     (-map
      (lambda (search)
@@ -949,19 +993,22 @@ RECEIVE-DATE is the message receive date."
          (lambda (search-result)
            (-map
             (lambda (entry)
-              (let ((link (cdr (or (assoc 'link entry) (assoc 'descriptionLink entry))))
-                    (title (cdr (or (assoc 'title entry) '(title . ,link))))
-                    (description (cdr (or (assoc 'snippet entry) (assoc 'description entry)))))
+              (let* ((link (cdr (or (assoc 'link entry) (assoc 'descriptionLink entry))))
+                     (title (cdr (or (assoc 'title entry) `(title . ,link))))
+                     (description (cdr (or (assoc 'snippet entry) (assoc 'description entry)))))
                 (setq result (append result `(((title . ,title) (link . ,link) (description . ,description) (search . ,search-q)))))))
             ;; wrap search results in a list if it is not already a list
             (if (or (equal 'knowledgeGraph (car search-result)) (equal 'webpages (car search-result)))
-                (list (cdr search-result))
+                (if (arrayp (cdr search-result))
+                    (list (elt (cdr search-result) 0))
+                  (list (cdr search-result)))
               (cdr search-result))))
          search-results)))
-     searches)
+     query-result-pairs)
     result))
 
 (defun khoj--render-chat-response (response buffer-name)
+  "Insert chat message from RESPONSE into BUFFER-NAME."
   (with-current-buffer (get-buffer buffer-name)
     (let ((start-pos (point))
           (inhibit-read-only t))
@@ -975,7 +1022,8 @@ RECEIVE-DATE is the message receive date."
         (re-search-backward "^\*+ 🏮" nil t)))))
 
 (defun khoj--format-chat-response (json-response &optional callback &rest cbargs)
-  "Render chat message using JSON-RESPONSE from Khoj Chat API."
+  "Format chat message using JSON-RESPONSE from Khoj Chat API.
+Run CALLBACK with CBARGS on formatted message."
   (let* ((message (cdr (or (assoc 'response json-response) (assoc 'message json-response))))
          (sender (cdr (assoc 'by json-response)))
          (receive-date (cdr (assoc 'created json-response)))
@@ -1087,6 +1135,16 @@ RECEIVE-DATE is the message receive date."
 ;; Similar Search
 ;; --------------
 
+(defun khoj--get-current-outline-entry-pos ()
+  "Get heading position of current outline section."
+  ;; get heading position of current outline entry
+  (cond
+   ;; when at heading of entry
+   ((looking-at outline-regexp)
+    (point))
+   ;; when within entry
+   (t (save-excursion (outline-previous-heading) (point)))))
+
 (defun khoj--get-current-outline-entry-text ()
   "Get text under current outline section."
   (string-trim
@@ -1130,10 +1188,6 @@ Paragraph only starts at first text after blank line."
                  ;; get paragraph, if in text mode
                  (t
                   (khoj--get-current-paragraph-text))))
-         ;; extract heading to show in result buffer from query
-         (query-title
-          (format "Similar to: %s"
-                  (replace-regexp-in-string "^[#\\*]* " "" (car (split-string query "\n")))))
          (buffer-name (get-buffer-create khoj--search-buffer-name)))
     (progn
       (khoj--query-search-api-and-render-results
@@ -1141,9 +1195,35 @@ Paragraph only starts at first text after blank line."
        content-type
        buffer-name
        rerank
-       query-title)
-      (khoj--open-side-pane buffer-name)
-      (goto-char (point-min)))))
+       t)
+      (khoj--open-side-pane buffer-name))))
+
+(defun khoj--auto-find-similar ()
+  "Call find similar on current element, if point has moved to a new element."
+  ;; Call find similar
+  (when (and (derived-mode-p 'org-mode)
+             (org-element-at-point)
+             (not (string= (buffer-name (current-buffer)) khoj--search-buffer-name))
+             (get-buffer-window khoj--search-buffer-name))
+    (let ((current-heading-pos (khoj--get-current-outline-entry-pos)))
+      (unless (eq current-heading-pos khoj--last-heading-pos)
+          (setq khoj--last-heading-pos current-heading-pos)
+          (khoj--find-similar)))))
+
+(defun khoj--setup-auto-find-similar ()
+  "Setup automatic call to find similar to current element."
+  (if khoj-auto-find-similar
+      (add-hook 'post-command-hook #'khoj--auto-find-similar)
+    (remove-hook 'post-command-hook #'khoj--auto-find-similar)))
+
+(defun khoj-toggle-auto-find-similar ()
+    "Toggle automatic call to find similar to current element."
+    (interactive)
+    (setq khoj-auto-find-similar (not khoj-auto-find-similar))
+    (khoj--setup-auto-find-similar)
+    (if khoj-auto-find-similar
+        (message "Auto find similar enabled")
+      (message "Auto find similar disabled")))
 
 
 ;; ---------

@@ -163,7 +163,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_ROOT = BASE_DIR / "static"
-STATICFILES_DIRS = [BASE_DIR / "interface/web", BASE_DIR / "interface/email"]
+STATICFILES_DIRS = [BASE_DIR / "interface/web", BASE_DIR / "interface/email", BASE_DIR / "interface/built"]
 STATIC_URL = "/static/"
 
 # Default primary key field type

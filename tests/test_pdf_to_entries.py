@@ -1,4 +1,5 @@
 import os
+import re
 
 from khoj.processor.content.pdf.pdf_to_entries import PdfToEntries
 from khoj.utils.fs_syncer import get_pdf_files
@@ -38,16 +39,23 @@ def test_multi_page_pdf_to_jsonl():
 
 def test_ocr_page_pdf_to_jsonl():
     "Convert multiple pages from single PDF file to jsonl."
-    # Act
+    # Arrange
+    expected_str = "playing on a strip of marsh"
+    expected_str_with_variable_spaces = re.compile(expected_str.replace(" ", r"\s*"), re.IGNORECASE)
+
     # Extract Entries from specified Pdf files
     with open("tests/data/pdf/ocr_samples.pdf", "rb") as f:
         pdf_bytes = f.read()
-
     data = {"tests/data/pdf/ocr_samples.pdf": pdf_bytes}
+
+    # Act
     entries = PdfToEntries.extract_pdf_entries(pdf_files=data)
+    raw_entry = entries[1][0].raw
+
+    # Assert
     assert len(entries) == 2
     assert len(entries[1]) == 1
-    assert "playing on a strip of marsh" in entries[1][0].raw
+    assert re.search(expected_str_with_variable_spaces, raw_entry) is not None
 
 
 def test_get_pdf_files(tmp_path):

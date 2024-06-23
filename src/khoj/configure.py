@@ -16,9 +16,11 @@ from starlette.authentication import (
     SimpleUser,
     UnauthenticatedUser,
 )
+from starlette.middleware import Middleware
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.requests import HTTPConnection
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from khoj.database.adapters import (
     AgentAdapters,
@@ -306,7 +308,18 @@ def configure_routes(app):
 
 
 def configure_middleware(app):
+    class NextJsMiddleware(Middleware):
+        async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+            if scope["type"] == "http" and scope["path"].startswith("/_next"):
+                scope["path"] = "/static" + scope["path"]
+            await self.app(scope, receive, send)
+
+        def __init__(self, app: ASGIApp) -> None:
+            super().__init__(app)
+            self.app = app
+
     app.add_middleware(AuthenticationMiddleware, backend=UserAuthenticationBackend())
+    app.add_middleware(NextJsMiddleware)
     app.add_middleware(SessionMiddleware, secret_key=os.environ.get("KHOJ_DJANGO_SECRET_KEY", "!secret"))
 
 

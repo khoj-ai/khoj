@@ -115,6 +115,8 @@ def get_file_type(file_type: str, file_content: bytes) -> tuple[str, str]:
         return "org", encoding
     elif file_type in ["application/pdf"]:
         return "pdf", encoding
+    elif file_type in ["application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]:
+        return "docx", encoding
     elif file_type in ["image/jpeg"]:
         return "jpeg", encoding
     elif file_type in ["image/png"]:

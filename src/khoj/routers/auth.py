@@ -5,6 +5,7 @@ import os
 from typing import Optional
 
 from fastapi import APIRouter
+from pydantic import BaseModel, EmailStr
 from starlette.authentication import requires
 from starlette.config import Config
 from starlette.requests import Request
@@ -13,17 +14,23 @@ from starlette.status import HTTP_302_FOUND
 
 from khoj.database.adapters import (
     acreate_khoj_token,
+    aget_or_create_user_by_email,
+    aget_user_validated_by_email_verification_code,
     delete_khoj_token,
     get_khoj_tokens,
     get_or_create_user,
 )
-from khoj.routers.email import send_welcome_email
+from khoj.routers.email import send_magic_link_email, send_welcome_email
 from khoj.routers.helpers import get_next_url, update_telemetry_state
 from khoj.utils import state
 
 logger = logging.getLogger(__name__)
 
 auth_router = APIRouter()
+
+
+class MagicLinkForm(BaseModel):
+    email: EmailStr
 
 
 if not state.anonymous_mode:
@@ -60,6 +67,35 @@ async def login_get(request: Request):
 async def login(request: Request):
     redirect_uri = str(request.app.url_path_for("auth"))
     return await oauth.google.authorize_redirect(request, redirect_uri)
+
+
+@auth_router.post("/magic")
+async def login_magic_link(request: Request, form: MagicLinkForm):
+    if request.user.is_authenticated:
+        # Clear the session if user is already authenticated
+        request.session.pop("user", None)
+
+    email = form.email
+    user = await aget_or_create_user_by_email(email)
+    unique_id = user.email_verification_code
+
+    if user:
+        await send_magic_link_email(email, unique_id, request.base_url)
+
+    return Response(status_code=200)
+
+
+@auth_router.get("/magic")
+async def sign_in_with_magic_link(request: Request, code: str):
+    user = await aget_user_validated_by_email_verification_code(code)
+    if user:
+        id_info = {
+            "email": user.email,
+        }
+
+        request.session["user"] = dict(id_info)
+        return RedirectResponse(url="/")
+    return RedirectResponse(request.app.url_path_for("login_page"))
 
 
 @auth_router.post("/token")
