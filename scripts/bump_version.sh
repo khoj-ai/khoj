@@ -18,8 +18,10 @@ do
 
             # Bump Obsidian plugin to current version
             cd $project_root/src/interface/obsidian
-            cp $project_root/versions.json .
             npm version $version_type
+            # append current version, min Obsidian app version from manifest to versions json
+            cp $project_root/versions.json .
+            npm run version  # run Obsidian version script
 
             # Bump Emacs package to current version
             cd ../emacs
@@ -58,8 +60,10 @@ do
 
             # Bump Obsidian plugin to current version
             cd $project_root/src/interface/obsidian
-            cp $project_root/versions.json .
             npm version $current_version
+            # append current version, min Obsidian app version from manifest.json to versions.json
+            cp $project_root/versions.json .
+            npm run version  # run Obsidian version script
 
             # Bump Emacs package to current version
             cd ../emacs
@@ -101,6 +105,9 @@ do
             # Bump Obsidian plugins to next version
             cd $project_root/src/interface/obsidian
             npm version $next_version
+            # append next version, min Obsidian app version from manifest to versions json
+            git rm --cached -- versions.json
+            npm run version  # run Obsidian version script
 
             # Bump Emacs package to next version
             cd $project_root/src/interface/emacs
