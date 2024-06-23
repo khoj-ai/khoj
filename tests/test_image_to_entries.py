@@ -9,7 +9,7 @@ def test_png_to_jsonl():
     data = {"tests/data/images/testocr.png": image_bytes}
     entries = ImageToEntries.extract_image_entries(image_files=data)
     assert len(entries) == 2
-    assert "version 4.3.0" in entries[1][0].raw
+    assert "opencv-python" in entries[1][0].raw
 
 
 def test_jpg_to_jsonl():
