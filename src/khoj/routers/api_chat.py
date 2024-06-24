@@ -890,8 +890,18 @@ async def chat(
         _custom_filters.append("site:khoj.dev")
         conversation_commands.append(ConversationCommand.Online)
 
-    conversation = await ConversationAdapters.aget_conversation_by_user(user, conversation_id=conversation_id)
+    conversation = await ConversationAdapters.aget_conversation_by_user(
+        user, request.user.client_app, conversation_id, title
+    )
     conversation_id = conversation.id if conversation else None
+
+    if not conversation:
+        return Response(
+            content=f"No conversation found with requested id, title", media_type="text/plain", status_code=400
+        )
+    else:
+        meta_log = conversation.conversation_log
+
     if ConversationCommand.Summarize in conversation_commands:
         file_filters = conversation.file_filters
         llm_response = ""
@@ -932,17 +942,6 @@ async def chat(
             **common.__dict__,
         )
         return StreamingResponse(content=llm_response, media_type="text/event-stream", status_code=200)
-
-    conversation = await ConversationAdapters.aget_conversation_by_user(
-        user, request.user.client_app, conversation_id, title
-    )
-    conversation_id = conversation.id if conversation else None
-    if not conversation:
-        return Response(
-            content=f"No conversation found with requested id, title", media_type="text/plain", status_code=400
-        )
-    else:
-        meta_log = conversation.conversation_log
 
     is_automated_task = conversation_commands == [ConversationCommand.AutomatedTask]
 
