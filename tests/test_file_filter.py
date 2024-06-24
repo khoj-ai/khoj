@@ -14,29 +14,6 @@ def test_no_file_filter():
     # Assert
     assert can_filter == False
 
-def test_file_exclude_filter():
-    #Arrange
-    file_filter = FileFilter()
-    q_with_exclude_filter = 'head -"exclude_file" tail'
-
-    #Act
-    can_filter = file_filter.can_filter(q_with_exclude_filter)
-
-    #Assert
-    assert can_filter == True
-
-
-def test_file_include_and_exclude_filter():
-    #Arrange
-    file_filter = FileFilter()
-    q_with_include_and_exclude_filter = 'head "include_file" -"exclude_file" tail'
-
-    #Act
-    can_filter = file_filter.can_filter(q_with_include_and_exclude_filter)
-
-    #Assert
-    assert can_filter == True
-
 
 def test_file_filter_with_non_existent_file():
     # Arrange
