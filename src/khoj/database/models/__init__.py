@@ -213,7 +213,7 @@ class SearchModelConfig(BaseModel):
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.TEXT)
     # Bi-encoder model of sentence-transformer type to load from HuggingFace
     bi_encoder = models.CharField(max_length=200, default="thenlper/gte-small")
-    # Config passed to the sentence-transformer model constructor. E.g device="cuda:0", trust_remote_server=True etc.
+    # Config passed to the sentence-transformer model constructor. E.g. device="cuda:0", trust_remote_server=True etc.
     bi_encoder_model_config = models.JSONField(default=dict)
     # Query encode configs like prompt, precision, normalize_embeddings, etc. for sentence-transformer models
     bi_encoder_query_encode_config = models.JSONField(default=dict)

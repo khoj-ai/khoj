@@ -10,7 +10,7 @@ Here are some top-level performance metrics for Khoj. These are rough estimates 
 
 - Semantic search using the bi-encoder is fairly fast at \<100 ms across all content types
 - Reranking using the cross-encoder is slower at \<2s on 15 results. Tweak `top_k` to tradeoff speed for accuracy of results
-- Filters in query (e.g by file, word or date) usually add \<20ms to query latency
+- Filters in query (e.g. by file, word or date) usually add \<20ms to query latency
 
 ### Indexing performance
 

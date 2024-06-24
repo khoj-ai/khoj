@@ -268,7 +268,7 @@ def log_telemetry(
         # API endpoint on server called by client
         request_body["api"] = api
     if client:
-        # Client from which the API was called. E.g Emacs, Obsidian
+        # Client from which the API was called. E.g. Emacs, Obsidian
         request_body["client"] = client
 
     # Log telemetry data to telemetry endpoint
