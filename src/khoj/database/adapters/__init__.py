@@ -47,6 +47,8 @@ from khoj.database.models import (
     UserConversationConfig,
     UserRequests,
     UserSearchModelConfig,
+    UserVoiceModelConfig,
+    VoiceModelOption,
 )
 from khoj.processor.conversation import prompts
 from khoj.search_filter.date_filter import DateFilter
@@ -160,9 +162,13 @@ async def acreate_user_by_phone_number(phone_number: str) -> KhojUser:
     return user
 
 
-async def get_or_create_user_by_email(email: str) -> KhojUser:
+async def aget_or_create_user_by_email(email: str) -> KhojUser:
     user, _ = await KhojUser.objects.filter(email=email).aupdate_or_create(defaults={"username": email, "email": email})
     await user.asave()
+
+    if user:
+        user.email_verification_code = secrets.token_urlsafe(18)
+        await user.asave()
 
     user_subscription = await Subscription.objects.filter(user=user).afirst()
     if not user_subscription:
@@ -171,10 +177,23 @@ async def get_or_create_user_by_email(email: str) -> KhojUser:
     return user
 
 
+async def aget_user_validated_by_email_verification_code(code: str) -> KhojUser:
+    user = await KhojUser.objects.filter(email_verification_code=code).afirst()
+    if not user:
+        return None
+
+    user.email_verification_code = None
+    user.verified_email = True
+    await user.asave()
+
+    return user
+
+
 async def create_user_by_google_token(token: dict) -> KhojUser:
     user, _ = await KhojUser.objects.filter(email=token.get("email")).aupdate_or_create(
         defaults={"username": token.get("email"), "email": token.get("email")}
     )
+    user.verified_email = True
     await user.asave()
 
     await GoogleUser.objects.acreate(
@@ -228,7 +247,7 @@ async def set_user_subscription(
     email: str, is_recurring=None, renewal_date=None, type="standard"
 ) -> Optional[Subscription]:
     # Get or create the user object and their subscription
-    user = await get_or_create_user_by_email(email)
+    user = await aget_or_create_user_by_email(email)
     user_subscription = await Subscription.objects.filter(user=user).afirst()
 
     # Update the user subscription state
@@ -689,6 +708,14 @@ class ConversationAdapters:
         return new_config
 
     @staticmethod
+    async def aset_user_voice_model(user: KhojUser, model_id: str):
+        config = await VoiceModelOption.objects.filter(model_id=model_id).afirst()
+        if not config:
+            return None
+        new_config = await UserVoiceModelConfig.objects.aupdate_or_create(user=user, defaults={"setting": config})
+        return new_config
+
+    @staticmethod
     def get_conversation_config(user: KhojUser):
         config = UserConversationConfig.objects.filter(user=user).first()
         if not config:
@@ -701,6 +728,24 @@ class ConversationAdapters:
         if not config:
             return None
         return config.setting
+
+    @staticmethod
+    async def aget_voice_model_config(user: KhojUser) -> Optional[VoiceModelOption]:
+        voice_model_config = await UserVoiceModelConfig.objects.filter(user=user).prefetch_related("setting").afirst()
+        if voice_model_config:
+            return voice_model_config.setting
+        return None
+
+    @staticmethod
+    def get_voice_model_options():
+        return VoiceModelOption.objects.all()
+
+    @staticmethod
+    def get_voice_model_config(user: KhojUser) -> Optional[VoiceModelOption]:
+        voice_model_config = UserVoiceModelConfig.objects.filter(user=user).prefetch_related("setting").first()
+        if voice_model_config:
+            return voice_model_config.setting
+        return None
 
     @staticmethod
     def get_default_conversation_config():

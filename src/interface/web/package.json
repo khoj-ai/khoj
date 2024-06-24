@@ -1,0 +1,39 @@
+{
+  "name": "khoj-ai",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "collectstatic": "bash -c 'pushd ../../../ && source .venv/bin/activate && python3 src/khoj/manage.py collectstatic --noinput && deactivate && popd'",
+    "cicollectstatic": "bash -c 'pushd ../../../ && python3 src/khoj/manage.py collectstatic --noinput && popd'",
+    "export": "yarn build && cp -r out/ ../../khoj/interface/built && yarn collectstatic",
+    "ciexport": "yarn build && cp -r out/ ../../khoj/interface/built && yarn cicollectstatic",
+    "watch": "nodemon --watch . --ext js,jsx,ts,tsx,css --ignore 'out/**/*' --exec 'yarn export'",
+    "windowswatch": "nodemon --watch . --ext js,jsx,ts,tsx,css --ignore 'out/**/*' --exec 'yarn windowsexport'",
+    "windowscollectstatic": "cd ..\\..\\.. && .\\.venv\\Scripts\\Activate.bat && py .\\src\\khoj\\manage.py collectstatic --noinput && .\\.venv\\Scripts\\deactivate.bat && cd ..",
+    "windowsexport": "yarn build && xcopy out ..\\..\\khoj\\interface\\built /E /Y && yarn windowscollectstatic"
+  },
+  "dependencies": {
+    "@types/katex": "^0.16.7",
+    "@types/markdown-it": "^14.1.1",
+    "katex": "^0.16.10",
+    "markdown-it": "^14.1.0",
+    "markdown-it-highlightjs": "^4.1.0",
+    "next": "14.2.3",
+    "react": "^18",
+    "react-dom": "^18",
+    "swr": "^2.2.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.3",
+    "nodemon": "^3.1.3",
+    "typescript": "^5"
+  }
+}

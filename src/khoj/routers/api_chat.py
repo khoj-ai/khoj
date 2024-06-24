@@ -27,6 +27,7 @@ from khoj.processor.conversation.prompts import (
     no_notes_found,
 )
 from khoj.processor.conversation.utils import save_to_conversation_log
+from khoj.processor.speech.text_to_speech import generate_text_to_speech
 from khoj.processor.tools.online_search import (
     online_search_enabled,
     read_webpages,
@@ -140,6 +141,20 @@ class FeedbackData(BaseModel):
 async def sendfeedback(request: Request, data: FeedbackData):
     user: KhojUser = request.user.object
     await send_query_feedback(data.uquery, data.kquery, data.sentiment, user.email)
+
+
+@api_chat.post("/speech")
+@requires(["authenticated", "premium"])
+async def text_to_speech(request: Request, common: CommonQueryParams, text: str):
+    voice_model = await ConversationAdapters.aget_voice_model_config(request.user.object)
+
+    params = {"text_to_speak": text}
+
+    if voice_model:
+        params["voice_id"] = voice_model.model_id
+
+    speech_stream = generate_text_to_speech(**params)
+    return StreamingResponse(speech_stream.iter_content(chunk_size=1024), media_type="audio/mpeg")
 
 
 @api_chat.get("/starters", response_class=Response)

@@ -64,7 +64,7 @@
 ")))
     (should
      (equal
-      (khoj--extract-entries-as-markdown json-response-from-khoj-backend user-query)
+      (khoj--extract-entries-as-markdown json-response-from-khoj-backend user-query nil)
       "\
 # Become God\n\
 ## Upgrade\n\
@@ -100,7 +100,7 @@ Rule everything\n\n"))))
 ")))
     (should
      (equal
-      (khoj--extract-entries-as-org json-response-from-khoj-backend user-query)
+      (khoj--extract-entries-as-org json-response-from-khoj-backend user-query nil)
       "\
 * Become God\n\
 ** Upgrade\n\

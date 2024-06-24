@@ -28,6 +28,7 @@ class SearchType(str, Enum):
     Github = "github"
     Notion = "notion"
     Plaintext = "plaintext"
+    Docx = "docx"
 
 
 class ProcessorType(str, Enum):

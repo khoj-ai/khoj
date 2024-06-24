@@ -656,7 +656,7 @@ Learn more [here](https://khoj.dev).
             event.preventDefault();
 
             if (!isLoggedIn) {
-                document.getElementById("login-modal").style.display = "block";
+                document.getElementById("login-modal").style.display = "flex";
                 return;
             }
 
@@ -851,6 +851,13 @@ Learn more [here](https://khoj.dev).
         <div id="login-modal" style="display: none;">
             <img class="khoj-logo" src="/static/assets/icons/favicon-128x128.png" alt="Khoj"></img>
             <div class="login-modal-title">Login to continue</div>
+            <!-- Sign in with Magic Link -->
+            <div class="khoj-magic-link">
+                <input type="email" id="email" placeholder="Email" required>
+                <button id="magic-link-button">Send Magic Link</button>
+            </div>
+            <!-- Divider -->
+            <div style="text-align: center; font-size: 16px; font-weight: 500; border-top: 1px solid black;">OR</div>
             <!-- Sign Up/Login with Google OAuth -->
             <div
                 class="g_id_signin"
@@ -964,6 +971,40 @@ Learn more [here](https://khoj.dev).
         if (chatNav) {
             chatNav.classList.add("khoj-nav-selected");
         }
+
+        const magicLinkButton = document.getElementById('magic-link-button');
+        const emailInput = document.getElementById('email');
+
+        magicLinkButton.addEventListener('click', async () => {
+            const email = emailInput.value;
+            if (!email) {
+                alert('Please enter a valid email address');
+                return;
+            }
+
+            if (!email.includes('@')) {
+                alert('Please enter a valid email address');
+                return;
+            }
+
+            magicLinkButton.disabled = true;
+            magicLinkButton.innerText = 'Check your email for a sign-in link!';
+
+            const response = await fetch('/auth/magic', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ "email": email }),
+            })
+
+            if (response.status === 200) {
+                console.log('Magic link sent to your email');
+            } else {
+                alert('Failed to send magic link');
+            }
+        });
+
     </script>
     <style>
         html, body {
@@ -1405,10 +1446,6 @@ Learn more [here](https://khoj.dev).
         }
 
         div#login-modal {
-            display: grid;
-            grid-template-columns: 1fr;
-            grid-template-rows: 1fr auto auto 1fr;
-            gap: 32px;
             min-height: 300px;
             z-index: 1;
             position: absolute;
@@ -1419,6 +1456,45 @@ Learn more [here](https://khoj.dev).
             border-radius: 8px;
             padding: 40px;
             background: linear-gradient(145deg, var(--background-color), var(--primary-hover));
+            display: flex;
+            flex-direction: column;
+            align-content: center;
+            justify-content: center;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .khoj-magic-link {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            text-align: center;
+        }
+
+        #email {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid var(--main-text-color);
+            border-radius: 5px;
+        }
+
+        #email:focus {
+            box-shadow: 0 0 10px var(--main-text-color);
+        }
+
+        #magic-link-button {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid var(--main-text-color);
+            border-radius: 5px;
+            width: 100%;
+            background: var(--main-text-color);
+            color: var(--frosted-background-color);
+            cursor: pointer;
+        }
+
+        #magic-link-button:hover {
+            box-shadow: 0 0 10px var(--main-text-color);
         }
 
         div.g_id_signin {
