@@ -87,6 +87,30 @@ def test_get_file_filter_terms():
     assert filter_terms == ["file 1\\.org", "/path/to/dir/.*\\.org"]
 
 
+def test_file_exclude_filter():
+    # Arrange
+    file_filter = FileFilter()
+    q_with_exclude_filter = 'head -"exclude_file" tail'
+
+    # Act
+    can_filter = file_filter.can_filter(q_with_exclude_filter)
+
+    # Assert
+    assert can_filter == True
+
+
+def test_file_include_and_exclude_filter():
+    # Arrange
+    file_filter = FileFilter()
+    q_with_include_and_exclude_filter = 'head "include_file" -"exclude_file" tail'
+
+    # Act
+    can_filter = file_filter.can_filter(q_with_include_and_exclude_filter)
+
+    # Assert
+    assert can_filter == True
+
+
 def arrange_content():
     entries = [
         Entry(compiled="", raw="First Entry", file="file 1.org"),
