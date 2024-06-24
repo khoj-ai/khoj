@@ -1,8 +1,4 @@
----
-sidebar_position: 1
----
-
-# Use OpenAI Proxy
+# LM Studio
 :::info
 This is only helpful for self-hosted users. If you're using [Khoj Cloud](https://app.khoj.dev), you're limited to our first-party models.
 :::
@@ -11,20 +7,17 @@ This is only helpful for self-hosted users. If you're using [Khoj Cloud](https:/
 Khoj natively supports local LLMs [available on HuggingFace in GGUF format](https://huggingface.co/models?library=gguf). Using an OpenAI API proxy with Khoj maybe useful for ease of setup, trying new models or using commercial LLMs via API.
 :::
 
-Khoj can use any OpenAI API compatible server including [Ollama](/advanced/ollama), [LMStudio](/advanced/lmstudio) and [LiteLLM](/advanced/litellm).
-Configuring this allows you to use non-standard, open or commercial, local or hosted LLM models for Khoj
+[LM Studio](https://lmstudio.ai/) is a desktop app to chat with open-source LLMs on your local machine. LM Studio provides a neat interface for folks comfortable with a GUI.
 
-Combine them with Khoj can turn your favorite LLM into an AI agent. Allowing you to chat with your docs, find answers from the internet, build custom agents and run automations.
+LM Studio can expose an [OpenAI API compatible server](https://lmstudio.ai/docs/local-server). This makes it possible to turn chat models from LM Studio into your personal AI agents with Khoj.
 
-For specific integrations, see our [Ollama](/advanced/ollama), [LMStudio](/advanced/lmstudio) and [LiteLLM](/advanced/litellm) setup docs. For general instructions to setup Khoj with an OpenAI API proxy see below.
-
-## General Setup
-
-1. Start your preferred OpenAI API compatible app
+## Setup
+1. Install [LM Studio](https://lmstudio.ai/) and download your preferred Chat Model
+2. Go to the Server Tab on LM Studio, Select your preferred Chat Model and Click the green Start Server button
 3. Create a new [OpenAI Processor Conversation Config](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/add) on your Khoj admin panel
    - Name: `proxy-name`
    - Api Key: `any string`
-   - Api Base Url: **URL of your Openai Proxy API**
+   - Api Base Url: `http://localhost:1234/v1/` (default for LMStudio)
 4. Create a new [Chat Model Option](http://localhost:42110/server/admin/database/chatmodeloptions/add) on your Khoj admin panel.
    - Name: `llama3` (replace with the name of your local model)
    - Model Type: `Openai`

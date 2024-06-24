@@ -1,8 +1,4 @@
----
-sidebar_position: 1
----
-
-# Use OpenAI Proxy
+# LiteLLM
 :::info
 This is only helpful for self-hosted users. If you're using [Khoj Cloud](https://app.khoj.dev), you're limited to our first-party models.
 :::
@@ -11,16 +7,20 @@ This is only helpful for self-hosted users. If you're using [Khoj Cloud](https:/
 Khoj natively supports local LLMs [available on HuggingFace in GGUF format](https://huggingface.co/models?library=gguf). Using an OpenAI API proxy with Khoj maybe useful for ease of setup, trying new models or using commercial LLMs via API.
 :::
 
-Khoj can use any OpenAI API compatible server including [Ollama](/advanced/ollama), [LMStudio](/advanced/lmstudio) and [LiteLLM](/advanced/litellm).
-Configuring this allows you to use non-standard, open or commercial, local or hosted LLM models for Khoj
+[LiteLLM](https://docs.litellm.ai/docs/proxy/quick_start) exposes an OpenAI compatible API that proxies requests to other LLM API services. This provides a standardized API to interact with both open-source and commercial LLMs.
 
-Combine them with Khoj can turn your favorite LLM into an AI agent. Allowing you to chat with your docs, find answers from the internet, build custom agents and run automations.
+Using LiteLLM with Khoj makes it possible to turn any LLM behind an API into your personal AI agent.
 
-For specific integrations, see our [Ollama](/advanced/ollama), [LMStudio](/advanced/lmstudio) and [LiteLLM](/advanced/litellm) setup docs. For general instructions to setup Khoj with an OpenAI API proxy see below.
-
-## General Setup
-
-1. Start your preferred OpenAI API compatible app
+## Setup
+1. Install LiteLLM
+   ```bash
+   pip install litellm[proxy]
+   ```
+2. Start LiteLLM and use Mistral tiny via Mistral API
+   ```
+   export MISTRAL_API_KEY=<MISTRAL_API_KEY>
+   litellm --model mistral/mistral-tiny --drop_params
+   ```
 3. Create a new [OpenAI Processor Conversation Config](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/add) on your Khoj admin panel
    - Name: `proxy-name`
    - Api Key: `any string`
