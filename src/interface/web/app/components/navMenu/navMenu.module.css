@@ -40,7 +40,7 @@ div.titleBar menu {
     border-radius: 0.5rem;
     display: grid;
     grid-auto-flow: column;
-    gap: 4px;
+    gap: 32px;
 }
 
 div.settingsMenuProfile img {
