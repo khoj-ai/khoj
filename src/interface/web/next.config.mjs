@@ -31,14 +31,6 @@ const nextConfig = {
                 protocol: "https",
                 hostname: "assets.khoj.dev",
             },
-            {
-                protocol: "https",
-                hostname: "khoj-web-bucket.s3.amazonaws.com",
-            },
-            {
-                protocol: "https",
-                hostname: "khoj-generated-images.s3.amazonaws.com",
-            }
         ] : undefined,
     }
 };

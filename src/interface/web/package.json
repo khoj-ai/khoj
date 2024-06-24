@@ -8,13 +8,13 @@
     "start": "next start",
     "lint": "next lint",
     "collectstatic": "bash -c 'pushd ../../../ && source .venv/bin/activate && python3 src/khoj/manage.py collectstatic --noinput && deactivate && popd'",
-    "windowscollectstatic": "Set-Location ..\\..\\..; .\\.venv\\Scripts\\Activate.ps1; python .\\src\\khoj\\manage.py collectstatic --noinput; Deactivate; Set-Location -",
     "cicollectstatic": "bash -c 'pushd ../../../ && python3 src/khoj/manage.py collectstatic --noinput && popd'",
     "export": "yarn build && cp -r out/ ../../khoj/interface/built && yarn collectstatic",
-    "windowsexport": "yarn build; Copy-Item -Recurse -Path .\\out\\ -Destination ..\\..\\khoj\\interface\\built; yarn windowscollectstatic",
     "ciexport": "yarn build && cp -r out/ ../../khoj/interface/built && yarn cicollectstatic",
     "watch": "nodemon --watch . --ext js,jsx,ts,tsx,css --ignore 'out/**/*' --exec 'yarn export'",
-    "windowswatch": "nodemon --watch . --ext js,jsx,ts,tsx,css --ignore 'out/**/*' --exec 'yarn windowsexport'"
+    "windowswatch": "nodemon --watch . --ext js,jsx,ts,tsx,css --ignore 'out/**/*' --exec 'yarn windowsexport'",
+    "windowscollectstatic": "cd ..\\..\\.. && .\\.venv\\Scripts\\Activate.bat && py .\\src\\khoj\\manage.py collectstatic --noinput && .\\.venv\\Scripts\\deactivate.bat && cd ..",
+    "windowsexport": "yarn build && xcopy out ..\\..\\khoj\\interface\\built /E /Y && yarn windowscollectstatic"
   },
   "dependencies": {
     "@types/katex": "^0.16.7",

@@ -880,13 +880,17 @@
         function renderFirstRunSetupMessage() {
             first_run_message = `<p class="first-run-message-heading">Hi 👋🏾, to get started:<p>
             <ol>
-                <li class="first-run-message-text">Generate an API token <a class='first-run-message-link' href="#" onclick="window.navigateAPI.navigateToWebSettings()">Khoj Web settings</a></li>
-                <li class="first-run-message-text">Paste it into the API Key field <a class='first-run-message-link' href="#" onclick="window.navigateAPI.navigateToSettings()">Khoj Desktop settings</a></li>
+                <li class="first-run-message-text">Generate an API token <a id='first-run-web-config' class='first-run-message-link'>Khoj Web settings</a></li>
+                <li class="first-run-message-text">Paste it into the API Key field <a id='first-run-desktop-config' class='first-run-message-link'>Khoj Desktop settings</a></li>
             </ol>`
             .trim()
             .replace(/(\r\n|\n|\r)/gm, "");
 
             renderMessage(first_run_message, "khoj", null, null, true);
+
+            // Open relevant setup links
+            document.getElementById("first-run-web-config").addEventListener('click', (event) => window.navigateAPI.navigateToWebSettings('config'));
+            document.getElementById("first-run-desktop-config").addEventListener('click', (event) => window.navigateAPI.navigateToSettings('config.html'));
 
             // Disable chat input field and update placeholder text
             document.getElementById("chat-input").setAttribute("disabled", "disabled");
@@ -1888,7 +1892,7 @@
         div#new-conversation {
             display: grid;
             grid-auto-flow: column;
-            font-size: large;
+            font-size: medium;
             text-align: left;
             border-bottom: 1px solid var(--main-text-color);
             margin: 8px 0;
@@ -1906,7 +1910,7 @@
             border: 1px solid var(--main-text-color);
             border-radius: 5px;
             padding: 5px;
-            font-size: 14px;
+            font-size: small;
             font-weight: 300;
             line-height: 1.5em;
             cursor: pointer;
@@ -1914,7 +1918,6 @@
             text-align: left;
             display: flex;
             position: relative;
-            margin: 0 8px;
         }
 
         .three-dot-menu {

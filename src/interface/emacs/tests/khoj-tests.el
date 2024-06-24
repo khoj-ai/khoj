@@ -64,7 +64,7 @@
 ")))
     (should
      (equal
-      (khoj--extract-entries-as-markdown json-response-from-khoj-backend user-query)
+      (khoj--extract-entries-as-markdown json-response-from-khoj-backend user-query nil)
       "\
 # Become God\n\
 ## Upgrade\n\
@@ -100,7 +100,7 @@ Rule everything\n\n"))))
 ")))
     (should
      (equal
-      (khoj--extract-entries-as-org json-response-from-khoj-backend user-query)
+      (khoj--extract-entries-as-org json-response-from-khoj-backend user-query nil)
       "\
 * Become God\n\
 ** Upgrade\n\
@@ -221,7 +221,7 @@ Rule everything\n")
            (equal
             (khoj--render-update-files-as-request-body (list upgrade-file act-file) "khoj")
             (format
-            "\n--khoj\r\n\
+             "\n--khoj\r\n\
 Content-Disposition: form-data; name=\"files\"; filename=\"%s\"\r\n\
 Content-Type: text/org\r\n\r\n\
 # Become God\n\
@@ -246,7 +246,7 @@ Rule everything\n\n\r\n\
            (equal
             (khoj--render-delete-files-as-request-body (list upgrade-file act-file "/tmp/deleted-file.org") "khoj")
             (format
-            "\n--khoj\r\n\
+             "\n--khoj\r\n\
 Content-Disposition: form-data; name=\"files\"; filename=\"%s\"\r\n\
 Content-Type: text/org\r\n\r\n\
 \r
@@ -261,6 +261,79 @@ Content-Type: text/org\r\n\r\n\
 --khoj--\r\n" upgrade-file act-file "/tmp/deleted-file.org"))))
       (delete-file upgrade-file)
       (delete-file act-file))))
+
+(ert-deftest khoj-tests--extract-online-references ()
+  (let* (;; Arrange
+         (onlineContext '((Albert\ Einstein\ wife
+                           (organic . [((link . "https://en.wikipedia.org/wiki/Mileva_Mari%C4%87")
+                                        (title . "Mileva Marić - Wikipedia")
+                                        (snippet . "Marić married Einstein in 1903 and they had three ...")
+                                        (position . 1)
+                                        (sitelinks . [((link . "https://en.wikipedia.org/wiki/Mileva_Mari%C4%87#Bi...")
+                                                       (title . "Biography"))
+                                                      ((link . "https://en.wikipedia.org/wiki/Mileva_Mari%C4%87#De...")
+                                                       (title . "Debate over collaboration with..."))]))
+                                       ((link . "https://en.wikipedia.org/wiki/Elsa_Einstein")
+                                        (title . "Elsa Einstein - Wikipedia")
+                                        (snippet . "Elsa Einstein (18 January 1876 – 20 December 1936)...")
+                                        (position . 2))
+                                       ((link . "https://www.amazon.com/Einsteins-Wife-Story-Mileva...")
+                                        (price . 25.86)
+                                        (title . "Einstein's Wife: The Real Story of Mileva Einstein...")
+                                        (rating . 3.8)
+                                        (snippet . "Albert Einstein's first wife, Mileva Einstein-Mari...")
+                                        (currency . "$")
+                                        (position . 3)
+                                        (ratingCount . 80))])
+                           (peopleAlsoAsk . [((link . "https://en.wikipedia.org/wiki/Mileva_Mari%C4%87")
+                                              (title . "Mileva Marić - Wikipedia")
+                                              (snippet . "Death. Mileva Marić suffered a severe stroke and d...")
+                                              (question . "What happened to Einstein's first wife?"))
+                                             ((link . "https://www.redalyc.org/journal/5117/511767145014/...")
+                                              (title . "The story of Mileva Marić: Did Einstein's first wi...")
+                                              (snippet . "The couple were married in 1903. Some claim that M...")
+                                              (question . "Did Albert Einstein's wife do all his work?"))
+                                             ((link . "https://en.wikipedia.org/wiki/Hans_Albert_Einstein")
+                                              (title . "Hans Albert Einstein - Wikipedia")
+                                              (snippet . "Klaus Martin Einstein (1932–1939), died of diphthe...")
+                                              (question . "What happened to Einstein's children?"))])
+                           (knowledgeGraph (type . "Theoretical physicist")
+                                           (title . "Albert Einstein")
+                                           (attributes (Born . "March 14, 1879, Ulm, Germany")
+                                                       (Died . "April 18, 1955 (age 76 years), Princeton, NJ")
+                                                       (Spouse . "Elsa Einstein (m. 1919–1936) and Mileva Marić (m. ...")
+                                                       (Children . "Eduard Einstein, Hans Albert Einstein, and Lieserl...")
+                                                       (Education . "University of Zurich (1905), ETH Zürich (1897–1900...")
+                                                       (Nationality . "American, German, Hungarian, and more")
+                                                       (Grandchildren . "Evelyn Einstein, Bernhard Caesar Einstein, Klaus M..."))
+                                           (description . "Albert Einstein was a German-born theoretical phys...")
+                                           (descriptionLink . "https://en.wikipedia.org/wiki/Albert_Einstein")
+                                           (descriptionSource . "Wikipedia")))
+                          (Prince\ Albert\ spouse
+                           (webpages (link . "https://en.wikipedia.org/wiki/Prince_Albert_of_Sax...") (snippet . "Prince Albert of Saxe-Coburg and Gotha was the hus..."))
+                           (organic . [((date . "Feb 4, 2024")
+                                        (link . "https://en.wikipedia.org/wiki/Prince_Albert_of_Sax...")
+                                        (title . "Prince Albert of Saxe-Coburg and Gotha - Wikipedia")
+                                        (snippet . "Prince Albert of Saxe-Coburg and Gotha was the hus...")
+                                        (position . 1)
+                                        (sitelinks . [((link . "https://en.wikipedia.org/wiki/Prince_consort")
+                                                       (title . "Prince consort"))
+                                                      ((link . "https://en.wikipedia.org/wiki/Nellie_Clifden")
+                                                       (title . "Nellie Clifden"))]))])
+                           (answerBox (title . "Prince Albert of Saxe-Coburg and Gotha / Spouse")
+                                      (answer . "Queen Victoria"))
+                           (peopleAlsoAsk . [((link . "https://en.wikipedia.org/wiki/Albert_II,_Prince_of...")
+                                              (title . "Albert II, Prince of Monaco - Wikipedia")
+                                              (snippet . "In July 2011, Prince Albert married South African ...")
+                                              (question . "How many children does Prince Albert of Monaco hav..."))]))))
+         ;; Act
+         (result (khoj--extract-online-references
+                  '(organic knowledgeGraph peopleAlsoAsk webpages)
+                  onlineContext)))
+    ;; Assert
+    (progn
+      (should (equal (length result) 10))
+      result)))
 
 (provide 'khoj-tests)
 

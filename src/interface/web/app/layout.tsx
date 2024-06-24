@@ -6,7 +6,7 @@ const inter = Noto_Sans({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Khoj AI",
-  description: "Your, open-source, personal AI assistant",
+  description: "An AI copilot for your second brain",
 };
 
 export default function RootLayout({

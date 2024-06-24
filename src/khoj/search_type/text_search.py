@@ -132,11 +132,13 @@ async def query(
 
 def collate_results(hits, dedupe=True):
     hit_ids = set()
+    hit_hashes = set()
     for hit in hits:
-        if dedupe and hit.corpus_id in hit_ids:
+        if dedupe and (hit.hashed_value in hit_hashes or hit.corpus_id in hit_ids):
             continue
 
         else:
+            hit_hashes.add(hit.hashed_value)
             hit_ids.add(hit.corpus_id)
             yield SearchResponse.model_validate(
                 {
@@ -177,13 +179,11 @@ def deduplicated_search_responses(hits: List[SearchResponse]):
 
 
 def rerank_and_sort_results(hits, query, rank_results, search_model_name):
-    # Rerank results if explicitly requested, if can use inference server or if device has GPU
+    # Rerank results if explicitly requested, if can use inference server
     # AND if we have more than one result
-    rank_results = (
-        rank_results
-        or state.cross_encoder_model[search_model_name].inference_server_enabled()
-        or state.device.type != "cpu"
-    ) and len(list(hits)) > 1
+    rank_results = (rank_results or state.cross_encoder_model[search_model_name].inference_server_enabled()) and len(
+        list(hits)
+    ) > 1
 
     # Score all retrieved entries using the cross-encoder
     if rank_results:

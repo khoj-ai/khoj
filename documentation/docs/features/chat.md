@@ -4,10 +4,12 @@ sidebar_position: 2
 
 # Chat
 
-You can configure Khoj to chat with you about anything. When relevant, it'll use any notes or documents you shared with it to respond.
+You can configure Khoj to chat with you about anything. When relevant, it'll use any notes or documents you shared with it to respond. It acts as an excellent research assistant, search engine, or personal tutor.
+
+<img src="/img/khoj_chat_on_web.png" alt="Chat on Web" style={{width: '400px'}}/>
 
 ### Overview
-- Creates a personal assistant for you to inquire and engage with your notes
+- Creates a personal assistant for you to inquire and engage with your notes or online information as needed
 - You can choose to use Online or Offline Chat depending on your requirements
 - Supports multi-turn conversations with the relevant notes for context
 - Shows reference notes used to generate a response
@@ -48,11 +50,15 @@ This will enable Khoj to send your chat queries and query relevant notes to Open
     - **On Emacs**: Run `M-x khoj <user-query>`
 2. Enter your queries to chat with Khoj. Use [slash commands](#commands) and [query filters](/miscellaneous/advanced#query-filters) to change what Khoj uses to respond
 
-![](/img/khoj_chat_on_web.png ':size=400px')
 
 #### Details
 1. Your query is used to retrieve the most relevant notes, if any, using Khoj search
 2. These notes, the last few messages and associated metadata is passed to the enabled chat model along with your query to generate a response
+
+#### Conversation File Filters
+You can use conversation file filters to limit the notes used in the chat response. To do so, use the left panel in the web UI. Alternatively, you can also use [query filters](/miscellaneous/advanced#query-filters) to limit the notes used in the chat response.
+
+<img src="/img/select_file_filter.png" alt="Conversation File Filter" style={{width: '400px'}}/>
 
 #### Commands
 Slash commands allows you to change what Khoj uses to respond to your query
@@ -62,3 +68,4 @@ Slash commands allows you to change what Khoj uses to respond to your query
 - **/online**: Use online information and incorporate it in the prompt to the LLM to send you a response.
 - **/image**: Generate an image in response to your query.
 - **/help**: Use /help to get all available commands and general information about Khoj
+- **/summarize**: Can be used to summarize 1 selected file filter for that conversation. Refer to [File Summarization](summarization) for details.

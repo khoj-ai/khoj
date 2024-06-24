@@ -6,6 +6,8 @@ sidebar_position: 3
 
 > Query your Second Brain from Obsidian
 
+![demo](https://assets.khoj.dev/obsidian_khoj_side_panel_pak_telemedicine.gif)
+
 ## Features
 - **Chat**
   - **Faster answers**: Find answers quickly, from your private notes or the public internet
@@ -14,13 +16,8 @@ sidebar_position: 3
 - **Search**
   - **Natural**: Advanced natural language understanding using Transformer based ML Models
   - **Incremental**: Incremental search for a fast, search-as-you-type experience
-
-## Interface
-
-| Search | Chat |
-|:------:|:----:|
-| ![](/img/khoj_search_on_obsidian.png) | ![](/img/khoj_chat_on_obsidian.png) |
-
+- **Similar**
+  - **Discover**: Find similar notes to the current one
 
 ## Setup
 
