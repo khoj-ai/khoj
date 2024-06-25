@@ -77,13 +77,13 @@ If your plugin does not need CSS, delete this file.
     text-align: left;
     user-select: text;
     color: var(--text-normal);
+    background-color: var(--active-bg);
 }
 /* color chat bubble by khoj blue */
 .khoj-chat-message-text.khoj {
-    color: var(--text-normal);
+    border: 1px solid var(--khoj-sun);
     margin-left: auto;
     white-space: pre-line;
-    background-color: var(--active-bg);
 }
 /* add left protrusion to khoj chat bubble */
 .khoj-chat-message-text.khoj:after {
@@ -97,7 +97,7 @@ If your plugin does not need CSS, delete this file.
 }
 /* color chat bubble by you dark grey */
 .khoj-chat-message-text.you {
-    color: var(--text-normal);
+    border: 1px solid var(--color-accent);
     margin-right: auto;
 }
 /* add right protrusion to you chat bubble */
@@ -158,6 +158,7 @@ div.expanded.reference-section {
 }
 button.reference-button {
     border: 1px solid var(--khoj-storm-grey);
+    background-color: transparent;
     border-radius: 5px;
     padding: 4px;
     font-size: 14px;
@@ -197,6 +198,7 @@ button.reference-button[aria-expanded="true"]::before {
     transform: rotate(90deg);
 }
 button.reference-expand-button {
+    background-color: transparent;
     border: 1px solid var(--khoj-storm-grey);
     border-radius: 5px;
     padding: 8px;
@@ -209,8 +211,8 @@ button.reference-expand-button {
     text-align: left;
 }
 button.reference-expand-button:hover {
-    background: var(--khoj-sun);
-    color: var(--khoj-storm-grey);
+    background: var(--background-modifier-active-hover);
+    color: var(--text-normal);
 }
 a.inline-chat-link {
     color: #475569;
@@ -222,15 +224,6 @@ a.inline-chat-link {
     border-bottom: 1px dotted var(--khoj-storm-grey);
 }
 
-button.copy-button {
-    display: block;
-    border-radius: 4px;
-    background-color: var(--color-base-00);
-}
-button.copy-button:hover {
-    background: #f5f5f5;
-    cursor: pointer;
-}
 img {
     max-width: 60%;
 }
@@ -263,19 +256,8 @@ div.conversation-session {
     grid-template-columns: 1fr auto;
 }
 
-.three-dot-menu {
-    display: block;
-    /* background: var(--background-color); */
-    /* border: 1px solid var(--main-text-color); */
-    border-radius: 5px;
-    /* position: relative; */
-}
-
-button.selected-conversation {
-    background: var(--interactive-accent-hover);
-}
 button.three-dot-menu-button-item {
-    color: var(--color-base-90);
+    color: var(--text-accent);
     border: none;
     box-shadow: none;
     font-size: 14px;
@@ -289,26 +271,7 @@ button.three-dot-menu-button-item {
 }
 
 button.three-dot-menu-button-item:hover {
-    background: var(--khoj-storm-grey);
-    color: var(--khoj-winter-sun);
-}
-
-.three-dot-menu-button {
-    background: var(--khoj-winter-sun);
-    border: none;
-    box-shadow: none;
-    font-size: 14px;
-    font-weight: 300;
-    line-height: 1.5em;
-    cursor: pointer;
-    transition: background 0.3s ease-in-out;
-    font-family: var(--font-family);
-    border-radius: 4px;
-    right: 0;
-}
-
-.conversation-button:hover .three-dot-menu {
-    display: block;
+    background: var(--background-modifier-active-hover);
 }
 
 div.conversation-menu {
@@ -515,9 +478,11 @@ span.khoj-nav-item-text {
 
 /* Copy button */
 button.copy-button {
+    display: block;
     border-radius: 4px;
-    background-color: var(--background-color);
-    border: 1px solid var(--main-text-color);
+    color: var(--text-muted);
+    background-color: transparent;
+    border: 1px solid var(--khoj-storm-grey);
     text-align: center;
     font-size: 16px;
     transition: all 0.5s;
@@ -537,12 +502,9 @@ img.copy-icon {
     height: 16px;
 }
 
-.you button.copy-button:hover {
-    color: var(--khoj-storm-grey);
-    background: var(--text-on-accent);
-}
-.khoj button.copy-button:hover {
-    background: var(--text-on-accent);
+button.copy-button:hover {
+    background-color: var(--background-modifier-active-hover);
+    color: var(--text-normal);
 }
 
 /* Loading Spinner */

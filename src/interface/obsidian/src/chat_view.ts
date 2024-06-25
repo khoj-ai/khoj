@@ -578,8 +578,7 @@ export class KhojChatView extends KhojPaneView {
         let editConversationTitleButtonEl = this.contentEl.createEl('button');
         setIcon(editConversationTitleButtonEl, "edit");
         editConversationTitleButtonEl.title = "Rename";
-        editConversationTitleButtonEl.classList.add("edit-title-button");
-        editConversationTitleButtonEl.classList.add("three-dot-menu-button-item");
+        editConversationTitleButtonEl.classList.add("edit-title-button", "three-dot-menu-button-item", "clickable-icon");
         if (selectedConversation) editConversationTitleButtonEl.classList.add("selected-conversation");
         editConversationTitleButtonEl.addEventListener('click', (event) => {
             event.stopPropagation();
@@ -607,7 +606,7 @@ export class KhojChatView extends KhojPaneView {
             let editConversationTitleSaveButtonEl = this.contentEl.createEl('button');
             conversationSessionTitleEl.replaceWith(editConversationTitleInputEl);
             editConversationTitleSaveButtonEl.innerHTML = "Save";
-            editConversationTitleSaveButtonEl.classList.add("three-dot-menu-button-item");
+            editConversationTitleSaveButtonEl.classList.add("three-dot-menu-button-item", "clickable-icon");
             if (selectedConversation) editConversationTitleSaveButtonEl.classList.add("selected-conversation");
             editConversationTitleSaveButtonEl.addEventListener('click', (event) => {
                 event.stopPropagation();
@@ -654,8 +653,7 @@ export class KhojChatView extends KhojPaneView {
         let deleteConversationButtonEl = this.contentEl.createEl('button');
         setIcon(deleteConversationButtonEl, "trash");
         deleteConversationButtonEl.title = "Delete";
-        deleteConversationButtonEl.classList.add("delete-conversation-button");
-        deleteConversationButtonEl.classList.add("three-dot-menu-button-item");
+        deleteConversationButtonEl.classList.add("delete-conversation-button", "three-dot-menu-button-item", "clickable-icon");
         if (selectedConversation) deleteConversationButtonEl.classList.add("selected-conversation");
         deleteConversationButtonEl.addEventListener('click', () => {
             // Ask for confirmation before deleting chat session
