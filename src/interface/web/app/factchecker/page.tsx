@@ -153,6 +153,7 @@ export default function FactChecker() {
     const [clickedVerify, setClickedVerify] = useState(false);
     const [initialReferences, setInitialReferences] = useState<ResponseWithReferences>();
     const [conversationID, setConversationID] = useState("");
+    const [runId, setRunId] = useState("");
 
     let userData = useAuthenticatedData();
 
@@ -161,6 +162,20 @@ export default function FactChecker() {
         if (storedFact) {
             setFactToVerify(storedFact);
         }
+
+        // Get query params from the URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const factToVerifyParam = urlParams.get('factToVerify');
+        const runId = urlParams.get('runId');
+
+        if (factToVerifyParam) {
+            setFactToVerify(factToVerifyParam);
+        }
+
+        if (runId) {
+            setRunId(runId);
+        }
+
     }, []);
 
     useEffect(() => {
@@ -209,7 +224,6 @@ export default function FactChecker() {
                 let singleWebpage = webpages as WebPage;
                 const additionalLink = singleWebpage.link || '';
                 if (seenLinks.has(additionalLink)) {
-                    console.log("collision on link: ", additionalLink);
                     return null;
                 }
                 seenLinks.add(additionalLink);
