@@ -70,7 +70,9 @@ export const ModelPicker: React.FC<any> = (props: ModelPickerProps) => {
 
     function onSelect(model: Model) {
         if (!userData) {
-            alert('Please sign in to select a model');
+            const signInLink = window.location.origin + '/login';
+            alert('Please sign in to select a model: ' + signInLink);
+            // Replace with a proper dialog box
             return;
         }
 

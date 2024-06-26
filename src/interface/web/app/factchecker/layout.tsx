@@ -2,7 +2,6 @@
 import type { Metadata } from "next";
 import NavMenu from '../components/navMenu/navMenu';
 import styles from './factCheckerLayout.module.css';
-import Head from "next/head";
 
 export const metadata: Metadata = {
   title: "Khoj AI - Fact Checker",
@@ -16,9 +15,6 @@ export default function RootLayout({
 }>) {
   return (
       <div className={styles.factCheckerLayout}>
-        <Head>
-          <link rel="icon" type="image/png" sizes="128x128" href="/assets/icons/favicon-128x128.png" />
-        </Head>
         <NavMenu selected="none" />
         {children}
       </div>

@@ -19,7 +19,6 @@ input.factVerification:focus {
 }
 
 div.responseText {
-    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
     margin: 0;
     padding: 0;
     border-radius: 8px;
@@ -31,7 +30,6 @@ div.response {
 
 a.titleLink {
     color: #333;
-    text-decoration: none;
     font-weight: bold;
 }
 
@@ -40,8 +38,6 @@ a.subLinks {
     text-decoration: none;
     font-weight: small;
     border-radius: 4px;
-    padding: 4px;
-    background-color: var(--primary-focus);
     font-size: small;
 }
 
@@ -49,7 +45,6 @@ div.subLinks {
     display: flex;
     flex-direction: row;
     gap: 8px;
-    padding: 8px;
     flex-wrap: wrap;
 }
 
@@ -66,7 +61,6 @@ footer.footer {
 }
 
 button.factCheckButton {
-    color: hsl(var(--background-color));
     border: none;
     cursor: pointer;
     width: 100%;
@@ -96,6 +90,7 @@ div.inputFields {
     width: 100%;
     display: grid;
     grid-template-columns: 1fr auto;
+    grid-gap: 8px;
 }
 
 
@@ -107,7 +102,6 @@ div.dot2 {
     display: inline-block;
     position: absolute;
     top: 0;
-    background-color: var(--primary-focus);
     border-radius: 100%;
 
     -webkit-animation: sk-bounce 2.0s infinite ease-in-out;

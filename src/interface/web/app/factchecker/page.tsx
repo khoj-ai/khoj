@@ -6,9 +6,35 @@ import { useState, useEffect } from 'react';
 import ChatMessage, { Context, OnlineContextData, WebPage } from '../components/chatMessage/chatMessage';
 import { ModelPicker } from '../components/modelPicker/modelPicker';
 
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+  } from "@/components/ui/card"
+
+
 
 const chatURL = "/api/chat";
 const verificationPrecursor = "Limit your search to reputable sources. Search the internet for relevant supporting or refuting information. Do not reference my notes. Refuse to answer any queries that are not falsifiable by informing me that you will not answer the question. You're not permitted to ask follow-up questions, so do the best with what you have. Respond with **TRUE** or **FALSE** or **INCONCLUSIVE**, then provide your justification. Fact Check:"
+
+
+const LoadingSpinner = () => (
+    <div className={styles.loading}>
+        <div className={styles.loadingVerification}>
+            Researching...
+            <div className={styles.spinner}>
+                <div className={`${styles.dot1} bg-blue-300`}></div>
+                <div className={`${styles.dot2} bg-blue-300`}></div>
+            </div>
+        </div>
+    </div>
+);
 
 
 interface ResponseWithReferences {
@@ -86,13 +112,7 @@ async function verifyStatement(
 
 async function spawnNewConversation(setConversationID: (conversationID: string) => void) {
 
-    const agentSlug = "correct";
-
     let createURL = `/api/chat/sessions?client=web`;
-
-    // if (agentSlug) {
-    //     createURL += `&agent_slug=${agentSlug}`;
-    // }
 
     const response = await fetch(createURL, { method: "POST" });
 
@@ -120,26 +140,19 @@ function ReferenceVerification(props: ReferenceVerificationProps) {
     return (
         <div>
             {isLoading &&
-                <div className={styles.loadingVerification}>
-                    Checking... {props.additionalLink}
-                    <div className={styles.spinner}>
-                        <div className={styles.dot1}></div>
-                        <div className={styles.dot2}></div>
-                    </div>
-                </div>}
-            <div className={styles.responseText}>
-                <ChatMessage chatMessage={
-                    {
-                        automationId: "",
-                        by: "AI",
-                        intent: {},
-                        message: initialResponse,
-                        context: [],
-                        created: (new Date()).toISOString(),
-                        onlineContext: {}
-                    }
-                } setReferencePanelData={() => {}} setShowReferencePanel={() => {}} />
-            </div>
+                <LoadingSpinner />
+            }
+            <ChatMessage chatMessage={
+                {
+                    automationId: "",
+                    by: "AI",
+                    intent: {},
+                    message: initialResponse,
+                    context: [],
+                    created: (new Date()).toISOString(),
+                    onlineContext: {}
+                }
+            } setReferencePanelData={() => {}} setShowReferencePanel={() => {}} />
         </div>
     )
 }
@@ -152,6 +165,7 @@ export default function FactChecker() {
     const [initialResponse, setInitialResponse] = useState("");
     const [clickedVerify, setClickedVerify] = useState(false);
     const [initialReferences, setInitialReferences] = useState<ResponseWithReferences>();
+
     const [conversationID, setConversationID] = useState("");
     const [runId, setRunId] = useState("");
 
@@ -248,14 +262,16 @@ export default function FactChecker() {
             if (additionalLink === '') return null;
 
             return (
-              <div key={key + index} className={styles.reference}>
-                <div>
-                    <a className={styles.titleLink} href={additionalLink} target="_blank" rel="noreferrer">
-                        {onlineData?.organic?.[0]?.title}
-                    </a>
-                </div>
-                <ReferenceVerification additionalLink={additionalLink} message={officialFactToVerify} conversationId={conversationId} />
-              </div>
+                <Card key={key + index} className={`mt-2 mb-4`}>
+                    <CardHeader>
+                        <a className={styles.titleLink} href={additionalLink} target="_blank" rel="noreferrer">
+                            {onlineData?.organic?.[0]?.title}
+                        </a>
+                    </CardHeader>
+                    <CardContent>
+                        <ReferenceVerification additionalLink={additionalLink} message={officialFactToVerify} conversationId={conversationId} />
+                    </CardContent>
+                </Card>
             );
           }).filter(Boolean);
     };
@@ -266,7 +282,7 @@ export default function FactChecker() {
                 const webpageDomain = new URL(webpage.link).hostname;
                 return (
                     <div key={index} className={styles.subLinks}>
-                        <a className={styles.subLinks} href={webpage.link} target="_blank" rel="noreferrer">
+                        <a className={`${styles.subLinks} bg-blue-200 px-2`} href={webpage.link} target="_blank" rel="noreferrer">
                             {webpageDomain}
                         </a>
                     </div>
@@ -276,7 +292,7 @@ export default function FactChecker() {
             const webpageDomain = new URL(webpages.link).hostname;
             return (
                 <div className={styles.subLinks}>
-                    <a className={styles.subLinks} href={webpages.link} target="_blank" rel="noreferrer">
+                    <a className={`${styles.subLinks} bg-blue-200 px-2`} href={webpages.link} target="_blank" rel="noreferrer">
                         {webpageDomain}
                     </a>
                 </div>
@@ -286,14 +302,14 @@ export default function FactChecker() {
 
     return (
         <div className={styles.factCheckerContainer}>
-            <h1>AI Fact Checker</h1>
-
-            <footer className={styles.footer}>
+            <h1 className={`${styles.response} font-large outline-slate-800 dark:outline-slate-200`}>
+                AI Fact Checker
+            </h1>
+            <footer className={`${styles.footer} mt-4`}>
                 This is an experimental AI tool. It may make mistakes.
             </footer>
-            <div className={styles.inputFields}>
-                <input
-                    className={styles.factVerification}
+            <div className={`${styles.inputFields} mt-4`}>
+                <Input
                     type="text"
                     placeholder="Enter a falsifiable statement to verify"
                     disabled={isLoading}
@@ -306,35 +322,38 @@ export default function FactChecker() {
                     }}
                     onFocus={(e) => e.target.placeholder = ""}
                     onBlur={(e) => e.target.placeholder = "Enter a falsifiable statement to verify"} />
-                <button disabled={clickedVerify} className={styles.factCheckButton} onClick={() => setClickedVerify(!clickedVerify)}>Verify</button>
+                <Button disabled={clickedVerify} onClick={() => setClickedVerify(!clickedVerify)}>Verify</Button>
             </div>
-            <h3>Try with a particular model. You must be <a href="/config">subscribed</a> to use this feature.</h3>
+            <h3 className={`mt-4 mb-4`}>
+                Try with a particular model. You must be <a href="/config" className="font-medium text-blue-600 dark:text-blue-500 hover:underline">subscribed</a> to configure the model.
+            </h3>
             <ModelPicker disabled={isLoading} />
             {isLoading && <div className={styles.loading}>
-                <div className={styles.loadingVerification}>
-                    Researching...
-                    <div className={styles.spinner}>
-                        <div className={styles.dot1}></div>
-                        <div className={styles.dot2}></div>
-                    </div>
-                </div>
-            </div>}
+                    <LoadingSpinner />
+                </div>}
             {
                 initialResponse &&
-                <div className={styles.response}>
-                    <h2>Results</h2>
-                    <div className={styles.responseText}>
-                        <ChatMessage chatMessage={
-                            {
-                                automationId: "",
-                                by: "AI",
-                                intent: {},
-                                message: initialResponse,
-                                context: [],
-                                created: (new Date()).toISOString(),
-                                onlineContext: {}
-                            }
-                        } setReferencePanelData={() => {}} setShowReferencePanel={() => {}} />
+                <Card className={`mt-4`}>
+                    <CardHeader>
+                        <CardTitle>{factToVerify}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className={styles.responseText}>
+                            <ChatMessage chatMessage={
+                                {
+                                    automationId: "",
+                                    by: "AI",
+                                    intent: {},
+                                    message: initialResponse,
+                                    context: [],
+                                    created: (new Date()).toISOString(),
+                                    onlineContext: {}
+                                }
+                            } setReferencePanelData={() => {}} setShowReferencePanel={() => {}} />
+
+                        </div>
+                    </CardContent>
+                    <CardFooter>
                         {
                             initialReferences && initialReferences.online && Object.keys(initialReferences.online).length > 0 && (
                                 <div className={styles.subLinks}>
@@ -346,13 +365,13 @@ export default function FactChecker() {
                                     }
                                 </div>
                         )}
-                    </div>
-                </div>
+                    </CardFooter>
+                </Card>
             }
             {
                 initialReferences &&
                 <div className={styles.referenceContainer}>
-                    Supplements
+                    <h2 className="mt-4 mb-4">Supplements</h2>
                     <div className={styles.references}>
                         {initialReferences.online !== undefined && renderReferences(conversationID, initialReferences, officialFactToVerify)}
                     </div>
