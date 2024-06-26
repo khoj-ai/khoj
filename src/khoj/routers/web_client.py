@@ -129,6 +129,16 @@ def experimental_page(request: Request):
     )
 
 
+@web_client.get("/factchecker", response_class=FileResponse)
+def fact_checker_page(request: Request):
+    return templates.TemplateResponse(
+        "factchecker/index.html",
+        context={
+            "request": request,
+        },
+    )
+
+
 @web_client.get("/login", response_class=FileResponse)
 def login_page(request: Request):
     next_url = get_next_url(request)
