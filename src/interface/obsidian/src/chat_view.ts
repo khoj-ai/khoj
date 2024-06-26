@@ -461,7 +461,7 @@ export class KhojChatView extends KhojPaneView {
 
     renderActionButtons(message: string, chat_message_body_text_el: HTMLElement) {
         let copyButton = this.contentEl.createEl('button');
-        copyButton.classList.add("copy-button");
+        copyButton.classList.add("chat-action-button");
         copyButton.title = "Copy Message to Clipboard";
         setIcon(copyButton, "copy-plus");
         copyButton.addEventListener('click', createCopyParentText(message));
@@ -469,7 +469,7 @@ export class KhojChatView extends KhojPaneView {
 
         // Add button to paste into current buffer
         let pasteToFile = this.contentEl.createEl('button');
-        pasteToFile.classList.add("copy-button");
+        pasteToFile.classList.add("chat-action-button");
         pasteToFile.title = "Paste Message to File";
         setIcon(pasteToFile, "clipboard-paste");
         pasteToFile.addEventListener('click', (event) => { pasteTextAtCursor(createCopyParentText(message, 'clipboard-paste')(event)); });

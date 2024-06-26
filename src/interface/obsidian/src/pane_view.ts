@@ -38,16 +38,16 @@ export abstract class KhojPaneView extends ItemView {
         const leaves = workspace.getLeavesOfType(viewType);
 
         if (leaves.length > 0) {
-          // A leaf with our view already exists, use that
-          leaf = leaves[0];
+            // A leaf with our view already exists, use that
+            leaf = leaves[0];
         } else {
-          // Our view could not be found in the workspace, create a new leaf
-          // in the right sidebar for it
-          leaf = workspace.getRightLeaf(false);
-          await leaf?.setViewState({ type: viewType, active: true });
+            // Our view could not be found in the workspace, create a new leaf
+            // in the right sidebar for it
+            leaf = workspace.getRightLeaf(false);
+            await leaf?.setViewState({ type: viewType, active: true });
         }
 
         // "Reveal" the leaf in case it is in a collapsed sidebar
         if (leaf) workspace.revealLeaf(leaf);
-      }
+    }
 }
