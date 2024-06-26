@@ -294,8 +294,8 @@ export default function FactChecker() {
                     onBlur={(e) => e.target.placeholder = "Enter a falsifiable statement to verify"} />
                 <button disabled={clickedVerify} className={styles.factCheckButton} onClick={() => setClickedVerify(!clickedVerify)}>Verify</button>
             </div>
-            <h3>Try with a particular model</h3>
-            <ModelPicker />
+            <h3>Try with a particular model. You must be <a href="/config">subscribed</a> to use this feature.</h3>
+            <ModelPicker disabled={isLoading} />
             {isLoading && <div className={styles.loading}>
                 <div className={styles.loadingVerification}>
                     Researching...
@@ -338,7 +338,7 @@ export default function FactChecker() {
             {
                 initialReferences &&
                 <div className={styles.referenceContainer}>
-                    References
+                    Supplements
                     <div className={styles.references}>
                         {initialReferences.online !== undefined && renderReferences(conversationID, initialReferences, officialFactToVerify)}
                     </div>

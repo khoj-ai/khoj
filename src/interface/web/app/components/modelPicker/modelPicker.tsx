@@ -54,7 +54,11 @@ export const useSelectedModel = (url: string) => {
     }
 }
 
-export const ModelPicker: React.FC<any> = () => {
+interface ModelPickerProps {
+    disabled?: boolean;
+}
+
+export const ModelPicker: React.FC<any> = (props: ModelPickerProps) => {
     const { data: models } = useOptionsRequest('/api/config/data/conversation/model/options');
     const { data: selectedModel } = useSelectedModel('/api/config/data/conversation/model');
 
@@ -90,7 +94,7 @@ export const ModelPicker: React.FC<any> = () => {
             } else {
                 console.error('Selected model not found', e.target.value);
             }
-        }}>
+        }} disabled={props.disabled}>
             {models?.map((model) => (
                 <option key={model.id} value={model.id} selected={selectedModel?.id === model.id}>
                     {model.chat_model}
