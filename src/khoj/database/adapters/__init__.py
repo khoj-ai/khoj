@@ -45,9 +45,9 @@ from khoj.database.models import (
     Subscription,
     TextToImageModelConfig,
     UserConversationConfig,
-    UserPaintModelConfig,
     UserRequests,
     UserSearchModelConfig,
+    UserTextToImageModelConfig,
     UserVoiceModelConfig,
     VoiceModelOption,
 )
@@ -897,25 +897,27 @@ class ConversationAdapters:
         return TextToImageModelConfig.objects.all()
 
     @staticmethod
-    def get_user_paint_model_config(user: KhojUser):
-        config = UserPaintModelConfig.objects.filter(user=user).first()
+    def get_user_text_to_image_model_config(user: KhojUser):
+        config = UserTextToImageModelConfig.objects.filter(user=user).first()
         if not config:
             return None
         return config.setting
 
     @staticmethod
-    async def aget_user_paint_model(user: KhojUser):
-        config = await UserPaintModelConfig.objects.filter(user=user).prefetch_related("setting").afirst()
+    async def aget_user_text_to_image_model(user: KhojUser):
+        config = await UserTextToImageModelConfig.objects.filter(user=user).prefetch_related("setting").afirst()
         if not config:
             return None
         return config.setting
 
     @staticmethod
-    async def aset_user_paint_model(user: KhojUser, text_to_image_model_config_id: int):
+    async def aset_user_text_to_image_model(user: KhojUser, text_to_image_model_config_id: int):
         config = await TextToImageModelConfig.objects.filter(id=text_to_image_model_config_id).afirst()
         if not config:
             return None
-        new_config, _ = await UserPaintModelConfig.objects.aupdate_or_create(user=user, defaults={"setting": config})
+        new_config, _ = await UserTextToImageModelConfig.objects.aupdate_or_create(
+            user=user, defaults={"setting": config}
+        )
         return new_config
 
 

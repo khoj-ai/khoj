@@ -262,7 +262,7 @@ def config_page(request: Request):
 
     current_search_model_option = adapters.get_user_search_model_or_default(user)
 
-    selected_paint_model_config = ConversationAdapters.get_user_paint_model_config(user)
+    selected_paint_model_config = ConversationAdapters.get_user_text_to_image_model_config(user)
     paint_model_options = ConversationAdapters.get_text_to_image_model_options().all()
     all_paint_model_options = list()
     for paint_model in paint_model_options:

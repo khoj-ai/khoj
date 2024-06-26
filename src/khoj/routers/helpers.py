@@ -762,7 +762,7 @@ async def text_to_image(
     image_url = None
     intent_type = ImageIntentType.TEXT_TO_IMAGE_V3
 
-    text_to_image_config = await ConversationAdapters.aget_user_paint_model(user)
+    text_to_image_config = await ConversationAdapters.aget_user_text_to_image_model(user)
     if not text_to_image_config:
         # If the user has not configured a text to image model, return an unsupported on server error
         status_code = 501
@@ -796,9 +796,19 @@ async def text_to_image(
 
     if text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
         with timer("Generate image with OpenAI", logger):
+            if text_to_image_config.api_key:
+                api_key = text_to_image_config.api_key
+            elif text_to_image_config.openai_config:
+                api_key = text_to_image_config.openai_config.api_key
+            elif state.openai_client:
+                api_key = state.openai_client.api_key
+            auth_header = {"Authorization": f"Bearer {api_key}"} if api_key else {}
             try:
                 response = state.openai_client.images.generate(
-                    prompt=improved_image_prompt, model=text2image_model, response_format="b64_json"
+                    prompt=improved_image_prompt,
+                    model=text2image_model,
+                    response_format="b64_json",
+                    extra_headers=auth_header,
                 )
                 image = response.data[0].b64_json
                 decoded_image = base64.b64decode(image)

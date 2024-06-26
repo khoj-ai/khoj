@@ -328,7 +328,7 @@ async def update_paint_model(
     if not subscribed:
         raise HTTPException(status_code=403, detail="User is not subscribed to premium")
 
-    new_config = await ConversationAdapters.aset_user_paint_model(user, int(id))
+    new_config = await ConversationAdapters.aset_user_text_to_image_model(user, int(id))
 
     update_telemetry_state(
         request=request,

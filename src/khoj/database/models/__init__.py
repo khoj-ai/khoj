@@ -239,6 +239,32 @@ class TextToImageModelConfig(BaseModel):
     model_name = models.CharField(max_length=200, default="dall-e-3")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OPENAI)
     api_key = models.CharField(max_length=200, default=None, null=True, blank=True)
+    openai_config = models.ForeignKey(
+        OpenAIProcessorConversationConfig, on_delete=models.CASCADE, default=None, null=True, blank=True
+    )
+
+    def clean(self):
+        # Custom validation logic
+        error = {}
+        if self.model_type == self.ModelType.OPENAI:
+            if self.api_key and self.openai_config:
+                error[
+                    "api_key"
+                ] = "Both API key and OpenAI config cannot be set for OpenAI models. Please set only one of them."
+                error[
+                    "openai_config"
+                ] = "Both API key and OpenAI config cannot be set for OpenAI models. Please set only one of them."
+        if self.model_type != self.ModelType.OPENAI:
+            if not self.api_key:
+                error["api_key"] = "The API key field must be set for non OpenAI models."
+            if self.openai_config:
+                error["openai_config"] = "OpenAI config cannot be set for non OpenAI models."
+        if error:
+            raise ValidationError(error)
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
 
 class SpeechToTextModelOptions(BaseModel):
@@ -265,7 +291,7 @@ class UserSearchModelConfig(BaseModel):
     setting = models.ForeignKey(SearchModelConfig, on_delete=models.CASCADE)
 
 
-class UserPaintModelConfig(BaseModel):
+class UserTextToImageModelConfig(BaseModel):
     user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
     setting = models.ForeignKey(TextToImageModelConfig, on_delete=models.CASCADE)
 
