@@ -81,5 +81,5 @@ button.codeCopyButton:hover {
 
 div.feedbackButtons img,
 button.copyButton img {
-    width: auto;
+    width: 24px;
 }

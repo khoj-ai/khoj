@@ -56,7 +56,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
             // If the addedNodes property has one or more nodes
             for(let mutation of mutationsList) {
                 if(mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                    console.log('A child node has been added.');
                     // Call your function here
                     renderMathInElement(document.body, {
                         delimiters: [

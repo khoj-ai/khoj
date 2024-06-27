@@ -497,6 +497,7 @@ export default function FactChecker() {
                     <div className={`${styles.inputFields} mt-4`}>
                         <Input
                             type="text"
+                            maxLength={200}
                             placeholder="Enter a falsifiable statement to verify"
                             disabled={isLoading}
                             onChange={(e) => setFactToVerify(e.target.value)}
