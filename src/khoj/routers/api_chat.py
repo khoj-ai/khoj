@@ -2,7 +2,7 @@ import json
 import logging
 import math
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 from urllib.parse import unquote
 
 from asgiref.sync import sync_to_async
@@ -15,6 +15,7 @@ from websockets import ConnectionClosedOK
 
 from khoj.database.adapters import (
     ConversationAdapters,
+    DataStoreAdapters,
     EntryAdapters,
     FileObjectAdapters,
     PublicConversationAdapters,
@@ -92,6 +93,42 @@ def get_file_filter(request: Request, conversation_id: str) -> Response:
         if file in file_list:
             file_filters.append(file)
     return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
+
+
+class FactCheckerStoreData(BaseModel):
+    runId: str
+    storeData: Dict[str, Any]
+
+
+@api_chat.post("/store/factchecker", response_class=Response)
+@requires(["authenticated"])
+async def store_factchecker(request: Request, common: CommonQueryParams, data: FactCheckerStoreData):
+    user = request.user.object
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="store_factchecker",
+        **common.__dict__,
+    )
+    fact_checker_key = f"factchecker_{data.runId}"
+    await DataStoreAdapters.astore_data(data.storeData, fact_checker_key, user, private=False)
+    return Response(content=json.dumps({"status": "ok"}), media_type="application/json", status_code=200)
+
+
+@api_chat.get("/store/factchecker", response_class=Response)
+async def get_factchecker(request: Request, common: CommonQueryParams, runId: str):
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="read_factchecker",
+        **common.__dict__,
+    )
+
+    fact_checker_key = f"factchecker_{runId}"
+
+    data = await DataStoreAdapters.aretrieve_public_data(fact_checker_key)
+    return Response(content=json.dumps(data.value), media_type="application/json", status_code=200)
 
 
 @api_chat.post("/conversation/file-filters", response_class=Response)
