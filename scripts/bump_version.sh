@@ -11,17 +11,17 @@ do
 
             # Bump Desktop app to current version
             cd $project_root/src/interface/desktop
-            npm version $version_type
+            yarn version --$version_type --no-git-tag-version
 
             # Get bumped project version
             current_version=$(grep '"version":' package.json | awk -F '"' '{print $4}')
 
             # Bump Obsidian plugin to current version
             cd $project_root/src/interface/obsidian
-            npm version $version_type
+            yarn version --$version_type --no-git-tag-version
             # append current version, min Obsidian app version from manifest to versions json
             cp $project_root/versions.json .
-            npm run version  # run Obsidian version script
+            yarn run version  # run Obsidian version script
 
             # Bump Emacs package to current version
             cd ../emacs
@@ -41,7 +41,7 @@ do
             git add \
                 $project_root/src/interface/desktop/package.json \
                 $project_root/src/interface/obsidian/package.json \
-                $project_root/src/interface/obsidian/package-lock.json \
+                $project_root/src/interface/obsidian/yarn.lock \
                 $project_root/src/interface/obsidian/manifest.json \
                 $project_root/src/interface/obsidian/versions.json \
                 $project_root/src/interface/emacs/khoj.el \
@@ -56,14 +56,14 @@ do
 
             # Bump Desktop app to current version
             cd $project_root/src/interface/desktop
-            npm version $current_version
+            yarn version --new-version $current_version --no-git-tag-version
 
             # Bump Obsidian plugin to current version
             cd $project_root/src/interface/obsidian
-            npm version $current_version
+            yarn version --new-version $current_version --no-git-tag-version
             # append current version, min Obsidian app version from manifest.json to versions.json
             cp $project_root/versions.json .
-            npm run version  # run Obsidian version script
+            yarn run version  # run Obsidian version script
 
             # Bump Emacs package to current version
             cd ../emacs
@@ -83,7 +83,7 @@ do
             git add \
                 $project_root/src/interface/desktop/package.json \
                 $project_root/src/interface/obsidian/package.json \
-                $project_root/src/interface/obsidian/package-lock.json \
+                $project_root/src/interface/obsidian/yarn.lock \
                 $project_root/src/interface/obsidian/manifest.json \
                 $project_root/src/interface/obsidian/versions.json \
                 $project_root/src/interface/emacs/khoj.el \
@@ -100,14 +100,14 @@ do
 
             # Bump Desktop app to next version
             cd $project_root/src/interface/desktop
-            npm version $next_version
+            yarn version --new-version $next_version --no-git-tag-version
 
             # Bump Obsidian plugins to next version
             cd $project_root/src/interface/obsidian
-            npm version $next_version
+            yarn version --new-version $next_version --no-git-tag-version
             # append next version, min Obsidian app version from manifest to versions json
             git rm --cached -- versions.json
-            npm run version  # run Obsidian version script
+            yarn run version  # run Obsidian version script
 
             # Bump Emacs package to next version
             cd $project_root/src/interface/emacs
@@ -121,7 +121,7 @@ do
             git add \
                 $project_root/src/interface/desktop/package.json \
                 $project_root/src/interface/obsidian/package.json \
-                $project_root/src/interface/obsidian/package-lock.json \
+                $project_root/src/interface/obsidian/yarn.lock \
                 $project_root/src/interface/obsidian/manifest.json \
                 $project_root/src/interface/obsidian/versions.json \
                 $project_root/src/interface/emacs/khoj.el

@@ -75,7 +75,6 @@ const config = {
     ({
       image: 'img/khoj-logo-sideways-500.png',
       metadata: [
-        {name: 'keywords', content: 'khoj, khoj ai, chatgpt, open ai, open source, productivity'},
         {name: 'og:title', content: 'Khoj Documentation'},
         {name: 'og:type', content: 'website'},
         {name: 'og:site_name', content: 'Khoj Documentation'},
@@ -129,18 +128,18 @@ const config = {
               },
               {
                 label: 'Features',
-                to: '/features/all_features',
+                to: '/features/all-features',
               },
               {
                 label: 'Client Apps',
                 to: '/category/clients',
               },
               {
-                label: 'Self-Hosting',
+                label: 'Self-Host',
                 to: '/get-started/setup',
               },
               {
-                label: 'Contributing',
+                label: 'Contribute',
                 to: '/contributing/development',
               },
             ],

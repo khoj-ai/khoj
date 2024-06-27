@@ -7,8 +7,8 @@ sidebar_position: 1
 > Query your Second Brain from your machine
 
 Use the Desktop app to chat and search with Khoj.
-You can also sync any relevant files with Khoj using the app.
-Khoj will use these files to provide contextual responses when you search or chat.
+You can also share your files, folders with Khoj using the app.
+Khoj will keep these files in sync to provide contextual responses when you search or chat.
 
 ## Features
 - **Chat**
@@ -25,6 +25,7 @@ Khoj will use these files to provide contextual responses when you search or cha
 2. Generate an API key on the [Khoj Web App](https://app.khoj.dev/config#clients)
 3. Set your Khoj API Key on the *Settings* page of the Khoj Desktop app
 4. [Optional] Add any files, folders you'd like Khoj to be aware of on the *Settings* page and Click *Save*
+   These files and folders will be automatically kept in sync for you
 
 ## Interface
 | Chat | Search |

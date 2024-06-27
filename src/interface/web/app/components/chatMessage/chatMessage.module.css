@@ -1,7 +1,11 @@
 div.chatMessageContainer {
     display: flex;
     flex-direction: column;
+    margin: 0.5rem;
+    padding: 0.5rem;
     border-radius: 0.5rem;
+    border: 1px solid black;
+    /* max-width: 80%; */
 }
 
 div.you {
@@ -68,12 +72,6 @@ button.codeCopyButton {
     cursor: pointer;
     float: right;
     border-radius: 8px;
-}
-
-button.copyButton,
-button.thumbsUpButton,
-button.thumbsDownButton {
-    max-width: 32px;
 }
 
 button.codeCopyButton:hover {

@@ -4,19 +4,22 @@ import NavMenu from '../components/navMenu/navMenu';
 import styles from './agentsLayout.module.css';
 
 export const metadata: Metadata = {
-  title: "Khoj AI - Agents",
-  description: "Use Agents with Khoj AI for deeper, more personalized queries.",
+    title: "Khoj AI - Agents",
+    description: "Use Agents with Khoj AI for deeper, more personalized queries.",
+    icons: {
+        icon: '/static/favicon.ico',
+    },
 };
 
 export default function RootLayout({
-  children,
+    children,
 }: Readonly<{
-  children: React.ReactNode;
+    children: React.ReactNode;
 }>) {
-  return (
-      <div className={`${styles.agentsLayout}`}>
-        <NavMenu selected="Agents" />
-        {children}
-      </div>
-  );
+    return (
+        <div className={`${styles.agentsLayout}`}>
+            <NavMenu selected="Agents" />
+            {children}
+        </div>
+    );
 }

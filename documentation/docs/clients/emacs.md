@@ -90,13 +90,13 @@ M-x package-install khoj
 See [Khoj Search](/features/search) for details
 1. Hit  `C-c s s` (or `M-x khoj RET s`) to open khoj search
 2. Enter your query in natural language<br/>
-  E.g *"What is the meaning of life?"*, *"My life goals for 2023"*
+  E.g. *"What is the meaning of life?"*, *"My life goals for 2023"*
 
 ### Chat
 See [Khoj Chat](/features/chat) for details
 1. Hit `C-c s c` (or `M-x khoj RET c`) to open khoj chat
 2. Ask questions in a natural, conversational style<br/>
-  E.g *"When did I file my taxes last year?"*
+  E.g. *"When did I file my taxes last year?"*
 
 ### Find Similar Entries
 This feature finds entries similar to the one you are currently on.
@@ -105,7 +105,7 @@ This feature finds entries similar to the one you are currently on.
 
 ### Advanced Usage
 - Add [query filters](https://github.com/khoj-ai/khoj/#query-filters) during search to narrow down results further
-  e.g `What is the meaning of life? -"god" +"none" dt>"last week"`
+  e.g. `What is the meaning of life? -"god" +"none" dt>"last week"`
 
 - Use `C-c C-o 2` to open the current result at cursor in its source org file
   - This calls `M-x org-open-at-point` on the current entry and opens the second link in the entry.

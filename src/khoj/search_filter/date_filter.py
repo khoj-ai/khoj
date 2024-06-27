@@ -125,7 +125,7 @@ class DateFilter(BaseFilter):
             return []
 
         # extract, parse natural dates ranges from date range filter passed in query
-        # e.g today maps to (start_of_day, start_of_tomorrow)
+        # e.g. today maps to (start_of_day, start_of_tomorrow)
         date_ranges_from_filter = []
         for cmp, date_str in date_range_matches:
             if self.parse(date_str):
@@ -133,7 +133,7 @@ class DateFilter(BaseFilter):
                 date_ranges_from_filter += [[cmp, (dt_start.timestamp(), dt_end.timestamp())]]
 
         # Combine dates with their comparators to form date range intervals
-        # For e.g
+        # For e.g.
         #   >=yesterday maps to [start_of_yesterday, inf)
         #   <tomorrow maps to [0, start_of_tomorrow)
         # ---

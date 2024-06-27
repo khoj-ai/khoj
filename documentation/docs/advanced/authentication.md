@@ -1,11 +1,16 @@
-# Authentication when Self-Hosting
+# Authenticate
 
-By default, most of the instructions for self-hosting Khoj assume a single user, and so the default configuration is to run in anonymous mode. However, if you want to enable authentication, you can do so either with [Google Auth](/miscellaneous/google_auth) or with magic links, as shown below. This can be helpful if you want to make sure your Khoj instance is only accessible to you and your team.
+:::info
+This is only helpful for self-hosted users or teams. If you're using [Khoj Cloud](https://app.khoj.dev), both Magic Links and Google OAuth work.
+:::
+
+By default, most of the instructions for self-hosting Khoj assume a single user, and so the default configuration is to run in anonymous mode. However, if you want to enable authentication, you can do so either with with [Magic Links](#using-magic-links) or [Google OAuth](#using-google-oauth) as shown below. This can be helpful to make Khoj securely accessible to you and your team.
 
 :::tip[Note]
 Remove the `--anonymous-mode` flag in your start up command to enable authentication.
 :::
 
+## Using Magic Links
 The most secure way to do this is to integrate with [Resend](https://resend.com) by setting up an account and adding an environment variable for `RESEND_API_KEY`. You can get your API key [here](https://resend.com/api-keys). This will allow you to automatically send sign-in links to users who want to log in.
 
 It's still possible to use the magic links feature without Resend, but you'll need to manually send the magic links to users who want to log in.
@@ -28,3 +33,20 @@ Go to the [admin panel](http://localhost:42110/server/admin/database/khojuser/).
 Once they click on the link, they'll automatically be logged in. They'll have to repeat this process for every new device they want to log in from, but they shouldn't have to repeat it on the same device.
 
 A given magic link can only be used once. If the user tries to use it again, they'll be redirected to the login page to get a new magic link.
+
+## Using Google OAuth
+
+To set up your self-hosted Khoj with Google Auth, you need to create a project in the Google Cloud Console and enable the Google Auth API.
+
+To implement this, you'll need to:
+1. You must use the `python` package or build from source, because you'll need to install additional packages for the google auth libraries (`prod`). The syntax to install the right packages is
+   ```
+   pip install khoj-assistant[prod]
+   ```
+2. [Create authorization credentials](https://developers.google.com/identity/sign-in/web/sign-in) for your application.
+3. Open your [Google cloud console](https://console.developers.google.com/apis/credentials) and create a configuration like below for the relevant `OAuth 2.0 Client IDs` project:
+![Google auth login project settings](https://github.com/khoj-ai/khoj/assets/65192171/9bcbf6f4-197d-4d0c-973a-c10b1331c892)
+
+4. Configure these environment variables: `GOOGLE_CLIENT_SECRET`, and `GOOGLE_CLIENT_ID`. You can find these values in the Google cloud console, in the same place where you configured the authorized origins and redirect URIs.
+
+That's it! That should be all you have to do. Now, when you reload Khoj without `--anonymous-mode`, you should be able to use your Google account to sign in.
