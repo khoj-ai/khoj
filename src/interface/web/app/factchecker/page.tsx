@@ -5,7 +5,7 @@ import { useAuthenticatedData } from '@/app/common/auth';
 import { useState, useEffect } from 'react';
 
 import ChatMessage, { Context, OnlineContextData, WebPage } from '../components/chatMessage/chatMessage';
-import { ModelPicker } from '../components/modelPicker/modelPicker';
+import { ModelPicker, Model } from '../components/modelPicker/modelPicker';
 import ShareLink from '../components/shareLink/shareLink';
 
 import { Input } from "@/components/ui/input"
@@ -68,7 +68,6 @@ function handleCompiledReferences(chunk: string, currentResponse: string) {
         references.online = rawReferenceAsJson;
     }
 
-    console.log(references);
     return references;
 }
 
@@ -81,7 +80,6 @@ async function verifyStatement(
     setInitialReferences: (references: ResponseWithReferences) => void) {
         setIsLoading(true);
         // Send a message to the chat server to verify the fact
-        console.log("Verifying statement: ", message);
         let verificationMessage = `${verificationPrecursor} ${message}`;
         const apiURL = `${chatURL}?q=${encodeURIComponent(verificationMessage)}&client=web&stream=true&conversation_id=${conversationId}`;
         try {
@@ -125,7 +123,6 @@ async function spawnNewConversation(setConversationID: (conversationID: string) 
     const response = await fetch(createURL, { method: "POST" });
 
     const data = await response.json();
-    console.log("Spawned new conversation: ", data);
     setConversationID(data.conversation_id);
 }
 
@@ -238,10 +235,13 @@ export default function FactChecker() {
     const [clickedVerify, setClickedVerify] = useState(false);
     const [initialReferences, setInitialReferences] = useState<ResponseWithReferences>();
     const [childReferences, setChildReferences] = useState<SupplementReferences[]>();
+    const [modelUsed, setModelUsed] = useState<Model>();
 
     const [conversationID, setConversationID] = useState("");
     const [runId, setRunId] = useState("");
     const [loadedFromStorage, setLoadedFromStorage] = useState(false);
+
+    const [initialModel, setInitialModel] = useState<Model>();
 
     function setChildReferencesCallback(additionalLink: string, response: string, linkTitle: string) {
         const newReferences = childReferences || [];
@@ -259,7 +259,8 @@ export default function FactChecker() {
             response: initialResponse,
             references: initialReferences,
             childReferences,
-            runId
+            runId,
+            modelUsed,
         };
 
         fetch(`/api/chat/store/factchecker`, {
@@ -305,12 +306,16 @@ export default function FactChecker() {
                 const storedDataURL = `/api/chat/store/factchecker?runId=${runIdParam}`;
                 try {
                     const response = await fetch(storedDataURL);
+                    if (response.status !== 200) {
+                        throw new Error("Failed to fetch stored data");
+                    }
                     const storedData = JSON.parse(await response.json());
                     if (storedData) {
                         setOfficialFactToVerify(storedData.factToVerify);
                         setInitialResponse(storedData.response);
                         setInitialReferences(storedData.references);
                         setChildReferences(storedData.childReferences);
+                        setInitialModel(storedData.modelUsed);
                     }
                     setLoadedFromStorage(true);
                 } catch (error) {
@@ -394,7 +399,6 @@ export default function FactChecker() {
                     const webpage = webpages[i];
                     const additionalLink = webpage.link || '';
                     if (seenLinks.has(additionalLink)) {
-                        console.log("collision on link: ", additionalLink);
                         return null;
                     }
                     seenLinks.add(additionalLink);
@@ -514,10 +518,9 @@ export default function FactChecker() {
                     <h3 className={`mt-4 mb-4`}>
                         Try with a particular model. You must be <a href="/config" className="font-medium text-blue-600 dark:text-blue-500 hover:underline">subscribed</a> to configure the model.
                     </h3>
-                    <ModelPicker disabled={isLoading} />
                 </div>
             }
-
+            <ModelPicker disabled={isLoading || loadedFromStorage} setModelUsed={setModelUsed} initialModel={initialModel} />
             {isLoading && <div className={styles.loading}>
                     <LoadingSpinner />
                 </div>}

@@ -17,3 +17,7 @@ select.modelPicker:after {
     grid-area: select;
     justify-self: end;
 }
+
+div.modelPicker {
+    margin-top: 8px;
+}

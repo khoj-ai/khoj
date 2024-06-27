@@ -101,6 +101,7 @@ class FactCheckerStoreDataFormat(BaseModel):
     references: Any
     childReferences: List[Any]
     runId: str
+    modelUsed: Dict[str, Any]
 
 
 class FactCheckerStoreData(BaseModel):
@@ -136,6 +137,8 @@ async def get_factchecker(request: Request, common: CommonQueryParams, runId: st
     fact_checker_key = f"factchecker_{runId}"
 
     data = await DataStoreAdapters.aretrieve_public_data(fact_checker_key)
+    if data is None:
+        return Response(status_code=404)
     return Response(content=json.dumps(data.value), media_type="application/json", status_code=200)
 
 

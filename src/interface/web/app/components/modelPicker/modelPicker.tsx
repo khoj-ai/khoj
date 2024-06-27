@@ -1,5 +1,5 @@
 import { useAuthenticatedData } from '@/app/common/auth';
-import React from 'react';
+import React, { useEffect } from 'react';
 import useSWR from 'swr';
 import {
     AlertDialog,
@@ -14,7 +14,6 @@ import {
 
 
 import styles from './modelPicker.module.css';
-import { Button } from '@/components/ui/button';
 
 export interface Model {
     id: number;
@@ -64,14 +63,22 @@ export const useSelectedModel = (url: string) => {
 
 interface ModelPickerProps {
     disabled?: boolean;
+    setModelUsed?: (model: Model) => void;
+    initialModel?: Model;
 }
 
 export const ModelPicker: React.FC<any> = (props: ModelPickerProps) => {
     const { data: models } = useOptionsRequest('/api/config/data/conversation/model/options');
     const { data: selectedModel } = useSelectedModel('/api/config/data/conversation/model');
-    const [open, setOpen] = React.useState(false);
+    const [openLoginDialog, setOpenLoginDialog] = React.useState(false);
 
     let userData = useAuthenticatedData();
+
+    useEffect(() => {
+        if (props.setModelUsed && selectedModel) {
+            props.setModelUsed(selectedModel);
+        }
+    }, [selectedModel]);
 
     if (!models) {
         return <div>Loading...</div>;
@@ -79,8 +86,12 @@ export const ModelPicker: React.FC<any> = (props: ModelPickerProps) => {
 
     function onSelect(model: Model) {
         if (!userData) {
-            setOpen(true);
+            setOpenLoginDialog(true);
             return;
+        }
+
+        if (props.setModelUsed) {
+            props.setModelUsed(model);
         }
 
         fetch('/api/config/data/conversation/model' + '?id=' + String(model.id), { method: 'POST', body: JSON.stringify(model) })
@@ -92,6 +103,13 @@ export const ModelPicker: React.FC<any> = (props: ModelPickerProps) => {
             .catch((error) => {
                 console.error('Failed to select model', error);
             });
+    }
+
+    function isSelected(model: Model) {
+        if (props.initialModel) {
+            return model.id === props.initialModel.id;
+        }
+        return selectedModel?.id === model.id;
     }
 
     return (
@@ -106,12 +124,12 @@ export const ModelPicker: React.FC<any> = (props: ModelPickerProps) => {
                 }
             }} disabled={props.disabled}>
                 {models?.map((model) => (
-                    <option key={model.id} value={model.id} selected={selectedModel?.id === model.id}>
+                    <option key={model.id} value={model.id} selected={isSelected(model)}>
                         {model.chat_model}
                     </option>
                 ))}
             </select>
-            <AlertDialog open={open} onOpenChange={setOpen}>
+            <AlertDialog open={openLoginDialog} onOpenChange={setOpenLoginDialog}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                     <AlertDialogTitle>You must be logged in to configure your model.</AlertDialogTitle>
