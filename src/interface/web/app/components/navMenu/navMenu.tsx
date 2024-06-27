@@ -47,7 +47,6 @@ function SettingsMenu(props: UserProfile) {
 export default function NavMenu(props: NavMenuProps) {
 
     let userData = useAuthenticatedData();
-    console.log("nav menu", userData);
     return (
         <div className={styles.titleBar}>
             <Link href="/">

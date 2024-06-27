@@ -58,7 +58,6 @@ function Loading() {
 
 function handleChatInput(e: React.FormEvent<HTMLInputElement>) {
     const target = e.target as HTMLInputElement;
-    console.log(target.value);
 }
 
 export default function Chat() {
@@ -72,7 +71,6 @@ export default function Chat() {
                 setLoading(false);
                 // Render chat options, if any
                 if (data) {
-                    console.log(data);
                     setChatOptionsData(data);
                 }
             })

@@ -60,7 +60,6 @@ export default function SidePanel() {
                 setLoading(false);
                 // Render chat options, if any
                 if (data) {
-                    console.log(data);
                     setData(data);
                     setDataToShow(data.slice(0, 5));
                 }

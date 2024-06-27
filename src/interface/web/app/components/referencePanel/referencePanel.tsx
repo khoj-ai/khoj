@@ -33,7 +33,6 @@ export function hasValidReferences(referencePanelData: SingleChatMessage | null)
 
 function CompiledReference(props: { context: (Context | string) }) {
 
-    console.log("CONTEXT", props.context);
     let snippet = "";
     let file = "";
     if (typeof props.context === "string") {
@@ -66,7 +65,6 @@ function CompiledReference(props: { context: (Context | string) }) {
 }
 
 function WebPageReference(props: { webpages: WebPage, query: string | null }) {
-    console.log("ONLINE REFERENCE", props.webpages);
 
     let snippet = md.render(props.webpages.snippet);
 
@@ -168,8 +166,6 @@ function OnlineReferences(props: { onlineContext: OnlineContextData, query: stri
 }
 
 export default function ReferencePanel(props: ReferencePanelProps) {
-
-    console.log("REFERENCE PANEL", props.referencePanelData);
 
     if (!props.referencePanelData) {
         return null;

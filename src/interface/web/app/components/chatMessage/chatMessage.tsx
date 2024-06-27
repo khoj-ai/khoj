@@ -160,7 +160,6 @@ export default function ChatMessage(props: ChatMessageProps) {
     const messageRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        console.log("add a copy button to the code block")
         if (messageRef.current) {
             const preElements = messageRef.current.querySelectorAll('pre > .hljs');
             preElements.forEach((preElement) => {

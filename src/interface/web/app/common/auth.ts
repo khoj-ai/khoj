@@ -16,9 +16,6 @@ export function useAuthenticatedData() {
 
     const { data, error } = useSWR<UserProfile>('/api/v1/user', userFetcher, { revalidateOnFocus: false });
 
-    console.log("auth data returned", data);
-    console.log("error auth data", error);
-
     if (error) return null;
     if (!data) return null;
 
