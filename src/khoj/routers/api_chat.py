@@ -2,7 +2,7 @@ import json
 import logging
 import math
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import unquote
 
 from asgiref.sync import sync_to_async
@@ -95,9 +95,17 @@ def get_file_filter(request: Request, conversation_id: str) -> Response:
     return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
 
 
+class FactCheckerStoreDataFormat(BaseModel):
+    factToVerify: str
+    response: str
+    references: Any
+    childReferences: List[Any]
+    runId: str
+
+
 class FactCheckerStoreData(BaseModel):
     runId: str
-    storeData: Dict[str, Any]
+    storeData: FactCheckerStoreDataFormat
 
 
 @api_chat.post("/store/factchecker", response_class=Response)
@@ -112,7 +120,7 @@ async def store_factchecker(request: Request, common: CommonQueryParams, data: F
         **common.__dict__,
     )
     fact_checker_key = f"factchecker_{data.runId}"
-    await DataStoreAdapters.astore_data(data.storeData, fact_checker_key, user, private=False)
+    await DataStoreAdapters.astore_data(data.storeData.model_dump_json(), fact_checker_key, user, private=False)
     return Response(content=json.dumps({"status": "ok"}), media_type="application/json", status_code=200)
 
 

@@ -262,9 +262,6 @@ export default function FactChecker() {
             runId
         };
 
-        console.log("Storing data: ", data);
-        // return;
-
         fetch(`/api/chat/store/factchecker`, {
             method: 'POST',
             headers: {
@@ -308,7 +305,7 @@ export default function FactChecker() {
                 const storedDataURL = `/api/chat/store/factchecker?runId=${runIdParam}`;
                 try {
                     const response = await fetch(storedDataURL);
-                    const storedData = await response.json();
+                    const storedData = JSON.parse(await response.json());
                     if (storedData) {
                         setOfficialFactToVerify(storedData.factToVerify);
                         setInitialResponse(storedData.response);

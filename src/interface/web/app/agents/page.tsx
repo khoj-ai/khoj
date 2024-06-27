@@ -30,7 +30,6 @@ async function openChat(slug: string, userData: UserProfile | null) {
     console.log("openChat", slug, userData);
 
     const response = await fetch(`/api/chat/sessions?agent_slug=${slug}`, { method: "POST" });
-    // const data = await response.json();
     if (response.status == 200) {
         window.location.href = `/chat`;
     } else if(response.status == 403 || response.status == 401) {
