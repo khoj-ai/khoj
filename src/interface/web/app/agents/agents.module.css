@@ -1,0 +1,215 @@
+div.titleBar {
+    padding: 16px 0;
+    text-align: center;
+    font-size: larger;
+}
+
+.agentPersonality p {
+    white-space: inherit;
+    overflow: hidden;
+    height: 78px;
+    line-height: 1.5;
+}
+
+div.agentPersonality {
+    text-align: left;
+    grid-column: span 3;
+    overflow: hidden;
+}
+
+div.agentInfo {
+    font-size: medium;
+}
+
+div.agentInfo a,
+div.agentInfo h2 {
+    margin: 0;
+}
+
+div.agent img {
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+div.agent a {
+    text-decoration: none;
+    color: var(--main-text-color);
+}
+
+div#agentsHeader {
+    display: grid;
+    grid-template-columns: auto;
+}
+
+button.infoButton {
+    border: none;
+    background-color: transparent !important;
+    text-align: left;
+    font-family: inherit;
+    font-size: medium;
+}
+
+div#agentsHeader a,
+div.agentInfo button {
+    font-size: 24px;
+    font-weight: bold;
+    padding: 4px;
+    border: none;
+    border-radius: 8px;
+    background-color: var(--summer-sun);
+    font: inherit;
+    color: var(--main-text-color);
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+div#agentsHeader a:hover,
+div.agentInfo button:hover {
+    background-color: var(--primary-hover);
+    box-shadow: 0 0 10px var(--primary-hover);
+}
+
+div.agent {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 20px;
+    align-items: center;
+    padding: 20px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    border-radius: 8px;
+    background: linear-gradient(18.48deg,rgba(252, 213, 87, 0.25) 2.76%,rgba(197, 0, 0, 0) 17.23%),linear-gradient(200.6deg,rgba(244, 229, 68, 0.25) 4.13%,rgba(230, 26, 26, 0) 20.54%);
+}
+
+div.agentModal {
+    padding: 20px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    border-radius: 8px;
+    background: linear-gradient(18.48deg,rgba(252, 213, 87, 0.25) 2.76%,rgba(197, 0, 0, 0) 17.23%),linear-gradient(200.6deg,rgba(244, 229, 68, 0.25) 4.13%,rgba(230, 26, 26, 0) 20.54%);
+}
+
+div.agentModalContent button {
+    width: 100%;
+    margin: 10px 0;
+    padding: 8px;
+}
+
+div.agentModalHeader {
+    display: grid;
+    grid-template-columns: 1fr auto;
+}
+
+div.agentAvatar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+div.agentModalContent p {
+    white-space: break-spaces;
+    line-height: 1.5;
+}
+
+div.agentInfo {
+    text-align: left;
+}
+
+div.agentList {
+    display: grid;
+    gap: 20px;
+    padding: 20px;
+    margin-right: auto;
+    grid-auto-flow: row;
+    grid-template-columns: 1fr 1fr;
+    margin-left: auto;
+}
+
+svg.newConvoButton {
+    width: 20px;
+    margin-left: 5px;
+}
+
+div.agentModalContainer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    margin: auto;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(1,1,1,0.5);
+}
+
+div.agentModal {
+    position: relative;
+    width: 50%;
+    margin: auto;
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+}
+
+div.agentModalActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+div.agentModalActions button {
+    padding: 8px;
+    border: none;
+    border-radius: 8px;
+    background-color: var(--summer-sun);
+    color: var(--main-text-color);
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+div.agentModalActions button:hover {
+    background-color: var(--primary-hover);
+    box-shadow: 0 0 10px var(--primary-hover);
+}
+
+@media only screen and (max-width: 700px) {
+    div.agentList {
+        width: 90%;
+        margin-right: auto;
+        margin-left: auto;
+        grid-template-columns: 1fr;
+    }
+
+}
+.loader {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: inline-block;
+    border-top: 4px solid var(--primary-color);
+    border-right: 4px solid transparent;
+    box-sizing: border-box;
+    animation: rotation 1s linear infinite;
+}
+.loader::after {
+    content: '';
+    box-sizing: border-box;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border-left: 4px solid var(--summer-sun);
+    border-bottom: 4px solid transparent;
+    animation: rotation 0.5s linear infinite reverse;
+}
+@keyframes rotation {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}

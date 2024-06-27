@@ -1,0 +1,96 @@
+menu.menu a {
+    color: var(--main-text-color);
+    text-decoration: none;
+    font-size: medium;
+    font-weight: normal;
+    padding: 0 4px;
+    border-radius: 4px;
+    display: flex;
+    justify-self: center;
+    margin: 0;
+    align-items: center;
+    gap: 4px;
+}
+
+menu.menu a.selected {
+    background-color: var(--primary-hover);
+}
+
+menu.menu a:hover {
+    background-color: var(--primary-hover);
+}
+
+menu.menu {
+    display: flex;
+    justify-content: space-around;
+    padding: 0;
+    margin: 0;
+}
+
+div.titleBar {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    padding: 16px 0;
+    margin: auto;
+}
+
+div.titleBar menu {
+    padding: 0;
+    margin: 0;
+    border-radius: 0.5rem;
+    display: grid;
+    grid-auto-flow: column;
+    gap: 32px;
+}
+
+div.settingsMenuProfile img {
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    margin: 0;
+}
+
+div.settingsMenu {
+    color: var(--main-text-color);
+    padding: 0 4px;
+    border-radius: 4px;
+    display: flex;
+    justify-self: center;
+    margin: 0;
+    align-items: center;
+}
+
+div.settingsMenu:hover {
+    background-color: var(--primary-hover);
+    cursor: pointer;
+}
+
+div.settingsMenuOptions {
+    display: block;
+    grid-auto-flow: row;
+    position: absolute;
+    background-color: var(--background-color);
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    top: 64px;
+    text-align: left;
+    padding: 8px;
+    border-radius: 8px;
+}
+
+div.settingsMenuOptions a {
+    padding: 4px;
+}
+
+div.settingsMenuUsername {
+    font-weight: bold;
+}
+
+@media screen and (max-width: 600px) {
+    menu.menu span {
+        display: none;
+    }
+
+    div.settingsMenuOptions {
+        right: 4px;
+    }
+}
