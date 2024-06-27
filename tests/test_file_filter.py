@@ -87,6 +87,18 @@ def test_get_file_filter_terms():
     assert filter_terms == ["file 1\\.org", "/path/to/dir/.*\\.org"]
 
 
+def test_exclude_file_filter_terms():
+    # Arrange
+    file_filter = FileFilter()
+    q_with_filter_terms = 'head tail file:-"file 1.org" file:"/path/to/dir/*.org"'
+
+    # Act
+    filter_terms = file_filter.get_filter_terms(q_with_filter_terms)
+
+    # Assert
+    assert filter_terms == ["file 1\\.org", "/path/to/dir/.*\\.org"]
+
+
 def test_file_exclude_filter():
     # Arrange
     file_filter = FileFilter()
