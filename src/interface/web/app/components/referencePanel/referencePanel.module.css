@@ -2,7 +2,6 @@ div.panel {
     padding: 1rem;
     border-radius: 1rem;
     background-color: var(--calm-blue);
-    color: var(--main-text-color);
     max-height: 80vh;
     overflow-y: auto;
     max-width: auto;

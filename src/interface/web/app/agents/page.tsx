@@ -9,6 +9,7 @@ import useSWR from 'swr';
 import { useEffect, useState } from 'react';
 
 import { useAuthenticatedData, UserProfile } from '../common/auth';
+import { Button } from '@/components/ui/button';
 
 
 export interface AgentData {
@@ -76,7 +77,7 @@ function AgentModal(props: AgentModalProps) {
                             <h2>{props.data.name}</h2>
                         </div>
                         <div className={styles.agentModalActions}>
-                            <button onClick={() => {
+                            <Button className='bg-transparent hover:bg-yellow-500' onClick={() => {
                                     navigator.clipboard.writeText(`${window.location.host}/agents?agent=${props.data.slug}`);
                                     setCopiedToClipboard(true);
                             }}>
@@ -93,21 +94,23 @@ function AgentModal(props: AgentModalProps) {
                                             width={24}
                                             height={24} />
                                 }
-                            </button>
-                            <button onClick={() => props.setShowModal(false)}>
+                            </Button>
+                            <Button className='bg-transparent hover:bg-yellow-500' onClick={() => {
+                                props.setShowModal(false);
+                                }}>
                                 <Image
                                         src="Close.svg"
                                         alt="Close"
                                         width={24}
                                         height={24} />
-                            </button>
+                            </Button>
                         </div>
                     </div>
                     <p>{props.data.personality}</p>
                     <div className={styles.agentInfo}>
-                        <button onClick={() => openChat(props.data.slug, props.userData)}>
+                        <Button className='bg-yellow-400 hover:bg-yellow-500' onClick={() => openChat(props.data.slug, props.userData)}>
                             Chat
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -142,19 +145,23 @@ function AgentCard(props: AgentCardProps) {
                 </div>
             </Link>
             <div className={styles.agentInfo}>
-                <button className={styles.infoButton} onClick={() => setShowModal(true)}>
+                <button className={styles.infoButton} onClick={() =>  {
+                        setShowModal(true);
+                    } }>
                     <h2>{props.data.name}</h2>
                 </button>
             </div>
             <div className={styles.agentInfo}>
-                <button onClick={() => openChat(props.data.slug, userData)}>
+                <Button
+                    className='bg-yellow-400 hover:bg-yellow-500'
+                    onClick={() => openChat(props.data.slug, userData)}>
                     <Image
                         src="send.svg"
                         alt="Chat"
                         width={40}
                         height={40}
                     />
-                </button>
+                </Button>
             </div>
             <div className={styles.agentPersonality}>
                 <button className={styles.infoButton} onClick={() => setShowModal(true)}>
@@ -172,7 +179,7 @@ export default function Agents() {
     if (error) {
         return (
             <main className={styles.main}>
-                <div className={styles.titleBar}>
+                <div className={`${styles.titleBar} text-5xl`}>
                     Talk to a Specialized Agent
                 </div>
                 <div className={styles.agentList}>
@@ -185,7 +192,7 @@ export default function Agents() {
     if (!data) {
         return (
             <main className={styles.main}>
-                <div className={styles.titleBar}>
+                <div className={`${styles.titleBar} text-5xl`}>
                     Talk to a Specialized Agent
                 </div>
                 <div className={styles.agentList}>
@@ -197,7 +204,7 @@ export default function Agents() {
 
     return (
         <main className={styles.main}>
-            <div className={styles.titleBar}>
+            <div className={`${styles.titleBar} text-5xl`}>
                 Talk to a Specialized Agent
             </div>
             <div className={styles.agentList}>
