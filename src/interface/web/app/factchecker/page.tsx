@@ -276,9 +276,9 @@ export default function FactChecker() {
 
     useEffect(() => {
         if (factToVerify) {
-            document.title = `Fact Check: ${factToVerify}`;
+            document.title = `AI Fact Check: ${factToVerify}`;
         } else {
-            document.title = 'Fact Checking Page';
+            document.title = 'AI Fact Checker';
         }
     }, [factToVerify]);
 

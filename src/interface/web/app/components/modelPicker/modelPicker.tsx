@@ -1,26 +1,34 @@
-// Write a component that reads the model list from the server and displays it in a dropdown. The component should have a prop `onSelect` that is called with the selected model when the user selects a model from the dropdown. Use the swr library to fetch the model list from the server.
-
 import { useAuthenticatedData } from '@/app/common/auth';
 import React from 'react';
 import useSWR from 'swr';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 
 import styles from './modelPicker.module.css';
+import { Button } from '@/components/ui/button';
 
 export interface Model {
     id: number;
     chat_model: string;
 }
 
-// Custom fetcher that makes an OPTIONS request
+// Custom fetcher function to fetch options
 const fetchOptionsRequest = async (url: string) => {
     const response = await fetch(url, {
       method: 'GET',
-      // Include any additional headers your request might need
       headers: {
         'Content-Type': 'application/json',
       },
     });
-    // Assuming the response is JSON. Adjust if needed.
     return response.json();
 };
 
@@ -61,6 +69,7 @@ interface ModelPickerProps {
 export const ModelPicker: React.FC<any> = (props: ModelPickerProps) => {
     const { data: models } = useOptionsRequest('/api/config/data/conversation/model/options');
     const { data: selectedModel } = useSelectedModel('/api/config/data/conversation/model');
+    const [open, setOpen] = React.useState(false);
 
     let userData = useAuthenticatedData();
 
@@ -70,9 +79,7 @@ export const ModelPicker: React.FC<any> = (props: ModelPickerProps) => {
 
     function onSelect(model: Model) {
         if (!userData) {
-            const signInLink = window.location.origin + '/login';
-            alert('Please sign in to select a model: ' + signInLink);
-            // Replace with a proper dialog box
+            setOpen(true);
             return;
         }
 
@@ -88,20 +95,40 @@ export const ModelPicker: React.FC<any> = (props: ModelPickerProps) => {
     }
 
     return (
-        <select className={styles.modelPicker} onChange={(e) => {
-            const selectedModelId = Number(e.target.value);
-            const selectedModel = models.find((model) => model.id === selectedModelId);
-            if (selectedModel) {
-                onSelect(selectedModel);
-            } else {
-                console.error('Selected model not found', e.target.value);
-            }
-        }} disabled={props.disabled}>
-            {models?.map((model) => (
-                <option key={model.id} value={model.id} selected={selectedModel?.id === model.id}>
-                    {model.chat_model}
-                </option>
-            ))}
-        </select>
+        <div className={styles.modelPicker}>
+            <select className={styles.modelPicker} onChange={(e) => {
+                const selectedModelId = Number(e.target.value);
+                const selectedModel = models.find((model) => model.id === selectedModelId);
+                if (selectedModel) {
+                    onSelect(selectedModel);
+                } else {
+                    console.error('Selected model not found', e.target.value);
+                }
+            }} disabled={props.disabled}>
+                {models?.map((model) => (
+                    <option key={model.id} value={model.id} selected={selectedModel?.id === model.id}>
+                        {model.chat_model}
+                    </option>
+                ))}
+            </select>
+            <AlertDialog open={open} onOpenChange={setOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>You must be logged in to configure your model.</AlertDialogTitle>
+                    <AlertDialogDescription>Once you create an account with Khoj, you can configure your model and use a whole suite of other features. Check out our <a href="https://docs.khoj.dev/">documentation</a> to learn more.
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                        onClick={() => {
+                            window.location.href = window.location.origin + '/login';
+                        }}>
+                        Sign in
+                    </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </div>
     );
 };
