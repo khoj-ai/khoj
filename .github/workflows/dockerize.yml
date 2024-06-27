@@ -33,7 +33,7 @@ env:
   # else with user specified tag (default 'dev') if triggered via workflow
   # else with run_id if triggered via a pull request
   # else with 'pre' (if push to master)
-  DOCKER_IMAGE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.event_name == 'push' && github.run_id || 'pre' }}
+  DOCKER_IMAGE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || github.event_name == 'workflow_dispatch' && github.event.inputs.tag || 'pre' }}
 
 jobs:
   build:
