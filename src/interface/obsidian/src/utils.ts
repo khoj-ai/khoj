@@ -354,7 +354,7 @@ export function getLinkToEntry(sourceFiles: TFile[], chosenFile: string, chosenE
         // This finds longest path match when multiple files have same name
         .sort((a, b) => b.path.length - a.path.length)
         // The first match is the best file match across OS
-        // e.g Khoj server on Linux, Obsidian vault on Android
+        // e.g. Khoj server on Linux, Obsidian vault on Android
         .find(file => chosenFile.replace(/\\/g, "/").endsWith(file.path))
 
     // Return link to vault file at heading of chosen search result

@@ -14,7 +14,7 @@ Here's what to consider if you're using Khoj, whether self-hosted or on our clou
 1. We collect completely anonymized usage telemetry and send it to [PostHog](https://posthog.com/). This includes data like unique chat requests, unique search requests, unique requests to index data. Usage data is collected to help us understand how people are using Khoj, and to help us prioritize features.
     - We do not log your IP address, nor upload any of your personal data to PostHog.
     - You can see our telemetry aggregation code [here](https://github.com/khoj-ai/khoj/blob/master/src/khoj/routers/helpers.py#L71) and see our telemetry server [here](https://github.com/khoj-ai/khoj/blob/master/src/telemetry/telemetry.py).
-    - If you're self-hosting, you can opt out of telemetry by following [these instructions](./miscellaneous/telemetry).
+    - If you're self-hosting, you can opt out of telemetry by following [these instructions](/miscellaneous/telemetry).
 
 
 Self-hosting isn't for everyone, so we've still taken steps to make Khoj privacy-friendly, even if you choose to use our [cloud offering](https://app.khoj.dev/login). Here's what to consider when using Khoj Cloud:

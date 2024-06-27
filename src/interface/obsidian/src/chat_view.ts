@@ -1,4 +1,4 @@
-import { MarkdownRenderer, WorkspaceLeaf, request, requestUrl, setIcon } from 'obsidian';
+import { ItemView, MarkdownRenderer, WorkspaceLeaf, request, requestUrl, setIcon } from 'obsidian';
 import * as DOMPurify from 'dompurify';
 import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
@@ -304,7 +304,7 @@ export class KhojChatView extends KhojPaneView {
         // Convert the message to html, sanitize the message html and render it to the real DOM
         let chat_message_body_text_el = this.contentEl.createDiv();
         chat_message_body_text_el.className = "chat-message-text-response";
-        chat_message_body_text_el.innerHTML = this.markdownTextToSanitizedHtml(message);
+        chat_message_body_text_el.innerHTML = this.markdownTextToSanitizedHtml(message, this);
 
         // Add a copy button to each chat message, if it doesn't already exist
         if (willReplace === true) {
@@ -314,13 +314,12 @@ export class KhojChatView extends KhojPaneView {
         return chat_message_body_text_el;
     }
 
-    markdownTextToSanitizedHtml(markdownText: string): string {
+    markdownTextToSanitizedHtml(markdownText: string, component: ItemView): string {
         // Render markdown to an unlinked DOM element
         let virtualChatMessageBodyTextEl = document.createElement("div");
 
         // Convert the message to html
-        // @ts-ignore
-        MarkdownRenderer.renderMarkdown(markdownText, virtualChatMessageBodyTextEl, '', null);
+        MarkdownRenderer.renderMarkdown(markdownText, virtualChatMessageBodyTextEl, '', component);
 
         // Remove image HTML elements with any non whitelisted src prefix
         virtualChatMessageBodyTextEl.innerHTML = virtualChatMessageBodyTextEl.innerHTML.replace(
@@ -407,7 +406,7 @@ export class KhojChatView extends KhojPaneView {
             chat_message_body_text_el.innerHTML = message;
         } else {
             // @ts-ignore
-            chat_message_body_text_el.innerHTML = this.markdownTextToSanitizedHtml(message);
+            chat_message_body_text_el.innerHTML = this.markdownTextToSanitizedHtml(message, this);
         }
 
         // Add action buttons to each chat message element
@@ -453,7 +452,7 @@ export class KhojChatView extends KhojPaneView {
         // Sanitize the markdown to render
         this.result = DOMPurify.sanitize(this.result);
         // @ts-ignore
-        htmlElement.innerHTML = this.markdownTextToSanitizedHtml(this.result);
+        htmlElement.innerHTML = this.markdownTextToSanitizedHtml(this.result, this);
         // Render action buttons for the message
         this.renderActionButtons(this.result, htmlElement);
         // Scroll to bottom of modal, till the send message input box
@@ -579,8 +578,7 @@ export class KhojChatView extends KhojPaneView {
         let editConversationTitleButtonEl = this.contentEl.createEl('button');
         setIcon(editConversationTitleButtonEl, "edit");
         editConversationTitleButtonEl.title = "Rename";
-        editConversationTitleButtonEl.classList.add("edit-title-button");
-        editConversationTitleButtonEl.classList.add("three-dot-menu-button-item");
+        editConversationTitleButtonEl.classList.add("edit-title-button", "three-dot-menu-button-item", "clickable-icon");
         if (selectedConversation) editConversationTitleButtonEl.classList.add("selected-conversation");
         editConversationTitleButtonEl.addEventListener('click', (event) => {
             event.stopPropagation();
@@ -608,7 +606,7 @@ export class KhojChatView extends KhojPaneView {
             let editConversationTitleSaveButtonEl = this.contentEl.createEl('button');
             conversationSessionTitleEl.replaceWith(editConversationTitleInputEl);
             editConversationTitleSaveButtonEl.innerHTML = "Save";
-            editConversationTitleSaveButtonEl.classList.add("three-dot-menu-button-item");
+            editConversationTitleSaveButtonEl.classList.add("three-dot-menu-button-item", "clickable-icon");
             if (selectedConversation) editConversationTitleSaveButtonEl.classList.add("selected-conversation");
             editConversationTitleSaveButtonEl.addEventListener('click', (event) => {
                 event.stopPropagation();
@@ -655,8 +653,7 @@ export class KhojChatView extends KhojPaneView {
         let deleteConversationButtonEl = this.contentEl.createEl('button');
         setIcon(deleteConversationButtonEl, "trash");
         deleteConversationButtonEl.title = "Delete";
-        deleteConversationButtonEl.classList.add("delete-conversation-button");
-        deleteConversationButtonEl.classList.add("three-dot-menu-button-item");
+        deleteConversationButtonEl.classList.add("delete-conversation-button", "three-dot-menu-button-item", "clickable-icon");
         if (selectedConversation) deleteConversationButtonEl.classList.add("selected-conversation");
         deleteConversationButtonEl.addEventListener('click', () => {
             // Ask for confirmation before deleting chat session
