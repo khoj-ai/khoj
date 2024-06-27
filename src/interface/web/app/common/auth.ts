@@ -8,6 +8,7 @@ export interface UserProfile {
     photo: string;
     is_active: boolean;
     has_documents: boolean;
+    detail: string;
 }
 
 const userFetcher = () => window.fetch('/api/v1/user').then(res => res.json()).catch(err => console.log(err));
@@ -18,6 +19,7 @@ export function useAuthenticatedData() {
 
     if (error) return null;
     if (!data) return null;
+    if (data.detail === 'Forbidden') return null;
 
     return data;
 }
