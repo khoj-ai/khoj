@@ -60,6 +60,14 @@ footer.footer {
     text-align: left;
 }
 
+div.reportActions {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    justify-content: space-between;
+    margin-top: 8px;
+}
+
 button.factCheckButton {
     border: none;
     cursor: pointer;

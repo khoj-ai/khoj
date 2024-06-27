@@ -17,6 +17,8 @@
     "windowsexport": "yarn build && xcopy out ..\\..\\khoj\\interface\\built /E /Y && yarn windowscollectstatic"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.1",
+    "@radix-ui/react-label": "^2.1.0",
     "@radix-ui/react-slot": "^1.1.0",
     "@types/katex": "^0.16.7",
     "@types/markdown-it": "^14.1.1",

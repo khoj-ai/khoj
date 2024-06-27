@@ -3,8 +3,10 @@
 import styles from './factChecker.module.css';
 import { useAuthenticatedData } from '@/app/common/auth';
 import { useState, useEffect } from 'react';
+
 import ChatMessage, { Context, OnlineContextData, WebPage } from '../components/chatMessage/chatMessage';
 import { ModelPicker } from '../components/modelPicker/modelPicker';
+import ShareLink from '../components/shareLink/shareLink';
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -12,11 +14,11 @@ import { Button } from "@/components/ui/button"
 import {
     Card,
     CardContent,
-    CardDescription,
     CardFooter,
     CardHeader,
     CardTitle,
-  } from "@/components/ui/card"
+} from "@/components/ui/card"
+import Link from 'next/link';
 
 
 
@@ -35,6 +37,12 @@ const LoadingSpinner = () => (
         </div>
     </div>
 );
+
+interface SupplementReferences {
+    additionalLink: string;
+    response: string;
+    linkTitle: string;
+}
 
 
 interface ResponseWithReferences {
@@ -126,6 +134,9 @@ interface ReferenceVerificationProps {
     message: string;
     additionalLink: string;
     conversationId: string;
+    linkTitle: string;
+    setChildReferencesCallback: (additionalLink: string, response: string, linkTitle: string) => void;
+    prefilledResponse?: string;
 }
 
 function ReferenceVerification(props: ReferenceVerificationProps) {
@@ -134,8 +145,24 @@ function ReferenceVerification(props: ReferenceVerificationProps) {
     const verificationStatement = `${props.message}. Use this link for reference: ${props.additionalLink}`;
 
     useEffect(() => {
-        verifyStatement(verificationStatement, props.conversationId, setIsLoading, setInitialResponse, () => {});
-    }, [verificationStatement, props.conversationId]);
+        if (props.prefilledResponse) {
+            setInitialResponse(props.prefilledResponse);
+            setIsLoading(false);
+        } else {
+            verifyStatement(verificationStatement, props.conversationId, setIsLoading, setInitialResponse, () => {});
+        }
+
+    }, [verificationStatement, props.conversationId, props.prefilledResponse]);
+
+    useEffect(() => {
+        if (initialResponse === "") return;
+        if (props.prefilledResponse) return;
+
+        if (!isLoading) {
+            // Only set the child references when it's done loading and if the initial response is not prefilled (i.e. it was fetched from the server)
+            props.setChildReferencesCallback(props.additionalLink, initialResponse, props.linkTitle);
+        }
+    }, [initialResponse, isLoading, props]);
 
     return (
         <div>
@@ -157,6 +184,51 @@ function ReferenceVerification(props: ReferenceVerificationProps) {
     )
 }
 
+interface SupplementalReferenceProps {
+    onlineData?: OnlineContextData;
+    officialFactToVerify: string;
+    conversationId: string;
+    additionalLink: string;
+    setChildReferencesCallback: (additionalLink: string, response: string, linkTitle: string) => void;
+    prefilledResponse?: string;
+    linkTitle?: string;
+}
+
+function SupplementalReference(props: SupplementalReferenceProps) {
+    const linkTitle = props.linkTitle || props.onlineData?.organic?.[0]?.title || "Reference";
+    const linkAsWebpage = { link: props.additionalLink } as WebPage;
+    return (
+        <Card className={`mt-2 mb-4`}>
+            <CardHeader>
+                <a className={styles.titleLink} href={props.additionalLink} target="_blank" rel="noreferrer">
+                    {linkTitle}
+                </a>
+                <WebPageLink {...linkAsWebpage} />
+            </CardHeader>
+            <CardContent>
+                <ReferenceVerification
+                    additionalLink={props.additionalLink}
+                    message={props.officialFactToVerify}
+                    linkTitle={linkTitle}
+                    conversationId={props.conversationId}
+                    setChildReferencesCallback={props.setChildReferencesCallback}
+                    prefilledResponse={props.prefilledResponse} />
+            </CardContent>
+        </Card>
+    );
+}
+
+const WebPageLink = (webpage: WebPage) => {
+    const webpageDomain = new URL(webpage.link).hostname;
+    return (
+        <div className={styles.subLinks}>
+            <a className={`${styles.subLinks} bg-blue-200 px-2`} href={webpage.link} target="_blank" rel="noreferrer">
+                {webpageDomain}
+            </a>
+        </div>
+    )
+}
+
 
 export default function FactChecker() {
     const [factToVerify, setFactToVerify] = useState("");
@@ -165,11 +237,53 @@ export default function FactChecker() {
     const [initialResponse, setInitialResponse] = useState("");
     const [clickedVerify, setClickedVerify] = useState(false);
     const [initialReferences, setInitialReferences] = useState<ResponseWithReferences>();
+    const [childReferences, setChildReferences] = useState<SupplementReferences[]>();
 
     const [conversationID, setConversationID] = useState("");
     const [runId, setRunId] = useState("");
+    const [loadedFromStorage, setLoadedFromStorage] = useState(false);
+
+    function setChildReferencesCallback(additionalLink: string, response: string, linkTitle: string) {
+        const newReferences = childReferences || [];
+        const exists = newReferences.find((reference) => reference.additionalLink === additionalLink);
+        if (exists) return;
+        newReferences.push({ additionalLink, response, linkTitle });
+        setChildReferences(newReferences);
+    }
 
     let userData = useAuthenticatedData();
+
+    function storeData() {
+        const data = {
+            factToVerify,
+            response: initialResponse,
+            references: initialReferences,
+            childReferences,
+            runId
+        };
+
+        console.log("Storing data: ", data);
+        // return;
+
+        fetch(`/api/chat/store/factchecker`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                "runId": runId,
+                "storeData": data
+            }),
+        });
+    }
+
+    useEffect(() => {
+        if (factToVerify) {
+            document.title = `Fact Check: ${factToVerify}`;
+        } else {
+            document.title = 'Fact Checking Page';
+        }
+    }, [factToVerify]);
 
     useEffect(() => {
         const storedFact = localStorage.getItem('factToVerify');
@@ -180,20 +294,49 @@ export default function FactChecker() {
         // Get query params from the URL
         const urlParams = new URLSearchParams(window.location.search);
         const factToVerifyParam = urlParams.get('factToVerify');
-        const runId = urlParams.get('runId');
 
         if (factToVerifyParam) {
             setFactToVerify(factToVerifyParam);
         }
 
-        if (runId) {
-            setRunId(runId);
+        const runIdParam = urlParams.get('runId');
+        if (runIdParam) {
+            setRunId(runIdParam);
+
+            // Define an async function to fetch data
+            const fetchData = async () => {
+                const storedDataURL = `/api/chat/store/factchecker?runId=${runIdParam}`;
+                try {
+                    const response = await fetch(storedDataURL);
+                    const storedData = await response.json();
+                    if (storedData) {
+                        setOfficialFactToVerify(storedData.factToVerify);
+                        setInitialResponse(storedData.response);
+                        setInitialReferences(storedData.references);
+                        setChildReferences(storedData.childReferences);
+                    }
+                    setLoadedFromStorage(true);
+                } catch (error) {
+                    console.error("Error fetching stored data: ", error);
+                }
+            };
+
+            // Call the async function
+            fetchData();
         }
 
     }, []);
 
-    useEffect(() => {
-        if (!clickedVerify) return;
+    function onClickVerify() {
+        if (clickedVerify) return;
+
+        // Perform validation checks on the fact to verify
+        if (!factToVerify) {
+            alert("Please enter a fact to verify.");
+            return;
+        }
+
+        setClickedVerify(true);
         if (!userData) {
             let currentURL = window.location.href;
             window.location.href = `/login?next=${currentURL}`;
@@ -203,21 +346,46 @@ export default function FactChecker() {
         setInitialResponse("");
 
         spawnNewConversation(setConversationID);
+
+        // Set the runId to a random 12-digit alphanumeric string
+        const newRunId = [...Array(16)].map(() => Math.random().toString(36)[2]).join('');
+        setRunId(newRunId);
+        window.history.pushState({}, document.title, window.location.pathname + `?runId=${newRunId}`);
+
         setOfficialFactToVerify(factToVerify);
         setClickedVerify(false);
-    }, [clickedVerify]);
+    }
 
     useEffect(() => {
         if (!conversationID) return;
         verifyStatement(officialFactToVerify, conversationID, setIsLoading, setInitialResponse, setInitialReferences);
-    }, [conversationID]);
+    }, [conversationID, officialFactToVerify]);
 
     // Store factToVerify in localStorage whenever it changes
     useEffect(() => {
         localStorage.setItem('factToVerify', factToVerify);
     }, [factToVerify]);
 
-    const renderReferences = (conversationId: string, initialReferences: ResponseWithReferences, officialFactToVerify: string) => {
+    // Update the meta tags for the description and og:description
+    useEffect(() => {
+        let metaTag = document.querySelector('meta[name="description"]');
+        if (metaTag) {
+            metaTag.setAttribute('content', initialResponse);
+        }
+        let metaOgTag = document.querySelector('meta[property="og:description"]');
+        if (!metaOgTag) {
+            metaOgTag = document.createElement('meta');
+            metaOgTag.setAttribute('property', 'og:description');
+            document.getElementsByTagName('head')[0].appendChild(metaOgTag);
+        }
+        metaOgTag.setAttribute('content', initialResponse);
+    }, [initialResponse]);
+
+    const renderReferences = (conversationId: string, initialReferences: ResponseWithReferences, officialFactToVerify: string, loadedFromStorage: boolean, childReferences?: SupplementReferences[]) => {
+        if (loadedFromStorage && childReferences) {
+            return renderSupplementalReferences(childReferences);
+        }
+
         const seenLinks = new Set();
 
         // Any links that are present in webpages should not be searched again
@@ -262,43 +430,47 @@ export default function FactChecker() {
             if (additionalLink === '') return null;
 
             return (
-                <Card key={key + index} className={`mt-2 mb-4`}>
-                    <CardHeader>
-                        <a className={styles.titleLink} href={additionalLink} target="_blank" rel="noreferrer">
-                            {onlineData?.organic?.[0]?.title}
-                        </a>
-                    </CardHeader>
-                    <CardContent>
-                        <ReferenceVerification additionalLink={additionalLink} message={officialFactToVerify} conversationId={conversationId} />
-                    </CardContent>
-                </Card>
+                <SupplementalReference
+                    key={index}
+                    onlineData={onlineData}
+                    officialFactToVerify={officialFactToVerify}
+                    conversationId={conversationId}
+                    additionalLink={additionalLink}
+                    setChildReferencesCallback={setChildReferencesCallback} />
             );
           }).filter(Boolean);
     };
 
+    const renderSupplementalReferences = (references: SupplementReferences[]) => {
+        return references.map((reference, index) => {
+            return (
+                <SupplementalReference
+                    key={index}
+                    additionalLink={reference.additionalLink}
+                    officialFactToVerify={officialFactToVerify}
+                    conversationId={conversationID}
+                    linkTitle={reference.linkTitle}
+                    setChildReferencesCallback={setChildReferencesCallback}
+                    prefilledResponse={reference.response} />
+            )
+        });
+    }
+
     const renderWebpages = (webpages: WebPage[] | WebPage) => {
         if (webpages instanceof Array) {
             return webpages.map((webpage, index) => {
-                const webpageDomain = new URL(webpage.link).hostname;
-                return (
-                    <div key={index} className={styles.subLinks}>
-                        <a className={`${styles.subLinks} bg-blue-200 px-2`} href={webpage.link} target="_blank" rel="noreferrer">
-                            {webpageDomain}
-                        </a>
-                    </div>
-                )
+                return WebPageLink(webpage);
             });
         } else {
-            const webpageDomain = new URL(webpages.link).hostname;
-            return (
-                <div className={styles.subLinks}>
-                    <a className={`${styles.subLinks} bg-blue-200 px-2`} href={webpages.link} target="_blank" rel="noreferrer">
-                        {webpageDomain}
-                    </a>
-                </div>
-            )
+            return WebPageLink(webpages);
         }
     };
+
+    function constructShareUrl() {
+        const url = new URL(window.location.href);
+        url.searchParams.set('runId', runId);
+        return url.href;
+    }
 
     return (
         <div className={styles.factCheckerContainer}>
@@ -308,26 +480,46 @@ export default function FactChecker() {
             <footer className={`${styles.footer} mt-4`}>
                 This is an experimental AI tool. It may make mistakes.
             </footer>
-            <div className={`${styles.inputFields} mt-4`}>
-                <Input
-                    type="text"
-                    placeholder="Enter a falsifiable statement to verify"
-                    disabled={isLoading}
-                    onChange={(e) => setFactToVerify(e.target.value)}
-                    value={factToVerify}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                            setClickedVerify(!clickedVerify);
-                        }
-                    }}
-                    onFocus={(e) => e.target.placeholder = ""}
-                    onBlur={(e) => e.target.placeholder = "Enter a falsifiable statement to verify"} />
-                <Button disabled={clickedVerify} onClick={() => setClickedVerify(!clickedVerify)}>Verify</Button>
-            </div>
-            <h3 className={`mt-4 mb-4`}>
-                Try with a particular model. You must be <a href="/config" className="font-medium text-blue-600 dark:text-blue-500 hover:underline">subscribed</a> to configure the model.
-            </h3>
-            <ModelPicker disabled={isLoading} />
+            {
+                initialResponse && initialReferences && childReferences
+                ?
+                    <div className={styles.reportActions}>
+                        <Button asChild variant='secondary'>
+                            <Link href="/factchecker" target="_blank" rel="noopener noreferrer">
+                                Try Another
+                            </Link>
+                        </Button>
+                        <ShareLink
+                            buttonTitle='Share report'
+                            title="AI Fact Checking Report"
+                            description="Share this fact checking report with others. Anyone who has this link will be able to view the report."
+                            url={constructShareUrl()}
+                            onShare={loadedFromStorage ? () => {} : storeData} />
+                    </div>
+                : <div className={styles.newReportActions}>
+                    <div className={`${styles.inputFields} mt-4`}>
+                        <Input
+                            type="text"
+                            placeholder="Enter a falsifiable statement to verify"
+                            disabled={isLoading}
+                            onChange={(e) => setFactToVerify(e.target.value)}
+                            value={factToVerify}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    onClickVerify();
+                                }
+                            }}
+                            onFocus={(e) => e.target.placeholder = ""}
+                            onBlur={(e) => e.target.placeholder = "Enter a falsifiable statement to verify"} />
+                        <Button disabled={clickedVerify} onClick={() => onClickVerify()}>Verify</Button>
+                    </div>
+                    <h3 className={`mt-4 mb-4`}>
+                        Try with a particular model. You must be <a href="/config" className="font-medium text-blue-600 dark:text-blue-500 hover:underline">subscribed</a> to configure the model.
+                    </h3>
+                    <ModelPicker disabled={isLoading} />
+                </div>
+            }
+
             {isLoading && <div className={styles.loading}>
                     <LoadingSpinner />
                 </div>}
@@ -335,7 +527,7 @@ export default function FactChecker() {
                 initialResponse &&
                 <Card className={`mt-4`}>
                     <CardHeader>
-                        <CardTitle>{factToVerify}</CardTitle>
+                        <CardTitle>{officialFactToVerify}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className={styles.responseText}>
@@ -373,7 +565,8 @@ export default function FactChecker() {
                 <div className={styles.referenceContainer}>
                     <h2 className="mt-4 mb-4">Supplements</h2>
                     <div className={styles.references}>
-                        {initialReferences.online !== undefined && renderReferences(conversationID, initialReferences, officialFactToVerify)}
+                        { initialReferences.online !== undefined &&
+                            renderReferences(conversationID, initialReferences, officialFactToVerify, loadedFromStorage, childReferences)}
                     </div>
                 </div>
             }
