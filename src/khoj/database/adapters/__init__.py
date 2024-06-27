@@ -27,6 +27,7 @@ from khoj.database.models import (
     ChatModelOptions,
     ClientApplication,
     Conversation,
+    DataStore,
     Entry,
     FileObject,
     GithubConfig,
@@ -597,6 +598,19 @@ class PublicConversationAdapters:
     def get_public_conversation_url(public_conversation: PublicConversation):
         # Public conversations are viewable by anyone, but not editable.
         return f"/share/chat/{public_conversation.slug}/"
+
+
+class DataStoreAdapters:
+    @staticmethod
+    async def astore_data(data: dict, key: str, user: KhojUser, private: bool = True):
+        if await DataStore.objects.filter(key=key).aexists():
+            return key
+        await DataStore.objects.acreate(value=data, key=key, owner=user, private=private)
+        return key
+
+    @staticmethod
+    async def aretrieve_public_data(key: str):
+        return await DataStore.objects.filter(key=key, private=False).afirst()
 
 
 class ConversationAdapters:

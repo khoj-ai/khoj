@@ -1,7 +1,6 @@
 div.titleBar {
     padding: 16px 0;
-    text-align: center;
-    font-size: larger;
+    text-align: left;
 }
 
 .agentPersonality p {
@@ -33,7 +32,6 @@ div.agent img {
 
 div.agent a {
     text-decoration: none;
-    color: var(--main-text-color);
 }
 
 div#agentsHeader {
@@ -56,23 +54,20 @@ div.agentInfo button {
     padding: 4px;
     border: none;
     border-radius: 8px;
-    background-color: var(--summer-sun);
     font: inherit;
-    color: var(--main-text-color);
     cursor: pointer;
     transition: background-color 0.3s;
 }
 
 div#agentsHeader a:hover,
 div.agentInfo button:hover {
-    background-color: var(--primary-hover);
     box-shadow: 0 0 10px var(--primary-hover);
 }
 
 div.agent {
     display: grid;
     grid-template-columns: auto 1fr auto;
-    gap: 20px;
+    gap: 4px;
     align-items: center;
     padding: 20px;
     box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
@@ -81,9 +76,6 @@ div.agent {
 }
 
 div.agentModal {
-    padding: 20px;
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-    border-radius: 8px;
     background: linear-gradient(18.48deg,rgba(252, 213, 87, 0.25) 2.76%,rgba(197, 0, 0, 0) 17.23%),linear-gradient(200.6deg,rgba(244, 229, 68, 0.25) 4.13%,rgba(230, 26, 26, 0) 20.54%);
 }
 
@@ -129,16 +121,17 @@ svg.newConvoButton {
 }
 
 div.agentModalContainer {
-    position: absolute;
+    position: fixed; /* Changed from absolute to fixed */
     top: 0;
     left: 0;
     width: 100%;
-    margin: auto;
-    height: 100%;
+    height: 100%; /* This ensures it covers the viewport height */
     display: flex;
     justify-content: center;
     align-items: center;
     background-color: rgba(1,1,1,0.5);
+    z-index: 1000; /* Ensure it's above other content */
+    overflow-y: auto; /* Allows scrolling within the modal if needed */
 }
 
 div.agentModal {
@@ -161,24 +154,26 @@ div.agentModalActions button {
     padding: 8px;
     border: none;
     border-radius: 8px;
-    background-color: var(--summer-sun);
-    color: var(--main-text-color);
     font-size: 16px;
     cursor: pointer;
     transition: background-color 0.3s;
 }
 
 div.agentModalActions button:hover {
-    background-color: var(--primary-hover);
-    box-shadow: 0 0 10px var(--primary-hover);
+    box-shadow: 0 0 10px var(hsla(--background));
 }
 
 @media only screen and (max-width: 700px) {
     div.agentList {
         width: 90%;
+        padding: 0;
         margin-right: auto;
         margin-left: auto;
         grid-template-columns: 1fr;
+    }
+
+    div.agentModal {
+        width: 90%;
     }
 
 }
@@ -201,7 +196,6 @@ div.agentModalActions button:hover {
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    border-left: 4px solid var(--summer-sun);
     border-bottom: 4px solid transparent;
     animation: rotation 0.5s linear infinite reverse;
 }

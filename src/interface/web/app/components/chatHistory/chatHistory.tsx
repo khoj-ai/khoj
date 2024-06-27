@@ -40,6 +40,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                 setLoading(false);
                 // Render chat options, if any
                 if (chatData) {
+                    console.log(chatData);
                     setData(chatData.response);
                 }
             })

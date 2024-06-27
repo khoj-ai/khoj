@@ -359,3 +359,10 @@ class EntryDates(BaseModel):
 class UserRequests(BaseModel):
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
     slug = models.CharField(max_length=200)
+
+
+class DataStore(BaseModel):
+    key = models.CharField(max_length=200, unique=True)
+    value = models.JSONField(default=dict)
+    private = models.BooleanField(default=False)
+    owner = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)

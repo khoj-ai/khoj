@@ -1,5 +1,4 @@
 menu.menu a {
-    color: var(--main-text-color);
     text-decoration: none;
     font-size: medium;
     font-weight: normal;
@@ -51,7 +50,6 @@ div.settingsMenuProfile img {
 }
 
 div.settingsMenu {
-    color: var(--main-text-color);
     padding: 0 4px;
     border-radius: 4px;
     display: flex;

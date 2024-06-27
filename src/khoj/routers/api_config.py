@@ -229,18 +229,44 @@ async def get_all_filenames(
     return await sync_to_async(list)(EntryAdapters.get_all_filenames_by_source(user, content_source))  # type: ignore[call-arg]
 
 
-@api_config.post("/data/conversation/model", status_code=200)
+@api_config.get("/data/conversation/model/options", response_model=Dict[str, Union[str, int]])
+def get_chat_model_options(
+    request: Request,
+    client: Optional[str] = None,
+):
+    conversation_options = ConversationAdapters.get_conversation_processor_options().all()
+
+    all_conversation_options = list()
+    for conversation_option in conversation_options:
+        all_conversation_options.append({"chat_model": conversation_option.chat_model, "id": conversation_option.id})
+
+    return Response(content=json.dumps(all_conversation_options), media_type="application/json", status_code=200)
+
+
+@api_config.get("/data/conversation/model")
 @requires(["authenticated"])
+def get_user_chat_model(
+    request: Request,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+
+    chat_model = ConversationAdapters.get_conversation_config(user)
+
+    if chat_model is None:
+        chat_model = ConversationAdapters.get_default_conversation_config()
+
+    return Response(status_code=200, content=json.dumps({"id": chat_model.id, "chat_model": chat_model.chat_model}))
+
+
+@api_config.post("/data/conversation/model", status_code=200)
+@requires(["authenticated", "premium"])
 async def update_chat_model(
     request: Request,
     id: str,
     client: Optional[str] = None,
 ):
     user = request.user.object
-    subscribed = has_required_scope(request, ["premium"])
-
-    if not subscribed:
-        raise HTTPException(status_code=403, detail="User is not subscribed to premium")
 
     new_config = await ConversationAdapters.aset_user_conversation_processor(user, int(id))
 
