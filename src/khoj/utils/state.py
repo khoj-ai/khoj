@@ -31,6 +31,7 @@ query_cache: Dict[str, LRU] = defaultdict(LRU)
 chat_lock = threading.Lock()
 SearchType = utils_config.SearchType
 scheduler: BackgroundScheduler = None
+is_schedule_leader: bool = False
 telemetry: List[Dict[str, str]] = []
 khoj_version: str = None
 device = get_device()

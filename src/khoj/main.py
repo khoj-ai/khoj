@@ -94,11 +94,21 @@ from khoj.configure import configure_routes, initialize_server, configure_middle
 from khoj.utils import state
 from khoj.utils.cli import cli
 from khoj.utils.initialization import initialization
+from khoj.database.adapters import ProcessLockAdapters
+
+from django.db.utils import IntegrityError
+
+SCHEDULE_LEADER_NAME = "schedule_leader"
 
 
 def shutdown_scheduler():
     logger.info("🌑 Shutting down Khoj")
-    # state.scheduler.shutdown()
+
+    if state.is_schedule_leader:
+        schedule_leader_process_lock = ProcessLockAdapters.get_process_lock(SCHEDULE_LEADER_NAME)
+        ProcessLockAdapters.remove_process_lock(schedule_leader_process_lock)
+
+    state.scheduler.shutdown()
 
 
 def run(should_start_server=True):
@@ -146,7 +156,21 @@ def run(should_start_server=True):
         }
     )
     state.scheduler.add_jobstore(DjangoJobStore(), "default")
-    state.scheduler.start()
+
+    # We use this mechanism to only elect one schedule leader in a distributed environment. This one will be responsible for actually executing the scheduled tasks. The others will still be capable of adding and removing tasks, but they will not execute them. This is to decrease the overall burden on the database and the system.
+    try:
+        schedule_leader_process_lock = ProcessLockAdapters.get_process_lock(SCHEDULE_LEADER_NAME)
+        if schedule_leader_process_lock:
+            logger.debug("🔒 Schedule Leader is already running")
+            state.scheduler.start(paused=True)
+        else:
+            logger.info("🔒 Schedule Leader elected")
+            ProcessLockAdapters.set_process_lock(SCHEDULE_LEADER_NAME)
+            state.scheduler.start()
+            state.is_schedule_leader = True
+    except IntegrityError:
+        logger.debug("🔒 Schedule leader running elsewhere")
+        state.scheduler.start(paused=True)
 
     # Start Server
     configure_routes(app)
