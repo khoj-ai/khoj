@@ -106,6 +106,7 @@ def shutdown_scheduler():
     logger.info("🌑 Shutting down Khoj")
 
     if state.schedule_leader_process_lock:
+        logger.info("🔓 Schedule Leader released")
         ProcessLockAdapters.remove_process_lock(state.schedule_leader_process_lock)
 
     state.scheduler.shutdown()
