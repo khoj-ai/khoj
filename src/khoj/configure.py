@@ -386,3 +386,13 @@ def upload_telemetry():
 def delete_old_user_requests():
     num_deleted = delete_user_requests()
     logger.debug(f"🗑️ Deleted {num_deleted[0]} day-old user requests")
+
+
+@schedule.repeat(schedule.every(17).minutes)
+def wakeup_scheduler():
+    # Wake up the scheduler to ensure it runs the scheduled tasks. This is because the elected leader may not always be aware of tasks scheduled on other workers.
+    if state.schedule_leader_process_lock:
+        state.scheduler.wakeup()
+    else:
+        # Make sure the other workers don't run the scheduled tasks
+        state.scheduler.pause()

@@ -8,6 +8,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from openai import OpenAI
 from whisper import Whisper
 
+from khoj.database.models import ProcessLock
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
 from khoj.utils import config as utils_config
 from khoj.utils.config import OfflineChatProcessorModel, SearchModels
@@ -31,6 +32,7 @@ query_cache: Dict[str, LRU] = defaultdict(LRU)
 chat_lock = threading.Lock()
 SearchType = utils_config.SearchType
 scheduler: BackgroundScheduler = None
+schedule_leader_process_lock: ProcessLock = None
 telemetry: List[Dict[str, str]] = []
 khoj_version: str = None
 device = get_device()
