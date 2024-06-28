@@ -569,6 +569,7 @@ def edit_job(
     try:
         automation: Job = AutomationAdapters.get_automation(user, automation_id)
     except ValueError as e:
+        logger.error(f"Error editing automation {automation_id} for {user.email}: {e}", exc_info=True)
         return Response(content="Invalid automation", status_code=403)
 
     # Normalize query parameters

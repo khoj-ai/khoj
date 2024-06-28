@@ -95,10 +95,11 @@ from khoj.utils import state
 from khoj.utils.cli import cli
 from khoj.utils.initialization import initialization
 from khoj.database.adapters import ProcessLockAdapters
+from khoj.database.models import ProcessLock
 
 from django.db.utils import IntegrityError
 
-SCHEDULE_LEADER_NAME = "schedule_leader"
+SCHEDULE_LEADER_NAME = ProcessLock.Operation.SCHEDULE_LEADER
 
 
 def shutdown_scheduler():
@@ -161,16 +162,18 @@ def run(should_start_server=True):
     try:
         schedule_leader_process_lock = ProcessLockAdapters.get_process_lock(SCHEDULE_LEADER_NAME)
         if schedule_leader_process_lock:
-            logger.debug("🔒 Schedule Leader is already running")
+            logger.info("🔒 Schedule Leader is already running")
             state.scheduler.start(paused=True)
         else:
             logger.info("🔒 Schedule Leader elected")
-            ProcessLockAdapters.set_process_lock(SCHEDULE_LEADER_NAME)
+            ProcessLockAdapters.set_process_lock(SCHEDULE_LEADER_NAME, max_duration_in_seconds=43200)
             state.scheduler.start()
             state.is_schedule_leader = True
     except IntegrityError:
-        logger.debug("🔒 Schedule leader running elsewhere")
+        logger.info("🔒 Schedule Leader running elsewhere")
         state.scheduler.start(paused=True)
+    finally:
+        logger.info("Started Background Scheduler")
 
     # Start Server
     configure_routes(app)
