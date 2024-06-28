@@ -391,7 +391,7 @@ def delete_old_user_requests():
 @schedule.repeat(schedule.every(17).minutes)
 def wakeup_scheduler():
     # Wake up the scheduler to ensure it runs the scheduled tasks. This is because the elected leader may not always be aware of tasks scheduled on other workers.
-    if state.is_schedule_leader:
+    if state.schedule_leader_process_lock:
         state.scheduler.wakeup()
     else:
         # Make sure the other workers don't run the scheduled tasks

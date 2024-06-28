@@ -105,9 +105,8 @@ SCHEDULE_LEADER_NAME = ProcessLock.Operation.SCHEDULE_LEADER
 def shutdown_scheduler():
     logger.info("🌑 Shutting down Khoj")
 
-    if state.is_schedule_leader:
-        schedule_leader_process_lock = ProcessLockAdapters.get_process_lock(SCHEDULE_LEADER_NAME)
-        ProcessLockAdapters.remove_process_lock(schedule_leader_process_lock)
+    if state.schedule_leader_process_lock:
+        ProcessLockAdapters.remove_process_lock(state.schedule_leader_process_lock)
 
     state.scheduler.shutdown()
 
@@ -166,9 +165,11 @@ def run(should_start_server=True):
             state.scheduler.start(paused=True)
         else:
             logger.info("🔒 Schedule Leader elected")
-            ProcessLockAdapters.set_process_lock(SCHEDULE_LEADER_NAME, max_duration_in_seconds=43200)
+            created_process_lock = ProcessLockAdapters.set_process_lock(
+                SCHEDULE_LEADER_NAME, max_duration_in_seconds=43200
+            )
             state.scheduler.start()
-            state.is_schedule_leader = True
+            state.schedule_leader_process_lock = created_process_lock
     except IntegrityError:
         logger.info("🔒 Schedule Leader running elsewhere")
         state.scheduler.start(paused=True)
