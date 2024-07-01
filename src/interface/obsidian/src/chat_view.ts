@@ -1,4 +1,4 @@
-import { ItemView, MarkdownRenderer, WorkspaceLeaf, request, requestUrl, setIcon } from 'obsidian';
+import { ItemView, MarkdownRenderer, Scope, WorkspaceLeaf, request, requestUrl, setIcon } from 'obsidian';
 import * as DOMPurify from 'dompurify';
 import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
@@ -27,6 +27,10 @@ export class KhojChatView extends KhojPaneView {
 
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
         super(leaf, setting);
+
+        // Register Modal Keybindings to send voice message
+        this.scope = new Scope(this.app.scope);
+        this.scope.register(["Mod"], 's', async (event) => { await this.speechToText(event); });
 
         this.waitingForLocation = true;
 
@@ -958,7 +962,7 @@ export class KhojChatView extends KhojPaneView {
 
     sendMessageTimeout: NodeJS.Timeout | undefined;
     mediaRecorder: MediaRecorder | undefined;
-    async speechToText(event: MouseEvent | TouchEvent) {
+    async speechToText(event: MouseEvent | TouchEvent | KeyboardEvent) {
         event.preventDefault();
         const transcribeButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("khoj-transcribe")[0];
         const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
