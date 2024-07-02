@@ -341,6 +341,35 @@ async def update_search_model(
     return {"status": "ok"}
 
 
+@api_config.post("/data/paint/model", status_code=200)
+@requires(["authenticated"])
+async def update_paint_model(
+    request: Request,
+    id: str,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+    subscribed = has_required_scope(request, ["premium"])
+
+    if not subscribed:
+        raise HTTPException(status_code=403, detail="User is not subscribed to premium")
+
+    new_config = await ConversationAdapters.aset_user_text_to_image_model(user, int(id))
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="set_paint_model",
+        client=client,
+        metadata={"paint_model": new_config.setting.model_name},
+    )
+
+    if new_config is None:
+        return {"status": "error", "message": "Model not found"}
+
+    return {"status": "ok"}
+
+
 @api_config.get("/index/size", response_model=Dict[str, int])
 @requires(["authenticated"])
 async def get_indexed_data_size(request: Request, common: CommonQueryParams):

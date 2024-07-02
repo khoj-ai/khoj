@@ -249,6 +249,12 @@ def config_page(request: Request):
 
     current_search_model_option = adapters.get_user_search_model_or_default(user)
 
+    selected_paint_model_config = ConversationAdapters.get_user_text_to_image_model_config(user)
+    paint_model_options = ConversationAdapters.get_text_to_image_model_options().all()
+    all_paint_model_options = list()
+    for paint_model in paint_model_options:
+        all_paint_model_options.append({"model_name": paint_model.model_name, "id": paint_model.id})
+
     notion_oauth_url = get_notion_auth_url(user)
 
     eleven_labs_enabled = is_eleven_labs_enabled()
@@ -271,10 +277,12 @@ def config_page(request: Request):
             "anonymous_mode": state.anonymous_mode,
             "username": user.username,
             "given_name": given_name,
-            "conversation_options": all_conversation_options,
             "search_model_options": all_search_model_options,
             "selected_search_model_config": current_search_model_option.id,
+            "conversation_options": all_conversation_options,
             "selected_conversation_config": selected_conversation_config.id if selected_conversation_config else None,
+            "paint_model_options": all_paint_model_options,
+            "selected_paint_model_config": selected_paint_model_config.id if selected_paint_model_config else None,
             "user_photo": user_picture,
             "billing_enabled": state.billing_enabled,
             "subscription_state": user_subscription_state,
