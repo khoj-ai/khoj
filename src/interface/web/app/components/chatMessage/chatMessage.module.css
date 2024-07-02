@@ -14,7 +14,7 @@ div.chatMessageWrapper {
 div.khojfullHistory {
     border-color: var(--border-color);
     border-width: 1px;
-    padding-left: 24px;
+    padding-left: 4px;
 }
 
 div.youfullHistory {
@@ -105,6 +105,7 @@ button.codeCopyButton:hover {
 }
 
 div.feedbackButtons img,
+button.codeCopyButton img,
 button.copyButton img {
     width: 24px;
 }

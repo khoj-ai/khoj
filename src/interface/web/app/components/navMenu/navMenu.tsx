@@ -78,7 +78,7 @@ export default function NavMenu(props: NavMenuProps) {
                         </DropdownMenuContent>
                     </DropdownMenu>
                     :
-                    <Menubar className='items-top'>
+                    <Menubar className='items-top inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground'>
                         <MenubarMenu>
                             <Link href='/chat' className={`${props.selected.toLowerCase() === 'chat' ? styles.selected : ''} hover:bg-background`}>
                                 <MenubarTrigger>Chat</MenubarTrigger>

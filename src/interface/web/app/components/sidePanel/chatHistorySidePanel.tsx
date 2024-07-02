@@ -10,15 +10,26 @@ import Link from "next/link";
 import useSWR from "swr";
 
 import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+
+import { InlineLoading } from "../loading/loading";
+
+import {
     Dialog,
     DialogContent,
     DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
+
+import { ArrowRight, ArrowLeft, ArrowDown, Spinner } from "@phosphor-icons/react";
 
 interface ChatHistory {
     conversation_id: string;
@@ -35,9 +46,21 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+
 import { Pencil, Trash, Share } from "@phosphor-icons/react";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+
+// Define a fetcher function
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 interface GroupedChatHistory {
     [key: string]: ChatHistory[];
@@ -47,7 +70,7 @@ function renameConversation(conversationId: string, newTitle: string) {
     const editUrl = `/api/chat/title?client=web&conversation_id=${conversationId}&title=${newTitle}`;
 
     fetch(editUrl, {
-        method: 'POST',
+        method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
         },
@@ -62,7 +85,7 @@ function renameConversation(conversationId: string, newTitle: string) {
         });
 }
 
-function shareConversation(conversationId: string) {
+function shareConversation(conversationId: string, setShareUrl: (url: string) => void) {
     const shareUrl = `/api/chat/share?client=web&conversation_id=${conversationId}`;
 
     fetch(shareUrl, {
@@ -74,6 +97,7 @@ function shareConversation(conversationId: string) {
         .then(response => response.json())
         .then(data => {
             console.log(data);
+            setShareUrl(data.url);
         })
         .catch(err => {
             console.error(err);
@@ -82,7 +106,7 @@ function shareConversation(conversationId: string) {
 }
 
 function deleteConversation(conversationId: string) {
-    const deleteUrl = `/api/chat/delete?client=web&conversation_id=${conversationId}`;
+    const deleteUrl = `/api/chat/history?client=web&conversation_id=${conversationId}`;
 
     fetch(deleteUrl, {
         method: 'DELETE',
@@ -100,28 +124,354 @@ function deleteConversation(conversationId: string) {
         });
 }
 
+
+interface FilesMenuProps {
+    conversationId: string;
+}
+
+function FilesMenu(props: FilesMenuProps) {
+    // Use SWR to fetch files
+    const { data: files, error } = useSWR('/api/config/data/computer', fetcher);
+    const { data: selectedFiles, error: selectedFilesError } = useSWR(`/api/chat/conversation/file-filters/${props.conversationId}`, fetcher);
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchInput, setSearchInput] = useState('');
+    const [filteredFiles, setFilteredFiles] = useState<string[]>([]);
+
+    // Function to handle file click
+    const handleFileClick = (filename: string) => {
+        console.log(`File clicked: ${filename}`);
+        // Implement the logic you want to execute on file click
+    };
+
+    useEffect(() => {
+        if (!files) return;
+        if (searchInput === '') {
+            setFilteredFiles(files);
+        } else {
+            let filteredFiles = files.filter((filename: string) => filename.toLowerCase().includes(searchInput.toLowerCase()));
+            setFilteredFiles(filteredFiles);
+        }
+    }, [searchInput, files]);
+
+    if (error) return <div>Failed to load files</div>;
+    if (!files) return <InlineLoading />;
+
+    return (
+        <>
+            {/* <ScrollArea className="h-[40vh] w-[14rem]">
+                <ul className="indexed-files">
+                    {files.length === 0 ? (
+                        <div className="no-files-message">
+                            <a className="inline-chat-link" href="https://docs.khoj.dev/category/clients/">How to upload files</a>
+                        </div>
+                    ) : (
+                        files.map((filename: string) => (
+                            <li key={filename} className="fileName" id={filename} onClick={() => handleFileClick(filename)}>
+                                {filename}
+                            </li>
+                        ))
+                    )}
+                </ul>
+                {files.length > 0 && <button className="file-toggle-button" style={{ display: "block" }}>Toggle Files</button>}
+            </ScrollArea> */}
+            <Popover
+                open={isOpen}
+                onOpenChange={setIsOpen}>
+
+                <PopoverTrigger asChild>
+                    <div
+                        className="w-auto bg-background border border-muted p-4 drop-shadow-sm rounded-2xl">
+                        <div className="flex items-center justify-between space-x-4">
+                            <h4 className="text-sm font-semibold">
+                                Manage Files
+                                <p>
+                                    <span className="text-muted-foreground text-xs">Using {files.length} files</span>
+                                </p>
+                            </h4>
+                            <Button variant="ghost" size="sm" className="w-9 p-0">
+                                {
+                                    isOpen ?
+                                        <ArrowDown className="h-4 w-4" />
+                                        :
+                                        <ArrowRight className="h-4 w-4" />
+
+                                }
+                                <span className="sr-only">Toggle</span>
+                            </Button>
+                        </div>
+                    </div>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 mx-2">
+                    <Input
+                        placeholder="Find file"
+                        className="rounded-md border-none py-2 text-sm text-wrap break-words my-2 bg-accent text-accent-foreground"
+                        value={searchInput}
+                        onChange={(e) => setSearchInput(e.target.value)} />
+                    {
+                        filteredFiles.length === 0 && (
+                            <div className="rounded-md border-none py-2 text-sm text-wrap break-words">
+                                No files found
+                            </div>
+                        )
+                    }
+                    {
+                        filteredFiles.map((filename: string) => (
+                            <div key={filename} className="rounded-md border-none py-2 text-sm text-wrap break-words">
+                                {filename}
+                            </div>
+                        ))
+                    }
+                </PopoverContent>
+            </Popover>
+            {/* <Collapsible
+                open={isOpen}
+                onOpenChange={setIsOpen}
+                className="w-auto bg-background border border-muted p-4 drop-shadow-sm rounded-2xl"
+            >
+                <div className="flex items-center justify-between space-x-4">
+                    <h4 className="text-sm font-semibold">
+                        Manage Files
+                        <p>
+                            <span className="text-muted-foreground text-xs">Using {files.length} files</span>
+                        </p>
+                    </h4>
+                    <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="w-9 p-0">
+                            {
+                                isOpen ?
+                                    <ArrowDown className="h-4 w-4" />
+                                    :
+                                    <ArrowRight className="h-4 w-4" />
+
+                            }
+                            <span className="sr-only">Toggle</span>
+                        </Button>
+                    </CollapsibleTrigger>
+                </div>
+                <CollapsibleContent className="space-y-2 w-min min-w-[14rem]">
+                    <Input
+                        placeholder="Find file"
+                        className="rounded-md border-none py-2 text-sm text-wrap break-words my-2 bg-accent text-accent-foreground"
+                        value={searchInput}
+                        onChange={(e) => setSearchInput(e.target.value)} />
+                    {
+                        filteredFiles.length === 0 && (
+                            <div className="rounded-md border-none py-2 text-sm text-wrap break-words">
+                                No files found
+                            </div>
+                        )
+                    }
+                    {
+                        filteredFiles.map((filename: string) => (
+                            <div key={filename} className="rounded-md border-none py-2 text-sm text-wrap break-words">
+                                {filename}
+                            </div>
+                        ))
+                    }
+                </CollapsibleContent>
+            </Collapsible> */}
+        </>
+    )
+
+}
+
+interface SessionsAndFilesProps {
+    webSocketConnected?: boolean;
+    setEnabled: (enabled: boolean) => void;
+    subsetOrganizedData: GroupedChatHistory | null;
+    organizedData: GroupedChatHistory | null;
+    data: ChatHistory[] | null;
+    userProfile: UserProfile | null;
+}
+
+function SessionsAndFiles(props: SessionsAndFilesProps) {
+    return (
+        <>
+            <div className={`${styles.expanded}`}>
+                <button className={styles.button} onClick={() => props.setEnabled(false)}>
+                    <ArrowLeft />
+                </button>
+            </div>
+            <ScrollArea className="h-[40vh] w-[14rem]">
+                <div className={styles.sessionsList}>
+                    {props.subsetOrganizedData != null && Object.keys(props.subsetOrganizedData).map((agentName) => (
+                        <div key={agentName} className={`my-4`}>
+                            <h3 className={`grid grid-flow-col auto-cols-max gap-2 my-4 font-bold text-sm`}>
+                                {
+                                    props.subsetOrganizedData &&
+                                    <img src={props.subsetOrganizedData[agentName][0].agent_avatar} alt={agentName} width={24} height={24} />
+                                }
+                                {agentName}
+                            </h3>
+                            {props.subsetOrganizedData && props.subsetOrganizedData[agentName].map((chatHistory) => (
+                                <ChatSession
+                                    compressed={true}
+                                    key={chatHistory.conversation_id}
+                                    conversation_id={chatHistory.conversation_id}
+                                    slug={chatHistory.slug}
+                                    agent_avatar={chatHistory.agent_avatar}
+                                    agent_name={chatHistory.agent_name} />
+                            ))}
+                        </div>
+                    ))}
+                </div>
+            </ScrollArea>
+            {
+                (props.data && props.data.length > 5) && (
+                    <ChatSessionsModal data={props.organizedData} />
+                )
+            }
+            <FilesMenu />
+            {props.userProfile &&
+                <UserProfileComponent userProfile={props.userProfile} webSocketConnected={props.webSocketConnected} collapsed={false} />
+            }</>
+    )
+}
+
 interface ChatSessionActionMenuProps {
     conversationId: string;
 }
 
 function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
+    const [renamedTitle, setRenamedTitle] = useState('');
+    const [isRenaming, setIsRenaming] = useState(false);
+    const [isSharing, setIsSharing] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [shareUrl, setShareUrl] = useState('');
+    const [showShareUrl, setShowShareUrl] = useState(false);
+
+    const [isOpen, setIsOpen] = useState(false);
+
+    useEffect(() => {
+        if (isSharing) {
+            shareConversation(props.conversationId, setShareUrl);
+            setShowShareUrl(true);
+            setIsSharing(false);
+        }
+    }, [isSharing]);
+
+    if (isRenaming) {
+        return (
+            <Dialog
+                open={isRenaming}
+                onOpenChange={(open) => setIsRenaming(open)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Set a new title for the conversation</DialogTitle>
+                        <DialogDescription>
+                            This will help you identify the conversation easily, and also help you search for it later.
+                        </DialogDescription>
+                        <Input
+                            value={renamedTitle}
+                            onChange={(e) => setRenamedTitle(e.target.value)}
+                        />
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            onClick={() => {
+                                renameConversation(props.conversationId, renamedTitle);
+                            }}
+                            type="submit">Rename</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        )
+    }
+
+    if (isSharing || showShareUrl) {
+        if (shareUrl) {
+            navigator.clipboard.writeText(shareUrl);
+        }
+        return (
+            <Dialog
+                open={isSharing || showShareUrl}
+                onOpenChange={(open) =>  {
+                    setShowShareUrl(open)
+                    setIsSharing(open)
+                }}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Conversation Share URL</DialogTitle>
+                        <DialogDescription>
+                            Sharing this chat session will allow anyone with a link to view the conversation.
+                            <Input
+                                className="w-full bg-accent text-accent-foreground rounded-md p-2 mt-2"
+                                value={shareUrl}
+                                readOnly={true}
+                            />
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        {
+                            !showShareUrl &&
+                            <Button
+                                onClick={() => {
+                                    shareConversation(props.conversationId, setShareUrl);
+                                    setShowShareUrl(true);
+                                }}
+                                className="bg-orange-500"
+                                disabled><Spinner className="mr-2 h-4 w-4 animate-spin" />Sharing</Button>
+                        }
+                        {
+                            showShareUrl &&
+                            <Button
+                                onClick={() => {
+                                    navigator.clipboard.writeText(shareUrl);
+                                    console.log("shared");
+                                }}
+                                variant={'default'}>Copy</Button>
+                        }
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        )
+    }
+
+    if (isDeleting) {
+        console.log("Deleting");
+        return (
+            <AlertDialog
+                open={isDeleting}
+                onOpenChange={(open) => setIsDeleting(open)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Conversation</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete this conversation? This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                deleteConversation(props.conversationId);
+                                setIsDeleting(false);
+                            }}
+                            className="bg-rose-500 hover:bg-rose-600">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        )
+    }
 
     return (
-        <DropdownMenu>
+        <DropdownMenu
+            onOpenChange={(open) => setIsOpen(open)}
+            open={isOpen}>
             <DropdownMenuTrigger>:</DropdownMenuTrigger>
             <DropdownMenuContent>
                 <DropdownMenuItem>
-                    <Button className="p-0 text-sm h-auto" variant={'ghost'} onClick={() => renameConversation(props.conversationId, 'New Title')}>
+                    <Button className="p-0 text-sm h-auto" variant={'ghost'} onClick={() => setIsRenaming(true)}>
                         <Pencil className="mr-2 h-4 w-4" />Rename
                     </Button>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                    <Button className="p-0 text-sm h-auto" variant={'ghost'} onClick={() => shareConversation(props.conversationId)}>
+                    <Button className="p-0 text-sm h-auto" variant={'ghost'} onClick={() => setIsSharing(true)}>
                         <Share className="mr-2 h-4 w-4" />Share
                     </Button>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                    <Button className="p-0 text-sm h-auto text-rose-300 hover:text-rose-400" variant={'ghost'} onClick={() => deleteConversation(props.conversationId)}>
+                    <Button className="p-0 text-sm h-auto text-rose-300 hover:text-rose-400" variant={'ghost'} onClick={() => setIsDeleting(true)}>
                         <Trash className="mr-2 h-4 w-4" />Delete
                     </Button>
                 </DropdownMenuItem>
@@ -151,27 +501,24 @@ interface ChatSessionsModalProps {
     data: GroupedChatHistory | null;
 }
 
-
-// function ConversationList()
-
 function ChatSessionsModal({ data }: ChatSessionsModalProps) {
     return (
         <Dialog>
             <DialogTrigger
-                className="flex text-left text-medium text-gray-500 hover:text-gray-900 cursor-pointer">
+                className="flex text-left text-medium text-gray-500 hover:text-gray-900 cursor-pointer my-4 text-sm">
                 Show All
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>All Conversations</DialogTitle>
                     <DialogDescription>
-                        <ScrollArea className="h-[500px] w-[450px] rounded-md border p-4">
+                        <ScrollArea className="h-[500px] w-[450px] p-4">
                             {data && Object.keys(data).map((agentName) => (
                                 <div key={agentName}>
-                                    <h3 className={`grid grid-flow-col auto-cols-max gap-2`}>
+                                    <div className={`grid grid-flow-col auto-cols-max gap-2`}>
                                         <img src={data[agentName][0].agent_avatar} alt={agentName} width={24} height={24} />
                                         {agentName}
-                                    </h3>
+                                    </div>
                                     {data[agentName].map((chatHistory) => (
                                         <ChatSession
                                             compressed={false}
@@ -201,7 +548,7 @@ function UserProfileComponent(props: UserProfileProps) {
     if (props.collapsed) {
         return (
             <div className={styles.profile}>
-                <Avatar>
+                <Avatar className="h-7 w-7">
                     <AvatarImage src={props.userProfile.photo} alt="user profile" />
                     <AvatarFallback>
                         {props.userProfile.username[0]}
@@ -316,52 +663,24 @@ export default function SidePanel(props: SidePanelProps) {
             {
                 enabled ?
                     <div className={`${styles.panelWrapper}`}>
-                        <div className={`${styles.expanded}`}>
-                            <button className={styles.button} onClick={() => setEnabled(false)}>
-                                {/* Push Close Icon */}
-                                <svg fill="#000000" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M8.70710678,12 L19.5,12 C19.7761424,12 20,12.2238576 20,12.5 C20,12.7761424 19.7761424,13 19.5,13 L8.70710678,13 L11.8535534,16.1464466 C12.0488155,16.3417088 12.0488155,16.6582912 11.8535534,16.8535534 C11.6582912,17.0488155 11.3417088,17.0488155 11.1464466,16.8535534 L7.14644661,12.8535534 C6.95118446,12.6582912 6.95118446,12.3417088 7.14644661,12.1464466 L11.1464466,8.14644661 C11.3417088,7.95118446 11.6582912,7.95118446 11.8535534,8.14644661 C12.0488155,8.34170876 12.0488155,8.65829124 11.8535534,8.85355339 L8.70710678,12 L8.70710678,12 Z M4,5.5 C4,5.22385763 4.22385763,5 4.5,5 C4.77614237,5 5,5.22385763 5,5.5 L5,19.5 C5,19.7761424 4.77614237,20 4.5,20 C4.22385763,20 4,19.7761424 4,19.5 L4,5.5 Z"></path> </g></svg>
-                            </button>
-                        </div>
-                        <ScrollArea className="h-[40vh] w-[14rem]">
-                            <div className={styles.sessionsList}>
-                                {subsetOrganizedData && Object.keys(subsetOrganizedData).map((agentName) => (
-                                    <div key={agentName} className={`my-4`}>
-                                        <h3 className={`grid grid-flow-col auto-cols-max gap-2 my-4 font-bold text-sm`}>
-                                            <img src={subsetOrganizedData[agentName][0].agent_avatar} alt={agentName} width={24} height={24} />
-                                            {agentName}
-                                        </h3>
-                                        {subsetOrganizedData[agentName].map((chatHistory) => (
-                                            <ChatSession
-                                                compressed={true}
-                                                key={chatHistory.conversation_id}
-                                                conversation_id={chatHistory.conversation_id}
-                                                slug={chatHistory.slug}
-                                                agent_avatar={chatHistory.agent_avatar}
-                                                agent_name={chatHistory.agent_name} />
-                                        ))}
-                                    </div>
-                                ))}
-                            </div>
-                        </ScrollArea>
-                        {
-                            (data && data.length > 5) && (
-                                <ChatSessionsModal data={organizedData} />
-                            )
-                        }
-                        {userProfile &&
-                            <UserProfileComponent userProfile={userProfile} webSocketConnected={props.webSocketConnected} collapsed={false} />
-                        }
+                        <SessionsAndFiles
+                            webSocketConnected={props.webSocketConnected}
+                            setEnabled={setEnabled}
+                            subsetOrganizedData={subsetOrganizedData}
+                            organizedData={organizedData}
+                            data={data}
+                            userProfile={userProfile}
+                        />
                     </div>
                     :
                     <div>
                         <div className={`${styles.collapsed}`}>
-                            { userProfile &&
+                            <button className={styles.button} onClick={() => setEnabled(true)}>
+                                <ArrowRight />
+                            </button>
+                            {userProfile &&
                                 <UserProfileComponent userProfile={userProfile} webSocketConnected={props.webSocketConnected} collapsed={true} />
                             }
-                            <button className={styles.button} onClick={() => setEnabled(true)}>
-                                {/* Pull Open Icon */}
-                                <svg fill="#000000" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M15.2928932,12 L12.1464466,8.85355339 C11.9511845,8.65829124 11.9511845,8.34170876 12.1464466,8.14644661 C12.3417088,7.95118446 12.6582912,7.95118446 12.8535534,8.14644661 L16.8535534,12.1464466 C17.0488155,12.3417088 17.0488155,12.6582912 16.8535534,12.8535534 L12.8535534,16.8535534 C12.6582912,17.0488155 12.3417088,17.0488155 12.1464466,16.8535534 C11.9511845,16.6582912 11.9511845,16.3417088 12.1464466,16.1464466 L15.2928932,13 L4.5,13 C4.22385763,13 4,12.7761424 4,12.5 C4,12.2238576 4.22385763,12 4.5,12 L15.2928932,12 Z M19,5.5 C19,5.22385763 19.2238576,5 19.5,5 C19.7761424,5 20,5.22385763 20,5.5 L20,19.5 C20,19.7761424 19.7761424,20 19.5,20 C19.2238576,20 19,19.7761424 19,19.5 L19,5.5 Z"></path> </g></svg>
-                            </button>
                         </div>
                     </div>
             }

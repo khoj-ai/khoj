@@ -121,6 +121,7 @@ div.agentIndicator {
 
     div.chatLayout {
         gap: 0;
+        grid-template-columns: 1fr;
     }
 
 }

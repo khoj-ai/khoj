@@ -154,6 +154,7 @@ export default function ChatMessage(props: ChatMessageProps) {
     useEffect(() => {
         if (messageRef.current) {
             const preElements = messageRef.current.querySelectorAll('pre > .hljs');
+            console.log("make copy button");
             preElements.forEach((preElement) => {
                 const copyButton = document.createElement('button');
                 const copyImage = document.createElement('img');
@@ -212,7 +213,8 @@ export default function ChatMessage(props: ChatMessageProps) {
         classes.push(styles[chatMessage.by]);
 
         if (chatMessage.by === "khoj") {
-            classes.push(`border-l-4 border-opacity-50 border-l-orange-500 border-l-${props.borderLeftColor}`);
+            const dynamicBorderColor = `border-l-${props.borderLeftColor}`;
+            classes.push(`border-l-4 border-opacity-50 border-l-orange-400 ${dynamicBorderColor}`);
         }
 
         return classes.join(' ');

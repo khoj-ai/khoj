@@ -141,22 +141,22 @@ export default function Chat() {
     return (
         <div className={styles.main + " " + styles.chatLayout}>
             <title>
-                {title}
+                Khoj AI - {title}
             </title>
-            <Suspense fallback={<Loading />}>
                 <div className={styles.sidePanel}>
                     <SidePanel webSocketConnected={chatWS !== null} />
                 </div>
                 <div className={styles.chatBox}>
                     <NavMenu selected="Chat" title={title} />
                     <div className={styles.chatBoxBody}>
-                        <ChatBodyData
-                            chatOptionsData={chatOptionsData}
-                            setTitle={setTitle}
-                            onConversationIdChange={handleConversationIdChange} />
+                        <Suspense fallback={<Loading />}>
+                            <ChatBodyData
+                                chatOptionsData={chatOptionsData}
+                                setTitle={setTitle}
+                                onConversationIdChange={handleConversationIdChange} />
+                        </Suspense>
                     </div>
                 </div>
-            </Suspense>
         </div>
     )
 }

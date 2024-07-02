@@ -79,7 +79,6 @@ div.profile {
     grid-template-columns: auto 1fr;
     gap: 1rem;
     align-items: center;
-    align-self: flex-end;
     margin-top: auto;
 }
 

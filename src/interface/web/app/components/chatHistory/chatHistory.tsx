@@ -118,7 +118,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                             setReferencePanelData={setReferencePanelData}
                             setShowReferencePanel={setShowReferencePanel}
                             customClassName='fullHistory'
-                            borderLeftColor='orange-400'
+                            borderLeftColor='orange-500'
                         />
                     ))}
                     {
