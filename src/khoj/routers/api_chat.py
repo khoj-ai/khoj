@@ -29,11 +29,7 @@ from khoj.processor.conversation.prompts import (
 )
 from khoj.processor.conversation.utils import save_to_conversation_log
 from khoj.processor.speech.text_to_speech import generate_text_to_speech
-from khoj.processor.tools.online_search import (
-    online_search_enabled,
-    read_webpages,
-    search_online,
-)
+from khoj.processor.tools.online_search import read_webpages, search_online
 from khoj.routers.api import extract_references_and_questions
 from khoj.routers.helpers import (
     ApiUserRateLimiter,
@@ -767,22 +763,16 @@ async def websocket_endpoint(
             conversation_commands.remove(ConversationCommand.Notes)
 
         if ConversationCommand.Online in conversation_commands:
-            if not online_search_enabled():
-                conversation_commands.remove(ConversationCommand.Online)
-                # If online search is not enabled, try to read webpages directly
-                if ConversationCommand.Webpage not in conversation_commands:
-                    conversation_commands.append(ConversationCommand.Webpage)
-            else:
-                try:
-                    online_results = await search_online(
-                        defiltered_query, meta_log, location, send_status_update, custom_filters
-                    )
-                except ValueError as e:
-                    logger.warning(f"Error searching online: {e}. Attempting to respond without online results")
-                    await send_complete_llm_response(
-                        f"Error searching online: {e}. Attempting to respond without online results"
-                    )
-                    continue
+            try:
+                online_results = await search_online(
+                    defiltered_query, meta_log, location, send_status_update, custom_filters
+                )
+            except ValueError as e:
+                logger.warning(f"Error searching online: {e}. Attempting to respond without online results")
+                await send_complete_llm_response(
+                    f"Error searching online: {e}. Attempting to respond without online results"
+                )
+                continue
 
         if ConversationCommand.Webpage in conversation_commands:
             try:
@@ -1067,18 +1057,10 @@ async def chat(
         conversation_commands.remove(ConversationCommand.Notes)
 
     if ConversationCommand.Online in conversation_commands:
-        if not online_search_enabled():
-            conversation_commands.remove(ConversationCommand.Online)
-            # If online search is not enabled, try to read webpages directly
-            if ConversationCommand.Webpage not in conversation_commands:
-                conversation_commands.append(ConversationCommand.Webpage)
-        else:
-            try:
-                online_results = await search_online(
-                    defiltered_query, meta_log, location, custom_filters=_custom_filters
-                )
-            except ValueError as e:
-                logger.warning(f"Error searching online: {e}. Attempting to respond without online results")
+        try:
+            online_results = await search_online(defiltered_query, meta_log, location, custom_filters=_custom_filters)
+        except ValueError as e:
+            logger.warning(f"Error searching online: {e}. Attempting to respond without online results")
 
     if ConversationCommand.Webpage in conversation_commands:
         try:
