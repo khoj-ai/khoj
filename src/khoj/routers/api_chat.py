@@ -632,6 +632,7 @@ async def websocket_endpoint(
 
         meta_log = conversation.conversation_log
         is_automated_task = conversation_commands == [ConversationCommand.AutomatedTask]
+        used_slash_summarize = conversation_commands == [ConversationCommand.Summarize]
 
         if conversation_commands == [ConversationCommand.Default] or is_automated_task:
             conversation_commands = await aget_relevant_information_sources(q, meta_log, is_automated_task)
@@ -647,8 +648,18 @@ async def websocket_endpoint(
             await conversation_command_rate_limiter.update_and_check_if_valid(websocket, cmd)
             q = q.replace(f"/{cmd.value}", "").strip()
 
-        if ConversationCommand.Summarize in conversation_commands:
-            file_filters = conversation.file_filters
+        file_filters = conversation.file_filters if conversation else []
+        # Skip trying to summarize if
+        if (
+            # summarization intent was inferred
+            ConversationCommand.Summarize in conversation_commands
+            # and not triggered via slash command
+            and not used_slash_summarize
+            # but we can't actually summarize
+            and len(file_filters) != 1
+        ):
+            conversation_commands.remove(ConversationCommand.Summarize)
+        elif ConversationCommand.Summarize in conversation_commands:
             response_log = ""
             if len(file_filters) == 0:
                 response_log = "No files selected for summarization. Please add files using the section on the left."

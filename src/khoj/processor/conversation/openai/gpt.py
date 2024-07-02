@@ -154,7 +154,7 @@ def converse(
         completion_func(chat_response=prompts.no_online_results_found.format())
         return iter([prompts.no_online_results_found.format()])
 
-    if ConversationCommand.Online in conversation_commands or ConversationCommand.Webpage in conversation_commands:
+    if not is_none_or_empty(online_results):
         conversation_primer = (
             f"{prompts.online_search_conversation.format(online_results=str(online_results))}\n{conversation_primer}"
         )
