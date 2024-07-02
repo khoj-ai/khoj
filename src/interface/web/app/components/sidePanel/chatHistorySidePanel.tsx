@@ -151,6 +151,9 @@ interface ChatSessionsModalProps {
     data: GroupedChatHistory | null;
 }
 
+
+// function ConversationList()
+
 function ChatSessionsModal({ data }: ChatSessionsModalProps) {
     return (
         <Dialog>
@@ -186,6 +189,49 @@ function ChatSessionsModal({ data }: ChatSessionsModalProps) {
             </DialogContent>
         </Dialog>
     );
+}
+
+interface UserProfileProps {
+    userProfile: UserProfile;
+    webSocketConnected?: boolean;
+    collapsed: boolean;
+}
+
+function UserProfileComponent(props: UserProfileProps) {
+    if (props.collapsed) {
+        return (
+            <div className={styles.profile}>
+                <Avatar>
+                    <AvatarImage src={props.userProfile.photo} alt="user profile" />
+                    <AvatarFallback>
+                        {props.userProfile.username[0]}
+                    </AvatarFallback>
+                </Avatar>
+            </div>
+        );
+    }
+
+    return (
+        <div className={styles.profile}>
+            <Avatar>
+                <AvatarImage src={props.userProfile.photo} alt="user profile" />
+                <AvatarFallback>
+                    {props.userProfile.username[0]}
+                </AvatarFallback>
+            </Avatar>
+            <div className={styles.profileDetails}>
+                <p>{props.userProfile?.username}</p>
+                {/* Connected Indicator */}
+                <div className="flex gap-2 items-center">
+                    <div className={`inline-flex h-4 w-4 rounded-full opacity-75 ${props.webSocketConnected ? 'bg-green-500' : 'bg-rose-500'}`}></div>
+                    <p className="text-muted-foreground text-sm">
+                        {props.webSocketConnected ? "Connected" : "Disconnected"}
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+
 }
 
 const fetchChatHistory = async (url: string) => {
@@ -303,38 +349,14 @@ export default function SidePanel(props: SidePanelProps) {
                             )
                         }
                         {userProfile &&
-                            <div className={styles.profile}>
-                                <Avatar>
-                                    <AvatarImage src={userProfile.photo} alt="user profile" />
-                                    <AvatarFallback>
-                                        {userProfile.username[0]}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <div className={styles.profileDetails}>
-                                    <p>{userProfile?.username}</p>
-                                    {/* Connected Indicator */}
-                                    <div className="flex gap-2 items-center">
-                                        <div className={`inline-flex h-4 w-4 rounded-full opacity-75 ${props.webSocketConnected ? 'bg-green-500' : 'bg-rose-500'}`}></div>
-                                        <p className="text-muted-foreground text-sm">
-                                            {props.webSocketConnected ? "Connected" : "Disconnected"}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
+                            <UserProfileComponent userProfile={userProfile} webSocketConnected={props.webSocketConnected} collapsed={false} />
                         }
                     </div>
                     :
                     <div>
                         <div className={`${styles.collapsed}`}>
-                            {userProfile &&
-                                <div className={styles.profile}>
-                                    <Avatar className="max-w-6 max-h-6 rounded-full">
-                                        <AvatarImage src={userProfile.photo} alt="user profile" />
-                                        <AvatarFallback>
-                                            {userProfile.username[0]}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                </div>
+                            { userProfile &&
+                                <UserProfileComponent userProfile={userProfile} webSocketConnected={props.webSocketConnected} collapsed={true} />
                             }
                             <button className={styles.button} onClick={() => setEnabled(true)}>
                                 {/* Pull Open Icon */}

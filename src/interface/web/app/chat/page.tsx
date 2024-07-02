@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from '@/components/ui/button';
 
-export function TextareaWithLabel() {
+function TextareaWithLabel() {
     return (
         <div className="grid w-full gap-1.5">
             {/* <Label htmlFor="message">Your message</Label> */}
@@ -36,7 +36,7 @@ const styleClassOptions = ['pink', 'blue', 'green', 'yellow', 'purple'];
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
     setTitle: (title: string) => void;
-    setConversationID?: (conversationId: string) => void;
+    onConversationIdChange?: (conversationId: string) => void;
 }
 
 
@@ -44,9 +44,11 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const searchParams = useSearchParams();
     const conversationId = searchParams.get('conversationId');
 
-    if (conversationId && props.setConversationID) {
-        props.setConversationID(conversationId);
-    }
+    useEffect(() => {
+        if (conversationId) {
+            props.onConversationIdChange?.(conversationId);
+        }
+    }, [conversationId, props.onConversationIdChange]);
 
     if (!conversationId) {
         return (
@@ -65,9 +67,25 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }
 
     return (
-        <div className={false ? styles.chatBody : styles.chatBodyFull}>
-            <ChatHistory conversationId={conversationId} setTitle={props.setTitle} />
-        </div>
+        <>
+            <div className={false ? styles.chatBody : styles.chatBodyFull}>
+                <ChatHistory conversationId={conversationId} setTitle={props.setTitle} />
+            </div>
+            <div className={`${styles.inputBox} bg-background align-middle items-center justify-center`}>
+                <Button variant={'ghost'} className="!bg-none p-1 h-auto text-3xl rounded-full !hover:bg-accent ">
+                    <FileArrowUp fill="hsl(var(--accent-foreground))" />
+                </Button>
+                <TextareaWithLabel />
+                <Button variant={'ghost'} className="!bg-none p-1 h-auto text-3xl rounded-full !hover:bg-accent">
+                    <Microphone fill="hsl(var(--accent-foreground))" />
+                </Button>
+                <Button className="bg-orange-300 hover:bg-orange-500 rounded-full p-0 h-auto text-3xl">
+                    <ArrowCircleUp />
+                </Button>
+                {/* <input className={styles.inputBox} type="text" placeholder="Type / to see a list of commands" onInput={(e) => handleChatInput(e)} /> */}
+                {/* <button className={styles.inputBox}>Send</button> */}
+            </div>
+        </>
     );
 }
 
@@ -110,6 +128,10 @@ export default function Chat() {
         })();
     }, [conversationId]);
 
+    const handleConversationIdChange = (newConversationId: string) => {
+        setConversationID(newConversationId);
+    };
+
 
     if (isLoading) {
         return <Loading />;
@@ -118,42 +140,23 @@ export default function Chat() {
 
     return (
         <div className={styles.main + " " + styles.chatLayout}>
-            <div className={styles.sidePanel}>
-                <SidePanel webSocketConnected={chatWS !== null} />
-            </div>
             <title>
-                Khoj AI - Chat
+                {title}
             </title>
-            <div className={styles.chatBox}>
-                <NavMenu selected="Chat" title={title} />
-                <div className={styles.chatBoxBody}>
-                    <div>
-                        <Suspense fallback={<Loading />}>
-                            <ChatBodyData chatOptionsData={chatOptionsData} setTitle={setTitle} setConversationID={setConversationID} />
-                        </Suspense>
-                    </div>
-                    {/* <div className={styles.agentIndicator}>
-                        <a className='no-underline' href="/agents?agent=khoj" target="_blank" rel="noreferrer">
-                            <Lightbulb color='var(--khoj-orange)' weight='fill' />
-                            <span className='text-neutral-600'>Khoj</span>
-                        </a>
-                    </div> */}
-                    <div className={`${styles.inputBox} bg-background align-middle items-center justify-center`}>
-                        <Button className="!bg-transparent !hover:bg-transparent p-0 h-auto text-3xl">
-                            <FileArrowUp fill="hsla(var(--secondary-foreground))"/>
-                        </Button>
-                        <TextareaWithLabel />
-                        <Button className="!bg-transparent !hover:bg-transparent p-0 h-auto text-3xl">
-                            <Microphone fill="hsla(var(--secondary-foreground))"/>
-                        </Button>
-                        <Button className="bg-orange-300 hover:bg-orange-500 rounded-full p-0 h-auto text-3xl">
-                            <ArrowCircleUp/>
-                        </Button>
-                        {/* <input className={styles.inputBox} type="text" placeholder="Type / to see a list of commands" onInput={(e) => handleChatInput(e)} /> */}
-                        {/* <button className={styles.inputBox}>Send</button> */}
+            <Suspense fallback={<Loading />}>
+                <div className={styles.sidePanel}>
+                    <SidePanel webSocketConnected={chatWS !== null} />
+                </div>
+                <div className={styles.chatBox}>
+                    <NavMenu selected="Chat" title={title} />
+                    <div className={styles.chatBoxBody}>
+                        <ChatBodyData
+                            chatOptionsData={chatOptionsData}
+                            setTitle={setTitle}
+                            onConversationIdChange={handleConversationIdChange} />
                     </div>
                 </div>
-            </div>
+            </Suspense>
         </div>
     )
 }
