@@ -80,17 +80,17 @@ export default function NavMenu(props: NavMenuProps) {
                     :
                     <Menubar className='items-top inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground'>
                         <MenubarMenu>
-                            <Link href='/chat' className={`${props.selected.toLowerCase() === 'chat' ? styles.selected : ''} hover:bg-background`}>
+                            <Link href='/chat' target="_blank" rel="noreferrer" className={`${props.selected.toLowerCase() === 'chat' ? styles.selected : ''} hover:bg-background`}>
                                 <MenubarTrigger>Chat</MenubarTrigger>
                             </Link>
                         </MenubarMenu>
                         <MenubarMenu>
-                            <Link href='/agents' className={`${props.selected.toLowerCase() === 'agent' ? styles.selected : ''} hover:bg-background`}>
+                            <Link href='/agents' target="_blank" rel="noreferrer" className={`${props.selected.toLowerCase() === 'agent' ? styles.selected : ''} hover:bg-background`}>
                                 <MenubarTrigger>Agents</MenubarTrigger>
                             </Link>
                         </MenubarMenu>
                         <MenubarMenu>
-                            <Link href='/automations' className={`${props.selected.toLowerCase() === 'automations' ? styles.selected : ''} hover:bg-background`}>
+                            <Link href='/automations' target="_blank" rel="noreferrer" className={`${props.selected.toLowerCase() === 'automations' ? styles.selected : ''} hover:bg-background`}>
                                 <MenubarTrigger>Automations</MenubarTrigger>
                             </Link>
                         </MenubarMenu>

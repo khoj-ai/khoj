@@ -144,7 +144,7 @@ export default function Chat() {
                 Khoj AI - {title}
             </title>
                 <div className={styles.sidePanel}>
-                    <SidePanel webSocketConnected={chatWS !== null} />
+                    <SidePanel webSocketConnected={chatWS !== null} conversationId={conversationId} />
                 </div>
                 <div className={styles.chatBox}>
                     <NavMenu selected="Chat" title={title} />

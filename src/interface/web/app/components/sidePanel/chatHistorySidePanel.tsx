@@ -2,7 +2,7 @@
 
 import styles from "./sidePanel.module.css";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 import { UserProfile } from "@/app/common/auth";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -29,7 +29,7 @@ import {
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-import { ArrowRight, ArrowLeft, ArrowDown, Spinner } from "@phosphor-icons/react";
+import { ArrowRight, ArrowLeft, ArrowDown, Spinner, Check } from "@phosphor-icons/react";
 
 interface ChatHistory {
     conversation_id: string;
@@ -124,60 +124,91 @@ function deleteConversation(conversationId: string) {
         });
 }
 
+function modifyFileFilterForConversation(
+    conversationId: string | null,
+    filename: string,
+    setAddedFiles: (files: string[]) => void,
+    mode: 'add' | 'remove') {
+
+    if (!conversationId) {
+        console.error("No conversation ID provided");
+        return;
+    }
+
+    const method = mode === 'add' ? 'POST' : 'DELETE';
+
+    const body = {
+        conversation_id: conversationId,
+        filename: filename,
+    }
+    const addUrl = `/api/chat/conversation/file-filters`;
+
+    fetch(addUrl, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+    })
+        .then(response => response.json())
+        .then(data => {
+            setAddedFiles(data);
+            console.log(data);
+        })
+        .catch(err => {
+            console.error(err);
+            return;
+        });
+}
+
 
 interface FilesMenuProps {
-    conversationId: string;
+    conversationId: string | null;
 }
 
 function FilesMenu(props: FilesMenuProps) {
     // Use SWR to fetch files
-    const { data: files, error } = useSWR('/api/config/data/computer', fetcher);
-    const { data: selectedFiles, error: selectedFilesError } = useSWR(`/api/chat/conversation/file-filters/${props.conversationId}`, fetcher);
+    const { data: files, error } = useSWR(props.conversationId ? '/api/config/data/computer' : null, fetcher);
+    const { data: selectedFiles, error: selectedFilesError } = useSWR(props.conversationId ? `/api/chat/conversation/file-filters/${props.conversationId}` : null, fetcher);
     const [isOpen, setIsOpen] = useState(false);
     const [searchInput, setSearchInput] = useState('');
     const [filteredFiles, setFilteredFiles] = useState<string[]>([]);
-
-    // Function to handle file click
-    const handleFileClick = (filename: string) => {
-        console.log(`File clicked: ${filename}`);
-        // Implement the logic you want to execute on file click
-    };
+    const [addedFiles, setAddedFiles] = useState<string[]>([]);
 
     useEffect(() => {
         if (!files) return;
         if (searchInput === '') {
             setFilteredFiles(files);
         } else {
-            let filteredFiles = files.filter((filename: string) => filename.toLowerCase().includes(searchInput.toLowerCase()));
-            setFilteredFiles(filteredFiles);
+            let sortedFiles = files.filter((filename: string) => filename.toLowerCase().includes(searchInput.toLowerCase()));
+
+            if (addedFiles) {
+                sortedFiles = addedFiles.concat(filteredFiles.filter((filename: string) => !addedFiles.includes(filename)));
+            }
+
+            setFilteredFiles(sortedFiles);
         }
-    }, [searchInput, files]);
+    }, [searchInput, files, addedFiles]);
+
+    useEffect(() => {
+        if (selectedFiles) {
+            setAddedFiles(selectedFiles);
+        }
+
+    }, [selectedFiles]);
+
+    if (!props.conversationId) return (<></>);
 
     if (error) return <div>Failed to load files</div>;
+    if (selectedFilesError) return <div>Failed to load selected files</div>;
     if (!files) return <InlineLoading />;
+    if (!selectedFiles) return <InlineLoading />;
 
     return (
         <>
-            {/* <ScrollArea className="h-[40vh] w-[14rem]">
-                <ul className="indexed-files">
-                    {files.length === 0 ? (
-                        <div className="no-files-message">
-                            <a className="inline-chat-link" href="https://docs.khoj.dev/category/clients/">How to upload files</a>
-                        </div>
-                    ) : (
-                        files.map((filename: string) => (
-                            <li key={filename} className="fileName" id={filename} onClick={() => handleFileClick(filename)}>
-                                {filename}
-                            </li>
-                        ))
-                    )}
-                </ul>
-                {files.length > 0 && <button className="file-toggle-button" style={{ display: "block" }}>Toggle Files</button>}
-            </ScrollArea> */}
             <Popover
                 open={isOpen}
                 onOpenChange={setIsOpen}>
-
                 <PopoverTrigger asChild>
                     <div
                         className="w-auto bg-background border border-muted p-4 drop-shadow-sm rounded-2xl">
@@ -185,7 +216,7 @@ function FilesMenu(props: FilesMenuProps) {
                             <h4 className="text-sm font-semibold">
                                 Manage Files
                                 <p>
-                                    <span className="text-muted-foreground text-xs">Using {files.length} files</span>
+                                    <span className="text-muted-foreground text-xs">Using {addedFiles.length == 0 ? files.length : addedFiles.length} files</span>
                                 </p>
                             </h4>
                             <Button variant="ghost" size="sm" className="w-9 p-0">
@@ -216,60 +247,27 @@ function FilesMenu(props: FilesMenuProps) {
                     }
                     {
                         filteredFiles.map((filename: string) => (
-                            <div key={filename} className="rounded-md border-none py-2 text-sm text-wrap break-words">
-                                {filename}
-                            </div>
+                            addedFiles && addedFiles.includes(filename) ?
+                                <Button
+                                    variant={'ghost'}
+                                    key={filename}
+                                    className="rounded-md border-none py-2 text-sm text-wrap break-words bg-accent text-accent-foreground text-left"
+                                    onClick={() => modifyFileFilterForConversation(props.conversationId, filename, setAddedFiles, 'remove')}>
+                                    {filename}
+                                    <Check className="h-4 w-4 ml-2" />
+                                </Button>
+                                :
+                                <Button
+                                    variant={'ghost'}
+                                    key={filename}
+                                    className="rounded-md border-none py-2 text-sm text-wrap break-words text-left"
+                                    onClick={() => modifyFileFilterForConversation(props.conversationId, filename, setAddedFiles, 'add')}>
+                                    {filename}
+                                </Button>
                         ))
                     }
                 </PopoverContent>
             </Popover>
-            {/* <Collapsible
-                open={isOpen}
-                onOpenChange={setIsOpen}
-                className="w-auto bg-background border border-muted p-4 drop-shadow-sm rounded-2xl"
-            >
-                <div className="flex items-center justify-between space-x-4">
-                    <h4 className="text-sm font-semibold">
-                        Manage Files
-                        <p>
-                            <span className="text-muted-foreground text-xs">Using {files.length} files</span>
-                        </p>
-                    </h4>
-                    <CollapsibleTrigger asChild>
-                        <Button variant="ghost" size="sm" className="w-9 p-0">
-                            {
-                                isOpen ?
-                                    <ArrowDown className="h-4 w-4" />
-                                    :
-                                    <ArrowRight className="h-4 w-4" />
-
-                            }
-                            <span className="sr-only">Toggle</span>
-                        </Button>
-                    </CollapsibleTrigger>
-                </div>
-                <CollapsibleContent className="space-y-2 w-min min-w-[14rem]">
-                    <Input
-                        placeholder="Find file"
-                        className="rounded-md border-none py-2 text-sm text-wrap break-words my-2 bg-accent text-accent-foreground"
-                        value={searchInput}
-                        onChange={(e) => setSearchInput(e.target.value)} />
-                    {
-                        filteredFiles.length === 0 && (
-                            <div className="rounded-md border-none py-2 text-sm text-wrap break-words">
-                                No files found
-                            </div>
-                        )
-                    }
-                    {
-                        filteredFiles.map((filename: string) => (
-                            <div key={filename} className="rounded-md border-none py-2 text-sm text-wrap break-words">
-                                {filename}
-                            </div>
-                        ))
-                    }
-                </CollapsibleContent>
-            </Collapsible> */}
         </>
     )
 
@@ -282,6 +280,7 @@ interface SessionsAndFilesProps {
     organizedData: GroupedChatHistory | null;
     data: ChatHistory[] | null;
     userProfile: UserProfile | null;
+    conversationId: string | null;
 }
 
 function SessionsAndFiles(props: SessionsAndFilesProps) {
@@ -296,13 +295,13 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                 <div className={styles.sessionsList}>
                     {props.subsetOrganizedData != null && Object.keys(props.subsetOrganizedData).map((agentName) => (
                         <div key={agentName} className={`my-4`}>
-                            <h3 className={`grid grid-flow-col auto-cols-max gap-2 my-4 font-bold text-sm`}>
+                            {/* <h3 className={`grid grid-flow-col auto-cols-max gap-2 my-4 font-bold text-sm`}>
                                 {
                                     props.subsetOrganizedData &&
                                     <img src={props.subsetOrganizedData[agentName][0].agent_avatar} alt={agentName} width={24} height={24} />
                                 }
                                 {agentName}
-                            </h3>
+                            </h3> */}
                             {props.subsetOrganizedData && props.subsetOrganizedData[agentName].map((chatHistory) => (
                                 <ChatSession
                                     compressed={true}
@@ -321,7 +320,7 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                     <ChatSessionsModal data={props.organizedData} />
                 )
             }
-            <FilesMenu />
+            <FilesMenu conversationId={props.conversationId} />
             {props.userProfile &&
                 <UserProfileComponent userProfile={props.userProfile} webSocketConnected={props.webSocketConnected} collapsed={false} />
             }</>
@@ -370,6 +369,7 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
                         <Button
                             onClick={() => {
                                 renameConversation(props.conversationId, renamedTitle);
+                                setIsRenaming(false);
                             }}
                             type="submit">Rename</Button>
                     </DialogFooter>
@@ -385,7 +385,7 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
         return (
             <Dialog
                 open={isSharing || showShareUrl}
-                onOpenChange={(open) =>  {
+                onOpenChange={(open) => {
                     setShowShareUrl(open)
                     setIsSharing(open)
                 }}>
@@ -559,24 +559,26 @@ function UserProfileComponent(props: UserProfileProps) {
     }
 
     return (
-        <div className={styles.profile}>
-            <Avatar>
-                <AvatarImage src={props.userProfile.photo} alt="user profile" />
-                <AvatarFallback>
-                    {props.userProfile.username[0]}
-                </AvatarFallback>
-            </Avatar>
-            <div className={styles.profileDetails}>
-                <p>{props.userProfile?.username}</p>
-                {/* Connected Indicator */}
-                <div className="flex gap-2 items-center">
-                    <div className={`inline-flex h-4 w-4 rounded-full opacity-75 ${props.webSocketConnected ? 'bg-green-500' : 'bg-rose-500'}`}></div>
-                    <p className="text-muted-foreground text-sm">
-                        {props.webSocketConnected ? "Connected" : "Disconnected"}
-                    </p>
+            <div className={styles.profile}>
+        <Link href="/config" target="_blank" rel="noopener noreferrer">
+                <Avatar>
+                    <AvatarImage src={props.userProfile.photo} alt="user profile" />
+                    <AvatarFallback>
+                        {props.userProfile.username[0]}
+                    </AvatarFallback>
+                </Avatar>
+        </Link>
+                <div className={styles.profileDetails}>
+                    <p>{props.userProfile?.username}</p>
+                    {/* Connected Indicator */}
+                    <div className="flex gap-2 items-center">
+                        <div className={`inline-flex h-4 w-4 rounded-full opacity-75 ${props.webSocketConnected ? 'bg-green-500' : 'bg-rose-500'}`}></div>
+                        <p className="text-muted-foreground text-sm">
+                            {props.webSocketConnected ? "Connected" : "Disconnected"}
+                        </p>
+                    </div>
                 </div>
             </div>
-        </div>
     );
 
 }
@@ -603,6 +605,7 @@ export const useChatHistoryRecentFetchRequest = (url: string) => {
 
 interface SidePanelProps {
     webSocketConnected?: boolean;
+    conversationId: string | null;
 }
 
 
@@ -611,7 +614,6 @@ export default function SidePanel(props: SidePanelProps) {
     const [data, setData] = useState<ChatHistory[] | null>(null);
     const [organizedData, setOrganizedData] = useState<GroupedChatHistory | null>(null);
     const [subsetOrganizedData, setSubsetOrganizedData] = useState<GroupedChatHistory | null>(null);
-    const [isLoading, setLoading] = useState(true)
     const [enabled, setEnabled] = useState(false);
 
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -670,6 +672,7 @@ export default function SidePanel(props: SidePanelProps) {
                             organizedData={organizedData}
                             data={data}
                             userProfile={userProfile}
+                            conversationId={props.conversationId}
                         />
                     </div>
                     :
