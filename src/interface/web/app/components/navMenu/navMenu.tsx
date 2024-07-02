@@ -1,106 +1,125 @@
 'use client'
 
 import styles from './navMenu.module.css';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useAuthenticatedData, UserProfile } from '@/app/common/auth';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+import {
+    Menubar,
+    MenubarContent,
+    MenubarItem,
+    MenubarMenu,
+    MenubarSeparator,
+    MenubarTrigger,
+} from "@/components/ui/menubar";
+
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 
 interface NavMenuProps {
     selected: string;
+    showLogo?: boolean;
+    title?: string;
 }
 
-function SettingsMenu(props: UserProfile) {
-    const [showSettings, setShowSettings] = useState(false);
-
-    return (
-        <div className={styles.settingsMenu}>
-            <div className={styles.settingsMenuProfile} onClick={() => setShowSettings(!showSettings)}>
-                <Image
-                    src={props.photo || "/agents.svg"}
-                    alt={props.username}
-                    width={50}
-                    height={50}
-                />
-            </div>
-            {showSettings && (
-                <div className={styles.settingsMenuOptions}>
-                    <div className={styles.settingsMenuUsername}>{props.username}</div>
-                    <Link href="/config">
-                        Settings
-                    </Link>
-                    <Link href="https://github.com/khoj-ai/khoj">
-                        Github
-                    </Link>
-                    <Link href="https://docs.khoj.dev">
-                        Help
-                    </Link>
-                    <Link href="/auth/logout">
-                        Logout
-                    </Link>
-                </div>
-            )}
-        </div>
-    );
-}
 export default function NavMenu(props: NavMenuProps) {
 
-    let userData = useAuthenticatedData();
+    const userData = useAuthenticatedData();
+    const [displayTitle, setDisplayTitle] = useState<string>(props.title || props.selected.toUpperCase());
+
+    const [isMobileWidth, setIsMobileWidth] = useState(false);
+
+    useEffect(() => {
+        setIsMobileWidth(window.innerWidth < 768);
+        setDisplayTitle(props.title || props.selected.toUpperCase());
+
+    }, [props.title]);
+
     return (
         <div className={styles.titleBar}>
-            <Link href="/">
-                <Image
-                    src="/khoj-logo.svg"
-                    alt="Khoj Logo"
-                    className={styles.logo}
-                    width={100}
-                    height={50}
-                    priority
-                />
-            </Link>
-            <menu className={styles.menu}>
-                <a className={props.selected === "Chat" ? styles.selected : ""} href = '/chat'>
-                    <Image
-                        src="/chat.svg"
-                        alt="Chat Logo"
-                        className={styles.lgoo}
-                        width={24}
-                        height={24}
-                        priority
-                    />
-                    <span>
-                        Chat
-                    </span>
-                </a>
-                <a className={props.selected === "Agents" ? styles.selected : ""} href='/agents'>
-                    <Image
-                        src="/agents.svg"
-                        alt="Agent Logo"
-                        className={styles.lgoo}
-                        width={24}
-                        height={24}
-                        priority
-                    />
-                    <span>
-                        Agents
-                    </span>
-                </a>
-                <a className={props.selected === "Automations" ? styles.selected : ""} href = '/automations'>
-                    <Image
-                        src="/automation.svg"
-                        alt="Automation Logo"
-                        className={styles.lgoo}
-                        width={24}
-                        height={24}
-                        priority
-                    />
-                    <span>
-                        Automations
-                    </span>
-                </a>
-                {userData && <SettingsMenu {...userData} />}
-            </menu>
+            <div className={`text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mr-8`}>
+                {displayTitle && <h2 className={`text-lg text-ellipsis whitespace-nowrap overflow-x-hidden`} >{displayTitle}</h2>}
+            </div>
+            {
+                isMobileWidth ?
+                    <DropdownMenu>
+                        <DropdownMenuTrigger>=</DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuItem>
+                                <Link href='/chat' className={`${props.selected.toLowerCase() === 'chat' ? styles.selected : ''} hover:bg-background`}>Chat</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                                <Link href='/agents' className={`${props.selected.toLowerCase() === 'agent' ? styles.selected : ''} hover:bg-background`}>Agents</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                                <Link href='/automations' className={`${props.selected.toLowerCase() === 'automations' ? styles.selected : ''} hover:bg-background`}>Automations</Link>
+                            </DropdownMenuItem>
+                            {userData && <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuLabel>Profile</DropdownMenuLabel>
+                                <DropdownMenuItem>
+                                    <Link href="/config">Settings</Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                    <Link href="https://docs.khoj.dev">Help</Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                    <Link href="/auth/logout">Logout</Link>
+                                </DropdownMenuItem>
+                            </>}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    :
+                    <Menubar className='items-top'>
+                        <MenubarMenu>
+                            <Link href='/chat' className={`${props.selected.toLowerCase() === 'chat' ? styles.selected : ''} hover:bg-background`}>
+                                <MenubarTrigger>Chat</MenubarTrigger>
+                            </Link>
+                        </MenubarMenu>
+                        <MenubarMenu>
+                            <Link href='/agents' className={`${props.selected.toLowerCase() === 'agent' ? styles.selected : ''} hover:bg-background`}>
+                                <MenubarTrigger>Agents</MenubarTrigger>
+                            </Link>
+                        </MenubarMenu>
+                        <MenubarMenu>
+                            <Link href='/automations' className={`${props.selected.toLowerCase() === 'automations' ? styles.selected : ''} hover:bg-background`}>
+                                <MenubarTrigger>Automations</MenubarTrigger>
+                            </Link>
+                        </MenubarMenu>
+                        {userData &&
+                            <MenubarMenu>
+                                <MenubarTrigger>Profile</MenubarTrigger>
+                                <MenubarContent>
+                                    <MenubarItem>
+                                        <Link href="/config">
+                                            Settings
+                                        </Link>
+                                    </MenubarItem>
+                                    <MenubarSeparator />
+                                    <MenubarItem>
+                                        <Link href="https://docs.khoj.dev">
+                                            Help
+                                        </Link>
+                                    </MenubarItem>
+                                    <MenubarSeparator />
+                                    <MenubarItem>
+                                        <Link href="/auth/logout">
+                                            Logout
+                                        </Link>
+                                    </MenubarItem>
+                                </MenubarContent>
+                            </MenubarMenu>
+                        }
+                    </Menubar>
+            }
         </div>
     )
 }

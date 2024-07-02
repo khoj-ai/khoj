@@ -96,7 +96,7 @@ function AgentModal(props: AgentModalProps) {
                                 props.setShowModal(false);
                                 }}>
                                 <Image
-                                        src="Close.svg"
+                                        src="close.svg"
                                         alt="Close"
                                         width={24}
                                         height={24} />

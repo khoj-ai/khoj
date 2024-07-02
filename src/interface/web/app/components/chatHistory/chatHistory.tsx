@@ -5,9 +5,17 @@ import { useRef, useEffect, useState } from 'react';
 
 import ChatMessage, { ChatHistoryData, SingleChatMessage } from '../chatMessage/chatMessage';
 
+import ReferencePanel, { hasValidReferences} from '../referencePanel/referencePanel';
+
+import { ScrollArea } from "@/components/ui/scroll-area"
+
 import renderMathInElement from 'katex/contrib/auto-render';
 import 'katex/dist/katex.min.css';
 import 'highlight.js/styles/github.css'
+
+import Loading from '../loading/loading';
+
+import { Lightbulb } from "@phosphor-icons/react";
 
 interface ChatResponse {
     status: string;
@@ -20,8 +28,7 @@ interface ChatHistory {
 
 interface ChatHistoryProps {
     conversationId: string;
-    setReferencePanelData: Function;
-    setShowReferencePanel: Function;
+    setTitle: (title: string) => void;
 }
 
 
@@ -31,6 +38,8 @@ export default function ChatHistory(props: ChatHistoryProps) {
     const ref = useRef<HTMLDivElement>(null);
     const chatHistoryRef = useRef(null);
 
+    const [showReferencePanel, setShowReferencePanel] = useState(true);
+    const [referencePanelData, setReferencePanelData] = useState<SingleChatMessage | null>(null);
 
 	useEffect(() => {
 
@@ -38,10 +47,12 @@ export default function ChatHistory(props: ChatHistoryProps) {
             .then(response => response.json())
             .then((chatData: ChatResponse) => {
                 setLoading(false);
+
                 // Render chat options, if any
                 if (chatData) {
                     console.log(chatData);
                     setData(chatData.response);
+                    props.setTitle(chatData.response.slug);
                 }
             })
             .catch(err => {
@@ -55,7 +66,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
         const observer = new MutationObserver((mutationsList, observer) => {
             // If the addedNodes property has one or more nodes
             for(let mutation of mutationsList) {
-                if(mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
                     // Call your function here
                     renderMathInElement(document.body, {
                         delimiters: [
@@ -78,23 +89,50 @@ export default function ChatHistory(props: ChatHistoryProps) {
     }, []);
 
     if (isLoading) {
-        return <h2>🌀 Loading...</h2>;
+        return <Loading />;
+    }
+
+    function constructAgentLink() {
+        if (!data || !data.agent || !data.agent.slug) return `/agents`;
+        return `/agents?agent=${data.agent.slug}`
+    }
+
+    function constructAgentAvatar() {
+        if (!data || !data.agent || !data.agent.avatar) return `/avatar.png`;
+        return data.agent.avatar;
+    }
+
+    function constructAgentName() {
+        if (!data || !data.agent || !data.agent.name) return `Agent`;
+        return data.agent.name;
     }
 
     return (
-        <div className={styles.main + " " + styles.chatLayout}>
+        <ScrollArea className={`h-[80vh]`}>
             <div ref={ref}>
                 <div className={styles.chatHistory} ref={chatHistoryRef}>
                     {(data && data.chat) && data.chat.map((chatMessage, index) => (
                         <ChatMessage
                             key={index}
                             chatMessage={chatMessage}
-                            setReferencePanelData={props.setReferencePanelData}
-                            setShowReferencePanel={props.setShowReferencePanel}
+                            setReferencePanelData={setReferencePanelData}
+                            setShowReferencePanel={setShowReferencePanel}
+                            customClassName='fullHistory'
+                            borderLeftColor='orange-400'
                         />
                     ))}
+                    {
+                        (hasValidReferences(referencePanelData) && showReferencePanel) &&
+                            <ReferencePanel referencePanelData={referencePanelData} setShowReferencePanel={setShowReferencePanel} />
+                    }
+                    <div className={`${styles.agentIndicator}`}>
+                        <a className='no-underline mx-2 flex' href={constructAgentLink()} target="_blank" rel="noreferrer">
+                            <Lightbulb color='orange' weight='fill' />
+                            <span className='text-neutral-600'>{constructAgentName()}</span>
+                        </a>
+                    </div>
                 </div>
             </div>
-        </div>
+        </ScrollArea>
     )
 }

@@ -1,18 +1,45 @@
 div.chatMessageContainer {
     display: flex;
     flex-direction: column;
+    margin: 12px;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+}
+
+div.chatMessageWrapper {
+    padding-left: 24px;
+}
+
+div.khojfullHistory {
+    border-color: var(--border-color);
+    border-width: 1px;
+    padding-left: 24px;
+}
+
+div.youfullHistory {
+    max-width: 80%;
+}
+
+div.chatMessageContainer.youfullHistory {
+    padding-left: 0px;
 }
 
 div.you {
-    color: var(--frosted-background-color);
-    background-color: var(--intense-green);
+    background-color: var(--frosted-background-color);
     align-self: flex-end;
+    border-radius: 16px;
 }
 
 div.khoj {
     background-color: transparent;
     color: #000000;
     align-self: flex-start;
+}
+
+div.khojChatMessage {
+    padding-top: 8px;
+    padding-left: 16px;
 }
 
 div.chatMessageContainer img {
@@ -42,21 +69,25 @@ div.chatFooter {
 div.chatButtons {
     display: flex;
     justify-content: flex-end;
+    border: var(--border-color) 1px solid;
+    border-radius: 16px;
+    position: relative;
+    bottom: -28px;
+    background-color: hsla(var(--background));
 }
 
 div.chatFooter button {
     cursor: pointer;
-    background-color: var(--calm-blue);
-    color: var(--main-text-color);
+    color: hsl(var(--muted-foreground));
     border: none;
-    border-radius: 0.5rem;
-    padding: 0.25rem;
-    margin-left: 0.5rem;
+    border-radius: 16px;
+    padding: 4px;
+    margin-left: 4px;
+    margin-right: 4px;
 }
 
 div.chatFooter button:hover {
     background-color: var(--frosted-background-color);
-    color: var(--intense-green);
 }
 
 div.chatTimestamp {
@@ -70,11 +101,17 @@ button.codeCopyButton {
 }
 
 button.codeCopyButton:hover {
-    background-color: var(--intense-green);
     color: var(--frosted-background-color);
 }
 
 div.feedbackButtons img,
 button.copyButton img {
     width: 24px;
+}
+
+@media screen and (max-width: 768px) {
+    div.youfullHistory {
+        max-width: 100%;
+    }
+
 }

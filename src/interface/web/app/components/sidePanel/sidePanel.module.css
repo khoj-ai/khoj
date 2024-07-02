@@ -2,9 +2,27 @@ div.session {
     padding: 0.5rem;
     margin-bottom: 0.25rem;
     border-radius: 0.5rem;
-    color: var(--main-text-color);
     cursor: pointer;
     max-width: 14rem;
+    font-size: medium;
+    display: grid;
+    grid-template-columns: minmax(auto, 350px) 1fr;
+}
+
+div.compressed {
+    grid-template-columns: minmax(auto, 12rem) 1fr 1fr;
+}
+
+div.sessionHover {
+    background-color: var(--secondary-accent);
+}
+
+div.session:hover {
+    background-color: var(--secondary-accent);
+}
+
+div.session a {
+    text-decoration: none;
 }
 
 button.button {
@@ -17,9 +35,6 @@ button.button {
 }
 
 button.showMoreButton {
-    background: var(--intense-green);
-    border: none;
-    color: var(--frosted-background-color);
     border-radius: 0.5rem;
     padding: 8px;
 }
@@ -28,9 +43,8 @@ div.panel {
     display: grid;
     grid-auto-flow: row;
     padding: 1rem;
-    border-radius: 1rem;
-    background-color: var(--calm-blue);
-    color: var(--main-text-color);
+    background-color: hsla(var(--primary-foreground));
+    background-color: var(--secondary-background-color);
     height: 100%;
     overflow-y: auto;
     max-width: auto;
@@ -47,14 +61,12 @@ div.collapsed {
     grid-template-columns: 1fr;
 }
 
-div.session:hover {
-    background-color: var(--calmer-blue);
-}
-
 p.session {
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
+    text-align: left;
+    font-size: small;
 }
 
 div.header {
@@ -62,10 +74,18 @@ div.header {
     grid-template-columns: 1fr auto;
 }
 
-img.profile {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
+div.profile {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    align-items: center;
+    align-self: flex-end;
+    margin-top: auto;
+}
+
+div.panelWrapper {
+    display: flex;
+    flex-direction: column;
 }
 
 
@@ -95,4 +115,14 @@ div.modalSessionsList div.content {
 div.modalSessionsList div.session {
     max-width: 100%;
     text-overflow: ellipsis;
+}
+
+@media screen and (max-width: 768px) {
+    div.panel {
+        padding: 0.5rem;
+    }
+
+    div.singleReference {
+        padding: 4px;
+    }
 }

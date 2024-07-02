@@ -8,7 +8,6 @@ div.panel {
 }
 
 div.panel a {
-    color: var(--intense-green);
     text-decoration: underline;
 }
 
@@ -28,4 +27,14 @@ div.singleReference {
     border-radius: 8px;
     background-color: var(--frosted-background-color);
     margin-top: 8px;
+}
+
+@media screen and (max-width: 768px) {
+    div.panel {
+        padding: 0.5rem;
+    }
+
+    div.singleReference {
+        padding: 4px;
+    }
 }

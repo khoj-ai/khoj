@@ -7,6 +7,16 @@ div.chatHistory {
 div.chatLayout {
     height: 80vh;
     overflow-y: auto;
-    /* width: 80%; */
     margin: 0 auto;
+}
+
+div.agentIndicator a {
+    display: flex;
+    text-align: center;
+    align-content: center;
+    align-items: center;
+}
+
+div.agentIndicator {
+    padding: 10px;
 }

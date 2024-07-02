@@ -26,7 +26,7 @@ export function hasValidReferences(referencePanelData: SingleChatMessage | null)
             (referencePanelData.onlineContext && Object.keys(referencePanelData.onlineContext).length > 0 &&
                 Object.values(referencePanelData.onlineContext).some(
                     (onlineContextData) =>
-                        (onlineContextData.webpages && onlineContextData.webpages.length > 0)|| onlineContextData.answerBox || onlineContextData.peopleAlsoAsk || onlineContextData.knowledgeGraph))
+                        (onlineContextData.webpages && onlineContextData.webpages.length > 0) || onlineContextData.answerBox || onlineContextData.peopleAlsoAsk || onlineContextData.knowledgeGraph || onlineContextData.organic ))
         )
     );
 }
@@ -98,6 +98,7 @@ function OnlineReferences(props: { onlineContext: OnlineContextData, query: stri
     const answerBox = props.onlineContext.answerBox;
     const peopleAlsoAsk = props.onlineContext.peopleAlsoAsk;
     const knowledgeGraph = props.onlineContext.knowledgeGraph;
+    const organic = props.onlineContext.organic;
 
     return (
         <div className={styles.singleReference}>
@@ -125,6 +126,24 @@ function OnlineReferences(props: { onlineContext: OnlineContextData, query: stri
                         </div>
                     </div>
                 )
+            }
+            {
+                organic && organic.map((organicData, index) => {
+                    return (
+                        <div className={styles.onlineReference} key={index}>
+                            <div className={styles.onlineReferenceTitle}>
+                                <a href={organicData.link} target="_blank" rel="noreferrer">
+                                    {organicData.title}
+                                </a>
+                            </div>
+                            <div className={styles.onlineReferenceContent}>
+                                <div>
+                                    {organicData.snippet}
+                                </div>
+                            </div>
+                        </div>
+                    )
+                })
             }
             {
                 peopleAlsoAsk && peopleAlsoAsk.map((people, index) => {

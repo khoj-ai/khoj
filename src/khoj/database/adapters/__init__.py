@@ -644,7 +644,11 @@ class ConversationAdapters:
 
     @staticmethod
     def get_conversation_sessions(user: KhojUser, client_application: ClientApplication = None):
-        return Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at")
+        return (
+            Conversation.objects.filter(user=user, client=client_application)
+            .prefetch_related("agent")
+            .order_by("-updated_at")
+        )
 
     @staticmethod
     async def aset_conversation_title(

@@ -11,26 +11,19 @@ menu.menu a {
     gap: 4px;
 }
 
-menu.menu a.selected {
-    background-color: var(--primary-hover);
-}
-
-menu.menu a:hover {
-    background-color: var(--primary-hover);
-}
-
-menu.menu {
-    display: flex;
-    justify-content: space-around;
-    padding: 0;
-    margin: 0;
+a.selected {
+    background-color: hsl(var(--accent));
 }
 
 div.titleBar {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    padding: 16px 0;
-    margin: auto;
+    display: flex;
+    padding-left: 12px;
+    padding-right: 32px;
+    padding-top: 16px;
+    padding-bottom: 16px;
+    justify-content: space-between;
+    align-content: space-evenly;
+    align-items: start;
 }
 
 div.titleBar menu {
@@ -75,14 +68,6 @@ div.settingsMenuOptions {
     border-radius: 8px;
 }
 
-div.settingsMenuOptions a {
-    padding: 4px;
-}
-
-div.settingsMenuUsername {
-    font-weight: bold;
-}
-
 @media screen and (max-width: 600px) {
     menu.menu span {
         display: none;
@@ -90,5 +75,9 @@ div.settingsMenuUsername {
 
     div.settingsMenuOptions {
         right: 4px;
+    }
+
+    div.titleBar {
+        padding: 8px;
     }
 }

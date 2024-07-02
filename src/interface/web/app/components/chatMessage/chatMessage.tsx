@@ -12,6 +12,8 @@ import 'highlight.js/styles/github.css'
 
 import { hasValidReferences } from '../referencePanel/referencePanel';
 
+import { ThumbsUp, ThumbsDown, Copy } from '@phosphor-icons/react';
+
 const md = new markdownIt({
     html: true,
     linkify: true,
@@ -103,31 +105,19 @@ export interface ChatHistoryData {
 
 function FeedbackButtons() {
     return (
-        <div className={styles.feedbackButtons}>
+        <div className={`${styles.feedbackButtons} flex align-middle justify-center items-center`}>
             <button className={styles.thumbsUpButton}>
-                <Image
-                    src="/thumbs-up.svg"
-                    alt="Thumbs Up"
-                    width={24}
-                    height={24}
-                    priority
-                />
+                <ThumbsUp color='hsl(var(--muted-foreground))' />
             </button>
             <button className={styles.thumbsDownButton}>
-                <Image
-                    src="/thumbs-down.svg"
-                    alt="Thumbs Down"
-                    width={24}
-                    height={24}
-                    priority
-                />
+                <ThumbsDown color='hsl(var(--muted-foreground))' />
             </button>
         </div>
     )
 }
 
 function onClickMessage(event: React.MouseEvent<any>, chatMessage: SingleChatMessage, setReferencePanelData: Function, setShowReferencePanel: Function) {
-    event.preventDefault();
+    console.log("Clicked on message", chatMessage);
     setReferencePanelData(chatMessage);
     setShowReferencePanel(true);
 }
@@ -136,6 +126,8 @@ interface ChatMessageProps {
     chatMessage: SingleChatMessage;
     setReferencePanelData: Function;
     setShowReferencePanel: Function;
+    customClassName?: string;
+    borderLeftColor?: string;
 }
 
 export default function ChatMessage(props: ChatMessageProps) {
@@ -204,53 +196,65 @@ export default function ChatMessage(props: ChatMessageProps) {
 
     let referencesValid = hasValidReferences(props.chatMessage);
 
+    function constructClasses(chatMessage: SingleChatMessage) {
+        let classes = [styles.chatMessageContainer];
+        classes.push(styles[chatMessage.by]);
+
+        if (props.customClassName) {
+            classes.push(styles[`${chatMessage.by}${props.customClassName}`])
+        }
+
+        return classes.join(' ');
+    }
+
+    function chatMessageWrapperClasses(chatMessage: SingleChatMessage) {
+        let classes = [styles.chatMessageWrapper];
+        classes.push(styles[chatMessage.by]);
+
+        if (chatMessage.by === "khoj") {
+            classes.push(`border-l-4 border-opacity-50 border-l-orange-500 border-l-${props.borderLeftColor}`);
+        }
+
+        return classes.join(' ');
+    }
+
     return (
         <div
-            className={`${styles.chatMessageContainer} ${styles[props.chatMessage.by]}`}
+            className={constructClasses(props.chatMessage)}
             onClick={props.chatMessage.by === "khoj" ? (event) => onClickMessage(event, props.chatMessage, props.setReferencePanelData, props.setShowReferencePanel) : undefined}>
                 {/* <div className={styles.chatFooter}> */}
                     {/* {props.chatMessage.by} */}
                 {/* </div> */}
-                <div ref={messageRef} className={styles.chatMessage} dangerouslySetInnerHTML={{ __html: markdownRendered }} />
-                {/* Add a copy button, thumbs up, and thumbs down buttons */}
-                <div className={styles.chatFooter}>
-                    <div className={styles.chatTimestamp}>
-                        {renderTimeStamp(props.chatMessage.created)}
-                    </div>
-                    <div className={styles.chatButtons}>
-                        {
-                            referencesValid &&
-                            <div className={styles.referenceButton}>
-                                <button onClick={(event) => onClickMessage(event, props.chatMessage, props.setReferencePanelData, props.setShowReferencePanel)}>
-                                    References
-                                </button>
-                            </div>
-                        }
-                        <button className={`${styles.copyButton}`} onClick={() => {
-                                navigator.clipboard.writeText(props.chatMessage.message);
-                                setCopySuccess(true);
-                        }}>
+                <div className={chatMessageWrapperClasses(props.chatMessage)}>
+                    <div ref={messageRef} className={styles.chatMessage} dangerouslySetInnerHTML={{ __html: markdownRendered }} />
+                    {/* Add a copy button, thumbs up, and thumbs down buttons */}
+                    <div className={styles.chatFooter}>
+                        <div className={styles.chatTimestamp}>
+                            {renderTimeStamp(props.chatMessage.created)}
+                        </div>
+                        <div className={styles.chatButtons}>
                             {
-                                copySuccess ?
-                                    <Image
-                                        src="/copy-button-success.svg"
-                                        alt="Checkmark"
-                                        width={24}
-                                        height={24}
-                                        priority
-                                    />
-                                    : <Image
-                                        src="/copy-button.svg"
-                                        alt="Copy"
-                                        width={24}
-                                        height={24}
-                                        priority
-                                    />
+                                referencesValid &&
+                                <div className={styles.referenceButton}>
+                                    <button onClick={(event) => onClickMessage(event, props.chatMessage, props.setReferencePanelData, props.setShowReferencePanel)}>
+                                        References
+                                    </button>
+                                </div>
                             }
-                        </button>
-                        {
-                            props.chatMessage.by === "khoj" && <FeedbackButtons />
-                        }
+                            <button className={`${styles.copyButton}`} onClick={() => {
+                                    navigator.clipboard.writeText(props.chatMessage.message);
+                                    setCopySuccess(true);
+                            }}>
+                                {
+                                    copySuccess ?
+                                        <Copy color='green' />
+                                        : <Copy color='hsl(var(--muted-foreground))' />
+                                }
+                            </button>
+                            {
+                                props.chatMessage.by === "khoj" && <FeedbackButtons />
+                            }
+                        </div>
                     </div>
                 </div>
         </div>
