@@ -595,7 +595,7 @@ async def websocket_endpoint(
         user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         conversation_commands = [get_conversation_command(query=q, any_references=True)]
 
-        await send_status_update(f"**👀 Understanding Query**: {q}")
+        await send_status_update(f"**Understanding Query**: {q}")
 
         meta_log = conversation.conversation_log
         is_automated_task = conversation_commands == [ConversationCommand.AutomatedTask]
@@ -603,10 +603,10 @@ async def websocket_endpoint(
         if conversation_commands == [ConversationCommand.Default] or is_automated_task:
             conversation_commands = await aget_relevant_information_sources(q, meta_log, is_automated_task)
             conversation_commands_str = ", ".join([cmd.value for cmd in conversation_commands])
-            await send_status_update(f"**🗃️ Chose Data Sources to Search:** {conversation_commands_str}")
+            await send_status_update(f"**Chose Data Sources to Search:** {conversation_commands_str}")
 
             mode = await aget_relevant_output_modes(q, meta_log, is_automated_task)
-            await send_status_update(f"**🧑🏾‍💻 Decided Response Mode:** {mode.value}")
+            await send_status_update(f"**Decided Response Mode:** {mode.value}")
             if mode not in conversation_commands:
                 conversation_commands.append(mode)
 
@@ -633,7 +633,7 @@ async def websocket_endpoint(
                     contextual_data = " ".join([file.raw_text for file in file_object])
                     if not q:
                         q = "Create a general summary of the file"
-                    await send_status_update(f"**🧑🏾‍💻 Constructing Summary Using:** {file_object[0].file_name}")
+                    await send_status_update(f"**Constructing Summary Using:** {file_object[0].file_name}")
                     response = await extract_relevant_summary(q, contextual_data)
                     response_log = str(response)
                     await send_complete_llm_response(response_log)
@@ -718,7 +718,7 @@ async def websocket_endpoint(
 
         if compiled_references:
             headings = "\n- " + "\n- ".join(set([c.get("compiled", c).split("\n")[0] for c in compiled_references]))
-            await send_status_update(f"**📜 Found Relevant Notes**: {headings}")
+            await send_status_update(f"**Found Relevant Notes**: {headings}")
 
         online_results: Dict = dict()
 
@@ -760,7 +760,7 @@ async def websocket_endpoint(
                     for webpage in direct_web_pages[query]["webpages"]:
                         webpages.append(webpage["link"])
 
-                await send_status_update(f"**📚 Read web pages**: {webpages}")
+                await send_status_update(f"**Read web pages**: {webpages}")
             except ValueError as e:
                 logger.warning(
                     f"Error directly reading webpages: {e}. Attempting to respond without online results", exc_info=True
@@ -810,7 +810,7 @@ async def websocket_endpoint(
             await send_complete_llm_response(json.dumps(content_obj))
             continue
 
-        await send_status_update(f"**💭 Generating a well-informed response**")
+        await send_status_update(f"**Generating a well-informed response**")
         llm_response, chat_metadata = await agenerate_chat_response(
             defiltered_query,
             meta_log,
