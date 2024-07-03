@@ -1,6 +1,6 @@
 div.main {
     height: 100vh;
-    color: black;
+    color: hsla(var(--foreground));
 }
 
 .suggestions {
@@ -58,7 +58,7 @@ div.chatBody {
 }
 
 .inputBox {
-    color: black;
+    color: hsla(var(--foreground));
 }
 
 div.chatLayout {

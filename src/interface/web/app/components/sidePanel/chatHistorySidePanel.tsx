@@ -77,7 +77,6 @@ function renameConversation(conversationId: string, newTitle: string) {
     })
         .then(response => response.json())
         .then(data => {
-            console.log(data);
         })
         .catch(err => {
             console.error(err);
@@ -96,7 +95,6 @@ function shareConversation(conversationId: string, setShareUrl: (url: string) =>
     })
         .then(response => response.json())
         .then(data => {
-            console.log(data);
             setShareUrl(data.url);
         })
         .catch(err => {
@@ -116,7 +114,6 @@ function deleteConversation(conversationId: string) {
     })
         .then(response => response.json())
         .then(data => {
-            console.log(data);
         })
         .catch(err => {
             console.error(err);
@@ -153,7 +150,6 @@ function modifyFileFilterForConversation(
         .then(response => response.json())
         .then(data => {
             setAddedFiles(data);
-            console.log(data);
         })
         .catch(err => {
             console.error(err);
@@ -417,7 +413,6 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
                             <Button
                                 onClick={() => {
                                     navigator.clipboard.writeText(shareUrl);
-                                    console.log("shared");
                                 }}
                                 variant={'default'}>Copy</Button>
                         }
@@ -428,7 +423,6 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
     }
 
     if (isDeleting) {
-        console.log("Deleting");
         return (
             <AlertDialog
                 open={isDeleting}

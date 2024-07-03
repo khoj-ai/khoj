@@ -110,6 +110,19 @@ button.copyButton img {
     width: 24px;
 }
 
+div.trainOfThought strong {
+    font-weight: 500;
+}
+
+div.trainOfThought.primary strong {
+    font-weight: 500;
+    color: hsla(var(--secondary-foreground));
+}
+
+div.trainOfThought.primary p {
+    color: inherit;
+}
+
 @media screen and (max-width: 768px) {
     div.youfullHistory {
         max-width: 100%;

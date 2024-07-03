@@ -12,7 +12,7 @@ import 'highlight.js/styles/github.css'
 
 import { hasValidReferences } from '../referencePanel/referencePanel';
 
-import { ThumbsUp, ThumbsDown, Copy } from '@phosphor-icons/react';
+import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book } from '@phosphor-icons/react';
 
 const md = new markdownIt({
     html: true,
@@ -96,6 +96,19 @@ export interface SingleChatMessage {
     }
 }
 
+export interface StreamMessage {
+    rawResponse: string;
+    trainOfThought: string[];
+    context: Context[];
+    onlineContext: {
+        [key: string]: OnlineContextData
+    }
+    completed: boolean;
+    rawQuery: string;
+    timestamp: string;
+}
+
+
 export interface ChatHistoryData {
     chat: SingleChatMessage[];
     agent: AgentData;
@@ -117,7 +130,7 @@ function FeedbackButtons() {
 }
 
 function onClickMessage(event: React.MouseEvent<any>, chatMessage: SingleChatMessage, setReferencePanelData: Function, setShowReferencePanel: Function) {
-    console.log("Clicked on message", chatMessage);
+    // console.log("Clicked on message", chatMessage);
     setReferencePanelData(chatMessage);
     setShowReferencePanel(true);
 }
@@ -128,6 +141,51 @@ interface ChatMessageProps {
     setShowReferencePanel: Function;
     customClassName?: string;
     borderLeftColor?: string;
+}
+
+interface TrainOfThoughtProps {
+    message: string;
+    primary: boolean;
+}
+
+function chooseIconFromHeader(header: string, iconColor: string) {
+    const compareHeader = header.toLowerCase();
+    if (compareHeader.includes("understanding")) {
+        return <Brain className={`inline mr-2 ${iconColor}`} />
+    }
+
+    if (compareHeader.includes("generating")) {
+        return <Cloud className={`inline mr-2 ${iconColor}`} />;
+    }
+
+    if (compareHeader.includes("data sources")) {
+        return <Folder className={`inline mr-2 ${iconColor}`} />;
+    }
+
+    if (compareHeader.includes("notes")) {
+        return <Folder className={`inline mr-2 ${iconColor}`} />;
+    }
+
+    if (compareHeader.includes("read")) {
+        return <Book className={`inline mr-2 ${iconColor}`} />;
+    }
+
+    return <Brain className={`inline mr-2 ${iconColor}`} />;
+}
+
+export function TrainOfThought(props: TrainOfThoughtProps) {
+    // The train of thought comes in as a markdown-formatted string. It starts with a heading delimited by two asterisks at the start and end and a colon, followed by the message. Example: **header**: status. This function will parse the message and render it as a div.
+    let extractedHeader = props.message.match(/\*\*(.*)\*\*/);
+    let header = extractedHeader ? extractedHeader[1] : "";
+    const iconColor = props.primary ? 'text-orange-400' : 'text-gray-500';
+    const icon = chooseIconFromHeader(header, iconColor);
+    let markdownRendered = md.render(props.message);
+    return (
+        <div className={`flex items-center ${props.primary ? 'text-gray-400' : 'text-gray-300'} ${styles.trainOfThought} ${props.primary ? styles.primary : ''}`} >
+            {icon}
+            <div dangerouslySetInnerHTML={{ __html: markdownRendered }} />
+        </div>
+    )
 }
 
 export default function ChatMessage(props: ChatMessageProps) {
@@ -154,7 +212,6 @@ export default function ChatMessage(props: ChatMessageProps) {
     useEffect(() => {
         if (messageRef.current) {
             const preElements = messageRef.current.querySelectorAll('pre > .hljs');
-            console.log("make copy button");
             preElements.forEach((preElement) => {
                 const copyButton = document.createElement('button');
                 const copyImage = document.createElement('img');

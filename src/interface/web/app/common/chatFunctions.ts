@@ -8,7 +8,7 @@ interface ResponseWithReferences {
     response?: string;
 }
 
-function handleCompiledReferences(chunk: string, currentResponse: string) {
+export function handleCompiledReferences(chunk: string, currentResponse: string) {
     const rawReference = chunk.split("### compiled references:")[1];
     const rawResponse = chunk.split("### compiled references:")[0];
     let references: ResponseWithReferences = {};
@@ -69,10 +69,6 @@ async function sendChatStream(
         }
 }
 
-export function sendChatWS(websocket: WebSocket, message: string) {
-    websocket.send(message);
-}
-
 export const setupWebSocket = async (conversationId: string) => {
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 
@@ -108,3 +104,42 @@ export const setupWebSocket = async (conversationId: string) => {
 
     return chatWS;
 };
+
+export function handleImageResponse(imageJson: any) {
+
+    let rawResponse = "";
+
+    if (imageJson.image) {
+        const inferredQuery = imageJson.inferredQueries?.[0] ?? "generated image";
+
+        // If response has image field, response is a generated image.
+        if (imageJson.intentType === "text-to-image") {
+            rawResponse += `![generated_image](data:image/png;base64,${imageJson.image})`;
+        } else if (imageJson.intentType === "text-to-image2") {
+            rawResponse += `![generated_image](${imageJson.image})`;
+        } else if (imageJson.intentType === "text-to-image-v3") {
+            rawResponse = `![](data:image/webp;base64,${imageJson.image})`;
+        }
+        if (inferredQuery) {
+            rawResponse += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
+        }
+    }
+
+    let reference: ResponseWithReferences = {};
+
+    if (imageJson.context && imageJson.context.length > 0) {
+        const rawReferenceAsJson = imageJson.context;
+        if (rawReferenceAsJson instanceof Array) {
+            reference.context = rawReferenceAsJson;
+        } else if (typeof rawReferenceAsJson === "object" && rawReferenceAsJson !== null) {
+            reference.online = rawReferenceAsJson;
+        }
+    }
+    if (imageJson.detail) {
+        // The detail field contains the improved image prompt
+        rawResponse += imageJson.detail;
+    }
+
+    reference.response = rawResponse;
+    return reference;
+}
