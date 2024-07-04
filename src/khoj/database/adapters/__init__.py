@@ -907,6 +907,10 @@ class ConversationAdapters:
         return await TextToImageModelConfig.objects.filter().prefetch_related("openai_config").afirst()
 
     @staticmethod
+    def get_text_to_image_model_config():
+        return TextToImageModelConfig.objects.filter().first()
+
+    @staticmethod
     def get_text_to_image_model_options():
         return TextToImageModelConfig.objects.all()
 
