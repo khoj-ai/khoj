@@ -318,7 +318,6 @@ export class KhojChatView extends KhojPaneView {
             speechIcon = event.target as Element;
         }
 
-        speechButton.innerHTML = "";
         speechButton.appendChild(loader);
         speechButton.disabled = true;
 
@@ -339,15 +338,13 @@ export class KhojChatView extends KhojPaneView {
             source.connect(context.destination);
             source.start(0);
             source.onended = function() {
-                speechButton.innerHTML = "";
-                speechButton.appendChild(speechIcon);
+                speechButton.removeChild(loader);
                 speechButton.disabled = false;
             };
         })
         .catch(err => {
             console.error("Error playing speech:", err);
-            speechButton.innerHTML = "";
-            speechButton.appendChild(speechIcon);
+            speechButton.removeChild(loader);
             speechButton.disabled = false; // Consider enabling the button again to allow retrying
         });
     }
