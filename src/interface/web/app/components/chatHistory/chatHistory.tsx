@@ -13,7 +13,7 @@ import renderMathInElement from 'katex/contrib/auto-render';
 import 'katex/dist/katex.min.css';
 import 'highlight.js/styles/github.css'
 
-import Loading from '../loading/loading';
+import Loading, { InlineLoading } from '../loading/loading';
 
 import { Lightbulb } from "@phosphor-icons/react";
 
@@ -34,12 +34,17 @@ interface ChatHistoryProps {
 }
 
 
-function constructTrainOfThought(trainOfThought: string[], lastMessage: boolean, key: string) {
+function constructTrainOfThought(trainOfThought: string[], lastMessage: boolean, key: string, completed: boolean = false) {
     const lastIndex = trainOfThought.length - 1;
     return (
         <div className={`${styles.trainOfThought}`} key={key}>
+            {
+                !completed &&
+                <InlineLoading className='float-right' />
+            }
+
             {trainOfThought.map((train, index) => (
-                <TrainOfThought message={train} primary={index === lastIndex && lastMessage} />
+                <TrainOfThought message={train} primary={index === lastIndex && lastMessage && !completed} />
             ))}
         </div>
     )
@@ -59,70 +64,70 @@ export default function ChatHistory(props: ChatHistoryProps) {
     const [showReferencePanel, setShowReferencePanel] = useState(true);
     const [referencePanelData, setReferencePanelData] = useState<SingleChatMessage | null>(null);
     const [incompleteIncomingMessageIndex, setIncompleteIncomingMessageIndex] = useState<number | null>(null);
-
-    // useEffect(() => {
-
-    //     // TODO add intersection observer to load more messages incrementally using parameter n=. Right now, it loads all messages at once.
-
-    //     fetch(`/api/chat/history?client=web&conversation_id=${props.conversationId}`)
-    //         .then(response => response.json())
-    //         .then((chatData: ChatResponse) => {
-    //             setLoading(false);
-
-    //             // Render chat options, if any
-    //             if (chatData) {
-    //                 setData(chatData.response);
-    //                 props.setTitle(chatData.response.slug);
-    //             }
-    //         })
-    //         .catch(err => {
-    //             console.error(err);
-    //             return;
-    //         });
-    // }, [props.conversationId]);
+    const [fetchingData, setFetchingData] = useState(false);
 
     useEffect(() => {
-        console.log("hasMoreMessages", hasMoreMessages);
+        // This function ensures that scrolling to bottom happens after the data (chat messages) has been updated and rendered the first time.
+        const scrollToBottomAfterDataLoad = () => {
+            // Assume the data is loading in this scenario.
+            if (!data?.chat.length) {
+                setTimeout(() => {
+                    scrollToBottom();
+                }, 500);
+            }
+        };
+
+        if (currentPage < 2) {
+            // Call the function defined above.
+            scrollToBottomAfterDataLoad();
+        }
+
+    }, [chatHistoryRef.current, data]);
+
+    useEffect(() => {
+        if (!hasMoreMessages || fetchingData) return;
+
+        // TODO: A future optimization would be to add a time to delay to re-enabling the intersection observer.
         const observer = new IntersectionObserver(entries => {
-            console.log("entries intersection observer", entries);
             if (entries[0].isIntersecting && hasMoreMessages) {
-                console.log("call fetchMoreMessages");
+                setFetchingData(true);
                 fetchMoreMessages(currentPage);
-                console.log("currentPage", currentPage);
                 setCurrentPage((prev) => prev + 1);
             }
         }, { threshold: 1.0 });
 
         if (sentinelRef.current) {
-            console.log("observe sentinel");
             observer.observe(sentinelRef.current);
         }
 
         return () => observer.disconnect();
-    }, [sentinelRef.current, hasMoreMessages, currentPage, props.conversationId]);
+    }, [sentinelRef.current, hasMoreMessages, currentPage, props.conversationId, fetchingData]);
 
     const fetchMoreMessages = (currentPage: number) => {
-        if (!hasMoreMessages) return;
+        if (!hasMoreMessages || fetchingData) return;
 
         console.log("fetchMoreMessages", currentPage);
 
         const nextPage = currentPage + 1;
-        fetch(`/api/chat/history?client=web&conversation_id=${props.conversationId}&n=${10*nextPage}`)
+        fetch(`/api/chat/history?client=web&conversation_id=${props.conversationId}&n=${10 * nextPage}`)
             .then(response => response.json())
             .then((chatData: ChatResponse) => {
                 console.log(chatData);
                 if (chatData && chatData.response && chatData.response.chat.length > 0) {
-                    console.log(chatData);
 
                     if (chatData.response.chat.length === data?.chat.length) {
                         setHasMoreMessages(false);
                         return;
                     }
 
-                    scrollToBottom();
-
                     setData(chatData.response);
                     setLoading(false);
+
+                    if (currentPage < 2) {
+                        console.log("call scroll to bottom");
+                        scrollToBottom();
+                    }
+                    setFetchingData(false);
                 } else {
                     console.log("No more messages");
                     setHasMoreMessages(false);
@@ -251,7 +256,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         customClassName='fullHistory'
                                         borderLeftColor='orange-500' />
                                     {
-                                        message.trainOfThought && constructTrainOfThought(message.trainOfThought, index === incompleteIncomingMessageIndex, `${index}trainOfThought`)
+                                        message.trainOfThought && constructTrainOfThought(message.trainOfThought, index === incompleteIncomingMessageIndex, `${index}trainOfThought`, message.completed)
                                     }
                                     <ChatMessage
                                         key={`${index}incoming`}

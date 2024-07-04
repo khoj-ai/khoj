@@ -8,10 +8,14 @@ export default function Loading() {
     );
 }
 
-export function InlineLoading() {
+interface InlineLoadingProps {
+    className?: string;
+}
+
+export function InlineLoading(props: InlineLoadingProps) {
     return (
         <button>
-            <CircleNotch className='animate-spin h-5 w-5 mr-3' />
+            <CircleNotch className={`animate-spin h-5 w-5 mr-3 ${props.className}`} />
         </button>
     )
 }
