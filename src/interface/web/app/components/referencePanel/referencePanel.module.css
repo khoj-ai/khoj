@@ -25,7 +25,7 @@ div.contextReference:hover {
 div.singleReference {
     padding: 8px;
     border-radius: 8px;
-    background-color: var(--frosted-background-color);
+    background-color: hsla(var(--frosted-background-color));
     margin-top: 8px;
 }
 

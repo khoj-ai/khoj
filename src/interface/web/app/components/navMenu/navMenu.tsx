@@ -22,6 +22,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Toggle } from '@/components/ui/toggle';
+import { Moon } from '@phosphor-icons/react';
 
 
 interface NavMenuProps {
@@ -36,12 +38,38 @@ export default function NavMenu(props: NavMenuProps) {
     const [displayTitle, setDisplayTitle] = useState<string>(props.title || props.selected.toUpperCase());
 
     const [isMobileWidth, setIsMobileWidth] = useState(false);
+    const [darkMode, setDarkMode] = useState(false);
 
     useEffect(() => {
         setIsMobileWidth(window.innerWidth < 768);
         setDisplayTitle(props.title || props.selected.toUpperCase());
 
     }, [props.title]);
+
+    useEffect(() => {
+        window.addEventListener('resize', () => {
+            setIsMobileWidth(window.innerWidth < 768);
+        });
+
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+            setDarkMode(true);
+        }
+
+    }, []);
+
+    useEffect(() => {
+        toggleDarkMode(darkMode);
+    }, [darkMode]);
+
+    function toggleDarkMode(darkMode: boolean) {
+        if (darkMode) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+        localStorage.setItem('theme', darkMode ? 'dark' : 'light');
+    }
 
     return (
         <div className={styles.titleBar}>
@@ -94,30 +122,42 @@ export default function NavMenu(props: NavMenuProps) {
                                 <MenubarTrigger>Automations</MenubarTrigger>
                             </Link>
                         </MenubarMenu>
-                        {userData &&
-                            <MenubarMenu>
-                                <MenubarTrigger>Profile</MenubarTrigger>
-                                <MenubarContent>
-                                    <MenubarItem>
-                                        <Link href="/config">
-                                            Settings
-                                        </Link>
-                                    </MenubarItem>
-                                    <MenubarSeparator />
-                                    <MenubarItem>
-                                        <Link href="https://docs.khoj.dev">
-                                            Help
-                                        </Link>
-                                    </MenubarItem>
-                                    <MenubarSeparator />
-                                    <MenubarItem>
-                                        <Link href="/auth/logout">
-                                            Logout
-                                        </Link>
-                                    </MenubarItem>
-                                </MenubarContent>
-                            </MenubarMenu>
-                        }
+                        <MenubarMenu>
+                            <MenubarTrigger>Profile</MenubarTrigger>
+                            <MenubarContent>
+                                <MenubarItem>
+                                <Toggle
+                                    pressed={darkMode}
+                                    onClick={() => {
+                                        console.log("clicked on dark mode method");
+                                        setDarkMode(!darkMode)}
+                                    }>
+                                        <Moon />
+                                    </Toggle>
+                                </MenubarItem>
+                                {userData &&
+                                    <>
+                                        <MenubarItem>
+                                            <Link href="/config">
+                                                Settings
+                                            </Link>
+                                        </MenubarItem>
+                                        <MenubarSeparator />
+                                        <MenubarItem>
+                                            <Link href="https://docs.khoj.dev">
+                                                Help
+                                            </Link>
+                                        </MenubarItem>
+                                        <MenubarSeparator />
+                                        <MenubarItem>
+                                            <Link href="/auth/logout">
+                                                Logout
+                                            </Link>
+                                        </MenubarItem>
+                                    </>
+                                }
+                            </MenubarContent>
+                        </MenubarMenu>
                     </Menubar>
             }
         </div>

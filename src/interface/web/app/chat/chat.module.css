@@ -15,7 +15,7 @@ div.inputBox {
     grid-template-columns: auto 1fr auto auto;
     border: 1px solid var(--border-color);
     border-radius: 16px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+    box-shadow: 0 4px 10px var(--box-shadow-color);
     margin-bottom: 20px;
     gap: 12px;
     padding-left: 20px;

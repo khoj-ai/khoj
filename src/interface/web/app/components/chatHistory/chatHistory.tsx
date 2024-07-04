@@ -101,13 +101,17 @@ export default function ChatHistory(props: ChatHistoryProps) {
         }
 
         return () => observer.disconnect();
-    }, [sentinelRef.current, hasMoreMessages, currentPage, props.conversationId, fetchingData]);
+    }, [sentinelRef.current, hasMoreMessages, currentPage, fetchingData]);
+
+    useEffect(() => {
+        setHasMoreMessages(true);
+        setFetchingData(false);
+        setCurrentPage(0);
+        setData(null);
+    }, [props.conversationId]);
 
     const fetchMoreMessages = (currentPage: number) => {
         if (!hasMoreMessages || fetchingData) return;
-
-        console.log("fetchMoreMessages", currentPage);
-
         const nextPage = currentPage + 1;
         fetch(`/api/chat/history?client=web&conversation_id=${props.conversationId}&n=${10 * nextPage}`)
             .then(response => response.json())
@@ -117,6 +121,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
 
                     if (chatData.response.chat.length === data?.chat.length) {
                         setHasMoreMessages(false);
+                        setFetchingData(false);
                         return;
                     }
 
@@ -124,12 +129,10 @@ export default function ChatHistory(props: ChatHistoryProps) {
                     setLoading(false);
 
                     if (currentPage < 2) {
-                        console.log("call scroll to bottom");
                         scrollToBottom();
                     }
                     setFetchingData(false);
                 } else {
-                    console.log("No more messages");
                     setHasMoreMessages(false);
                 }
             })
@@ -145,8 +148,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
                 setIncompleteIncomingMessageIndex(props.incomingMessages.length - 1);
             }
         }
-
-        console.log("isUserAtBottom", isUserAtBottom());
 
         if (isUserAtBottom()) {
             scrollToBottom();
@@ -222,7 +223,9 @@ export default function ChatHistory(props: ChatHistoryProps) {
         <ScrollArea className={`h-[80vh]`}>
             <div ref={ref}>
                 <div className={styles.chatHistory} ref={chatHistoryRef}>
-                    <div ref={sentinelRef} style={{ height: '1px' }}></div>
+                    <div ref={sentinelRef} style={{ height: '1px' }}>
+                        {fetchingData && <InlineLoading />}
+                    </div>
                     {(data && data.chat) && data.chat.map((chatMessage, index) => (
                         <ChatMessage
                             key={`${index}fullHistory`}
@@ -306,9 +309,9 @@ export default function ChatHistory(props: ChatHistoryProps) {
                         <ReferencePanel referencePanelData={referencePanelData} setShowReferencePanel={setShowReferencePanel} />
                     }
                     <div className={`${styles.agentIndicator}`}>
-                        <a className='no-underline mx-2 flex' href={constructAgentLink()} target="_blank" rel="noreferrer">
+                        <a className='no-underline mx-2 flex text-muted-foreground' href={constructAgentLink()} target="_blank" rel="noreferrer">
                             <Lightbulb color='orange' weight='fill' />
-                            <span className='text-neutral-600'>{constructAgentName()}</span>
+                            <span>{constructAgentName()}</span>
                         </a>
                     </div>
                 </div>

@@ -4,7 +4,7 @@ div.chatMessageContainer {
     margin: 12px;
     border-radius: 16px;
     padding: 16px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+    box-shadow: 0 4px 10px var(--box-shadow-color)
 }
 
 div.chatMessageWrapper {
@@ -12,7 +12,6 @@ div.chatMessageWrapper {
 }
 
 div.khojfullHistory {
-    border-color: var(--border-color);
     border-width: 1px;
     padding-left: 4px;
 }
@@ -26,14 +25,14 @@ div.chatMessageContainer.youfullHistory {
 }
 
 div.you {
-    background-color: var(--frosted-background-color);
+    background-color: hsla(var(--secondary));
     align-self: flex-end;
     border-radius: 16px;
 }
 
 div.khoj {
     background-color: transparent;
-    color: #000000;
+    color: hsl(var(--accent-foreground));
     align-self: flex-start;
 }
 
@@ -50,8 +49,8 @@ div.chatMessageContainer h3 img {
     width: 24px;
 }
 
-div.you .author {
-    color: var(--frosted-background-color);
+div.you {
+    color: hsla(var(--secondary-foreground));
 }
 
 div.author {
@@ -87,7 +86,7 @@ div.chatFooter button {
 }
 
 div.chatFooter button:hover {
-    background-color: var(--frosted-background-color);
+    background-color: hsla(var(--frosted-background-color));
 }
 
 div.chatTimestamp {
@@ -101,7 +100,7 @@ button.codeCopyButton {
 }
 
 button.codeCopyButton:hover {
-    color: var(--frosted-background-color);
+    color: hsla(var(--frosted-background-color));
 }
 
 div.feedbackButtons img,

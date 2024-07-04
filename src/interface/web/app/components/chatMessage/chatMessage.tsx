@@ -12,7 +12,9 @@ import 'highlight.js/styles/github.css'
 
 import { hasValidReferences } from '../referencePanel/referencePanel';
 
-import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book } from '@phosphor-icons/react';
+import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture } from '@phosphor-icons/react';
+import { MagnifyingGlass } from '@phosphor-icons/react/dist/ssr';
+import { compare } from 'swr/_internal';
 
 const md = new markdownIt({
     html: true,
@@ -168,6 +170,14 @@ function chooseIconFromHeader(header: string, iconColor: string) {
 
     if (compareHeader.includes("read")) {
         return <Book className={`inline mr-2 ${iconColor}`} />;
+    }
+
+    if (compareHeader.includes("search")) {
+        return <MagnifyingGlass className={`inline mr-2 ${iconColor}`} />;
+    }
+
+    if (compareHeader.includes("summary") || compareHeader.includes("summarize")) {
+        return <Aperture className={`inline mr-2 ${iconColor}`} />;
     }
 
     return <Brain className={`inline mr-2 ${iconColor}`} />;
