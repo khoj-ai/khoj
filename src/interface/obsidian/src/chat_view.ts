@@ -1,4 +1,4 @@
-import { ItemView, MarkdownRenderer, WorkspaceLeaf, request, requestUrl, setIcon } from 'obsidian';
+import { ItemView, MarkdownRenderer, Scope, WorkspaceLeaf, request, requestUrl, setIcon } from 'obsidian';
 import * as DOMPurify from 'dompurify';
 import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
@@ -27,6 +27,10 @@ export class KhojChatView extends KhojPaneView {
 
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
         super(leaf, setting);
+
+        // Register Modal Keybindings to send voice message
+        this.scope = new Scope(this.app.scope);
+        this.scope.register(["Mod"], 's', async (event) => { await this.speechToText(event); });
 
         this.waitingForLocation = true;
 
@@ -61,7 +65,7 @@ export class KhojChatView extends KhojPaneView {
         return "message-circle";
     }
 
-    async chat() {
+    async chat(isVoice: boolean = false) {
 
         // Get text in chat input element
         let input_el = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
@@ -72,7 +76,7 @@ export class KhojChatView extends KhojPaneView {
         this.autoResize();
 
         // Get and render chat response to user message
-        await this.getChatResponse(user_message);
+        await this.getChatResponse(user_message, isVoice);
     }
 
     async onOpen() {
@@ -294,6 +298,60 @@ export class KhojChatView extends KhojPaneView {
         return referenceButton;
     }
 
+    textToSpeech(message: string, event: MouseEvent | null = null): void {
+        // Replace the speaker with a loading icon.
+        let loader = document.createElement("span");
+        loader.classList.add("loader");
+
+        let speechButton: HTMLButtonElement;
+        let speechIcon: Element;
+
+        if (event === null) {
+            // Pick the last speech button if none is provided
+            let speechButtons = document.getElementsByClassName("speech-button");
+            speechButton = speechButtons[speechButtons.length - 1] as HTMLButtonElement;
+
+            let speechIcons = document.getElementsByClassName("speech-icon");
+            speechIcon = speechIcons[speechIcons.length - 1];
+        } else {
+            speechButton = event.currentTarget as HTMLButtonElement;
+            speechIcon = event.target as Element;
+        }
+
+        speechButton.innerHTML = "";
+        speechButton.appendChild(loader);
+        speechButton.disabled = true;
+
+        const context = new AudioContext();
+        let textToSpeechApi = `${this.setting.khojUrl}/api/chat/speech?text=${encodeURIComponent(message)}`;
+        fetch(textToSpeechApi, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                "Authorization": `Bearer ${this.setting.khojApiKey}`,
+            },
+        })
+        .then(response => response.arrayBuffer())
+        .then(arrayBuffer => context.decodeAudioData(arrayBuffer))
+        .then(audioBuffer => {
+            const source = context.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(context.destination);
+            source.start(0);
+            source.onended = function() {
+                speechButton.innerHTML = "";
+                speechButton.appendChild(speechIcon);
+                speechButton.disabled = false;
+            };
+        })
+        .catch(err => {
+            console.error("Error playing speech:", err);
+            speechButton.innerHTML = "";
+            speechButton.appendChild(speechIcon);
+            speechButton.disabled = false; // Consider enabling the button again to allow retrying
+        });
+    }
+
     formatHTMLMessage(message: string, raw = false, willReplace = true) {
         // Remove any text between <s>[INST] and </s> tags. These are spurious instructions for some AI chat model.
         message = message.replace(/<s>\[INST\].+(<\/s>)?/g, '');
@@ -461,19 +519,36 @@ export class KhojChatView extends KhojPaneView {
 
     renderActionButtons(message: string, chat_message_body_text_el: HTMLElement) {
         let copyButton = this.contentEl.createEl('button');
-        copyButton.classList.add("copy-button");
+        copyButton.classList.add("chat-action-button");
         copyButton.title = "Copy Message to Clipboard";
         setIcon(copyButton, "copy-plus");
         copyButton.addEventListener('click', createCopyParentText(message));
-        chat_message_body_text_el.append(copyButton);
 
         // Add button to paste into current buffer
         let pasteToFile = this.contentEl.createEl('button');
-        pasteToFile.classList.add("copy-button");
+        pasteToFile.classList.add("chat-action-button");
         pasteToFile.title = "Paste Message to File";
         setIcon(pasteToFile, "clipboard-paste");
         pasteToFile.addEventListener('click', (event) => { pasteTextAtCursor(createCopyParentText(message, 'clipboard-paste')(event)); });
-        chat_message_body_text_el.append(pasteToFile);
+
+        // Only enable the speech feature if the user is subscribed
+        let speechButton = null;
+
+        if (this.setting.userInfo?.is_active) {
+            // Create a speech button icon to play the message out loud
+            speechButton = this.contentEl.createEl('button');
+            speechButton.classList.add("chat-action-button", "speech-button");
+            speechButton.title = "Listen to Message";
+            setIcon(speechButton, "speech")
+            speechButton.addEventListener('click', (event) => this.textToSpeech(message, event));
+        }
+
+        // Append buttons to parent element
+        chat_message_body_text_el.append(copyButton, pasteToFile);
+
+        if (speechButton) {
+            chat_message_body_text_el.append(speechButton);
+        }
     }
 
     formatDate(date: Date): string {
@@ -727,7 +802,7 @@ export class KhojChatView extends KhojPaneView {
         return true;
     }
 
-    async readChatStream(response: Response, responseElement: HTMLDivElement): Promise<void> {
+    async readChatStream(response: Response, responseElement: HTMLDivElement, isVoice: boolean = false): Promise<void> {
         // Exit if response body is empty
         if (response.body == null) return;
 
@@ -737,8 +812,12 @@ export class KhojChatView extends KhojPaneView {
         while (true) {
             const { value, done } = await reader.read();
 
-            // Break if the stream is done
-            if (done) break;
+            if (done) {
+                // Automatically respond with voice if the subscribed user has sent voice message
+                if (isVoice && this.setting.userInfo?.is_active) this.textToSpeech(this.result);
+                // Break if the stream is done
+                break;
+            }
 
             let responseText = decoder.decode(value);
             if (responseText.includes("### compiled references:")) {
@@ -756,7 +835,7 @@ export class KhojChatView extends KhojPaneView {
         }
     }
 
-    async getChatResponse(query: string | undefined | null): Promise<void> {
+    async getChatResponse(query: string | undefined | null, isVoice: boolean = false): Promise<void> {
         // Exit if query is empty
         if (!query || query === "") return;
 
@@ -835,7 +914,7 @@ export class KhojChatView extends KhojPaneView {
                 }
             } else {
                 // Stream and render chat response
-                await this.readChatStream(response, responseElement);
+                await this.readChatStream(response, responseElement, isVoice);
             }
         } catch (err) {
             console.log(`Khoj chat response failed with\n${err}`);
@@ -883,7 +962,7 @@ export class KhojChatView extends KhojPaneView {
 
     sendMessageTimeout: NodeJS.Timeout | undefined;
     mediaRecorder: MediaRecorder | undefined;
-    async speechToText(event: MouseEvent | TouchEvent) {
+    async speechToText(event: MouseEvent | TouchEvent | KeyboardEvent) {
         event.preventDefault();
         const transcribeButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("khoj-transcribe")[0];
         const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
@@ -947,7 +1026,7 @@ export class KhojChatView extends KhojPaneView {
                 sendImg.addEventListener('click', async (_) => { await this.chat() });
 
                 // Send message
-                this.chat();
+                this.chat(true);
             }, 3000);
         };
 

@@ -477,7 +477,7 @@ span.khoj-nav-item-text {
 }
 
 /* Copy button */
-button.copy-button {
+button.chat-action-button {
     display: block;
     border-radius: 4px;
     color: var(--text-muted);
@@ -491,20 +491,54 @@ button.copy-button {
     margin-top: 8px;
     float: right;
 }
-button.copy-button span {
+button.chat-action-button span {
     cursor: pointer;
     display: inline-block;
     position: relative;
     transition: 0.5s;
 }
+button.chat-action-button:hover {
+    background-color: var(--background-modifier-active-hover);
+    color: var(--text-normal);
+}
+
 img.copy-icon {
     width: 16px;
     height: 16px;
 }
 
-button.copy-button:hover {
-    background-color: var(--background-modifier-active-hover);
-    color: var(--text-normal);
+/* Circular Loading Spinner */
+.loader {
+    width: 18px;
+    height: 18px;
+    border: 3px solid #FFF;
+    border-radius: 50%;
+    display: inline-block;
+    position: relative;
+    box-sizing: border-box;
+    animation: rotation 1s linear infinite;
+}
+.loader::after {
+    content: '';
+    box-sizing: border-box;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-bottom-color: var(--flower);
+}
+
+@keyframes rotation {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 /* Loading Spinner */
