@@ -918,10 +918,13 @@ class ConversationAdapters:
         return config.setting
 
     @staticmethod
-    async def aget_user_text_to_image_model(user: KhojUser):
+    async def aget_user_text_to_image_model(user: KhojUser) -> Optional[TextToImageModelConfig]:
         config = await UserTextToImageModelConfig.objects.filter(user=user).prefetch_related("setting").afirst()
         if not config:
-            return None
+            default_config = await ConversationAdapters.aget_text_to_image_model_config()
+            if not default_config:
+                return None
+            return default_config
         return config.setting
 
     @staticmethod
