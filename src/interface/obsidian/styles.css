@@ -598,6 +598,30 @@ img.copy-icon {
     }
 }
 
+/* Loading Encircle */
+.loading-encircle {
+    position: relative;
+}
+
+.loading-encircle::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 24px;
+    height: 24px;
+    margin-top: -16px;
+    margin-left: -16px;
+    border: 4px solid transparent;
+    border-top-color: var(--icon-color-active);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
 @media only screen and (max-width: 600px) {
     div.khoj-header {
         display: grid;

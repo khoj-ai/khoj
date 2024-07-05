@@ -1014,6 +1014,7 @@ export class KhojChatView extends KhojPaneView {
 
             // Start the countdown timer UI
             stopSendButtonImg.getElementsByTagName("circle")[0].style.animation = "countdown 3s linear 1 forwards";
+            stopSendButtonImg.getElementsByTagName("circle")[0].style.color = "var(--icon-color-active)";
 
             // Auto send message after 3 seconds
             this.sendMessageTimeout = setTimeout(() => {
@@ -1043,6 +1044,7 @@ export class KhojChatView extends KhojPaneView {
 
             this.mediaRecorder.start();
             setIcon(transcribeButton, "mic-off");
+            transcribeButton.classList.add("loading-encircle")
         };
 
         // Toggle recording
@@ -1057,6 +1059,7 @@ export class KhojChatView extends KhojPaneView {
             this.mediaRecorder.stop();
             this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
             this.mediaRecorder = undefined;
+            transcribeButton.classList.remove("loading-encircle");
             setIcon(transcribeButton, "mic");
         }
     }
