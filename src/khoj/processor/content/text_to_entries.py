@@ -124,7 +124,7 @@ class TextToEntries(ABC):
         deletion_filenames: Set[str] = None,
         user: KhojUser = None,
         regenerate: bool = False,
-        file_to_text_map: dict[str, List[str]] = None,
+        file_to_text_map: dict[str, str] = None,
     ):
         with timer("Constructed current entry hashes in", logger):
             hashes_by_file = dict[str, set[str]]()
@@ -192,16 +192,17 @@ class TextToEntries(ABC):
             logger.debug(f"Added {len(added_entries)} {file_type} entries to database")
 
         if file_to_text_map:
-            # get the list of file_names using added_entries
-            filenames_to_update = [entry.file_path for entry in added_entries]
-            # for each file_name in filenames_to_update, try getting the file object and updating raw_text and if it fails create a new file object
-            for file_name in filenames_to_update:
-                raw_text = " ".join(file_to_text_map[file_name])
-                file_object = FileObjectAdapters.get_file_objects_by_name(user, file_name)
-                if file_object:
-                    FileObjectAdapters.update_raw_text(file_object, raw_text)
-                else:
-                    FileObjectAdapters.create_file_object(user, file_name, raw_text)
+            with timer("Indexed text of modified file in", logger):
+                # get the set of modified files from added_entries
+                modified_files = {entry.file_path for entry in added_entries}
+                # create or update text of each updated file indexed on DB
+                for modified_file in modified_files:
+                    raw_text = file_to_text_map[modified_file]
+                    file_object = FileObjectAdapters.get_file_object_by_name(user, modified_file)
+                    if file_object:
+                        FileObjectAdapters.update_raw_text(file_object, raw_text)
+                    else:
+                        FileObjectAdapters.create_file_object(user, modified_file, raw_text)
 
         new_dates = []
         with timer("Indexed dates from added entries in", logger):

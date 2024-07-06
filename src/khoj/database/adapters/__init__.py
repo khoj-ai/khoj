@@ -956,7 +956,7 @@ class FileObjectAdapters:
         return FileObject.objects.create(user=user, file_name=file_name, raw_text=raw_text)
 
     @staticmethod
-    def get_file_objects_by_name(user: KhojUser, file_name: str):
+    def get_file_object_by_name(user: KhojUser, file_name: str):
         return FileObject.objects.filter(user=user, file_name=file_name).first()
 
     @staticmethod
