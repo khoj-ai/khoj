@@ -56,7 +56,10 @@
 
                 if (data.length == 0) {
                     document.getElementById("delete-all-files").style.display = "none";
-                    indexedFiles.innerHTML = "<div class='card-description'>No documents synced with Khoj</div>";
+                    let noFilesElement = document.createElement("div");
+                    noFilesElement.classList.add("card-description");
+                    noFilesElement.textContent = "No documents synced with Khoj";
+                    indexedFiles.appendChild(noFilesElement);
                 } else {
                     document.getElementById("get-desktop-client").style.display = "none";
                     document.getElementById("delete-all-files").style.display = "block";
@@ -86,14 +89,14 @@
 
                     let fileNameElement = document.createElement("div");
                     fileNameElement.classList.add("content-name");
-                    fileNameElement.innerHTML = filename;
+                    fileNameElement.textContent = filename;
                     fileElement.appendChild(fileNameElement);
 
                     let buttonContainer = document.createElement("div");
                     buttonContainer.classList.add("remove-button-container");
                     let removeFileButton = document.createElement("button");
                     removeFileButton.classList.add("remove-file-button");
-                    removeFileButton.innerHTML = "🗑️";
+                    removeFileButton.textContent = "🗑️";
                     removeFileButton.addEventListener("click", ((filename) => {
                         return () => {
                             removeFile(filename);

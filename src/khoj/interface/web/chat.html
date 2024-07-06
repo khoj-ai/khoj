@@ -149,7 +149,6 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
         function generateOnlineReference(reference, index) {
-
             // Generate HTML for Chat Reference
             let title = reference.title || reference.link;
             let link = reference.link;
@@ -170,7 +169,7 @@ To get started, just start typing below. You can also type / to see a list of co
             linkElement.textContent = title;
 
             let referenceButton = document.createElement('button');
-            referenceButton.innerHTML = linkElement.outerHTML;
+            referenceButton.appendChild(linkElement);
             referenceButton.id = `ref-${index}`;
             referenceButton.classList.add("reference-button");
             referenceButton.classList.add("collapsed");
@@ -181,11 +180,12 @@ To get started, just start typing below. You can also type / to see a list of co
                 if (this.classList.contains("collapsed")) {
                     this.classList.remove("collapsed");
                     this.classList.add("expanded");
-                    this.innerHTML = linkElement.outerHTML + `<br><br>${question + snippet}`;
+                    this.innerHTML = `${linkElement.outerHTML}<br><br>${question}${snippet}`;
                 } else {
                     this.classList.add("collapsed");
                     this.classList.remove("expanded");
-                    this.innerHTML = linkElement.outerHTML;
+                    this.innerHTML = "";
+                    this.appendChild(linkElement);
                 }
             });
 
@@ -578,7 +578,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
             let referenceExpandButton = document.createElement('button');
             referenceExpandButton.classList.add("reference-expand-button");
-            referenceExpandButton.innerHTML = numReferences == 1 ? "1 reference" : `${numReferences} references`;
+            referenceExpandButton.textContent = numReferences == 1 ? "1 reference" : `${numReferences} references`;
 
             referenceExpandButton.addEventListener('click', function() {
                 if (referenceSection.classList.contains("collapsed")) {
@@ -888,7 +888,7 @@ To get started, just start typing below. You can also type / to see a list of co
             if (overlayText == null) {
                 dropzone.classList.add('dragover');
                 var overlayText = document.createElement("div");
-                overlayText.innerHTML = "Select file(s) or drag + drop it here to share it with Khoj";
+                overlayText.textContent = "Select file(s) or drag + drop it here to share it with Khoj";
                 overlayText.className = "dropzone-overlay";
                 overlayText.id = "dropzone-overlay";
                 dropzone.appendChild(overlayText);
@@ -949,7 +949,7 @@ To get started, just start typing below. You can also type / to see a list of co
             if (overlayText != null) {
                 // Display loading spinner
                 var loadingSpinner = document.createElement("div");
-                overlayText.innerHTML = "Uploading file(s) for indexing";
+                overlayText.textContent = "Uploading file(s) for indexing";
                 loadingSpinner.className = "spinner";
                 overlayText.appendChild(loadingSpinner);
             }
@@ -1042,7 +1042,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
                 if (overlayText == null) {
                     var overlayText = document.createElement("div");
-                    overlayText.innerHTML = "Drop file to share it with Khoj";
+                    overlayText.textContent = "Drop file to share it with Khoj";
                     overlayText.className = "dropzone-overlay";
                     overlayText.id = "dropzone-overlay";
                     this.appendChild(overlayText);
@@ -1179,11 +1179,15 @@ To get started, just start typing below. You can also type / to see a list of co
             websocket.onclose = function(event) {
                 websocket = null;
                 console.log("WebSocket is closed now.");
+                let setupWebSocketButton = document.createElement("button");
+                setupWebSocketButton.textContent = "Reconnect to Server";
+                setupWebSocketButton.onclick = setupWebSocket;
                 let statusDotIcon = document.getElementById("connection-status-icon");
                 statusDotIcon.style.backgroundColor = "red";
                 let statusDotText = document.getElementById("connection-status-text");
+                statusDotText.innerHTML = "";
                 statusDotText.style.marginTop = "5px";
-                statusDotText.innerHTML = '<button onclick="setupWebSocket()">Reconnect to Server</button>';
+                statusDotText.appendChild(setupWebSocketButton);
             }
             websocket.onerror = function(event) {
                 console.log("WebSocket error observed:", event);
@@ -1434,7 +1438,7 @@ To get started, just start typing below. You can also type / to see a list of co
                         questionStarterSuggestions.innerHTML = "";
                         data.forEach((questionStarter) => {
                             let questionStarterButton = document.createElement('button');
-                            questionStarterButton.innerHTML = questionStarter;
+                            questionStarterButton.textContent = questionStarter;
                             questionStarterButton.classList.add("question-starter");
                             questionStarterButton.addEventListener('click', function() {
                                 questionStarterSuggestions.style.display = "none";
@@ -1606,7 +1610,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
             let closeButton = document.createElement('button');
             closeButton.id = "close-button";
-            closeButton.innerHTML = "Close";
+            closeButton.textContent = "Close";
             closeButton.classList.add("close-button");
             closeButton.addEventListener('click', function() {
                 modal.remove();
@@ -1660,7 +1664,7 @@ To get started, just start typing below. You can also type / to see a list of co
                             let threeDotMenu = document.createElement('div');
                             threeDotMenu.classList.add("three-dot-menu");
                             let threeDotMenuButton = document.createElement('button');
-                            threeDotMenuButton.innerHTML = "⋮";
+                            threeDotMenuButton.textContent = "⋮";
                             threeDotMenuButton.classList.add("three-dot-menu-button");
                             threeDotMenuButton.addEventListener('click', function(event) {
                                 event.stopPropagation();
@@ -1679,7 +1683,7 @@ To get started, just start typing below. You can also type / to see a list of co
                                 conversationMenu.classList.add("conversation-menu");
 
                                 let editTitleButton = document.createElement('button');
-                                editTitleButton.innerHTML = "Rename";
+                                editTitleButton.textContent = "Rename";
                                 editTitleButton.classList.add("edit-title-button");
                                 editTitleButton.classList.add("three-dot-menu-button-item");
                                 editTitleButton.addEventListener('click', function(event) {
@@ -1713,7 +1717,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
                                     conversationTitleInputBox.appendChild(conversationTitleInput);
                                     let conversationTitleInputButton = document.createElement('button');
-                                    conversationTitleInputButton.innerHTML = "Save";
+                                    conversationTitleInputButton.textContent = "Save";
                                     conversationTitleInputButton.classList.add("three-dot-menu-button-item");
                                     conversationTitleInputButton.addEventListener('click', function(event) {
                                         event.stopPropagation();
@@ -1737,7 +1741,7 @@ To get started, just start typing below. You can also type / to see a list of co
                                 threeDotMenu.appendChild(conversationMenu);
 
                                 let shareButton = document.createElement('button');
-                                shareButton.innerHTML = "Share";
+                                shareButton.textContent = "Share";
                                 shareButton.type = "button";
                                 shareButton.classList.add("share-conversation-button");
                                 shareButton.classList.add("three-dot-menu-button-item");
@@ -1804,7 +1808,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
                                 let deleteButton = document.createElement('button');
                                 deleteButton.type = "button";
-                                deleteButton.innerHTML = "Delete";
+                                deleteButton.textContent = "Delete";
                                 deleteButton.classList.add("delete-conversation-button");
                                 deleteButton.classList.add("three-dot-menu-button-item");
                                 deleteButton.addEventListener('click', function(event) {
@@ -1968,12 +1972,16 @@ To get started, just start typing below. You can also type / to see a list of co
                 }
                 allFiles = data;
                 var nofilesmessage = document.getElementsByClassName("no-files-message")[0];
+                nofilesmessage.innerHTML = "";
                 if(allFiles.length === 0){
-                    nofilesmessage.innerHTML = `<a class="inline-chat-link" href="https://docs.khoj.dev/category/clients/">How to upload files</a>`;
+                    let inlineChatLinkEl = document.createElement('a');
+                    inlineChatLinkEl.className = "inline-chat-link";
+                    inlineChatLinkEl.href = "https://docs.khoj.dev/category/clients/";
+                    inlineChatLinkEl.textContent = "How to upload files";
+                    nofilesmessage.appendChild(inlineChatLinkEl);
                     document.getElementsByClassName("file-toggle-button")[0].style.display = "none";
                 }
                 else{
-                    nofilesmessage.innerHTML = "";
                     document.getElementsByClassName("file-toggle-button")[0].style.display = "block";
                 }
             })

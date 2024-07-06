@@ -42,8 +42,12 @@ if not state.anonymous_mode:
         from google.oauth2 import id_token
     except ImportError:
         missing_requirements += ["Install the Khoj production package with `pip install khoj-assistant[prod]`"]
-    if not os.environ.get("GOOGLE_CLIENT_ID") or not os.environ.get("GOOGLE_CLIENT_SECRET"):
-        missing_requirements += ["Set your GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET as environment variables"]
+    if not os.environ.get("RESEND_API_KEY") and (
+        not os.environ.get("GOOGLE_CLIENT_ID") or not os.environ.get("GOOGLE_CLIENT_SECRET")
+    ):
+        missing_requirements += [
+            "Set your RESEND_API_KEY or GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET as environment variables"
+        ]
     if missing_requirements:
         requirements_string = "\n   - " + "\n   - ".join(missing_requirements)
         error_msg = f"🚨 Start Khoj with --anonymous-mode flag or to enable authentication:{requirements_string}"

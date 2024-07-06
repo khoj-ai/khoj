@@ -215,11 +215,11 @@ class SearchModelConfig(BaseModel):
     # Bi-encoder model of sentence-transformer type to load from HuggingFace
     bi_encoder = models.CharField(max_length=200, default="thenlper/gte-small")
     # Config passed to the sentence-transformer model constructor. E.g. device="cuda:0", trust_remote_server=True etc.
-    bi_encoder_model_config = models.JSONField(default=dict)
+    bi_encoder_model_config = models.JSONField(default=dict, blank=True)
     # Query encode configs like prompt, precision, normalize_embeddings, etc. for sentence-transformer models
-    bi_encoder_query_encode_config = models.JSONField(default=dict)
+    bi_encoder_query_encode_config = models.JSONField(default=dict, blank=True)
     # Docs encode configs like prompt, precision, normalize_embeddings, etc. for sentence-transformer models
-    bi_encoder_docs_encode_config = models.JSONField(default=dict)
+    bi_encoder_docs_encode_config = models.JSONField(default=dict, blank=True)
     # Cross-encoder model of sentence-transformer type to load from HuggingFace
     cross_encoder = models.CharField(max_length=200, default="mixedbread-ai/mxbai-rerank-xsmall-v1")
     # Inference server API endpoint to use for embeddings inference. Bi-encoder model should be hosted on this server

@@ -34,14 +34,14 @@
         const token = document.getElementById("token").value;
 
         if (token == "") {
-            document.getElementById("success").innerHTML = "❌ Please enter a Notion Token.";
+            document.getElementById("success").textContent = "❌ Please enter a Notion Token.";
             document.getElementById("success").style.display = "block";
             return;
         }
 
         const submitButton = document.getElementById("submit");
         submitButton.disabled = true;
-        submitButton.innerHTML = "Syncing...";
+        submitButton.textContent = "Syncing...";
 
         // Save Notion config on server
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
@@ -58,11 +58,11 @@
         .then(response => response.json())
         .then(data => { data["status"] === "ok" ? data : Promise.reject(data) })
         .catch(error => {
-            document.getElementById("success").innerHTML = "⚠️ Failed to save Notion settings.";
+            document.getElementById("success").textContent = "⚠️ Failed to save Notion settings.";
             document.getElementById("success").style.display = "block";
-            submitButton.innerHTML = "⚠️ Failed to save settings";
+            submitButton.textContent = "⚠️ Failed to save settings";
             setTimeout(function() {
-                submitButton.innerHTML = "Save";
+                submitButton.textContent = "Save";
                 submitButton.disabled = false;
             }, 2000);
             return;
@@ -74,18 +74,18 @@
         .then(data => { data["status"] == "ok" ? data : Promise.reject(data) })
         .then(data => {
             document.getElementById("success").style.display = "none";
-            submitButton.innerHTML = "✅ Successfully updated";
+            submitButton.textContent = "✅ Successfully updated";
             setTimeout(function() {
-                submitButton.innerHTML = "Save";
+                submitButton.textContent = "Save";
                 submitButton.disabled = false;
             }, 2000);
         })
         .catch(error => {
-            document.getElementById("success").innerHTML = "⚠️ Failed to save Notion content.";
+            document.getElementById("success").textContent = "⚠️ Failed to save Notion content.";
             document.getElementById("success").style.display = "block";
-            submitButton.innerHTML = "⚠️ Failed to save content";
+            submitButton.textContent = "⚠️ Failed to save content";
             setTimeout(function() {
-                submitButton.innerHTML = "Save";
+                submitButton.textContent = "Save";
                 submitButton.disabled = false;
             }, 2000);
         });
