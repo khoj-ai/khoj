@@ -13,6 +13,7 @@ from starlette.authentication import requires
 from starlette.websockets import WebSocketDisconnect
 from websockets import ConnectionClosedOK
 
+from khoj.app.settings import ALLOWED_HOSTS
 from khoj.database.adapters import (
     ConversationAdapters,
     DataStoreAdapters,
@@ -189,7 +190,17 @@ async def sendfeedback(request: Request, data: FeedbackData):
 
 @api_chat.post("/speech")
 @requires(["authenticated", "premium"])
-async def text_to_speech(request: Request, common: CommonQueryParams, text: str):
+async def text_to_speech(
+    request: Request,
+    common: CommonQueryParams,
+    text: str,
+    rate_limiter_per_minute=Depends(
+        ApiUserRateLimiter(requests=5, subscribed_requests=20, window=60, slug="chat_minute")
+    ),
+    rate_limiter_per_day=Depends(
+        ApiUserRateLimiter(requests=5, subscribed_requests=300, window=60 * 60 * 24, slug="chat_day")
+    ),
+) -> Response:
     voice_model = await ConversationAdapters.aget_voice_model_config(request.user.object)
 
     params = {"text_to_speak": text}
@@ -386,16 +397,18 @@ def duplicate_chat_history_public_conversation(
     conversation_id: int,
 ):
     user = request.user.object
+    domain = request.headers.get("host")
+    scheme = request.url.scheme
+
+    # Throw unauthorized exception if domain not in ALLOWED_HOSTS
+    host_domain = domain.split(":")[0]
+    if host_domain not in ALLOWED_HOSTS:
+        raise HTTPException(status_code=401, detail="Unauthorized domain")
 
     # Duplicate Conversation History to Public Conversation
     conversation = ConversationAdapters.get_conversation_by_user(user, request.user.client_app, conversation_id)
-
     public_conversation = ConversationAdapters.make_public_conversation_copy(conversation)
-
     public_conversation_url = PublicConversationAdapters.get_public_conversation_url(public_conversation)
-
-    domain = request.headers.get("host")
-    scheme = request.url.scheme
 
     update_telemetry_state(
         request=request,
