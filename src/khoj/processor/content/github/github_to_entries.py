@@ -95,7 +95,7 @@ class GithubToEntries(TextToEntries):
             )
 
         with timer(f"Split entries by max token size supported by model {repo_shorthand}", logger):
-            current_entries = TextToEntries.split_entries_by_max_tokens(current_entries, max_tokens=256)
+            current_entries = TextToEntries.split_entries_by_max_tokens(current_entries, max_tokens=128)
 
         return current_entries
 

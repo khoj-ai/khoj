@@ -37,7 +37,7 @@ class ImageToEntries(TextToEntries):
 
         # Split entries by max tokens supported by model
         with timer("Split entries by max token size supported by model", logger):
-            current_entries = self.split_entries_by_max_tokens(current_entries, max_tokens=256)
+            current_entries = self.split_entries_by_max_tokens(current_entries, max_tokens=128)
 
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):

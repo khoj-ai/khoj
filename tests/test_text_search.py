@@ -172,7 +172,7 @@ async def test_text_search(search_config: SearchConfig):
 def test_entry_chunking_by_max_tokens(org_config_with_only_new_file: LocalOrgConfig, default_user: KhojUser, caplog):
     # Arrange
     # Insert org-mode entry with size exceeding max token limit to new org file
-    max_tokens = 256
+    max_tokens = 128
     new_file_to_index = Path(org_config_with_only_new_file.input_files[0])
     with open(new_file_to_index, "w") as f:
         f.write(f"* Entry more than {max_tokens} words\n")
@@ -224,7 +224,7 @@ conda activate khoj
         user=default_user,
     )
 
-    max_tokens = 256
+    max_tokens = 128
     new_file_to_index = Path(org_config_with_only_new_file.input_files[0])
     with open(new_file_to_index, "w") as f:
         f.write(f"* Entry more than {max_tokens} words\n")

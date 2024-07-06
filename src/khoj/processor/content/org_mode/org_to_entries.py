@@ -31,7 +31,7 @@ class OrgToEntries(TextToEntries):
             deletion_file_names = None
 
         # Extract Entries from specified Org files
-        max_tokens = 256
+        max_tokens = 128
         with timer("Extract entries from specified Org files", logger):
             file_to_text_map, current_entries = self.extract_org_entries(files, max_tokens=max_tokens)
 
@@ -56,7 +56,7 @@ class OrgToEntries(TextToEntries):
 
     @staticmethod
     def extract_org_entries(
-        org_files: dict[str, str], index_heading_entries: bool = False, max_tokens=256
+        org_files: dict[str, str], index_heading_entries: bool = False, max_tokens=128
     ) -> Tuple[Dict, List[Entry]]:
         "Extract entries from specified Org files"
         file_to_text_map, entries, entry_to_file_map = OrgToEntries.extract_org_nodes(org_files, max_tokens)
@@ -90,7 +90,7 @@ class OrgToEntries(TextToEntries):
         org_file: str,
         entries: List[List[Orgnode]],
         entry_to_file_map: List[Tuple[Orgnode, str]],
-        max_tokens=256,
+        max_tokens=128,
         ancestry: Dict[int, str] = {},
     ) -> Tuple[List[List[Orgnode]], List[Tuple[Orgnode, str]]]:
         """Parse org_content from org_file into OrgNode entries

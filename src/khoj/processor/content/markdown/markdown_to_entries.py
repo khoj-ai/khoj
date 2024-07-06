@@ -30,7 +30,7 @@ class MarkdownToEntries(TextToEntries):
         else:
             deletion_file_names = None
 
-        max_tokens = 256
+        max_tokens = 128
         # Extract Entries from specified Markdown files
         with timer("Extract entries from specified Markdown files", logger):
             file_to_text_map, current_entries = MarkdownToEntries.extract_markdown_entries(files, max_tokens)
@@ -56,7 +56,7 @@ class MarkdownToEntries(TextToEntries):
         return num_new_embeddings, num_deleted_embeddings
 
     @staticmethod
-    def extract_markdown_entries(markdown_files, max_tokens=256) -> Tuple[Dict, List[Entry]]:
+    def extract_markdown_entries(markdown_files, max_tokens=128) -> Tuple[Dict, List[Entry]]:
         "Extract entries by heading from specified Markdown files"
         entries: List[str] = []
         entry_to_file_map: List[Tuple[str, str]] = []
@@ -81,7 +81,7 @@ class MarkdownToEntries(TextToEntries):
         markdown_file: str,
         entries: List[str],
         entry_to_file_map: List[Tuple[str, str]],
-        max_tokens=256,
+        max_tokens=128,
         ancestry: Dict[int, str] = {},
     ) -> Tuple[List[str], List[Tuple[str, str]]]:
         # Prepend the markdown section's heading ancestry

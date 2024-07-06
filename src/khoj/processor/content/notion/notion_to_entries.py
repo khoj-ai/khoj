@@ -112,7 +112,7 @@ class NotionToEntries(TextToEntries):
                             page_entries = self.process_page(p_or_d)
                             current_entries.extend(page_entries)
 
-        current_entries = TextToEntries.split_entries_by_max_tokens(current_entries, max_tokens=256)
+        current_entries = TextToEntries.split_entries_by_max_tokens(current_entries, max_tokens=128)
 
         return self.update_entries_with_ids(current_entries, user=user)
 

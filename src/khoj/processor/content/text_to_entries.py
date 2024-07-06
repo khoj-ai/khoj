@@ -63,7 +63,7 @@ class TextToEntries(ABC):
 
     @staticmethod
     def split_entries_by_max_tokens(
-        entries: List[Entry], max_tokens: int = 256, max_word_length: int = 500, raw_is_compiled: bool = False
+        entries: List[Entry], max_tokens: int = 128, max_word_length: int = 500, raw_is_compiled: bool = False
     ) -> List[Entry]:
         "Split entries if compiled entry length exceeds the max tokens supported by the ML model."
         chunked_entries: List[Entry] = []
