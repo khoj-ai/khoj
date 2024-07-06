@@ -12,7 +12,7 @@
         </h2>
         <div class="section-manage-files">
             <div id="delete-all-files" class="delete-all-files">
-                <button id="delete-all-files" type="submit" title="Remove all computer files from Khoj">🗑️ Delete all</button>
+                <button id="delete-all-files-button" type="submit" title="Remove all computer files from Khoj">🗑️ Delete all</button>
             </div>
             <div class="indexed-files">
             </div>
@@ -112,9 +112,13 @@
     // Get all currently indexed files on page load
     getAllComputerFilenames();
 
-    let deleteAllComputerFilesButton = document.getElementById("delete-all-files");
+    let deleteAllComputerFilesButton = document.getElementById("delete-all-files-button");
     deleteAllComputerFilesButton.addEventListener("click", function(event) {
         event.preventDefault();
+        originalDeleteAllComputerFilesButtonText = deleteAllComputerFilesButton.textContent;
+        deleteAllComputerFilesButton.textContent = "🗑️ Deleting...";
+        deleteAllComputerFilesButton.disabled = true;
+
         fetch('/api/config/data/content-source/computer', {
             method: 'DELETE',
             headers: {
@@ -122,11 +126,11 @@
             }
         })
         .then(response => response.json())
-        .then(data => {
-            if (data.status == "ok") {
-                getAllComputerFilenames();
-            }
-        })
+        .finally(() => {
+            getAllComputerFilenames();
+            deleteAllComputerFilesButton.textContent = originalDeleteAllComputerFilesButtonText;
+            deleteAllComputerFilesButton.disabled = false;
+        });
     });
 </script>
 {% endblock %}

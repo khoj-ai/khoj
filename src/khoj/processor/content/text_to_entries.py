@@ -137,7 +137,7 @@ class TextToEntries(ABC):
         if regenerate:
             with timer("Cleared existing dataset for regeneration in", logger):
                 logger.debug(f"Deleting all entries for file type {file_type}")
-                num_deleted_entries = EntryAdapters.delete_all_entries_by_type(user, file_type)
+                num_deleted_entries = EntryAdapters.delete_all_entries(user, file_type=file_type)
 
         hashes_to_process = set()
         with timer("Identified entries to add to database in", logger):

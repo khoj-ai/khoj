@@ -183,7 +183,7 @@ async def remove_content_source_data(
         raise ValueError(f"Invalid content source: {content_source}")
     elif content_object != "Computer":
         await content_object.objects.filter(user=user).adelete()
-    await sync_to_async(EntryAdapters.delete_all_entries)(user, content_source)
+    await sync_to_async(EntryAdapters.delete_all_entries)(user, file_source=content_source)
 
     enabled_content = await sync_to_async(EntryAdapters.get_unique_file_types)(user)
     return {"status": "ok"}
