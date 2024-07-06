@@ -125,7 +125,10 @@ class EntryAdmin(admin.ModelAdmin):
         "file_path",
     )
     search_fields = ("id", "user__email", "user__username", "file_path")
-    list_filter = ("file_type",)
+    list_filter = (
+        "file_type",
+        "user__email",
+    )
     ordering = ("-created_at",)
 
 
