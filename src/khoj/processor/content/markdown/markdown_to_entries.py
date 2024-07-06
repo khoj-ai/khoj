@@ -146,7 +146,7 @@ class MarkdownToEntries(TextToEntries):
             else:
                 entry_filename = str(Path(raw_filename))
 
-            heading = parsed_entry.splitlines()[0] if re.search("^#+\s", parsed_entry) else ""
+            heading = parsed_entry.splitlines()[0] if re.search(r"^#+\s", parsed_entry) else ""
             # Append base filename to compiled entry for context to model
             # Increment heading level for heading entries and make filename as its top level heading
             prefix = f"# {entry_filename}\n#" if heading else f"# {entry_filename}\n"
