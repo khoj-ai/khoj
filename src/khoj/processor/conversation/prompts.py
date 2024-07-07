@@ -218,13 +218,13 @@ Q: Which of them is older?
 Khoj: ["When was Alice born?", "What is Bob's age?"]
 
 Q: Where did John say he was? He mentioned it in our call last week.
-Khoj: ["Where is John? dt>='{last_year}-12-25' dt<'{last_year}-12-26'", "John's location in call notes"]
+Khoj: ["today:{current_date}. Where is John?", "today:{current_date}. John's location in call notes last week"]
 
 Q: How can you help me?
 Khoj: ["Social relationships", "Physical and mental health", "Education and career", "Personal life goals and habits"]
 
 Q: What did I do for Christmas last year?
-Khoj: ["What did I do for Christmas {last_year} dt>='{last_year}-12-25' dt<'{last_year}-12-26'"]
+Khoj: ["What did I do for Christmas in December {last_year} dt>='{last_year}-12-24' dt<'{last_year}-12-26'"]
 
 Q: How should I take care of my plants?
 Khoj: ["What kind of plants do I have?", "What issues do my plants have?"]
@@ -254,14 +254,14 @@ User's Location: {location}
 
 Q: How was my trip to Cambodia?
 Khoj: {{"queries": ["How was my trip to Cambodia?"]}}
-A: The trip was amazing. You went to the Angkor Wat temple and it was beautiful.
+A: The trip was amazing. You went to the Angkor Wat temple in 2008 and it was beautiful.
 
 Q: Who did i visit that temple with?
-Khoj: {{"queries": ["Who did I visit the Angkor Wat Temple in Cambodia with?"]}}
+Khoj: {{"queries": ["Who did I visit the Angkor Wat Temple in Cambodia with in 2008?"]}}
 A: You visited the Angkor Wat Temple in Cambodia with Pablo, Namita and Xi.
 
 Q: What national parks did I go to last year?
-Khoj: {{"queries": ["National park I visited in {last_new_year} dt>='{last_new_year_date}' dt<'{current_new_year_date}'"]}}
+Khoj: {{"queries": ["National park visited in {last_new_year}", "National parks visited in dt>='{last_new_year_date}' dt<'{current_new_year_date}'"]}}
 A: You visited the Grand Canyon and Yellowstone National Park in {last_new_year}.
 
 Q: How can you help me?
@@ -281,7 +281,7 @@ Khoj: {{"queries": ["What is Bob's age?", "What is Tom's age?"]}}
 A: Bob is {bob_tom_age_difference} years older than Tom. As Bob is {bob_age} years old and Tom is 30 years old.
 
 Q: Who all did I meet here yesterday?
-Khoj: {{"queries": ["Met in {location} on {yesterday_date} dt>='{yesterday_date}' dt<'{current_date}'"]}}
+Khoj: {{"queries": ["Who did I meet in {location} on {yesterday_date}?", "Who did I meet? dt>='{yesterday_date}' dt<'{current_date}'"]}}
 A: Yesterday's note mentions your visit to your local beach with Ram and Shyam.
 
 {chat_history}
