@@ -108,7 +108,7 @@ class TextToEntries(ABC):
                         raw=entry.raw,
                         heading=entry.heading,
                         file=entry.file,
-                        corpus_id=corpus_id,
+                        corpus_id=uuid.uuid4() if raw_is_compiled else corpus_id,
                     )
                 )
 
