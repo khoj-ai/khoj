@@ -122,6 +122,7 @@ DATABASES = {
         "NAME": os.getenv("POSTGRES_DB", "khoj"),
         "PASSWORD": os.getenv("POSTGRES_PASSWORD", "postgres"),
         "CONN_MAX_AGE": 0,
+        "CONN_HEALTH_CHECKS": True,
     }
 }
 
