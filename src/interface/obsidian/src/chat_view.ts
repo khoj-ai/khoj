@@ -3,6 +3,7 @@ import * as DOMPurify from 'dompurify';
 import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
 import { KhojView, createCopyParentText, getLinkToEntry, pasteTextAtCursor } from 'src/utils';
+import { KhojSearchModal } from './search_modal';
 
 export interface ChatJsonResult {
     image?: string;
@@ -31,6 +32,10 @@ export class KhojChatView extends KhojPaneView {
 
         // Register chat view keybindings
         this.scope = new Scope(this.app.scope);
+        this.scope.register(["Ctrl"], 'n', (_) => this.createNewConversation());
+        this.scope.register(["Ctrl"], 'o', async (_) => await this.toggleChatSessions());
+        this.scope.register(["Ctrl"], 'f', (_) => new KhojSearchModal(this.app, this.setting).open());
+        this.scope.register(["Ctrl"], 'r', (_) => new KhojSearchModal(this.app, this.setting, true).open());
 
         this.waitingForLocation = true;
 
@@ -66,7 +71,6 @@ export class KhojChatView extends KhojPaneView {
     }
 
     async chat(isVoice: boolean = false) {
-
         // Get text in chat input element
         let input_el = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
 
@@ -109,6 +113,7 @@ export class KhojChatView extends KhojPaneView {
             text: "Chat Sessions",
             attr: {
                 class: "khoj-input-row-button clickable-icon",
+                title: "Show Conversations (^O)",
             },
         })
         chatSessions.addEventListener('click', async (_) => { await this.toggleChatSessions(chatBodyEl) });
@@ -133,6 +138,7 @@ export class KhojChatView extends KhojPaneView {
             attr: {
                 id: "khoj-transcribe",
                 class: "khoj-transcribe khoj-input-row-button clickable-icon ",
+                title: "Start Voice Chat (^S)",
             },
         })
         transcribe.addEventListener('mousedown', (event) => { this.startSpeechToText(event) });
@@ -601,14 +607,16 @@ export class KhojChatView extends KhojPaneView {
         return `${time_string}, ${date_string}`;
     }
 
-    createNewConversation(chatBodyEl: HTMLElement) {
+    createNewConversation(chatBodyEl: HTMLElement|undefined = undefined) {
+        chatBodyEl = chatBodyEl ?? this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
         chatBodyEl.innerHTML = "";
         chatBodyEl.dataset.conversationId = "";
         chatBodyEl.dataset.conversationTitle = "";
         this.renderMessage(chatBodyEl, "Hey 👋🏾, what's up?", "khoj");
     }
 
-    async toggleChatSessions(chatBodyEl: HTMLElement, forceShow: boolean = false): Promise<boolean> {
+    async toggleChatSessions(chatBodyEl: HTMLElement|undefined = undefined, forceShow: boolean = false): Promise<boolean> {
+        chatBodyEl = chatBodyEl ?? this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
         if (!forceShow && this.contentEl.getElementsByClassName("side-panel")?.length > 0) {
             chatBodyEl.innerHTML = "";
             return this.getChatHistory(chatBodyEl);
@@ -625,6 +633,7 @@ export class KhojChatView extends KhojPaneView {
         newConversationButtonEl.addEventListener('click', (_) => this.createNewConversation(chatBodyEl));
         setIcon(newConversationButtonEl, "plus");
         newConversationButtonEl.innerHTML += "New";
+        newConversationButtonEl.title = "New Conversation (^N)";
 
         const existingConversationsEl = sidePanelEl.createDiv("existing-conversations");
         const conversationListEl = existingConversationsEl.createDiv("conversation-list");
