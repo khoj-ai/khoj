@@ -10,7 +10,8 @@ import NavMenu from '../components/navMenu/navMenu';
 import { useSearchParams } from 'next/navigation'
 import Loading from '../components/loading/loading';
 
-import { handleCompiledReferences, handleImageResponse, setupWebSocket } from '../common/chatFunctions';
+import { handleCompiledReferences, handleImageResponse, setupWebSocket, uploadDataForIndexing } from '../common/chatFunctions';
+import { Progress } from "@/components/ui/progress"
 
 import 'katex/dist/katex.min.css';
 import { Lightbulb, ArrowCircleUp, FileArrowUp, Microphone } from '@phosphor-icons/react';
@@ -18,15 +19,25 @@ import { Lightbulb, ArrowCircleUp, FileArrowUp, Microphone } from '@phosphor-ico
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from '@/components/ui/button';
-import { Context, OnlineContextData, StreamMessage } from '../components/chatMessage/chatMessage';
+import { StreamMessage } from '../components/chatMessage/chatMessage';
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface ChatInputProps {
     sendMessage: (message: string) => void;
     sendDisabled: boolean;
+    setUploadedFiles?: (files: string[]) => void;
+    conversationId?: string | null;
 }
 
 function ChatInputArea(props: ChatInputProps) {
     const [message, setMessage] = useState('');
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const [warning, setWarning] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
+
+    const [progressValue, setProgressValue] = useState(0);
 
     useEffect(() => {
         if (message.startsWith('/')) {
@@ -35,17 +46,106 @@ function ChatInputArea(props: ChatInputProps) {
         }
     }, [message]);
 
+    useEffect(() => {
+        if (!uploading) {
+            setProgressValue(0);
+        }
+
+        if (uploading) {
+            const interval = setInterval(() => {
+                setProgressValue((prev) => {
+                    const increment = Math.floor(Math.random() * 5) + 1; // Generates a random number between 1 and 5
+                    const nextValue = prev + increment;
+                    return nextValue < 100 ? nextValue : 100; // Ensures progress does not exceed 100
+                });
+            }, 800);
+            return () => clearInterval(interval);
+        }
+    }, [uploading]);
+
     function onSendMessage() {
         props.sendMessage(message);
         setMessage('');
     }
 
+    function handleFileButtonClick() {
+        if (!fileInputRef.current) return;
+        fileInputRef.current.click();
+    }
+
+    function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+        if (!event.target.files) return;
+
+        uploadDataForIndexing(
+            event.target.files,
+            setWarning,
+            setUploading,
+            setError,
+            props.setUploadedFiles,
+            props.conversationId);
+    }
+
     return (
         <>
+            {
+                uploading && (
+                    <AlertDialog
+                        open={uploading}>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Uploading data. Please wait.</AlertDialogTitle>
+                            </AlertDialogHeader>
+                            <AlertDialogDescription>
+                                <Progress
+                                    indicatorColor='bg-slate-500'
+                                    className='w-full h-2 rounded-full'
+                                    value={progressValue} />
+                            </AlertDialogDescription>
+                            <AlertDialogAction className='bg-slate-400 hover:bg-slate-500' onClick={() => setUploading(false)}>Dismiss</AlertDialogAction>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                )}
+            {
+                warning && (
+                    <AlertDialog
+                        open={warning !== null}>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Data Upload Warning</AlertDialogTitle>
+                            </AlertDialogHeader>
+                            <AlertDialogDescription>{warning}</AlertDialogDescription>
+                            <AlertDialogAction className='bg-slate-400 hover:bg-slate-500' onClick={() => setWarning(null)}>Close</AlertDialogAction>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                )
+            }
+            {
+                error && (
+                    <AlertDialog
+                        open={error !== null}>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Oh no!</AlertDialogTitle>
+                                <AlertDialogDescription>Something went wrong while uploading your data</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogDescription>{error}</AlertDialogDescription>
+                            <AlertDialogAction className='bg-slate-400 hover:bg-slate-500' onClick={() => setError(null)}>Close</AlertDialogAction>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                )
+            }
+            <input
+                type="file"
+                multiple={true}
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+            />
             <Button
                 variant={'ghost'}
                 className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
-                disabled={props.sendDisabled}>
+                disabled={props.sendDisabled}
+                onClick={handleFileButtonClick}>
                 <FileArrowUp weight='fill' />
             </Button>
             <div className="grid w-full gap-1.5">
@@ -91,6 +191,7 @@ interface ChatBodyDataProps {
     onConversationIdChange?: (conversationId: string) => void;
     setQueryToProcess: (query: string) => void;
     streamedMessages: StreamMessage[];
+    setUploadedFiles: (files: string[]) => void;
 }
 
 
@@ -153,10 +254,18 @@ function ChatBodyData(props: ChatBodyDataProps) {
     return (
         <>
             <div className={false ? styles.chatBody : styles.chatBodyFull}>
-                <ChatHistory conversationId={conversationId} setTitle={props.setTitle} pendingMessage={processingMessage ? message : ''} incomingMessages={props.streamedMessages} />
+                <ChatHistory
+                    conversationId={conversationId}
+                    setTitle={props.setTitle}
+                    pendingMessage={processingMessage ? message : ''}
+                    incomingMessages={props.streamedMessages} />
             </div>
             <div className={`${styles.inputBox} bg-background align-middle items-center justify-center`}>
-                <ChatInputArea sendMessage={(message) => setMessage(message)} sendDisabled={processingMessage} />
+                <ChatInputArea
+                    sendMessage={(message) => setMessage(message)}
+                    sendDisabled={processingMessage}
+                    conversationId={conversationId}
+                    setUploadedFiles={props.setUploadedFiles} />
             </div>
         </>
     );
@@ -171,6 +280,7 @@ export default function Chat() {
     const [messages, setMessages] = useState<StreamMessage[]>([]);
     const [queryToProcess, setQueryToProcess] = useState<string>('');
     const [processQuerySignal, setProcessQuerySignal] = useState(false);
+    const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
 
 
     const handleWebSocketMessage = (event: MessageEvent) => {
@@ -318,7 +428,7 @@ export default function Chat() {
                 {title}
             </title>
             <div className={styles.sidePanel}>
-                <SidePanel webSocketConnected={chatWS !== null} conversationId={conversationId} />
+                <SidePanel webSocketConnected={chatWS !== null} conversationId={conversationId} uploadedFiles={uploadedFiles} />
             </div>
             <div className={styles.chatBox}>
                 <NavMenu selected="Chat" title={title} />
@@ -329,6 +439,7 @@ export default function Chat() {
                             chatOptionsData={chatOptionsData}
                             setTitle={setTitle}
                             setQueryToProcess={setQueryToProcess}
+                            setUploadedFiles={setUploadedFiles}
                             onConversationIdChange={handleConversationIdChange} />
                     </Suspense>
                 </div>

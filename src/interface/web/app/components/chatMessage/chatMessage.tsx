@@ -5,16 +5,14 @@ import styles from './chatMessage.module.css';
 import markdownIt from 'markdown-it';
 import mditHljs from "markdown-it-highlightjs";
 import React, { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
 
 import 'katex/dist/katex.min.css';
 import 'highlight.js/styles/github.css'
 
-import { hasValidReferences } from '../referencePanel/referencePanel';
+import { ReferencePanelData, TeaserReferencesSection, constructAllReferences } from '../referencePanel/referencePanel';
 
-import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture } from '@phosphor-icons/react';
+import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture, ArrowRight, SpeakerHifi } from '@phosphor-icons/react';
 import { MagnifyingGlass } from '@phosphor-icons/react/dist/ssr';
-import { compare } from 'swr/_internal';
 
 const md = new markdownIt({
     html: true,
@@ -81,21 +79,22 @@ interface AgentData {
 
 interface Intent {
     type: string;
+    query: string;
+    "memory-type": string;
     "inferred-queries": string[];
 }
 
 export interface SingleChatMessage {
     automationId: string;
     by: string;
-    intent: {
-        [key: string]: string
-    }
     message: string;
     context: Context[];
     created: string;
     onlineContext: {
         [key: string]: OnlineContextData
     }
+    rawQuery?: string;
+    intent?: Intent;
 }
 
 export interface StreamMessage {
@@ -118,29 +117,43 @@ export interface ChatHistoryData {
     slug: string;
 }
 
-function FeedbackButtons() {
+function sendFeedback(uquery: string, kquery: string, sentiment: string) {
+    fetch('/api/chat/feedback', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ uquery: uquery, kquery: kquery, sentiment: sentiment })
+    })
+}
+
+function FeedbackButtons({ uquery, kquery }: { uquery: string, kquery: string }) {
     return (
         <div className={`${styles.feedbackButtons} flex align-middle justify-center items-center`}>
-            <button className={styles.thumbsUpButton}>
+            <button className={styles.thumbsUpButton} onClick={() => sendFeedback(uquery, kquery, 'positive')}>
                 <ThumbsUp color='hsl(var(--muted-foreground))' />
             </button>
-            <button className={styles.thumbsDownButton}>
+            <button className={styles.thumbsDownButton} onClick={() => sendFeedback(uquery, kquery, 'negative')}>
                 <ThumbsDown color='hsl(var(--muted-foreground))' />
             </button>
         </div>
     )
 }
 
-function onClickMessage(event: React.MouseEvent<any>, chatMessage: SingleChatMessage, setReferencePanelData: Function, setShowReferencePanel: Function) {
-    // console.log("Clicked on message", chatMessage);
-    setReferencePanelData(chatMessage);
+// WHAT TO DO WHEN CLICK ON KHOJ MESSAGE
+function onClickMessage(
+    event: React.MouseEvent<any>,
+    referencePanelData: ReferencePanelData,
+    setReferencePanelData: Function,
+    setShowReferencePanel: Function) {
+
+    setReferencePanelData(referencePanelData);
     setShowReferencePanel(true);
 }
 
 interface ChatMessageProps {
     chatMessage: SingleChatMessage;
-    setReferencePanelData: Function;
-    setShowReferencePanel: Function;
+    isMobileWidth: boolean;
     customClassName?: string;
     borderLeftColor?: string;
 }
@@ -183,6 +196,7 @@ function chooseIconFromHeader(header: string, iconColor: string) {
     return <Brain className={`inline mr-2 ${iconColor}`} />;
 }
 
+
 export function TrainOfThought(props: TrainOfThoughtProps) {
     // The train of thought comes in as a markdown-formatted string. It starts with a heading delimited by two asterisks at the start and end and a colon, followed by the message. Example: **header**: status. This function will parse the message and render it as a div.
     let extractedHeader = props.message.match(/\*\*(.*)\*\*/);
@@ -205,7 +219,7 @@ export default function ChatMessage(props: ChatMessageProps) {
 
     // Replace LaTeX delimiters with placeholders
     message = message.replace(/\\\(/g, 'LEFTPAREN').replace(/\\\)/g, 'RIGHTPAREN')
-                        .replace(/\\\[/g, 'LEFTBRACKET').replace(/\\\]/g, 'RIGHTBRACKET');
+        .replace(/\\\[/g, 'LEFTBRACKET').replace(/\\\]/g, 'RIGHTBRACKET');
 
     if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image2") {
         message = `![generated_image](${message})\n\n${props.chatMessage.intent["inferred-queries"][0]}`
@@ -215,7 +229,7 @@ export default function ChatMessage(props: ChatMessageProps) {
 
     // Replace placeholders with LaTeX delimiters
     markdownRendered = markdownRendered.replace(/LEFTPAREN/g, '\\(').replace(/RIGHTPAREN/g, '\\)')
-                        .replace(/LEFTBRACKET/g, '\\[').replace(/RIGHTBRACKET/g, '\\]');
+        .replace(/LEFTBRACKET/g, '\\[').replace(/RIGHTBRACKET/g, '\\]');
 
     const messageRef = useRef<HTMLDivElement>(null);
 
@@ -262,8 +276,6 @@ export default function ChatMessage(props: ChatMessageProps) {
         }
     }, [copySuccess]);
 
-    let referencesValid = hasValidReferences(props.chatMessage);
-
     function constructClasses(chatMessage: SingleChatMessage) {
         let classes = [styles.chatMessageContainer];
         classes.push(styles[chatMessage.by]);
@@ -287,45 +299,57 @@ export default function ChatMessage(props: ChatMessageProps) {
         return classes.join(' ');
     }
 
+    const allReferences = constructAllReferences(props.chatMessage.context, props.chatMessage.onlineContext);
+
     return (
         <div
             className={constructClasses(props.chatMessage)}
-            onClick={props.chatMessage.by === "khoj" ? (event) => onClickMessage(event, props.chatMessage, props.setReferencePanelData, props.setShowReferencePanel) : undefined}>
-                {/* <div className={styles.chatFooter}> */}
-                    {/* {props.chatMessage.by} */}
-                {/* </div> */}
-                <div className={chatMessageWrapperClasses(props.chatMessage)}>
-                    <div ref={messageRef} className={styles.chatMessage} dangerouslySetInnerHTML={{ __html: markdownRendered }} />
-                    {/* Add a copy button, thumbs up, and thumbs down buttons */}
-                    <div className={styles.chatFooter}>
-                        <div className={styles.chatTimestamp}>
-                            {renderTimeStamp(props.chatMessage.created)}
-                        </div>
-                        <div className={styles.chatButtons}>
-                            {
-                                referencesValid &&
-                                <div className={styles.referenceButton}>
-                                    <button onClick={(event) => onClickMessage(event, props.chatMessage, props.setReferencePanelData, props.setShowReferencePanel)}>
-                                        References
-                                    </button>
-                                </div>
-                            }
-                            <button className={`${styles.copyButton}`} onClick={() => {
-                                    navigator.clipboard.writeText(props.chatMessage.message);
-                                    setCopySuccess(true);
-                            }}>
-                                {
-                                    copySuccess ?
-                                        <Copy color='green' />
-                                        : <Copy color='hsl(var(--muted-foreground))' />
-                                }
+            onClick={props.chatMessage.by === "khoj" ? (event) => undefined : undefined}>
+            <div className={chatMessageWrapperClasses(props.chatMessage)}>
+                <div ref={messageRef} className={styles.chatMessage} dangerouslySetInnerHTML={{ __html: markdownRendered }} />
+            </div>
+            <div className={styles.teaserReferencesContainer}>
+                <TeaserReferencesSection
+                    isMobileWidth={props.isMobileWidth}
+                    notesReferenceCardData={allReferences.notesReferenceCardData}
+                    onlineReferenceCardData={allReferences.onlineReferenceCardData} />
+            </div>
+            <div className={styles.chatFooter}>
+                {/* <div className={styles.chatTimestamp}>
+                    {renderTimeStamp(props.chatMessage.created)}
+                </div> */}
+                <div className={styles.chatButtons}>
+                    {
+                        <div className={styles.referenceButton}>
+                            <button onClick={(event) => console.log("speaker")}>
+                                <SpeakerHifi color='hsl(var(--muted-foreground))' />
                             </button>
-                            {
-                                props.chatMessage.by === "khoj" && <FeedbackButtons />
-                            }
                         </div>
-                    </div>
+                    }
+                    <button className={`${styles.copyButton}`} onClick={() => {
+                        navigator.clipboard.writeText(props.chatMessage.message);
+                        setCopySuccess(true);
+                    }}>
+                        {
+                            copySuccess ?
+                                <Copy color='green' />
+                                : <Copy color='hsl(var(--muted-foreground))' />
+                        }
+                    </button>
+                    {
+                        props.chatMessage.by === "khoj" &&
+                        (
+                            props.chatMessage.intent ?
+                                <FeedbackButtons
+                                    uquery={props.chatMessage.intent.query}
+                                    kquery={props.chatMessage.message} />
+                                : <FeedbackButtons
+                                    uquery={props.chatMessage.rawQuery || props.chatMessage.message}
+                                    kquery={props.chatMessage.message} />
+                        )
+                    }
                 </div>
+            </div>
         </div>
     )
 }

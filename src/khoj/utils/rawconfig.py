@@ -27,8 +27,13 @@ class LocationData(BaseModel):
     country: Optional[str]
 
 
-class FilterRequest(BaseModel):
+class FileFilterRequest(BaseModel):
     filename: str
+    conversation_id: str
+
+
+class FilesFilterRequest(BaseModel):
+    filenames: List[str]
     conversation_id: str
 
 

@@ -8,12 +8,25 @@ import { UserProfile } from "@/app/common/auth";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import Link from "next/link";
 import useSWR from "swr";
+import Image from "next/image";
 
 import {
     Collapsible,
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+
+import {
+    Command,
+    CommandDialog,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+    CommandSeparator,
+    CommandShortcut,
+} from "@/components/ui/command";
 
 import { InlineLoading } from "../loading/loading";
 
@@ -27,9 +40,21 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 
+import {
+    Drawer,
+    DrawerClose,
+    DrawerContent,
+    DrawerDescription,
+    DrawerFooter,
+    DrawerHeader,
+    DrawerTitle,
+    DrawerTrigger,
+} from "@/components/ui/drawer";
+
+
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-import { ArrowRight, ArrowLeft, ArrowDown, Spinner, Check } from "@phosphor-icons/react";
+import { ArrowRight, ArrowLeft, ArrowDown, Spinner, Check, FolderPlus } from "@phosphor-icons/react";
 
 interface ChatHistory {
     conversation_id: string;
@@ -37,6 +62,7 @@ interface ChatHistory {
     agent_name: string;
     agent_avatar: string;
     compressed: boolean;
+    created: string;
 }
 
 import {
@@ -58,6 +84,8 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { modifyFileFilterForConversation } from "@/app/common/chatFunctions";
+import { ScrollAreaScrollbar } from "@radix-ui/react-scroll-area";
 
 // Define a fetcher function
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -121,70 +149,42 @@ function deleteConversation(conversationId: string) {
         });
 }
 
-function modifyFileFilterForConversation(
-    conversationId: string | null,
-    filename: string,
-    setAddedFiles: (files: string[]) => void,
-    mode: 'add' | 'remove') {
-
-    if (!conversationId) {
-        console.error("No conversation ID provided");
-        return;
-    }
-
-    const method = mode === 'add' ? 'POST' : 'DELETE';
-
-    const body = {
-        conversation_id: conversationId,
-        filename: filename,
-    }
-    const addUrl = `/api/chat/conversation/file-filters`;
-
-    fetch(addUrl, {
-        method: method,
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-    })
-        .then(response => response.json())
-        .then(data => {
-            setAddedFiles(data);
-        })
-        .catch(err => {
-            console.error(err);
-            return;
-        });
-}
-
 
 interface FilesMenuProps {
     conversationId: string | null;
+    uploadedFiles: string[];
+    isMobileWidth: boolean;
 }
 
 function FilesMenu(props: FilesMenuProps) {
     // Use SWR to fetch files
-    const { data: files, error } = useSWR(props.conversationId ? '/api/config/data/computer' : null, fetcher);
+    const { data: files, error } = useSWR<string[]>(props.conversationId ? '/api/config/data/computer' : null, fetcher);
     const { data: selectedFiles, error: selectedFilesError } = useSWR(props.conversationId ? `/api/chat/conversation/file-filters/${props.conversationId}` : null, fetcher);
     const [isOpen, setIsOpen] = useState(false);
-    const [searchInput, setSearchInput] = useState('');
-    const [filteredFiles, setFilteredFiles] = useState<string[]>([]);
+    const [unfilteredFiles, setUnfilteredFiles] = useState<string[]>([]);
     const [addedFiles, setAddedFiles] = useState<string[]>([]);
 
     useEffect(() => {
         if (!files) return;
-        if (searchInput === '') {
-            setFilteredFiles(files);
-        } else {
-            let sortedFiles = files.filter((filename: string) => filename.toLowerCase().includes(searchInput.toLowerCase()));
 
-            if (addedFiles) {
-                sortedFiles = addedFiles.concat(filteredFiles.filter((filename: string) => !addedFiles.includes(filename)));
-            }
+        // First, sort lexically
+        files.sort();
+        let sortedFiles = files;
 
-            setFilteredFiles(sortedFiles);
+        if (addedFiles) {
+            console.log("addedFiles in useeffect hook", addedFiles);
+            sortedFiles = addedFiles.concat(sortedFiles.filter((filename: string) => !addedFiles.includes(filename)));
         }
-    }, [searchInput, files, addedFiles]);
+
+        setUnfilteredFiles(sortedFiles);
+
+    }, [files, addedFiles]);
+
+    useEffect(() => {
+        for (const file of props.uploadedFiles) {
+            setAddedFiles((addedFiles) => [...addedFiles, file]);
+        }
+    }, [props.uploadedFiles]);
 
     useEffect(() => {
         if (selectedFiles) {
@@ -193,12 +193,102 @@ function FilesMenu(props: FilesMenuProps) {
 
     }, [selectedFiles]);
 
+    const removeAllFiles = () => {
+        modifyFileFilterForConversation(props.conversationId, addedFiles, setAddedFiles, 'remove');
+    }
+
+    const addAllFiles = () => {
+        modifyFileFilterForConversation(props.conversationId, unfilteredFiles, setAddedFiles, 'add');
+    }
+
     if (!props.conversationId) return (<></>);
 
     if (error) return <div>Failed to load files</div>;
     if (selectedFilesError) return <div>Failed to load selected files</div>;
     if (!files) return <InlineLoading />;
     if (!selectedFiles) return <InlineLoading />;
+
+    const FilesMenuCommandBox = () => {
+        return (
+            <Command>
+                <CommandInput placeholder="Find file" />
+                <CommandList>
+                    <CommandEmpty>No results found.</CommandEmpty>
+                    <CommandGroup heading="Quick">
+                        <CommandItem
+                            onSelect={() => {
+                                removeAllFiles();
+                            }}
+                        >
+                            <Trash className="h-4 w-4 mr-2" />
+                            <span>Clear all</span>
+                        </CommandItem>
+                        <CommandItem
+                            onSelect={() => {
+                                addAllFiles();
+                            }}
+                        >
+                            <FolderPlus className="h-4 w-4 mr-2" />
+                            <span>Select all</span>
+                        </CommandItem>
+                    </CommandGroup>
+                    <CommandGroup heading="Configure files">
+                        {unfilteredFiles.map((filename: string) => (
+                            addedFiles && addedFiles.includes(filename) ?
+                                <CommandItem
+                                    key={filename}
+                                    value={filename}
+                                    className="bg-accent text-accent-foreground mb-1"
+                                    onSelect={(value) => {
+                                        modifyFileFilterForConversation(props.conversationId, [value], setAddedFiles, 'remove');
+                                    }}
+                                >
+                                    <Check className="h-4 w-4 mr-2" />
+                                    <span className="break-all">{filename}</span>
+                                </CommandItem>
+                                :
+                                <CommandItem
+                                    key={filename}
+                                    className="mb-1"
+                                    value={filename}
+                                    onSelect={(value) => {
+                                        modifyFileFilterForConversation(props.conversationId, [value], setAddedFiles, 'add');
+                                    }}
+                                >
+                                    <span className="break-all">{filename}</span>
+                                </CommandItem>
+                        ))}
+                    </CommandGroup>
+                </CommandList>
+            </Command>
+        );
+    }
+
+    if (props.isMobileWidth) {
+        return (
+            <>
+                <Drawer>
+                    <DrawerTrigger className="bg-background border border-muted p-4 rounded-2xl my-8 text-left inline-flex items-center justify-between w-full">
+                        Manage Files <ArrowRight className="h-4 w-4 mx-2" />
+                    </DrawerTrigger>
+                    <DrawerContent>
+                        <DrawerHeader>
+                            <DrawerTitle>Files</DrawerTitle>
+                            <DrawerDescription>Manage files for this conversation</DrawerDescription>
+                        </DrawerHeader>
+                        <div className={`${styles.panelWrapper}`}>
+                            <FilesMenuCommandBox />
+                        </div>
+                        <DrawerFooter>
+                            <DrawerClose>
+                                <Button variant="outline">Done</Button>
+                            </DrawerClose>
+                        </DrawerFooter>
+                    </DrawerContent>
+                </Drawer>
+            </>
+        );
+    }
 
     return (
         <>
@@ -207,10 +297,10 @@ function FilesMenu(props: FilesMenuProps) {
                 onOpenChange={setIsOpen}>
                 <PopoverTrigger asChild>
                     <div
-                        className="w-auto bg-background border border-muted p-4 drop-shadow-sm rounded-2xl">
+                        className="w-auto bg-background border border-muted p-4 drop-shadow-sm rounded-2xl my-8">
                         <div className="flex items-center justify-between space-x-4">
                             <h4 className="text-sm font-semibold">
-                                Manage Files
+                                Manage Context
                                 <p>
                                     <span className="text-muted-foreground text-xs">Using {addedFiles.length == 0 ? files.length : addedFiles.length} files</span>
                                 </p>
@@ -228,40 +318,8 @@ function FilesMenu(props: FilesMenuProps) {
                         </div>
                     </div>
                 </PopoverTrigger>
-                <PopoverContent className="w-80 mx-2">
-                    <Input
-                        placeholder="Find file"
-                        className="rounded-md border-none py-2 text-sm text-wrap break-words my-2 bg-accent text-accent-foreground"
-                        value={searchInput}
-                        onChange={(e) => setSearchInput(e.target.value)} />
-                    {
-                        filteredFiles.length === 0 && (
-                            <div className="rounded-md border-none py-2 text-sm text-wrap break-words">
-                                No files found
-                            </div>
-                        )
-                    }
-                    {
-                        filteredFiles.map((filename: string) => (
-                            addedFiles && addedFiles.includes(filename) ?
-                                <Button
-                                    variant={'ghost'}
-                                    key={filename}
-                                    className="rounded-md border-none py-2 text-sm text-wrap break-words bg-accent text-accent-foreground text-left"
-                                    onClick={() => modifyFileFilterForConversation(props.conversationId, filename, setAddedFiles, 'remove')}>
-                                    {filename}
-                                    <Check className="h-4 w-4 ml-2" />
-                                </Button>
-                                :
-                                <Button
-                                    variant={'ghost'}
-                                    key={filename}
-                                    className="rounded-md border-none py-2 text-sm text-wrap break-words text-left"
-                                    onClick={() => modifyFileFilterForConversation(props.conversationId, filename, setAddedFiles, 'add')}>
-                                    {filename}
-                                </Button>
-                        ))
-                    }
+                <PopoverContent className={`mx-2`}>
+                    <FilesMenuCommandBox />
                 </PopoverContent>
             </Popover>
         </>
@@ -277,29 +335,24 @@ interface SessionsAndFilesProps {
     data: ChatHistory[] | null;
     userProfile: UserProfile | null;
     conversationId: string | null;
+    uploadedFiles: string[];
+    isMobileWidth: boolean;
 }
 
 function SessionsAndFiles(props: SessionsAndFilesProps) {
     return (
         <>
-            <div className={`${styles.expanded}`}>
-                <button className={styles.button} onClick={() => props.setEnabled(false)}>
-                    <ArrowLeft />
-                </button>
-            </div>
-            <ScrollArea className="h-[40vh] w-[14rem]">
+            <ScrollArea className="h-[40vh]">
+                <ScrollAreaScrollbar orientation="vertical" className="h-full w-2.5 border-l border-l-transparent p-[1px]" />
                 <div className={styles.sessionsList}>
-                    {props.subsetOrganizedData != null && Object.keys(props.subsetOrganizedData).map((agentName) => (
-                        <div key={agentName} className={`my-4`}>
-                            {/* <h3 className={`grid grid-flow-col auto-cols-max gap-2 my-4 font-bold text-sm`}>
-                                {
-                                    props.subsetOrganizedData &&
-                                    <img src={props.subsetOrganizedData[agentName][0].agent_avatar} alt={agentName} width={24} height={24} />
-                                }
-                                {agentName}
-                            </h3> */}
-                            {props.subsetOrganizedData && props.subsetOrganizedData[agentName].map((chatHistory) => (
+                    {props.subsetOrganizedData != null && Object.keys(props.subsetOrganizedData).map((timeGrouping) => (
+                        <div key={timeGrouping} className={`my-4`}>
+                            <div className={`text-muted-foreground text-sm font-bold p-[0.5rem] `}>
+                                {timeGrouping}
+                            </div>
+                            {props.subsetOrganizedData && props.subsetOrganizedData[timeGrouping].map((chatHistory) => (
                                 <ChatSession
+                                    created={chatHistory.created}
                                     compressed={true}
                                     key={chatHistory.conversation_id}
                                     conversation_id={chatHistory.conversation_id}
@@ -316,7 +369,7 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                     <ChatSessionsModal data={props.organizedData} />
                 )
             }
-            <FilesMenu conversationId={props.conversationId} />
+            <FilesMenu conversationId={props.conversationId} uploadedFiles={props.uploadedFiles} isMobileWidth={props.isMobileWidth} />
             {props.userProfile &&
                 <UserProfileComponent userProfile={props.userProfile} webSocketConnected={props.webSocketConnected} collapsed={false} />
             }</>
@@ -499,22 +552,23 @@ function ChatSessionsModal({ data }: ChatSessionsModalProps) {
     return (
         <Dialog>
             <DialogTrigger
-                className="flex text-left text-medium text-gray-500 hover:text-gray-900 cursor-pointer my-4 text-sm">
-                Show All
+                className="flex text-left text-medium text-gray-500 hover:text-gray-900 cursor-pointer my-4 text-sm p-[0.5rem]">
+                See All
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>All Conversations</DialogTitle>
-                    <DialogDescription>
-                        <ScrollArea className="h-[500px] w-[450px] p-4">
-                            {data && Object.keys(data).map((agentName) => (
-                                <div key={agentName}>
-                                    <div className={`grid grid-flow-col auto-cols-max gap-2`}>
-                                        <img src={data[agentName][0].agent_avatar} alt={agentName} width={24} height={24} />
-                                        {agentName}
+                    <DialogDescription
+                        className="p-0">
+                        <ScrollArea className="h-[500px] p-4">
+                            {data && Object.keys(data).map((timeGrouping) => (
+                                <div key={timeGrouping}>
+                                    <div className={`text-muted-foreground text-sm font-bold p-[0.5rem] `}>
+                                        {timeGrouping}
                                     </div>
-                                    {data[agentName].map((chatHistory) => (
+                                    {data[timeGrouping].map((chatHistory) => (
                                         <ChatSession
+                                            created={chatHistory.created}
                                             compressed={false}
                                             key={chatHistory.conversation_id}
                                             conversation_id={chatHistory.conversation_id}
@@ -553,26 +607,26 @@ function UserProfileComponent(props: UserProfileProps) {
     }
 
     return (
-            <div className={styles.profile}>
-        <Link href="/config" target="_blank" rel="noopener noreferrer">
+        <div className={styles.profile}>
+            <Link href="/config" target="_blank" rel="noopener noreferrer">
                 <Avatar>
                     <AvatarImage src={props.userProfile.photo} alt="user profile" />
                     <AvatarFallback>
                         {props.userProfile.username[0]}
                     </AvatarFallback>
                 </Avatar>
-        </Link>
-                <div className={styles.profileDetails}>
-                    <p>{props.userProfile?.username}</p>
-                    {/* Connected Indicator */}
-                    <div className="flex gap-2 items-center">
-                        <div className={`inline-flex h-4 w-4 rounded-full opacity-75 ${props.webSocketConnected ? 'bg-green-500' : 'bg-rose-500'}`}></div>
-                        <p className="text-muted-foreground text-sm">
-                            {props.webSocketConnected ? "Connected" : "Disconnected"}
-                        </p>
-                    </div>
+            </Link>
+            <div className={styles.profileDetails}>
+                <p>{props.userProfile?.username}</p>
+                {/* Connected Indicator */}
+                <div className="flex gap-2 items-center">
+                    <div className={`inline-flex h-4 w-4 rounded-full opacity-75 ${props.webSocketConnected ? 'bg-green-500' : 'bg-rose-500'}`}></div>
+                    <p className="text-muted-foreground text-sm">
+                        {props.webSocketConnected ? "Connected" : "Disconnected"}
+                    </p>
                 </div>
             </div>
+        </div>
     );
 
 }
@@ -600,6 +654,7 @@ export const useChatHistoryRecentFetchRequest = (url: string) => {
 interface SidePanelProps {
     webSocketConnected?: boolean;
     conversationId: string | null;
+    uploadedFiles: string[];
 }
 
 
@@ -614,6 +669,8 @@ export default function SidePanel(props: SidePanelProps) {
 
     const { data: chatHistory } = useChatHistoryRecentFetchRequest('/api/chat/sessions');
 
+    const [isMobileWidth, setIsMobileWidth] = useState(false);
+
     useEffect(() => {
         if (chatHistory) {
             setData(chatHistory);
@@ -621,27 +678,44 @@ export default function SidePanel(props: SidePanelProps) {
             const groupedData: GroupedChatHistory = {};
             const subsetOrganizedData: GroupedChatHistory = {};
             let numAdded = 0;
+
+            const currentDate = new Date();
+
             chatHistory.forEach((chatHistory) => {
-                if (!groupedData[chatHistory.agent_name]) {
-                    groupedData[chatHistory.agent_name] = [];
+                const chatDate = new Date(chatHistory.created);
+                const diffTime = Math.abs(currentDate.getTime() - chatDate.getTime());
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                const timeGrouping = diffDays < 7 ? 'Recent' : diffDays < 30 ? 'Last Month' : 'All Time';
+                if (!groupedData[timeGrouping]) {
+                    groupedData[timeGrouping] = [];
                 }
-                groupedData[chatHistory.agent_name].push(chatHistory);
+                groupedData[timeGrouping].push(chatHistory);
 
                 // Add to subsetOrganizedData if less than 8
                 if (numAdded < 8) {
-                    if (!subsetOrganizedData[chatHistory.agent_name]) {
-                        subsetOrganizedData[chatHistory.agent_name] = [];
+                    if (!subsetOrganizedData[timeGrouping]) {
+                        subsetOrganizedData[timeGrouping] = [];
                     }
-                    subsetOrganizedData[chatHistory.agent_name].push(chatHistory);
+                    subsetOrganizedData[timeGrouping].push(chatHistory);
                     numAdded++;
                 }
             });
+
+
             setSubsetOrganizedData(subsetOrganizedData);
             setOrganizedData(groupedData);
         }
     }, [chatHistory]);
 
     useEffect(() => {
+        if (window.innerWidth < 768) {
+            setIsMobileWidth(true);
+        }
+
+        window.addEventListener('resize', () => {
+            setIsMobileWidth(window.innerWidth < 768);
+        });
 
         fetch('/api/v1/user', { method: 'GET' })
             .then(response => response.json())
@@ -655,31 +729,66 @@ export default function SidePanel(props: SidePanelProps) {
     }, []);
 
     return (
-        <div className={`${styles.panel}`}>
+        <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed}`}>
+            <div className="flex items-start justify-between">
+                <Image src="khoj-logo.svg"
+                    alt="logo"
+                    width={40}
+                    height={40}
+                />
+                {/* <button className={styles.button} onClick={() => setEnabled(!enabled)}>
+                    {enabled ? <ArrowLeft className="h-4 w-4" /> : <ArrowRight className="h-4 w-4 mx-2" />}
+                </button> */}
+                {
+                    isMobileWidth ?
+                        <Drawer>
+                            <DrawerTrigger><ArrowRight className="h-4 w-4 mx-2" /></DrawerTrigger>
+                            <DrawerContent>
+                                <DrawerHeader>
+                                    <DrawerTitle>Sessions and Files</DrawerTitle>
+                                    <DrawerDescription>View all conversation sessions and manage conversation file filters</DrawerDescription>
+                                </DrawerHeader>
+                                <div className={`${styles.panelWrapper}`}>
+                                    <SessionsAndFiles
+                                        webSocketConnected={props.webSocketConnected}
+                                        setEnabled={setEnabled}
+                                        subsetOrganizedData={subsetOrganizedData}
+                                        organizedData={organizedData}
+                                        data={data}
+                                        uploadedFiles={props.uploadedFiles}
+                                        userProfile={userProfile}
+                                        conversationId={props.conversationId}
+                                        isMobileWidth={isMobileWidth}
+                                    />
+                                </div>
+                                <DrawerFooter>
+                                    <DrawerClose>
+                                        <Button variant="outline">Done</Button>
+                                    </DrawerClose>
+                                </DrawerFooter>
+                            </DrawerContent>
+                        </Drawer>
+                        :
+                        <button className={styles.button} onClick={() => setEnabled(!enabled)}>
+                            {enabled ? <ArrowLeft className="h-4 w-4" /> : <ArrowRight className="h-4 w-4 mx-2" />}
+                        </button>
+                }
+            </div>
             {
-                enabled ?
-                    <div className={`${styles.panelWrapper}`}>
-                        <SessionsAndFiles
-                            webSocketConnected={props.webSocketConnected}
-                            setEnabled={setEnabled}
-                            subsetOrganizedData={subsetOrganizedData}
-                            organizedData={organizedData}
-                            data={data}
-                            userProfile={userProfile}
-                            conversationId={props.conversationId}
-                        />
-                    </div>
-                    :
-                    <div>
-                        <div className={`${styles.collapsed}`}>
-                            <button className={styles.button} onClick={() => setEnabled(true)}>
-                                <ArrowRight />
-                            </button>
-                            {userProfile &&
-                                <UserProfileComponent userProfile={userProfile} webSocketConnected={props.webSocketConnected} collapsed={true} />
-                            }
-                        </div>
-                    </div>
+                enabled &&
+                <div className={`${styles.panelWrapper}`}>
+                    <SessionsAndFiles
+                        webSocketConnected={props.webSocketConnected}
+                        setEnabled={setEnabled}
+                        subsetOrganizedData={subsetOrganizedData}
+                        organizedData={organizedData}
+                        data={data}
+                        uploadedFiles={props.uploadedFiles}
+                        userProfile={userProfile}
+                        conversationId={props.conversationId}
+                        isMobileWidth={isMobileWidth}
+                    />
+                </div>
             }
 
         </div>

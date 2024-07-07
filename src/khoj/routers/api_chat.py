@@ -60,7 +60,7 @@ from khoj.utils.helpers import (
     get_device,
     is_none_or_empty,
 )
-from khoj.utils.rawconfig import FilterRequest, LocationData
+from khoj.utils.rawconfig import FileFilterRequest, FilesFilterRequest, LocationData
 
 # Initialize Router
 logger = logging.getLogger(__name__)
@@ -94,21 +94,36 @@ def get_file_filter(request: Request, conversation_id: str) -> Response:
     return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
 
 
+@api_chat.delete("/conversation/file-filters/bulk", response_class=Response)
+@requires(["authenticated"])
+def remove_files_filter(request: Request, filter: FilesFilterRequest) -> Response:
+    conversation_id = int(filter.conversation_id)
+    files_filter = filter.filenames
+    file_filters = ConversationAdapters.remove_files_from_filter(request.user.object, conversation_id, files_filter)
+    return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
+
+
+@api_chat.post("/conversation/file-filters/bulk", response_class=Response)
+@requires(["authenticated"])
+def add_files_filter(request: Request, filter: FilesFilterRequest):
+    try:
+        conversation_id = int(filter.conversation_id)
+        files_filter = filter.filenames
+        file_filters = ConversationAdapters.add_files_to_filter(request.user.object, conversation_id, files_filter)
+        return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
+    except Exception as e:
+        logger.error(f"Error adding file filter {filter.filename}: {e}", exc_info=True)
+        raise HTTPException(status_code=422, detail=str(e))
+
+
 @api_chat.post("/conversation/file-filters", response_class=Response)
 @requires(["authenticated"])
-def add_file_filter(request: Request, filter: FilterRequest):
+def add_file_filter(request: Request, filter: FileFilterRequest):
     try:
-        conversation = ConversationAdapters.get_conversation_by_user(
-            request.user.object, conversation_id=int(filter.conversation_id)
-        )
-        file_list = EntryAdapters.get_all_filenames_by_source(request.user.object, "computer")
-        if filter.filename in file_list and filter.filename not in conversation.file_filters:
-            conversation.file_filters.append(filter.filename)
-            conversation.save()
-        # remove files from conversation.file_filters that are not in file_list
-        conversation.file_filters = [file for file in conversation.file_filters if file in file_list]
-        conversation.save()
-        return Response(content=json.dumps(conversation.file_filters), media_type="application/json", status_code=200)
+        conversation_id = int(filter.conversation_id)
+        files_filter = [filter.filename]
+        file_filters = ConversationAdapters.add_files_to_filter(request.user.object, conversation_id, files_filter)
+        return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
     except Exception as e:
         logger.error(f"Error adding file filter {filter.filename}: {e}", exc_info=True)
         raise HTTPException(status_code=422, detail=str(e))
@@ -116,18 +131,11 @@ def add_file_filter(request: Request, filter: FilterRequest):
 
 @api_chat.delete("/conversation/file-filters", response_class=Response)
 @requires(["authenticated"])
-def remove_file_filter(request: Request, filter: FilterRequest) -> Response:
-    conversation = ConversationAdapters.get_conversation_by_user(
-        request.user.object, conversation_id=int(filter.conversation_id)
-    )
-    if filter.filename in conversation.file_filters:
-        conversation.file_filters.remove(filter.filename)
-    conversation.save()
-    # remove files from conversation.file_filters that are not in file_list
-    file_list = EntryAdapters.get_all_filenames_by_source(request.user.object, "computer")
-    conversation.file_filters = [file for file in conversation.file_filters if file in file_list]
-    conversation.save()
-    return Response(content=json.dumps(conversation.file_filters), media_type="application/json", status_code=200)
+def remove_file_filter(request: Request, filter: FileFilterRequest) -> Response:
+    conversation_id = int(filter.conversation_id)
+    files_filter = [filter.filename]
+    file_filters = ConversationAdapters.remove_files_from_filter(request.user.object, conversation_id, files_filter)
+    return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
 
 
 class FeedbackData(BaseModel):
@@ -379,7 +387,9 @@ def chat_sessions(
     if recent:
         conversations = conversations[:8]
 
-    sessions = conversations.values_list("id", "slug", "title", "agent__slug", "agent__name", "agent__avatar")
+    sessions = conversations.values_list(
+        "id", "slug", "title", "agent__slug", "agent__name", "agent__avatar", "created_at"
+    )
 
     session_values = [
         {
@@ -387,6 +397,7 @@ def chat_sessions(
             "slug": session[2] or session[1],
             "agent_name": session[4],
             "agent_avatar": session[5],
+            "created": session[6].strftime("%Y-%m-%d %H:%M:%S"),
         }
         for session in sessions
     ]

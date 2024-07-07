@@ -41,19 +41,18 @@ button.showMoreButton {
 }
 
 div.panel {
-    display: grid;
-    grid-auto-flow: row;
+    display: flex;
+    flex-direction: column;
     padding: 1rem;
-    background-color: hsla(var(--muted));
-    height: 100%;
     overflow-y: auto;
     max-width: auto;
+    transition: background-color 0.5s;
 }
 
 div.expanded {
-    display: grid;
-    grid-template-columns: 1fr auto;
     gap: 1rem;
+    background-color: hsla(var(--muted));
+    height: 100%;
 }
 
 div.collapsed {
@@ -83,8 +82,10 @@ div.profile {
 }
 
 div.panelWrapper {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: auto 1fr auto auto;
+    width: 70%;
+    height: 100%;
 }
 
 
@@ -119,9 +120,29 @@ div.modalSessionsList div.session {
 @media screen and (max-width: 768px) {
     div.panel {
         padding: 0.5rem;
+        position: absolute;
+        width: 100%;
+    }
+
+    div.expanded {
+        z-index: 1;
     }
 
     div.singleReference {
         padding: 4px;
+    }
+
+    div.panelWrapper {
+        width: 100%;
+    }
+
+    div.session.compressed {
+        max-width: 100%;
+        grid-template-columns: minmax(auto, 350px) 1fr;
+    }
+
+    div.session {
+        max-width: 100%;
+        grid-template-columns: 200px 1fr;
     }
 }

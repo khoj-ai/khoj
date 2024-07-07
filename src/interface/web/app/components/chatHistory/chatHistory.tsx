@@ -3,9 +3,7 @@
 import styles from './chatHistory.module.css';
 import { useRef, useEffect, useState } from 'react';
 
-import ChatMessage, { ChatHistoryData, SingleChatMessage, StreamMessage, TrainOfThought } from '../chatMessage/chatMessage';
-
-import ReferencePanel, { hasValidReferences } from '../referencePanel/referencePanel';
+import ChatMessage, { ChatHistoryData, StreamMessage, TrainOfThought } from '../chatMessage/chatMessage';
 
 import { ScrollArea } from "@/components/ui/scroll-area"
 
@@ -61,10 +59,19 @@ export default function ChatHistory(props: ChatHistoryProps) {
     const chatHistoryRef = useRef<HTMLDivElement | null>(null);
     const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-    const [showReferencePanel, setShowReferencePanel] = useState(true);
-    const [referencePanelData, setReferencePanelData] = useState<SingleChatMessage | null>(null);
     const [incompleteIncomingMessageIndex, setIncompleteIncomingMessageIndex] = useState<number | null>(null);
     const [fetchingData, setFetchingData] = useState(false);
+    const [isMobileWidth, setIsMobileWidth] = useState(false);
+
+
+    useEffect(() => {
+        window.addEventListener('resize', () => {
+            setIsMobileWidth(window.innerWidth < 768);
+        });
+
+        setIsMobileWidth(window.innerWidth < 768);
+    }, []);
+
 
     useEffect(() => {
         // This function ensures that scrolling to bottom happens after the data (chat messages) has been updated and rendered the first time.
@@ -116,7 +123,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
         fetch(`/api/chat/history?client=web&conversation_id=${props.conversationId}&n=${10 * nextPage}`)
             .then(response => response.json())
             .then((chatData: ChatResponse) => {
-                console.log(chatData);
+                props.setTitle(chatData.response.slug);
                 if (chatData && chatData.response && chatData.response.chat.length > 0) {
 
                     if (chatData.response.chat.length === data?.chat.length) {
@@ -229,9 +236,8 @@ export default function ChatHistory(props: ChatHistoryProps) {
                     {(data && data.chat) && data.chat.map((chatMessage, index) => (
                         <ChatMessage
                             key={`${index}fullHistory`}
+                            isMobileWidth={isMobileWidth}
                             chatMessage={chatMessage}
-                            setReferencePanelData={setReferencePanelData}
-                            setShowReferencePanel={setShowReferencePanel}
                             customClassName='fullHistory'
                             borderLeftColor='orange-500'
                         />
@@ -242,6 +248,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                 <>
                                     <ChatMessage
                                         key={`${index}outgoing`}
+                                        isMobileWidth={isMobileWidth}
                                         chatMessage={
                                             {
                                                 message: message.rawQuery,
@@ -249,20 +256,21 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                                 onlineContext: {},
                                                 created: message.timestamp,
                                                 by: "you",
-                                                intent: {},
                                                 automationId: '',
-
                                             }
                                         }
-                                        setReferencePanelData={() => { }}
-                                        setShowReferencePanel={() => { }}
                                         customClassName='fullHistory'
                                         borderLeftColor='orange-500' />
                                     {
-                                        message.trainOfThought && constructTrainOfThought(message.trainOfThought, index === incompleteIncomingMessageIndex, `${index}trainOfThought`, message.completed)
+                                        message.trainOfThought &&
+                                        constructTrainOfThought(
+                                            message.trainOfThought,
+                                            index === incompleteIncomingMessageIndex,
+                                            `${index}trainOfThought`, message.completed)
                                     }
                                     <ChatMessage
                                         key={`${index}incoming`}
+                                        isMobileWidth={isMobileWidth}
                                         chatMessage={
                                             {
                                                 message: message.rawResponse,
@@ -270,12 +278,10 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                                 onlineContext: message.onlineContext,
                                                 created: message.timestamp,
                                                 by: "khoj",
-                                                intent: {},
                                                 automationId: '',
+                                                rawQuery: message.rawQuery,
                                             }
                                         }
-                                        setReferencePanelData={setReferencePanelData}
-                                        setShowReferencePanel={setShowReferencePanel}
                                         customClassName='fullHistory'
                                         borderLeftColor='orange-500'
                                     />
@@ -287,6 +293,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                         props.pendingMessage &&
                         <ChatMessage
                             key={"pendingMessage"}
+                            isMobileWidth={isMobileWidth}
                             chatMessage={
                                 {
                                     message: props.pendingMessage,
@@ -294,19 +301,12 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                     onlineContext: {},
                                     created: new Date().toISOString(),
                                     by: "you",
-                                    intent: {},
                                     automationId: '',
                                 }
                             }
-                            setReferencePanelData={() => { }}
-                            setShowReferencePanel={() => { }}
                             customClassName='fullHistory'
                             borderLeftColor='orange-500'
                         />
-                    }
-                    {
-                        (hasValidReferences(referencePanelData) && showReferencePanel) &&
-                        <ReferencePanel referencePanelData={referencePanelData} setShowReferencePanel={setShowReferencePanel} />
                     }
                     <div className={`${styles.agentIndicator}`}>
                         <a className='no-underline mx-2 flex text-muted-foreground' href={constructAgentLink()} target="_blank" rel="noreferrer">

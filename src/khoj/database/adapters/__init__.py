@@ -909,6 +909,34 @@ class ConversationAdapters:
     async def aget_text_to_image_model_config():
         return await TextToImageModelConfig.objects.filter().afirst()
 
+    @staticmethod
+    def add_files_to_filter(user: KhojUser, conversation_id: int, files: List[str]):
+        conversation = ConversationAdapters.get_conversation_by_user(user, conversation_id=conversation_id)
+        file_list = EntryAdapters.get_all_filenames_by_source(user, "computer")
+        for filename in files:
+            if filename in file_list and filename not in conversation.file_filters:
+                conversation.file_filters.append(filename)
+        conversation.save()
+
+        # remove files from conversation.file_filters that are not in file_list
+        conversation.file_filters = [file for file in conversation.file_filters if file in file_list]
+        conversation.save()
+        return conversation.file_filters
+
+    @staticmethod
+    def remove_files_from_filter(user: KhojUser, conversation_id: int, files: List[str]):
+        conversation = ConversationAdapters.get_conversation_by_user(user, conversation_id=conversation_id)
+        for filename in files:
+            if filename in conversation.file_filters:
+                conversation.file_filters.remove(filename)
+        conversation.save()
+
+        # remove files from conversation.file_filters that are not in file_list
+        file_list = EntryAdapters.get_all_filenames_by_source(user, "computer")
+        conversation.file_filters = [file for file in conversation.file_filters if file in file_list]
+        conversation.save()
+        return conversation.file_filters
+
 
 class FileObjectAdapters:
     @staticmethod

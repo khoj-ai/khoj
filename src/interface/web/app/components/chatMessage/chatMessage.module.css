@@ -61,8 +61,7 @@ div.author {
 
 div.chatFooter {
     display: flex;
-    justify-content: space-between;
-    margin-top: 8px;
+    justify-content: flex-end;
 }
 
 div.chatButtons {
@@ -125,6 +124,10 @@ div.trainOfThought.primary p {
 @media screen and (max-width: 768px) {
     div.youfullHistory {
         max-width: 100%;
+    }
+
+    div.chatMessageWrapper {
+        padding-left: 8px;
     }
 
 }
