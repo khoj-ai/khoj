@@ -18,6 +18,7 @@ do
 
             # Bump Obsidian plugin to current version
             cd $project_root/src/interface/obsidian
+            yarn build # verify build before bumping version
             yarn version --$version_type --no-git-tag-version
             # append current version, min Obsidian app version from manifest to versions json
             cp $project_root/versions.json .

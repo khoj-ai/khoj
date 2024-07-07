@@ -116,7 +116,7 @@ export class KhojChatView extends KhojPaneView {
                 title: "Show Conversations (^O)",
             },
         })
-        chatSessions.addEventListener('click', async (_) => { await this.toggleChatSessions(chatBodyEl) });
+        chatSessions.addEventListener('click', async (_) => { await this.toggleChatSessions() });
         setIcon(chatSessions, "history");
 
         let chatInput = inputRow.createEl("textarea", {
@@ -607,16 +607,16 @@ export class KhojChatView extends KhojPaneView {
         return `${time_string}, ${date_string}`;
     }
 
-    createNewConversation(chatBodyEl: HTMLElement|undefined = undefined) {
-        chatBodyEl = chatBodyEl ?? this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
+    createNewConversation() {
+        let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
         chatBodyEl.innerHTML = "";
         chatBodyEl.dataset.conversationId = "";
         chatBodyEl.dataset.conversationTitle = "";
         this.renderMessage(chatBodyEl, "Hey 👋🏾, what's up?", "khoj");
     }
 
-    async toggleChatSessions(chatBodyEl: HTMLElement|undefined = undefined, forceShow: boolean = false): Promise<boolean> {
-        chatBodyEl = chatBodyEl ?? this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
+    async toggleChatSessions(forceShow: boolean = false): Promise<boolean> {
+        let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
         if (!forceShow && this.contentEl.getElementsByClassName("side-panel")?.length > 0) {
             chatBodyEl.innerHTML = "";
             return this.getChatHistory(chatBodyEl);
@@ -630,7 +630,7 @@ export class KhojChatView extends KhojPaneView {
         const newConversationButtonEl = newConversationEl.createEl("button");
         newConversationButtonEl.classList.add("new-conversation-button");
         newConversationButtonEl.classList.add("side-panel-button");
-        newConversationButtonEl.addEventListener('click', (_) => this.createNewConversation(chatBodyEl));
+        newConversationButtonEl.addEventListener('click', (_) => this.createNewConversation());
         setIcon(newConversationButtonEl, "plus");
         newConversationButtonEl.innerHTML += "New";
         newConversationButtonEl.title = "New Conversation (^N)";
@@ -793,7 +793,7 @@ export class KhojChatView extends KhojPaneView {
                     chatBodyEl.innerHTML = "";
                     chatBodyEl.dataset.conversationId = "";
                     chatBodyEl.dataset.conversationTitle = "";
-                    this.toggleChatSessions(chatBodyEl, true);
+                    this.toggleChatSessions(true);
                 })
                 .catch(err => {
                     return;
