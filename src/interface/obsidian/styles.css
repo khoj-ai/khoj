@@ -613,9 +613,23 @@ img.copy-icon {
     margin-top: -16px;
     margin-left: -16px;
     border: 4px solid transparent;
-    border-top-color: var(--icon-color-active);
+    border-color: var(--icon-color-active);
     border-radius: 50%;
-    animation: spin 1s linear infinite;
+    animation: pulse 3s ease-in-out infinite;
+}
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.2;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 @keyframes spin {
