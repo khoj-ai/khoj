@@ -22,6 +22,8 @@ Self-hosting isn't for everyone, so we've still taken steps to make Khoj privacy
 1. Your embeddings and the associated raw text are stored in a secure Postgres DB in our private AWS cloud. Your data is sharded on a unique user ID. We store the raw text in your files to improve file syncing and provide context when you chat with Khoj.
 1. When you use the single-sign-on option with Google, we only receive your name, a link to your profile photo, and your email address.
 
+You can see our full privacy policy [here](https://khoj.dev/privacy-policy).
+
 
 :::tip[Info]
 Your data is yours. We do not sell your data or use it for training models. Khoj is a sustainable, open-source alternative to closed-source, commercial personal AI. We have no interest in selling your data to make a quick buck.
