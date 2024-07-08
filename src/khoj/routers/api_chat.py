@@ -13,6 +13,7 @@ from starlette.authentication import requires
 from starlette.websockets import WebSocketDisconnect
 from websockets import ConnectionClosedOK
 
+from khoj.app.settings import ALLOWED_HOSTS
 from khoj.database.adapters import (
     ConversationAdapters,
     EntryAdapters,
@@ -28,11 +29,7 @@ from khoj.processor.conversation.prompts import (
 )
 from khoj.processor.conversation.utils import save_to_conversation_log
 from khoj.processor.speech.text_to_speech import generate_text_to_speech
-from khoj.processor.tools.online_search import (
-    online_search_enabled,
-    read_webpages,
-    search_online,
-)
+from khoj.processor.tools.online_search import read_webpages, search_online
 from khoj.routers.api import extract_references_and_questions
 from khoj.routers.helpers import (
     ApiUserRateLimiter,
@@ -153,7 +150,17 @@ async def sendfeedback(request: Request, data: FeedbackData):
 
 @api_chat.post("/speech")
 @requires(["authenticated", "premium"])
-async def text_to_speech(request: Request, common: CommonQueryParams, text: str):
+async def text_to_speech(
+    request: Request,
+    common: CommonQueryParams,
+    text: str,
+    rate_limiter_per_minute=Depends(
+        ApiUserRateLimiter(requests=5, subscribed_requests=20, window=60, slug="chat_minute")
+    ),
+    rate_limiter_per_day=Depends(
+        ApiUserRateLimiter(requests=5, subscribed_requests=300, window=60 * 60 * 24, slug="chat_day")
+    ),
+) -> Response:
     voice_model = await ConversationAdapters.aget_voice_model_config(request.user.object)
 
     params = {"text_to_speak": text}
@@ -350,16 +357,18 @@ def duplicate_chat_history_public_conversation(
     conversation_id: int,
 ):
     user = request.user.object
+    domain = request.headers.get("host")
+    scheme = request.url.scheme
+
+    # Throw unauthorized exception if domain not in ALLOWED_HOSTS
+    host_domain = domain.split(":")[0]
+    if host_domain not in ALLOWED_HOSTS:
+        raise HTTPException(status_code=401, detail="Unauthorized domain")
 
     # Duplicate Conversation History to Public Conversation
     conversation = ConversationAdapters.get_conversation_by_user(user, request.user.client_app, conversation_id)
-
     public_conversation = ConversationAdapters.make_public_conversation_copy(conversation)
-
     public_conversation_url = PublicConversationAdapters.get_public_conversation_url(public_conversation)
-
-    domain = request.headers.get("host")
-    scheme = request.url.scheme
 
     update_telemetry_state(
         request=request,
@@ -610,6 +619,7 @@ async def websocket_endpoint(
 
         meta_log = conversation.conversation_log
         is_automated_task = conversation_commands == [ConversationCommand.AutomatedTask]
+        used_slash_summarize = conversation_commands == [ConversationCommand.Summarize]
 
         if conversation_commands == [ConversationCommand.Default] or is_automated_task:
             conversation_commands = await aget_relevant_information_sources(q, meta_log, is_automated_task)
@@ -625,8 +635,18 @@ async def websocket_endpoint(
             await conversation_command_rate_limiter.update_and_check_if_valid(websocket, cmd)
             q = q.replace(f"/{cmd.value}", "").strip()
 
-        if ConversationCommand.Summarize in conversation_commands:
-            file_filters = conversation.file_filters
+        file_filters = conversation.file_filters if conversation else []
+        # Skip trying to summarize if
+        if (
+            # summarization intent was inferred
+            ConversationCommand.Summarize in conversation_commands
+            # and not triggered via slash command
+            and not used_slash_summarize
+            # but we can't actually summarize
+            and len(file_filters) != 1
+        ):
+            conversation_commands.remove(ConversationCommand.Summarize)
+        elif ConversationCommand.Summarize in conversation_commands:
             response_log = ""
             if len(file_filters) == 0:
                 response_log = "No files selected for summarization. Please add files using the section on the left."
@@ -741,22 +761,16 @@ async def websocket_endpoint(
             conversation_commands.remove(ConversationCommand.Notes)
 
         if ConversationCommand.Online in conversation_commands:
-            if not online_search_enabled():
-                conversation_commands.remove(ConversationCommand.Online)
-                # If online search is not enabled, try to read webpages directly
-                if ConversationCommand.Webpage not in conversation_commands:
-                    conversation_commands.append(ConversationCommand.Webpage)
-            else:
-                try:
-                    online_results = await search_online(
-                        defiltered_query, meta_log, location, send_status_update, custom_filters
-                    )
-                except ValueError as e:
-                    logger.warning(f"Error searching online: {e}. Attempting to respond without online results")
-                    await send_complete_llm_response(
-                        f"Error searching online: {e}. Attempting to respond without online results"
-                    )
-                    continue
+            try:
+                online_results = await search_online(
+                    defiltered_query, meta_log, location, send_status_update, custom_filters
+                )
+            except ValueError as e:
+                logger.warning(f"Error searching online: {e}. Attempting to respond without online results")
+                await send_complete_llm_response(
+                    f"Error searching online: {e}. Attempting to respond without online results"
+                )
+                continue
 
         if ConversationCommand.Webpage in conversation_commands:
             try:
@@ -1041,18 +1055,10 @@ async def chat(
         conversation_commands.remove(ConversationCommand.Notes)
 
     if ConversationCommand.Online in conversation_commands:
-        if not online_search_enabled():
-            conversation_commands.remove(ConversationCommand.Online)
-            # If online search is not enabled, try to read webpages directly
-            if ConversationCommand.Webpage not in conversation_commands:
-                conversation_commands.append(ConversationCommand.Webpage)
-        else:
-            try:
-                online_results = await search_online(
-                    defiltered_query, meta_log, location, custom_filters=_custom_filters
-                )
-            except ValueError as e:
-                logger.warning(f"Error searching online: {e}. Attempting to respond without online results")
+        try:
+            online_results = await search_online(defiltered_query, meta_log, location, custom_filters=_custom_filters)
+        except ValueError as e:
+            logger.warning(f"Error searching online: {e}. Attempting to respond without online results")
 
     if ConversationCommand.Webpage in conversation_commands:
         try:

@@ -15,6 +15,7 @@ Khoj will keep these files in sync to provide contextual responses when you sear
   - **Faster answers**: Find answers quickly, from your private notes or the public internet
   - **Assisted creativity**: Smoothly weave across retrieving answers and generating content
   - **Iterative discovery**: Iteratively explore and re-discover your notes
+  - **Quick access**: Use [Khoj Mini](/features/khoj_mini) on the desktop to quickly pull up a mini chat module for quicker answers
 - **Search**
   - **Natural**: Advanced natural language understanding using Transformer based ML Models
   - **Incremental**: Incremental search for a fast, search-as-you-type experience

@@ -215,11 +215,11 @@ class SearchModelConfig(BaseModel):
     # Bi-encoder model of sentence-transformer type to load from HuggingFace
     bi_encoder = models.CharField(max_length=200, default="thenlper/gte-small")
     # Config passed to the sentence-transformer model constructor. E.g. device="cuda:0", trust_remote_server=True etc.
-    bi_encoder_model_config = models.JSONField(default=dict)
+    bi_encoder_model_config = models.JSONField(default=dict, blank=True)
     # Query encode configs like prompt, precision, normalize_embeddings, etc. for sentence-transformer models
-    bi_encoder_query_encode_config = models.JSONField(default=dict)
+    bi_encoder_query_encode_config = models.JSONField(default=dict, blank=True)
     # Docs encode configs like prompt, precision, normalize_embeddings, etc. for sentence-transformer models
-    bi_encoder_docs_encode_config = models.JSONField(default=dict)
+    bi_encoder_docs_encode_config = models.JSONField(default=dict, blank=True)
     # Cross-encoder model of sentence-transformer type to load from HuggingFace
     cross_encoder = models.CharField(max_length=200, default="mixedbread-ai/mxbai-rerank-xsmall-v1")
     # Inference server API endpoint to use for embeddings inference. Bi-encoder model should be hosted on this server
@@ -235,9 +235,37 @@ class SearchModelConfig(BaseModel):
 class TextToImageModelConfig(BaseModel):
     class ModelType(models.TextChoices):
         OPENAI = "openai"
+        STABILITYAI = "stability-ai"
 
     model_name = models.CharField(max_length=200, default="dall-e-3")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OPENAI)
+    api_key = models.CharField(max_length=200, default=None, null=True, blank=True)
+    openai_config = models.ForeignKey(
+        OpenAIProcessorConversationConfig, on_delete=models.CASCADE, default=None, null=True, blank=True
+    )
+
+    def clean(self):
+        # Custom validation logic
+        error = {}
+        if self.model_type == self.ModelType.OPENAI:
+            if self.api_key and self.openai_config:
+                error[
+                    "api_key"
+                ] = "Both API key and OpenAI config cannot be set for OpenAI models. Please set only one of them."
+                error[
+                    "openai_config"
+                ] = "Both API key and OpenAI config cannot be set for OpenAI models. Please set only one of them."
+        if self.model_type != self.ModelType.OPENAI:
+            if not self.api_key:
+                error["api_key"] = "The API key field must be set for non OpenAI models."
+            if self.openai_config:
+                error["openai_config"] = "OpenAI config cannot be set for non OpenAI models."
+        if error:
+            raise ValidationError(error)
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
 
 class SpeechToTextModelOptions(BaseModel):
@@ -262,6 +290,11 @@ class UserVoiceModelConfig(BaseModel):
 class UserSearchModelConfig(BaseModel):
     user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
     setting = models.ForeignKey(SearchModelConfig, on_delete=models.CASCADE)
+
+
+class UserTextToImageModelConfig(BaseModel):
+    user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
+    setting = models.ForeignKey(TextToImageModelConfig, on_delete=models.CASCADE)
 
 
 class Conversation(BaseModel):

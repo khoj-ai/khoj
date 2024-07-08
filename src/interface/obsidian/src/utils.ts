@@ -333,6 +333,12 @@ export function createCopyParentText(message: string, originalButton: string = '
     }
 }
 
+export function jumpToPreviousView() {
+    const editor: Editor = this.app.workspace.getActiveFileView()?.editor
+    if (!editor) return;
+    editor.focus();
+}
+
 export function pasteTextAtCursor(text: string | undefined) {
     // Get the current active file's editor
     const editor: Editor = this.app.workspace.getActiveFileView()?.editor

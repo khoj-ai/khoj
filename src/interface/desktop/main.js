@@ -19,7 +19,7 @@ const textFileTypes = [
     'org', 'md', 'markdown', 'txt', 'html', 'xml',
     // Other valid text file extensions from https://google.github.io/magika/model/config.json
     'appleplist', 'asm', 'asp', 'batch', 'c', 'cs', 'css', 'csv', 'eml', 'go', 'html', 'ini', 'internetshortcut', 'java', 'javascript', 'json', 'latex', 'lisp', 'makefile', 'markdown', 'mht', 'mum', 'pem', 'perl', 'php', 'powershell', 'python', 'rdf', 'rst', 'rtf', 'ruby', 'rust', 'scala', 'shell', 'smali', 'sql', 'svg', 'symlinktext', 'txt', 'vba', 'winregistry', 'xml', 'yaml']
-const binaryFileTypes = ['pdf']
+const binaryFileTypes = ['pdf', 'jpg', 'jpeg', 'png']
 const validFileTypes = textFileTypes.concat(binaryFileTypes);
 
 const schema = {

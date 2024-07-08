@@ -183,7 +183,7 @@ async def remove_content_source_data(
         raise ValueError(f"Invalid content source: {content_source}")
     elif content_object != "Computer":
         await content_object.objects.filter(user=user).adelete()
-    await sync_to_async(EntryAdapters.delete_all_entries)(user, content_source)
+    await sync_to_async(EntryAdapters.delete_all_entries)(user, file_source=content_source)
 
     enabled_content = await sync_to_async(EntryAdapters.get_unique_file_types)(user)
     return {"status": "ok"}
@@ -337,6 +337,35 @@ async def update_search_model(
             client=client,
             metadata={"search_model": new_config.setting.name},
         )
+
+    return {"status": "ok"}
+
+
+@api_config.post("/data/paint/model", status_code=200)
+@requires(["authenticated"])
+async def update_paint_model(
+    request: Request,
+    id: str,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+    subscribed = has_required_scope(request, ["premium"])
+
+    if not subscribed:
+        raise HTTPException(status_code=403, detail="User is not subscribed to premium")
+
+    new_config = await ConversationAdapters.aset_user_text_to_image_model(user, int(id))
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="set_paint_model",
+        client=client,
+        metadata={"paint_model": new_config.setting.model_name},
+    )
+
+    if new_config is None:
+        return {"status": "error", "message": "Model not found"}
 
     return {"status": "ok"}
 

@@ -210,7 +210,7 @@ Add a `ServerChatSettings` with `Default` and `Summarizer` fields set to your pr
 ##### Configure OpenAI Chat
 
 :::info[Ollama Integration]
-Using Ollama? See the [Ollama Integration](/advanced/use-openai-proxy#ollama) section for more custom setup instructions.
+Using Ollama? See the [Ollama Integration](/advanced/ollama) section for more custom setup instructions.
 :::
 
 1. Go to the [OpenAI settings](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/) in the server admin settings to add an OpenAI processor conversation config. This is where you set your API key and server API base URL. The API base URL is optional - it's only relevant if you're using another OpenAI-compatible proxy server.
@@ -227,11 +227,9 @@ Any chat model on Huggingface in GGUF format can be used for local chat. Here's 
   - The `tokenizer` and `max-prompt-size` fields are optional. You can set these for non-standard models (i.e not Mistral or Llama based models) or when you know the token limit of the model to improve context stuffing.
 
 #### Share your data
-You can sync your files and folders with Khoj using the [Desktop](/get-started/setup#2-download-the-desktop-client), Obsidian, or Emacs clients or just drag and drop specific files on the Web client Here's how you can do it:
-1. Select files and folders to index [using the desktop client]. When you click 'Save', the files will be sent to your server for indexing.
-    - Select Notion workspaces and Github repositories to index using the web interface.
+You can sync your files and folders with Khoj using the [Desktop](/clients/desktop#setup), [Obsidian](/clients/obsidian#setup), or [Emacs](/clients/emacs#setup) clients or just drag and drop specific files on the [website](/clients/web#upload-documents). You can also directly sync your [Notion workspace](/data-sources/notion_integration).
 
-[^1]: Khoj, by default, can use [OpenAI GPT3.5+ chat models](https://platform.openai.com/docs/models/overview) or [GGUF chat models](https://huggingface.co/models?library=gguf). See [this section](/miscellaneous/advanced#use-openai-compatible-llm-api-server-self-hosting) on how to locally use OpenAI-format compatible proxy servers.
+[^1]: Khoj, by default, can use [OpenAI GPT3.5+ chat models](https://platform.openai.com/docs/models/overview) or [GGUF chat models](https://huggingface.co/models?library=gguf). See [this section](/advanced/use-openai-proxy) on how to locally use OpenAI-format compatible proxy servers.
 
 ### 3. Use Khoj 🚀
 

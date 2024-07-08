@@ -1,5 +1,6 @@
 import os
 import re
+import time
 
 from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
 from khoj.processor.content.text_to_entries import TextToEntries
@@ -39,6 +40,35 @@ def test_configure_indexing_heading_only_entries(tmp_path):
             # Entry with empty body ignored when index_heading_entries set to False
             assert len(entries) == 2
             assert is_none_or_empty(entries[1])
+
+
+def test_extract_entries_when_child_headings_have_same_prefix():
+    """Extract org entries from entries having child headings with same prefix.
+    Prevents regressions like the one fixed in PR #840.
+    """
+    # Arrange
+    tmp_path = "tests/data/org/same_prefix_headings.org"
+    entry: str = """
+** 1
+*** 1.1
+**** 1.1.2
+""".strip()
+    data = {
+        f"{tmp_path}": entry,
+    }
+
+    # Act
+    # Extract Entries from specified Org files
+    start = time.time()
+    entries = OrgToEntries.extract_org_entries(org_files=data, max_tokens=2)
+    end = time.time()
+    indexing_time = end - start
+
+    # Assert
+    explanation_msg = (
+        "It should not take more than 6 seconds to index. Entry extraction may have gone into an infinite loop."
+    )
+    assert indexing_time < 6 * len(entries), explanation_msg
 
 
 def test_entry_split_when_exceeds_max_tokens():

@@ -5,13 +5,22 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
         <link rel="icon" type="image/png" sizes="128x128" href="/static/assets/icons/favicon-128x128.png?v={{ khoj_version }}">
         <title>Khoj</title>
+        <meta http-equiv="Content-Security-Policy"
+              content="default-src 'self' https://assets.khoj.dev;
+                       script-src 'self' https://assets.khoj.dev 'unsafe-inline';
+                       connect-src 'self' https://ipapi.co/json;
+                       style-src 'self' https://assets.khoj.dev 'unsafe-inline' https://fonts.googleapis.com;
+                       img-src 'self' data: https://*.khoj.dev https://*.googleusercontent.com;
+                       font-src https://assets.khoj.dev https://fonts.gstatic.com;
+                       child-src 'none';
+                       object-src 'none';">
         <link rel="stylesheet" href="/static/assets/pico.min.css?v={{ khoj_version }}">
         <link rel="stylesheet" href="/static/assets/khoj.css?v={{ khoj_version }}">
         <script
             integrity="sha384-05IkdNHoAlkhrFVUCCN805WC/h4mcI98GUBssmShF2VJAXKyZTrO/TmJ+4eBo0Cy"
             crossorigin="anonymous"
-            src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.13/js/intlTelInput.min.js"></script>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.13/css/intlTelInput.css">
+            src="https://assets.khoj.dev/intl-tel-input/intlTelInput.min.js"></script>
+        <link rel="stylesheet" href="https://assets.khoj.dev/intl-tel-input/intlTelInput.css">
     </head>
     <script type="text/javascript" src="/static/assets/utils.js?v={{ khoj_version }}"></script>
     <script type="text/javascript" src="/static/assets/purify.min.js?v={{ khoj_version }}"></script>
@@ -332,6 +341,7 @@
             margin: 20px;
         }
 
+        select#paint-models,
         select#search-models,
         select#voice-models,
         select#chat-models {

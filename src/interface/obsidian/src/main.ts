@@ -2,7 +2,8 @@ import { Plugin, WorkspaceLeaf } from 'obsidian';
 import { KhojSetting, KhojSettingTab, DEFAULT_SETTINGS } from 'src/settings'
 import { KhojSearchModal } from 'src/search_modal'
 import { KhojChatView } from 'src/chat_view'
-import { updateContentIndex, canConnectToBackend, KhojView } from './utils';
+import { updateContentIndex, canConnectToBackend, KhojView, jumpToPreviousView } from './utils';
+import { KhojPaneView } from './pane_view';
 
 
 export default class Khoj extends Plugin {
@@ -79,16 +80,30 @@ export default class Khoj extends Plugin {
         const leaves = workspace.getLeavesOfType(viewType);
 
         if (leaves.length > 0) {
-          // A leaf with our view already exists, use that
-          leaf = leaves[0];
+            // A leaf with our view already exists, use that
+            leaf = leaves[0];
         } else {
-          // Our view could not be found in the workspace, create a new leaf
-          // in the right sidebar for it
-          leaf = workspace.getRightLeaf(false);
-          await leaf?.setViewState({ type: viewType, active: true });
+            // Our view could not be found in the workspace, create a new leaf
+            // in the right sidebar for it
+            leaf = workspace.getRightLeaf(false);
+            await leaf?.setViewState({ type: viewType, active: true });
         }
 
-        // "Reveal" the leaf in case it is in a collapsed sidebar
-        if (leaf) workspace.revealLeaf(leaf);
-      }
+        if (leaf) {
+            const activeKhojLeaf = workspace.getActiveViewOfType(KhojPaneView)?.leaf;
+            // Jump to the previous view if the current view is Khoj Side Pane
+            if (activeKhojLeaf === leaf) jumpToPreviousView();
+            // Else Reveal the leaf in case it is in a collapsed sidebar
+            else {
+                workspace.revealLeaf(leaf);
+
+                if (viewType === KhojView.CHAT) {
+                    // focus on the chat input when the chat view is opened
+                    let chatView = leaf.view as KhojChatView;
+                    let chatInput = <HTMLTextAreaElement>chatView.contentEl.getElementsByClassName("khoj-chat-input")[0];
+                    if (chatInput) chatInput.focus();
+                }
+            }
+        }
+    }
 }

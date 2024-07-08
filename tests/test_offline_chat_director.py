@@ -62,7 +62,6 @@ def test_offline_chat_with_no_chat_history_or_retrieved_content(client_offline_c
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.skipif(os.getenv("SERPER_DEV_API_KEY") is None, reason="requires SERPER_DEV_API_KEY")
 @pytest.mark.chatquality
 @pytest.mark.django_db(transaction=True)
 def test_chat_with_online_content(client_offline_chat):
@@ -75,18 +74,18 @@ def test_chat_with_online_content(client_offline_chat):
     response_message = response_message.split("### compiled references")[0]
 
     # Assert
-    expected_responses = ["http://www.paulgraham.com/greatwork.html"]
+    expected_responses = [
+        "https://paulgraham.com/greatwork.html",
+        "https://www.paulgraham.com/greatwork.html",
+        "http://www.paulgraham.com/greatwork.html",
+    ]
     assert response.status_code == 200
-    assert any([expected_response in response_message for expected_response in expected_responses]), (
-        "Expected links or serper not setup in response but got: " + response_message
-    )
+    assert any(
+        [expected_response in response_message for expected_response in expected_responses]
+    ), f"Expected links: {expected_responses}. Actual response: {response_message}"
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.skipif(
-    os.getenv("SERPER_DEV_API_KEY") is None or os.getenv("OLOSTEP_API_KEY") is None,
-    reason="requires SERPER_DEV_API_KEY and OLOSTEP_API_KEY",
-)
 @pytest.mark.chatquality
 @pytest.mark.django_db(transaction=True)
 def test_chat_with_online_webpage_content(client_offline_chat):
@@ -101,9 +100,9 @@ def test_chat_with_online_webpage_content(client_offline_chat):
     # Assert
     expected_responses = ["185", "1871", "horse"]
     assert response.status_code == 200
-    assert any([expected_response in response_message for expected_response in expected_responses]), (
-        "Expected links or serper not setup in response but got: " + response_message
-    )
+    assert any(
+        [expected_response in response_message for expected_response in expected_responses]
+    ), f"Expected response with {expected_responses}. But actual response had: {response_message}"
 
 
 # ----------------------------------------------------------------------------------------------------

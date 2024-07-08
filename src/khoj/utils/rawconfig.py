@@ -70,6 +70,7 @@ class ContentConfig(ConfigBase):
     plaintext: Optional[TextContentConfig] = None
     github: Optional[GithubContentConfig] = None
     notion: Optional[NotionContentConfig] = None
+    image: Optional[TextContentConfig] = None
     docx: Optional[TextContentConfig] = None
 
 

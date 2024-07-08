@@ -112,7 +112,7 @@ ASGI_APPLICATION = "app.asgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 20000
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -122,6 +122,7 @@ DATABASES = {
         "NAME": os.getenv("POSTGRES_DB", "khoj"),
         "PASSWORD": os.getenv("POSTGRES_PASSWORD", "postgres"),
         "CONN_MAX_AGE": 0,
+        "CONN_HEALTH_CHECKS": True,
     }
 }
 
