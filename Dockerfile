@@ -12,6 +12,9 @@ RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
 RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
 RUN apt update && apt -y install yarn
 
+# Install RapidOCR dependencies
+RUN apt -y install libgl1 libgl1-mesa-glx libglib2.0-0
+
 # Install Application
 WORKDIR /app
 COPY pyproject.toml .
