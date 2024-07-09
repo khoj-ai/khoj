@@ -61,7 +61,7 @@ def test_search_with_invalid_content_type(client):
 @pytest.mark.django_db(transaction=True)
 def test_search_with_valid_content_type(client):
     headers = {"Authorization": "Bearer kk-secret"}
-    for content_type in ["all", "org", "markdown", "image", "pdf", "github", "notion", "plaintext", "docx"]:
+    for content_type in ["all", "org", "markdown", "image", "pdf", "github", "notion", "plaintext", "image", "docx"]:
         # Act
         response = client.get(f"/api/search?q=random&t={content_type}", headers=headers)
         # Assert

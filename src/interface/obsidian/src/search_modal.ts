@@ -1,6 +1,6 @@
 import { App, SuggestModal, request, MarkdownRenderer, Instruction, Platform } from 'obsidian';
 import { KhojSetting } from 'src/settings';
-import { createNoteAndCloseModal, getLinkToEntry } from 'src/utils';
+import { supportedBinaryFileTypes, createNoteAndCloseModal, getFileFromPath, getLinkToEntry, supportedImageFilesTypes } from 'src/utils';
 
 export interface SearchResult {
     entry: string;
@@ -112,28 +112,41 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
         let os_path_separator = result.file.includes('\\') ? '\\' : '/';
         let filename = result.file.split(os_path_separator).pop();
 
-        // Remove YAML frontmatter when rendering string
-        result.entry = result.entry.replace(/---[\n\r][\s\S]*---[\n\r]/, '');
-
-        // Truncate search results to lines_to_render
-        let entry_snipped_indicator = result.entry.split('\n').length > lines_to_render ? ' **...**' : '';
-        let snipped_entry = result.entry.split('\n').slice(0, lines_to_render).join('\n');
-
         // Show filename of each search result for context
         el.createEl("div",{ cls: 'khoj-result-file' }).setText(filename ?? "");
         let result_el = el.createEl("div", { cls: 'khoj-result-entry' })
 
+        let resultToRender = "";
+        let fileExtension = filename?.split(".").pop() ?? "";
+        if (supportedImageFilesTypes.includes(fileExtension) && filename) {
+            let linkToEntry: string = filename;
+            let imageFiles = this.app.vault.getFiles().filter(file => supportedImageFilesTypes.includes(fileExtension));
+            // Find vault file of chosen search result
+            let fileInVault = getFileFromPath(imageFiles, result.file);
+            if (fileInVault)
+                linkToEntry = this.app.vault.getResourcePath(fileInVault);
+
+            resultToRender = `![](${linkToEntry})`;
+        } else {
+            // Remove YAML frontmatter when rendering string
+            result.entry = result.entry.replace(/---[\n\r][\s\S]*---[\n\r]/, '');
+
+            // Truncate search results to lines_to_render
+            let entry_snipped_indicator = result.entry.split('\n').length > lines_to_render ? ' **...**' : '';
+            let snipped_entry = result.entry.split('\n').slice(0, lines_to_render).join('\n');
+            resultToRender = `${snipped_entry}${entry_snipped_indicator}`;
+        }
         // @ts-ignore
-        MarkdownRenderer.renderMarkdown(snipped_entry + entry_snipped_indicator, result_el, result.file, null);
+        MarkdownRenderer.renderMarkdown(resultToRender, result_el, result.file, null);
     }
 
     async onChooseSuggestion(result: SearchResult, _: MouseEvent | KeyboardEvent) {
-        // Get all markdown and PDF files in vault
+        // Get all markdown, pdf and image files in vault
         const mdFiles = this.app.vault.getMarkdownFiles();
-        const pdfFiles = this.app.vault.getFiles().filter(file => file.extension === 'pdf');
+        const binaryFiles = this.app.vault.getFiles().filter(file => supportedBinaryFileTypes.includes(file.extension));
 
         // Find, Open vault file at heading of chosen search result
-        let linkToEntry = getLinkToEntry(mdFiles.concat(pdfFiles), result.file, result.entry);
+        let linkToEntry = getLinkToEntry(mdFiles.concat(binaryFiles), result.file, result.entry);
         if (linkToEntry) this.app.workspace.openLinkText(linkToEntry, '');
     }
 }
