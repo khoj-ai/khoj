@@ -42,7 +42,7 @@ function constructTrainOfThought(trainOfThought: string[], lastMessage: boolean,
             }
 
             {trainOfThought.map((train, index) => (
-                <TrainOfThought message={train} primary={index === lastIndex && lastMessage && !completed} />
+                <TrainOfThought key={`train-${index}`} message={train} primary={index === lastIndex && lastMessage && !completed} />
             ))}
         </div>
     )

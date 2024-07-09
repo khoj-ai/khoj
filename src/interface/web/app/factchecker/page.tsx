@@ -140,6 +140,7 @@ function ReferenceVerification(props: ReferenceVerificationProps) {
     const [initialResponse, setInitialResponse] = useState("");
     const [isLoading, setIsLoading] = useState(true);
     const verificationStatement = `${props.message}. Use this link for reference: ${props.additionalLink}`;
+    const [isMobileWidth, setIsMobileWidth] = useState(false);
 
     useEffect(() => {
         if (props.prefilledResponse) {
@@ -148,6 +149,12 @@ function ReferenceVerification(props: ReferenceVerificationProps) {
         } else {
             verifyStatement(verificationStatement, props.conversationId, setIsLoading, setInitialResponse, () => {});
         }
+
+        setIsMobileWidth(window.innerWidth < 768);
+
+        window.addEventListener('resize', () => {
+            setIsMobileWidth(window.innerWidth < 768);
+        })
 
     }, [verificationStatement, props.conversationId, props.prefilledResponse]);
 
@@ -170,13 +177,12 @@ function ReferenceVerification(props: ReferenceVerificationProps) {
                 {
                     automationId: "",
                     by: "AI",
-                    intent: {},
                     message: initialResponse,
                     context: [],
                     created: (new Date()).toISOString(),
-                    onlineContext: {}
-                }
-            } setReferencePanelData={() => {}} setShowReferencePanel={() => {}} />
+                    onlineContext: {},
+                }}
+                isMobileWidth={isMobileWidth} />
         </div>
     )
 }
@@ -236,6 +242,7 @@ export default function FactChecker() {
     const [initialReferences, setInitialReferences] = useState<ResponseWithReferences>();
     const [childReferences, setChildReferences] = useState<SupplementReferences[]>();
     const [modelUsed, setModelUsed] = useState<Model>();
+    const [isMobileWidth, setIsMobileWidth] = useState(false);
 
     const [conversationID, setConversationID] = useState("");
     const [runId, setRunId] = useState("");
@@ -250,6 +257,15 @@ export default function FactChecker() {
         newReferences.push({ additionalLink, response, linkTitle });
         setChildReferences(newReferences);
     }
+
+    useEffect(() => {
+        setIsMobileWidth(window.innerWidth < 768);
+
+        window.addEventListener('resize', () => {
+            setIsMobileWidth(window.innerWidth < 768);
+        })
+
+    }, []);
 
     let userData = useAuthenticatedData();
 
@@ -389,6 +405,7 @@ export default function FactChecker() {
         }
 
         const seenLinks = new Set();
+
 
         // Any links that are present in webpages should not be searched again
         Object.entries(initialReferences.online || {}).map(([key, onlineData], index) => {
@@ -536,13 +553,12 @@ export default function FactChecker() {
                                 {
                                     automationId: "",
                                     by: "AI",
-                                    intent: {},
                                     message: initialResponse,
                                     context: [],
                                     created: (new Date()).toISOString(),
                                     onlineContext: {}
                                 }
-                            } setReferencePanelData={() => {}} setShowReferencePanel={() => {}} />
+                            } isMobileWidth={isMobileWidth} />
 
                         </div>
                     </CardContent>

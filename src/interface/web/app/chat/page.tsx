@@ -14,19 +14,48 @@ import { handleCompiledReferences, handleImageResponse, setupWebSocket, uploadDa
 import { Progress } from "@/components/ui/progress"
 
 import 'katex/dist/katex.min.css';
-import { Lightbulb, ArrowCircleUp, FileArrowUp, Microphone } from '@phosphor-icons/react';
+import {
+    ArrowCircleUp,
+    ArrowRight,
+    Browser,
+    ChatsTeardrop,
+    FileArrowUp,
+    GlobeSimple,
+    Gps,
+    Image,
+    Microphone,
+    Notebook,
+    Question,
+    Robot,
+    Shapes
+} from '@phosphor-icons/react';
 
-import { Label } from "@/components/ui/label"
+import {
+    Command,
+    CommandDialog,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+    CommandSeparator,
+    CommandShortcut,
+} from "@/components/ui/command"
+
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from '@/components/ui/button';
 import { StreamMessage } from '../components/chatMessage/chatMessage';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Popover, PopoverContent } from '@/components/ui/popover';
+import { PopoverTrigger } from '@radix-ui/react-popover';
 
 interface ChatInputProps {
     sendMessage: (message: string) => void;
     sendDisabled: boolean;
     setUploadedFiles?: (files: string[]) => void;
     conversationId?: string | null;
+    chatOptionsData?: ChatOptions | null;
+    isMobileWidth?: boolean;
 }
 
 function ChatInputArea(props: ChatInputProps) {
@@ -68,6 +97,10 @@ function ChatInputArea(props: ChatInputProps) {
         setMessage('');
     }
 
+    function handleSlashCommandClick(command: string) {
+        setMessage(`/${command} `);
+    }
+
     function handleFileButtonClick() {
         if (!fileInputRef.current) return;
         fileInputRef.current.click();
@@ -83,6 +116,45 @@ function ChatInputArea(props: ChatInputProps) {
             setError,
             props.setUploadedFiles,
             props.conversationId);
+    }
+
+    function getIconForSlashCommand(command: string) {
+        if (command.includes('summarize')) {
+            return <Gps className='h-4 w-4 mx-2' />
+        }
+
+        if (command.includes('help')) {
+            return <Question className='h-4 w-4 mx-2' />
+        }
+
+        if (command.includes('automation')) {
+            return <Robot className='h-4 w-4 mx-2' />
+        }
+
+        if (command.includes('webpage')) {
+            return <Browser className='h-4 w-4 mx-2' />
+        }
+
+        if (command.includes('notes')) {
+            return <Notebook className='h-4 w-4 mx-2' />
+        }
+
+        if (command.includes('image')) {
+            return <Image className='h-4 w-4 mx-2' />
+        }
+
+        if (command.includes('default')) {
+            return <Shapes className='h-4 w-4 mx-2' />
+        }
+
+        if (command.includes('general')) {
+            return <ChatsTeardrop className='h-4 w-4 mx-2' />
+        }
+
+        if (command.includes('online')) {
+            return <GlobeSimple className='h-4 w-4 mx-2' />
+        }
+        return <ArrowRight className='h-4 w-4 mx-2' />
     }
 
     return (
@@ -134,47 +206,84 @@ function ChatInputArea(props: ChatInputProps) {
                     </AlertDialog>
                 )
             }
-            <input
-                type="file"
-                multiple={true}
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                style={{ display: 'none' }}
-            />
-            <Button
-                variant={'ghost'}
-                className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
-                disabled={props.sendDisabled}
-                onClick={handleFileButtonClick}>
-                <FileArrowUp weight='fill' />
-            </Button>
-            <div className="grid w-full gap-1.5">
-                <Textarea
-                    className='border-none min-h-[20px]'
-                    placeholder="Type / to see a list of commands"
-                    id="message"
-                    value={message}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            onSendMessage();
-                        }
-                    }}
-                    onChange={(e) => setMessage(e.target.value)}
-                    disabled={props.sendDisabled} />
+            {
+                (message.startsWith('/') && message.split(' ').length === 1) &&
+                <div className='flex justify-center text-center'>
+                    <Popover
+                        open={message.startsWith('/')}>
+                        <PopoverTrigger className='flex justify-center text-center'>
+
+                        </PopoverTrigger>
+                        <PopoverContent
+                            onOpenAutoFocus={(e) => e.preventDefault()}
+                            className={`${props.isMobileWidth} ? 'w-[100vw] : w-full`}>
+                            <Command className='max-w-full'>
+                                <CommandInput placeholder="Type a command or search..." value={message} className='hidden' />
+                                <CommandList>
+                                    <CommandEmpty>No matching commands.</CommandEmpty>
+                                    <CommandGroup heading="Agent Tools">
+                                        {props.chatOptionsData && Object.entries(props.chatOptionsData).map(([key, value]) => (
+                                            <CommandItem
+                                                key={key}
+                                                onSelect={() => handleSlashCommandClick(key)}>
+                                                {getIconForSlashCommand(key)}
+                                                <span>
+                                                    /{key}: {value}
+                                                </span>
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                    <CommandSeparator />
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
+                </div>
+            }
+            <div className={`${styles.actualInputArea} flex items-center justify-between`}>
+
+                <input
+                    type="file"
+                    multiple={true}
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    style={{ display: 'none' }}
+                />
+                <Button
+                    variant={'ghost'}
+                    className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
+                    disabled={props.sendDisabled}
+                    onClick={handleFileButtonClick}>
+                    <FileArrowUp weight='fill' />
+                </Button>
+                <div className="grid w-full gap-1.5 relative">
+                    <Textarea
+                        className='border-none min-h-[20px]'
+                        placeholder="Type / to see a list of commands"
+                        id="message"
+                        value={message}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                onSendMessage();
+                            }
+                        }}
+                        onChange={(e) => setMessage(e.target.value)}
+                        disabled={props.sendDisabled} />
+                </div>
+                <Button
+                    variant={'ghost'}
+                    className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
+                    disabled={props.sendDisabled}>
+                    <Microphone weight='fill' />
+                </Button>
+                <Button
+                    className="bg-orange-300 hover:bg-orange-500 rounded-full p-0 h-auto text-3xl transition transform hover:-translate-y-1"
+                    onClick={onSendMessage}
+                    disabled={props.sendDisabled}>
+                    <ArrowCircleUp />
+                </Button>
             </div>
-            <Button
-                variant={'ghost'}
-                className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
-                disabled={props.sendDisabled}>
-                <Microphone weight='fill' />
-            </Button>
-            <Button
-                className="bg-orange-300 hover:bg-orange-500 rounded-full p-0 h-auto text-3xl transition transform hover:-translate-y-1"
-                onClick={onSendMessage}
-                disabled={props.sendDisabled}>
-                <ArrowCircleUp />
-            </Button>
         </>
     )
 }
@@ -191,6 +300,7 @@ interface ChatBodyDataProps {
     setQueryToProcess: (query: string) => void;
     streamedMessages: StreamMessage[];
     setUploadedFiles: (files: string[]) => void;
+    isMobileWidth?: boolean;
 }
 
 
@@ -206,20 +316,10 @@ function ChatBodyData(props: ChatBodyDataProps) {
         }
     }, [conversationId, props.onConversationIdChange]);
 
-    // useEffect(() => {
-    //     // Reset the processing message whenever the streamed messages are updated
-    //     if (props.streamedMessages) {
-    //         setProcessingMessage(false);
-    //     }
-    // }, [props.streamedMessages]);
-
     useEffect(() => {
         if (message) {
             setProcessingMessage(true);
             props.setQueryToProcess(message);
-            // setTimeout(() => {
-            //     setProcessingMessage(false);
-            // }, 1000);
         }
     }, [message]);
 
@@ -259,11 +359,13 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     pendingMessage={processingMessage ? message : ''}
                     incomingMessages={props.streamedMessages} />
             </div>
-            <div className={`${styles.inputBox} bg-background align-middle items-center justify-center`}>
+            <div className={`${styles.inputBox} bg-background align-middle items-center justify-center px-3`}>
                 <ChatInputArea
                     sendMessage={(message) => setMessage(message)}
                     sendDisabled={processingMessage}
+                    chatOptionsData={props.chatOptionsData}
                     conversationId={conversationId}
+                    isMobileWidth={props.isMobileWidth}
                     setUploadedFiles={props.setUploadedFiles} />
             </div>
         </>
@@ -389,10 +491,6 @@ export default function Chat() {
             }
         }
     }, [queryToProcess]);
-
-    // useEffect(() => {
-    //     console.log("messages", messages);
-    // }, [messages]);
 
     useEffect(() => {
         if (processQuerySignal && chatWS) {

@@ -11,21 +11,12 @@ import useSWR from "swr";
 import Image from "next/image";
 
 import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-
-import {
     Command,
-    CommandDialog,
     CommandEmpty,
     CommandGroup,
     CommandInput,
     CommandItem,
     CommandList,
-    CommandSeparator,
-    CommandShortcut,
 } from "@/components/ui/command";
 
 import { InlineLoading } from "../loading/loading";
@@ -553,7 +544,7 @@ function ChatSessionsModal({ data }: ChatSessionsModalProps) {
         <Dialog>
             <DialogTrigger
                 className="flex text-left text-medium text-gray-500 hover:text-gray-900 cursor-pointer my-4 text-sm p-[0.5rem]">
-                See All
+                    <span className="mr-2">See All <ArrowRight className="h-4 w-4" /></span>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>

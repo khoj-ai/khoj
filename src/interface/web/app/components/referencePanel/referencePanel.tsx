@@ -99,10 +99,15 @@ interface OnlineReferenceCardProps extends OnlineReferenceData {
 }
 
 function GenericOnlineReferenceCard(props: OnlineReferenceCardProps) {
+    const [isHovering, setIsHovering] = useState(false);
+
+    if (!props.link) {
+        console.log("invalid link", props);
+        return null;
+    }
+
     const domain = new URL(props.link).hostname;
     const favicon = `https://www.google.com/s2/favicons?domain=${domain}`;
-
-    const [isHovering, setIsHovering] = useState(false);
 
     const handleMouseEnter = () => {
         console.log("mouse entered card");

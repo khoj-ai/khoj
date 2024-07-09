@@ -11,8 +11,6 @@ div.main {
 }
 
 div.inputBox {
-    display: grid;
-    grid-template-columns: auto 1fr auto auto;
     border: 1px solid var(--border-color);
     border-radius: 16px;
     box-shadow: 0 4px 10px var(--box-shadow-color);
@@ -20,6 +18,12 @@ div.inputBox {
     gap: 12px;
     padding-left: 20px;
     padding-right: 20px;
+    align-content: center;
+}
+
+div.actualInputArea {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
 }
 
 input.inputBox {
