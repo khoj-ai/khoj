@@ -149,9 +149,8 @@ function ChatInputArea(props: ChatInputProps) {
                 <FileArrowUp weight='fill' />
             </Button>
             <div className="grid w-full gap-1.5">
-                {/* <Label htmlFor="message">Your message</Label> */}
                 <Textarea
-                    className='border-none min-h-[60px]'
+                    className='border-none min-h-[20px]'
                     placeholder="Type / to see a list of commands"
                     id="message"
                     value={message}

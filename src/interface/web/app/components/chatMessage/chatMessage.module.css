@@ -61,7 +61,8 @@ div.author {
 
 div.chatFooter {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    min-height: 28px;
 }
 
 div.chatButtons {
@@ -71,7 +72,8 @@ div.chatButtons {
     border-radius: 16px;
     position: relative;
     bottom: -28px;
-    background-color: hsla(var(--background));
+    background-color: hsla(var(--secondary));
+    box-shadow: 0 4px 10px var(--box-shadow-color);
 }
 
 div.chatFooter button {
@@ -86,10 +88,6 @@ div.chatFooter button {
 
 div.chatFooter button:hover {
     background-color: hsla(var(--frosted-background-color));
-}
-
-div.chatTimestamp {
-    font-size: small;
 }
 
 button.codeCopyButton {

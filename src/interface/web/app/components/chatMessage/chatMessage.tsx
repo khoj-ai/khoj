@@ -214,6 +214,7 @@ export function TrainOfThought(props: TrainOfThoughtProps) {
 
 export default function ChatMessage(props: ChatMessageProps) {
     const [copySuccess, setCopySuccess] = useState<boolean>(false);
+    const [isHovering, setIsHovering] = useState<boolean>(false);
 
     let message = props.chatMessage.message;
 
@@ -260,12 +261,23 @@ export default function ChatMessage(props: ChatMessageProps) {
     }, [markdownRendered]);
 
     function renderTimeStamp(timestamp: string) {
-        var dateObject = new Date(timestamp);
-        var month = dateObject.getMonth() + 1;
-        var date = dateObject.getDate();
-        var year = dateObject.getFullYear();
-        const formattedDate = `${month}/${date}/${year}`;
-        return `${formattedDate} ${dateObject.toLocaleTimeString()}`;
+        const messageDateTime = new Date(timestamp);
+        const currentDataTime = new Date();
+        const timeDiff = currentDataTime.getTime() - messageDateTime.getTime();
+
+        if (timeDiff < 60000) {
+            return "Just now";
+        }
+
+        if (timeDiff < 3600000) {
+            return `${Math.floor(timeDiff / 60000)}m ago`;
+        }
+
+        if (timeDiff < 86400000) {
+            return `${Math.floor(timeDiff / 3600000)}h ago`;
+        }
+
+        return `${Math.floor(timeDiff / 86400000)}d ago`;
     }
 
     useEffect(() => {
@@ -304,6 +316,8 @@ export default function ChatMessage(props: ChatMessageProps) {
     return (
         <div
             className={constructClasses(props.chatMessage)}
+            onMouseLeave={(event) => setIsHovering(false)}
+            onMouseEnter={(event) => setIsHovering(true)}
             onClick={props.chatMessage.by === "khoj" ? (event) => undefined : undefined}>
             <div className={chatMessageWrapperClasses(props.chatMessage)}>
                 <div ref={messageRef} className={styles.chatMessage} dangerouslySetInnerHTML={{ __html: markdownRendered }} />
@@ -315,40 +329,49 @@ export default function ChatMessage(props: ChatMessageProps) {
                     onlineReferenceCardData={allReferences.onlineReferenceCardData} />
             </div>
             <div className={styles.chatFooter}>
-                {/* <div className={styles.chatTimestamp}>
-                    {renderTimeStamp(props.chatMessage.created)}
-                </div> */}
-                <div className={styles.chatButtons}>
-                    {
-                        <div className={styles.referenceButton}>
-                            <button onClick={(event) => console.log("speaker")}>
-                                <SpeakerHifi color='hsl(var(--muted-foreground))' />
-                            </button>
-                        </div>
-                    }
-                    <button className={`${styles.copyButton}`} onClick={() => {
-                        navigator.clipboard.writeText(props.chatMessage.message);
-                        setCopySuccess(true);
-                    }}>
-                        {
-                            copySuccess ?
-                                <Copy color='green' />
-                                : <Copy color='hsl(var(--muted-foreground))' />
-                        }
-                    </button>
-                    {
-                        props.chatMessage.by === "khoj" &&
-                        (
-                            props.chatMessage.intent ?
-                                <FeedbackButtons
-                                    uquery={props.chatMessage.intent.query}
-                                    kquery={props.chatMessage.message} />
-                                : <FeedbackButtons
-                                    uquery={props.chatMessage.rawQuery || props.chatMessage.message}
-                                    kquery={props.chatMessage.message} />
-                        )
-                    }
-                </div>
+                {
+                    isHovering &&
+                    (
+                        <>
+                            <div className={`text-gray-400 relative top-2 left-2`}>
+                                {renderTimeStamp(props.chatMessage.created)}
+                            </div>
+                            <div className={styles.chatButtons}>
+                                {
+                                    (props.chatMessage.by === "khoj") &&
+                                    (
+                                        <button onClick={(event) => console.log("speaker")}>
+                                            <SpeakerHifi color='hsl(var(--muted-foreground))' />
+                                        </button>
+                                    )
+                                }
+                                <button className={`${styles.copyButton}`} onClick={() => {
+                                    navigator.clipboard.writeText(props.chatMessage.message);
+                                    setCopySuccess(true);
+                                }}>
+                                    {
+                                        copySuccess ?
+                                            <Copy color='green' />
+                                            : <Copy color='hsl(var(--muted-foreground))' />
+                                    }
+                                </button>
+                                {
+                                    (props.chatMessage.by === "khoj") &&
+                                    (
+                                        props.chatMessage.intent ?
+                                            <FeedbackButtons
+                                                uquery={props.chatMessage.intent.query}
+                                                kquery={props.chatMessage.message} />
+                                            : <FeedbackButtons
+                                                uquery={props.chatMessage.rawQuery || props.chatMessage.message}
+                                                kquery={props.chatMessage.message} />
+                                    )
+                                }
+                            </div>
+                        </>
+                    )
+                }
+
             </div>
         </div>
     )

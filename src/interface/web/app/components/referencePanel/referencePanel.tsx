@@ -59,7 +59,7 @@ function NotesContextReferenceCard(props: NotesContextReferenceCardProps) {
                         onMouseEnter={() => setIsHovering(true)}
                         onMouseLeave={() => setIsHovering(false)}
                         className={`${props.showFullContent ? 'w-auto' : 'w-[200px]'} overflow-hidden break-words text-balance rounded-lg p-2 bg-muted border-none`}
-                        >
+                    >
                         <h3 className={`${props.showFullContent ? 'block' : 'line-clamp-1'} text-muted-foreground}`}>
                             <File className='w-6 h-6 text-muted-foreground inline-flex' />
                             {props.title}
@@ -320,9 +320,9 @@ export default function ReferencePanel(props: ReferencePanelDataProps) {
 
     return (
         <Sheet>
-            <SheetTrigger className='text-balance w-[200px] overflow-hidden break-words p-0 bg-transparent border-none text-gray-400 align-middle justify-center items-center !m-0 inline-flex'
-                    onClick={() => { console.log("showing references") }}>
-                    View references <ArrowRight className='m-1' />
+            <SheetTrigger
+                className='text-balance w-[200px] overflow-hidden break-words p-0 bg-transparent border-none text-gray-400 align-middle justify-center items-center !m-0 inline-flex'>
+                View references <ArrowRight className='m-1' />
             </SheetTrigger>
             <SheetContent className="overflow-y-scroll">
                 <SheetHeader>
