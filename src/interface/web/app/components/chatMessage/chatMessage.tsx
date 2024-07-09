@@ -9,7 +9,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import 'katex/dist/katex.min.css';
 import 'highlight.js/styles/github.css'
 
-import { ReferencePanelData, TeaserReferencesSection, constructAllReferences } from '../referencePanel/referencePanel';
+import { TeaserReferencesSection, constructAllReferences } from '../referencePanel/referencePanel';
 
 import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture, ArrowRight, SpeakerHifi } from '@phosphor-icons/react';
 import { MagnifyingGlass } from '@phosphor-icons/react/dist/ssr';
@@ -140,17 +140,6 @@ function FeedbackButtons({ uquery, kquery }: { uquery: string, kquery: string })
     )
 }
 
-// WHAT TO DO WHEN CLICK ON KHOJ MESSAGE
-function onClickMessage(
-    event: React.MouseEvent<any>,
-    referencePanelData: ReferencePanelData,
-    setReferencePanelData: Function,
-    setShowReferencePanel: Function) {
-
-    setReferencePanelData(referencePanelData);
-    setShowReferencePanel(true);
-}
-
 interface ChatMessageProps {
     chatMessage: SingleChatMessage;
     isMobileWidth: boolean;
@@ -215,24 +204,35 @@ export function TrainOfThought(props: TrainOfThoughtProps) {
 export default function ChatMessage(props: ChatMessageProps) {
     const [copySuccess, setCopySuccess] = useState<boolean>(false);
     const [isHovering, setIsHovering] = useState<boolean>(false);
-
-    let message = props.chatMessage.message;
-
-    // Replace LaTeX delimiters with placeholders
-    message = message.replace(/\\\(/g, 'LEFTPAREN').replace(/\\\)/g, 'RIGHTPAREN')
-        .replace(/\\\[/g, 'LEFTBRACKET').replace(/\\\]/g, 'RIGHTBRACKET');
-
-    if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image2") {
-        message = `![generated_image](${message})\n\n${props.chatMessage.intent["inferred-queries"][0]}`
-    }
-
-    let markdownRendered = md.render(message);
-
-    // Replace placeholders with LaTeX delimiters
-    markdownRendered = markdownRendered.replace(/LEFTPAREN/g, '\\(').replace(/RIGHTPAREN/g, '\\)')
-        .replace(/LEFTBRACKET/g, '\\[').replace(/RIGHTBRACKET/g, '\\]');
-
+    const [markdownRendered, setMarkdownRendered] = useState<string>('');
     const messageRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        let message = props.chatMessage.message;
+
+        // Replace LaTeX delimiters with placeholders
+        message = message.replace(/\\\(/g, 'LEFTPAREN').replace(/\\\)/g, 'RIGHTPAREN')
+            .replace(/\\\[/g, 'LEFTBRACKET').replace(/\\\]/g, 'RIGHTBRACKET');
+
+        if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image2") {
+            message = `![generated_image](${message})\n\n${props.chatMessage.intent["inferred-queries"][0]}`
+        }
+
+        let markdownRendered = md.render(message);
+
+        // Replace placeholders with LaTeX delimiters
+        markdownRendered = markdownRendered.replace(/LEFTPAREN/g, '\\(').replace(/RIGHTPAREN/g, '\\)')
+            .replace(/LEFTBRACKET/g, '\\[').replace(/RIGHTBRACKET/g, '\\]');
+        setMarkdownRendered(markdownRendered);
+    }, [props.chatMessage.message]);
+
+    useEffect(() => {
+        if (copySuccess) {
+            setTimeout(() => {
+                setCopySuccess(false);
+            }, 2000);
+        }
+    }, [copySuccess]);
 
     useEffect(() => {
         if (messageRef.current) {
@@ -260,8 +260,12 @@ export default function ChatMessage(props: ChatMessageProps) {
         }
     }, [markdownRendered]);
 
+    if (!props.chatMessage.message) {
+        return null;
+    }
+
     function renderTimeStamp(timestamp: string) {
-        const messageDateTime = new Date(timestamp);
+        const messageDateTime = new Date(timestamp + 'Z');
         const currentDataTime = new Date();
         const timeDiff = currentDataTime.getTime() - messageDateTime.getTime();
 
@@ -270,23 +274,16 @@ export default function ChatMessage(props: ChatMessageProps) {
         }
 
         if (timeDiff < 3600000) {
-            return `${Math.floor(timeDiff / 60000)}m ago`;
+            // Using Math.round for closer to actual time representation
+            return `${Math.round(timeDiff / 60000)}m ago`;
         }
 
         if (timeDiff < 86400000) {
-            return `${Math.floor(timeDiff / 3600000)}h ago`;
+            return `${Math.round(timeDiff / 3600000)}h ago`;
         }
 
-        return `${Math.floor(timeDiff / 86400000)}d ago`;
+        return `${Math.round(timeDiff / 86400000)}d ago`;
     }
-
-    useEffect(() => {
-        if (copySuccess) {
-            setTimeout(() => {
-                setCopySuccess(false);
-            }, 2000);
-        }
-    }, [copySuccess]);
 
     function constructClasses(chatMessage: SingleChatMessage) {
         let classes = [styles.chatMessageContainer];

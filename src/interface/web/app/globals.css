@@ -38,24 +38,24 @@
     }
 
     .dark {
-        --background: 224 71.4% 4.1%;
+        --background: 0 0% 14%;
         --foreground: 210 20% 98%;
-        --card: 224 71.4% 4.1%;
+        --card: 0 0% 14%;
         --card-foreground: 210 20% 98%;
-        --popover: 224 71.4% 4.1%;
+        --popover: 0 0% 14%;
         --popover-foreground: 210 20% 98%;
         --primary: 263.4 70% 50.4%;
         --primary-foreground: 210 20% 98%;
-        --secondary: 215 27.9% 16.9%;
+        --secondary: 0 0% 9%;
         --secondary-foreground: 210 20% 98%;
-        --muted: 215 27.9% 16.9%;
+        --muted: 0 0% 9%;
         --muted-foreground: 217.9 10.6% 64.9%;
-        --accent: 215 27.9% 16.9%;
+        --accent: 0 0% 9%;
         --accent-foreground: 210 20% 98%;
         --destructive: 0 62.8% 30.6%;
         --destructive-foreground: 210 20% 98%;
-        --border: 215 27.9% 16.9%;
-        --input: 215 27.9% 16.9%;
+        --border: 0 0% 9%;
+        --input: 0 0% 9%;
         --ring: 263.4 70% 50.4%;
         --font-family: "Noto Sans", "Noto Sans Arabic", sans-serif !important;
         --box-shadow-color: rgba(255, 255, 255, 0.05);

@@ -102,7 +102,6 @@ function GenericOnlineReferenceCard(props: OnlineReferenceCardProps) {
     const [isHovering, setIsHovering] = useState(false);
 
     if (!props.link) {
-        console.log("invalid link", props);
         return null;
     }
 

@@ -45,7 +45,7 @@ import {
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-import { ArrowRight, ArrowLeft, ArrowDown, Spinner, Check, FolderPlus } from "@phosphor-icons/react";
+import { ArrowRight, ArrowLeft, ArrowDown, Spinner, Check, FolderPlus, DotsThreeVertical } from "@phosphor-icons/react";
 
 interface ChatHistory {
     conversation_id: string;
@@ -496,7 +496,7 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
         <DropdownMenu
             onOpenChange={(open) => setIsOpen(open)}
             open={isOpen}>
-            <DropdownMenuTrigger>:</DropdownMenuTrigger>
+            <DropdownMenuTrigger><DotsThreeVertical className="h-4 w-4"/></DropdownMenuTrigger>
             <DropdownMenuContent>
                 <DropdownMenuItem>
                     <Button className="p-0 text-sm h-auto" variant={'ghost'} onClick={() => setIsRenaming(true)}>
