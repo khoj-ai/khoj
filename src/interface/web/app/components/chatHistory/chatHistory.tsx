@@ -292,7 +292,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                     {
                         props.pendingMessage &&
                         <ChatMessage
-                            key={"pendingMessage"}
+                            key={`pendingMessage-${props.pendingMessage.length}`}
                             isMobileWidth={isMobileWidth}
                             chatMessage={
                                 {

@@ -417,7 +417,7 @@ export default function Chat() {
             const contentType = chunk["content-type"];
             if (contentType === "application/json") {
                 try {
-                    if (chunk.image && chunk.detail) {
+                    if (chunk.image || chunk.detail) {
                         let responseWithReference = handleImageResponse(chunk);
                         console.log("Image response", responseWithReference);
                         if (responseWithReference.response) currentMessage.rawResponse = responseWithReference.response;
