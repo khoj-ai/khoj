@@ -543,7 +543,7 @@ function ChatSessionsModal({ data }: ChatSessionsModalProps) {
     return (
         <Dialog>
             <DialogTrigger
-                className="flex text-left text-medium text-gray-500 hover:text-gray-900 cursor-pointer my-4 text-sm p-[0.5rem]">
+                className="flex text-left text-medium text-gray-500 hover:text-gray-300 cursor-pointer my-4 text-sm p-[0.5rem]">
                     <span className="mr-2">See All <ArrowRight className="h-4 w-4" /></span>
             </DialogTrigger>
             <DialogContent>
