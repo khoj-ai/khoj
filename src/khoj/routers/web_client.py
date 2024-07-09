@@ -41,12 +41,6 @@ templates = Jinja2Templates([constants.web_directory, constants.next_js_director
 @web_client.get("/", response_class=FileResponse)
 @requires(["authenticated"], redirect="login_page")
 def index(request: Request):
-    return templates.TemplateResponse(
-        "chat/index.html",
-        context={
-            "request": request,
-        },
-    )
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
     has_documents = EntryAdapters.user_has_entries(user=user)
@@ -107,12 +101,6 @@ def search_page(request: Request):
 @web_client.get("/chat", response_class=FileResponse)
 @requires(["authenticated"], redirect="login_page")
 def chat_page(request: Request):
-    return templates.TemplateResponse(
-        "chat/index.html",
-        context={
-            "request": request,
-        },
-    )
     user = request.user.object
     user_picture = request.session.get("user", {}).get("picture")
     has_documents = EntryAdapters.user_has_entries(user=user)
