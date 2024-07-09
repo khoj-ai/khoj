@@ -217,7 +217,7 @@ function ChatInputArea(props: ChatInputProps) {
                         <PopoverContent
                             onOpenAutoFocus={(e) => e.preventDefault()}
                             className={`${props.isMobileWidth} ? 'w-[100vw] : w-full`}>
-                            <Command className='max-w-full shadow-md'>
+                            <Command className='max-w-full'>
                                 <CommandInput placeholder="Type a command or search..." value={message} className='hidden' />
                                 <CommandList>
                                     <CommandEmpty>No matching commands.</CommandEmpty>
