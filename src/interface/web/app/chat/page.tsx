@@ -71,7 +71,6 @@ function ChatInputArea(props: ChatInputProps) {
     useEffect(() => {
         if (message.startsWith('/')) {
             const command = message.split(' ')[0].substring(1);
-            console.log('Command is:', command);
         }
     }, [message]);
 
@@ -120,41 +119,41 @@ function ChatInputArea(props: ChatInputProps) {
 
     function getIconForSlashCommand(command: string) {
         if (command.includes('summarize')) {
-            return <Gps className='h-4 w-4 mx-2' />
+            return <Gps className='h-4 w-4 mr-2' />
         }
 
         if (command.includes('help')) {
-            return <Question className='h-4 w-4 mx-2' />
+            return <Question className='h-4 w-4 mr-2' />
         }
 
         if (command.includes('automation')) {
-            return <Robot className='h-4 w-4 mx-2' />
+            return <Robot className='h-4 w-4 mr-2' />
         }
 
         if (command.includes('webpage')) {
-            return <Browser className='h-4 w-4 mx-2' />
+            return <Browser className='h-4 w-4 mr-2' />
         }
 
         if (command.includes('notes')) {
-            return <Notebook className='h-4 w-4 mx-2' />
+            return <Notebook className='h-4 w-4 mr-2' />
         }
 
         if (command.includes('image')) {
-            return <Image className='h-4 w-4 mx-2' />
+            return <Image className='h-4 w-4 mr-2' />
         }
 
         if (command.includes('default')) {
-            return <Shapes className='h-4 w-4 mx-2' />
+            return <Shapes className='h-4 w-4 mr-2' />
         }
 
         if (command.includes('general')) {
-            return <ChatsTeardrop className='h-4 w-4 mx-2' />
+            return <ChatsTeardrop className='h-4 w-4 mr-2' />
         }
 
         if (command.includes('online')) {
-            return <GlobeSimple className='h-4 w-4 mx-2' />
+            return <GlobeSimple className='h-4 w-4 mr-2' />
         }
-        return <ArrowRight className='h-4 w-4 mx-2' />
+        return <ArrowRight className='h-4 w-4 mr-2' />
     }
 
     return (
@@ -216,7 +215,7 @@ function ChatInputArea(props: ChatInputProps) {
                         </PopoverTrigger>
                         <PopoverContent
                             onOpenAutoFocus={(e) => e.preventDefault()}
-                            className={`${props.isMobileWidth} ? 'w-[100vw] : w-full`}>
+                            className={`${props.isMobileWidth ? 'w-[100vw]' : 'w-full'} rounded-md`}>
                             <Command className='max-w-full'>
                                 <CommandInput placeholder="Type a command or search..." value={message} className='hidden' />
                                 <CommandList>
@@ -225,11 +224,19 @@ function ChatInputArea(props: ChatInputProps) {
                                         {props.chatOptionsData && Object.entries(props.chatOptionsData).map(([key, value]) => (
                                             <CommandItem
                                                 key={key}
+                                                className={`text-md`}
                                                 onSelect={() => handleSlashCommandClick(key)}>
-                                                {getIconForSlashCommand(key)}
-                                                <span>
-                                                    /{key}: {value}
-                                                </span>
+                                                <div
+                                                    className='grid grid-cols-1 gap-1'>
+                                                    <div
+                                                        className='font-bold flex items-center'>
+                                                            {getIconForSlashCommand(key)}
+                                                        /{key}
+                                                    </div>
+                                                    <div>
+                                                        {value}
+                                                    </div>
+                                                </div>
                                             </CommandItem>
                                         ))}
                                     </CommandGroup>
@@ -382,6 +389,7 @@ export default function Chat() {
     const [queryToProcess, setQueryToProcess] = useState<string>('');
     const [processQuerySignal, setProcessQuerySignal] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+    const [isMobileWidth, setIsMobileWidth] = useState(false);
 
 
     const handleWebSocketMessage = (event: MessageEvent) => {
@@ -465,6 +473,12 @@ export default function Chat() {
                 return;
             });
 
+        setIsMobileWidth(window.innerWidth < 786);
+
+        window.addEventListener('resize', () => {
+            setIsMobileWidth(window.innerWidth < 786);
+        });
+
     }, []);
 
     useEffect(() => {
@@ -537,6 +551,7 @@ export default function Chat() {
                             setTitle={setTitle}
                             setQueryToProcess={setQueryToProcess}
                             setUploadedFiles={setUploadedFiles}
+                            isMobileWidth={isMobileWidth}
                             onConversationIdChange={handleConversationIdChange} />
                     </Suspense>
                 </div>
