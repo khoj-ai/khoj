@@ -335,6 +335,7 @@ async def extract_references_and_questions(
 
             inferred_queries = extract_questions_offline(
                 defiltered_query,
+                model=chat_model,
                 loaded_model=loaded_model,
                 conversation_log=meta_log,
                 should_extract_questions=True,

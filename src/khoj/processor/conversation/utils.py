@@ -254,6 +254,8 @@ def truncate_messages(
             f"Truncate current message to fit within max prompt size of {max_prompt_size} supported by {model_name} model:\n {truncated_message}"
         )
 
+    if system_message:
+        system_message.role = "user" if "gemma-2" in model_name else "system"
     return messages + [system_message] if system_message else messages
 
 

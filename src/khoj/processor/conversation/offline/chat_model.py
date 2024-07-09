@@ -74,7 +74,7 @@ def extract_questions_offline(
     state.chat_lock.acquire()
     try:
         response = send_message_to_model_offline(
-            messages, loaded_model=offline_chat_model, max_prompt_size=max_prompt_size
+            messages, loaded_model=offline_chat_model, model=model, max_prompt_size=max_prompt_size
         )
     finally:
         state.chat_lock.release()
