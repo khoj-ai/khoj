@@ -803,11 +803,14 @@ class ConversationAdapters:
     def create_conversation_from_public_conversation(
         user: KhojUser, public_conversation: PublicConversation, client_app: ClientApplication
     ):
+        scrubbed_title = public_conversation.title if public_conversation.title else public_conversation.slug
+        if scrubbed_title:
+            scrubbed_title = scrubbed_title.replace("-", " ")
         return Conversation.objects.create(
             user=user,
             conversation_log=public_conversation.conversation_log,
             client=client_app,
-            slug=public_conversation.slug,
+            slug=scrubbed_title,
             title=public_conversation.title,
             agent=public_conversation.agent,
         )

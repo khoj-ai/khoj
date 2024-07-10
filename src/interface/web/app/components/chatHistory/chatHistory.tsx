@@ -29,6 +29,7 @@ interface ChatHistoryProps {
     setTitle: (title: string) => void;
     incomingMessages?: StreamMessage[];
     pendingMessage?: string;
+    publicConversationSlug?: string;
 }
 
 
@@ -51,7 +52,6 @@ function constructTrainOfThought(trainOfThought: string[], lastMessage: boolean,
 
 export default function ChatHistory(props: ChatHistoryProps) {
     const [data, setData] = useState<ChatHistoryData | null>(null);
-    const [isLoading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(0);
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
 
@@ -117,38 +117,8 @@ export default function ChatHistory(props: ChatHistoryProps) {
         setData(null);
     }, [props.conversationId]);
 
-    const fetchMoreMessages = (currentPage: number) => {
-        if (!hasMoreMessages || fetchingData) return;
-        const nextPage = currentPage + 1;
-        fetch(`/api/chat/history?client=web&conversation_id=${props.conversationId}&n=${10 * nextPage}`)
-            .then(response => response.json())
-            .then((chatData: ChatResponse) => {
-                props.setTitle(chatData.response.slug);
-                if (chatData && chatData.response && chatData.response.chat.length > 0) {
-
-                    if (chatData.response.chat.length === data?.chat.length) {
-                        setHasMoreMessages(false);
-                        setFetchingData(false);
-                        return;
-                    }
-
-                    setData(chatData.response);
-                    setLoading(false);
-
-                    if (currentPage < 2) {
-                        scrollToBottom();
-                    }
-                    setFetchingData(false);
-                } else {
-                    setHasMoreMessages(false);
-                }
-            })
-            .catch(err => {
-                console.error(err);
-            });
-    };
-
     useEffect(() => {
+        console.log(props.incomingMessages);
         if (props.incomingMessages) {
             const lastMessage = props.incomingMessages[props.incomingMessages.length - 1];
             if (lastMessage && !lastMessage.completed) {
@@ -161,25 +131,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
         }
 
     }, [props.incomingMessages]);
-
-    const scrollToBottom = () => {
-        if (chatHistoryRef.current) {
-            chatHistoryRef.current.scrollIntoView(false);
-        }
-    }
-
-    const isUserAtBottom = () => {
-        if (!chatHistoryRef.current) return false;
-
-        // NOTE: This isn't working. It always seems to return true. This is because
-
-        const { scrollTop, scrollHeight, clientHeight } = chatHistoryRef.current as HTMLDivElement;
-        const threshold = 25; // pixels from the bottom
-
-        // Considered at the bottom if within threshold pixels from the bottom
-        return scrollTop + clientHeight >= scrollHeight - threshold;
-    }
-
 
     useEffect(() => {
         const observer = new MutationObserver((mutationsList, observer) => {
@@ -207,9 +158,64 @@ export default function ChatHistory(props: ChatHistoryProps) {
         return () => observer.disconnect();
     }, []);
 
-    // if (isLoading) {
-    //     return <Loading />;
-    // }
+    const fetchMoreMessages = (currentPage: number) => {
+        if (!hasMoreMessages || fetchingData) return;
+        const nextPage = currentPage + 1;
+
+        let conversationFetchURL = '';
+
+        if (props.conversationId) {
+            conversationFetchURL = `/api/chat/history?client=web&conversation_id=${props.conversationId}&n=${10 * nextPage}`;
+        } else if (props.publicConversationSlug) {
+            conversationFetchURL = `/api/chat/share/history?client=web&public_conversation_slug=${props.publicConversationSlug}&n=${10 * nextPage}`;
+        } else {
+            return;
+        }
+
+        fetch(conversationFetchURL)
+            .then(response => response.json())
+            .then((chatData: ChatResponse) => {
+                props.setTitle(chatData.response.slug);
+                if (chatData && chatData.response && chatData.response.chat.length > 0) {
+
+                    if (chatData.response.chat.length === data?.chat.length) {
+                        setHasMoreMessages(false);
+                        setFetchingData(false);
+                        return;
+                    }
+
+                    setData(chatData.response);
+
+                    if (currentPage < 2) {
+                        scrollToBottom();
+                    }
+                    setFetchingData(false);
+                } else {
+                    setHasMoreMessages(false);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+            });
+    };
+
+    const scrollToBottom = () => {
+        if (chatHistoryRef.current) {
+            chatHistoryRef.current.scrollIntoView(false);
+        }
+    }
+
+    const isUserAtBottom = () => {
+        if (!chatHistoryRef.current) return false;
+
+        // NOTE: This isn't working. It always seems to return true. This is because
+
+        const { scrollTop, scrollHeight, clientHeight } = chatHistoryRef.current as HTMLDivElement;
+        const threshold = 25; // pixels from the bottom
+
+        // Considered at the bottom if within threshold pixels from the bottom
+        return scrollTop + clientHeight >= scrollHeight - threshold;
+    }
 
     function constructAgentLink() {
         if (!data || !data.agent || !data.agent.slug) return `/agents`;
@@ -224,6 +230,11 @@ export default function ChatHistory(props: ChatHistoryProps) {
     function constructAgentName() {
         if (!data || !data.agent || !data.agent.name) return `Agent`;
         return data.agent.name;
+    }
+
+
+    if (!props.conversationId && !props.publicConversationSlug) {
+        return null;
     }
 
     return (

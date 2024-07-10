@@ -269,10 +269,15 @@ def get_shared_chat(
         }
 
     meta_log = conversation.conversation_log
+    scrubbed_title = conversation.title if conversation.title else conversation.slug
+
+    if scrubbed_title:
+        scrubbed_title = scrubbed_title.replace("-", " ")
+
     meta_log.update(
         {
             "conversation_id": conversation.id,
-            "slug": conversation.title if conversation.title else conversation.slug,
+            "slug": scrubbed_title,
             "agent": agent_metadata,
         }
     )
@@ -288,7 +293,7 @@ def get_shared_chat(
     update_telemetry_state(
         request=request,
         telemetry_type="api",
-        api="public_conversation_history",
+        api="chat_history",
         **common.__dict__,
     )
 
@@ -330,7 +335,7 @@ def fork_public_conversation(
     public_conversation = PublicConversationAdapters.get_public_conversation_by_slug(public_conversation_slug)
 
     # Duplicate Public Conversation to User's Private Conversation
-    ConversationAdapters.create_conversation_from_public_conversation(
+    new_conversation = ConversationAdapters.create_conversation_from_public_conversation(
         user, public_conversation, request.user.client_app
     )
 
@@ -346,7 +351,16 @@ def fork_public_conversation(
 
     redirect_uri = str(request.app.url_path_for("chat_page"))
 
-    return Response(status_code=200, content=json.dumps({"status": "ok", "next_url": redirect_uri}))
+    return Response(
+        status_code=200,
+        content=json.dumps(
+            {
+                "status": "ok",
+                "next_url": redirect_uri,
+                "conversation_id": new_conversation.id,
+            }
+        ),
+    )
 
 
 @api_chat.post("/share")
@@ -451,7 +465,6 @@ async def create_chat_session(
 
 
 @api_chat.get("/options", response_class=Response)
-@requires(["authenticated"])
 async def chat_options(
     request: Request,
     common: CommonQueryParams,

@@ -69,7 +69,7 @@ async function sendChatStream(
     }
 }
 
-export const setupWebSocket = async (conversationId: string) => {
+export const setupWebSocket = async (conversationId: string, initialMessage?: string) => {
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 
     const host = process.env.NODE_ENV === 'production' ? window.location.host : 'localhost:42110';
@@ -86,6 +86,9 @@ export const setupWebSocket = async (conversationId: string) => {
 
     chatWS.onopen = () => {
         console.log('WebSocket connection established');
+        if (initialMessage) {
+            chatWS.send(initialMessage);
+        }
     };
 
     chatWS.onmessage = (event) => {

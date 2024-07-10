@@ -632,7 +632,7 @@ const fetchChatHistory = async (url: string) => {
     return response.json();
 };
 
-export const useChatHistoryRecentFetchRequest = (url: string) => {
+export const useChatSessionsFetchRequest = (url: string) => {
     const { data, error } = useSWR<ChatHistory[]>(url, fetchChatHistory);
 
     return {
@@ -658,13 +658,13 @@ export default function SidePanel(props: SidePanelProps) {
 
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-    const { data: chatHistory } = useChatHistoryRecentFetchRequest('/api/chat/sessions');
+    const { data: chatSessions } = useChatSessionsFetchRequest('/api/chat/sessions');
 
     const [isMobileWidth, setIsMobileWidth] = useState(false);
 
     useEffect(() => {
-        if (chatHistory) {
-            setData(chatHistory);
+        if (chatSessions) {
+            setData(chatSessions);
 
             const groupedData: GroupedChatHistory = {};
             const subsetOrganizedData: GroupedChatHistory = {};
@@ -672,7 +672,7 @@ export default function SidePanel(props: SidePanelProps) {
 
             const currentDate = new Date();
 
-            chatHistory.forEach((chatHistory) => {
+            chatSessions.forEach((chatHistory) => {
                 const chatDate = new Date(chatHistory.created);
                 const diffTime = Math.abs(currentDate.getTime() - chatDate.getTime());
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -697,7 +697,7 @@ export default function SidePanel(props: SidePanelProps) {
             setSubsetOrganizedData(subsetOrganizedData);
             setOrganizedData(groupedData);
         }
-    }, [chatHistory]);
+    }, [chatSessions]);
 
     useEffect(() => {
         if (window.innerWidth < 768) {
@@ -722,14 +722,11 @@ export default function SidePanel(props: SidePanelProps) {
     return (
         <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed}`}>
             <div className="flex items-start justify-between">
-                <Image src="khoj-logo.svg"
+                <Image src="/khoj-logo.svg"
                     alt="logo"
                     width={40}
                     height={40}
                 />
-                {/* <button className={styles.button} onClick={() => setEnabled(!enabled)}>
-                    {enabled ? <ArrowLeft className="h-4 w-4" /> : <ArrowRight className="h-4 w-4 mx-2" />}
-                </button> */}
                 {
                     isMobileWidth ?
                         <Drawer>
