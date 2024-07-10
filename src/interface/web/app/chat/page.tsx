@@ -70,12 +70,6 @@ function ChatInputArea(props: ChatInputProps) {
     const [progressValue, setProgressValue] = useState(0);
 
     useEffect(() => {
-        if (message.startsWith('/')) {
-            const command = message.split(' ')[0].substring(1);
-        }
-    }, [message]);
-
-    useEffect(() => {
         if (!uploading) {
             setProgressValue(0);
         }
