@@ -267,8 +267,6 @@ export default function ChatMessage(props: ChatMessageProps) {
     }
 
     function renderTimeStamp(timestamp: string) {
-
-        console.log("INCOMING TIMESTAMP", timestamp);
         if (!timestamp.endsWith('Z')) {
             timestamp = timestamp + 'Z';
         }
