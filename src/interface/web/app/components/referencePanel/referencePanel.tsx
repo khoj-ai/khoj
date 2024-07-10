@@ -1,7 +1,5 @@
 'use client'
 
-import styles from "./referencePanel.module.css";
-
 import { useEffect, useState } from "react";
 
 import { ArrowRight, File } from "@phosphor-icons/react";
@@ -13,9 +11,8 @@ const md = new markdownIt({
     typographer: true
 });
 
-import { SingleChatMessage, Context, WebPage, OnlineContextData } from "../chatMessage/chatMessage";
+import { Context, WebPage, OnlineContextData } from "../chatMessage/chatMessage";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 
 import {
     Sheet,
@@ -26,13 +23,7 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-
-
-interface ReferencePanelProps {
-    referencePanelData: SingleChatMessage | null;
-    setShowReferencePanel: (showReferencePanel: boolean) => void;
-}
-
+import * as DomPurify from 'dompurify';
 
 interface NotesContextReferenceData {
     title: string;
@@ -45,7 +36,7 @@ interface NotesContextReferenceCardProps extends NotesContextReferenceData {
 
 
 function NotesContextReferenceCard(props: NotesContextReferenceCardProps) {
-    const snippet = md.render(props.content);
+    const snippet = props.showFullContent ? DomPurify.sanitize(md.render(props.content)) : DomPurify.sanitize(props.content);
     const [isHovering, setIsHovering] = useState(false);
 
     return (
@@ -109,12 +100,10 @@ function GenericOnlineReferenceCard(props: OnlineReferenceCardProps) {
     const favicon = `https://www.google.com/s2/favicons?domain=${domain}`;
 
     const handleMouseEnter = () => {
-        console.log("mouse entered card");
         setIsHovering(true);
     }
 
     const handleMouseLeave = () => {
-        console.log("mouse left card");
         setIsHovering(false);
     }
 
@@ -122,7 +111,6 @@ function GenericOnlineReferenceCard(props: OnlineReferenceCardProps) {
         <>
             <Popover
                 open={isHovering && !props.showFullContent}
-                // open={true}
                 onOpenChange={setIsHovering}
             >
                 <PopoverTrigger asChild>
@@ -348,157 +336,4 @@ export default function ReferencePanel(props: ReferencePanelDataProps) {
             </SheetContent>
         </Sheet>
     );
-}
-
-function CompiledReference(props: { context: (Context | string) }) {
-
-    let snippet = "";
-    let file = "";
-    if (typeof props.context === "string") {
-        // Treat context as a string and get the first line for the file name
-        const lines = props.context.split("\n");
-        file = lines[0];
-        snippet = lines.slice(1).join("\n");
-    } else {
-        const context = props.context as Context;
-        snippet = context.compiled;
-        file = context.file;
-    }
-
-    const [showSnippet, setShowSnippet] = useState(false);
-
-    return (
-        <div className={styles.singleReference}>
-            <div className={styles.contextReference} onClick={() => setShowSnippet(!showSnippet)}>
-                <div className={styles.referencePanelTitle}>
-                    {file}
-                </div>
-                <div className={styles.referencePanelContent} style={{ display: showSnippet ? "block" : "none" }}>
-                    <div>
-                        {snippet}
-                    </div>
-                </div>
-            </div>
-        </div>
-    )
-}
-
-function WebPageReference(props: { webpages: WebPage, query: string | null }) {
-
-    let snippet = md.render(props.webpages.snippet);
-
-    const [showSnippet, setShowSnippet] = useState(false);
-
-    return (
-        <div className={styles.onlineReference} onClick={() => setShowSnippet(!showSnippet)}>
-            <div className={styles.onlineReferenceTitle}>
-                <a href={props.webpages.link} target="_blank" rel="noreferrer">
-                    {
-                        props.query ? (
-                            <span>
-                                {props.query}
-                            </span>
-                        ) : <span>
-                            {props.webpages.query}
-                        </span>
-                    }
-                </a>
-            </div>
-            <div className={styles.onlineReferenceContent} style={{ display: showSnippet ? "block" : "none" }}>
-                <div dangerouslySetInnerHTML={{ __html: snippet }}></div>
-            </div>
-        </div>
-    )
-}
-
-function OnlineReferences(props: { onlineContext: OnlineContextData, query: string }) {
-
-    const webpages = props.onlineContext.webpages;
-    const answerBox = props.onlineContext.answerBox;
-    const peopleAlsoAsk = props.onlineContext.peopleAlsoAsk;
-    const knowledgeGraph = props.onlineContext.knowledgeGraph;
-    const organic = props.onlineContext.organic;
-
-    return (
-        <div className={styles.singleReference}>
-            {
-                webpages && (
-                    !Array.isArray(webpages) ? (
-                        <WebPageReference webpages={webpages} query={props.query} />
-                    ) : (
-                        webpages.map((webpage, index) => {
-                            return <WebPageReference webpages={webpage} key={index} query={null} />
-                        })
-                    )
-                )
-            }
-            {
-                answerBox && (
-                    <div className={styles.onlineReference}>
-                        <div className={styles.onlineReferenceTitle}>
-                            {answerBox.title}
-                        </div>
-                        <div className={styles.onlineReferenceContent}>
-                            <div>
-                                {answerBox.answer}
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
-            {
-                organic && organic.map((organicData, index) => {
-                    return (
-                        <div className={styles.onlineReference} key={index}>
-                            <div className={styles.onlineReferenceTitle}>
-                                <a href={organicData.link} target="_blank" rel="noreferrer">
-                                    {organicData.title}
-                                </a>
-                            </div>
-                            <div className={styles.onlineReferenceContent}>
-                                <div>
-                                    {organicData.snippet}
-                                </div>
-                            </div>
-                        </div>
-                    )
-                })
-            }
-            {
-                peopleAlsoAsk && peopleAlsoAsk.map((people, index) => {
-                    return (
-                        <div className={styles.onlineReference} key={index}>
-                            <div className={styles.onlineReferenceTitle}>
-                                <a href={people.link} target="_blank" rel="noreferrer">
-                                    {people.question}
-                                </a>
-                            </div>
-                            <div className={styles.onlineReferenceContent}>
-                                <div>
-                                    {people.snippet}
-                                </div>
-                            </div>
-                        </div>
-                    )
-                })
-            }
-            {
-                knowledgeGraph && (
-                    <div className={styles.onlineReference}>
-                        <div className={styles.onlineReferenceTitle}>
-                            <a href={knowledgeGraph.descriptionLink} target="_blank" rel="noreferrer">
-                                {knowledgeGraph.title}
-                            </a>
-                        </div>
-                        <div className={styles.onlineReferenceContent}>
-                            <div>
-                                {knowledgeGraph.description}
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
-        </div>
-
-    )
 }

@@ -14,6 +14,8 @@ import { TeaserReferencesSection, constructAllReferences } from '../referencePan
 import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture, ArrowRight, SpeakerHifi } from '@phosphor-icons/react';
 import { MagnifyingGlass } from '@phosphor-icons/react/dist/ssr';
 
+import * as DomPurify from 'dompurify';
+
 const md = new markdownIt({
     html: true,
     linkify: true,
@@ -192,7 +194,7 @@ export function TrainOfThought(props: TrainOfThoughtProps) {
     let header = extractedHeader ? extractedHeader[1] : "";
     const iconColor = props.primary ? 'text-orange-400' : 'text-gray-500';
     const icon = chooseIconFromHeader(header, iconColor);
-    let markdownRendered = md.render(props.message);
+    let markdownRendered = DomPurify.sanitize(md.render(props.message));
     return (
         <div className={`flex items-center ${props.primary ? 'text-gray-400' : 'text-gray-300'} ${styles.trainOfThought} ${props.primary ? styles.primary : ''}`} >
             {icon}
@@ -223,7 +225,7 @@ export default function ChatMessage(props: ChatMessageProps) {
         // Replace placeholders with LaTeX delimiters
         markdownRendered = markdownRendered.replace(/LEFTPAREN/g, '\\(').replace(/RIGHTPAREN/g, '\\)')
             .replace(/LEFTBRACKET/g, '\\[').replace(/RIGHTBRACKET/g, '\\]');
-        setMarkdownRendered(markdownRendered);
+        setMarkdownRendered(DomPurify.sanitize(markdownRendered));
     }, [props.chatMessage.message]);
 
     useEffect(() => {

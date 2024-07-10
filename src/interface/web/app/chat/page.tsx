@@ -48,6 +48,7 @@ import { StreamMessage } from '../components/chatMessage/chatMessage';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Popover, PopoverContent } from '@/components/ui/popover';
 import { PopoverTrigger } from '@radix-ui/react-popover';
+import { welcomeConsole } from '../common/utils';
 
 interface ChatInputProps {
     sendMessage: (message: string) => void;
@@ -390,6 +391,9 @@ export default function Chat() {
     const [processQuerySignal, setProcessQuerySignal] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const [isMobileWidth, setIsMobileWidth] = useState(false);
+
+
+    welcomeConsole();
 
 
     const handleWebSocketMessage = (event: MessageEvent) => {

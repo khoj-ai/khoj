@@ -82,8 +82,6 @@ export const setupWebSocket = async (conversationId: string) => {
         webSocketUrl += `?conversation_id=${conversationId}`;
     }
 
-    console.log("WebSocket URL: ", webSocketUrl);
-
     const chatWS = new WebSocket(webSocketUrl);
 
     chatWS.onopen = () => {
