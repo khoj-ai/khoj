@@ -267,7 +267,12 @@ export default function ChatMessage(props: ChatMessageProps) {
     }
 
     function renderTimeStamp(timestamp: string) {
-        const messageDateTime = new Date(timestamp + 'Z');
+
+        console.log("INCOMING TIMESTAMP", timestamp);
+        if (!timestamp.endsWith('Z')) {
+            timestamp = timestamp + 'Z';
+        }
+        const messageDateTime = new Date(timestamp);
         const currentDataTime = new Date();
         const timeDiff = currentDataTime.getTime() - messageDateTime.getTime();
 

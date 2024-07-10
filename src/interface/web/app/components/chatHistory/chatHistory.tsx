@@ -299,7 +299,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                     message: props.pendingMessage,
                                     context: [],
                                     onlineContext: {},
-                                    created: new Date().toISOString(),
+                                    created: (new Date().getTime()).toString(),
                                     by: "you",
                                     automationId: '',
                                 }
