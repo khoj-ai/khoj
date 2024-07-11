@@ -3,14 +3,14 @@
 import styles from './sharedChat.module.css';
 import React, { Suspense, useEffect, useRef, useState } from 'react';
 
-import SidePanel from '../../../components/sidePanel/chatHistorySidePanel';
-import ChatHistory from '../../../components/chatHistory/chatHistory';
-import NavMenu from '../../../components/navMenu/navMenu';
-import Loading from '../../../components/loading/loading';
+import SidePanel from '../../components/sidePanel/chatHistorySidePanel';
+import ChatHistory from '../../components/chatHistory/chatHistory';
+import NavMenu from '../../components/navMenu/navMenu';
+import Loading from '../../components/loading/loading';
 
 import 'katex/dist/katex.min.css';
 
-import { welcomeConsole } from '../../../common/utils';
+import { welcomeConsole } from '../../common/utils';
 import { useAuthenticatedData } from '@/app/common/auth';
 
 import ChatInputArea, { ChatOptions } from '@/app/components/chatInputArea/chatInputArea';
@@ -35,14 +35,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [message, setMessage] = useState('');
     const [processingMessage, setProcessingMessage] = useState(false);
 
-    if (!props.publicConversationSlug && !props.conversationId) {
-        return (
-            <div className={styles.suggestions}>
-                Whoops, nothing to see here!
-            </div>
-        );
-    }
-
     useEffect(() => {
         if (message) {
             setProcessingMessage(true);
@@ -61,6 +53,14 @@ function ChatBodyData(props: ChatBodyDataProps) {
             setMessage('');
         }
     }, [props.streamedMessages]);
+
+    if (!props.publicConversationSlug && !props.conversationId) {
+        return (
+            <div className={styles.suggestions}>
+                Whoops, nothing to see here!
+            </div>
+        );
+    }
 
     return (
         <>
@@ -86,7 +86,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     );
 }
 
-export default function SharedChat({ params }: { params: { slug: string } }) {
+export default function SharedChat() {
     const [chatOptionsData, setChatOptionsData] = useState<ChatOptions | null>(null);
     const [isLoading, setLoading] = useState(true);
     const [title, setTitle] = useState('Khoj AI - Chat');
@@ -97,6 +97,7 @@ export default function SharedChat({ params }: { params: { slug: string } }) {
     const [processQuerySignal, setProcessQuerySignal] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const [isMobileWidth, setIsMobileWidth] = useState(false);
+    const [paramSlug, setParamSlug] = useState<string | undefined>(undefined);
 
     const authenticatedData = useAuthenticatedData();
 
@@ -190,11 +191,13 @@ export default function SharedChat({ params }: { params: { slug: string } }) {
             setIsMobileWidth(window.innerWidth < 786);
         });
 
+        setParamSlug(window.location.pathname.split('/').pop() || '');
+
     }, []);
 
     useEffect(() => {
         if (queryToProcess && !conversationId) {
-            fetch(`/api/chat/share/fork?public_conversation_slug=${params.slug}`, {
+            fetch(`/api/chat/share/fork?public_conversation_slug=${paramSlug}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -278,6 +281,14 @@ export default function SharedChat({ params }: { params: { slug: string } }) {
         return <Loading />;
     }
 
+    if (!paramSlug) {
+        return (
+            <div className={styles.suggestions}>
+                Whoops, nothing to see here!
+            </div>
+        );
+    }
+
 
     return (
         <div className={`${styles.main} ${styles.chatLayout}`}>
@@ -300,7 +311,7 @@ export default function SharedChat({ params }: { params: { slug: string } }) {
                             streamedMessages={messages}
                             setQueryToProcess={setQueryToProcess}
                             isLoggedIn={authenticatedData !== null}
-                            publicConversationSlug={params.slug}
+                            publicConversationSlug={paramSlug}
                             chatOptionsData={chatOptionsData}
                             setTitle={setTitle}
                             setUploadedFiles={setUploadedFiles}
