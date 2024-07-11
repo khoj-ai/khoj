@@ -4,7 +4,7 @@ import styles from "./sidePanel.module.css";
 
 import { Suspense, useEffect, useState } from "react";
 
-import { UserProfile } from "@/app/common/auth";
+import { UserProfile, useAuthenticatedData } from "@/app/common/auth";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import Link from "next/link";
 import useSWR from "swr";
@@ -45,7 +45,7 @@ import {
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-import { ArrowRight, ArrowLeft, ArrowDown, Spinner, Check, FolderPlus, DotsThreeVertical } from "@phosphor-icons/react";
+import { ArrowRight, ArrowLeft, ArrowDown, Spinner, Check, FolderPlus, DotsThreeVertical, House, StackPlus, UserCirclePlus } from "@phosphor-icons/react";
 
 interface ChatHistory {
     conversation_id: string;
@@ -496,7 +496,7 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
         <DropdownMenu
             onOpenChange={(open) => setIsOpen(open)}
             open={isOpen}>
-            <DropdownMenuTrigger><DotsThreeVertical className="h-4 w-4"/></DropdownMenuTrigger>
+            <DropdownMenuTrigger><DotsThreeVertical className="h-4 w-4" /></DropdownMenuTrigger>
             <DropdownMenuContent>
                 <DropdownMenuItem>
                     <Button className="p-0 text-sm h-auto" variant={'ghost'} onClick={() => setIsRenaming(true)}>
@@ -544,7 +544,7 @@ function ChatSessionsModal({ data }: ChatSessionsModalProps) {
         <Dialog>
             <DialogTrigger
                 className="flex text-left text-medium text-gray-500 hover:text-gray-300 cursor-pointer my-4 text-sm p-[0.5rem]">
-                    <span className="mr-2">See All <ArrowRight className="h-4 w-4" /></span>
+                <span className="mr-2">See All <ArrowRight className="h-4 w-4" /></span>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
@@ -656,9 +656,9 @@ export default function SidePanel(props: SidePanelProps) {
     const [subsetOrganizedData, setSubsetOrganizedData] = useState<GroupedChatHistory | null>(null);
     const [enabled, setEnabled] = useState(false);
 
-    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+    const authenticatedData = useAuthenticatedData();
+    const { data: chatSessions } = useChatSessionsFetchRequest(authenticatedData ? `/api/chat/sessions` : '');
 
-    const { data: chatSessions } = useChatSessionsFetchRequest('/api/chat/sessions');
 
     const [isMobileWidth, setIsMobileWidth] = useState(false);
 
@@ -707,16 +707,6 @@ export default function SidePanel(props: SidePanelProps) {
         window.addEventListener('resize', () => {
             setIsMobileWidth(window.innerWidth < 768);
         });
-
-        fetch('/api/v1/user', { method: 'GET' })
-            .then(response => response.json())
-            .then((data: UserProfile) => {
-                setUserProfile(data);
-            })
-            .catch(err => {
-                console.error(err);
-                return;
-            });
     }, []);
 
     return (
@@ -728,7 +718,8 @@ export default function SidePanel(props: SidePanelProps) {
                     height={40}
                 />
                 {
-                    isMobileWidth ?
+                    authenticatedData &&
+                        isMobileWidth ?
                         <Drawer>
                             <DrawerTrigger><ArrowRight className="h-4 w-4 mx-2" /></DrawerTrigger>
                             <DrawerContent>
@@ -744,7 +735,7 @@ export default function SidePanel(props: SidePanelProps) {
                                         organizedData={organizedData}
                                         data={data}
                                         uploadedFiles={props.uploadedFiles}
-                                        userProfile={userProfile}
+                                        userProfile={authenticatedData}
                                         conversationId={props.conversationId}
                                         isMobileWidth={isMobileWidth}
                                     />
@@ -763,7 +754,7 @@ export default function SidePanel(props: SidePanelProps) {
                 }
             </div>
             {
-                enabled &&
+                authenticatedData && enabled &&
                 <div className={`${styles.panelWrapper}`}>
                     <SessionsAndFiles
                         webSocketConnected={props.webSocketConnected}
@@ -772,13 +763,26 @@ export default function SidePanel(props: SidePanelProps) {
                         organizedData={organizedData}
                         data={data}
                         uploadedFiles={props.uploadedFiles}
-                        userProfile={userProfile}
+                        userProfile={authenticatedData}
                         conversationId={props.conversationId}
                         isMobileWidth={isMobileWidth}
                     />
                 </div>
             }
-
+            {
+                !authenticatedData && enabled &&
+                <div className={`${styles.panelWrapper}`}>
+                    <Link href="/">
+                        <Button variant="ghost"><House className="h-4 w-4 mr-1" />Home</Button>
+                    </Link>
+                    <Link href="/">
+                        <Button variant="ghost"><StackPlus className="h-4 w-4 mr-1" />New Conversation</Button>
+                    </Link>
+                    <Link href={`/login?next=${encodeURIComponent(window.location.pathname)}`}> {/* Redirect to login page */}
+                        <Button variant="default"><UserCirclePlus className="h-4 w-4 mr-1"/>Sign Up</Button>
+                    </Link>
+                </div>
+            }
         </div>
     );
 }

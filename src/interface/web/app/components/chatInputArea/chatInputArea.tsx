@@ -39,11 +39,15 @@ import {
     AlertDialogAction,
     AlertDialogContent,
     AlertDialogDescription,
+    AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 import { Popover, PopoverContent } from '@/components/ui/popover';
 import { PopoverTrigger } from '@radix-ui/react-popover';
+import Link from 'next/link';
+import { AlertDialogCancel } from '@radix-ui/react-alert-dialog';
+import LoginPrompt from '../loginPrompt/loginPrompt';
 
 export interface ChatOptions {
     [key: string]: string
@@ -66,6 +70,8 @@ export default function ChatInputArea(props: ChatInputProps) {
     const [warning, setWarning] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
+    const [loginRedirectMessage, setLoginRedirectMessage] = useState<string | null>(null);
+    const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
     const [progressValue, setProgressValue] = useState(0);
 
@@ -87,7 +93,15 @@ export default function ChatInputArea(props: ChatInputProps) {
     }, [uploading]);
 
     function onSendMessage() {
-        props.sendMessage(message);
+        if (!message.trim()) return;
+
+        if (!props.isLoggedIn) {
+            setLoginRedirectMessage('Hey there, you need to be signed in to send messages to Khoj AI');
+            setShowLoginPrompt(true);
+            return;
+        }
+
+        props.sendMessage(message.trim());
         setMessage('');
     }
 
@@ -102,6 +116,12 @@ export default function ChatInputArea(props: ChatInputProps) {
 
     function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
         if (!event.target.files) return;
+
+        if (!props.isLoggedIn) {
+            setLoginRedirectMessage('Whoa! You need to login to upload files');
+            setShowLoginPrompt(true);
+            return;
+        }
 
         uploadDataForIndexing(
             event.target.files,
@@ -153,6 +173,13 @@ export default function ChatInputArea(props: ChatInputProps) {
 
     return (
         <>
+            {
+                showLoginPrompt && loginRedirectMessage && (
+                    <LoginPrompt
+                        onOpenChange={setShowLoginPrompt}
+                        loginRedirectMessage={loginRedirectMessage} />
+                )
+            }
             {
                 uploading && (
                     <AlertDialog

@@ -76,7 +76,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 <ChatInputArea
                     isLoggedIn={props.isLoggedIn}
                     sendMessage={(message) => setMessage(message)}
-                    sendDisabled={!props.isLoggedIn || processingMessage}
+                    sendDisabled={processingMessage}
                     chatOptionsData={props.chatOptionsData}
                     conversationId={props.conversationId}
                     isMobileWidth={props.isMobileWidth}
@@ -280,7 +280,7 @@ export default function SharedChat({ params }: { params: { slug: string } }) {
 
 
     return (
-        <div className={`${styles.main} ${authenticatedData ? styles.chatLayout : ''}`}>
+        <div className={`${styles.main} ${styles.chatLayout}`}>
             <title>
                 {title}
             </title>
@@ -290,6 +290,7 @@ export default function SharedChat({ params }: { params: { slug: string } }) {
                     conversationId={conversationId ?? null}
                     uploadedFiles={uploadedFiles} />
             </div>
+
             <div className={styles.chatBox}>
                 <NavMenu selected="Chat" title={title} />
                 <div className={styles.chatBoxBody}>

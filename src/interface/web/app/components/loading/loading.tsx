@@ -1,10 +1,11 @@
-import styles from './loading.module.css';
-
 import { CircleNotch } from '@phosphor-icons/react';
 
 export default function Loading() {
     return (
-        <div className={`${styles.loader} h-[100vh] flex items-center justify-center`}></div>
+        // NOTE: We can display usage tips here for casual learning moments.
+        <div className={`bg-background opacity-50 flex items-center justify-center h-screen`}>
+            <div>Loading <span><CircleNotch className={`inline animate-spin h-5 w-5`} /></span></div>
+        </div>
     );
 }
 
