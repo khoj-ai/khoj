@@ -1,0 +1,11 @@
+div.automationsLayout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media screen and (max-width: 768px) {
+    div.automationsLayout {
+        grid-template-columns: 1fr;
+    }
+}

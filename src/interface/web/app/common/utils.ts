@@ -1,3 +1,18 @@
+import useSWR from "swr";
+
+export interface LocationData {
+    ip: string;
+    city: string;
+    region: string;
+    country: string;
+    postal: string;
+    latitude: number;
+    longitude: number;
+    timezone: string;
+}
+
+const locationFetcher = () => window.fetch("https://ipapi.co/json").then((res) => res.json()).catch((err) => console.log(err));
+
 export function welcomeConsole() {
     console.log(`%c %s`, "font-family:monospace", `
         __  __     __  __     ______       __        _____      __
@@ -14,4 +29,13 @@ export function welcomeConsole() {
        See my source code at https://github.com/khoj-ai/khoj
        Read my operating manual at https://docs.khoj.dev
        `);
+}
+
+export function useIPLocationData() {
+    const {data: locationData, error: locationDataError } = useSWR<LocationData>("/api/ip", locationFetcher, { revalidateOnFocus: false });
+
+    if (locationDataError) return null;
+    if (!locationData) return null;
+
+    return locationData;
 }
