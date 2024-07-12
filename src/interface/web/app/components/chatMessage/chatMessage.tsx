@@ -216,8 +216,15 @@ export default function ChatMessage(props: ChatMessageProps) {
         message = message.replace(/\\\(/g, 'LEFTPAREN').replace(/\\\)/g, 'RIGHTPAREN')
             .replace(/\\\[/g, 'LEFTBRACKET').replace(/\\\]/g, 'RIGHTBRACKET');
 
-        if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image2") {
-            message = `![generated_image](${message})\n\n${props.chatMessage.intent["inferred-queries"][0]}`
+        if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image") {
+            message = `![generated image](data:image/png;base64,${message})`;
+        } else if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image2") {
+            message = `![generated image](${message})`;
+        } else if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image-v3") {
+            message = `![generated image](data:image/webp;base64,${message})`;
+        }
+        if (props.chatMessage.intent && props.chatMessage.intent.type.includes("text-to-image") && props.chatMessage.intent["inferred-queries"]?.length > 0) {
+            message += `\n\n**Inferred Query**\n\n${props.chatMessage.intent["inferred-queries"][0]}`;
         }
 
         let markdownRendered = md.render(message);
@@ -225,6 +232,8 @@ export default function ChatMessage(props: ChatMessageProps) {
         // Replace placeholders with LaTeX delimiters
         markdownRendered = markdownRendered.replace(/LEFTPAREN/g, '\\(').replace(/RIGHTPAREN/g, '\\)')
             .replace(/LEFTBRACKET/g, '\\[').replace(/RIGHTBRACKET/g, '\\]');
+
+        // Sanitize and set the rendered markdown
         setMarkdownRendered(DomPurify.sanitize(markdownRendered));
     }, [props.chatMessage.message]);
 

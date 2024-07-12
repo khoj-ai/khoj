@@ -10,6 +10,9 @@ div.chatMessageContainer {
 div.chatMessageWrapper {
     padding-left: 24px;
 }
+div.chatMessageWrapper p:not(:last-child) {
+    margin-bottom: 16px;
+}
 
 div.khojfullHistory {
     border-width: 1px;
