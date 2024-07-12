@@ -92,12 +92,19 @@ interface OnlineReferenceCardProps extends OnlineReferenceData {
 function GenericOnlineReferenceCard(props: OnlineReferenceCardProps) {
     const [isHovering, setIsHovering] = useState(false);
 
-    if (!props.link) {
+    if (!props.link || props.link.split(' ').length > 1) {
         return null;
     }
 
-    const domain = new URL(props.link).hostname;
-    const favicon = `https://www.google.com/s2/favicons?domain=${domain}`;
+    let favicon = `https://www.google.com/s2/favicons?domain=globe`;
+    let domain = "unknown";
+    try {
+        domain = new URL(props.link).hostname;
+        favicon = `https://www.google.com/s2/favicons?domain=${domain}`;
+    } catch (error) {
+        console.warn(`Error parsing domain from link: ${props.link}`);
+        return null;
+    }
 
     const handleMouseEnter = () => {
         setIsHovering(true);
