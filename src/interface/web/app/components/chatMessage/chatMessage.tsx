@@ -274,28 +274,36 @@ export default function ChatMessage(props: ChatMessageProps) {
         return null;
     }
 
+    function formatDate(timestamp: string) {
+        // Format date in HH:MM, DD MMM YYYY format
+        let date = new Date(timestamp + "Z");
+        let time_string = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
+        let date_string = date.toLocaleString('en-IN', { year: 'numeric', month: 'short', day: '2-digit'}).replaceAll('-', ' ');
+        return `${time_string} on ${date_string}`;
+    }
+
     function renderTimeStamp(timestamp: string) {
         if (!timestamp.endsWith('Z')) {
             timestamp = timestamp + 'Z';
         }
         const messageDateTime = new Date(timestamp);
-        const currentDataTime = new Date();
-        const timeDiff = currentDataTime.getTime() - messageDateTime.getTime();
+        const currentDateTime = new Date();
+        const timeDiff = currentDateTime.getTime() - messageDateTime.getTime();
 
-        if (timeDiff < 60000) {
+        if (timeDiff < 60e3) {
             return "Just now";
         }
 
-        if (timeDiff < 3600000) {
+        if (timeDiff < 3600e3) {
             // Using Math.round for closer to actual time representation
-            return `${Math.round(timeDiff / 60000)}m ago`;
+            return `${Math.round(timeDiff / 60e3)}m ago`;
         }
 
-        if (timeDiff < 86400000) {
-            return `${Math.round(timeDiff / 3600000)}h ago`;
+        if (timeDiff < 86400e3) {
+            return `${Math.round(timeDiff / 3600e3)}h ago`;
         }
 
-        return `${Math.round(timeDiff / 86400000)}d ago`;
+        return `${Math.round(timeDiff / 86400e3)}d ago`;
     }
 
     function constructClasses(chatMessage: SingleChatMessage) {
@@ -343,7 +351,7 @@ export default function ChatMessage(props: ChatMessageProps) {
                     isHovering &&
                     (
                         <>
-                            <div className={`text-gray-400 relative top-2 left-2`}>
+                            <div title={formatDate(props.chatMessage.created)} className={`text-gray-400 relative top-2 left-2`}>
                                 {renderTimeStamp(props.chatMessage.created)}
                             </div>
                             <div className={styles.chatButtons}>
