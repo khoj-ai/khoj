@@ -51,7 +51,7 @@ import { DotsThreeVertical, Pencil, Play, Trash } from '@phosphor-icons/react';
 import { useAuthenticatedData } from '../common/auth';
 import LoginPrompt from '../components/loginPrompt/loginPrompt';
 import { useToast } from '@/components/ui/use-toast';
-import { ToastAction} from '@/components/ui/toast';
+import { ToastAction } from '@/components/ui/toast';
 
 const automationsFetcher = () => window.fetch('/api/automations').then(res => res.json()).catch(err => console.log(err));
 
@@ -767,7 +767,9 @@ export default function Automations() {
             }
             {
                 authenticatedData && (
-                    <div>Delivering to {authenticatedData.email}</div>
+                    <div className="mt-3">
+                        Delivering to <span className='bg-accent text-accent-foreground rounded-full p-2'>{authenticatedData.email}</span>
+                    </div>
                 )
             }
             <h3
