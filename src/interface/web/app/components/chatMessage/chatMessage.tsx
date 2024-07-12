@@ -11,8 +11,7 @@ import 'highlight.js/styles/github.css'
 
 import { TeaserReferencesSection, constructAllReferences } from '../referencePanel/referencePanel';
 
-import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture, ArrowRight, SpeakerHifi } from '@phosphor-icons/react';
-import { MagnifyingGlass } from '@phosphor-icons/react/dist/ssr';
+import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture, SpeakerHigh, MagnifyingGlass } from '@phosphor-icons/react';
 
 import * as DomPurify from 'dompurify';
 
@@ -132,11 +131,11 @@ function sendFeedback(uquery: string, kquery: string, sentiment: string) {
 function FeedbackButtons({ uquery, kquery }: { uquery: string, kquery: string }) {
     return (
         <div className={`${styles.feedbackButtons} flex align-middle justify-center items-center`}>
-            <button className={styles.thumbsUpButton} onClick={() => sendFeedback(uquery, kquery, 'positive')}>
-                <ThumbsUp color='hsl(var(--muted-foreground))' />
+            <button title="Like" className={styles.thumbsUpButton} onClick={() => sendFeedback(uquery, kquery, 'positive')}>
+                <ThumbsUp alt="Like Message" color='hsl(var(--muted-foreground))' />
             </button>
-            <button className={styles.thumbsDownButton} onClick={() => sendFeedback(uquery, kquery, 'negative')}>
-                <ThumbsDown color='hsl(var(--muted-foreground))' />
+            <button title="Dislike" className={styles.thumbsDownButton} onClick={() => sendFeedback(uquery, kquery, 'negative')}>
+                <ThumbsDown alt="Dislike Message" color='hsl(var(--muted-foreground))' />
             </button>
         </div>
     )
@@ -351,19 +350,19 @@ export default function ChatMessage(props: ChatMessageProps) {
                                 {
                                     (props.chatMessage.by === "khoj") &&
                                     (
-                                        <button onClick={(event) => console.log("speaker")}>
-                                            <SpeakerHifi color='hsl(var(--muted-foreground))' />
+                                        <button title="Speak" onClick={(event) => console.log("speaker")}>
+                                            <SpeakerHigh alt="Speak Message" color='hsl(var(--muted-foreground))' />
                                         </button>
                                     )
                                 }
-                                <button className={`${styles.copyButton}`} onClick={() => {
+                                <button title="Copy" className={`${styles.copyButton}`} onClick={() => {
                                     navigator.clipboard.writeText(props.chatMessage.message);
                                     setCopySuccess(true);
                                 }}>
                                     {
                                         copySuccess ?
-                                            <Copy color='green' />
-                                            : <Copy color='hsl(var(--muted-foreground))' />
+                                            <Copy alt="Copied Message" weight="fill" color='green' />
+                                            : <Copy alt="Copy Message" color='hsl(var(--muted-foreground))' />
                                     }
                                 </button>
                                 {
@@ -382,7 +381,6 @@ export default function ChatMessage(props: ChatMessageProps) {
                         </>
                     )
                 }
-
             </div>
         </div>
     )
