@@ -83,11 +83,9 @@ function getEveryBlahFromCron(cron: string) {
 function getDayOfWeekFromCron(cron: string) {
     const cronParts = cron.split(' ');
     if (cronParts[3] === '*' && cronParts[4] !== '*') {
-        console.log("returning cronparts[4] for day of week", cronParts[4]);
         return Number(cronParts[4]);
     }
 
-    console.log("returning 8 for day of week");
     return undefined;
 }
 
@@ -112,7 +110,6 @@ function getTimeRecurrenceFromCron(cron: string) {
 function getDayOfMonthFromCron(cron: string) {
     const cronParts = cron.split(' ');
 
-    console.log(cronParts);
     return String(cronParts[2]);
 }
 
@@ -434,8 +431,6 @@ function EditCard(props: EditCardProps) {
     const onSubmit = (values: z.infer<typeof EditAutomationSchema>) => {
         const cronFrequency = convertFrequencyToCron(values.everyBlah, values.timeRecurrence, values.dayOfWeek, values.dayOfMonth);
 
-        console.log("submitting changes");
-
         let updateQueryUrl = `/api/automation?`;
 
         updateQueryUrl += `q=${values.queryToRun}`;
@@ -545,8 +540,6 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
     return (
         <Form {...props.form}>
             <form onSubmit={props.form.handleSubmit((values) => {
-                console.log(values);
-                console.log("submitting to onsubmithandler");
                 props.onSubmit(values);
                 setIsSaving(true);
             })} className="space-y-8">
