@@ -40,6 +40,7 @@ export default function NavMenu(props: NavMenuProps) {
 
     const [isMobileWidth, setIsMobileWidth] = useState(false);
     const [darkMode, setDarkMode] = useState(false);
+    const [initialLoadDone, setInitialLoadDone] = useState(false);
 
     useEffect(() => {
         setIsMobileWidth(window.innerWidth < 768);
@@ -51,10 +52,6 @@ export default function NavMenu(props: NavMenuProps) {
 
     useEffect(() => {
 
-        const mq = window.matchMedia(
-            "(prefers-color-scheme: dark)"
-        );
-
         window.addEventListener('resize', () => {
             setIsMobileWidth(window.innerWidth < 768);
         });
@@ -65,13 +62,23 @@ export default function NavMenu(props: NavMenuProps) {
         } else if (localStorage.getItem('theme') === 'light') {
             document.documentElement.classList.remove('dark');
             setDarkMode(false);
-        } else if (mq.matches) {
-            document.documentElement.classList.add('dark');
-            setDarkMode(true);
+        } else {
+            const mq = window.matchMedia(
+                "(prefers-color-scheme: dark)"
+            );
+
+            if (mq.matches) {
+                document.documentElement.classList.add('dark');
+                setDarkMode(true);
+            }
         }
+
+        setInitialLoadDone(true);
     }, []);
 
+
     useEffect(() => {
+        if (!initialLoadDone) return;
         toggleDarkMode(darkMode);
     }, [darkMode]);
 
