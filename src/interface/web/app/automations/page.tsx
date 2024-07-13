@@ -47,11 +47,12 @@ import styles from './automations.module.css';
 import ShareLink from '../components/shareLink/shareLink';
 import { useSearchParams } from 'next/navigation';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { DotsThreeVertical, Pencil, Play, Trash } from '@phosphor-icons/react';
+import { DotsThreeVertical, Envelope, Info, MapPinSimple, Pencil, Play, Trash } from '@phosphor-icons/react';
 import { useAuthenticatedData } from '../common/auth';
 import LoginPrompt from '../components/loginPrompt/loginPrompt';
 import { useToast } from '@/components/ui/use-toast';
 import { ToastAction } from '@/components/ui/toast';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 const automationsFetcher = () => window.fetch('/api/automations').then(res => res.json()).catch(err => console.log(err));
 
@@ -144,7 +145,7 @@ const timestamp = Date.now();
 const suggestedAutomationsMetadata: AutomationsData[] = [
     {
         "subject": "Weekly Newsletter",
-        "query_to_run": "Compile a message including: 1. A recap of news from last week 2. A reminder to work out and stay hydrated 3. A quote to inspire me for the week ahead",
+        "query_to_run": "Compile a message including: 1. A recap of news from last week 2. An at-home workout I can do before work 3. A quote to inspire me for the week ahead",
         "schedule": "9AM every Monday",
         "next": "Next run at 9AM on Monday",
         "crontime": "0 9 * * 1",
@@ -219,6 +220,8 @@ interface AutomationsCardProps {
     locationData?: LocationData | null;
     suggestedCard?: boolean;
     setNewAutomationData?: (data: AutomationsData) => void;
+    isLoggedIn: boolean;
+    setShowLoginPrompt: (showLoginPrompt: boolean) => void;
 }
 
 
@@ -250,17 +253,22 @@ function AutomationsCard(props: AutomationsCardProps) {
     }
 
     return (
-        <Card className='hover:shadow-md rounded-lg bg-secondary h-full'>
+        <Card className='hover:shadow-md rounded-lg bg-secondary h-full shadow-sm'>
             <CardHeader>
                 <CardTitle className='line-clamp-2 leading-normal flex justify-between'>
                     {updatedAutomationData?.subject || automation.subject}
                     <Popover>
                         <PopoverTrigger asChild>
-                            <Button variant={'ghost'}><DotsThreeVertical className='h-4 w-4' /></Button>
+                            <Button className='bg-background' variant={'ghost'}><DotsThreeVertical className='h-4 w-4' /></Button>
                         </PopoverTrigger>
-                        <PopoverContent className='w-auto grid gap-2'>
+                        <PopoverContent className='w-auto grid gap-2 text-left'>
                             <Button variant={'destructive'}
+                                className='justify-start'
                                 onClick={() => {
+                                    if (props.suggestedCard) {
+                                        setIsDeleted(true);
+                                        return;
+                                    }
                                     deleteAutomation(automation.id.toString(), setIsDeleted);
                                 }}>
                                 <Trash className='h-4 w-4 mr-2' />Delete
@@ -274,7 +282,7 @@ function AutomationsCard(props: AutomationsCardProps) {
                                         }}
                                     >
                                         <DialogTrigger asChild>
-                                            <Button variant="outline">
+                                            <Button variant="outline" className="justify-start">
                                                 <Pencil className='h-4 w-4 mr-2' />Edit
                                             </Button>
                                         </DialogTrigger>
@@ -283,6 +291,8 @@ function AutomationsCard(props: AutomationsCardProps) {
                                             <EditCard
                                                 automation={automation}
                                                 setIsEditing={setIsEditing}
+                                                isLoggedIn={props.isLoggedIn}
+                                                setShowLoginPrompt={props.setShowLoginPrompt}
                                                 setUpdatedAutomationData={setUpdatedAutomationData}
                                                 locationData={props.locationData} />
                                         </DialogContent>
@@ -292,6 +302,7 @@ function AutomationsCard(props: AutomationsCardProps) {
                             {
                                 !props.suggestedCard && (
                                     <Button variant={'outline'}
+                                        className="justify-start"
                                         onClick={() => {
                                             sendAPreview(automation.id.toString(), setToastMessage);
                                         }}>
@@ -328,6 +339,8 @@ function AutomationsCard(props: AutomationsCardProps) {
                                     createNew={true}
                                     automation={automation}
                                     setIsEditing={setIsEditing}
+                                    isLoggedIn={props.isLoggedIn}
+                                    setShowLoginPrompt={props.setShowLoginPrompt}
                                     setUpdatedAutomationData={props.setNewAutomationData}
                                     locationData={props.locationData} />
                             </DialogContent>
@@ -338,7 +351,7 @@ function AutomationsCard(props: AutomationsCardProps) {
                     buttonTitle="Share"
                     buttonVariant={'outline' as keyof typeof buttonVariants}
                     title="Share Automation"
-                    description="Copy the link below and share it with your friends."
+                    description="Copy the link below and share it with your coworkers or friends."
                     url={createShareLink(automation)}
                     onShare={() => {
                         navigator.clipboard.writeText(createShareLink(automation));
@@ -351,6 +364,8 @@ function AutomationsCard(props: AutomationsCardProps) {
 interface SharedAutomationCardProps {
     locationData?: LocationData | null;
     setNewAutomationData: (data: AutomationsData) => void;
+    isLoggedIn: boolean;
+    setShowLoginPrompt: (showLoginPrompt: boolean) => void;
 }
 
 function SharedAutomationCard(props: SharedAutomationCardProps) {
@@ -390,6 +405,8 @@ function SharedAutomationCard(props: SharedAutomationCardProps) {
                     createNew={true}
                     setIsEditing={setIsCreating}
                     setUpdatedAutomationData={props.setNewAutomationData}
+                    isLoggedIn={props.isLoggedIn}
+                    setShowLoginPrompt={props.setShowLoginPrompt}
                     automation={automation}
                     locationData={props.locationData} />
             </DialogContent>
@@ -412,6 +429,8 @@ interface EditCardProps {
     setUpdatedAutomationData: (data: AutomationsData) => void;
     locationData?: LocationData | null;
     createNew?: boolean;
+    isLoggedIn: boolean;
+    setShowLoginPrompt: (showLoginPrompt: boolean) => void;
 }
 
 function EditCard(props: EditCardProps) {
@@ -498,7 +517,7 @@ function EditCard(props: EditCardProps) {
     }
 
     return (
-        <AutomationModificationForm form={form} onSubmit={onSubmit} create={props.createNew} />
+        <AutomationModificationForm form={form} onSubmit={onSubmit} create={props.createNew} isLoggedIn={props.isLoggedIn} setShowLoginPrompt={props.setShowLoginPrompt} />
     )
 
 }
@@ -507,6 +526,8 @@ interface AutomationModificationFormProps {
     form: UseFormReturn<z.infer<typeof EditAutomationSchema>>;
     onSubmit: (values: z.infer<typeof EditAutomationSchema>) => void;
     create?: boolean;
+    isLoggedIn: boolean;
+    setShowLoginPrompt: (showLoginPrompt: boolean) => void;
 }
 
 function AutomationModificationForm(props: AutomationModificationFormProps) {
@@ -725,15 +746,26 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                 />
                 <fieldset disabled={isSaving}>
                     {
-                        isSaving ? (
-                            <Button
-                                type="submit"
-                                disabled
-                            >
-                                Saving...
-                            </Button>
+                        props.isLoggedIn ? (
+                            isSaving ? (
+                                <Button
+                                    type="submit"
+                                    disabled
+                                >
+                                    Saving...
+                                </Button>
+                            ) : (
+                                <Button type="submit">Save</Button>
+                            )
                         ) : (
-                            <Button type="submit">Save</Button>
+                            <Button
+                                onClick={(event) => {
+                                    event.preventDefault();
+                                    props.setShowLoginPrompt(true);
+                                }}
+                                variant={'default'}>
+                                Login to Save
+                            </Button>
                         )
                     }
                 </fieldset>
@@ -780,7 +812,10 @@ export default function Automations() {
 
     return (
         <div>
-            <h1>Automations</h1>
+            <h3
+                className='text-xl py-4'>
+                Automations
+            </h3>
             {
                 showLoginPrompt && (
                     <LoginPrompt
@@ -788,20 +823,39 @@ export default function Automations() {
                         loginRedirectMessage={"Create an account to make your own automation"} />
                 )
             }
-            {
-                authenticatedData && (
-                    <div className="mt-3">
-                        Delivering to <span className='bg-accent text-accent-foreground rounded-full p-2'>{authenticatedData.email}</span>
-                    </div>
-                )
-            }
+            <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>How this works!</AlertTitle>
+                <AlertDescription>
+                    Automations help you structure your time by automating tasks you do regularly. Build your own, or try out our presets. Get results straight to your inbox.
+                    {
+                        authenticatedData ? (
+                            <div className="mt-3">
+                                <span className='rounded-full text-sm bg-blue-200 dark:bg-blue-600 p-1' ><Envelope className='h-4 w-4 mr-2 inline' />{authenticatedData.email}</span>
+                            </div>
+                        )
+                            : (
+                                <span> Sign in to create your own automations.</span>
+                            )
+                    }
+                    {
+                        ipLocationData && (
+                            <div className="mt-4">
+                                <span className='rounded-full text-sm bg-purple-200 dark:bg-purple-600 p-1' ><MapPinSimple className='h-4 w-4 mr-2 inline' />{ipLocationData ? `${ipLocationData.city}, ${ipLocationData.country}` : 'Unknown'}</span>
+                            </div>
+                        )
+                    }
+                </AlertDescription>
+            </Alert>
             <h3
-                className="text-4xl py-4">
+                className="text-xl py-4">
                 Your Creations
             </h3>
             <Suspense>
                 <SharedAutomationCard
                     locationData={ipLocationData}
+                    isLoggedIn={authenticatedData ? true : false}
+                    setShowLoginPrompt={setShowLoginPrompt}
                     setNewAutomationData={setNewAutomationData} />
             </Suspense>
             {
@@ -820,6 +874,8 @@ export default function Automations() {
                             <EditCard
                                 createNew={true}
                                 setIsEditing={setIsCreating}
+                                isLoggedIn={authenticatedData ? true : false}
+                                setShowLoginPrompt={setShowLoginPrompt}
                                 setUpdatedAutomationData={setNewAutomationData}
                                 locationData={ipLocationData} />
                         </DialogContent>
@@ -853,6 +909,8 @@ export default function Automations() {
                                             <DialogTitle>Create Automation</DialogTitle>
                                             <EditCard
                                                 createNew={true}
+                                                isLoggedIn={authenticatedData ? true : false}
+                                                setShowLoginPrompt={setShowLoginPrompt}
                                                 setIsEditing={setIsCreating}
                                                 setUpdatedAutomationData={setNewAutomationData}
                                                 locationData={ipLocationData} />
@@ -875,16 +933,25 @@ export default function Automations() {
                 className={`${styles.automationsLayout}`}>
                 {
                     personalAutomations && personalAutomations.map((automation) => (
-                        <AutomationsCard key={automation.id} automation={automation} locationData={ipLocationData} />
+                        <AutomationsCard
+                            key={automation.id}
+                            automation={automation}
+                            locationData={ipLocationData}
+                            isLoggedIn={authenticatedData ? true : false}
+                            setShowLoginPrompt={setShowLoginPrompt} />
                     ))}
                 {
                     allNewAutomations.map((automation) => (
-                        <AutomationsCard key={automation.id} automation={automation} locationData={ipLocationData} />
+                        <AutomationsCard key={automation.id}
+                            automation={automation}
+                            locationData={ipLocationData}
+                            isLoggedIn={authenticatedData ? true : false}
+                            setShowLoginPrompt={setShowLoginPrompt} />
                     ))
                 }
             </div>
             <h3
-                className="text-4xl py-4">
+                className="text-xl py-4">
                 Try these out
             </h3>
             <div
@@ -896,6 +963,8 @@ export default function Automations() {
                             key={automation.id}
                             automation={automation}
                             locationData={ipLocationData}
+                            isLoggedIn={authenticatedData ? true : false}
+                            setShowLoginPrompt={setShowLoginPrompt}
                             suggestedCard={true} />
                     ))
                 }

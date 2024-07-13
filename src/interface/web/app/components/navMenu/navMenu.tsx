@@ -50,11 +50,19 @@ export default function NavMenu(props: NavMenuProps) {
     }, [props.title]);
 
     useEffect(() => {
+
+        const mq = window.matchMedia(
+            "(prefers-color-scheme: dark)"
+        );
+
         window.addEventListener('resize', () => {
             setIsMobileWidth(window.innerWidth < 768);
         });
 
         if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+            setDarkMode(true);
+        } else if (mq.matches) {
             document.documentElement.classList.add('dark');
             setDarkMode(true);
         }
@@ -139,12 +147,13 @@ export default function NavMenu(props: NavMenuProps) {
                             <MenubarTrigger>Profile</MenubarTrigger>
                             <MenubarContent>
                                 <MenubarItem>
-                                <Toggle
-                                    pressed={darkMode}
-                                    onClick={() => {
-                                        console.log("clicked on dark mode method");
-                                        setDarkMode(!darkMode)}
-                                    }>
+                                    <Toggle
+                                        pressed={darkMode}
+                                        onClick={() => {
+                                            console.log("clicked on dark mode method");
+                                            setDarkMode(!darkMode)
+                                        }
+                                        }>
                                         <Moon />
                                     </Toggle>
                                 </MenubarItem>
