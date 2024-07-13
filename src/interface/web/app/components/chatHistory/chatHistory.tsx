@@ -9,7 +9,6 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 
 import renderMathInElement from 'katex/contrib/auto-render';
 import 'katex/dist/katex.min.css';
-import 'highlight.js/styles/github.css'
 
 import Loading, { InlineLoading } from '../loading/loading';
 

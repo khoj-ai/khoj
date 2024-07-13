@@ -7,7 +7,6 @@ import mditHljs from "markdown-it-highlightjs";
 import React, { useEffect, useRef, useState } from 'react';
 
 import 'katex/dist/katex.min.css';
-import 'highlight.js/styles/github.css'
 
 import { TeaserReferencesSection, constructAllReferences } from '../referencePanel/referencePanel';
 
