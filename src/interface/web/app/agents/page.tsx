@@ -155,7 +155,7 @@ function AgentCard(props: AgentCardProps) {
     const stylingString = convertColorToClass(props.data.color);
 
     return (
-        <Card className='shadow-md'>
+        <Card className='shadow-md bg-secondary rounded-lg hover:shadow-lg'>
             {
                 showLoginPrompt &&
                 <LoginPrompt
@@ -202,6 +202,7 @@ function AgentCard(props: AgentCardProps) {
                                     {props.data.personality}
                                     <DialogFooter>
                                         <Button
+                                            className={`${stylingString}`}
                                             onClick={() => {
                                                 openChat(props.data.slug, userData);
                                                 setShowModal(false);
