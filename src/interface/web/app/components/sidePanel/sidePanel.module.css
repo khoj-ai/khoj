@@ -6,7 +6,8 @@ div.session {
     max-width: 14rem;
     font-size: medium;
     display: grid;
-    grid-template-columns: minmax(auto, 350px) 1fr;
+    grid-template-columns: minmax(auto, 400px) 1fr;
+    gap: 1rem;
 }
 
 div.compressed {
@@ -83,6 +84,7 @@ div.profile {
 
 div.panelWrapper {
     display: grid;
+    padding: 0 1rem;
     grid-template-rows: auto 1fr auto auto;
     height: 100%;
 }
@@ -142,6 +144,6 @@ div.modalSessionsList div.session {
 
     div.session {
         max-width: 100%;
-        grid-template-columns: 200px 1fr;
+        grid-template-columns: minmax(auto, 70vw) 1fr;
     }
 }

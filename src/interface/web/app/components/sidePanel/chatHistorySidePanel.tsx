@@ -72,9 +72,8 @@ import {
 
 import { Pencil, Trash, Share } from "@phosphor-icons/react";
 
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { modifyFileFilterForConversation } from "@/app/common/chatFunctions";
 import { ScrollAreaScrollbar } from "@radix-ui/react-scroll-area";
@@ -140,7 +139,6 @@ function deleteConversation(conversationId: string) {
             return;
         });
 }
-
 
 interface FilesMenuProps {
     conversationId: string | null;
@@ -555,7 +553,7 @@ function ChatSessionsModal({ data, showSidePanel }: ChatSessionsModalProps) {
                     <DialogTitle>All Conversations</DialogTitle>
                     <DialogDescription
                         className="p-0">
-                        <ScrollArea className="h-[500px] p-4">
+                        <ScrollArea className="h-[500px] py-4">
                             {data && Object.keys(data).map((timeGrouping) => (
                                 <div key={timeGrouping}>
                                     <div className={`text-muted-foreground text-sm font-bold p-[0.5rem] `}>
@@ -655,17 +653,14 @@ interface SidePanelProps {
 
 
 export default function SidePanel(props: SidePanelProps) {
-
     const [data, setData] = useState<ChatHistory[] | null>(null);
     const [organizedData, setOrganizedData] = useState<GroupedChatHistory | null>(null);
     const [subsetOrganizedData, setSubsetOrganizedData] = useState<GroupedChatHistory | null>(null);
     const [enabled, setEnabled] = useState(false);
+    const [isMobileWidth, setIsMobileWidth] = useState(false);
 
     const authenticatedData = useAuthenticatedData();
     const { data: chatSessions } = useChatSessionsFetchRequest(authenticatedData ? `/api/chat/sessions` : '');
-
-
-    const [isMobileWidth, setIsMobileWidth] = useState(false);
 
     useEffect(() => {
         if (chatSessions) {
