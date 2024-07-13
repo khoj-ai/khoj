@@ -54,6 +54,7 @@ interface ChatHistory {
     agent_avatar: string;
     compressed: boolean;
     created: string;
+    showSidePanel: (isEnabled: boolean) => void;
 }
 
 import {
@@ -349,7 +350,9 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                                     conversation_id={chatHistory.conversation_id}
                                     slug={chatHistory.slug}
                                     agent_avatar={chatHistory.agent_avatar}
-                                    agent_name={chatHistory.agent_name} />
+                                    agent_name={chatHistory.agent_name}
+                                    showSidePanel={props.setEnabled}
+                                    />
                             ))}
                         </div>
                     ))}
@@ -357,7 +360,7 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
             </ScrollArea>
             {
                 (props.data && props.data.length > 5) && (
-                    <ChatSessionsModal data={props.organizedData} />
+                    <ChatSessionsModal data={props.organizedData} showSidePanel={props.setEnabled} />
                 )
             }
             <FilesMenu conversationId={props.conversationId} uploadedFiles={props.uploadedFiles} isMobileWidth={props.isMobileWidth} />
@@ -527,7 +530,7 @@ function ChatSession(props: ChatHistory) {
             onMouseLeave={() => setIsHovered(false)}
             key={props.conversation_id}
             className={`${styles.session} ${props.compressed ? styles.compressed : '!max-w-full'} ${isHovered ? `${styles.sessionHover}` : ''}`}>
-            <Link href={`/chat?conversationId=${props.conversation_id}`}>
+            <Link href={`/chat?conversationId=${props.conversation_id}`} onClick={() => props.showSidePanel(false)}>
                 <p className={styles.session}>{props.slug || "New Conversation 🌱"}</p>
             </Link>
             <ChatSessionActionMenu conversationId={props.conversation_id} />
@@ -537,9 +540,10 @@ function ChatSession(props: ChatHistory) {
 
 interface ChatSessionsModalProps {
     data: GroupedChatHistory | null;
+    showSidePanel: (isEnabled: boolean) => void;
 }
 
-function ChatSessionsModal({ data }: ChatSessionsModalProps) {
+function ChatSessionsModal({ data, showSidePanel }: ChatSessionsModalProps) {
     return (
         <Dialog>
             <DialogTrigger
@@ -565,7 +569,8 @@ function ChatSessionsModal({ data }: ChatSessionsModalProps) {
                                             conversation_id={chatHistory.conversation_id}
                                             slug={chatHistory.slug}
                                             agent_avatar={chatHistory.agent_avatar}
-                                            agent_name={chatHistory.agent_name} />
+                                            agent_name={chatHistory.agent_name}
+                                            showSidePanel={showSidePanel}/>
                                     ))}
                                 </div>
                             ))}
@@ -718,8 +723,7 @@ export default function SidePanel(props: SidePanelProps) {
                     height={40}
                 />
                 {
-                    authenticatedData &&
-                        isMobileWidth ?
+                    authenticatedData && isMobileWidth && enabled ?
                         <Drawer>
                             <DrawerTrigger><ArrowRight className="h-4 w-4 mx-2" /></DrawerTrigger>
                             <DrawerContent>
