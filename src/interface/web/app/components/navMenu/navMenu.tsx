@@ -66,7 +66,6 @@ export default function NavMenu(props: NavMenuProps) {
             document.documentElement.classList.add('dark');
             setDarkMode(true);
         }
-
     }, []);
 
     useEffect(() => {
@@ -150,7 +149,6 @@ export default function NavMenu(props: NavMenuProps) {
                                     <Toggle
                                         pressed={darkMode}
                                         onClick={() => {
-                                            console.log("clicked on dark mode method");
                                             setDarkMode(!darkMode)
                                         }
                                         }>

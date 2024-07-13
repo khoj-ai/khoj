@@ -7,7 +7,6 @@ import mditHljs from "markdown-it-highlightjs";
 import React, { useEffect, useRef, useState } from 'react';
 
 import 'katex/dist/katex.min.css';
-import 'highlight.js/styles/github.css'
 
 import { TeaserReferencesSection, constructAllReferences } from '../referencePanel/referencePanel';
 
@@ -242,7 +241,7 @@ export default function ChatMessage(props: ChatMessageProps) {
             preElements.forEach((preElement) => {
                 const copyButton = document.createElement('button');
                 const copyImage = document.createElement('img');
-                copyImage.src = '/copy-button.svg';
+                copyImage.src = '/static/copy-button.svg';
                 copyImage.alt = 'Copy';
                 copyImage.width = 24;
                 copyImage.height = 24;
@@ -256,11 +255,12 @@ export default function ChatMessage(props: ChatMessageProps) {
                     textContent = textContent.replace(/^Copy/, '');
                     textContent = textContent.trim();
                     navigator.clipboard.writeText(textContent);
+                    copyImage.src = '/static/copy-button-success.svg';
                 });
                 preElement.prepend(copyButton);
             });
         }
-    }, [markdownRendered]);
+    }, [markdownRendered, isHovering, messageRef]);
 
     if (!props.chatMessage.message) {
         return null;
