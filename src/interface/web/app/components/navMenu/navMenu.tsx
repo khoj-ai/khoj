@@ -55,7 +55,6 @@ export default function NavMenu(props: NavMenuProps) {
             document.documentElement.classList.add('dark');
             setDarkMode(true);
         }
-
     }, []);
 
     useEffect(() => {
@@ -126,12 +125,12 @@ export default function NavMenu(props: NavMenuProps) {
                             <MenubarTrigger>Profile</MenubarTrigger>
                             <MenubarContent>
                                 <MenubarItem>
-                                <Toggle
-                                    pressed={darkMode}
-                                    onClick={() => {
-                                        console.log("clicked on dark mode method");
-                                        setDarkMode(!darkMode)}
-                                    }>
+                                    <Toggle
+                                        pressed={darkMode}
+                                        onClick={() => {
+                                            setDarkMode(!darkMode)
+                                        }
+                                        }>
                                         <Moon />
                                     </Toggle>
                                 </MenubarItem>
