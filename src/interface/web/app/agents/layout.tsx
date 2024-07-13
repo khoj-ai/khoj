@@ -18,7 +18,7 @@ export default function RootLayout({
 }>) {
     return (
         <div className={`${styles.agentsLayout}`}>
-            <NavMenu selected="Agents" />
+            <NavMenu selected="Agents" showLogo={true} />
             {children}
         </div>
     );

@@ -72,12 +72,8 @@ div.agent {
     padding: 20px;
     box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
     border-radius: 8px;
-    background: linear-gradient(18.48deg,rgba(252, 213, 87, 0.25) 2.76%,rgba(197, 0, 0, 0) 17.23%),linear-gradient(200.6deg,rgba(244, 229, 68, 0.25) 4.13%,rgba(230, 26, 26, 0) 20.54%);
 }
 
-div.agentModal {
-    background: linear-gradient(18.48deg,rgba(252, 213, 87, 0.25) 2.76%,rgba(197, 0, 0, 0) 17.23%),linear-gradient(200.6deg,rgba(244, 229, 68, 0.25) 4.13%,rgba(230, 26, 26, 0) 20.54%);
-}
 
 div.agentModalContent button {
     width: 100%;
