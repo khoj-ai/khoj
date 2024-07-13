@@ -55,23 +55,40 @@ import { ToastAction } from '@/components/ui/toast';
 
 const automationsFetcher = () => window.fetch('/api/automations').then(res => res.json()).catch(err => console.log(err));
 
+// Standard cron format: minute hour dayOfMonth month dayOfWeek
+
 function getEveryBlahFromCron(cron: string) {
     const cronParts = cron.split(' ');
-    if (cronParts[2] === '*') {
+    const dayOfMonth = cronParts[2];
+    const dayOfWeek = cronParts[4];
+
+    // If both dayOfMonth and dayOfWeek are '*', it runs every day
+    if (dayOfMonth === '*' && dayOfWeek === '*') {
         return 'Day';
     }
-    if (cronParts[4] === '*') {
+    // If dayOfWeek is not '*', it suggests a specific day of the week, implying a weekly schedule
+    else if (dayOfWeek !== '*') {
         return 'Week';
     }
-    return 'Month';
+    // If dayOfMonth is not '*', it suggests a specific day of the month, implying a monthly schedule
+    else if (dayOfMonth !== '*') {
+        return 'Month';
+    }
+    // Default to 'Day' if none of the above conditions are met
+    else {
+        return 'Day';
+    }
 }
 
-function getDayIntervalFromCron(cron: string) {
+function getDayOfWeekFromCron(cron: string) {
     const cronParts = cron.split(' ');
-    if (cronParts[4] === '*') {
-        return cronParts[5];
+    if (cronParts[3] === '*' && cronParts[4] !== '*') {
+        console.log("returning cronparts[4] for day of week", cronParts[4]);
+        return Number(cronParts[4]);
     }
-    return '';
+
+    console.log("returning 8 for day of week");
+    return undefined;
 }
 
 function getTimeRecurrenceFromCron(cron: string) {
@@ -94,10 +111,9 @@ function getTimeRecurrenceFromCron(cron: string) {
 
 function getDayOfMonthFromCron(cron: string) {
     const cronParts = cron.split(' ');
-    if (cronParts[2] === '*') {
-        return cronParts[3];
-    }
-    return '';
+
+    console.log(cronParts);
+    return String(cronParts[2]);
 }
 
 function cronToHumanReadableString(cron: string) {
@@ -106,7 +122,7 @@ function cronToHumanReadableString(cron: string) {
 
 const frequencies = ['Day', 'Week', 'Month'];
 
-const dayIntervals = Array.from({ length: 31 }, (_, i) => i + 1);
+const daysOfMonth = Array.from({ length: 31 }, (_, i) => String(i + 1));
 
 const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -161,7 +177,7 @@ const suggestedAutomationsMetadata: AutomationsData[] = [
         "query_to_run": "Get the market summary for today and share it with me. Focus on tech stocks and the S&P 500.",
         "schedule": "9AM on every weekday",
         "next": "Next run at 9AM on Monday",
-        "crontime": "0 9 * * 1-5",
+        "crontime": "0 9 * * *",
         "id": timestamp + 3,
         "scheduling_request": "",
     }
@@ -386,7 +402,7 @@ function SharedAutomationCard(props: SharedAutomationCardProps) {
 const EditAutomationSchema = z.object({
     subject: z.optional(z.string()),
     everyBlah: z.string({ required_error: "Every is required" }),
-    dayInterval: z.optional(z.string()),
+    dayOfWeek: z.optional(z.number()),
     dayOfMonth: z.optional(z.string()),
     timeRecurrence: z.string({ required_error: "Time Recurrence is required" }),
     queryToRun: z.string({ required_error: "Query to Run is required" }),
@@ -408,7 +424,7 @@ function EditCard(props: EditCardProps) {
         defaultValues: {
             subject: automation?.subject,
             everyBlah: (automation?.crontime ? getEveryBlahFromCron(automation.crontime) : 'Day'),
-            dayInterval: (automation?.crontime ? getDayIntervalFromCron(automation.crontime) : undefined),
+            dayOfWeek: (automation?.crontime ? getDayOfWeekFromCron(automation.crontime) : undefined),
             timeRecurrence: (automation?.crontime ? getTimeRecurrenceFromCron(automation.crontime) : '12:00 PM'),
             dayOfMonth: (automation?.crontime ? getDayOfMonthFromCron(automation.crontime) : "1"),
             queryToRun: automation?.query_to_run,
@@ -416,7 +432,9 @@ function EditCard(props: EditCardProps) {
     })
 
     const onSubmit = (values: z.infer<typeof EditAutomationSchema>) => {
-        const cronFrequency = convertFrequencyToCron(values.everyBlah, values.timeRecurrence, values.dayInterval, values.dayOfMonth);
+        const cronFrequency = convertFrequencyToCron(values.everyBlah, values.timeRecurrence, values.dayOfWeek, values.dayOfMonth);
+
+        console.log("submitting changes");
 
         let updateQueryUrl = `/api/automation?`;
 
@@ -458,7 +476,7 @@ function EditCard(props: EditCardProps) {
             });
     }
 
-    function convertFrequencyToCron(frequency: string, timeRecurrence: string, dayOfWeek?: string, dayOfMonth?: string) {
+    function convertFrequencyToCron(frequency: string, timeRecurrence: string, dayOfWeek?: number, dayOfMonth?: string) {
         let cronString = '';
 
         const minutes = timeRecurrence.split(':')[1].split(' ')[0];
@@ -466,7 +484,7 @@ function EditCard(props: EditCardProps) {
         const rawHourAsNumber = Number(timeRecurrence.split(':')[0]);
         const hours = period === 'PM' && (rawHourAsNumber < 12) ? String(rawHourAsNumber + 12) : rawHourAsNumber;
 
-        const dayOfWeekNumber = weekDays.indexOf(dayOfWeek || '');
+        const dayOfWeekNumber = dayOfWeek ? dayOfWeek : '*';
 
         switch (frequency) {
             case 'Day':
@@ -498,6 +516,9 @@ interface AutomationModificationFormProps {
 function AutomationModificationForm(props: AutomationModificationFormProps) {
 
     const [isSaving, setIsSaving] = useState(false);
+    const { errors } = props.form.formState;
+
+    console.log(errors);
 
     function recommendationPill(recommendationText: string, onChange: (value: any, event: React.MouseEvent<HTMLButtonElement>) => void) {
         return (
@@ -524,6 +545,8 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
     return (
         <Form {...props.form}>
             <form onSubmit={props.form.handleSubmit((values) => {
+                console.log(values);
+                console.log("submitting to onsubmithandler");
                 props.onSubmit(values);
                 setIsSaving(true);
             })} className="space-y-8">
@@ -542,6 +565,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                                         <Input placeholder="Digest of Healthcare AI trends" {...field} />
                                     </FormControl>
                                     <FormMessage />
+                                    {errors.subject && <FormMessage>{errors.subject?.message}</FormMessage>}
                                 </FormItem>
                             )}
                         />)
@@ -573,6 +597,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                                 </SelectContent>
                             </Select>
                             <FormMessage />
+                            {errors.subject && <FormMessage>{errors.everyBlah?.message}</FormMessage>}
                         </FormItem>
                     )}
                 />
@@ -580,12 +605,12 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                     props.form.watch('everyBlah') === 'Week' && (
                         <FormField
                             control={props.form.control}
-                            name="dayInterval"
+                            name="dayOfWeek"
                             render={({ field }) => (
                                 <FormItem
                                     className='w-full'>
                                     <FormLabel>Day of Week</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
                                         <FormControl>
                                             <SelectTrigger className='w-[200px]'>
                                                 On <SelectValue placeholder="" />
@@ -593,8 +618,8 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                                         </FormControl>
                                         <SelectContent>
                                             {
-                                                weekDays.map((day) => (
-                                                    <SelectItem key={day} value={day}>
+                                                weekDays.map((day, index) => (
+                                                    <SelectItem key={day} value={String(index)}>
                                                         {day}
                                                     </SelectItem>
                                                 ))
@@ -602,6 +627,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
+                                    {errors.subject && <FormMessage>{errors.dayOfWeek?.message}</FormMessage>}
                                 </FormItem>
                             )}
                         />
@@ -624,8 +650,8 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                                         </FormControl>
                                         <SelectContent>
                                             {
-                                                dayIntervals.map((day) => (
-                                                    <SelectItem key={day} value={String(day)}>
+                                                daysOfMonth.map((day) => (
+                                                    <SelectItem key={day} value={day}>
                                                         {day}
                                                     </SelectItem>
                                                 ))
@@ -633,6 +659,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
+                                    {errors.subject && <FormMessage>{errors.dayOfMonth?.message}</FormMessage>}
                                 </FormItem>
                             )}
                         />
@@ -670,6 +697,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
+                                    {errors.subject && <FormMessage>{errors.timeRecurrence?.message}</FormMessage>}
                                 </FormItem>
                             )}
                         />
@@ -697,6 +725,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                                 <Textarea placeholder="Create a summary of the latest news about AI in healthcare." value={field.value} onChange={field.onChange} />
                             </FormControl>
                             <FormMessage />
+                            {errors.subject && <FormMessage>{errors.queryToRun?.message}</FormMessage>}
                         </FormItem>
                     )}
                 />
@@ -774,7 +803,7 @@ export default function Automations() {
             }
             <h3
                 className="text-4xl py-4">
-                Your Automations
+                Your Creations
             </h3>
             <Suspense>
                 <SharedAutomationCard
@@ -813,7 +842,38 @@ export default function Automations() {
             {
                 ((!personalAutomations || personalAutomations.length === 0) && (allNewAutomations.length == 0)) && (
                     <div>
-                        It's pretty empty here!
+                        It's pretty empty here! Create your own automation to get started.
+                        <div className='mt-4'>
+                            {
+                                authenticatedData ? (
+                                    <Dialog
+                                        open={isCreating}
+                                        onOpenChange={(open) => {
+                                            setIsCreating(open);
+                                        }}
+                                    >
+                                        <DialogTrigger asChild>
+                                            <Button variant="default">Design</Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                            <DialogTitle>Create Automation</DialogTitle>
+                                            <EditCard
+                                                createNew={true}
+                                                setIsEditing={setIsCreating}
+                                                setUpdatedAutomationData={setNewAutomationData}
+                                                locationData={ipLocationData} />
+                                        </DialogContent>
+                                    </Dialog>
+                                )
+                                    : (
+                                        <Button
+                                            onClick={() => setShowLoginPrompt(true)}
+                                            variant={'default'}>
+                                            Design
+                                        </Button>
+                                    )
+                            }
+                        </div>
                     </div>
                 )
             }
