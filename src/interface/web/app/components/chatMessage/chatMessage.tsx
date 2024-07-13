@@ -348,7 +348,7 @@ export default function ChatMessage(props: ChatMessageProps) {
             </div>
             <div className={styles.chatFooter}>
                 {
-                    isHovering &&
+                    (isHovering || props.isMobileWidth) &&
                     (
                         <>
                             <div title={formatDate(props.chatMessage.created)} className={`text-gray-400 relative top-0 left-4`}>
