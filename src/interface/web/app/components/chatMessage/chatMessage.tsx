@@ -351,7 +351,7 @@ export default function ChatMessage(props: ChatMessageProps) {
                     isHovering &&
                     (
                         <>
-                            <div title={formatDate(props.chatMessage.created)} className={`text-gray-400 relative top-2 left-2`}>
+                            <div title={formatDate(props.chatMessage.created)} className={`text-gray-400 relative top-0 left-4`}>
                                 {renderTimeStamp(props.chatMessage.created)}
                             </div>
                             <div className={styles.chatButtons}>

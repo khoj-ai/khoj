@@ -276,14 +276,14 @@ export function TeaserReferencesSection(props: TeaserReferenceSectionProps) {
     }
 
     return (
-        <div className={`${props.isMobileWidth ? 'p-0' : 'p-4'}`}>
+        <div className="pt-0 px-4 pb-4 md:px-6">
             <h3 className="inline-flex items-center">
                 References
                 <p className="text-gray-400 m-2">
                     {numReferences} sources
                 </p>
             </h3>
-            <div className={`flex ${props.isMobileWidth ? 'w-[90vw]' : 'w-auto'} space-x-4 mt-2`}>
+            <div className={`flex sm:w-[90vw] md:w-auto space-x-4 mt-2`}>
                 {
                     notesDataToShow.map((note, index) => {
                         return <NotesContextReferenceCard showFullContent={false} {...note} key={`${note.title}-${index}`} />
@@ -320,7 +320,7 @@ export default function ReferencePanel(props: ReferencePanelDataProps) {
     return (
         <Sheet>
             <SheetTrigger
-                className='text-balance w-[200px] overflow-hidden break-words p-0 bg-transparent border-none text-gray-400 align-middle justify-center items-center !m-0 inline-flex'>
+                className='text-balance w-[200px] flex sm:justify-start md:justify-center overflow-hidden break-words p-0 bg-transparent border-none text-gray-400 align-middle items-center !m-0 inline-flex'>
                 View references <ArrowRight className='m-1' />
             </SheetTrigger>
             <SheetContent className="overflow-y-scroll">

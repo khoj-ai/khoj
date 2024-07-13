@@ -3,12 +3,13 @@ div.chatMessageContainer {
     flex-direction: column;
     margin: 12px;
     border-radius: 16px;
-    padding: 16px;
+    padding: 8px 16px 0 16px;
     box-shadow: 0 4px 10px var(--box-shadow-color)
 }
 
 div.chatMessageWrapper {
-    padding-left: 24px;
+    padding-left: 1rem;
+    padding-bottom: 1rem;
 }
 div.chatMessageWrapper p:not(:last-child) {
     margin-bottom: 16px;
@@ -20,7 +21,7 @@ div.khojfullHistory {
 }
 
 div.youfullHistory {
-    max-width: 80%;
+    max-width: 100%;
 }
 
 div.chatMessageContainer.youfullHistory {
@@ -71,10 +72,11 @@ div.chatFooter {
 div.chatButtons {
     display: flex;
     justify-content: flex-end;
+    width: min-content;
     border: var(--border-color) 1px solid;
     border-radius: 16px;
     position: relative;
-    bottom: -28px;
+    bottom: -12px;
     background-color: hsla(var(--secondary));
     box-shadow: 0 4px 10px var(--box-shadow-color);
 }
@@ -124,11 +126,6 @@ div.trainOfThought.primary p {
 
 @media screen and (max-width: 768px) {
     div.youfullHistory {
-        max-width: 100%;
+        max-width: 90%;
     }
-
-    div.chatMessageWrapper {
-        padding-left: 8px;
-    }
-
 }

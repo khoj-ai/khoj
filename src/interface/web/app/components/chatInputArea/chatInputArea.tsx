@@ -287,7 +287,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                 </Button>
                 <div className="grid w-full gap-1.5 relative">
                     <Textarea
-                        className='border-none w-full h-16 min-h-16 py-4 rounded-lg text-lg'
+                        className='border-none w-full h-16 min-h-16 md:py-4 rounded-lg text-lg'
                         placeholder="Type / to see a list of commands"
                         id="message"
                         value={message}
