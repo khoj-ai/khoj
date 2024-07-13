@@ -232,9 +232,10 @@ function AutomationsCard(props: AutomationsCardProps) {
     const automation = props.automation;
 
     useEffect(() => {
+        const toastTitle = `Automation: ${updatedAutomationData?.subject || automation.subject}`;
         if (toastMessage) {
             toast({
-                title: `Automation: ${updatedAutomationData?.subject || automation.subject}`,
+                title: toastTitle,
                 description: toastMessage,
                 action: (
                     <ToastAction altText="Dismiss">Ok</ToastAction>
@@ -552,7 +553,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                                 <FormItem>
                                     <FormLabel>Subject</FormLabel>
                                     <FormDescription>
-                                        This is the subject of the email you'll receive.
+                                        This is the subject of the email you will receive.
                                     </FormDescription>
                                     <FormControl>
                                         <Input placeholder="Digest of Healthcare AI trends" {...field} />
@@ -835,7 +836,7 @@ export default function Automations() {
             {
                 ((!personalAutomations || personalAutomations.length === 0) && (allNewAutomations.length == 0)) && (
                     <div>
-                        It's pretty empty here! Create your own automation to get started.
+                        So empty! Create your own automation to get started.
                         <div className='mt-4'>
                             {
                                 authenticatedData ? (
