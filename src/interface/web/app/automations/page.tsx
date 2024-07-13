@@ -47,7 +47,7 @@ import styles from './automations.module.css';
 import ShareLink from '../components/shareLink/shareLink';
 import { useSearchParams } from 'next/navigation';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { DotsThreeVertical, Envelope, Info, MapPinSimple, Pencil, Play, Trash } from '@phosphor-icons/react';
+import { Clock, DotsThreeVertical, Envelope, Info, MapPinSimple, Pencil, Play, Plus, Trash } from '@phosphor-icons/react';
 import { useAuthenticatedData } from '../common/auth';
 import LoginPrompt from '../components/loginPrompt/loginPrompt';
 import { useToast } from '@/components/ui/use-toast';
@@ -253,111 +253,117 @@ function AutomationsCard(props: AutomationsCardProps) {
     }
 
     return (
-        <Card className='hover:shadow-md rounded-lg bg-secondary h-full shadow-sm'>
-            <CardHeader>
-                <CardTitle className='line-clamp-2 leading-normal flex justify-between'>
-                    {updatedAutomationData?.subject || automation.subject}
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button className='bg-background' variant={'ghost'}><DotsThreeVertical className='h-4 w-4' /></Button>
-                        </PopoverTrigger>
-                        <PopoverContent className='w-auto grid gap-2 text-left'>
-                            <Button variant={'destructive'}
-                                className='justify-start'
-                                onClick={() => {
-                                    if (props.suggestedCard) {
-                                        setIsDeleted(true);
-                                        return;
-                                    }
-                                    deleteAutomation(automation.id.toString(), setIsDeleted);
-                                }}>
-                                <Trash className='h-4 w-4 mr-2' />Delete
-                            </Button>
-                            {
-                                !props.suggestedCard && (
-                                    <Dialog
-                                        open={isEditing}
-                                        onOpenChange={(open) => {
-                                            setIsEditing(open);
-                                        }}
-                                    >
-                                        <DialogTrigger asChild>
-                                            <Button variant="outline" className="justify-start">
-                                                <Pencil className='h-4 w-4 mr-2' />Edit
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogContent>
-                                            <DialogTitle>Edit Automation</DialogTitle>
-                                            <EditCard
-                                                automation={automation}
-                                                setIsEditing={setIsEditing}
-                                                isLoggedIn={props.isLoggedIn}
-                                                setShowLoginPrompt={props.setShowLoginPrompt}
-                                                setUpdatedAutomationData={setUpdatedAutomationData}
-                                                locationData={props.locationData} />
-                                        </DialogContent>
-                                    </Dialog>
-                                )
-                            }
-                            {
-                                !props.suggestedCard && (
-                                    <Button variant={'outline'}
-                                        className="justify-start"
-                                        onClick={() => {
-                                            sendAPreview(automation.id.toString(), setToastMessage);
-                                        }}>
-                                        <Play className='h-4 w-4 mr-2' />Send Preview
-                                    </Button>
-                                )
-                            }
-                        </PopoverContent>
-                    </Popover>
+        <div className='p-2 rounded-lg bg-secondary hover:shadow-md'>
+            <Card className='bg-secondary h-full shadow-none border-l-4 border-t-0 border-r-0 border-b-0 border-l-green-400 dark:border-green-600 rounded-none'>
+                <CardHeader>
+                    <CardTitle className='line-clamp-2 leading-normal flex justify-between'>
+                        {updatedAutomationData?.subject || automation.subject}
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button className='bg-background' variant={'ghost'}><DotsThreeVertical className='h-4 w-4' /></Button>
+                            </PopoverTrigger>
+                            <PopoverContent className='w-auto grid gap-2 text-left'>
+                                <Button variant={'destructive'}
+                                    className='justify-start'
+                                    onClick={() => {
+                                        if (props.suggestedCard) {
+                                            setIsDeleted(true);
+                                            return;
+                                        }
+                                        deleteAutomation(automation.id.toString(), setIsDeleted);
+                                    }}>
+                                    <Trash className='h-4 w-4 mr-2' />Delete
+                                </Button>
+                                {
+                                    !props.suggestedCard && (
+                                        <Dialog
+                                            open={isEditing}
+                                            onOpenChange={(open) => {
+                                                setIsEditing(open);
+                                            }}
+                                        >
+                                            <DialogTrigger asChild>
+                                                <Button variant="outline" className="justify-start">
+                                                    <Pencil className='h-4 w-4 mr-2' />Edit
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent>
+                                                <DialogTitle>Edit Automation</DialogTitle>
+                                                <EditCard
+                                                    automation={automation}
+                                                    setIsEditing={setIsEditing}
+                                                    isLoggedIn={props.isLoggedIn}
+                                                    setShowLoginPrompt={props.setShowLoginPrompt}
+                                                    setUpdatedAutomationData={setUpdatedAutomationData}
+                                                    locationData={props.locationData} />
+                                            </DialogContent>
+                                        </Dialog>
+                                    )
+                                }
+                                {
+                                    !props.suggestedCard && (
+                                        <Button variant={'outline'}
+                                            className="justify-start"
+                                            onClick={() => {
+                                                sendAPreview(automation.id.toString(), setToastMessage);
+                                            }}>
+                                            <Play className='h-4 w-4 mr-2' />Run Now
+                                        </Button>
+                                    )
+                                }
+                            </PopoverContent>
+                        </Popover>
 
-                </CardTitle>
-                <CardDescription className='mt-2'>
-                    {updatedAutomationData?.schedule || cronToHumanReadableString(automation.crontime)}
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                {updatedAutomationData?.query_to_run || automation.query_to_run}
-            </CardContent>
-            <CardFooter className="flex justify-end gap-2">
-                {
-                    props.suggestedCard && props.setNewAutomationData && (
-                        <Dialog
-                            open={isEditing}
-                            onOpenChange={(open) => {
-                                setIsEditing(open);
-                            }}
-                        >
-                            <DialogTrigger asChild>
-                                <Button variant="outline">Add</Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogTitle>Add Automation</DialogTitle>
-                                <EditCard
-                                    createNew={true}
-                                    automation={automation}
-                                    setIsEditing={setIsEditing}
-                                    isLoggedIn={props.isLoggedIn}
-                                    setShowLoginPrompt={props.setShowLoginPrompt}
-                                    setUpdatedAutomationData={props.setNewAutomationData}
-                                    locationData={props.locationData} />
-                            </DialogContent>
-                        </Dialog>
-                    )
-                }
-                <ShareLink
-                    buttonTitle="Share"
-                    buttonVariant={'outline' as keyof typeof buttonVariants}
-                    title="Share Automation"
-                    description="Copy the link below and share it with your coworkers or friends."
-                    url={createShareLink(automation)}
-                    onShare={() => {
-                        navigator.clipboard.writeText(createShareLink(automation));
-                    }} />
-            </CardFooter>
-        </Card>
+                    </CardTitle>
+                    <CardDescription className='mt-2'>
+                        {updatedAutomationData?.schedule || cronToHumanReadableString(automation.crontime)}
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {updatedAutomationData?.query_to_run || automation.query_to_run}
+                </CardContent>
+                <CardFooter className="flex justify-end gap-2">
+                    {
+                        props.suggestedCard && props.setNewAutomationData && (
+                            <Dialog
+                                open={isEditing}
+                                onOpenChange={(open) => {
+                                    setIsEditing(open);
+                                }}
+                            >
+                                <DialogTrigger asChild>
+                                    <Button variant="outline">
+                                        <Plus className='h-4 w-4 mr-2' />
+                                        Add
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogTitle>Add Automation</DialogTitle>
+                                    <EditCard
+                                        createNew={true}
+                                        automation={automation}
+                                        setIsEditing={setIsEditing}
+                                        isLoggedIn={props.isLoggedIn}
+                                        setShowLoginPrompt={props.setShowLoginPrompt}
+                                        setUpdatedAutomationData={props.setNewAutomationData}
+                                        locationData={props.locationData} />
+                                </DialogContent>
+                            </Dialog>
+                        )
+                    }
+                    <ShareLink
+                        buttonTitle="Share"
+                        includeIcon={true}
+                        buttonVariant={'outline' as keyof typeof buttonVariants}
+                        title="Share Automation"
+                        description="Copy the link below and share it with your coworkers or friends."
+                        url={createShareLink(automation)}
+                        onShare={() => {
+                            navigator.clipboard.writeText(createShareLink(automation));
+                        }} />
+                </CardFooter>
+            </Card>
+        </div>
     )
 }
 
@@ -828,11 +834,10 @@ export default function Automations() {
                 <AlertTitle>How this works!</AlertTitle>
                 <AlertDescription>
                     Automations help you structure your time by automating tasks you do regularly. Build your own, or try out our presets. Get results straight to your inbox.
+                    <div className='mt-3' />
                     {
                         authenticatedData ? (
-                            <div className="mt-3">
-                                <span className='rounded-full text-sm bg-blue-200 dark:bg-blue-600 p-1' ><Envelope className='h-4 w-4 mr-2 inline' />{authenticatedData.email}</span>
-                            </div>
+                            <span className='rounded-full text-sm bg-blue-200 dark:bg-blue-600 p-2 m-1' ><Envelope className='h-4 w-4 mr-2 inline' />{authenticatedData.email}</span>
                         )
                             : (
                                 <span> Sign in to create your own automations.</span>
@@ -840,9 +845,13 @@ export default function Automations() {
                     }
                     {
                         ipLocationData && (
-                            <div className="mt-4">
-                                <span className='rounded-full text-sm bg-purple-200 dark:bg-purple-600 p-1' ><MapPinSimple className='h-4 w-4 mr-2 inline' />{ipLocationData ? `${ipLocationData.city}, ${ipLocationData.country}` : 'Unknown'}</span>
-                            </div>
+                            <span className='rounded-full text-sm bg-purple-200 dark:bg-purple-600 p-2 m-1' ><MapPinSimple className='h-4 w-4 mr-2 inline' />{ipLocationData ? `${ipLocationData.city}, ${ipLocationData.country}` : 'Unknown'}</span>
+                        )
+                    }
+                    {
+                        ipLocationData && (
+                            <span className='rounded-full text-sm bg-green-200 dark:bg-green-600 p-2 m-1' ><Clock className='h-4 w-4 mr-2 inline' />{ipLocationData ? `${ipLocationData.timezone}` : 'Unknown'}</span>
+
                         )
                     }
                 </AlertDescription>

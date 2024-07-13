@@ -10,6 +10,7 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Share } from "@phosphor-icons/react";
 
 interface ShareLinkProps {
     buttonTitle: string;
@@ -18,6 +19,7 @@ interface ShareLinkProps {
     url: string;
     onShare: () => void;
     buttonVariant?: keyof typeof buttonVariants;
+    includeIcon?: boolean;
 }
 
 function copyToClipboard(text: string) {
@@ -35,6 +37,11 @@ export default function ShareLink(props: ShareLinkProps) {
                 asChild
                 onClick={props.onShare}>
                 <Button size="sm" className={`px-3`} variant={props.buttonVariant ?? 'default' as const}>
+                    {
+                        props.includeIcon && (
+                            <Share className="w-4 h-4 mr-2" />
+                        )
+                    }
                     {props.buttonTitle}
                 </Button>
             </DialogTrigger>
