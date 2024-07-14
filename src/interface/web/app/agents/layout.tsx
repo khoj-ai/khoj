@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import NavMenu from '../components/navMenu/navMenu';
 import styles from './agentsLayout.module.css';
 
+import "../globals.css";
+
 export const metadata: Metadata = {
     title: "Khoj AI - Agents",
     description: "Use Agents with Khoj AI for deeper, more personalized queries.",

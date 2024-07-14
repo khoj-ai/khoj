@@ -24,13 +24,15 @@ import {
     Atom,
     ClockCounterClockwise,
     PaperPlaneTilt,
-    Info
+    Info,
+    UserCircle
 } from "@phosphor-icons/react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTrigger } from '@/components/ui/dialog';
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
 import LoginPrompt from '../components/loginPrompt/loginPrompt';
 import Loading, { InlineLoading } from '../components/loading/loading';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface IconMap {
     [key: string]: (color: string, width: string, height: string) => JSX.Element | null;
@@ -277,8 +279,9 @@ function AgentCard(props: AgentCardProps) {
 
 export default function Agents() {
     const { data, error } = useSWR<AgentData[]>('agents', agentsFetcher, { revalidateOnFocus: false });
-    const userData = useAuthenticatedData();
+    const authenticatedData = useAuthenticatedData();
     const [isMobileWidth, setIsMobileWidth] = useState(false);
+    const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -318,12 +321,39 @@ export default function Agents() {
 
     return (
         <main className={styles.main}>
-            <div className={`${styles.titleBar} text-5xl`}>
-                Talk to a Specialized Agent
-            </div>
+            <h3
+                className='text-xl py-4'>
+                Agents
+            </h3>
+            {
+                showLoginPrompt &&
+                <LoginPrompt
+                    loginRedirectMessage="Sign in to start chatting with a specialized agent"
+                    onOpenChange={setShowLoginPrompt} />
+            }
+
+            <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>How this works</AlertTitle>
+                <AlertDescription>
+                    You can use any of these specialized agents to tailor to tune your conversation to your needs.
+                    {
+                        !authenticatedData &&
+                        <>
+                            <div className='mt-3' />
+                            <Button onClick={() => setShowLoginPrompt(true)}>
+                                <UserCircle className='w-4 h-4 mr-2' /> Sign In
+                            </Button>
+                        </>
+
+                    }
+                    <div className='mt-3' />
+                    <strong>Coming Soon:</strong> Support for making your own agents.
+                </AlertDescription>
+            </Alert>
             <div className={styles.agentList}>
                 {data.map(agent => (
-                    <AgentCard key={agent.slug} data={agent} userProfile={userData} isMobileWidth={isMobileWidth} />
+                    <AgentCard key={agent.slug} data={agent} userProfile={authenticatedData} isMobileWidth={isMobileWidth} />
                 ))}
             </div>
         </main>
