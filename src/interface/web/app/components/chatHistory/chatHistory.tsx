@@ -247,7 +247,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
             <div ref={ref}>
                 <div className={styles.chatHistory} ref={chatHistoryRef}>
                     <div ref={sentinelRef} style={{ height: '1px' }}>
-                        {fetchingData && <InlineLoading />}
+                        {fetchingData && <InlineLoading message="Loading Conversation" className='opacity-50'/>}
                     </div>
                     {(data && data.chat) && data.chat.map((chatMessage, index) => (
                         <ChatMessage
@@ -328,16 +328,18 @@ export default function ChatHistory(props: ChatHistoryProps) {
                             isLastMessage={true}
                         />
                     }
-                    <div className={`${styles.agentIndicator} pb-4`}>
-                        <div className="relative group mx-2 cursor-pointer">
-                            <ProfileCard
-                                name={constructAgentName()}
-                                link={constructAgentLink()}
-                                avatar={<Lightbulb color='orange' weight='fill' className="mt-1 mx-1" />}
-                                description={constructAgentPersona()}
-                            />
+                    {data &&
+                        <div className={`${styles.agentIndicator} pb-4`}>
+                            <div className="relative group mx-2 cursor-pointer">
+                                <ProfileCard
+                                    name={constructAgentName()}
+                                    link={constructAgentLink()}
+                                    avatar={<Lightbulb color='orange' weight='fill' className="mt-1 mx-1" />}
+                                    description={constructAgentPersona()}
+                                />
+                            </div>
                         </div>
-                    </div>
+                    }
                 </div>
             </div>
         </ScrollArea>
