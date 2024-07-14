@@ -706,7 +706,11 @@ export default function SidePanel(props: SidePanelProps) {
                 <img src="/khoj-logo.svg" alt="logo" className="w-16"/>
                 {
                     authenticatedData && props.isMobileWidth ?
-                        <Drawer>
+                        <Drawer open={enabled} onOpenChange={(open) => {
+                            if (!enabled) setEnabled(false);
+                            setEnabled(open);
+                        }
+                        }>
                             <DrawerTrigger><ArrowRight className="h-4 w-4 mx-2" weight="bold"/></DrawerTrigger>
                             <DrawerContent>
                                 <DrawerHeader>
