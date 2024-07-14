@@ -713,16 +713,12 @@ export default function SidePanel(props: SidePanelProps) {
 
     return (
         <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed}`}>
-            <div className="flex items-start justify-between">
-                <Image src="/khoj-logo.svg"
-                    alt="logo"
-                    width={40}
-                    height={40}
-                />
+            <div className="flex items-center justify-between">
+                <img src="/khoj-logo.svg" alt="logo" className="w-16"/>
                 {
                     authenticatedData && isMobileWidth && enabled ?
                         <Drawer>
-                            <DrawerTrigger><ArrowRight className="h-4 w-4 mx-2" /></DrawerTrigger>
+                            <DrawerTrigger><ArrowRight className="h-4 w-4 mx-2" weight="bold"/></DrawerTrigger>
                             <DrawerContent>
                                 <DrawerHeader>
                                     <DrawerTitle>Sessions and Files</DrawerTitle>
@@ -750,7 +746,7 @@ export default function SidePanel(props: SidePanelProps) {
                         </Drawer>
                         :
                         <button className={styles.button} onClick={() => setEnabled(!enabled)}>
-                            {enabled ? <ArrowLeft className="h-4 w-4" /> : <ArrowRight className="h-4 w-4 mx-2" />}
+                            {enabled ? <ArrowLeft className="h-4 w-4" weight="bold"/> : <ArrowRight className="h-4 w-4 mx-2" weight="bold"/>}
                         </button>
                 }
             </div>
