@@ -11,7 +11,7 @@ div.session {
 }
 
 div.compressed {
-    grid-template-columns: minmax(auto, 12rem) 1fr 1fr;
+    grid-template-columns: minmax(12rem, 100%) 1fr 1fr;
 }
 
 div.sessionHover {
@@ -85,10 +85,9 @@ div.profile {
 div.panelWrapper {
     display: grid;
     padding: 0 1rem;
-    grid-template-rows: auto 1fr auto auto;
+    grid-template-rows: 1fr auto auto;
     height: 100%;
 }
-
 
 div.modalSessionsList {
     position: fixed;

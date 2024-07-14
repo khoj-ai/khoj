@@ -332,35 +332,37 @@ interface SessionsAndFilesProps {
 function SessionsAndFiles(props: SessionsAndFilesProps) {
     return (
         <>
-            <ScrollArea className="h-[40vh]">
-                <ScrollAreaScrollbar orientation="vertical" className="h-full w-2.5 border-l border-l-transparent p-[1px]" />
-                <div className={styles.sessionsList}>
-                    {props.subsetOrganizedData != null && Object.keys(props.subsetOrganizedData).map((timeGrouping) => (
-                        <div key={timeGrouping} className={`my-4`}>
-                            <div className={`text-muted-foreground text-sm font-bold p-[0.5rem] `}>
-                                {timeGrouping}
+            <div>
+                <ScrollArea>
+                    <ScrollAreaScrollbar orientation="vertical" className="h-full w-2.5 border-l border-l-transparent p-[1px]" />
+                    <div className={styles.sessionsList}>
+                        {props.subsetOrganizedData != null && Object.keys(props.subsetOrganizedData).map((timeGrouping) => (
+                            <div key={timeGrouping} className={`my-4`}>
+                                <div className={`text-muted-foreground text-sm font-bold p-[0.5rem] `}>
+                                    {timeGrouping}
+                                </div>
+                                {props.subsetOrganizedData && props.subsetOrganizedData[timeGrouping].map((chatHistory) => (
+                                    <ChatSession
+                                        created={chatHistory.created}
+                                        compressed={true}
+                                        key={chatHistory.conversation_id}
+                                        conversation_id={chatHistory.conversation_id}
+                                        slug={chatHistory.slug}
+                                        agent_avatar={chatHistory.agent_avatar}
+                                        agent_name={chatHistory.agent_name}
+                                        showSidePanel={props.setEnabled}
+                                        />
+                                ))}
                             </div>
-                            {props.subsetOrganizedData && props.subsetOrganizedData[timeGrouping].map((chatHistory) => (
-                                <ChatSession
-                                    created={chatHistory.created}
-                                    compressed={true}
-                                    key={chatHistory.conversation_id}
-                                    conversation_id={chatHistory.conversation_id}
-                                    slug={chatHistory.slug}
-                                    agent_avatar={chatHistory.agent_avatar}
-                                    agent_name={chatHistory.agent_name}
-                                    showSidePanel={props.setEnabled}
-                                    />
-                            ))}
-                        </div>
-                    ))}
-                </div>
-            </ScrollArea>
-            {
-                (props.data && props.data.length > 5) && (
-                    <ChatSessionsModal data={props.organizedData} showSidePanel={props.setEnabled} />
-                )
-            }
+                        ))}
+                    </div>
+                </ScrollArea>
+                {
+                    (props.data && props.data.length > 5) && (
+                        <ChatSessionsModal data={props.organizedData} showSidePanel={props.setEnabled} />
+                    )
+                }
+            </div>
             <FilesMenu conversationId={props.conversationId} uploadedFiles={props.uploadedFiles} isMobileWidth={props.isMobileWidth} />
             {props.userProfile &&
                 <UserProfileComponent userProfile={props.userProfile} webSocketConnected={props.webSocketConnected} collapsed={false} />
@@ -546,7 +548,7 @@ function ChatSessionsModal({ data, showSidePanel }: ChatSessionsModalProps) {
         <Dialog>
             <DialogTrigger
                 className="flex text-left text-medium text-gray-500 hover:text-gray-300 cursor-pointer my-4 text-sm p-[0.5rem]">
-                <span className="mr-2">See All <ArrowRight className="h-4 w-4" /></span>
+                <span className="mr-2">See All <ArrowRight className="inline h-4 w-4" weight="bold"/></span>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
