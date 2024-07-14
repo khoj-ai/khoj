@@ -2,9 +2,28 @@ div.session {
     padding: 0.5rem;
     margin-bottom: 0.25rem;
     border-radius: 0.5rem;
-    color: var(--main-text-color);
     cursor: pointer;
     max-width: 14rem;
+    font-size: medium;
+    display: grid;
+    grid-template-columns: minmax(auto, 350px) 1fr;
+}
+
+div.compressed {
+    grid-template-columns: minmax(auto, 12rem) 1fr 1fr;
+}
+
+div.sessionHover {
+    background-color: hsla(var(--popover));
+}
+
+div.session:hover {
+    background-color: hsla(var(--popover));
+    color: hsla(var(--popover-foreground));
+}
+
+div.session a {
+    text-decoration: none;
 }
 
 button.button {
@@ -17,29 +36,23 @@ button.button {
 }
 
 button.showMoreButton {
-    background: var(--intense-green);
-    border: none;
-    color: var(--frosted-background-color);
     border-radius: 0.5rem;
     padding: 8px;
 }
 
 div.panel {
-    display: grid;
-    grid-auto-flow: row;
+    display: flex;
+    flex-direction: column;
     padding: 1rem;
-    border-radius: 1rem;
-    background-color: var(--calm-blue);
-    color: var(--main-text-color);
-    height: 100%;
     overflow-y: auto;
     max-width: auto;
+    transition: background-color 0.5s;
 }
 
 div.expanded {
-    display: grid;
-    grid-template-columns: 1fr auto;
     gap: 1rem;
+    background-color: hsla(var(--muted));
+    height: 100%;
 }
 
 div.collapsed {
@@ -47,14 +60,12 @@ div.collapsed {
     grid-template-columns: 1fr;
 }
 
-div.session:hover {
-    background-color: var(--calmer-blue);
-}
-
 p.session {
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
+    text-align: left;
+    font-size: small;
 }
 
 div.header {
@@ -62,10 +73,18 @@ div.header {
     grid-template-columns: 1fr auto;
 }
 
-img.profile {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
+div.profile {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    align-items: center;
+    margin-top: auto;
+}
+
+div.panelWrapper {
+    display: grid;
+    grid-template-rows: auto 1fr auto auto;
+    height: 100%;
 }
 
 
@@ -75,7 +94,7 @@ div.modalSessionsList {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: var(--frosted-background-color);
+    background-color: hsla(var(--frosted-background-color));
     z-index: 1;
     display: flex;
     justify-content: center;
@@ -86,7 +105,7 @@ div.modalSessionsList {
 div.modalSessionsList div.content {
     max-width: 80%;
     max-height: 80%;
-    background-color: var(--frosted-background-color);
+    background-color: hsla(var(--frosted-background-color));
     overflow: auto;
     padding: 20px;
     border-radius: 10px;
@@ -95,4 +114,34 @@ div.modalSessionsList div.content {
 div.modalSessionsList div.session {
     max-width: 100%;
     text-overflow: ellipsis;
+}
+
+@media screen and (max-width: 768px) {
+    div.panel {
+        padding: 0.5rem;
+        position: absolute;
+        width: 100%;
+    }
+
+    div.expanded {
+        z-index: 1;
+    }
+
+    div.singleReference {
+        padding: 4px;
+    }
+
+    div.panelWrapper {
+        width: 100%;
+    }
+
+    div.session.compressed {
+        max-width: 100%;
+        grid-template-columns: minmax(auto, 350px) 1fr;
+    }
+
+    div.session {
+        max-width: 100%;
+        grid-template-columns: 200px 1fr;
+    }
 }

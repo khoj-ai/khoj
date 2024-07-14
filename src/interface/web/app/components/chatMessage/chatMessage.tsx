@@ -5,12 +5,15 @@ import styles from './chatMessage.module.css';
 import markdownIt from 'markdown-it';
 import mditHljs from "markdown-it-highlightjs";
 import React, { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
 
 import 'katex/dist/katex.min.css';
-import 'highlight.js/styles/github.css'
 
-import { hasValidReferences } from '../referencePanel/referencePanel';
+import { TeaserReferencesSection, constructAllReferences } from '../referencePanel/referencePanel';
+
+import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture, ArrowRight, SpeakerHifi } from '@phosphor-icons/react';
+import { MagnifyingGlass } from '@phosphor-icons/react/dist/ssr';
+
+import * as DomPurify from 'dompurify';
 
 const md = new markdownIt({
     html: true,
@@ -77,22 +80,36 @@ interface AgentData {
 
 interface Intent {
     type: string;
+    query: string;
+    "memory-type": string;
     "inferred-queries": string[];
 }
 
 export interface SingleChatMessage {
     automationId: string;
     by: string;
-    intent: {
-        [key: string]: string
-    }
     message: string;
     context: Context[];
     created: string;
     onlineContext: {
         [key: string]: OnlineContextData
     }
+    rawQuery?: string;
+    intent?: Intent;
 }
+
+export interface StreamMessage {
+    rawResponse: string;
+    trainOfThought: string[];
+    context: Context[];
+    onlineContext: {
+        [key: string]: OnlineContextData
+    }
+    completed: boolean;
+    rawQuery: string;
+    timestamp: string;
+}
+
 
 export interface ChatHistoryData {
     chat: SingleChatMessage[];
@@ -101,63 +118,122 @@ export interface ChatHistoryData {
     slug: string;
 }
 
-function FeedbackButtons() {
+function sendFeedback(uquery: string, kquery: string, sentiment: string) {
+    fetch('/api/chat/feedback', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ uquery: uquery, kquery: kquery, sentiment: sentiment })
+    })
+}
+
+function FeedbackButtons({ uquery, kquery }: { uquery: string, kquery: string }) {
     return (
-        <div className={styles.feedbackButtons}>
-            <button className={styles.thumbsUpButton}>
-                <Image
-                    src="/thumbs-up.svg"
-                    alt="Thumbs Up"
-                    width={24}
-                    height={24}
-                    priority
-                />
+        <div className={`${styles.feedbackButtons} flex align-middle justify-center items-center`}>
+            <button className={styles.thumbsUpButton} onClick={() => sendFeedback(uquery, kquery, 'positive')}>
+                <ThumbsUp color='hsl(var(--muted-foreground))' />
             </button>
-            <button className={styles.thumbsDownButton}>
-                <Image
-                    src="/thumbs-down.svg"
-                    alt="Thumbs Down"
-                    width={24}
-                    height={24}
-                    priority
-                />
+            <button className={styles.thumbsDownButton} onClick={() => sendFeedback(uquery, kquery, 'negative')}>
+                <ThumbsDown color='hsl(var(--muted-foreground))' />
             </button>
         </div>
     )
 }
 
-function onClickMessage(event: React.MouseEvent<any>, chatMessage: SingleChatMessage, setReferencePanelData: Function, setShowReferencePanel: Function) {
-    event.preventDefault();
-    setReferencePanelData(chatMessage);
-    setShowReferencePanel(true);
-}
-
 interface ChatMessageProps {
     chatMessage: SingleChatMessage;
-    setReferencePanelData: Function;
-    setShowReferencePanel: Function;
+    isMobileWidth: boolean;
+    customClassName?: string;
+    borderLeftColor?: string;
+}
+
+interface TrainOfThoughtProps {
+    message: string;
+    primary: boolean;
+}
+
+function chooseIconFromHeader(header: string, iconColor: string) {
+    const compareHeader = header.toLowerCase();
+    if (compareHeader.includes("understanding")) {
+        return <Brain className={`inline mr-2 ${iconColor}`} />
+    }
+
+    if (compareHeader.includes("generating")) {
+        return <Cloud className={`inline mr-2 ${iconColor}`} />;
+    }
+
+    if (compareHeader.includes("data sources")) {
+        return <Folder className={`inline mr-2 ${iconColor}`} />;
+    }
+
+    if (compareHeader.includes("notes")) {
+        return <Folder className={`inline mr-2 ${iconColor}`} />;
+    }
+
+    if (compareHeader.includes("read")) {
+        return <Book className={`inline mr-2 ${iconColor}`} />;
+    }
+
+    if (compareHeader.includes("search")) {
+        return <MagnifyingGlass className={`inline mr-2 ${iconColor}`} />;
+    }
+
+    if (compareHeader.includes("summary") || compareHeader.includes("summarize")) {
+        return <Aperture className={`inline mr-2 ${iconColor}`} />;
+    }
+
+    return <Brain className={`inline mr-2 ${iconColor}`} />;
+}
+
+
+export function TrainOfThought(props: TrainOfThoughtProps) {
+    // The train of thought comes in as a markdown-formatted string. It starts with a heading delimited by two asterisks at the start and end and a colon, followed by the message. Example: **header**: status. This function will parse the message and render it as a div.
+    let extractedHeader = props.message.match(/\*\*(.*)\*\*/);
+    let header = extractedHeader ? extractedHeader[1] : "";
+    const iconColor = props.primary ? 'text-orange-400' : 'text-gray-500';
+    const icon = chooseIconFromHeader(header, iconColor);
+    let markdownRendered = DomPurify.sanitize(md.render(props.message));
+    return (
+        <div className={`flex items-center ${props.primary ? 'text-gray-400' : 'text-gray-300'} ${styles.trainOfThought} ${props.primary ? styles.primary : ''}`} >
+            {icon}
+            <div dangerouslySetInnerHTML={{ __html: markdownRendered }} />
+        </div>
+    )
 }
 
 export default function ChatMessage(props: ChatMessageProps) {
     const [copySuccess, setCopySuccess] = useState<boolean>(false);
-
-    let message = props.chatMessage.message;
-
-    // Replace LaTeX delimiters with placeholders
-    message = message.replace(/\\\(/g, 'LEFTPAREN').replace(/\\\)/g, 'RIGHTPAREN')
-                        .replace(/\\\[/g, 'LEFTBRACKET').replace(/\\\]/g, 'RIGHTBRACKET');
-
-    if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image2") {
-        message = `![generated_image](${message})\n\n${props.chatMessage.intent["inferred-queries"][0]}`
-    }
-
-    let markdownRendered = md.render(message);
-
-    // Replace placeholders with LaTeX delimiters
-    markdownRendered = markdownRendered.replace(/LEFTPAREN/g, '\\(').replace(/RIGHTPAREN/g, '\\)')
-                        .replace(/LEFTBRACKET/g, '\\[').replace(/RIGHTBRACKET/g, '\\]');
-
+    const [isHovering, setIsHovering] = useState<boolean>(false);
+    const [markdownRendered, setMarkdownRendered] = useState<string>('');
     const messageRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        let message = props.chatMessage.message;
+
+        // Replace LaTeX delimiters with placeholders
+        message = message.replace(/\\\(/g, 'LEFTPAREN').replace(/\\\)/g, 'RIGHTPAREN')
+            .replace(/\\\[/g, 'LEFTBRACKET').replace(/\\\]/g, 'RIGHTBRACKET');
+
+        if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image2") {
+            message = `![generated_image](${message})\n\n${props.chatMessage.intent["inferred-queries"][0]}`
+        }
+
+        let markdownRendered = md.render(message);
+
+        // Replace placeholders with LaTeX delimiters
+        markdownRendered = markdownRendered.replace(/LEFTPAREN/g, '\\(').replace(/RIGHTPAREN/g, '\\)')
+            .replace(/LEFTBRACKET/g, '\\[').replace(/RIGHTBRACKET/g, '\\]');
+        setMarkdownRendered(DomPurify.sanitize(markdownRendered));
+    }, [props.chatMessage.message]);
+
+    useEffect(() => {
+        if (copySuccess) {
+            setTimeout(() => {
+                setCopySuccess(false);
+            }, 2000);
+        }
+    }, [copySuccess]);
 
     useEffect(() => {
         if (messageRef.current) {
@@ -165,7 +241,7 @@ export default function ChatMessage(props: ChatMessageProps) {
             preElements.forEach((preElement) => {
                 const copyButton = document.createElement('button');
                 const copyImage = document.createElement('img');
-                copyImage.src = '/copy-button.svg';
+                copyImage.src = '/static/copy-button.svg';
                 copyImage.alt = 'Copy';
                 copyImage.width = 24;
                 copyImage.height = 24;
@@ -179,80 +255,126 @@ export default function ChatMessage(props: ChatMessageProps) {
                     textContent = textContent.replace(/^Copy/, '');
                     textContent = textContent.trim();
                     navigator.clipboard.writeText(textContent);
+                    copyImage.src = '/static/copy-button-success.svg';
                 });
                 preElement.prepend(copyButton);
             });
         }
-    }, [markdownRendered]);
+    }, [markdownRendered, isHovering, messageRef]);
 
-    function renderTimeStamp(timestamp: string) {
-        var dateObject = new Date(timestamp);
-        var month = dateObject.getMonth() + 1;
-        var date = dateObject.getDate();
-        var year = dateObject.getFullYear();
-        const formattedDate = `${month}/${date}/${year}`;
-        return `${formattedDate} ${dateObject.toLocaleTimeString()}`;
+    if (!props.chatMessage.message) {
+        return null;
     }
 
-    useEffect(() => {
-        if (copySuccess) {
-            setTimeout(() => {
-                setCopySuccess(false);
-            }, 2000);
+    function renderTimeStamp(timestamp: string) {
+        if (!timestamp.endsWith('Z')) {
+            timestamp = timestamp + 'Z';
         }
-    }, [copySuccess]);
+        const messageDateTime = new Date(timestamp);
+        const currentDataTime = new Date();
+        const timeDiff = currentDataTime.getTime() - messageDateTime.getTime();
 
-    let referencesValid = hasValidReferences(props.chatMessage);
+        if (timeDiff < 60000) {
+            return "Just now";
+        }
+
+        if (timeDiff < 3600000) {
+            // Using Math.round for closer to actual time representation
+            return `${Math.round(timeDiff / 60000)}m ago`;
+        }
+
+        if (timeDiff < 86400000) {
+            return `${Math.round(timeDiff / 3600000)}h ago`;
+        }
+
+        return `${Math.round(timeDiff / 86400000)}d ago`;
+    }
+
+    function constructClasses(chatMessage: SingleChatMessage) {
+        let classes = [styles.chatMessageContainer];
+        classes.push(styles[chatMessage.by]);
+
+        if (props.customClassName) {
+            classes.push(styles[`${chatMessage.by}${props.customClassName}`])
+        }
+
+        return classes.join(' ');
+    }
+
+    function chatMessageWrapperClasses(chatMessage: SingleChatMessage) {
+        let classes = [styles.chatMessageWrapper];
+        classes.push(styles[chatMessage.by]);
+
+        if (chatMessage.by === "khoj") {
+            const dynamicBorderColor = `border-l-${props.borderLeftColor}`;
+            classes.push(`border-l-4 border-opacity-50 border-l-orange-400 ${dynamicBorderColor}`);
+        }
+
+        return classes.join(' ');
+    }
+
+    const allReferences = constructAllReferences(props.chatMessage.context, props.chatMessage.onlineContext);
 
     return (
         <div
-            className={`${styles.chatMessageContainer} ${styles[props.chatMessage.by]}`}
-            onClick={props.chatMessage.by === "khoj" ? (event) => onClickMessage(event, props.chatMessage, props.setReferencePanelData, props.setShowReferencePanel) : undefined}>
-                {/* <div className={styles.chatFooter}> */}
-                    {/* {props.chatMessage.by} */}
-                {/* </div> */}
+            className={constructClasses(props.chatMessage)}
+            onMouseLeave={(event) => setIsHovering(false)}
+            onMouseEnter={(event) => setIsHovering(true)}
+            onClick={props.chatMessage.by === "khoj" ? (event) => undefined : undefined}>
+            <div className={chatMessageWrapperClasses(props.chatMessage)}>
                 <div ref={messageRef} className={styles.chatMessage} dangerouslySetInnerHTML={{ __html: markdownRendered }} />
-                {/* Add a copy button, thumbs up, and thumbs down buttons */}
-                <div className={styles.chatFooter}>
-                    <div className={styles.chatTimestamp}>
-                        {renderTimeStamp(props.chatMessage.created)}
-                    </div>
-                    <div className={styles.chatButtons}>
-                        {
-                            referencesValid &&
-                            <div className={styles.referenceButton}>
-                                <button onClick={(event) => onClickMessage(event, props.chatMessage, props.setReferencePanelData, props.setShowReferencePanel)}>
-                                    References
-                                </button>
+            </div>
+            <div className={styles.teaserReferencesContainer}>
+                <TeaserReferencesSection
+                    isMobileWidth={props.isMobileWidth}
+                    notesReferenceCardData={allReferences.notesReferenceCardData}
+                    onlineReferenceCardData={allReferences.onlineReferenceCardData} />
+            </div>
+            <div className={styles.chatFooter}>
+                {
+                    isHovering &&
+                    (
+                        <>
+                            <div className={`text-gray-400 relative top-2 left-2`}>
+                                {renderTimeStamp(props.chatMessage.created)}
                             </div>
-                        }
-                        <button className={`${styles.copyButton}`} onClick={() => {
-                                navigator.clipboard.writeText(props.chatMessage.message);
-                                setCopySuccess(true);
-                        }}>
-                            {
-                                copySuccess ?
-                                    <Image
-                                        src="/copy-button-success.svg"
-                                        alt="Checkmark"
-                                        width={24}
-                                        height={24}
-                                        priority
-                                    />
-                                    : <Image
-                                        src="/copy-button.svg"
-                                        alt="Copy"
-                                        width={24}
-                                        height={24}
-                                        priority
-                                    />
-                            }
-                        </button>
-                        {
-                            props.chatMessage.by === "khoj" && <FeedbackButtons />
-                        }
-                    </div>
-                </div>
+                            <div className={styles.chatButtons}>
+                                {
+                                    (props.chatMessage.by === "khoj") &&
+                                    (
+                                        <button onClick={(event) => console.log("speaker")}>
+                                            <SpeakerHifi color='hsl(var(--muted-foreground))' />
+                                        </button>
+                                    )
+                                }
+                                <button className={`${styles.copyButton}`} onClick={() => {
+                                    navigator.clipboard.writeText(props.chatMessage.message);
+                                    setCopySuccess(true);
+                                }}>
+                                    {
+                                        copySuccess ?
+                                            <Copy color='green' />
+                                            : <Copy color='hsl(var(--muted-foreground))' />
+                                    }
+                                </button>
+                                {
+                                    (props.chatMessage.by === "khoj") &&
+                                    (
+                                        props.chatMessage.intent ?
+                                            <FeedbackButtons
+                                                uquery={props.chatMessage.intent.query}
+                                                kquery={props.chatMessage.message} />
+                                            : <FeedbackButtons
+                                                uquery={props.chatMessage.rawQuery || props.chatMessage.message}
+                                                kquery={props.chatMessage.message} />
+                                    )
+                                }
+                            </div>
+                        </>
+                    )
+                }
+
+            </div>
         </div>
     )
 }

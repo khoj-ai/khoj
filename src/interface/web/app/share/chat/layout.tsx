@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { Noto_Sans } from "next/font/google";
-import "../globals.css";
+import "../../globals.css";
 
 const inter = Noto_Sans({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Khoj AI - Chat",
-  description: "Use this page to chat with Khoj AI.",
+  description: "Use this page to view a chat with Khoj AI.",
 };
 
 export default function RootLayout({

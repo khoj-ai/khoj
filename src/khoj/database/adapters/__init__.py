@@ -645,7 +645,11 @@ class ConversationAdapters:
 
     @staticmethod
     def get_conversation_sessions(user: KhojUser, client_application: ClientApplication = None):
-        return Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at")
+        return (
+            Conversation.objects.filter(user=user, client=client_application)
+            .prefetch_related("agent")
+            .order_by("-updated_at")
+        )
 
     @staticmethod
     async def aset_conversation_title(
@@ -799,11 +803,14 @@ class ConversationAdapters:
     def create_conversation_from_public_conversation(
         user: KhojUser, public_conversation: PublicConversation, client_app: ClientApplication
     ):
+        scrubbed_title = public_conversation.title if public_conversation.title else public_conversation.slug
+        if scrubbed_title:
+            scrubbed_title = scrubbed_title.replace("-", " ")
         return Conversation.objects.create(
             user=user,
             conversation_log=public_conversation.conversation_log,
             client=client_app,
-            slug=public_conversation.slug,
+            slug=scrubbed_title,
             title=public_conversation.title,
             agent=public_conversation.agent,
         )
@@ -943,6 +950,34 @@ class ConversationAdapters:
             user=user, defaults={"setting": config}
         )
         return new_config
+
+    @staticmethod
+    def add_files_to_filter(user: KhojUser, conversation_id: int, files: List[str]):
+        conversation = ConversationAdapters.get_conversation_by_user(user, conversation_id=conversation_id)
+        file_list = EntryAdapters.get_all_filenames_by_source(user, "computer")
+        for filename in files:
+            if filename in file_list and filename not in conversation.file_filters:
+                conversation.file_filters.append(filename)
+        conversation.save()
+
+        # remove files from conversation.file_filters that are not in file_list
+        conversation.file_filters = [file for file in conversation.file_filters if file in file_list]
+        conversation.save()
+        return conversation.file_filters
+
+    @staticmethod
+    def remove_files_from_filter(user: KhojUser, conversation_id: int, files: List[str]):
+        conversation = ConversationAdapters.get_conversation_by_user(user, conversation_id=conversation_id)
+        for filename in files:
+            if filename in conversation.file_filters:
+                conversation.file_filters.remove(filename)
+        conversation.save()
+
+        # remove files from conversation.file_filters that are not in file_list
+        file_list = EntryAdapters.get_all_filenames_by_source(user, "computer")
+        conversation.file_filters = [file for file in conversation.file_filters if file in file_list]
+        conversation.save()
+        return conversation.file_filters
 
 
 class FileObjectAdapters:

@@ -1,50 +1,39 @@
 'use client'
 
-import styles from './chat.module.css';
-import React, { Suspense, useEffect, useState } from 'react';
+import styles from './sharedChat.module.css';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 
-import SuggestionCard from '../components/suggestions/suggestionCard';
-import SidePanel from '../components/sidePanel/chatHistorySidePanel';
-import ChatHistory from '../components/chatHistory/chatHistory';
-import NavMenu from '../components/navMenu/navMenu';
-import { useSearchParams } from 'next/navigation'
-import Loading from '../components/loading/loading';
-
-import { handleCompiledReferences, handleImageResponse, setupWebSocket } from '../common/chatFunctions';
+import SidePanel from '../../components/sidePanel/chatHistorySidePanel';
+import ChatHistory from '../../components/chatHistory/chatHistory';
+import NavMenu from '../../components/navMenu/navMenu';
+import Loading from '../../components/loading/loading';
 
 import 'katex/dist/katex.min.css';
 
-import { StreamMessage } from '../components/chatMessage/chatMessage';
-import { welcomeConsole } from '../common/utils';
-import ChatInputArea, { ChatOptions } from '../components/chatInputArea/chatInputArea';
-import { useAuthenticatedData } from '../common/auth';
+import { welcomeConsole } from '../../common/utils';
+import { useAuthenticatedData } from '@/app/common/auth';
 
+import ChatInputArea, { ChatOptions } from '@/app/components/chatInputArea/chatInputArea';
+import { StreamMessage } from '@/app/components/chatMessage/chatMessage';
+import { handleCompiledReferences, handleImageResponse, setupWebSocket } from '@/app/common/chatFunctions';
 
-const styleClassOptions = ['pink', 'blue', 'green', 'yellow', 'purple'];
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
     setTitle: (title: string) => void;
-    onConversationIdChange?: (conversationId: string) => void;
-    setQueryToProcess: (query: string) => void;
-    streamedMessages: StreamMessage[];
     setUploadedFiles: (files: string[]) => void;
     isMobileWidth?: boolean;
+    publicConversationSlug: string;
+    streamedMessages: StreamMessage[];
     isLoggedIn: boolean;
+    conversationId?: string;
+    setQueryToProcess: (query: string) => void;
 }
 
 
 function ChatBodyData(props: ChatBodyDataProps) {
-    const searchParams = useSearchParams();
-    const conversationId = searchParams.get('conversationId');
     const [message, setMessage] = useState('');
     const [processingMessage, setProcessingMessage] = useState(false);
-
-    useEffect(() => {
-        if (conversationId) {
-            props.onConversationIdChange?.(conversationId);
-        }
-    }, [conversationId, props.onConversationIdChange]);
 
     useEffect(() => {
         if (message) {
@@ -54,6 +43,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }, [message]);
 
     useEffect(() => {
+        console.log("Streamed messages", props.streamedMessages);
         if (props.streamedMessages &&
             props.streamedMessages.length > 0 &&
             props.streamedMessages[props.streamedMessages.length - 1].completed) {
@@ -64,18 +54,10 @@ function ChatBodyData(props: ChatBodyDataProps) {
         }
     }, [props.streamedMessages]);
 
-    if (!conversationId) {
+    if (!props.publicConversationSlug && !props.conversationId) {
         return (
             <div className={styles.suggestions}>
-                {props.chatOptionsData && Object.entries(props.chatOptionsData).map(([key, value]) => (
-                    <SuggestionCard
-                        key={key}
-                        title={`/${key}`}
-                        body={value}
-                        link='#' // replace with actual link if available
-                        styleClass={styleClassOptions[Math.floor(Math.random() * styleClassOptions.length)]}
-                    />
-                ))}
+                Whoops, nothing to see here!
             </div>
         );
     }
@@ -84,7 +66,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
         <>
             <div className={false ? styles.chatBody : styles.chatBodyFull}>
                 <ChatHistory
-                    conversationId={conversationId}
+                    publicConversationSlug={props.publicConversationSlug}
+                    conversationId={props.conversationId || ''}
                     setTitle={props.setTitle}
                     pendingMessage={processingMessage ? message : ''}
                     incomingMessages={props.streamedMessages} />
@@ -95,7 +78,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     sendMessage={(message) => setMessage(message)}
                     sendDisabled={processingMessage}
                     chatOptionsData={props.chatOptionsData}
-                    conversationId={conversationId}
+                    conversationId={props.conversationId}
                     isMobileWidth={props.isMobileWidth}
                     setUploadedFiles={props.setUploadedFiles} />
             </div>
@@ -103,22 +86,22 @@ function ChatBodyData(props: ChatBodyDataProps) {
     );
 }
 
-export default function Chat() {
+export default function SharedChat() {
     const [chatOptionsData, setChatOptionsData] = useState<ChatOptions | null>(null);
     const [isLoading, setLoading] = useState(true);
     const [title, setTitle] = useState('Khoj AI - Chat');
-    const [conversationId, setConversationID] = useState<string | null>(null);
+    const [conversationId, setConversationID] = useState<string | undefined>(undefined);
     const [chatWS, setChatWS] = useState<WebSocket | null>(null);
     const [messages, setMessages] = useState<StreamMessage[]>([]);
     const [queryToProcess, setQueryToProcess] = useState<string>('');
     const [processQuerySignal, setProcessQuerySignal] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const [isMobileWidth, setIsMobileWidth] = useState(false);
+    const [paramSlug, setParamSlug] = useState<string | undefined>(undefined);
 
     const authenticatedData = useAuthenticatedData();
 
     welcomeConsole();
-
 
     const handleWebSocketMessage = (event: MessageEvent) => {
         let chunk = event.data;
@@ -186,6 +169,7 @@ export default function Chat() {
         setMessages([...messages]);
     }
 
+
     useEffect(() => {
         fetch('/api/chat/options')
             .then(response => response.json())
@@ -207,9 +191,30 @@ export default function Chat() {
             setIsMobileWidth(window.innerWidth < 786);
         });
 
+        setParamSlug(window.location.pathname.split('/').pop() || '');
+
     }, []);
 
     useEffect(() => {
+        if (queryToProcess && !conversationId) {
+            fetch(`/api/chat/share/fork?public_conversation_slug=${paramSlug}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+                .then(response => response.json())
+                .then(data => {
+                    setConversationID(data.conversation_id);
+                })
+                .catch(err => {
+                    console.error(err);
+                    return;
+                });
+            return;
+        }
+
+
         if (chatWS && queryToProcess) {
             // Add a new object to the state
             const newStreamMessage: StreamMessage = {
@@ -242,48 +247,75 @@ export default function Chat() {
     }, [processQuerySignal]);
 
     useEffect(() => {
+        if (chatWS) {
+            chatWS.onmessage = handleWebSocketMessage;
+        }
+    }, [chatWS]);
+
+    useEffect(() => {
         (async () => {
             if (conversationId) {
-                const newWS = await setupWebSocket(conversationId);
+                const newWS = await setupWebSocket(conversationId, queryToProcess);
+                if (!newWS) {
+                    console.error("No WebSocket connection available");
+                    return;
+                }
                 setChatWS(newWS);
+
+                // Add a new object to the state
+                const newStreamMessage: StreamMessage = {
+                    rawResponse: "",
+                    trainOfThought: [],
+                    context: [],
+                    onlineContext: {},
+                    completed: false,
+                    timestamp: (new Date()).toISOString(),
+                    rawQuery: queryToProcess || "",
+                }
+                setMessages(prevMessages => [...prevMessages, newStreamMessage]);
             }
         })();
     }, [conversationId]);
-
-    const handleConversationIdChange = (newConversationId: string) => {
-        setConversationID(newConversationId);
-    };
-
 
     if (isLoading) {
         return <Loading />;
     }
 
+    if (!paramSlug) {
+        return (
+            <div className={styles.suggestions}>
+                Whoops, nothing to see here!
+            </div>
+        );
+    }
+
 
     return (
-        <div className={styles.main + " " + styles.chatLayout}>
+        <div className={`${styles.main} ${styles.chatLayout}`}>
             <title>
                 {title}
             </title>
             <div className={styles.sidePanel}>
                 <SidePanel
-                    webSocketConnected={chatWS !== null}
-                    conversationId={conversationId}
+                    webSocketConnected={!!conversationId ? (chatWS != null) : true}
+                    conversationId={conversationId ?? null}
                     uploadedFiles={uploadedFiles} />
             </div>
+
             <div className={styles.chatBox}>
                 <NavMenu selected="Chat" title={title} />
                 <div className={styles.chatBoxBody}>
                     <Suspense fallback={<Loading />}>
                         <ChatBodyData
-                            isLoggedIn={authenticatedData !== null}
+                            conversationId={conversationId}
                             streamedMessages={messages}
+                            setQueryToProcess={setQueryToProcess}
+                            isLoggedIn={authenticatedData !== null}
+                            publicConversationSlug={paramSlug}
                             chatOptionsData={chatOptionsData}
                             setTitle={setTitle}
-                            setQueryToProcess={setQueryToProcess}
                             setUploadedFiles={setUploadedFiles}
-                            isMobileWidth={isMobileWidth}
-                            onConversationIdChange={handleConversationIdChange} />
+                            isMobileWidth={isMobileWidth} />
                     </Suspense>
                 </div>
             </div>

@@ -3,11 +3,16 @@
 import styles from './chatHistory.module.css';
 import { useRef, useEffect, useState } from 'react';
 
-import ChatMessage, { ChatHistoryData, SingleChatMessage } from '../chatMessage/chatMessage';
+import ChatMessage, { ChatHistoryData, StreamMessage, TrainOfThought } from '../chatMessage/chatMessage';
+
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 import renderMathInElement from 'katex/contrib/auto-render';
 import 'katex/dist/katex.min.css';
-import 'highlight.js/styles/github.css'
+
+import Loading, { InlineLoading } from '../loading/loading';
+
+import { Lightbulb } from "@phosphor-icons/react";
 
 interface ChatResponse {
     status: string;
@@ -20,42 +25,117 @@ interface ChatHistory {
 
 interface ChatHistoryProps {
     conversationId: string;
-    setReferencePanelData: Function;
-    setShowReferencePanel: Function;
+    setTitle: (title: string) => void;
+    incomingMessages?: StreamMessage[];
+    pendingMessage?: string;
+    publicConversationSlug?: string;
+}
+
+
+function constructTrainOfThought(trainOfThought: string[], lastMessage: boolean, key: string, completed: boolean = false) {
+    const lastIndex = trainOfThought.length - 1;
+    return (
+        <div className={`${styles.trainOfThought}`} key={key}>
+            {
+                !completed &&
+                <InlineLoading className='float-right' />
+            }
+
+            {trainOfThought.map((train, index) => (
+                <TrainOfThought key={`train-${index}`} message={train} primary={index === lastIndex && lastMessage && !completed} />
+            ))}
+        </div>
+    )
 }
 
 
 export default function ChatHistory(props: ChatHistoryProps) {
     const [data, setData] = useState<ChatHistoryData | null>(null);
-    const [isLoading, setLoading] = useState(true)
+    const [currentPage, setCurrentPage] = useState(0);
+    const [hasMoreMessages, setHasMoreMessages] = useState(true);
+
     const ref = useRef<HTMLDivElement>(null);
-    const chatHistoryRef = useRef(null);
+    const chatHistoryRef = useRef<HTMLDivElement | null>(null);
+    const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+    const [incompleteIncomingMessageIndex, setIncompleteIncomingMessageIndex] = useState<number | null>(null);
+    const [fetchingData, setFetchingData] = useState(false);
+    const [isMobileWidth, setIsMobileWidth] = useState(false);
 
 
-	useEffect(() => {
+    useEffect(() => {
+        window.addEventListener('resize', () => {
+            setIsMobileWidth(window.innerWidth < 768);
+        });
 
-        fetch(`/api/chat/history?client=web&conversation_id=${props.conversationId}&n=10`)
-            .then(response => response.json())
-            .then((chatData: ChatResponse) => {
-                setLoading(false);
-                // Render chat options, if any
-                if (chatData) {
-                    console.log(chatData);
-                    setData(chatData.response);
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                return;
-            });
-	}, [props.conversationId]);
+        setIsMobileWidth(window.innerWidth < 768);
+    }, []);
 
+
+    useEffect(() => {
+        // This function ensures that scrolling to bottom happens after the data (chat messages) has been updated and rendered the first time.
+        const scrollToBottomAfterDataLoad = () => {
+            // Assume the data is loading in this scenario.
+            if (!data?.chat.length) {
+                setTimeout(() => {
+                    scrollToBottom();
+                }, 500);
+            }
+        };
+
+        if (currentPage < 2) {
+            // Call the function defined above.
+            scrollToBottomAfterDataLoad();
+        }
+
+    }, [chatHistoryRef.current, data]);
+
+    useEffect(() => {
+        if (!hasMoreMessages || fetchingData) return;
+
+        // TODO: A future optimization would be to add a time to delay to re-enabling the intersection observer.
+        const observer = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting && hasMoreMessages) {
+                setFetchingData(true);
+                fetchMoreMessages(currentPage);
+                setCurrentPage((prev) => prev + 1);
+            }
+        }, { threshold: 1.0 });
+
+        if (sentinelRef.current) {
+            observer.observe(sentinelRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, [sentinelRef.current, hasMoreMessages, currentPage, fetchingData]);
+
+    useEffect(() => {
+        setHasMoreMessages(true);
+        setFetchingData(false);
+        setCurrentPage(0);
+        setData(null);
+    }, [props.conversationId]);
+
+    useEffect(() => {
+        console.log(props.incomingMessages);
+        if (props.incomingMessages) {
+            const lastMessage = props.incomingMessages[props.incomingMessages.length - 1];
+            if (lastMessage && !lastMessage.completed) {
+                setIncompleteIncomingMessageIndex(props.incomingMessages.length - 1);
+            }
+        }
+
+        if (isUserAtBottom()) {
+            scrollToBottom();
+        }
+
+    }, [props.incomingMessages]);
 
     useEffect(() => {
         const observer = new MutationObserver((mutationsList, observer) => {
             // If the addedNodes property has one or more nodes
-            for(let mutation of mutationsList) {
-                if(mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+            for (let mutation of mutationsList) {
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
                     // Call your function here
                     renderMathInElement(document.body, {
                         delimiters: [
@@ -77,24 +157,175 @@ export default function ChatHistory(props: ChatHistoryProps) {
         return () => observer.disconnect();
     }, []);
 
-    if (isLoading) {
-        return <h2>🌀 Loading...</h2>;
+    const fetchMoreMessages = (currentPage: number) => {
+        if (!hasMoreMessages || fetchingData) return;
+        const nextPage = currentPage + 1;
+
+        let conversationFetchURL = '';
+
+        if (props.conversationId) {
+            conversationFetchURL = `/api/chat/history?client=web&conversation_id=${props.conversationId}&n=${10 * nextPage}`;
+        } else if (props.publicConversationSlug) {
+            conversationFetchURL = `/api/chat/share/history?client=web&public_conversation_slug=${props.publicConversationSlug}&n=${10 * nextPage}`;
+        } else {
+            return;
+        }
+
+        fetch(conversationFetchURL)
+            .then(response => response.json())
+            .then((chatData: ChatResponse) => {
+                props.setTitle(chatData.response.slug);
+                if (chatData && chatData.response && chatData.response.chat.length > 0) {
+
+                    if (chatData.response.chat.length === data?.chat.length) {
+                        setHasMoreMessages(false);
+                        setFetchingData(false);
+                        return;
+                    }
+
+                    setData(chatData.response);
+
+                    if (currentPage < 2) {
+                        scrollToBottom();
+                    }
+                    setFetchingData(false);
+                } else {
+                    setHasMoreMessages(false);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+            });
+    };
+
+    const scrollToBottom = () => {
+        if (chatHistoryRef.current) {
+            chatHistoryRef.current.scrollIntoView(false);
+        }
+    }
+
+    const isUserAtBottom = () => {
+        if (!chatHistoryRef.current) return false;
+
+        // NOTE: This isn't working. It always seems to return true. This is because
+
+        const { scrollTop, scrollHeight, clientHeight } = chatHistoryRef.current as HTMLDivElement;
+        const threshold = 25; // pixels from the bottom
+
+        // Considered at the bottom if within threshold pixels from the bottom
+        return scrollTop + clientHeight >= scrollHeight - threshold;
+    }
+
+    function constructAgentLink() {
+        if (!data || !data.agent || !data.agent.slug) return `/agents`;
+        return `/agents?agent=${data.agent.slug}`
+    }
+
+    function constructAgentAvatar() {
+        if (!data || !data.agent || !data.agent.avatar) return `/avatar.png`;
+        return data.agent.avatar;
+    }
+
+    function constructAgentName() {
+        if (!data || !data.agent || !data.agent.name) return `Agent`;
+        return data.agent.name;
+    }
+
+
+    if (!props.conversationId && !props.publicConversationSlug) {
+        return null;
     }
 
     return (
-        <div className={styles.main + " " + styles.chatLayout}>
+        <ScrollArea className={`h-[80vh]`}>
             <div ref={ref}>
                 <div className={styles.chatHistory} ref={chatHistoryRef}>
+                    <div ref={sentinelRef} style={{ height: '1px' }}>
+                        {fetchingData && <InlineLoading />}
+                    </div>
                     {(data && data.chat) && data.chat.map((chatMessage, index) => (
                         <ChatMessage
-                            key={index}
+                            key={`${index}fullHistory`}
+                            isMobileWidth={isMobileWidth}
                             chatMessage={chatMessage}
-                            setReferencePanelData={props.setReferencePanelData}
-                            setShowReferencePanel={props.setShowReferencePanel}
+                            customClassName='fullHistory'
+                            borderLeftColor='orange-500'
                         />
                     ))}
+                    {
+                        props.incomingMessages && props.incomingMessages.map((message, index) => {
+                            return (
+                                <>
+                                    <ChatMessage
+                                        key={`${index}outgoing`}
+                                        isMobileWidth={isMobileWidth}
+                                        chatMessage={
+                                            {
+                                                message: message.rawQuery,
+                                                context: [],
+                                                onlineContext: {},
+                                                created: message.timestamp,
+                                                by: "you",
+                                                automationId: '',
+                                            }
+                                        }
+                                        customClassName='fullHistory'
+                                        borderLeftColor='orange-500' />
+                                    {
+                                        message.trainOfThought &&
+                                        constructTrainOfThought(
+                                            message.trainOfThought,
+                                            index === incompleteIncomingMessageIndex,
+                                            `${index}trainOfThought`, message.completed)
+                                    }
+                                    <ChatMessage
+                                        key={`${index}incoming`}
+                                        isMobileWidth={isMobileWidth}
+                                        chatMessage={
+                                            {
+                                                message: message.rawResponse,
+                                                context: message.context,
+                                                onlineContext: message.onlineContext,
+                                                created: message.timestamp,
+                                                by: "khoj",
+                                                automationId: '',
+                                                rawQuery: message.rawQuery,
+                                            }
+                                        }
+                                        customClassName='fullHistory'
+                                        borderLeftColor='orange-500'
+                                    />
+                                </>
+                            )
+                        })
+                    }
+                    {
+                        props.pendingMessage &&
+                        <ChatMessage
+                            key={`pendingMessage-${props.pendingMessage.length}`}
+                            isMobileWidth={isMobileWidth}
+                            chatMessage={
+                                {
+                                    message: props.pendingMessage,
+                                    context: [],
+                                    onlineContext: {},
+                                    created: (new Date().getTime()).toString(),
+                                    by: "you",
+                                    automationId: '',
+                                }
+                            }
+                            customClassName='fullHistory'
+                            borderLeftColor='orange-500'
+                        />
+                    }
+                    <div className={`${styles.agentIndicator}`}>
+                        <a className='no-underline mx-2 flex text-muted-foreground' href={constructAgentLink()} target="_blank" rel="noreferrer">
+                            <Lightbulb color='orange' weight='fill' />
+                            <span>{constructAgentName()}</span>
+                        </a>
+                    </div>
                 </div>
             </div>
-        </div>
+        </ScrollArea>
     )
 }
