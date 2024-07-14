@@ -76,6 +76,7 @@ interface AgentData {
     name: string;
     avatar: string;
     slug: string;
+    persona: string;
 }
 
 interface Intent {

@@ -17,10 +17,6 @@ div.agentIndicator a {
     align-items: center;
 }
 
-div.agentIndicator {
-    padding: 10px;
-}
-
 div.trainOfThought {
     border: 1px var(--border-color) solid;
     border-radius: 16px;
