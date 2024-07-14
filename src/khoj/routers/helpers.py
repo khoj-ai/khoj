@@ -459,7 +459,7 @@ async def generate_better_image_prompt(
     Generate a better image prompt from the given query
     """
 
-    today_date = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
+    today_date = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d, %A")
     model_type = model_type or TextToImageModelConfig.ModelType.OPENAI
 
     if location_data:
@@ -776,8 +776,8 @@ async def text_to_image(
             chat_history += f"Q: {chat['intent']['query']}\n"
             chat_history += f"A: {chat['message']}\n"
         elif chat["by"] == "khoj" and "text-to-image" in chat["intent"].get("type"):
-            chat_history += f"Q: Query: {chat['intent']['query']}\n"
-            chat_history += f"A: Improved Query: {chat['intent']['inferred-queries'][0]}\n"
+            chat_history += f"Q: Prompt: {chat['intent']['query']}\n"
+            chat_history += f"A: Improved Prompt: {chat['intent']['inferred-queries'][0]}\n"
 
     with timer("Improve the original user query", logger):
         if send_status_func:
@@ -836,7 +836,6 @@ async def text_to_image(
                         "model": text2image_model,
                         "mode": "text-to-image",
                         "output_format": "png",
-                        "seed": 1032622926,
                         "aspect_ratio": "1:1",
                     },
                 )

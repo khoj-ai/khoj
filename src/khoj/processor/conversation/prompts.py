@@ -121,9 +121,9 @@ User's Notes:
 ## Image Generation
 ## --
 
-image_generation_improve_prompt_dalle = PromptTemplate.from_template(
-    """
-You are a talented creator. Generate a detailed prompt to generate an image based on the following description. Update the query below to improve the image generation. Add additional context to the query to improve the image generation. Make sure to retain any important information originally from the query. You are provided with the following information to help you generate the prompt:
+image_generation_improve_prompt_base = """
+You are a talented creator with the ability to describe images to compose in vivid, fine detail.
+Use the provided context and user prompt to generate a more detailed prompt to create an image:
 
 Today's Date: {current_date}
 User's Location: {location}
@@ -137,39 +137,29 @@ Online References:
 Conversation Log:
 {chat_history}
 
-Query: {query}
+User Prompt: "{query}"
 
-Remember, now you are generating a prompt to improve the image generation. Add additional context to the query to improve the image generation. Make sure to retain any important information originally from the query. Use the additional context from the user's notes, online references and conversation log to improve the image generation.
-Improved Query:"""
+Now generate an improved prompt describing the image to generate in vivid, fine detail.
+- Use today's date, user's location, user's notes and online references to weave in any context that will improve the image generation.
+- Retain any important information and follow any instructions in the conversation log or user prompt.
+- Add specific, fine position details to compose the image.
+- Ensure your improved prompt is in prose format."""
+
+image_generation_improve_prompt_dalle = PromptTemplate.from_template(
+    f"""
+{image_generation_improve_prompt_base}
+
+Improved Prompt:
+""".strip()
 )
 
 image_generation_improve_prompt_sd = PromptTemplate.from_template(
-    """
-You are a talented creator. Write 2-5 sentences with precise image composition, position details to create an image.
-Use the provided context below to add specific, fine details to the image composition.
-Retain any important information and follow any instructions from the original prompt.
-Put any text to be rendered in the image within double quotes in your improved prompt.
-You are provided with the following context to help enhance the original prompt:
+    f"""
+{image_generation_improve_prompt_base}
+- If any text is to be rendered in the image put it within double quotes in your improved prompt.
 
-Today's Date: {current_date}
-User's Location: {location}
-
-User's Notes:
-{references}
-
-Online References:
-{online_results}
-
-Conversation Log:
-{chat_history}
-
-Original Prompt: "{query}"
-
-Now create an improved prompt using the context provided above to generate an image.
-Retain any important information and follow any instructions from the original prompt.
-Use the additional context from the user's notes, online references and conversation log to improve the image generation.
-
-Improved Prompt:"""
+Improved Prompt:
+""".strip()
 )
 
 ## Online Search Conversation
