@@ -155,35 +155,36 @@ interface TrainOfThoughtProps {
 
 function chooseIconFromHeader(header: string, iconColor: string) {
     const compareHeader = header.toLowerCase();
+    const classNames = `inline mt-1 mr-2 ${iconColor}`;
     if (compareHeader.includes("understanding")) {
-        return <Brain className={`inline mr-2 ${iconColor}`} />
+        return <Brain className={`${classNames}`} />
     }
 
     if (compareHeader.includes("generating")) {
-        return <Cloud className={`inline mr-2 ${iconColor}`} />;
+        return <Cloud className={`${classNames}`} />;
     }
 
     if (compareHeader.includes("data sources")) {
-        return <Folder className={`inline mr-2 ${iconColor}`} />;
+        return <Folder className={`${classNames}`} />;
     }
 
     if (compareHeader.includes("notes")) {
-        return <Folder className={`inline mr-2 ${iconColor}`} />;
+        return <Folder className={`${classNames}`} />;
     }
 
     if (compareHeader.includes("read")) {
-        return <Book className={`inline mr-2 ${iconColor}`} />;
+        return <Book className={`${classNames}`} />;
     }
 
     if (compareHeader.includes("search")) {
-        return <MagnifyingGlass className={`inline mr-2 ${iconColor}`} />;
+        return <MagnifyingGlass className={`${classNames}`} />;
     }
 
     if (compareHeader.includes("summary") || compareHeader.includes("summarize")) {
-        return <Aperture className={`inline mr-2 ${iconColor}`} />;
+        return <Aperture className={`${classNames}`} />;
     }
 
-    return <Brain className={`inline mr-2 ${iconColor}`} />;
+    return <Brain className={`${classNames}`} />;
 }
 
 
@@ -195,7 +196,7 @@ export function TrainOfThought(props: TrainOfThoughtProps) {
     const icon = chooseIconFromHeader(header, iconColor);
     let markdownRendered = DomPurify.sanitize(md.render(props.message));
     return (
-        <div className={`flex items-center ${props.primary ? 'text-gray-400' : 'text-gray-300'} ${styles.trainOfThought} ${props.primary ? styles.primary : ''}`} >
+        <div className={`flex mt-1 ${props.primary ? 'text-gray-400' : 'text-gray-300'} ${styles.trainOfThought} ${props.primary ? styles.primary : ''}`} >
             {icon}
             <div dangerouslySetInnerHTML={{ __html: markdownRendered }} />
         </div>

@@ -16,7 +16,7 @@ interface InlineLoadingProps {
 export function InlineLoading(props: InlineLoadingProps) {
     return (
         <button className={`${props.className}`}>
-            <CircleNotch className={`animate-spin h-5 w-5 mr-3`} />
+            <CircleNotch className={`animate-spin h-5 w-5 mt-3 mr-3`} />
         </button>
     )
 }
