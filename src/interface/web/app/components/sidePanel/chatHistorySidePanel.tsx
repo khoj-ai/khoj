@@ -651,6 +651,7 @@ interface SidePanelProps {
     webSocketConnected?: boolean;
     conversationId: string | null;
     uploadedFiles: string[];
+    isMobileWidth: boolean;
 }
 
 
@@ -659,7 +660,6 @@ export default function SidePanel(props: SidePanelProps) {
     const [organizedData, setOrganizedData] = useState<GroupedChatHistory | null>(null);
     const [subsetOrganizedData, setSubsetOrganizedData] = useState<GroupedChatHistory | null>(null);
     const [enabled, setEnabled] = useState(false);
-    const [isMobileWidth, setIsMobileWidth] = useState(false);
 
     const authenticatedData = useAuthenticatedData();
     const { data: chatSessions } = useChatSessionsFetchRequest(authenticatedData ? `/api/chat/sessions` : '');
@@ -695,28 +695,17 @@ export default function SidePanel(props: SidePanelProps) {
                 }
             });
 
-
             setSubsetOrganizedData(subsetOrganizedData);
             setOrganizedData(groupedData);
         }
     }, [chatSessions]);
-
-    useEffect(() => {
-        if (window.innerWidth < 768) {
-            setIsMobileWidth(true);
-        }
-
-        window.addEventListener('resize', () => {
-            setIsMobileWidth(window.innerWidth < 768);
-        });
-    }, []);
 
     return (
         <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed}`}>
             <div className="flex items-center justify-between">
                 <img src="/khoj-logo.svg" alt="logo" className="w-16"/>
                 {
-                    authenticatedData && isMobileWidth && enabled ?
+                    authenticatedData && props.isMobileWidth ?
                         <Drawer>
                             <DrawerTrigger><ArrowRight className="h-4 w-4 mx-2" weight="bold"/></DrawerTrigger>
                             <DrawerContent>
@@ -734,7 +723,7 @@ export default function SidePanel(props: SidePanelProps) {
                                         uploadedFiles={props.uploadedFiles}
                                         userProfile={authenticatedData}
                                         conversationId={props.conversationId}
-                                        isMobileWidth={isMobileWidth}
+                                        isMobileWidth={props.isMobileWidth}
                                     />
                                 </div>
                                 <DrawerFooter>
@@ -751,7 +740,7 @@ export default function SidePanel(props: SidePanelProps) {
                 }
             </div>
             {
-                authenticatedData && enabled &&
+                authenticatedData && !props.isMobileWidth && enabled &&
                 <div className={`${styles.panelWrapper}`}>
                     <SessionsAndFiles
                         webSocketConnected={props.webSocketConnected}
@@ -762,7 +751,7 @@ export default function SidePanel(props: SidePanelProps) {
                         uploadedFiles={props.uploadedFiles}
                         userProfile={authenticatedData}
                         conversationId={props.conversationId}
-                        isMobileWidth={isMobileWidth}
+                        isMobileWidth={props.isMobileWidth}
                     />
                 </div>
             }
