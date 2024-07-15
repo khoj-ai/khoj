@@ -1,0 +1,11 @@
+.automationsLayout {
+    max-width: 70vw;
+    margin: auto;
+    margin-bottom: 2rem;
+}
+
+@media screen and (max-width: 700px) {
+    .automationsLayout {
+        max-width: 90vw;
+    }
+}

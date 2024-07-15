@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Toggle } from '@/components/ui/toggle';
 import { Moon } from '@phosphor-icons/react';
+import Image from 'next/image';
 
 
 interface NavMenuProps {
@@ -35,23 +36,33 @@ interface NavMenuProps {
 export default function NavMenu(props: NavMenuProps) {
 
     const userData = useAuthenticatedData();
-    const [displayTitle, setDisplayTitle] = useState<string>(props.title || props.selected.toUpperCase());
+    const [displayTitle, setDisplayTitle] = useState<string | undefined>(props.title);
 
     const [isMobileWidth, setIsMobileWidth] = useState(false);
     const [darkMode, setDarkMode] = useState(false);
 
     useEffect(() => {
         setIsMobileWidth(window.innerWidth < 768);
-        setDisplayTitle(props.title || props.selected.toUpperCase());
+        if (props.title) {
+            setDisplayTitle(props.title);
+        }
 
     }, [props.title]);
 
     useEffect(() => {
+
+        const mq = window.matchMedia(
+            "(prefers-color-scheme: dark)"
+        );
+
         window.addEventListener('resize', () => {
             setIsMobileWidth(window.innerWidth < 768);
         });
 
         if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+            setDarkMode(true);
+        } else if (mq.matches) {
             document.documentElement.classList.add('dark');
             setDarkMode(true);
         }
@@ -74,6 +85,16 @@ export default function NavMenu(props: NavMenuProps) {
         <div className={styles.titleBar}>
             <div className={`text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mr-8`}>
                 {displayTitle && <h2 className={`text-lg text-ellipsis whitespace-nowrap overflow-x-hidden`} >{displayTitle}</h2>}
+                {
+                    !displayTitle && props.showLogo &&
+                    <Link href='/'>
+                        <Image
+                            src="/khoj-logo.svg"
+                            alt="Khoj"
+                            width={52}
+                            height={52} />
+                    </Link>
+                }
             </div>
             {
                 isMobileWidth ?
