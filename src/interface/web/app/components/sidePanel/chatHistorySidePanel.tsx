@@ -2,13 +2,12 @@
 
 import styles from "./sidePanel.module.css";
 
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { UserProfile, useAuthenticatedData } from "@/app/common/auth";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import Link from "next/link";
 import useSWR from "swr";
-import Image from "next/image";
 
 import {
     Command,
@@ -54,6 +53,7 @@ interface ChatHistory {
     agent_avatar: string;
     compressed: boolean;
     created: string;
+    showSidePanel: (isEnabled: boolean) => void;
 }
 
 import {
@@ -139,7 +139,6 @@ function deleteConversation(conversationId: string) {
             return;
         });
 }
-
 
 interface FilesMenuProps {
     conversationId: string | null;
@@ -333,33 +332,37 @@ interface SessionsAndFilesProps {
 function SessionsAndFiles(props: SessionsAndFilesProps) {
     return (
         <>
-            <ScrollArea className="h-[40vh]">
-                <ScrollAreaScrollbar orientation="vertical" className="h-full w-2.5 border-l border-l-transparent p-[1px]" />
-                <div className={styles.sessionsList}>
-                    {props.subsetOrganizedData != null && Object.keys(props.subsetOrganizedData).map((timeGrouping) => (
-                        <div key={timeGrouping} className={`my-4`}>
-                            <div className={`text-muted-foreground text-sm font-bold p-[0.5rem] `}>
-                                {timeGrouping}
+            <div>
+                <ScrollArea>
+                    <ScrollAreaScrollbar orientation="vertical" className="h-full w-2.5 border-l border-l-transparent p-[1px]" />
+                    <div className={styles.sessionsList}>
+                        {props.subsetOrganizedData != null && Object.keys(props.subsetOrganizedData).map((timeGrouping) => (
+                            <div key={timeGrouping} className={`my-4`}>
+                                <div className={`text-muted-foreground text-sm font-bold p-[0.5rem]`}>
+                                    {timeGrouping}
+                                </div>
+                                {props.subsetOrganizedData && props.subsetOrganizedData[timeGrouping].map((chatHistory) => (
+                                    <ChatSession
+                                        created={chatHistory.created}
+                                        compressed={true}
+                                        key={chatHistory.conversation_id}
+                                        conversation_id={chatHistory.conversation_id}
+                                        slug={chatHistory.slug}
+                                        agent_avatar={chatHistory.agent_avatar}
+                                        agent_name={chatHistory.agent_name}
+                                        showSidePanel={props.setEnabled}
+                                        />
+                                ))}
                             </div>
-                            {props.subsetOrganizedData && props.subsetOrganizedData[timeGrouping].map((chatHistory) => (
-                                <ChatSession
-                                    created={chatHistory.created}
-                                    compressed={true}
-                                    key={chatHistory.conversation_id}
-                                    conversation_id={chatHistory.conversation_id}
-                                    slug={chatHistory.slug}
-                                    agent_avatar={chatHistory.agent_avatar}
-                                    agent_name={chatHistory.agent_name} />
-                            ))}
-                        </div>
-                    ))}
-                </div>
-            </ScrollArea>
-            {
-                (props.data && props.data.length > 5) && (
-                    <ChatSessionsModal data={props.organizedData} />
-                )
-            }
+                        ))}
+                    </div>
+                </ScrollArea>
+                {
+                    (props.data && props.data.length > 5) && (
+                        <ChatSessionsModal data={props.organizedData} showSidePanel={props.setEnabled} />
+                    )
+                }
+            </div>
             <FilesMenu conversationId={props.conversationId} uploadedFiles={props.uploadedFiles} isMobileWidth={props.isMobileWidth} />
             {props.userProfile &&
                 <UserProfileComponent userProfile={props.userProfile} webSocketConnected={props.webSocketConnected} collapsed={false} />
@@ -527,7 +530,7 @@ function ChatSession(props: ChatHistory) {
             onMouseLeave={() => setIsHovered(false)}
             key={props.conversation_id}
             className={`${styles.session} ${props.compressed ? styles.compressed : '!max-w-full'} ${isHovered ? `${styles.sessionHover}` : ''}`}>
-            <Link href={`/chat?conversationId=${props.conversation_id}`}>
+            <Link href={`/chat?conversationId=${props.conversation_id}`} onClick={() => props.showSidePanel(false)}>
                 <p className={styles.session}>{props.slug || "New Conversation 🌱"}</p>
             </Link>
             <ChatSessionActionMenu conversationId={props.conversation_id} />
@@ -537,21 +540,22 @@ function ChatSession(props: ChatHistory) {
 
 interface ChatSessionsModalProps {
     data: GroupedChatHistory | null;
+    showSidePanel: (isEnabled: boolean) => void;
 }
 
-function ChatSessionsModal({ data }: ChatSessionsModalProps) {
+function ChatSessionsModal({ data, showSidePanel }: ChatSessionsModalProps) {
     return (
         <Dialog>
             <DialogTrigger
                 className="flex text-left text-medium text-gray-500 hover:text-gray-300 cursor-pointer my-4 text-sm p-[0.5rem]">
-                <span className="mr-2">See All <ArrowRight className="h-4 w-4" /></span>
+                <span className="mr-2">See All <ArrowRight className="inline h-4 w-4" weight="bold"/></span>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>All Conversations</DialogTitle>
                     <DialogDescription
                         className="p-0">
-                        <ScrollArea className="h-[500px] p-4">
+                        <ScrollArea className="h-[500px] py-4">
                             {data && Object.keys(data).map((timeGrouping) => (
                                 <div key={timeGrouping}>
                                     <div className={`text-muted-foreground text-sm font-bold p-[0.5rem] `}>
@@ -565,7 +569,8 @@ function ChatSessionsModal({ data }: ChatSessionsModalProps) {
                                             conversation_id={chatHistory.conversation_id}
                                             slug={chatHistory.slug}
                                             agent_avatar={chatHistory.agent_avatar}
-                                            agent_name={chatHistory.agent_name} />
+                                            agent_name={chatHistory.agent_name}
+                                            showSidePanel={showSidePanel}/>
                                     ))}
                                 </div>
                             ))}
@@ -646,11 +651,11 @@ interface SidePanelProps {
     webSocketConnected?: boolean;
     conversationId: string | null;
     uploadedFiles: string[];
+    isMobileWidth: boolean;
 }
 
 
 export default function SidePanel(props: SidePanelProps) {
-
     const [data, setData] = useState<ChatHistory[] | null>(null);
     const [organizedData, setOrganizedData] = useState<GroupedChatHistory | null>(null);
     const [subsetOrganizedData, setSubsetOrganizedData] = useState<GroupedChatHistory | null>(null);
@@ -658,9 +663,6 @@ export default function SidePanel(props: SidePanelProps) {
 
     const authenticatedData = useAuthenticatedData();
     const { data: chatSessions } = useChatSessionsFetchRequest(authenticatedData ? `/api/chat/sessions` : '');
-
-
-    const [isMobileWidth, setIsMobileWidth] = useState(false);
 
     useEffect(() => {
         if (chatSessions) {
@@ -693,35 +695,23 @@ export default function SidePanel(props: SidePanelProps) {
                 }
             });
 
-
             setSubsetOrganizedData(subsetOrganizedData);
             setOrganizedData(groupedData);
         }
     }, [chatSessions]);
 
-    useEffect(() => {
-        if (window.innerWidth < 768) {
-            setIsMobileWidth(true);
-        }
-
-        window.addEventListener('resize', () => {
-            setIsMobileWidth(window.innerWidth < 768);
-        });
-    }, []);
-
     return (
         <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed}`}>
-            <div className="flex items-start justify-between">
-                <Image src="/khoj-logo.svg"
-                    alt="logo"
-                    width={40}
-                    height={40}
-                />
+            <div className="flex items-center justify-between">
+                <img src="/khoj-logo.svg" alt="logo" className="w-16"/>
                 {
-                    authenticatedData &&
-                        isMobileWidth ?
-                        <Drawer>
-                            <DrawerTrigger><ArrowRight className="h-4 w-4 mx-2" /></DrawerTrigger>
+                    authenticatedData && props.isMobileWidth ?
+                        <Drawer open={enabled} onOpenChange={(open) => {
+                            if (!enabled) setEnabled(false);
+                            setEnabled(open);
+                        }
+                        }>
+                            <DrawerTrigger><ArrowRight className="h-4 w-4 mx-2" weight="bold"/></DrawerTrigger>
                             <DrawerContent>
                                 <DrawerHeader>
                                     <DrawerTitle>Sessions and Files</DrawerTitle>
@@ -737,7 +727,7 @@ export default function SidePanel(props: SidePanelProps) {
                                         uploadedFiles={props.uploadedFiles}
                                         userProfile={authenticatedData}
                                         conversationId={props.conversationId}
-                                        isMobileWidth={isMobileWidth}
+                                        isMobileWidth={props.isMobileWidth}
                                     />
                                 </div>
                                 <DrawerFooter>
@@ -749,12 +739,12 @@ export default function SidePanel(props: SidePanelProps) {
                         </Drawer>
                         :
                         <button className={styles.button} onClick={() => setEnabled(!enabled)}>
-                            {enabled ? <ArrowLeft className="h-4 w-4" /> : <ArrowRight className="h-4 w-4 mx-2" />}
+                            {enabled ? <ArrowLeft className="h-4 w-4" weight="bold"/> : <ArrowRight className="h-4 w-4 mx-2" weight="bold"/>}
                         </button>
                 }
             </div>
             {
-                authenticatedData && enabled &&
+                authenticatedData && !props.isMobileWidth && enabled &&
                 <div className={`${styles.panelWrapper}`}>
                     <SessionsAndFiles
                         webSocketConnected={props.webSocketConnected}
@@ -765,7 +755,7 @@ export default function SidePanel(props: SidePanelProps) {
                         uploadedFiles={props.uploadedFiles}
                         userProfile={authenticatedData}
                         conversationId={props.conversationId}
-                        isMobileWidth={isMobileWidth}
+                        isMobileWidth={props.isMobileWidth}
                     />
                 </div>
             }

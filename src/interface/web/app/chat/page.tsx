@@ -33,7 +33,6 @@ interface ChatBodyDataProps {
     isLoggedIn: boolean;
 }
 
-
 function ChatBodyData(props: ChatBodyDataProps) {
     const searchParams = useSearchParams();
     const conversationId = searchParams.get('conversationId');
@@ -119,10 +118,8 @@ export default function Chat() {
 
     welcomeConsole();
 
-
     const handleWebSocketMessage = (event: MessageEvent) => {
         let chunk = event.data;
-
         let currentMessage = messages.find(message => !message.completed);
 
         if (!currentMessage) {
@@ -165,7 +162,6 @@ export default function Chat() {
                 } finally {
                     // no-op
                 }
-
             } else {
                 // Update the current message with the new chunk
                 if (chunk && chunk.includes("### compiled references:")) {
@@ -179,7 +175,6 @@ export default function Chat() {
                     // If the chunk is not a JSON object, just display it as is
                     currentMessage.rawResponse += chunk;
                 }
-
             }
         };
         // Update the state with the new message, currentMessage
@@ -269,7 +264,9 @@ export default function Chat() {
                 <SidePanel
                     webSocketConnected={chatWS !== null}
                     conversationId={conversationId}
-                    uploadedFiles={uploadedFiles} />
+                    uploadedFiles={uploadedFiles}
+                    isMobileWidth={isMobileWidth}
+                />
             </div>
             <div className={styles.chatBox}>
                 <NavMenu selected="Chat" title={title} />
