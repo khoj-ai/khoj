@@ -297,6 +297,7 @@ export function TeaserReferencesSection(props: TeaserReferenceSectionProps) {
                 {
                     shouldShowShowMoreButton &&
                     <ReferencePanel
+                        isMobileWidth={props.isMobileWidth}
                         notesReferenceCardData={props.notesReferenceCardData}
                         onlineReferenceCardData={props.onlineReferenceCardData} />
                 }
@@ -309,6 +310,7 @@ export function TeaserReferencesSection(props: TeaserReferenceSectionProps) {
 interface ReferencePanelDataProps {
     notesReferenceCardData: NotesContextReferenceData[];
     onlineReferenceCardData: OnlineReferenceData[];
+    isMobileWidth: boolean;
 }
 
 export default function ReferencePanel(props: ReferencePanelDataProps) {
@@ -320,8 +322,9 @@ export default function ReferencePanel(props: ReferencePanelDataProps) {
     return (
         <Sheet>
             <SheetTrigger
-                className='text-balance w-[200px] flex sm:justify-start md:justify-center overflow-hidden break-words p-0 bg-transparent border-none text-gray-400 align-middle items-center !m-0 inline-flex'>
-                View references <ArrowRight className='m-1' />
+                className={`text-balance flex sm:justify-start md:justify-start overflow-hidden break-words p-0 bg-transparent border-none text-gray-400 align-middle items-center !m-2 inline-flex ${props.isMobileWidth ? 'w-auto' : 'w-[200px]'}`}>
+                View references
+                <ArrowRight className='m-1' />
             </SheetTrigger>
             <SheetContent className="overflow-y-scroll">
                 <SheetHeader>
