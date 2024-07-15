@@ -299,7 +299,9 @@ export default function SharedChat() {
                 <SidePanel
                     webSocketConnected={!!conversationId ? (chatWS != null) : true}
                     conversationId={conversationId ?? null}
-                    uploadedFiles={uploadedFiles} />
+                    uploadedFiles={uploadedFiles}
+                    isMobileWidth={isMobileWidth}
+                />
             </div>
 
             <div className={styles.chatBox}>
