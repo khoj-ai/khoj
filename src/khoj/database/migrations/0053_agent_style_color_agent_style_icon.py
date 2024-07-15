@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("database", "0051_merge_20240702_1220"),
+        ("database", "0052_alter_searchmodelconfig_bi_encoder_docs_encode_config_and_more"),
     ]
 
     operations = [
