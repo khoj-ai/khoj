@@ -25,9 +25,11 @@ div.yellow {
 
 div.card {
     padding: 1rem;
-    margin: 1rem;
+    margin: 0.05rem;
     border: 1px solid #000000;
     border-radius: 0.5rem;
+    width: 200px;
+    height: 200px;
 }
 
 div.title {
@@ -36,5 +38,7 @@ div.title {
 }
 
 div.body {
+    padding-top: 0.7rem;
     font-size: 1rem;
+    white-space: wrap;
 }

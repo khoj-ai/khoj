@@ -38,6 +38,19 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const conversationId = searchParams.get('conversationId');
     const [message, setMessage] = useState('');
     const [processingMessage, setProcessingMessage] = useState(false);
+    const [shuffledOptions, setShuffledOptions] = useState<[string, string][]>([]);
+    function onButtonClick() {
+        if (props.chatOptionsData) {
+            const newOptions = Object.entries(props.chatOptionsData).sort(() => Math.random() - 0.5);
+            setShuffledOptions(newOptions.slice(0, 3));
+        }
+    }
+    useEffect(() => {
+        if (props.chatOptionsData) {
+            const initialOptions = Object.entries(props.chatOptionsData).sort(() => Math.random() - 0.5);
+            setShuffledOptions(initialOptions.slice(0, 3));
+        }
+    }, [props.chatOptionsData]);
 
     useEffect(() => {
         if (conversationId) {
@@ -64,19 +77,42 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }, [props.streamedMessages]);
 
     if (!conversationId) {
+        var options = props.chatOptionsData ? Object.entries(props.chatOptionsData).sort(() => Math.random() - 0.5) : [];
         return (
-            <div className={styles.suggestions}>
-                {props.chatOptionsData && Object.entries(props.chatOptionsData).map(([key, value]) => (
-                    <SuggestionCard
-                        key={key}
-                        title={`/${key}`}
-                        body={value}
-                        link='#' // replace with actual link if available
-                        styleClass={styleClassOptions[Math.floor(Math.random() * styleClassOptions.length)]}
-                    />
-                ))}
+            // chat input
+            <div>
+            <h1 className="white pb-10 ml-auto mr-auto">Welcome! What would you like to do?</h1>
+            <div className="w-4/5">
+                <div className={`${styles.inputBox} bg-background align-middle items-center justify-center px-3`}>
+                    <ChatInputArea
+                        isLoggedIn={props.isLoggedIn}
+                        sendMessage={(message) => setMessage(message)}
+                        sendDisabled={processingMessage}
+                        chatOptionsData={props.chatOptionsData}
+                        conversationId={conversationId}
+                        isMobileWidth={props.isMobileWidth}
+                        setUploadedFiles={props.setUploadedFiles} />
+                </div>
+                <div className={`suggestions ${styles.suggestions} w-full flex`}>
+                    {shuffledOptions.map(([key, value]) => (
+                        // chop value to 100 characters
+                        value = value.length > 65 ? value.substring(0, 65) + '...' : value,
+                        <SuggestionCard
+                            key={key}
+                            title={`${key}`}
+                            body={value}
+                            link='#' // replace with actual link if available
+                            styleClass={styleClassOptions[Math.floor(Math.random() * styleClassOptions.length)]}
+                        />
+                    ))}
+                </div>
+                <div className="flex items-center justify-center">
+                    <button onClick={onButtonClick} className="m-2 p-2 rounded-lg hover:bg-black">More Examples ⟳</button>
+                </div>
+            </div>
             </div>
         );
+
     }
 
     return (

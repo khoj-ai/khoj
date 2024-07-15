@@ -20,12 +20,12 @@ export default function SuggestionCard(data: SuggestionCardProps) {
 				{data.body}
 			</div>
 			<div>
-				<a
+				{/* <a
 					href={data.link}
 					target="_blank"
 					rel="noopener noreferrer"
 				>click me
-				</a>
+				</a> */}
 			</div>
 		</div>
 	);
