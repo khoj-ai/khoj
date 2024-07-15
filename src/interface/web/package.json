@@ -35,7 +35,6 @@
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-toast": "^1.2.1",
     "@radix-ui/react-toggle": "^1.1.0",
-    "@tailwindcss/line-clamp": "^0.4.4",
     "@types/dompurify": "^3.0.5",
     "@types/katex": "^0.16.7",
     "@types/markdown-it": "^14.1.1",
