@@ -212,6 +212,7 @@ def chat_history(
             "name": conversation.agent.name,
             "avatar": conversation.agent.avatar,
             "isCreator": conversation.agent.creator == user,
+            "persona": conversation.agent.personality,
         }
 
     meta_log = conversation.conversation_log
@@ -266,6 +267,7 @@ def get_shared_chat(
             "name": conversation.agent.name,
             "avatar": conversation.agent.avatar,
             "isCreator": conversation.agent.creator == user,
+            "persona": conversation.agent.personality,
         }
 
     meta_log = conversation.conversation_log

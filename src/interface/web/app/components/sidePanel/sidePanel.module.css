@@ -6,11 +6,12 @@ div.session {
     max-width: 14rem;
     font-size: medium;
     display: grid;
-    grid-template-columns: minmax(auto, 350px) 1fr;
+    grid-template-columns: minmax(auto, 400px) 1fr;
+    gap: 1rem;
 }
 
 div.compressed {
-    grid-template-columns: minmax(auto, 12rem) 1fr 1fr;
+    grid-template-columns: minmax(12rem, 100%) 1fr 1fr;
 }
 
 div.sessionHover {
@@ -83,10 +84,9 @@ div.profile {
 
 div.panelWrapper {
     display: grid;
-    grid-template-rows: auto 1fr auto auto;
+    grid-template-rows: 1fr auto auto;
     height: 100%;
 }
-
 
 div.modalSessionsList {
     position: fixed;
@@ -133,15 +133,16 @@ div.modalSessionsList div.session {
 
     div.panelWrapper {
         width: 100%;
+        padding: 0 1rem;
     }
 
     div.session.compressed {
         max-width: 100%;
-        grid-template-columns: minmax(auto, 350px) 1fr;
+        grid-template-columns: minmax(auto, 300px) 1fr;
     }
 
     div.session {
         max-width: 100%;
-        grid-template-columns: 200px 1fr;
+        grid-template-columns: minmax(auto, 70vw) 1fr;
     }
 }

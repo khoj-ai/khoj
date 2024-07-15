@@ -10,9 +10,11 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import renderMathInElement from 'katex/contrib/auto-render';
 import 'katex/dist/katex.min.css';
 
-import Loading, { InlineLoading } from '../loading/loading';
+import { InlineLoading } from '../loading/loading';
 
 import { Lightbulb } from "@phosphor-icons/react";
+
+import ProfileCard from '../profileCard/profileCard';
 
 interface ChatResponse {
     status: string;
@@ -231,6 +233,10 @@ export default function ChatHistory(props: ChatHistoryProps) {
         return data.agent.name;
     }
 
+    function constructAgentPersona() {
+        if (!data || !data.agent || !data.agent.persona) return ``;
+        return data.agent.persona;
+    }
 
     if (!props.conversationId && !props.publicConversationSlug) {
         return null;
@@ -241,7 +247,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
             <div ref={ref}>
                 <div className={styles.chatHistory} ref={chatHistoryRef}>
                     <div ref={sentinelRef} style={{ height: '1px' }}>
-                        {fetchingData && <InlineLoading />}
+                        {fetchingData && <InlineLoading message="Loading Conversation" className='opacity-50'/>}
                     </div>
                     {(data && data.chat) && data.chat.map((chatMessage, index) => (
                         <ChatMessage
@@ -250,6 +256,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                             chatMessage={chatMessage}
                             customClassName='fullHistory'
                             borderLeftColor='orange-500'
+                            isLastMessage={index === data.chat.length - 1}
                         />
                     ))}
                     {
@@ -270,7 +277,8 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                             }
                                         }
                                         customClassName='fullHistory'
-                                        borderLeftColor='orange-500' />
+                                        borderLeftColor='orange-500'
+                                    />
                                     {
                                         message.trainOfThought &&
                                         constructTrainOfThought(
@@ -294,6 +302,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         }
                                         customClassName='fullHistory'
                                         borderLeftColor='orange-500'
+                                        isLastMessage={true}
                                     />
                                 </>
                             )
@@ -316,14 +325,21 @@ export default function ChatHistory(props: ChatHistoryProps) {
                             }
                             customClassName='fullHistory'
                             borderLeftColor='orange-500'
+                            isLastMessage={true}
                         />
                     }
-                    <div className={`${styles.agentIndicator}`}>
-                        <a className='no-underline mx-2 flex text-muted-foreground' href={constructAgentLink()} target="_blank" rel="noreferrer">
-                            <Lightbulb color='orange' weight='fill' />
-                            <span>{constructAgentName()}</span>
-                        </a>
-                    </div>
+                    {data &&
+                        <div className={`${styles.agentIndicator} pb-4`}>
+                            <div className="relative group mx-2 cursor-pointer">
+                                <ProfileCard
+                                    name={constructAgentName()}
+                                    link={constructAgentLink()}
+                                    avatar={<Lightbulb color='orange' weight='fill' className="mt-1 mx-1" />}
+                                    description={constructAgentPersona()}
+                                />
+                            </div>
+                        </div>
+                    }
                 </div>
             </div>
         </ScrollArea>
