@@ -283,7 +283,7 @@ export function TeaserReferencesSection(props: TeaserReferenceSectionProps) {
                     {numReferences} sources
                 </p>
             </h3>
-            <div className={`flex sm:w-[90vw] md:w-auto space-x-4 mt-2`}>
+            <div className={`flex flex-wrap gap-2 w-auto mt-2`}>
                 {
                     notesDataToShow.map((note, index) => {
                         return <NotesContextReferenceCard showFullContent={false} {...note} key={`${note.title}-${index}`} />
@@ -297,7 +297,6 @@ export function TeaserReferencesSection(props: TeaserReferenceSectionProps) {
                 {
                     shouldShowShowMoreButton &&
                     <ReferencePanel
-                        isMobileWidth={props.isMobileWidth}
                         notesReferenceCardData={props.notesReferenceCardData}
                         onlineReferenceCardData={props.onlineReferenceCardData} />
                 }
@@ -310,7 +309,6 @@ export function TeaserReferencesSection(props: TeaserReferenceSectionProps) {
 interface ReferencePanelDataProps {
     notesReferenceCardData: NotesContextReferenceData[];
     onlineReferenceCardData: OnlineReferenceData[];
-    isMobileWidth: boolean;
 }
 
 export default function ReferencePanel(props: ReferencePanelDataProps) {
@@ -322,7 +320,7 @@ export default function ReferencePanel(props: ReferencePanelDataProps) {
     return (
         <Sheet>
             <SheetTrigger
-                className={`text-balance flex sm:justify-start md:justify-start overflow-hidden break-words p-0 bg-transparent border-none text-gray-400 align-middle items-center !m-2 inline-flex ${props.isMobileWidth ? 'w-auto' : 'w-[200px]'}`}>
+                className='text-balance w-auto md:w-[200px] justify-start overflow-hidden break-words p-0 bg-transparent border-none text-gray-400 align-middle items-center !m-2 inline-flex'>
                 View references
                 <ArrowRight className='m-1' />
             </SheetTrigger>
@@ -331,7 +329,7 @@ export default function ReferencePanel(props: ReferencePanelDataProps) {
                     <SheetTitle>References</SheetTitle>
                     <SheetDescription>View all references for this response</SheetDescription>
                 </SheetHeader>
-                <div className="flex flex-col w-auto gap-2 mt-2">
+                <div className="flex flex-wrap gap-2 w-auto mt-2">
                     {
                         props.notesReferenceCardData.map((note, index) => {
                             return <NotesContextReferenceCard showFullContent={true} {...note} key={`${note.title}-${index}`} />
