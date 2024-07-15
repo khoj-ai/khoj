@@ -1,4 +1,3 @@
-
 import type { Metadata } from "next";
 import NavMenu from '../components/navMenu/navMenu';
 import styles from './automationsLayout.module.css';
