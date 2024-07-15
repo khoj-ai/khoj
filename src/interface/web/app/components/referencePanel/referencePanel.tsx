@@ -92,12 +92,19 @@ interface OnlineReferenceCardProps extends OnlineReferenceData {
 function GenericOnlineReferenceCard(props: OnlineReferenceCardProps) {
     const [isHovering, setIsHovering] = useState(false);
 
-    if (!props.link) {
+    if (!props.link || props.link.split(' ').length > 1) {
         return null;
     }
 
-    const domain = new URL(props.link).hostname;
-    const favicon = `https://www.google.com/s2/favicons?domain=${domain}`;
+    let favicon = `https://www.google.com/s2/favicons?domain=globe`;
+    let domain = "unknown";
+    try {
+        domain = new URL(props.link).hostname;
+        favicon = `https://www.google.com/s2/favicons?domain=${domain}`;
+    } catch (error) {
+        console.warn(`Error parsing domain from link: ${props.link}`);
+        return null;
+    }
 
     const handleMouseEnter = () => {
         setIsHovering(true);
@@ -269,14 +276,14 @@ export function TeaserReferencesSection(props: TeaserReferenceSectionProps) {
     }
 
     return (
-        <div className={`${props.isMobileWidth ? 'p-0' : 'p-4'}`}>
+        <div className="pt-0 px-4 pb-4 md:px-6">
             <h3 className="inline-flex items-center">
                 References
                 <p className="text-gray-400 m-2">
                     {numReferences} sources
                 </p>
             </h3>
-            <div className={`flex ${props.isMobileWidth ? 'w-[90vw]' : 'w-auto'} space-x-4 mt-2`}>
+            <div className={`flex flex-wrap gap-2 w-auto mt-2`}>
                 {
                     notesDataToShow.map((note, index) => {
                         return <NotesContextReferenceCard showFullContent={false} {...note} key={`${note.title}-${index}`} />
@@ -313,15 +320,16 @@ export default function ReferencePanel(props: ReferencePanelDataProps) {
     return (
         <Sheet>
             <SheetTrigger
-                className='text-balance w-[200px] overflow-hidden break-words p-0 bg-transparent border-none text-gray-400 align-middle justify-center items-center !m-0 inline-flex'>
-                View references <ArrowRight className='m-1' />
+                className='text-balance w-auto md:w-[200px] justify-start overflow-hidden break-words p-0 bg-transparent border-none text-gray-400 align-middle items-center !m-2 inline-flex'>
+                View references
+                <ArrowRight className='m-1' />
             </SheetTrigger>
             <SheetContent className="overflow-y-scroll">
                 <SheetHeader>
                     <SheetTitle>References</SheetTitle>
                     <SheetDescription>View all references for this response</SheetDescription>
                 </SheetHeader>
-                <div className="flex flex-col w-auto gap-2 mt-2">
+                <div className="flex flex-wrap gap-2 w-auto mt-2">
                     {
                         props.notesReferenceCardData.map((note, index) => {
                             return <NotesContextReferenceCard showFullContent={true} {...note} key={`${note.title}-${index}`} />

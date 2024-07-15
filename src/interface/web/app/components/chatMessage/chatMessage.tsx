@@ -10,8 +10,7 @@ import 'katex/dist/katex.min.css';
 
 import { TeaserReferencesSection, constructAllReferences } from '../referencePanel/referencePanel';
 
-import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture, ArrowRight, SpeakerHifi } from '@phosphor-icons/react';
-import { MagnifyingGlass } from '@phosphor-icons/react/dist/ssr';
+import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture, SpeakerHigh, MagnifyingGlass } from '@phosphor-icons/react';
 
 import * as DomPurify from 'dompurify';
 
@@ -76,6 +75,7 @@ interface AgentData {
     name: string;
     avatar: string;
     slug: string;
+    persona: string;
 }
 
 interface Intent {
@@ -110,7 +110,6 @@ export interface StreamMessage {
     timestamp: string;
 }
 
-
 export interface ChatHistoryData {
     chat: SingleChatMessage[];
     agent: AgentData;
@@ -131,11 +130,11 @@ function sendFeedback(uquery: string, kquery: string, sentiment: string) {
 function FeedbackButtons({ uquery, kquery }: { uquery: string, kquery: string }) {
     return (
         <div className={`${styles.feedbackButtons} flex align-middle justify-center items-center`}>
-            <button className={styles.thumbsUpButton} onClick={() => sendFeedback(uquery, kquery, 'positive')}>
-                <ThumbsUp color='hsl(var(--muted-foreground))' />
+            <button title="Like" className={styles.thumbsUpButton} onClick={() => sendFeedback(uquery, kquery, 'positive')}>
+                <ThumbsUp alt="Like Message" color='hsl(var(--muted-foreground))' />
             </button>
-            <button className={styles.thumbsDownButton} onClick={() => sendFeedback(uquery, kquery, 'negative')}>
-                <ThumbsDown color='hsl(var(--muted-foreground))' />
+            <button title="Dislike" className={styles.thumbsDownButton} onClick={() => sendFeedback(uquery, kquery, 'negative')}>
+                <ThumbsDown alt="Dislike Message" color='hsl(var(--muted-foreground))' />
             </button>
         </div>
     )
@@ -146,6 +145,7 @@ interface ChatMessageProps {
     isMobileWidth: boolean;
     customClassName?: string;
     borderLeftColor?: string;
+    isLastMessage?: boolean;
 }
 
 interface TrainOfThoughtProps {
@@ -155,37 +155,37 @@ interface TrainOfThoughtProps {
 
 function chooseIconFromHeader(header: string, iconColor: string) {
     const compareHeader = header.toLowerCase();
+    const classNames = `inline mt-1 mr-2 ${iconColor}`;
     if (compareHeader.includes("understanding")) {
-        return <Brain className={`inline mr-2 ${iconColor}`} />
+        return <Brain className={`${classNames}`} />
     }
 
     if (compareHeader.includes("generating")) {
-        return <Cloud className={`inline mr-2 ${iconColor}`} />;
+        return <Cloud className={`${classNames}`} />;
     }
 
     if (compareHeader.includes("data sources")) {
-        return <Folder className={`inline mr-2 ${iconColor}`} />;
+        return <Folder className={`${classNames}`} />;
     }
 
     if (compareHeader.includes("notes")) {
-        return <Folder className={`inline mr-2 ${iconColor}`} />;
+        return <Folder className={`${classNames}`} />;
     }
 
     if (compareHeader.includes("read")) {
-        return <Book className={`inline mr-2 ${iconColor}`} />;
+        return <Book className={`${classNames}`} />;
     }
 
     if (compareHeader.includes("search")) {
-        return <MagnifyingGlass className={`inline mr-2 ${iconColor}`} />;
+        return <MagnifyingGlass className={`${classNames}`} />;
     }
 
     if (compareHeader.includes("summary") || compareHeader.includes("summarize")) {
-        return <Aperture className={`inline mr-2 ${iconColor}`} />;
+        return <Aperture className={`${classNames}`} />;
     }
 
-    return <Brain className={`inline mr-2 ${iconColor}`} />;
+    return <Brain className={`${classNames}`} />;
 }
-
 
 export function TrainOfThought(props: TrainOfThoughtProps) {
     // The train of thought comes in as a markdown-formatted string. It starts with a heading delimited by two asterisks at the start and end and a colon, followed by the message. Example: **header**: status. This function will parse the message and render it as a div.
@@ -215,8 +215,15 @@ export default function ChatMessage(props: ChatMessageProps) {
         message = message.replace(/\\\(/g, 'LEFTPAREN').replace(/\\\)/g, 'RIGHTPAREN')
             .replace(/\\\[/g, 'LEFTBRACKET').replace(/\\\]/g, 'RIGHTBRACKET');
 
-        if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image2") {
-            message = `![generated_image](${message})\n\n${props.chatMessage.intent["inferred-queries"][0]}`
+        if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image") {
+            message = `![generated image](data:image/png;base64,${message})`;
+        } else if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image2") {
+            message = `![generated image](${message})`;
+        } else if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image-v3") {
+            message = `![generated image](data:image/webp;base64,${message})`;
+        }
+        if (props.chatMessage.intent && props.chatMessage.intent.type.includes("text-to-image") && props.chatMessage.intent["inferred-queries"]?.length > 0) {
+            message += `\n\n**Inferred Query**\n\n${props.chatMessage.intent["inferred-queries"][0]}`;
         }
 
         let markdownRendered = md.render(message);
@@ -224,6 +231,8 @@ export default function ChatMessage(props: ChatMessageProps) {
         // Replace placeholders with LaTeX delimiters
         markdownRendered = markdownRendered.replace(/LEFTPAREN/g, '\\(').replace(/RIGHTPAREN/g, '\\)')
             .replace(/LEFTBRACKET/g, '\\[').replace(/RIGHTBRACKET/g, '\\]');
+
+        // Sanitize and set the rendered markdown
         setMarkdownRendered(DomPurify.sanitize(markdownRendered));
     }, [props.chatMessage.message]);
 
@@ -266,28 +275,36 @@ export default function ChatMessage(props: ChatMessageProps) {
         return null;
     }
 
+    function formatDate(timestamp: string) {
+        // Format date in HH:MM, DD MMM YYYY format
+        let date = new Date(timestamp + "Z");
+        let time_string = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
+        let date_string = date.toLocaleString('en-IN', { year: 'numeric', month: 'short', day: '2-digit'}).replaceAll('-', ' ');
+        return `${time_string} on ${date_string}`;
+    }
+
     function renderTimeStamp(timestamp: string) {
         if (!timestamp.endsWith('Z')) {
             timestamp = timestamp + 'Z';
         }
         const messageDateTime = new Date(timestamp);
-        const currentDataTime = new Date();
-        const timeDiff = currentDataTime.getTime() - messageDateTime.getTime();
+        const currentDateTime = new Date();
+        const timeDiff = currentDateTime.getTime() - messageDateTime.getTime();
 
-        if (timeDiff < 60000) {
+        if (timeDiff < 60e3) {
             return "Just now";
         }
 
-        if (timeDiff < 3600000) {
+        if (timeDiff < 3600e3) {
             // Using Math.round for closer to actual time representation
-            return `${Math.round(timeDiff / 60000)}m ago`;
+            return `${Math.round(timeDiff / 60e3)}m ago`;
         }
 
-        if (timeDiff < 86400000) {
-            return `${Math.round(timeDiff / 3600000)}h ago`;
+        if (timeDiff < 86400e3) {
+            return `${Math.round(timeDiff / 3600e3)}h ago`;
         }
 
-        return `${Math.round(timeDiff / 86400000)}d ago`;
+        return `${Math.round(timeDiff / 86400e3)}d ago`;
     }
 
     function constructClasses(chatMessage: SingleChatMessage) {
@@ -332,29 +349,29 @@ export default function ChatMessage(props: ChatMessageProps) {
             </div>
             <div className={styles.chatFooter}>
                 {
-                    isHovering &&
+                    (isHovering || props.isMobileWidth || props.isLastMessage) &&
                     (
                         <>
-                            <div className={`text-gray-400 relative top-2 left-2`}>
+                            <div title={formatDate(props.chatMessage.created)} className={`text-gray-400 relative top-0 left-4`}>
                                 {renderTimeStamp(props.chatMessage.created)}
                             </div>
                             <div className={styles.chatButtons}>
                                 {
                                     (props.chatMessage.by === "khoj") &&
                                     (
-                                        <button onClick={(event) => console.log("speaker")}>
-                                            <SpeakerHifi color='hsl(var(--muted-foreground))' />
+                                        <button title="Speak" onClick={(event) => console.log("speaker")}>
+                                            <SpeakerHigh alt="Speak Message" color='hsl(var(--muted-foreground))' />
                                         </button>
                                     )
                                 }
-                                <button className={`${styles.copyButton}`} onClick={() => {
+                                <button title="Copy" className={`${styles.copyButton}`} onClick={() => {
                                     navigator.clipboard.writeText(props.chatMessage.message);
                                     setCopySuccess(true);
                                 }}>
                                     {
                                         copySuccess ?
-                                            <Copy color='green' />
-                                            : <Copy color='hsl(var(--muted-foreground))' />
+                                            <Copy alt="Copied Message" weight="fill" color='green' />
+                                            : <Copy alt="Copy Message" color='hsl(var(--muted-foreground))' />
                                     }
                                 </button>
                                 {
@@ -373,7 +390,6 @@ export default function ChatMessage(props: ChatMessageProps) {
                         </>
                     )
                 }
-
             </div>
         </div>
     )

@@ -133,42 +133,43 @@ export default function ChatInputArea(props: ChatInputProps) {
     }
 
     function getIconForSlashCommand(command: string) {
+        const className = 'h-4 w-4 mr-2';
         if (command.includes('summarize')) {
-            return <Gps className='h-4 w-4 mr-2' />
+            return <Gps className={className} />
         }
 
         if (command.includes('help')) {
-            return <Question className='h-4 w-4 mr-2' />
+            return <Question className={className} />
         }
 
         if (command.includes('automation')) {
-            return <Robot className='h-4 w-4 mr-2' />
+            return <Robot className={className} />
         }
 
         if (command.includes('webpage')) {
-            return <Browser className='h-4 w-4 mr-2' />
+            return <Browser className={className} />
         }
 
         if (command.includes('notes')) {
-            return <Notebook className='h-4 w-4 mr-2' />
+            return <Notebook className={className} />
         }
 
         if (command.includes('image')) {
-            return <Image className='h-4 w-4 mr-2' />
+            return <Image className={className} />
         }
 
         if (command.includes('default')) {
-            return <Shapes className='h-4 w-4 mr-2' />
+            return <Shapes className={className} />
         }
 
         if (command.includes('general')) {
-            return <ChatsTeardrop className='h-4 w-4 mr-2' />
+            return <ChatsTeardrop className={className} />
         }
 
         if (command.includes('online')) {
-            return <GlobeSimple className='h-4 w-4 mr-2' />
+            return <GlobeSimple className={className} />
         }
-        return <ArrowRight className='h-4 w-4 mr-2' />
+        return <ArrowRight className={className} />
     }
 
     return (
@@ -270,7 +271,6 @@ export default function ChatInputArea(props: ChatInputProps) {
                 </div>
             }
             <div className={`${styles.actualInputArea} flex items-center justify-between`}>
-
                 <input
                     type="file"
                     multiple={true}
@@ -287,7 +287,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                 </Button>
                 <div className="grid w-full gap-1.5 relative">
                     <Textarea
-                        className='border-none min-h-[20px]'
+                        className='border-none w-full h-16 min-h-16 md:py-4 rounded-lg text-lg'
                         placeholder="Type / to see a list of commands"
                         id="message"
                         value={message}

@@ -214,6 +214,7 @@ def chat_history(
             "isCreator": conversation.agent.creator == user,
             "color": conversation.agent.style_color,
             "icon": conversation.agent.style_icon,
+            "persona": conversation.agent.personality,
         }
 
     meta_log = conversation.conversation_log
@@ -270,6 +271,7 @@ def get_shared_chat(
             "isCreator": conversation.agent.creator == user,
             "color": conversation.agent.style_color,
             "icon": conversation.agent.style_icon,
+            "persona": conversation.agent.personality,
         }
 
     meta_log = conversation.conversation_log

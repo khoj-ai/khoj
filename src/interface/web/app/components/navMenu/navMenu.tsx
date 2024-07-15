@@ -2,7 +2,7 @@
 
 import styles from './navMenu.module.css';
 import Link from 'next/link';
-import { useAuthenticatedData, UserProfile } from '@/app/common/auth';
+import { useAuthenticatedData } from '@/app/common/auth';
 import { useState, useEffect } from 'react';
 
 import {
