@@ -10,7 +10,6 @@ export interface UserInfo {
     email?: string;
 }
 
-
 export interface KhojSetting {
     resultsCount: number;
     khojUrl: string;
