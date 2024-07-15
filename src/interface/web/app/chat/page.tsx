@@ -33,7 +33,6 @@ interface ChatBodyDataProps {
     isLoggedIn: boolean;
 }
 
-
 function ChatBodyData(props: ChatBodyDataProps) {
     const searchParams = useSearchParams();
     const conversationId = searchParams.get('conversationId');

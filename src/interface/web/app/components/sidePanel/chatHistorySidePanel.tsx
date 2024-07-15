@@ -2,13 +2,12 @@
 
 import styles from "./sidePanel.module.css";
 
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { UserProfile, useAuthenticatedData } from "@/app/common/auth";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import Link from "next/link";
 import useSWR from "swr";
-import Image from "next/image";
 
 import {
     Command,
@@ -72,8 +71,9 @@ import {
 
 import { Pencil, Trash, Share } from "@phosphor-icons/react";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { modifyFileFilterForConversation } from "@/app/common/chatFunctions";
 import { ScrollAreaScrollbar } from "@radix-ui/react-scroll-area";
@@ -338,7 +338,7 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                     <div className={styles.sessionsList}>
                         {props.subsetOrganizedData != null && Object.keys(props.subsetOrganizedData).map((timeGrouping) => (
                             <div key={timeGrouping} className={`my-4`}>
-                                <div className={`text-muted-foreground text-sm font-bold p-[0.5rem] `}>
+                                <div className={`text-muted-foreground text-sm font-bold p-[0.5rem]`}>
                                     {timeGrouping}
                                 </div>
                                 {props.subsetOrganizedData && props.subsetOrganizedData[timeGrouping].map((chatHistory) => (

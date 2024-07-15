@@ -9,12 +9,12 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 
 import renderMathInElement from 'katex/contrib/auto-render';
 import 'katex/dist/katex.min.css';
-import 'highlight.js/styles/github.css'
 
 import { InlineLoading } from '../loading/loading';
 
+import { Lightbulb } from "@phosphor-icons/react";
+
 import ProfileCard from '../profileCard/profileCard';
-import { Lightbulb } from '@phosphor-icons/react';
 
 interface ChatResponse {
     status: string;

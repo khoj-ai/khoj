@@ -7,7 +7,6 @@ import mditHljs from "markdown-it-highlightjs";
 import React, { useEffect, useRef, useState } from 'react';
 
 import 'katex/dist/katex.min.css';
-import 'highlight.js/styles/github.css'
 
 import { TeaserReferencesSection, constructAllReferences } from '../referencePanel/referencePanel';
 
@@ -111,7 +110,6 @@ export interface StreamMessage {
     timestamp: string;
 }
 
-
 export interface ChatHistoryData {
     chat: SingleChatMessage[];
     agent: AgentData;
@@ -189,7 +187,6 @@ function chooseIconFromHeader(header: string, iconColor: string) {
     return <Brain className={`${classNames}`} />;
 }
 
-
 export function TrainOfThought(props: TrainOfThoughtProps) {
     // The train of thought comes in as a markdown-formatted string. It starts with a heading delimited by two asterisks at the start and end and a colon, followed by the message. Example: **header**: status. This function will parse the message and render it as a div.
     let extractedHeader = props.message.match(/\*\*(.*)\*\*/);
@@ -198,7 +195,7 @@ export function TrainOfThought(props: TrainOfThoughtProps) {
     const icon = chooseIconFromHeader(header, iconColor);
     let markdownRendered = DomPurify.sanitize(md.render(props.message));
     return (
-        <div className={`flex mt-1 ${props.primary ? 'text-gray-400' : 'text-gray-300'} ${styles.trainOfThought} ${props.primary ? styles.primary : ''}`} >
+        <div className={`flex items-center ${props.primary ? 'text-gray-400' : 'text-gray-300'} ${styles.trainOfThought} ${props.primary ? styles.primary : ''}`} >
             {icon}
             <div dangerouslySetInnerHTML={{ __html: markdownRendered }} />
         </div>
@@ -253,7 +250,7 @@ export default function ChatMessage(props: ChatMessageProps) {
             preElements.forEach((preElement) => {
                 const copyButton = document.createElement('button');
                 const copyImage = document.createElement('img');
-                copyImage.src = '/copy-button.svg';
+                copyImage.src = '/static/copy-button.svg';
                 copyImage.alt = 'Copy';
                 copyImage.width = 24;
                 copyImage.height = 24;
@@ -267,11 +264,12 @@ export default function ChatMessage(props: ChatMessageProps) {
                     textContent = textContent.replace(/^Copy/, '');
                     textContent = textContent.trim();
                     navigator.clipboard.writeText(textContent);
+                    copyImage.src = '/static/copy-button-success.svg';
                 });
                 preElement.prepend(copyButton);
             });
         }
-    }, [markdownRendered]);
+    }, [markdownRendered, isHovering, messageRef]);
 
     if (!props.chatMessage.message) {
         return null;
