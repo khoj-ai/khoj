@@ -15,6 +15,23 @@
     <script src="./utils.js"></script>
     <script src="chatutils.js"></script>
     <script>
+        // Add keyboard shortcuts to the chat view
+        window.addEventListener("keydown", function(event) {
+            // If enter key is pressed, send the message
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                chat();
+            // If ^O then Open the chat sessions panel
+            } else if (event.key === "o" && event.ctrlKey) {
+                handleCollapseSidePanel();
+            // If ^N then Create a new conversation
+            } else if (event.key === "n" && event.ctrlKey) {
+                createNewConversation();
+            // If ^D then Delete the conversation history
+            } else if (event.key === "d" && event.ctrlKey) {
+                clearConversationHistory();
+            }
+        });
         let chatOptions = [];
         function createCopyParentText(message) {
             return function(event) {
