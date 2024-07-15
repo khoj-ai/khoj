@@ -94,10 +94,7 @@ function getIconFromIconName(iconName: string, color: string = 'gray', width: st
     const colorName = color.toLowerCase();
     const colorClass = convertColorToTextClass(colorName);
 
-    if (icon) {
-        return icon(colorClass, width, height);
-    }
-    return null;
+    return icon ? icon(colorClass, width, height) : null;
 }
 
 function convertColorToClass(color: string) {
