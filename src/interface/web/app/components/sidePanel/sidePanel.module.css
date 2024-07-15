@@ -84,7 +84,6 @@ div.profile {
 
 div.panelWrapper {
     display: grid;
-    padding: 0 1rem;
     grid-template-rows: 1fr auto auto;
     height: 100%;
 }
@@ -134,11 +133,12 @@ div.modalSessionsList div.session {
 
     div.panelWrapper {
         width: 100%;
+        padding: 0 1rem;
     }
 
     div.session.compressed {
         max-width: 100%;
-        grid-template-columns: minmax(auto, 350px) 1fr;
+        grid-template-columns: minmax(auto, 300px) 1fr;
     }
 
     div.session {
