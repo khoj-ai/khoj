@@ -394,7 +394,7 @@
 
     function saveProfileGivenName() {
         const givenName = document.getElementById("profile_given_name").value;
-        fetch('/api/config/user/name?name=' + givenName, {
+        fetch('/api/configure/user/name?name=' + givenName, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -421,7 +421,7 @@
         saveVoiceModelButton.disabled = true;
         saveVoiceModelButton.textContent = "Saving...";
 
-        fetch('/api/config/voice/model?id=' + voiceModel, {
+        fetch('/api/configure/voice/model?id=' + voiceModel, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -455,7 +455,7 @@
         saveModelButton.innerHTML = "";
         saveModelButton.textContent = "Saving...";
 
-        fetch('/api/config/chat/model?id=' + chatModel, {
+        fetch('/api/configure/chat/model?id=' + chatModel, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -494,7 +494,7 @@
         saveSearchModelButton.disabled = true;
         saveSearchModelButton.textContent = "Saving...";
 
-        fetch('/api/config/search/model?id=' + searchModel, {
+        fetch('/api/configure/search/model?id=' + searchModel, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -526,7 +526,7 @@
         saveModelButton.disabled = true;
         saveModelButton.innerHTML = "Saving...";
 
-        fetch('/api/config/paint/model?id=' + paintModel, {
+        fetch('/api/configure/paint/model?id=' + paintModel, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -553,7 +553,7 @@
     };
 
     function clearContentType(content_source) {
-        fetch('/api/config/content/' + content_source, {
+        fetch('/api/configure/content/' + content_source, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -676,7 +676,7 @@
 
         content_sources = ["computer", "github", "notion"];
         content_sources.forEach(content_source => {
-            fetch(`/api/config/content/${content_source}`, {
+            fetch(`/api/configure/content/${content_source}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -807,7 +807,7 @@
 
     function getIndexedDataSize() {
         document.getElementById("indexed-data-size").textContent = "Calculating...";
-        fetch('/api/config/content/size')
+        fetch('/api/configure/content/size')
             .then(response => response.json())
             .then(data => {
                 document.getElementById("indexed-data-size").textContent = data.indexed_data_size_in_mb + " MB used";
@@ -815,7 +815,7 @@
     }
 
     function removeFile(path) {
-        fetch('/api/config/content/file?filename=' + path, {
+        fetch('/api/configure/content/file?filename=' + path, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -890,7 +890,7 @@
     })
 
     phonenumberRemoveButton.addEventListener("click", () => {
-        fetch('/api/config/phone', {
+        fetch('/api/configure/phone', {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -917,7 +917,7 @@
             }, 5000);
         } else {
             const mobileNumber = iti.getNumber();
-            fetch('/api/config/phone?phone_number=' + mobileNumber, {
+            fetch('/api/configure/phone?phone_number=' + mobileNumber, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -970,7 +970,7 @@
             return;
         }
 
-        fetch('/api/config/phone/verify?code=' + otp, {
+        fetch('/api/configure/phone/verify?code=' + otp, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
