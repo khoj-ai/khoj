@@ -1,0 +1,11 @@
+div.page {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    height: 100vh;
+    color: hsla(var(--foreground));
+}
+div.contentBody {
+    display: grid;
+    margin: auto;
+}
