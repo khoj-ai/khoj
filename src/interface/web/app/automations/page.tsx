@@ -83,6 +83,7 @@ function getEveryBlahFromCron(cron: string) {
 
 function getDayOfWeekFromCron(cron: string) {
     const cronParts = cron.split(' ');
+    console.log(cronParts);
     if (cronParts[3] === '*' && cronParts[4] !== '*') {
         return Number(cronParts[4]);
     }
@@ -631,7 +632,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                                 <FormItem
                                     className='w-full'>
                                     <FormLabel>Day of Week</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
+                                    <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={String(field.value)}>
                                         <FormControl>
                                             <SelectTrigger className='w-[200px]'>
                                                 On <SelectValue placeholder="" />
