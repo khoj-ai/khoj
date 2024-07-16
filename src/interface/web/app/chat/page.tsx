@@ -1,9 +1,10 @@
 'use client'
 
 import styles from './chat.module.css';
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState, useMemo } from 'react';
 
 import SuggestionCard from '../components/suggestions/suggestionCard';
+import AgentShortcut from '../components/agentShortcut/agentShortcut';
 import SidePanel from '../components/sidePanel/chatHistorySidePanel';
 import ChatHistory from '../components/chatHistory/chatHistory';
 import NavMenu from '../components/navMenu/navMenu';
@@ -19,8 +20,8 @@ import { welcomeConsole } from '../common/utils';
 import ChatInputArea, { ChatOptions } from '../components/chatInputArea/chatInputArea';
 import { useAuthenticatedData } from '../common/auth';
 
-
-const styleClassOptions = ['pink', 'blue', 'green', 'yellow', 'purple'];
+const suggestions: Suggestion[] = [["Automation", `${styles.blue}`, "/automate.svg", "Send me a summary of HackerNews every morning."], ["Automation", `${styles.blue}`, "/automate.svg", "Send me an exciting recipe every sunday"], ["Paint", `${styles.green}`, "/paint.svg", "Paint a picture of a sunset but it's made of stained glass tiles"], ["Online Search", `${styles.yellow}`, "/online_search.svg", "Search for the best attractions in Austria Hungary"]];
+const sampleAgents = [["Khoj", "/khoj_agent.svg"], ["Teacher", "/teacher_agent.svg"], ["Doctor", "/doctor_agent.svg"], ["Sage", "/sage_agent.svg"]];
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -32,23 +33,26 @@ interface ChatBodyDataProps {
     isMobileWidth?: boolean;
     isLoggedIn: boolean;
 }
-
+type Suggestion = [string, string, string, string];
 function ChatBodyData(props: ChatBodyDataProps) {
     const searchParams = useSearchParams();
     const conversationId = searchParams.get('conversationId');
     const [message, setMessage] = useState('');
     const [processingMessage, setProcessingMessage] = useState(false);
-    const [shuffledOptions, setShuffledOptions] = useState<[string, string][]>([]);
+    const [shuffledOptions, setShuffledOptions] = useState<Suggestion[]>([]);
+    const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+
+    function shuffleAndSetOptions() {
+        const shuffled = [...suggestions].sort(() => 0.5 - Math.random());
+        setShuffledOptions(shuffled.slice(0, 3));
+    }
+
     function onButtonClick() {
-        if (props.chatOptionsData) {
-            const newOptions = Object.entries(props.chatOptionsData).sort(() => Math.random() - 0.5);
-            setShuffledOptions(newOptions.slice(0, 3));
-        }
+        shuffleAndSetOptions();
     }
     useEffect(() => {
         if (props.chatOptionsData) {
-            const initialOptions = Object.entries(props.chatOptionsData).sort(() => Math.random() - 0.5);
-            setShuffledOptions(initialOptions.slice(0, 3));
+            shuffleAndSetOptions();
         }
     }, [props.chatOptionsData]);
 
@@ -77,12 +81,26 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }, [props.streamedMessages]);
 
     if (!conversationId) {
-        var options = props.chatOptionsData ? Object.entries(props.chatOptionsData).sort(() => Math.random() - 0.5) : [];
         return (
-            // chat input
             <div>
             <div className="w-full text-center">
-            <h1 className="white pb-10 w-4/5">What would you like to do?</h1>
+            <h1 className="white pb-8 w-4/5">What would you like to do?</h1>
+            </div>
+            <div className="w-full text-center">
+            <div className="flex pb-8 ms-10 gap-2">
+                {sampleAgents.map(([title, image]) => (
+                    <AgentShortcut
+                        key={title}
+                        title={title}
+                        link=""
+                        image={image}
+                        color=""
+                        isSelected={selectedAgent === title}
+                        onSelect={() => setSelectedAgent(title)}
+                    />
+                ))}
+                <AgentShortcut key="See More" title="See More →" link="/agents" image="" color="" />
+            </div>
             </div>
             <div className="w-4/5">
                 <div className={`${styles.inputBox} bg-background align-middle items-center justify-center px-3`}>
@@ -96,22 +114,19 @@ function ChatBodyData(props: ChatBodyDataProps) {
                         setUploadedFiles={props.setUploadedFiles} />
                 </div>
                 <div className={`suggestions ${styles.suggestions} w-full flex`}>
-                    {shuffledOptions.map(([key, value]) => (
-                        // chop value to 100 characters
-                        value = value.length > 65 ? value.substring(0, 65) + '...' : value,
+                    {shuffledOptions.map(([key, styleClass, image, value]) => (
                         <SuggestionCard
-                            key={key}
-                            title={`${key}`}
-                            body={value}
-                            link='#' // replace with actual link if available
-                            styleClass={styleClassOptions[Math.floor(Math.random() * styleClassOptions.length)]}
-                            color={styles.purple}
-                            image="C:\Users\ragha\khoj\src\interface\desktop\assets\icons\key.svg"
+                        key={key + Math.random()}
+                        title={key}
+                        body={value.length > 65 ? value.substring(0, 65) + '...' : value}
+                        link='https://www.google.com' // replace with actual link if available
+                        color={styleClass}
+                        image={image}
                         />
                     ))}
                 </div>
                 <div className="flex items-center justify-center">
-                    <button onClick={onButtonClick} className="m-2 p-2 rounded-lg hover:bg-black">More Examples ⟳</button>
+                    <button onClick={onButtonClick} className="m-2 p-1 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100">More Examples ⟳</button>
                 </div>
             </div>
             </div>
