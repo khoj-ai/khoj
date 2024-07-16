@@ -283,9 +283,9 @@ Auto invokes setup steps on calling main entrypoint."
     (if (/= (apply #'call-process khoj-server-python-command
                    nil t nil
                    "-m" "pip" "install" "--upgrade"
-                   '("khoj-assistant"))
+                   '("khoj"))
             0)
-        (message "khoj.el: Failed to install Khoj server. Please install it manually using pip install `khoj-assistant'.\n%s" (buffer-string))
+        (message "khoj.el: Failed to install Khoj server. Please install it manually using pip install `khoj'.\n%s" (buffer-string))
       (message "khoj.el: Installed and upgraded Khoj server version: %s" (khoj--server-get-version)))))
 
 (defun khoj--server-start ()

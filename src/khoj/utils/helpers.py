@@ -259,7 +259,7 @@ def log_telemetry(
     # Populate telemetry data to log
     request_body = {
         "telemetry_type": telemetry_type,
-        "server_version": version("khoj-assistant"),
+        "server_version": version("khoj"),
         "os": platform.system(),
         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
