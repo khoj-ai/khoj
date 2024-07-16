@@ -217,7 +217,7 @@
                 .then(enabled_types => {
                     // Show warning if no content types are enabled
                     if (enabled_types.detail) {
-                        document.getElementById("results").innerHTML = "<div id='results-error'>To use Khoj search, setup your content plugins on the Khoj <a class='inline-chat-link' href='/config'>settings page</a>.</div>";
+                        document.getElementById("results").innerHTML = "<div id='results-error'>To use Khoj search, setup your content plugins on the Khoj <a class='inline-chat-link' href='/configure'>settings page</a>.</div>";
                         document.getElementById("query").setAttribute("disabled", "disabled");
                         document.getElementById("query").setAttribute("placeholder", "Configure Khoj to enable search");
                         return [];
