@@ -98,9 +98,9 @@ def _initialize_config():
         state.config.search_type = SearchConfig.model_validate(constants.default_config["search-type"])
 
 
-@api_config.post("/data/content-source/github", status_code=200)
+@api_config.post("/content/github", status_code=200)
 @requires(["authenticated"])
-async def set_content_config_github_data(
+async def set_content_github(
     request: Request,
     updated_config: Union[GithubContentConfig, None],
     client: Optional[str] = None,
@@ -130,9 +130,9 @@ async def set_content_config_github_data(
     return {"status": "ok"}
 
 
-@api_config.post("/data/content-source/notion", status_code=200)
+@api_config.post("/content/notion", status_code=200)
 @requires(["authenticated"])
-async def set_content_config_notion_data(
+async def set_content_notion(
     request: Request,
     updated_config: Union[NotionContentConfig, None],
     client: Optional[str] = None,
@@ -161,9 +161,9 @@ async def set_content_config_notion_data(
     return {"status": "ok"}
 
 
-@api_config.delete("/data/content-source/{content_source}", status_code=200)
+@api_config.delete("/content/{content_source}", status_code=200)
 @requires(["authenticated"])
-async def remove_content_source_data(
+async def delete_content_source(
     request: Request,
     content_source: str,
     client: Optional[str] = None,
@@ -189,9 +189,9 @@ async def remove_content_source_data(
     return {"status": "ok"}
 
 
-@api_config.delete("/data/file", status_code=200)
+@api_config.delete("/content/file", status_code=201)
 @requires(["authenticated"])
-async def remove_file_data(
+async def delete_content_file(
     request: Request,
     filename: str,
     client: Optional[str] = None,
@@ -210,9 +210,9 @@ async def remove_file_data(
     return {"status": "ok"}
 
 
-@api_config.get("/data/{content_source}", response_model=List[str])
+@api_config.get("/content/{content_source}", response_model=List[str])
 @requires(["authenticated"])
-async def get_all_filenames(
+async def get_content_source(
     request: Request,
     content_source: str,
     client: Optional[str] = None,
@@ -229,7 +229,7 @@ async def get_all_filenames(
     return await sync_to_async(list)(EntryAdapters.get_all_filenames_by_source(user, content_source))  # type: ignore[call-arg]
 
 
-@api_config.get("/data/conversation/model/options", response_model=Dict[str, Union[str, int]])
+@api_config.get("/chat/model/options", response_model=Dict[str, Union[str, int]])
 def get_chat_model_options(
     request: Request,
     client: Optional[str] = None,
@@ -243,7 +243,7 @@ def get_chat_model_options(
     return Response(content=json.dumps(all_conversation_options), media_type="application/json", status_code=200)
 
 
-@api_config.get("/data/conversation/model")
+@api_config.get("/chat/model")
 @requires(["authenticated"])
 def get_user_chat_model(
     request: Request,
@@ -259,7 +259,7 @@ def get_user_chat_model(
     return Response(status_code=200, content=json.dumps({"id": chat_model.id, "chat_model": chat_model.chat_model}))
 
 
-@api_config.post("/data/conversation/model", status_code=200)
+@api_config.post("/chat/model", status_code=200)
 @requires(["authenticated", "premium"])
 async def update_chat_model(
     request: Request,
@@ -284,7 +284,7 @@ async def update_chat_model(
     return {"status": "ok"}
 
 
-@api_config.post("/data/voice/model", status_code=200)
+@api_config.post("/voice/model", status_code=200)
 @requires(["authenticated", "premium"])
 async def update_voice_model(
     request: Request,
@@ -308,7 +308,7 @@ async def update_voice_model(
     return Response(status_code=202, content=json.dumps({"status": "ok"}))
 
 
-@api_config.post("/data/search/model", status_code=200)
+@api_config.post("/search/model", status_code=200)
 @requires(["authenticated"])
 async def update_search_model(
     request: Request,
@@ -341,7 +341,7 @@ async def update_search_model(
     return {"status": "ok"}
 
 
-@api_config.post("/data/paint/model", status_code=200)
+@api_config.post("/paint/model", status_code=200)
 @requires(["authenticated"])
 async def update_paint_model(
     request: Request,
@@ -370,9 +370,9 @@ async def update_paint_model(
     return {"status": "ok"}
 
 
-@api_config.get("/index/size", response_model=Dict[str, int])
+@api_config.get("/content/size", response_model=Dict[str, int])
 @requires(["authenticated"])
-async def get_indexed_data_size(request: Request, common: CommonQueryParams):
+async def get_content_size(request: Request, common: CommonQueryParams):
     user = request.user.object
     indexed_data_size_in_mb = await sync_to_async(EntryAdapters.get_size_of_indexed_data_in_mb)(user)
     return Response(

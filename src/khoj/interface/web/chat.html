@@ -1954,7 +1954,7 @@ To get started, just start typing below. You can also type / to see a list of co
         }
         var allFiles;
         function renderAllFiles() {
-            fetch('/api/config/data/computer')
+            fetch('/api/config/content/computer')
             .then(response => response.json())
             .then(data => {
                 var indexedFiles = document.getElementsByClassName("indexed-files")[0];
