@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1
 FROM ubuntu:jammy
-LABEL org.opencontainers.image.source https://github.com/khoj-ai/khoj
+LABEL "homepage" "https://khoj.dev"
+LABEL "repository" "https://github.com/khoj-ai/khoj"
+LABEL "org.opencontainers.image.source" "https://github.com/khoj-ai/khoj"
 
 # Install System Dependencies
 RUN apt update -y && apt -y install python3-pip swig curl
