@@ -81,7 +81,9 @@ function ChatBodyData(props: ChatBodyDataProps) {
         return (
             // chat input
             <div>
-            <h1 className="white pb-10 ml-auto mr-auto">Welcome! What would you like to do?</h1>
+            <div className="w-full text-center">
+            <h1 className="white pb-10 w-4/5">What would you like to do?</h1>
+            </div>
             <div className="w-4/5">
                 <div className={`${styles.inputBox} bg-background align-middle items-center justify-center px-3`}>
                     <ChatInputArea
@@ -103,6 +105,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
                             body={value}
                             link='#' // replace with actual link if available
                             styleClass={styleClassOptions[Math.floor(Math.random() * styleClassOptions.length)]}
+                            color={styles.purple}
+                            image="C:\Users\ragha\khoj\src\interface\desktop\assets\icons\key.svg"
                         />
                     ))}
                 </div>
