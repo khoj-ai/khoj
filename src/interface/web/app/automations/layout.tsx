@@ -1,8 +1,9 @@
-
 import type { Metadata } from "next";
 import NavMenu from '../components/navMenu/navMenu';
 import styles from './automationsLayout.module.css';
 import { Toaster } from "@/components/ui/toaster";
+
+import "../globals.css";
 
 
 export const metadata: Metadata = {

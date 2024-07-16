@@ -40,6 +40,7 @@ export default function NavMenu(props: NavMenuProps) {
 
     const [isMobileWidth, setIsMobileWidth] = useState(false);
     const [darkMode, setDarkMode] = useState(false);
+    const [initialLoadDone, setInitialLoadDone] = useState(false);
 
     useEffect(() => {
         setIsMobileWidth(window.innerWidth < 768);
@@ -62,13 +63,26 @@ export default function NavMenu(props: NavMenuProps) {
         if (localStorage.getItem('theme') === 'dark') {
             document.documentElement.classList.add('dark');
             setDarkMode(true);
-        } else if (mq.matches) {
-            document.documentElement.classList.add('dark');
-            setDarkMode(true);
+        } else if (localStorage.getItem('theme') === 'light') {
+            document.documentElement.classList.remove('dark');
+            setDarkMode(false);
+        } else {
+            const mq = window.matchMedia(
+                "(prefers-color-scheme: dark)"
+            );
+
+            if (mq.matches) {
+                document.documentElement.classList.add('dark');
+                setDarkMode(true);
+            }
         }
+
+        setInitialLoadDone(true);
     }, []);
 
+
     useEffect(() => {
+        if (!initialLoadDone) return;
         toggleDarkMode(darkMode);
     }, [darkMode]);
 
@@ -128,17 +142,17 @@ export default function NavMenu(props: NavMenuProps) {
                     :
                     <Menubar className='items-top inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground'>
                         <MenubarMenu>
-                            <Link href='/chat' target="_blank" rel="noreferrer" className={`${props.selected.toLowerCase() === 'chat' ? styles.selected : ''} hover:bg-background`}>
+                            <Link href='/chat' className={`${props.selected.toLowerCase() === 'chat' ? styles.selected : ''} hover:bg-background`}>
                                 <MenubarTrigger>Chat</MenubarTrigger>
                             </Link>
                         </MenubarMenu>
                         <MenubarMenu>
-                            <Link href='/agents' target="_blank" rel="noreferrer" className={`${props.selected.toLowerCase() === 'agent' ? styles.selected : ''} hover:bg-background`}>
+                            <Link href='/agents' className={`${props.selected.toLowerCase() === 'agent' ? styles.selected : ''} hover:bg-background`}>
                                 <MenubarTrigger>Agents</MenubarTrigger>
                             </Link>
                         </MenubarMenu>
                         <MenubarMenu>
-                            <Link href='/automations' target="_blank" rel="noreferrer" className={`${props.selected.toLowerCase() === 'automations' ? styles.selected : ''} hover:bg-background`}>
+                            <Link href='/automations' className={`${props.selected.toLowerCase() === 'automations' ? styles.selected : ''} hover:bg-background`}>
                                 <MenubarTrigger>Automations</MenubarTrigger>
                             </Link>
                         </MenubarMenu>

@@ -212,6 +212,8 @@ def chat_history(
             "name": conversation.agent.name,
             "avatar": conversation.agent.avatar,
             "isCreator": conversation.agent.creator == user,
+            "color": conversation.agent.style_color,
+            "icon": conversation.agent.style_icon,
             "persona": conversation.agent.personality,
         }
 
@@ -267,6 +269,8 @@ def get_shared_chat(
             "name": conversation.agent.name,
             "avatar": conversation.agent.avatar,
             "isCreator": conversation.agent.creator == user,
+            "color": conversation.agent.style_color,
+            "icon": conversation.agent.style_icon,
             "persona": conversation.agent.personality,
         }
 
