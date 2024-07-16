@@ -128,7 +128,7 @@ export default function NavMenu(props: NavMenuProps) {
                                 <DropdownMenuSeparator />
                                 <DropdownMenuLabel>Profile</DropdownMenuLabel>
                                 <DropdownMenuItem>
-                                    <Link href="/config">Settings</Link>
+                                    <Link href="/configure">Configure</Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem>
                                     <Link href="https://docs.khoj.dev">Help</Link>
@@ -172,8 +172,8 @@ export default function NavMenu(props: NavMenuProps) {
                                 {userData &&
                                     <>
                                         <MenubarItem>
-                                            <Link href="/config">
-                                                Settings
+                                            <Link href="/configure">
+                                                Configure
                                             </Link>
                                         </MenubarItem>
                                         <MenubarSeparator />

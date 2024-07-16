@@ -34,4 +34,4 @@ For specific integrations, see our [Ollama](/advanced/ollama), [LMStudio](/advan
 5. Create a new [Server Chat Setting](http://localhost:42110/server/admin/database/serverchatsettings/add/) on your Khoj admin panel
    - Default model: `<name of chat model option you created in step 4>`
    - Summarizer model: `<name of chat model option you created in step 4>`
-6. Go to [your config](http://localhost:42110/config) and select the model you just created in the chat model dropdown.
+6. Go to [your config](http://localhost:42110/configure) and select the model you just created in the chat model dropdown.

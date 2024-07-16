@@ -138,7 +138,7 @@ def agent_page(request: Request, agent_slug: str):
     return templates.TemplateResponse("agent.html", context=user_config)
 
 
-@web_client.get("/config", response_class=HTMLResponse)
+@web_client.get("/configure", response_class=HTMLResponse)
 @requires(["authenticated"], redirect="login_page")
 def config_page(request: Request):
     user: KhojUser = request.user.object
@@ -147,7 +147,7 @@ def config_page(request: Request):
     return templates.TemplateResponse("config.html", context=user_config)
 
 
-@web_client.get("/config/content-source/github", response_class=HTMLResponse)
+@web_client.get("/configure/content/github", response_class=HTMLResponse)
 @requires(["authenticated"], redirect="login_page")
 def github_config_page(request: Request):
     user = request.user.object
@@ -177,7 +177,7 @@ def github_config_page(request: Request):
     return templates.TemplateResponse("content_source_github_input.html", context=user_config)
 
 
-@web_client.get("/config/content-source/notion", response_class=HTMLResponse)
+@web_client.get("/configure/content/notion", response_class=HTMLResponse)
 @requires(["authenticated"], redirect="login_page")
 def notion_config_page(request: Request):
     user = request.user.object
@@ -192,7 +192,7 @@ def notion_config_page(request: Request):
     return templates.TemplateResponse("content_source_notion_input.html", context=user_config)
 
 
-@web_client.get("/config/content-source/computer", response_class=HTMLResponse)
+@web_client.get("/configure/content/computer", response_class=HTMLResponse)
 @requires(["authenticated"], redirect="login_page")
 def computer_config_page(request: Request):
     user = request.user.object if request.user.is_authenticated else None

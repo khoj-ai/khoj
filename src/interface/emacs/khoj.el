@@ -99,7 +99,7 @@
   :type 'boolean)
 
 (defcustom khoj-api-key nil
-  "API Key to your Khoj. Default at https://app.khoj.dev/config#clients."
+  "API Key to your Khoj. Default at https://app.khoj.dev/configure#clients."
   :group 'khoj
   :type 'string)
 
