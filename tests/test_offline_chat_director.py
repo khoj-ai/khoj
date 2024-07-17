@@ -45,7 +45,6 @@ def create_conversation(message_list, user, agent=None):
 
 # Tests
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
 @pytest.mark.django_db(transaction=True)
 def test_offline_chat_with_no_chat_history_or_retrieved_content(client_offline_chat):
@@ -179,10 +178,6 @@ def test_answer_from_chat_history_and_previously_retrieved_content(client_offlin
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.xfail(
-    AssertionError,
-    reason="Chat director not capable of answering this question yet because it requires extract_questions",
-)
 @pytest.mark.chatquality
 @pytest.mark.django_db(transaction=True)
 def test_answer_from_chat_history_and_currently_retrieved_content(client_offline_chat, default_user2):
