@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-import { ArrowRight } from "@phosphor-icons/react";
+import { ArrowRight, ChatCircleText, Key, Palette, SpeakerHigh, UserCircle } from "@phosphor-icons/react";
 
 import NavMenu from "../components/navMenu/navMenu";
 import SidePanel from "../components/sidePanel/chatHistorySidePanel";
@@ -32,7 +32,7 @@ interface DropdownComponentProps {
     selected: number;
 }
 
-const DropdownComponent: React.FC<DropdownComponentProps> = ({items, selected}) => {
+const DropdownComponent: React.FC<DropdownComponentProps> = ({ items, selected }) => {
     const [position, setPosition] = useState(selected?.toString() ?? "0");
 
     return !!selected && (
@@ -92,7 +92,7 @@ export default function SettingsView() {
                                 <div className="text-4xl">Profile</div>
                                 <div className="cards flex flex-wrap gap-16">
                                     <Card className={cardClassName}>
-                                        <CardHeader className="text-xl">Name</CardHeader>
+                                        <CardHeader className="text-xl flex flex-row"><UserCircle className="h-7 w-7 mr-2"/>Name</CardHeader>
                                         <CardContent className="overflow-hidden">
                                             <input type="text" className="w-full border border-gray-300 rounded-lg p-4" defaultValue={userConfig.given_name} />
                                         </CardContent>
@@ -106,7 +106,7 @@ export default function SettingsView() {
                                 <div className="text-4xl">Content</div>
                                 <div className="cards flex flex-wrap gap-16">
                                     <Card className={cardClassName}>
-                                        <CardHeader className="text-xl">Files</CardHeader>
+                                        <CardHeader className="text-xl flex flex-row">Files</CardHeader>
                                         <CardContent className="overflow-hidden">
                                             Manage your synced files
                                         </CardContent>
@@ -116,7 +116,7 @@ export default function SettingsView() {
                                         </CardFooter>
                                     </Card>
                                     <Card className={cardClassName}>
-                                        <CardHeader className="text-xl">Github</CardHeader>
+                                        <CardHeader className="text-xl flex flex-row">Github</CardHeader>
                                         <CardContent className="overflow-hidden">
                                             Set repositories to index
                                         </CardContent>
@@ -126,7 +126,7 @@ export default function SettingsView() {
                                         </CardFooter>
                                     </Card>
                                     <Card className={cardClassName}>
-                                        <CardHeader className="text-xl">Notion</CardHeader>
+                                        <CardHeader className="text-xl flex flex-row">Notion</CardHeader>
                                         <CardContent className="overflow-hidden">
                                             Sync your Notion pages
                                         </CardContent>
@@ -136,7 +136,7 @@ export default function SettingsView() {
                                         </CardFooter>
                                     </Card>
                                     <Card className={cardClassName}>
-                                        <CardHeader className="text-xl">Language</CardHeader>
+                                        <CardHeader className="text-xl flex flex-row">Language</CardHeader>
                                         <CardContent className="overflow-hidden">
                                             <DropdownComponent
                                                 items={userConfig.search_model_options}
@@ -153,7 +153,7 @@ export default function SettingsView() {
                                 <div className="text-4xl">Features</div>
                                 <div className="cards flex flex-wrap gap-16">
                                     <Card className={cardClassName}>
-                                        <CardHeader className="text-xl">Chat</CardHeader>
+                                        <CardHeader className="text-xl flex flex-row"><ChatCircleText className="h-7 w-7 mr-2"/>Chat</CardHeader>
                                         <CardContent className="overflow-hidden">
                                             <DropdownComponent
                                                 items={userConfig.chat_model_options}
@@ -161,11 +161,11 @@ export default function SettingsView() {
                                             />
                                         </CardContent>
                                         <CardFooter className="flex flex-wrap gap-4">
-                                            <Button variant="outline" size="sm" className="border-green-400">Save</Button>
+                                            <Button variant="outline" size="sm" className="border-green-400" onClick={updateSearchModel}>Save</Button>
                                         </CardFooter>
                                     </Card>
                                     <Card className={cardClassName}>
-                                        <CardHeader className="text-xl">Paint</CardHeader>
+                                        <CardHeader className="text-xl flex flex-row"><Palette className="h-7 w-7 mr-2"/>Paint</CardHeader>
                                         <CardContent className="overflow-hidden">
                                             <DropdownComponent
                                                 items={userConfig.paint_model_options}
@@ -177,7 +177,7 @@ export default function SettingsView() {
                                         </CardFooter>
                                     </Card>
                                     <Card className={cardClassName}>
-                                        <CardHeader className="text-xl">Voice</CardHeader>
+                                        <CardHeader className="text-xl flex flex-row"><SpeakerHigh className="h-7 w-7 mr-2"/>Voice</CardHeader>
                                         <CardContent className="overflow-hidden">
                                             <DropdownComponent
                                                 items={userConfig.voice_model_options}
