@@ -105,10 +105,10 @@ Run the following command in your terminal to install the Khoj server.
     <TabItem value="macos" label="MacOS">
     ```shell
 # ARM/M1+ Machines
-MAKE_ARGS="-DLLAMA_METAL=on" python -m pip install khoj-assistant
+MAKE_ARGS="-DLLAMA_METAL=on" python -m pip install khoj
 
 # Intel Machines
-python -m pip install khoj-assistant
+python -m pip install khoj
     ```
     </TabItem>
     <TabItem value="win" label="Windows">
@@ -122,19 +122,19 @@ python -m pip install khoj-assistant
  $env:CMAKE_ARGS = "-DLLAMA_VULKAN=on"
 
  # 2. Install Khoj
- py -m pip install khoj-assistant
+ py -m pip install khoj
       ```
     </TabItem>
     <TabItem value="unix" label="Linux">
       ```shell
  # CPU
- python -m pip install khoj-assistant
+ python -m pip install khoj
  # NVIDIA (CUDA) GPU
- CMAKE_ARGS="DLLAMA_CUDA=on" FORCE_CMAKE=1 python -m pip install khoj-assistant
+ CMAKE_ARGS="DLLAMA_CUDA=on" FORCE_CMAKE=1 python -m pip install khoj
  # AMD (ROCm) GPU
- CMAKE_ARGS="-DLLAMA_HIPBLAS=on" FORCE_CMAKE=1 python -m pip install khoj-assistant
+ CMAKE_ARGS="-DLLAMA_HIPBLAS=on" FORCE_CMAKE=1 python -m pip install khoj
  # VULCAN GPU
- CMAKE_ARGS="-DLLAMA_VULKAN=on" FORCE_CMAKE=1 python -m pip install khoj-assistant
+ CMAKE_ARGS="-DLLAMA_VULKAN=on" FORCE_CMAKE=1 python -m pip install khoj
       ```
     </TabItem>
   </Tabs>
@@ -257,7 +257,7 @@ Set the host URL on your clients settings page to your Khoj server URL. By defau
   <Tabs groupId="environment">
     <TabItem value="localsetup" label="Local Setup">
       ```shell
-      pip install --upgrade khoj-assistant
+      pip install --upgrade khoj
       ```
       *Note: To upgrade to the latest pre-release version of the khoj server run below command*
     </TabItem>
@@ -285,7 +285,7 @@ Set the host URL on your clients settings page to your Khoj server URL. By defau
     <TabItem value="localsetup" label="Local Setup">
     ```shell
     # uninstall khoj server
-    pip uninstall khoj-assistant
+    pip uninstall khoj
 
     # delete khoj postgres db
     dropdb khoj -U postgres
@@ -318,13 +318,13 @@ Set the host URL on your clients settings page to your Khoj server URL. By defau
   1. Install [pipx](https://pypa.github.io/pipx/#install-pipx)
   2. Use `pipx` to install Khoj to avoid dependency conflicts with other python packages.
      ```shell
-     pipx install khoj-assistant
+     pipx install khoj
      ```
   3. Now start `khoj` using the standard steps described earlier
 
 
 #### Install fails while building Tokenizer dependency
-- **Details**: `pip install khoj-assistant` fails while building the `tokenizers` dependency. Complains about Rust.
+- **Details**: `pip install khoj` fails while building the `tokenizers` dependency. Complains about Rust.
 - **Fix**: Install Rust to build the tokenizers package. For example on Mac run:
     ```shell
     brew install rustup

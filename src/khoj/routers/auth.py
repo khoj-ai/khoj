@@ -41,7 +41,7 @@ if not state.anonymous_mode:
         from google.auth.transport import requests as google_requests
         from google.oauth2 import id_token
     except ImportError:
-        missing_requirements += ["Install the Khoj production package with `pip install khoj-assistant[prod]`"]
+        missing_requirements += ["Install the Khoj production package with `pip install khoj[prod]`"]
     if not os.environ.get("RESEND_API_KEY") and (
         not os.environ.get("GOOGLE_CLIENT_ID") or not os.environ.get("GOOGLE_CLIENT_SECRET")
     ):
