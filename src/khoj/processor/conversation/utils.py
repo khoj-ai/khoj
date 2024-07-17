@@ -186,7 +186,7 @@ def generate_chatml_messages_with_context(
 
 def truncate_messages(
     messages: list[ChatMessage],
-    max_prompt_size,
+    max_prompt_size: int,
     model_name: str,
     loaded_model: Optional[Llama] = None,
     tokenizer_name=None,
@@ -232,7 +232,8 @@ def truncate_messages(
     tokens = sum([len(encoder.encode(message.content)) for message in messages if type(message.content) == str])
 
     # Drop older messages until under max supported prompt size by model
-    while (tokens + system_message_tokens) > max_prompt_size and len(messages) > 1:
+    # Reserves 4 tokens to demarcate each message (e.g <|im_start|>user, <|im_end|>, <|endoftext|> etc.)
+    while (tokens + system_message_tokens + 4 * len(messages)) > max_prompt_size and len(messages) > 1:
         messages.pop()
         tokens = sum([len(encoder.encode(message.content)) for message in messages if type(message.content) == str])
 
