@@ -317,7 +317,7 @@ async def extract_references_and_questions(
 
     filters_in_query += " ".join([f'file:"{filter}"' for filter in conversation.file_filters])
     using_offline_chat = False
-    print(f"Filters in query: {filters_in_query}")
+    logger.debug(f"Filters in query: {filters_in_query}")
 
     # Infer search queries from user message
     with timer("Extracting search queries took", logger):

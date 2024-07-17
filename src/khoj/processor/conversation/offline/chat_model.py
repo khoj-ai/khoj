@@ -55,6 +55,7 @@ def extract_questions_offline(
                 chat_history += f"Q: {chat['intent']['query']}\n"
                 chat_history += f"Khoj: {chat['message']}\n\n"
 
+    # Get dates relative to today for prompt creation
     today = datetime.today()
     yesterday = (today - timedelta(days=1)).strftime("%Y-%m-%d")
     last_year = today.year - 1
@@ -62,11 +63,13 @@ def extract_questions_offline(
         query=text,
         chat_history=chat_history,
         current_date=today.strftime("%Y-%m-%d"),
+        day_of_week=today.strftime("%A"),
         yesterday_date=yesterday,
         last_year=last_year,
         this_year=today.year,
         location=location,
     )
+
     messages = generate_chatml_messages_with_context(
         example_questions, model_name=model, loaded_model=offline_chat_model, max_prompt_size=max_prompt_size
     )
@@ -96,7 +99,7 @@ def extract_questions_offline(
     except:
         logger.warning(f"Llama returned invalid JSON. Falling back to using user message as search query.\n{response}")
         return all_questions
-    logger.debug(f"Extracted Questions by Llama: {questions}")
+    logger.debug(f"Questions extracted by {model}: {questions}")
     return questions
 
 
@@ -144,14 +147,20 @@ def converse_offline(
     offline_chat_model = loaded_model or download_model(model, max_tokens=max_prompt_size)
     compiled_references_message = "\n\n".join({f"{item['compiled']}" for item in references})
 
-    current_date = datetime.now().strftime("%Y-%m-%d")
+    current_date = datetime.now()
 
     if agent and agent.personality:
         system_prompt = prompts.custom_system_prompt_offline_chat.format(
-            name=agent.name, bio=agent.personality, current_date=current_date
+            name=agent.name,
+            bio=agent.personality,
+            current_date=current_date.strftime("%Y-%m-%d"),
+            day_of_week=current_date.strftime("%A"),
         )
     else:
-        system_prompt = prompts.system_prompt_offline_chat.format(current_date=current_date)
+        system_prompt = prompts.system_prompt_offline_chat.format(
+            current_date=current_date.strftime("%Y-%m-%d"),
+            day_of_week=current_date.strftime("%A"),
+        )
 
     conversation_primer = prompts.query_prompt.format(query=user_query)
 
@@ -177,9 +186,9 @@ def converse_offline(
             if online_results[result].get("webpages"):
                 simplified_online_results[result] = online_results[result]["webpages"]
 
-        conversation_primer = f"{prompts.online_search_conversation.format(online_results=str(simplified_online_results))}\n{conversation_primer}"
+        conversation_primer = f"{prompts.online_search_conversation_offline.format(online_results=str(simplified_online_results))}\n{conversation_primer}"
     if not is_none_or_empty(compiled_references_message):
-        conversation_primer = f"{prompts.notes_conversation_offline.format(references=compiled_references_message)}\n{conversation_primer}"
+        conversation_primer = f"{prompts.notes_conversation_offline.format(references=compiled_references_message)}\n\n{conversation_primer}"
 
     # Setup Prompt with Primer or Conversation History
     messages = generate_chatml_messages_with_context(
@@ -191,6 +200,9 @@ def converse_offline(
         max_prompt_size=max_prompt_size,
         tokenizer_name=tokenizer_name,
     )
+
+    truncated_messages = "\n".join({f"{message.content[:70]}..." for message in messages})
+    logger.debug(f"Conversation Context for {model}: {truncated_messages}")
 
     g = ThreadedGenerator(references, online_results, completion_func=completion_func)
     t = Thread(target=llm_thread, args=(g, messages, offline_chat_model, max_prompt_size))
