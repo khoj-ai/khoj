@@ -15,6 +15,7 @@ import {
 import NavMenu from "../components/navMenu/navMenu";
 import SidePanel from "../components/sidePanel/chatHistorySidePanel";
 import Loading from "../components/loading/loading";
+import { ArrowRight } from "@phosphor-icons/react";
 
 
 interface CardComponentProps {
@@ -91,8 +92,8 @@ export default function SettingsView() {
                                             Manage your synced files
                                         </CardContent>
                                         <CardFooter className="flex gap-4">
-                                            <Button variant="outline" size="sm">Update</Button>
-                                            <Button variant="outline" size="sm">Disable</Button>
+                                            <Button variant="outline" size="sm">{userConfig?.enabled_content_source.computer ? "Update" : "Setup"} <ArrowRight className="inline ml-2" weight="bold"/></Button>
+                                            <Button variant="outline" size="sm" className={`${userConfig?.enabled_content_source.computer ? "" : "hidden"}`}>Disable</Button>
                                         </CardFooter>
                                     </Card>
                                     <Card className={cardClassName}>
@@ -101,8 +102,8 @@ export default function SettingsView() {
                                             Set repositories to index
                                         </CardContent>
                                         <CardFooter className="flex gap-4">
-                                            <Button variant="outline" size="sm">Setup</Button>
-                                            <Button variant="outline" size="sm">Sync</Button>
+                                            <Button variant="outline" size="sm">{userConfig?.enabled_content_source.github ? "Update" : "Setup"} <ArrowRight className="inline ml-2" weight="bold"/></Button>
+                                            <Button variant="outline" size="sm" className={`${userConfig?.enabled_content_source.github ? "" : "hidden"}`}>Disable</Button>
                                         </CardFooter>
                                     </Card>
                                     <Card className={cardClassName}>
@@ -111,8 +112,8 @@ export default function SettingsView() {
                                             Sync your Notion pages
                                         </CardContent>
                                         <CardFooter className="flex gap-4">
-                                            <Button variant="outline" size="sm">Setup</Button>
-                                            <Button variant="outline" size="sm">Sync</Button>
+                                            <Button variant="outline" size="sm">{userConfig?.enabled_content_source.notion ? "Update" : "Setup"} <ArrowRight className="inline ml-2" weight="bold"/></Button>
+                                            <Button variant="outline" size="sm" className={`${userConfig?.enabled_content_source.notion ? "" : "hidden"}`}>Disable</Button>
                                         </CardFooter>
                                     </Card>
                                     <Card className={cardClassName}>
