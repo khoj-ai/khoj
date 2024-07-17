@@ -1230,18 +1230,18 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
     )
     given_name = get_user_name(user)
 
-    enabled_content_source = set(EntryAdapters.get_unique_file_sources(user))
-    successfully_configured = {
-        "computer": ("computer" in enabled_content_source),
-        "github": ("github" in enabled_content_source),
-        "notion": ("notion" in enabled_content_source),
+    enabled_content_sources_set = set(EntryAdapters.get_unique_file_sources(user))
+    enabled_content_sources = {
+        "computer": ("computer" in enabled_content_sources_set),
+        "github": ("github" in enabled_content_sources_set),
+        "notion": ("notion" in enabled_content_sources_set),
     }
 
-    selected_conversation_config = ConversationAdapters.get_conversation_config(user)
-    conversation_options = ConversationAdapters.get_conversation_processor_options().all()
-    all_conversation_options = list()
-    for conversation_option in conversation_options:
-        all_conversation_options.append({"chat_model": conversation_option.chat_model, "id": conversation_option.id})
+    selected_chat_model_config = ConversationAdapters.get_conversation_config(user)
+    chat_models = ConversationAdapters.get_conversation_processor_options().all()
+    chat_model_options = list()
+    for chat_model in chat_models:
+        chat_model_options.append({"name": chat_model.chat_model, "id": chat_model.id})
 
     search_model_options = adapters.get_or_create_search_models().all()
     all_search_model_options = list()
@@ -1254,7 +1254,7 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
     paint_model_options = ConversationAdapters.get_text_to_image_model_options().all()
     all_paint_model_options = list()
     for paint_model in paint_model_options:
-        all_paint_model_options.append({"model_name": paint_model.model_name, "id": paint_model.id})
+        all_paint_model_options.append({"name": paint_model.model_name, "id": paint_model.id})
 
     notion_oauth_url = get_notion_auth_url(user)
 
@@ -1277,13 +1277,13 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
         "is_active": is_active,
         "has_documents": has_documents,
         "khoj_version": state.khoj_version,
-        "current_model_state": successfully_configured,
+        "enabled_content_source": enabled_content_sources,
         "anonymous_mode": state.anonymous_mode,
         "given_name": given_name,
         "search_model_options": all_search_model_options,
         "selected_search_model_config": current_search_model_option.id,
-        "conversation_options": all_conversation_options,
-        "selected_conversation_config": selected_conversation_config.id if selected_conversation_config else None,
+        "chat_model_options": chat_model_options,
+        "selected_chat_model_config": selected_chat_model_config.id if selected_chat_model_config else None,
         "paint_model_options": all_paint_model_options,
         "selected_paint_model_config": selected_paint_model_config.id if selected_paint_model_config else None,
         "user_photo": user_picture,

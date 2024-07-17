@@ -34,7 +34,7 @@
                     <h3 id="card-title-computer" class="card-title">
                         <span>Files</span>
                         <img id="configured-icon-computer"
-                            style="display: {% if not current_model_state.computer %}none{% endif %}"
+                            style="display: {% if not enabled_content_source.computer %}none{% endif %}"
                             class="configured-icon"
                             src="/static/assets/icons/confirm-icon.svg"
                             alt="Configured">
@@ -45,7 +45,7 @@
                 </div>
                 <div class="card-action-row">
                     <a class="card-button" href="/configure/content/computer">
-                        {% if current_model_state.computer %}
+                        {% if enabled_content_source.computer %}
                             Update
                         {% else %}
                             Setup
@@ -53,7 +53,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
                     </a>
                     <div id="clear-computer" class="card-action-row"
-                        style="display: {% if not current_model_state.computer %}none{% endif %}">
+                        style="display: {% if not enabled_content_source.computer %}none{% endif %}">
                         <button class="card-button" onclick="clearContentType('computer')">
                             Disable
                         </button>
@@ -69,7 +69,7 @@
                             class="configured-icon"
                             src="/static/assets/icons/confirm-icon.svg"
                             alt="Configured"
-                            style="display: {% if not current_model_state.github %}none{% endif %}">
+                            style="display: {% if not enabled_content_source.github %}none{% endif %}">
                     </h3>
                 </div>
                 <div class="card-description-row">
@@ -77,7 +77,7 @@
                 </div>
                 <div class="card-action-row">
                     <a class="card-button" href="/configure/content/github">
-                        {% if current_model_state.github %}
+                        {% if enabled_content_source.github %}
                             Update
                         {% else %}
                             Setup
@@ -86,7 +86,7 @@
                     </a>
                     <div id="clear-github"
                         class="card-action-row"
-                        style="display: {% if not current_model_state.github %}none{% endif %}">
+                        style="display: {% if not enabled_content_source.github %}none{% endif %}">
                         <button class="card-button" onclick="clearContentType('github')">
                             Disable
                         </button>
@@ -102,14 +102,14 @@
                             class="configured-icon"
                             src="/static/assets/icons/confirm-icon.svg"
                             alt="Configured"
-                            style="display: {% if not current_model_state.notion %}none{% endif %}">
+                            style="display: {% if not enabled_content_source.notion %}none{% endif %}">
                     </h3>
                 </div>
                 <div class="card-description-row">
                     <p class="card-description">Sync your Notion pages</p>
                 </div>
                 <div class="card-action-row">
-                    {% if current_model_state.notion %}
+                    {% if enabled_content_source.notion %}
                     <a class="card-button" href="/configure/content/notion">
                             Update
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
@@ -128,7 +128,7 @@
 
                     <div id="clear-notion"
                         class="card-action-row"
-                        style="display: {% if not current_model_state.notion %}none{% endif %}">
+                        style="display: {% if not enabled_content_source.notion %}none{% endif %}">
                         <button class="card-button" onclick="clearContentType('notion')">
                             Disable
                         </button>
@@ -181,8 +181,8 @@
                 </div>
                 <div class="card-description-row">
                     <select id="chat-models">
-                        {% for option in conversation_options %}
-                            <option value="{{ option.id }}" {% if option.id == selected_conversation_config %}selected{% endif %}>{{ option.chat_model }}</option>
+                        {% for option in chat_model_options %}
+                            <option value="{{ option.id }}" {% if option.id == selected_chat_model_config %}selected{% endif %}>{{ option.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -208,7 +208,7 @@
                 <div class="card-description-row">
                     <select id="paint-models">
                         {% for option in paint_model_options %}
-                            <option value="{{ option.id }}" {% if option.id == selected_paint_model_config %}selected{% endif %}>{{ option.model_name }}</option>
+                            <option value="{{ option.id }}" {% if option.id == selected_paint_model_config %}selected{% endif %}>{{ option.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
